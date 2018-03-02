@@ -1,0 +1,122 @@
+package com.arcadedb.serializer;
+
+import com.arcadedb.database.PBinary;
+import com.arcadedb.database.PRID;
+import com.arcadedb.exception.PDatabaseMetadataException;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+public class PBinaryTypes {
+  public final static byte TYPE_NULL     = 0;
+  public final static byte TYPE_STRING   = 1;
+  public final static byte TYPE_BYTE     = 2;
+  public final static byte TYPE_SHORT    = 3;
+  public final static byte TYPE_INT      = 4;
+  public final static byte TYPE_LONG     = 5;
+  public final static byte TYPE_FLOAT    = 6;
+  public final static byte TYPE_DOUBLE   = 7;
+  public final static byte TYPE_DATE     = 8;
+  public final static byte TYPE_DATETIME = 9;
+  public final static byte TYPE_DECIMAL  = 10;
+  public final static byte TYPE_BOOLEAN  = 11;
+  public final static byte TYPE_BINARY   = 12;
+  public final static byte TYPE_RID      = 13;
+
+  public static byte getTypeFromValue(final Object value) {
+    final byte type;
+
+    if (value == null)
+      type = TYPE_NULL;
+    else if (value instanceof String)
+      type = TYPE_STRING;
+    else if (value instanceof Byte)
+      type = TYPE_BYTE;
+    else if (value instanceof Short)
+      type = TYPE_SHORT;
+    else if (value instanceof Integer)
+      type = TYPE_INT;
+    else if (value instanceof Long)
+      type = TYPE_LONG;
+    else if (value instanceof Float)
+      type = TYPE_FLOAT;
+    else if (value instanceof Double)
+      type = TYPE_DOUBLE;
+    else if (value instanceof Date) // CAN'T DETERMINE IF DATE OR DATETIME, USE DATETIME
+      type = TYPE_DATETIME;
+    else if (value instanceof BigDecimal)
+      type = TYPE_DECIMAL;
+    else if (value instanceof Boolean)
+      type = TYPE_BOOLEAN;
+    else if (value instanceof byte[])
+      type = TYPE_BINARY;
+    else if (value instanceof PRID)
+      type = TYPE_RID;
+    else
+      throw new PDatabaseMetadataException("Cannot serialize value '" + value + "' of type " + value.getClass());
+
+    return type;
+  }
+
+  public static int getTypeSize(final byte type) {
+    switch (type) {
+    case PBinaryTypes.TYPE_INT:
+      return PBinary.INT_SERIALIZED_SIZE;
+
+    case PBinaryTypes.TYPE_SHORT:
+      return PBinary.SHORT_SERIALIZED_SIZE;
+
+    case PBinaryTypes.TYPE_LONG:
+    case PBinaryTypes.TYPE_DATETIME:
+    case PBinaryTypes.TYPE_DATE:
+      return PBinary.LONG_SERIALIZED_SIZE;
+
+    case PBinaryTypes.TYPE_BYTE:
+      return PBinary.BYTE_SERIALIZED_SIZE;
+
+    case PBinaryTypes.TYPE_DECIMAL:
+
+    case PBinaryTypes.TYPE_FLOAT:
+      return PBinary.FLOAT_SERIALIZED_SIZE;
+
+    case PBinaryTypes.TYPE_DOUBLE:
+      return PBinary.DOUBLE_SERIALIZED_SIZE;
+
+    default:
+      return -1;
+    }
+  }
+
+  public static byte getTypeFromClass(final Class clazz) {
+    final byte type;
+
+    if (clazz == String.class)
+      type = TYPE_STRING;
+    else if (clazz == Byte.class)
+      type = TYPE_BYTE;
+    else if (clazz == Short.class)
+      type = TYPE_SHORT;
+    else if (clazz == Integer.class)
+      type = TYPE_INT;
+    else if (clazz == Long.class)
+      type = TYPE_LONG;
+    else if (clazz == Float.class)
+      type = TYPE_FLOAT;
+    else if (clazz == Double.class)
+      type = TYPE_DOUBLE;
+    else if (clazz == Date.class) // CAN'T DETERMINE IF DATE OR DATETIME, USE DATETIME
+      type = TYPE_DATETIME;
+    else if (clazz == BigDecimal.class)
+      type = TYPE_DECIMAL;
+    else if (clazz == Boolean.class)
+      type = TYPE_BOOLEAN;
+    else if (clazz == byte[].class)
+      type = TYPE_BINARY;
+    else if (clazz == PRID.class)
+      type = TYPE_RID;
+    else
+      throw new PDatabaseMetadataException("Cannot find type for class '" + clazz + "'");
+
+    return type;
+  }
+}
