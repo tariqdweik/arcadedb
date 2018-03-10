@@ -3,7 +3,7 @@ package com.arcadedb.engine;
 /**
  * Immutable.
  */
-public class PPageId {
+public class PPageId implements Comparable<PPageId> {
   private int fileId;
   private int pageNumber;
 
@@ -44,5 +44,25 @@ public class PPageId {
   @Override
   public String toString() {
     return "fileId=" + fileId + " pageNumber=" + pageNumber;
+  }
+
+  @Override
+  public int compareTo(final PPageId o) {
+    if( o == this )
+      return 0;
+
+    if (!(o instanceof PPageId))
+      throw new IllegalArgumentException("cannot compare a page id with " + o.getClass());
+
+    if (fileId > o.fileId)
+      return 1;
+    else if (fileId < o.fileId)
+      return -1;
+
+    if (pageNumber > o.pageNumber)
+      return 1;
+    else if (pageNumber < o.pageNumber)
+      return -1;
+    return 0;
   }
 }

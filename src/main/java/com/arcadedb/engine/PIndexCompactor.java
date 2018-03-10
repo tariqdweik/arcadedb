@@ -1,5 +1,6 @@
 package com.arcadedb.engine;
 
+import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PRID;
 import com.arcadedb.schema.PSchemaImpl;
@@ -28,60 +29,93 @@ public class PIndexCompactor {
 
     final byte[] keyTypes = index.getKeyTypes();
 
-    final PIndexIterator[] iterators = new PIndexIterator[totalPages];
-    for (int i = 0; i < totalPages; ++i)
-      iterators[i] = index.newIterator(i);
+    final long indexCompactionRAM = PGlobalConfiguration.INDEX_COMPACTION_RAM.getValueAsLong() * 1024;
 
-    final Object[][] keys = new Object[totalPages][keyTypes.length];
+    long loops = 0;
+    long totalKeys = 0;
 
-    for (int p = 0; p < totalPages; ++p) {
-      if (iterators[p].hasNext())
-        keys[p] = iterators[p].getKeys();
+    final PBinary keyValueContent = new PBinary();
+
+    int pagesToCompact = 0;
+    for (int pageIndex = 0; pageIndex < totalPages; ) {
+
+      if ((totalPages - pageIndex) * index.getPageSize() > indexCompactionRAM)
+        pagesToCompact = (int) (indexCompactionRAM / index.getPageSize());
       else
-        keys[p] = null;
-    }
+        pagesToCompact = totalPages - pageIndex;
 
-    final PBinarySerializer serializer = index.database.getSerializer();
-    final PBinaryComparator comparator = serializer.getComparator();
+      final PIndexIterator[] iterators = new PIndexIterator[pagesToCompact];
+      for (int i = 0; i < pagesToCompact; ++i)
+        iterators[i] = index.newIterator(pageIndex + i);
 
-    PModifiablePage lastPage = null;
-    PBinary currentPageBuffer = null;
+      final Object[][] keys = new Object[pagesToCompact][keyTypes.length];
 
-    boolean moreItems = true;
-    int loops = 0;
-    for (; moreItems; ++loops) {
-      moreItems = false;
-
-      Object[] minorKey = null;
-      int minorKeyIndex = -1;
-
-      // FIND THE MINOR KEY
-      for (int p = 0; p < totalPages; ++p) {
-        if (minorKey == null) {
-          minorKey = keys[p];
-          minorKeyIndex = p;
-        } else {
-          if (keys[p] != null) {
-            moreItems = true;
-            if (compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
-              minorKey = keys[p];
-              minorKeyIndex = p;
-            }
-          }
+      for (int p = 0; p < pagesToCompact; ++p) {
+        if (iterators[p].hasNext())
+          keys[p] = iterators[p].getKeys();
+        else {
+          iterators[p].close();
+          iterators[p] = null;
+          keys[p] = null;
         }
       }
 
-      final Object value = iterators[minorKeyIndex].getValue();
-      final PModifiablePage newPage = newIndex.appendDuringCompaction(lastPage, currentPageBuffer, minorKey, (PRID) value);
-      if (lastPage == null)
-        currentPageBuffer = new PBinary(newPage.slice());
-      lastPage = newPage;
+      final PBinarySerializer serializer = index.database.getSerializer();
+      final PBinaryComparator comparator = serializer.getComparator();
 
-      if (iterators[minorKeyIndex].hasNext()) {
-        iterators[minorKeyIndex].next();
-        keys[minorKeyIndex] = iterators[minorKeyIndex].getKeys();
-      } else
-        keys[minorKeyIndex] = null;
+      PModifiablePage lastPage = null;
+      PBinary currentPageBuffer = null;
+
+      boolean moreItems = true;
+      for (; moreItems; ++loops) {
+        moreItems = false;
+
+        Object[] minorKey = null;
+        int minorKeyIndex = -1;
+
+        // FIND THE MINOR KEY
+        for (int p = 0; p < pagesToCompact; ++p) {
+          if (minorKey == null) {
+            minorKey = keys[p];
+            minorKeyIndex = p;
+          } else {
+            if (keys[p] != null) {
+              moreItems = true;
+              if (compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+                minorKey = keys[p];
+                minorKeyIndex = p;
+              }
+            }
+          }
+        }
+
+        final Object value = iterators[minorKeyIndex].getValue();
+        final PModifiablePage newPage = newIndex
+            .appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, (PRID) value);
+        if (newPage != lastPage) {
+          currentPageBuffer = new PBinary(newPage.slice());
+          lastPage = newPage;
+        }
+
+        ++totalKeys;
+
+        if (totalKeys % 1000000 == 0)
+          PLogManager.instance().info(this, "- keys %d - loops %d - page %s", totalKeys, loops, newPage);
+
+        if (iterators[minorKeyIndex].hasNext()) {
+          iterators[minorKeyIndex].next();
+          keys[minorKeyIndex] = iterators[minorKeyIndex].getKeys();
+        } else {
+          iterators[minorKeyIndex].close();
+          iterators[minorKeyIndex] = null;
+          keys[minorKeyIndex] = null;
+        }
+      }
+
+      index.database.commit();
+      index.database.begin();
+
+      pageIndex += pagesToCompact;
     }
 
     // SWAP OLD WITH NEW INDEX
@@ -89,8 +123,6 @@ public class PIndexCompactor {
     ((PSchemaImpl) index.database.getSchema()).swapIndexes(index, newIndex);
 
     index.database.commit();
-
-    newIndex.flush();
 
     PLogManager.instance().info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index,
         newIndex.getTotalPages(), loops);

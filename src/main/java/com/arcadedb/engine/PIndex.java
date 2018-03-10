@@ -29,6 +29,7 @@ public class PIndex extends PPaginatedFile {
 
   private byte[] keyTypes;
   private byte   valueType;
+  private volatile boolean compacting = false;
 
   private class LookupResult {
     public final boolean found;
@@ -56,20 +57,20 @@ public class PIndex extends PPaginatedFile {
   }
 
   /**
-   * Called at compaction time.
+   * Called at cloning time.
    */
-  public PIndex(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode,
-      final byte[] keyTypes, final byte valueType) throws IOException {
-    super(database, name, filePath, id, PIndex.INDEX_EXT, mode);
+  public PIndex(final PDatabase database, final String name, String filePath, final byte[] keyTypes, final byte valueType)
+      throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndex.INDEX_EXT, PFile.MODE.READ_WRITE);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
     database.checkTransactionIsActive();
     PModifiablePage page = createNewPage();
-    page.writeByte(BYTE_SERIALIZED_SIZE, (byte) 1); // DURING COMPACTION, VALUES ARE ORDERED
+    page.writeByte(BYTE_SERIALIZED_SIZE, (byte) 0); // VALUES NOT ORDERED BY DEFAULT
   }
 
   /**
-   * Called at load time.
+   * /** Called at load time.
    */
   public PIndex(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode)
       throws IOException {
@@ -85,13 +86,31 @@ public class PIndex extends PPaginatedFile {
   }
 
   public PIndex copy() throws IOException {
-    final String newName = name + "-temp";
-    return new PIndex(database, newName, database.getDatabasePath() + "/" + newName, PFile.MODE.READ_WRITE, keyTypes, valueType);
+    int last_ = name.lastIndexOf('_');
+    final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
+    return new PIndex(database, newName, database.getDatabasePath() + "/" + newName, keyTypes, valueType);
+  }
+
+  public void removeTempSuffix() {
+
+  }
+
+  public void compact() throws IOException {
+    if (compacting)
+      throw new IllegalStateException("Index '" + name + "' is already compacting");
+
+    compacting = true;
+    try {
+      final PIndexCompactor compactor = new PIndexCompactor(this);
+      compactor.compact();
+    } finally {
+      compacting = false;
+    }
   }
 
   public PIndexIterator newIterator(final int pageId) throws IOException {
     final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), PIndex.PAGE_SIZE);
-    return new PIndexIterator(this, new PBinary(page.slice()), getHeaderSize(), keyTypes, getCount(page));
+    return new PIndexIterator(this, page, getHeaderSize(), keyTypes, getCount(page));
   }
 
   public PRID get(final Object[] keys) {
@@ -180,8 +199,8 @@ public class PIndex extends PPaginatedFile {
     }
   }
 
-  public PModifiablePage appendDuringCompaction(PModifiablePage currentPage, PBinary currentPageBuffer, final Object[] keys,
-      final PRID rid) {
+  public PModifiablePage appendDuringCompaction(final PBinary keyValueContent, PModifiablePage currentPage,
+      PBinary currentPageBuffer, final Object[] keys, final PRID rid) {
     if (currentPage == null) {
 
       Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
@@ -199,8 +218,8 @@ public class PIndex extends PPaginatedFile {
 
     int count = getCount(currentPage);
 
-    // WRITE KEY/VALUE PAIRS FIRST
-    final PBinary keyValueContent = new PBinary();
+    keyValueContent.reset();
+
     // MULTI KEYS
     for (int i = 0; i < keyTypes.length; ++i)
       database.getSerializer().serializeValue(keyValueContent, keyTypes[i], keys[i]);
@@ -252,7 +271,7 @@ public class PIndex extends PPaginatedFile {
   }
 
   @Override
-  protected long getPageSize() {
+  protected int getPageSize() {
     return PAGE_SIZE;
   }
 

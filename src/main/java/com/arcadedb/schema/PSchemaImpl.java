@@ -303,7 +303,11 @@ public class PSchemaImpl implements PSchema {
   }
 
   public void swapIndexes(final PIndex oldIndex, final PIndex newIndex) throws IOException {
-    indexMap.put(oldIndex.getName(), newIndex);
+    newIndex.flush();
+
+    indexMap.remove(oldIndex.getName());
+
+    indexMap.put(newIndex.getName(), newIndex);
 
     // SCAN ALL THE TYPES TO FIND WHERE THE INDEX WAS DEFINED TO REPLACE IT
     for (PType t : getTypes()) {
@@ -316,6 +320,8 @@ public class PSchemaImpl implements PSchema {
         }
       }
     }
+
+    newIndex.removeTempSuffix();
 
     oldIndex.drop();
   }

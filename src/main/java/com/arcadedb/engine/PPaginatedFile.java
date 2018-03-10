@@ -35,7 +35,7 @@ public abstract class PPaginatedFile {
       pageCount = (int) (file.getSize() / getPageSize());
   }
 
-  protected abstract long getPageSize();
+  protected abstract int getPageSize();
 
   public void onAfterCommit(final int value) {
     assert value > pageCount;

@@ -69,7 +69,7 @@ public class PDictionary extends PPaginatedFile {
   }
 
   @Override
-  protected long getPageSize() {
+  protected int getPageSize() {
     return PAGE_SIZE;
   }
 

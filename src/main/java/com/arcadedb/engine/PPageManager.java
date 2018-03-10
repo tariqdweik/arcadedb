@@ -102,6 +102,13 @@ public class PPageManager extends PLockContext {
         it.remove();
       }
     }
+    for (Iterator<PImmutablePage> it = pageMap.values().iterator(); it.hasNext(); ) {
+      final PImmutablePage p = it.next();
+      if (p.getPageId().getFileId() == fileId) {
+        totalImmutablePagesRAM.addAndGet(-1 * p.getPhysicalSize());
+        it.remove();
+      }
+    }
   }
 
   public PBasePage getPage(final PPageId pageId, final int size) throws IOException {
@@ -220,14 +227,22 @@ public class PPageManager extends PLockContext {
 //    if (PLogManager.instance().isDebugEnabled())
     PLogManager.instance()
         .info(this, "Freeing RAM (target=%d, current %d > %d max, modifiedPagesRAM=%d)", ramToFree, totalRAM, maxRAM,
-            totalModifiedPagesRAM);
+            totalModifiedPagesRAM.get());
 
     // GET THE <DISPOSE_PAGES_PER_CYCLE> OLDEST PAGES
     long oldestPagesRAM = 0;
     final TreeSet<PBasePage> oldestPages = new TreeSet<PBasePage>(new Comparator<PBasePage>() {
       @Override
       public int compare(final PBasePage o1, final PBasePage o2) {
-        return Long.compare(o1.getLastAccessed(), o2.getLastAccessed());
+        final int lastAccessed = Long.compare(o1.getLastAccessed(), o2.getLastAccessed());
+        if (lastAccessed != 0)
+          return lastAccessed;
+
+        final int pageSize = Long.compare(o1.getPhysicalSize(), o2.getPhysicalSize());
+        if (pageSize != 0)
+          return pageSize;
+
+        return o1.getPageId().compareTo(o2.getPageId());
       }
     });
 
@@ -285,20 +300,23 @@ public class PPageManager extends PLockContext {
           PLogManager.instance().error(this, "Error on flushing page", e);
         }
 
-        if (modifiedPages.remove(page.pageId) != null) {
+        final boolean removed = modifiedPages.remove(page.pageId) != null;
+        if (removed) {
           freedRAM += page.getPhysicalSize();
           totalModifiedPagesRAM.addAndGet(-1 * page.getPhysicalSize());
         }
       }
     }
 
-    if (PLogManager.instance().isDebugEnabled())
-      PLogManager.instance().debug(this, "Freed %d RAM (current %d > %d max, modifiedPagesRAM=%d)", freedRAM, totalRAM, maxRAM,
-          totalModifiedPagesRAM);
+    final long newTotalRAM = totalImmutablePagesRAM.get() + totalModifiedPagesRAM.get();
 
-    if (totalRAM > maxRAM) {
-      PLogManager.instance().warn(this, "Cannot free pages in RAM (current %d > %d max, modifiedPagesRAM=%d)", totalRAM, maxRAM,
-          totalModifiedPagesRAM);
+    if (PLogManager.instance().isDebugEnabled())
+      PLogManager.instance().debug(this, "Freed %d RAM (current %d > %d max, modifiedPagesRAM=%d)", freedRAM, newTotalRAM, maxRAM,
+          totalModifiedPagesRAM.get());
+
+    if (newTotalRAM > maxRAM) {
+      PLogManager.instance().warn(this, "Cannot free pages in RAM (current %d > %d max, modifiedPagesRAM=%d)", newTotalRAM, maxRAM,
+          totalModifiedPagesRAM.get());
     }
   }
 

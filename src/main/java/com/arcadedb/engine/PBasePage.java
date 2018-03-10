@@ -181,6 +181,6 @@ public abstract class PBasePage {
 
   @Override
   public String toString() {
-    return pageId.toString();
+    return pageId.toString() + " v=" + version;
   }
 }

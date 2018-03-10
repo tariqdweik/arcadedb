@@ -4,11 +4,14 @@ import com.arcadedb.database.PBinary;
 import com.arcadedb.serializer.PBinarySerializer;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 
 public class PIndexIterator {
   private final PIndex            index;
+  private final PPageId           pageId;
   private final PBinary           buffer;
   private final byte[]            keyTypes;
   private final int               keyStartPosition;
@@ -20,10 +23,11 @@ public class PIndexIterator {
   private Object[] nextKeys;
   private Object   nextValue;
 
-  public PIndexIterator(final PIndex index, final PBinary buffer, final int keyStartPosition, final byte[] keyTypes,
+  public PIndexIterator(final PIndex index, final PBasePage page, final int keyStartPosition, final byte[] keyTypes,
       final int totalKeys) {
     this.index = index;
-    this.buffer = buffer;
+    this.pageId = page.getPageId();
+    this.buffer = new PBinary(page.slice());
     this.keyStartPosition = keyStartPosition;
     this.keyTypes = keyTypes;
     this.serializer = index.database.getSerializer();
@@ -64,5 +68,11 @@ public class PIndexIterator {
       nextValue = index.getValue(buffer, serializer, valuePosition);
     }
     return nextValue;
+  }
+
+  public void close() {
+    final List<PPageId> list = new ArrayList<PPageId>(1);
+    list.add(pageId);
+    index.database.getPageManager().addPagesToDispose(list);
   }
 }
