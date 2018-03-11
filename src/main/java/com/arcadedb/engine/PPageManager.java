@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Manages pages from disk to RAM. Each page can have different size.
+ * Manages pages from disk to RAM. Each page can have different size. TODO: check if the lock on flush is necessary
  */
 public class PPageManager extends PLockContext {
   private final PFileManager fileManager;
@@ -79,25 +79,6 @@ public class PPageManager extends PLockContext {
     for (Iterator<PModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
       final PModifiablePage p = it.next();
       if (p.getPageId().getFileId() == fileId) {
-        flushPage(p);
-        totalModifiedPagesRAM.addAndGet(-1 * p.getPhysicalSize());
-        it.remove();
-      }
-    }
-  }
-
-  public void flushFile(final int fileId) throws IOException {
-    for (Iterator<PModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
-      final PModifiablePage p = it.next();
-      if (p.getPageId().getFileId() == fileId)
-        flushPage(p);
-    }
-  }
-
-  public void dropFile(final int fileId) throws IOException {
-    for (Iterator<PModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
-      final PModifiablePage p = it.next();
-      if (p.getPageId().getFileId() == fileId) {
         totalModifiedPagesRAM.addAndGet(-1 * p.getPhysicalSize());
         it.remove();
       }
@@ -108,6 +89,14 @@ public class PPageManager extends PLockContext {
         totalImmutablePagesRAM.addAndGet(-1 * p.getPhysicalSize());
         it.remove();
       }
+    }
+  }
+
+  public void flushFile(final int fileId) throws IOException {
+    for (Iterator<PModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
+      final PModifiablePage p = it.next();
+      if (p.getPageId().getFileId() == fileId)
+        flushPage(p);
     }
   }
 
@@ -194,12 +183,12 @@ public class PPageManager extends PLockContext {
   }
 
   private PImmutablePage loadPage(final PPageId pageId, final int size) throws IOException {
-    if (System.currentTimeMillis() - lastCheckForRAM > 1000) {
-      disposePages();
+    if (System.currentTimeMillis() - lastCheckForRAM > 10) {
+      checkForPageDisposal();
       lastCheckForRAM = System.currentTimeMillis();
     }
 
-    PImmutablePage page = new PImmutablePage(this, pageId, size);
+    final PImmutablePage page = new PImmutablePage(this, pageId, size);
 
     final PFile file = fileManager.getFile(pageId.getFileId());
     file.read(page);
@@ -214,9 +203,7 @@ public class PPageManager extends PLockContext {
     return page;
   }
 
-  private void disposePages() {
-    removeCandidatePages();
-
+  private void checkForPageDisposal() {
     final long totalRAM = totalImmutablePagesRAM.get() + totalModifiedPagesRAM.get();
 
     if (totalRAM < maxRAM)
@@ -310,9 +297,9 @@ public class PPageManager extends PLockContext {
 
     final long newTotalRAM = totalImmutablePagesRAM.get() + totalModifiedPagesRAM.get();
 
-    if (PLogManager.instance().isDebugEnabled())
-      PLogManager.instance().debug(this, "Freed %d RAM (current %d > %d max, modifiedPagesRAM=%d)", freedRAM, newTotalRAM, maxRAM,
-          totalModifiedPagesRAM.get());
+//    if (PLogManager.instance().isDebugEnabled())
+    PLogManager.instance().info(this, "Freed %d RAM (current %d > %d max, modifiedPagesRAM=%d)", freedRAM, newTotalRAM, maxRAM,
+        totalModifiedPagesRAM.get());
 
     if (newTotalRAM > maxRAM) {
       PLogManager.instance().warn(this, "Cannot free pages in RAM (current %d > %d max, modifiedPagesRAM=%d)", newTotalRAM, maxRAM,
@@ -336,13 +323,13 @@ public class PPageManager extends PLockContext {
           } catch (Exception e) {
             PLogManager.instance().error(this, "Error on flushing page", e);
           }
+        }
 
-          page = pageMap.remove(pageId);
-          if (page != null) {
-            ++disposedPages;
-            freedRAM += page.getPhysicalSize();
-            totalImmutablePagesRAM.addAndGet(-1 * page.getPhysicalSize());
-          }
+        page = pageMap.remove(pageId);
+        if (page != null) {
+          ++disposedPages;
+          freedRAM += page.getPhysicalSize();
+          totalImmutablePagesRAM.addAndGet(-1 * page.getPhysicalSize());
         }
       }
       pagesToDispose.clear();
@@ -355,13 +342,19 @@ public class PPageManager extends PLockContext {
   }
 
   private void flushNow() throws IOException {
-    for (PModifiablePage p : modifiedPages.values())
-      try {
-        flushPage(p);
-      } catch (IOException e) {
-        throw new PDatabaseOperationException("Error on flushing page " + p.getPageId() + " to disk", e);
+    executeInLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        for (PModifiablePage p : modifiedPages.values())
+          try {
+            flushPage(p);
+          } catch (IOException e) {
+            throw new PDatabaseOperationException("Error on flushing page " + p.getPageId() + " to disk", e);
+          }
+        modifiedPages.clear();
+        totalModifiedPagesRAM.set(0);
+        return null;
       }
-    modifiedPages.clear();
-    totalModifiedPagesRAM.set(0);
+    });
   }
 }

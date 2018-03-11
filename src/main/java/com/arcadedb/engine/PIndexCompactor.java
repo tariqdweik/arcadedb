@@ -29,7 +29,7 @@ public class PIndexCompactor {
 
     final byte[] keyTypes = index.getKeyTypes();
 
-    final long indexCompactionRAM = PGlobalConfiguration.INDEX_COMPACTION_RAM.getValueAsLong() * 1024;
+    final long indexCompactionRAM = PGlobalConfiguration.INDEX_COMPACTION_RAM.getValueAsLong() * 1024 * 1024;
 
     long loops = 0;
     long totalKeys = 0;
@@ -39,7 +39,7 @@ public class PIndexCompactor {
     int pagesToCompact = 0;
     for (int pageIndex = 0; pageIndex < totalPages; ) {
 
-      if ((totalPages - pageIndex) * index.getPageSize() > indexCompactionRAM)
+      if ((totalPages - pageIndex) * (long) index.getPageSize() > indexCompactionRAM)
         pagesToCompact = (int) (indexCompactionRAM / index.getPageSize());
       else
         pagesToCompact = totalPages - pageIndex;
@@ -111,6 +111,8 @@ public class PIndexCompactor {
           keys[minorKeyIndex] = null;
         }
       }
+
+      PLogManager.instance().info(this, "Compacted %s pages, total %d...", pagesToCompact, pageIndex + pagesToCompact);
 
       index.database.commit();
       index.database.begin();

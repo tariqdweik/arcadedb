@@ -7,7 +7,6 @@ import com.arcadedb.utility.PLogManager;
 import java.io.PrintStream;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -21,7 +20,7 @@ public enum PGlobalConfiguration {
         @Override
         public Object call(final Object value) {
           dumpConfiguration(System.out);
-          return null;
+          return value;
         }
       }),
 
@@ -40,18 +39,36 @@ public enum PGlobalConfiguration {
           }
         }, time, time);
       }
-      return null;
+      return value;
     }
   }),
 
-  MAX_PAGE_RAM("proton.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4 * 1024l * 1024l),
+  MAX_PAGE_RAM("proton.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4 * 1024l * 1024l,
+      new PCallable<Object, Object>() {
+        @Override
+        public Object call(final Object value) {
+          final long maxRAM = (long) value;
+          if (maxRAM > Runtime.getRuntime().maxMemory() * 80 / 100) {
+            final long newValue = Runtime.getRuntime().maxMemory() / 2 / 1000;
+            PLogManager.instance()
+                .warn(this, "Setting '%s' is > than 80% of maximum heap (%s). Decreasing it to %s", MAX_PAGE_RAM.key,
+                    PFileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()), PFileUtils.getSizeAsString(newValue));
+            return newValue;
+          }
+          return value;
+        }
+      }, new PCallable<Object, Object>() {
+    @Override
+    public Object call(final Object value) {
+      return Runtime.getRuntime().maxMemory() / 2 / 1000;
+    }
+  }),
 
   FREE_PAGE_RAM("proton.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
   COMMIT_LOCK_TIMEOUT("proton.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),
 
-  INDEX_COMPACTION_RAM("proton.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class,
-      20 * 1024l);
+  INDEX_COMPACTION_RAM("proton.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300);
 
   /**
    * Place holder for the "undefined" value of setting.
@@ -62,6 +79,7 @@ public enum PGlobalConfiguration {
   private final Object                    defValue;
   private final Class<?>                  type;
   private final PCallable<Object, Object> callback;
+  private final PCallable<Object, Object> callbackIfNoSet;
   private volatile Object value = nullValue;
   private final String  description;
   private final Boolean canChangeAtRuntime;
@@ -80,13 +98,26 @@ public enum PGlobalConfiguration {
 
   PGlobalConfiguration(final String iKey, final String iDescription, final Class<?> iType, final Object iDefValue,
       final PCallable<Object, Object> callback) {
-    key = iKey;
-    description = iDescription;
-    defValue = iDefValue;
-    type = iType;
-    canChangeAtRuntime = true;
-    hidden = false;
+    this.key = iKey;
+    this.description = iDescription;
+    this.defValue = iDefValue;
+    this.type = iType;
+    this.canChangeAtRuntime = true;
+    this.hidden = false;
     this.callback = callback;
+    this.callbackIfNoSet = null;
+  }
+
+  PGlobalConfiguration(final String iKey, final String iDescription, final Class<?> iType, final Object iDefValue,
+      final PCallable<Object, Object> callback, final PCallable<Object, Object> callbackIfNoSet) {
+    this.key = iKey;
+    this.description = iDescription;
+    this.defValue = iDefValue;
+    this.type = iType;
+    this.canChangeAtRuntime = true;
+    this.hidden = false;
+    this.callback = callback;
+    this.callbackIfNoSet = callbackIfNoSet;
   }
 
   public static void dumpConfiguration(final PrintStream out) {
@@ -130,7 +161,7 @@ public enum PGlobalConfiguration {
    * representation of configuration values
    */
   public static void setConfiguration(final Map<String, Object> iConfig) {
-    for (Entry<String, Object> config : iConfig.entrySet()) {
+    for (Map.Entry<String, Object> config : iConfig.entrySet()) {
       for (PGlobalConfiguration v : values()) {
         if (v.getKey().equals(config.getKey())) {
           v.setValue(config.getValue());
@@ -148,10 +179,14 @@ public enum PGlobalConfiguration {
    */
   private static void readConfiguration() {
     String prop;
+
     for (PGlobalConfiguration config : values()) {
       prop = System.getProperty(config.key);
       if (prop != null)
         config.setValue(prop);
+      else if (config.callbackIfNoSet != null) {
+        config.setValue(config.callbackIfNoSet.call(null));
+      }
     }
   }
 
@@ -225,13 +260,16 @@ public enum PGlobalConfiguration {
         }
 
         if (!accepted)
-          throw new IllegalArgumentException("Invalid value of `" + key + "` option.");
+          throw new IllegalArgumentException("Invalid value of `" + key + "` option");
       } else
         value = iValue;
 
     if (callback != null)
       try {
-        callback.call(value);
+        final Object newValue = callback.call(value);
+        if (newValue != value)
+          // OVERWRITE IT
+          value = newValue;
       } catch (Exception e) {
         PLogManager.instance().error(this, "Error during setting property %s=%s", e, key, value);
       }
