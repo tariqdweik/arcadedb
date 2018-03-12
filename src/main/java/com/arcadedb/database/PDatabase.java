@@ -5,6 +5,7 @@ import com.arcadedb.engine.PPageManager;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 
 public interface PDatabase {
@@ -37,6 +38,8 @@ public interface PDatabase {
   void scanBucket(String bucketName, PRecordCallback callback);
 
   PRecord lookupByRID(PRID rid);
+
+  List<? extends PRecord> lookupByKey(String type, String[] properties, Object[] keys);
 
   void saveRecord(PModifiableDocument record);
 

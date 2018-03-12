@@ -9,7 +9,7 @@ import java.util.List;
 
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 
-public class PIndexIterator {
+public class PIndexPageIterator {
   private final PIndex            index;
   private final PPageId           pageId;
   private final PBinary           buffer;
@@ -23,7 +23,7 @@ public class PIndexIterator {
   private Object[] nextKeys;
   private Object   nextValue;
 
-  public PIndexIterator(final PIndex index, final PBasePage page, final int keyStartPosition, final byte[] keyTypes,
+  public PIndexPageIterator(final PIndex index, final PBasePage page, final int keyStartPosition, final byte[] keyTypes,
       final int totalKeys) {
     this.index = index;
     this.pageId = page.getPageId();

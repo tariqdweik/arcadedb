@@ -44,7 +44,7 @@ public class PIndexCompactor {
       else
         pagesToCompact = totalPages - pageIndex;
 
-      final PIndexIterator[] iterators = new PIndexIterator[pagesToCompact];
+      final PIndexPageIterator[] iterators = new PIndexPageIterator[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
         iterators[i] = index.newIterator(pageIndex + i);
 

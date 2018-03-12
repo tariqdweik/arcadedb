@@ -11,7 +11,9 @@ import com.arcadedb.serializer.PBinaryTypes;
 import org.junit.Assert;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static com.arcadedb.database.PBinary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
@@ -25,7 +27,7 @@ import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
  */
 public class PIndex extends PPaginatedFile {
   public static final String INDEX_EXT = "pindex";
-  public static final int    PAGE_SIZE = 655360;
+  public static final int    PAGE_SIZE = 6553600;
 
   private byte[] keyTypes;
   private byte   valueType;
@@ -108,24 +110,27 @@ public class PIndex extends PPaginatedFile {
     }
   }
 
-  public PIndexIterator newIterator(final int pageId) throws IOException {
+  public PIndexPageIterator newIterator(final int pageId) throws IOException {
     final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), PIndex.PAGE_SIZE);
-    return new PIndexIterator(this, page, getHeaderSize(), keyTypes, getCount(page));
+    return new PIndexPageIterator(this, page, getHeaderSize(), keyTypes, getCount(page));
   }
 
-  public PRID get(final Object[] keys) {
-    database.checkTransactionIsActive();
+  public List<PRID> get(final Object[] keys) {
     try {
-      final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), pageCount - 1), PAGE_SIZE);
-      final PBinary currentPageBuffer = new PBinary(currentPage.slice());
+      final List<PRID> list = new ArrayList<>();
 
-      int count = getCount(currentPage);
+      for (int p = 0; p < pageCount; ++p) {
+        final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), p), PAGE_SIZE);
+        final PBinary currentPageBuffer = new PBinary(currentPage.slice());
 
-      final LookupResult result = lookup(count, currentPageBuffer, keys);
-      if (result.found)
-        return (PRID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition);
+        int count = getCount(currentPage);
 
-      return null;
+        final LookupResult result = lookup(count, currentPageBuffer, keys);
+        if (result.found)
+          list.add((PRID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition));
+      }
+
+      return list;
 
     } catch (IOException e) {
       throw new PDatabaseOperationException("Cannot lookup key '" + Arrays.toString(keys) + "' in index '" + name + "'", e);
@@ -358,6 +363,13 @@ public class PIndex extends PPaginatedFile {
     for (int i = 0; i < keyTypes.length; ++i)
       currentPage.writeByte(++pos, keyTypes[i]);
     currentPage.writeByte(++pos, valueType);
+
+    double falsePositiveProbability = 0.1;
+    int entrySize = 0;
+    for (int i = 0; i < keyTypes.length; ++i)
+      entrySize += PBinaryTypes.getTypeSize(keyTypes[i]);
+    entrySize += PBinaryTypes.getTypeSize(valueType);
+    entrySize += INT_SERIALIZED_SIZE;
 
     if (!txActive)
       this.database.commit();

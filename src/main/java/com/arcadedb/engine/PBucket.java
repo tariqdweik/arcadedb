@@ -34,7 +34,7 @@ public class PBucket extends PPaginatedFile {
     final boolean txActive = database.isTransactionActive();
     if (!txActive)
       this.database.begin();
-    final PModifiablePage header = this.database.getPageManager().getPageToModify(new PPageId(file.getFileId(), 0), PAGE_SIZE);
+    final PModifiablePage header = this.database.getTransaction().getPageToModify(new PPageId(file.getFileId(), 0), PAGE_SIZE);
     header.writeInt(0, 0);
     if (!txActive)
       this.database.commit();
@@ -105,7 +105,7 @@ public class PBucket extends PPaginatedFile {
       }
 
       final PRID rid = new PRID(file.getFileId(),
-          (lastPage.getPageId().getPageNumber() - 1) * MAX_RECORDS_IN_PAGE + recordCountInPage - 1);
+          (lastPage.getPageId().getPageNumber() - 1) * MAX_RECORDS_IN_PAGE + recordCountInPage);
 
       lastPage.writeUnsignedShort(newPosition, buffer.size());
       lastPage.writeByteArray(newPosition + SHORT_SERIALIZED_SIZE, buffer.toByteArray());

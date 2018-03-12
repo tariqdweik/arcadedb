@@ -14,9 +14,7 @@ import com.arcadedb.utility.PLockContext;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class PDatabaseImpl extends PLockContext implements PDatabase {
   protected final String       name;
@@ -220,6 +218,37 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
     } finally {
       unlock();
     }
+  }
+
+  @Override
+  public List<? extends PRecord> lookupByKey(final String type, final String[] properties, final Object[] keys) {
+    checkDatabaseIsOpen();
+    lock();
+    try {
+
+      final PType t = schema.getType(type);
+      if (t == null)
+        throw new IllegalArgumentException("Type '" + type + "' not exists");
+
+      final List<PType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
+      if (metadata == null || metadata.isEmpty())
+        throw new IllegalArgumentException(
+            "No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
+
+      for (PType.IndexMetadata m : metadata) {
+        final List<PRID> rids = m.index.get(keys);
+        if (!rids.isEmpty()) {
+          final List<PRecord> result = new ArrayList<>();
+          for (PRID rid : rids)
+            result.add(lookupByRID(rid));
+          return result;
+        }
+      }
+
+    } finally {
+      unlock();
+    }
+    return Collections.emptyList();
   }
 
   @Override

@@ -12,10 +12,11 @@ import java.util.concurrent.Callable;
 public class PType {
   private final PSchemaImpl schema;
   private final String      name;
-  private final List<PBucket>                     buckets           = new ArrayList<PBucket>();
-  private       PBucketSelectionStrategy          selectionStrategy = new PRoundRobinBucketSelectionStrategy();
-  private final Map<String, PProperty>            properties        = new HashMap<>();
-  private       Map<Integer, List<IndexMetadata>> indexes           = new HashMap<>();
+  private final List<PBucket>                          buckets             = new ArrayList<PBucket>();
+  private       PBucketSelectionStrategy               selectionStrategy   = new PRoundRobinBucketSelectionStrategy();
+  private final Map<String, PProperty>                 properties          = new HashMap<>();
+  private       Map<Integer, List<IndexMetadata>>      indexesByBucket     = new HashMap<>();
+  private       Map<List<String>, List<IndexMetadata>> indexesByProperties = new HashMap<>();
 
   public class IndexMetadata {
     public String[] propertyNames;
@@ -95,20 +96,35 @@ public class PType {
   }
 
   public Collection<List<IndexMetadata>> getAllIndexesMetadata() {
-    return indexes.values();
+    return indexesByBucket.values();
   }
 
   public List<IndexMetadata> getIndexMetadataByBucketId(final int bucketId) {
-    return indexes.get(bucketId);
+    return indexesByBucket.get(bucketId);
+  }
+
+  public List<IndexMetadata> getIndexMetadataByProperties(final String... properties) {
+    return indexesByProperties.get(Arrays.asList(properties));
   }
 
   protected void addIndexInternal(final PIndex index, final PBucket bucket, final String[] propertyNames) {
-    List<IndexMetadata> list = indexes.get(bucket.getId());
-    if (list == null) {
-      list = new ArrayList<>();
-      indexes.put(bucket.getId(), list);
+    final IndexMetadata metadata = new IndexMetadata(index, bucket.getId(), propertyNames);
+
+    List<IndexMetadata> list1 = indexesByBucket.get(bucket.getId());
+    if (list1 == null) {
+      list1 = new ArrayList<>();
+      indexesByBucket.put(bucket.getId(), list1);
     }
-    list.add(new IndexMetadata(index, bucket.getId(), propertyNames));
+    list1.add(metadata);
+
+    final List<String> propertyList = Arrays.asList(propertyNames);
+
+    List<IndexMetadata> list2 = indexesByProperties.get(propertyList);
+    if (list2 == null) {
+      list2 = new ArrayList<>();
+      indexesByProperties.put(propertyList, list2);
+    }
+    list2.add(metadata);
   }
 
   public PSchema getSchema() {
