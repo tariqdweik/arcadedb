@@ -177,6 +177,42 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
+  public void scanType(final String typeName, final PRecordCallback callback) {
+    lock();
+    try {
+
+      checkDatabaseIsOpen();
+      try {
+        final PType type = schema.getType(typeName);
+        if (type == null)
+          throw new IllegalArgumentException("Type '" + typeName + "' not found");
+
+        for (PBucket b : type.getBuckets()) {
+          b.scan(new PRawRecordCallback() {
+            @Override
+            public boolean onRecord(final PRID rid, final PBinary view) {
+              unlock();
+              try {
+
+                final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, rid, view);
+                return callback.onRecord(record);
+
+              } finally {
+                lock();
+              }
+            }
+          });
+        }
+      } catch (IOException e) {
+        throw new PDatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
+      }
+
+    } finally {
+      unlock();
+    }
+  }
+
+  @Override
   public void scanBucket(final String bucketName, final PRecordCallback callback) {
     lock();
     try {

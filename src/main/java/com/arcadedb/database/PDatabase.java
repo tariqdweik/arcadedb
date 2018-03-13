@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 public interface PDatabase {
-  void checkTransactionIsActive();
-
   interface PTransaction {
     void execute(PDatabase database);
   }
@@ -25,6 +23,8 @@ public interface PDatabase {
 
   boolean isTransactionActive();
 
+  void checkTransactionIsActive();
+
   void transaction(PTransaction txBlock);
 
   void setAutoTransaction(boolean autoTransaction);
@@ -34,6 +34,8 @@ public interface PDatabase {
   void commit();
 
   void rollback();
+
+  void scanType(String className, PRecordCallback callback);
 
   void scanBucket(String bucketName, PRecordCallback callback);
 

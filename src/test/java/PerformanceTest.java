@@ -61,7 +61,7 @@ public class PerformanceTest {
     }
 
     @Test
-    public void testLookupAllRecords() {
+    public void testLookupAllRecordsByRID() {
         final AtomicInteger total = new AtomicInteger();
 
         final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();

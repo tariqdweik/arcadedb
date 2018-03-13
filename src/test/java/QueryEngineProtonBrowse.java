@@ -4,9 +4,11 @@ import com.arcadedb.engine.PFile;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryEngineProtonBrowseGeo {
+public class QueryEngineProtonBrowse {
+  private static final String CLASS_NAME = "Person";
+
   public static void main(String[] args) throws Exception {
-    new QueryEngineProtonBrowseGeo().run();
+    new QueryEngineProtonBrowse().run();
   }
 
   private void run() throws IOException {
@@ -17,7 +19,7 @@ public class QueryEngineProtonBrowseGeo {
 
         final AtomicInteger row = new AtomicInteger();
 
-        database.scanBucket("Geo", new PRecordCallback() {
+        database.scanType(CLASS_NAME, new PRecordCallback() {
           @Override
           public boolean onRecord(final PRecord record) {
             final PModifiableDocument document = ((PImmutableDocument) record).modify();
