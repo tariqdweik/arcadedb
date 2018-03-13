@@ -304,6 +304,11 @@ public class PBinary implements PBinaryStructure {
     return buffer.slice();
   }
 
+  public ByteBuffer slice(final int position) {
+    buffer.position(position);
+    return buffer.slice();
+  }
+
   @Override
   public int size() {
     return size;
@@ -344,5 +349,9 @@ public class PBinary implements PBinaryStructure {
 
   public void move(final int startPosition, final int destPosition, final int length) {
     System.arraycopy(content, buffer.arrayOffset() + startPosition, content, buffer.arrayOffset() + destPosition, length);
+  }
+
+  public byte[] getContent() {
+    return content;
   }
 }

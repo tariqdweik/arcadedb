@@ -7,9 +7,6 @@ import com.arcadedb.database.PBinary;
  * to store the page version (MVCC).
  */
 public class PModifiablePage extends PBasePage {
-  protected int dirtyFrom = -1;// AS USHORT
-  protected int dirtyTo   = -1;// AS USHORT
-
   public PModifiablePage(final PPageManager manager, final PPageId pageId, final int size) {
     this(manager, pageId, size, new byte[size], 0, 0);
   }
@@ -21,10 +18,6 @@ public class PModifiablePage extends PBasePage {
 
   public void incrementVersion() {
     version++;
-  }
-
-  public boolean isDirty() {
-    return dirtyFrom > -1;
   }
 
   public void writeNumber(int index, final long content) {
@@ -85,10 +78,6 @@ public class PModifiablePage extends PBasePage {
     return writeBytes(index, content.getBytes());
   }
 
-  public void unsetDirty() {
-    this.dirtyFrom = this.dirtyTo = -1;
-  }
-
   /**
    * Creates an immutable copy where the content has been copied too.
    */
@@ -96,10 +85,6 @@ public class PModifiablePage extends PBasePage {
     final byte[] contentCopy = new byte[getPhysicalSize()];
     System.arraycopy(content.getByteBuffer().array(), 0, contentCopy, 0, content.size());
     return new PImmutablePage(manager, pageId, getPhysicalSize(), contentCopy, version, content.size());
-  }
-
-  public int[] getDirtyBoundaries() {
-    return new int[] { dirtyFrom, dirtyTo };
   }
 
   public void blank(final int index, final int length) {
@@ -115,11 +100,5 @@ public class PModifiablePage extends PBasePage {
     if (start < 0 || start + length > getPhysicalSize())
       throw new IllegalArgumentException(
           "Cannot write outside the page space (" + (start + length) + ">" + getPhysicalSize() + ")");
-
-    if (this.dirtyFrom == -1 || start < dirtyFrom)
-      this.dirtyFrom = start;
-    if (this.dirtyTo == -1 || start + length > this.dirtyTo)
-      this.dirtyTo = start + length;
-
   }
 }

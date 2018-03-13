@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class QueryEngineProtonWriterMisc {
-  private static final int    TOT        = 50000000;
+  private static final int    TOT        = 10000000;
   private static final String CLASS_NAME = "Person";
 
   public static void main(String[] args) throws Exception {
@@ -85,7 +85,7 @@ public class QueryEngineProtonWriterMisc {
         final List<PBaseDocument> records = (List<PBaseDocument>) database
             .lookupByKey(CLASS_NAME, new String[] { "id" }, new Object[] { id });
         Assert.assertNotNull(records);
-        Assert.assertEquals(1, records.size());
+        Assert.assertEquals("Wrong result for lookup of key " + id, 1, records.size());
 
         final PBaseDocument record = records.get(0);
         Assert.assertEquals(id, record.get("id"));

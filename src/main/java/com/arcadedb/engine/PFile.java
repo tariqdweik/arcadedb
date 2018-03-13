@@ -63,7 +63,6 @@ public class PFile {
     final ByteBuffer buffer = page.getContent();
     buffer.rewind();
     channel.write(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
-    page.unsetDirty();
   }
 
   public void read(final PImmutablePage page) throws IOException {

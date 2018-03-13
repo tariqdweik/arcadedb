@@ -2,6 +2,7 @@ package com.arcadedb.serializer;
 
 import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PRID;
+import com.arcadedb.engine.MurmurHash;
 import com.arcadedb.exception.PDatabaseMetadataException;
 
 import java.math.BigDecimal;
@@ -118,5 +119,25 @@ public class PBinaryTypes {
       throw new PDatabaseMetadataException("Cannot find type for class '" + clazz + "'");
 
     return type;
+  }
+
+  public static int getHash(final Object[] keys) {
+    int hash = 0;
+
+    for (int i = 0; i < keys.length; ++i)
+      hash += getHash(keys[i]);
+
+    return hash;
+  }
+
+  public static int getHash(final Object key) {
+    final Class<? extends Object> clazz = key.getClass();
+
+    if (clazz == String.class)
+      return MurmurHash.hash32((String) key);
+    else if (clazz == byte[].class)
+      return MurmurHash.hash32(((byte[]) key), 0, ((byte[]) key).length);
+
+    return key.hashCode();
   }
 }

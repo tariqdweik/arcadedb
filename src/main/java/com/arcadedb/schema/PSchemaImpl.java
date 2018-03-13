@@ -120,6 +120,9 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PBucket getBucketById(final int id) {
+    if (id < 0 || id >= files.size())
+      throw new PSchemaException("Bucket with id '" + id + "' was not found");
+
     final PPaginatedFile p = files.get(id);
     if (p == null || !(p instanceof PBucket))
       throw new PSchemaException("Bucket with id '" + id + "' was not found");
