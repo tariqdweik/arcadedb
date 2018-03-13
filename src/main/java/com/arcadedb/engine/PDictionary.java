@@ -16,7 +16,8 @@ import java.util.Map;
  * <p>
  */
 public class PDictionary extends PPaginatedFile {
-  public static final String DICT_EXT = "pdict";
+  public static final String DICT_EXT      = "pdict";
+  public static final int    DEF_PAGE_SIZE = 65536 * 5;
 
   private int itemCount;
 
@@ -25,16 +26,16 @@ public class PDictionary extends PPaginatedFile {
 
   private static final int DICTIONARY_ITEM_COUNT  = 0;
   private static final int DICTIONARY_HEADER_SIZE = PBinary.INT_SERIALIZED_SIZE;
-  private static final int PAGE_SIZE              = 65536 * 5;
 
   /**
    * Called at creation time.
    */
-  public PDictionary(final PDatabase database, final String name, String filePath, final PFile.MODE mode) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode);
+  public PDictionary(final PDatabase database, final String name, String filePath, final PFile.MODE mode, final int pageSize)
+      throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
-      final PModifiablePage header = database.getTransaction().addPage(new PPageId(file.getFileId(), 0), PAGE_SIZE);
+      final PModifiablePage header = database.getTransaction().addPage(new PPageId(file.getFileId(), 0), pageSize);
       itemCount = 0;
       updateCounters(header);
     }
@@ -43,17 +44,17 @@ public class PDictionary extends PPaginatedFile {
   /**
    * Called at load time.
    */
-  public PDictionary(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode)
-      throws IOException {
-    super(database, name, filePath, id, mode);
+  public PDictionary(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode,
+      final int pageSize) throws IOException {
+    super(database, name, filePath, id, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
-      final PModifiablePage header = database.getTransaction().addPage(new PPageId(file.getFileId(), 0), PAGE_SIZE);
+      final PModifiablePage header = database.getTransaction().addPage(new PPageId(file.getFileId(), 0), pageSize);
       itemCount = 0;
       updateCounters(header);
 
     } else {
-      final PBasePage header = database.getTransaction().getPage(new PPageId(file.getFileId(), 0), PAGE_SIZE);
+      final PBasePage header = database.getTransaction().getPage(new PPageId(file.getFileId(), 0), pageSize);
       itemCount = header.readInt(DICTIONARY_ITEM_COUNT);
 
       // LOAD THE DICTIONARY IN RAM
@@ -66,11 +67,6 @@ public class PDictionary extends PPaginatedFile {
         dictionaryMap.put(dictionary.get(i), i);
     }
 
-  }
-
-  @Override
-  protected int getPageSize() {
-    return PAGE_SIZE;
   }
 
   public int getIdByName(final String name, final boolean create) {
@@ -109,7 +105,7 @@ public class PDictionary extends PPaginatedFile {
 
     final PModifiablePage header;
     try {
-      header = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), 0), PAGE_SIZE);
+      header = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), 0), pageSize);
 
       if (header.getAvailableContentSize() < PBinary.SHORT_SERIALIZED_SIZE + property.length)
         throw new PDatabaseMetadataException("No space left in dictionary file (items=" + itemCount + ")");

@@ -18,6 +18,7 @@ public class PFile {
   private final String      filePath;
   private       FileChannel channel;
   private       int         fileId;
+  private       int         pageSize;
   private       String      fileName;
   private final String      fileExtension;
   private       boolean     open;
@@ -26,8 +27,12 @@ public class PFile {
   protected PFile(final String filePath, final MODE mode) throws FileNotFoundException {
     this.filePath = filePath;
 
-    final String filePrefix = filePath.substring(0, filePath.lastIndexOf("."));
+    String filePrefix = filePath.substring(0, filePath.lastIndexOf("."));
     this.fileExtension = filePath.substring(filePath.lastIndexOf(".") + 1);
+
+    final int pageSizePos = filePrefix.lastIndexOf(".");
+    pageSize = Integer.parseInt(filePrefix.substring(pageSizePos + 1));
+    filePrefix = filePrefix.substring(0, pageSizePos);
 
     final int fileIdPos = filePrefix.lastIndexOf(".");
     if (fileIdPos > -1) {
@@ -102,6 +107,10 @@ public class PFile {
 
   public void setFileId(final int fileId) {
     this.fileId = fileId;
+  }
+
+  public int getPageSize() {
+    return pageSize;
   }
 
   @Override

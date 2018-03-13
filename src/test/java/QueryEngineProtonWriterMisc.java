@@ -33,7 +33,7 @@ public class QueryEngineProtonWriterMisc {
         type.createProperty("surname", String.class);
         type.createProperty("locali", Integer.class);
 
-        database.getSchema().createClassIndexes(CLASS_NAME, "id");
+        database.getSchema().createClassIndexes(CLASS_NAME, new String[] { "id" }, 50000000);
         database.commit();
       }
     } finally {

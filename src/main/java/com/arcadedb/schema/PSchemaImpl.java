@@ -36,7 +36,7 @@ public class PSchemaImpl implements PSchema {
 
   private void create(final PFile.MODE mode) {
     try {
-      dictionary = new PDictionary(database, "dictionary", databasePath + "/dictionary", mode);
+      dictionary = new PDictionary(database, "dictionary", databasePath + "/dictionary", mode, PDictionary.DEF_PAGE_SIZE);
       files.add(dictionary);
 
     } catch (IOException e) {
@@ -49,13 +49,14 @@ public class PSchemaImpl implements PSchema {
       final String fileName = file.getFileName();
       final int fileId = file.getFileId();
       final String fileExt = file.getFileExtension();
+      final int pageSize = file.getPageSize();
 
       PPaginatedFile pf = null;
 
       if (fileExt.equals(PDictionary.DICT_EXT)) {
         // DICTIONARY
         try {
-          dictionary = new PDictionary(database, fileName, file.getFilePath(), fileId, mode);
+          dictionary = new PDictionary(database, fileName, file.getFilePath(), fileId, mode, pageSize);
           pf = dictionary;
 
         } catch (IOException e) {
@@ -65,7 +66,7 @@ public class PSchemaImpl implements PSchema {
       } else if (fileExt.equals(PBucket.BUCKET_EXT)) {
         // BUCKET
         try {
-          final PBucket newPart = new PBucket(database, fileName, file.getFilePath(), fileId, mode);
+          final PBucket newPart = new PBucket(database, fileName, file.getFilePath(), fileId, mode, pageSize);
           bucketMap.put(fileName, newPart);
           pf = newPart;
         } catch (IOException e) {
@@ -75,7 +76,7 @@ public class PSchemaImpl implements PSchema {
       } else if (fileExt.equals(PIndex.INDEX_EXT)) {
         // INDEX
         try {
-          final PIndex index = new PIndex(database, fileName, file.getFilePath(), fileId, mode);
+          final PIndex index = new PIndex(database, fileName, file.getFilePath(), fileId, mode, pageSize);
           indexMap.put(fileName, index);
           pf = index;
         } catch (IOException e) {
@@ -130,6 +131,10 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PBucket createBucket(final String bucketName) {
+    return createBucket(bucketName, PBucket.DEF_PAGE_SIZE);
+  }
+
+  public PBucket createBucket(final String bucketName, final int pageSize) {
     return (PBucket) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -137,7 +142,8 @@ public class PSchemaImpl implements PSchema {
           throw new PSchemaException("Cannot create bucket '" + bucketName + "' because already exists");
 
         try {
-          final PBucket bucket = new PBucket(database, bucketName, databasePath + "/" + bucketName, PFile.MODE.READ_WRITE);
+          final PBucket bucket = new PBucket(database, bucketName, databasePath + "/" + bucketName, PFile.MODE.READ_WRITE,
+              pageSize);
           registerFile(bucket);
           bucketMap.put(bucketName, bucket);
 
@@ -170,7 +176,11 @@ public class PSchemaImpl implements PSchema {
     return p;
   }
 
-  public PIndex[] createClassIndexes(final String typeName, final String... propertyNames) {
+  public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames) {
+    return createClassIndexes(typeName, propertyNames, PIndex.DEF_PAGE_SIZE);
+  }
+
+  public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
     return (PIndex[]) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -207,7 +217,7 @@ public class PSchemaImpl implements PSchema {
                   "Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
             indexes[idx] = new PIndex(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE, keyTypes,
-                PBinaryTypes.TYPE_RID);
+                PBinaryTypes.TYPE_RID, pageSize);
 
             registerFile(indexes[idx]);
             indexMap.put(indexName, indexes[idx]);
@@ -226,7 +236,7 @@ public class PSchemaImpl implements PSchema {
     });
   }
 
-  public PIndex createManualIndex(final String indexName, final byte[] keyTypes) {
+  public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize) {
     return (PIndex) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -238,7 +248,7 @@ public class PSchemaImpl implements PSchema {
 
         try {
           final PIndex index = new PIndex(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE, keyTypes,
-              PBinaryTypes.TYPE_RID);
+              PBinaryTypes.TYPE_RID, pageSize);
           registerFile(index);
           indexMap.put(indexName, index);
 

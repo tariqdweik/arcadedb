@@ -13,18 +13,20 @@ public abstract class PPaginatedFile {
   protected final String        name;
   protected final PFile         file;
   protected final int           id;
+  protected final int           pageSize;
   protected       int           pageCount;
 
   protected PPaginatedFile(final PDatabase database, final String name, String filePath, final int id, final String ext,
-      final PFile.MODE mode) throws IOException {
-    this(database, name, filePath + "." + id + "." + ext, id, mode);
+      final PFile.MODE mode, final int pageSize) throws IOException {
+    this(database, name, filePath + "." + id + "." + pageSize + "." + ext, id, mode, pageSize);
   }
 
-  protected PPaginatedFile(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode)
-      throws IOException {
+  protected PPaginatedFile(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode,
+      final int pageSize) throws IOException {
     this.database = (PDatabaseImpl) database;
     this.name = name;
     this.id = id;
+    this.pageSize = pageSize;
 
     this.file = database.getFileManager().getOrCreateFile(name, filePath, mode);
 
@@ -35,7 +37,9 @@ public abstract class PPaginatedFile {
       pageCount = (int) (file.getSize() / getPageSize());
   }
 
-  protected abstract int getPageSize();
+  protected int getPageSize() {
+    return pageSize;
+  }
 
   public void onAfterCommit(final int value) {
     assert value > pageCount;

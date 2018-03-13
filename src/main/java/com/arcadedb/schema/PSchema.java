@@ -27,9 +27,11 @@ public interface PSchema {
 
   PIndex getIndexByName(String indexName);
 
-  PIndex[] createClassIndexes(String typeName, String... propertyNames);
+  PIndex[] createClassIndexes(String typeName, String[] propertyNames);
 
-  PIndex createManualIndex(String indexName, byte[] keyTypes);
+  PIndex[] createClassIndexes(String typeName, String[] propertyNames, int pageSize);
+
+  PIndex createManualIndex(String indexName, byte[] keyTypes, int pageSize);
 
   PDictionary getDictionary();
 

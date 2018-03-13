@@ -32,8 +32,8 @@ import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
 public class PIndex extends PPaginatedFile {
-  public static final String INDEX_EXT = "pindex";
-  public static final int    PAGE_SIZE = 6553600;
+  public static final String INDEX_EXT     = "pindex";
+  public static final int    DEF_PAGE_SIZE = 6553600;
 
   private byte[] keyTypes;
   private byte   valueType;
@@ -55,46 +55,48 @@ public class PIndex extends PPaginatedFile {
    * Called at creation time.
    */
   public PIndex(final PDatabase database, final String name, String filePath, final PFile.MODE mode, final byte[] keyTypes,
-      final byte valueType) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), PIndex.INDEX_EXT, mode);
+      final byte valueType, final int pageSize) throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(), PIndex.INDEX_EXT, mode, pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
     database.checkTransactionIsActive();
-    PModifiablePage page = createNewPage();
+    createNewPage();
   }
 
   /**
    * Called at cloning time.
    */
-  public PIndex(final PDatabase database, final String name, String filePath, final byte[] keyTypes, final byte valueType)
-      throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndex.INDEX_EXT, PFile.MODE.READ_WRITE);
+  public PIndex(final PDatabase database, final String name, String filePath, final byte[] keyTypes, final byte valueType,
+      final int pageSize) throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndex.INDEX_EXT, PFile.MODE.READ_WRITE,
+        pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
     database.checkTransactionIsActive();
-    PModifiablePage page = createNewPage();
+    createNewPage();
   }
 
   /**
-   * /** Called at load time (1st page only).
+   * Called at load time (1st page only).
    */
-  public PIndex(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode)
-      throws IOException {
-    super(database, name, filePath, id, mode);
-    final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), 0), PAGE_SIZE);
+  public PIndex(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode,
+      final int pageSize) throws IOException {
+    super(database, name, filePath, id, mode, pageSize);
+    final PBasePage currentPage = this.database.getTransaction()
+        .getPage(new PPageId(file.getFileId(), 0), pageSize);
 
     int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + getBFSize();
-    final int len = currentPage.readByte(pos);
+    final int len = currentPage.readByte(pos++);
     this.keyTypes = new byte[len];
     for (int i = 0; i < len; ++i)
-      this.keyTypes[i] = currentPage.readByte(++pos);
-    this.valueType = currentPage.readByte(++pos);
+      this.keyTypes[i] = currentPage.readByte(pos++);
+    this.valueType = currentPage.readByte(pos++);
   }
 
   public PIndex copy() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-    return new PIndex(database, newName, database.getDatabasePath() + "/" + newName, keyTypes, valueType);
+    return new PIndex(database, newName, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize);
   }
 
   public void removeTempSuffix() {
@@ -115,7 +117,7 @@ public class PIndex extends PPaginatedFile {
   }
 
   public PIndexPageIterator newIterator(final int pageId) throws IOException {
-    final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), PIndex.PAGE_SIZE);
+    final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
     return new PIndexPageIterator(this, page, getHeaderSize(pageId), keyTypes, getCount(page));
   }
 
@@ -124,7 +126,7 @@ public class PIndex extends PPaginatedFile {
       final List<PRID> list = new ArrayList<>();
 
       for (int p = 0; p < pageCount; ++p) {
-        final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), p), PAGE_SIZE);
+        final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), p), pageSize);
         final PBinary currentPageBuffer = new PBinary(currentPage.slice());
 
         int count = getCount(currentPage);
@@ -162,7 +164,7 @@ public class PIndex extends PPaginatedFile {
     int pageNum = txPageCounter - 1;
 
     try {
-      PModifiablePage currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), pageNum), PAGE_SIZE);
+      PModifiablePage currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), pageNum), pageSize);
 
       PBinary currentPageBuffer = new PBinary(currentPage.slice());
 
@@ -239,7 +241,7 @@ public class PIndex extends PPaginatedFile {
         txPageCounter = pageCount;
 
       try {
-        currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), PAGE_SIZE);
+        currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize);
         currentPageBuffer = new PBinary(currentPage.slice());
       } catch (IOException e) {
         throw new PDatabaseOperationException(
@@ -308,12 +310,7 @@ public class PIndex extends PPaginatedFile {
   }
 
   protected int getTotalPages() throws IOException {
-    return (int) (file.getSize() / PAGE_SIZE);
-  }
-
-  @Override
-  protected int getPageSize() {
-    return PAGE_SIZE;
+    return (int) (file.getSize() / pageSize);
   }
 
   private LookupResult lookup(final int pageNum, final int count, final PBinary currentPageBuffer, final Object[] keys) {
@@ -391,7 +388,7 @@ public class PIndex extends PPaginatedFile {
     if (!txActive)
       this.database.begin();
 
-    final PModifiablePage currentPage = database.getTransaction().addPage(new PPageId(file.getFileId(), pageCount), PAGE_SIZE);
+    final PModifiablePage currentPage = database.getTransaction().addPage(new PPageId(file.getFileId(), pageCount), pageSize);
 
     int pos = 0;
     currentPage.writeInt(pos, 0); // ENTRIES COUNT
@@ -443,6 +440,6 @@ public class PIndex extends PPaginatedFile {
   }
 
   private int getBFSize() {
-    return PAGE_SIZE / 15 / 8 * 8;
+    return pageSize / 15 / 8 * 8;
   }
 }

@@ -111,7 +111,7 @@ public class PSerializerTest {
 
         final PBinary buffer = serializer.serialize(database, v);
 
-        final ByteBuffer buffer2 = ByteBuffer.allocate(PBucket.PAGE_SIZE);
+        final ByteBuffer buffer2 = ByteBuffer.allocate(PBucket.DEF_PAGE_SIZE);
         buffer2.put(buffer.toByteArray());
         buffer2.flip();
 
