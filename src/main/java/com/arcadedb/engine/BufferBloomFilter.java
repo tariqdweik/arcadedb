@@ -17,7 +17,8 @@ public class BufferBloomFilter {
 
   public void add(final int value) {
     final byte[] b = new byte[] { (byte) (value >>> 24), (byte) (value >>> 16), (byte) (value >>> 8), (byte) value };
-    final int h = Math.abs(MurmurHash.hash32(b, 4, hashSeed));
+    final int hash = MurmurHash.hash32(b, 4, hashSeed);
+    final int h = hash != Integer.MIN_VALUE ? Math.abs(hash) : Integer.MAX_VALUE;
 
     final int bit2change = h > capacity ? h % capacity : h;
     final int byte2change = bit2change / 8;
@@ -29,7 +30,8 @@ public class BufferBloomFilter {
 
   public boolean mightContain(final int value) {
     final byte[] b = new byte[] { (byte) (value >>> 24), (byte) (value >>> 16), (byte) (value >>> 8), (byte) value };
-    final int h = Math.abs(MurmurHash.hash32(b, 4, hashSeed));
+    final int hash = MurmurHash.hash32(b, 4, hashSeed);
+    final int h = hash != Integer.MIN_VALUE ? Math.abs(hash) : Integer.MAX_VALUE;
 
     final int bit2change = h > capacity ? h % capacity : h;
     final int byte2change = bit2change / 8;
