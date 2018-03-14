@@ -7,14 +7,13 @@ import com.arcadedb.engine.PIndex;
 
 import java.io.IOException;
 
-public class QueryEngineProtonWriterCompactor {
+public class PerformanceIndexCompaction {
   public static void main(String[] args) throws Exception {
-    new QueryEngineProtonWriterCompactor().run();
+    new PerformanceIndexCompaction().run();
   }
 
   private void run() throws IOException {
-
-    final PDatabase database = new PDatabaseFactory("/temp/proton/geodb", PFile.MODE.READ_WRITE).acquire();
+    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
 
     final long begin = System.currentTimeMillis();
     try {

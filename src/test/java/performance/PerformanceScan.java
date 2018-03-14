@@ -6,17 +6,17 @@ import com.arcadedb.engine.PFile;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryEngineProtonBrowse {
+public class PerformanceScan {
   private static final String CLASS_NAME = "Person";
 
   public static void main(String[] args) throws Exception {
-    new QueryEngineProtonBrowse().run();
+    new PerformanceScan().run();
   }
 
   private void run() throws IOException {
-    final PDatabase database = new PDatabaseFactory("/temp/proton/geodb", PFile.MODE.READ_ONLY).acquire();
+    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_ONLY).acquire();
     try {
-      for (int i = 0; i < 2; ++i) {
+      for (int i = 0; i < 3; ++i) {
         final long begin = System.currentTimeMillis();
 
         final AtomicInteger row = new AtomicInteger();
