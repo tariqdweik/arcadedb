@@ -488,7 +488,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
     return databasePath != null ? databasePath.hashCode() : 0;
   }
 
-  private void checkDatabaseIsOpen() {
+  protected void checkDatabaseIsOpen() {
     if (!open)
       throw new PDatabaseIsClosedException(name);
 

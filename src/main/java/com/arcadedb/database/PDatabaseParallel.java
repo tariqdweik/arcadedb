@@ -2,19 +2,24 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PRawRecordCallback;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.schema.PType;
+import com.arcadedb.utility.PLogManager;
 
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class PDatabaseParallel extends PDatabaseImpl {
-  private DatabaseThread[] executorThread;
+  private DatabaseSaveAsyncThread[] executorThreads;
+  private DatabaseScanAsyncThread[] scanThreads;
   private int parallelLevel = -1;
   private int commitEvery   = 10000;
 
-  private class DatabaseThread extends Thread {
+  private class DatabaseSaveAsyncThread extends Thread {
     public final ArrayBlockingQueue<Object[]> queue = new ArrayBlockingQueue<>(2048);
     public final PDatabase database;
     public final int       commitEvery;
@@ -22,7 +27,7 @@ public class PDatabaseParallel extends PDatabaseImpl {
     public volatile boolean forceShutdown = false;
     public          long    count         = 0;
 
-    private DatabaseThread(final PDatabaseParallel database, final int commitEvery) {
+    private DatabaseSaveAsyncThread(final PDatabaseParallel database, final int commitEvery) {
       this.database = database;
       this.commitEvery = commitEvery;
     }
@@ -62,9 +67,98 @@ public class PDatabaseParallel extends PDatabaseImpl {
     }
   }
 
+  private class DatabaseScanAsyncThread extends Thread {
+    public final ArrayBlockingQueue<Object[]> queue = new ArrayBlockingQueue<>(2048);
+    public final PDatabase database;
+    public volatile boolean shutdown      = false;
+    public volatile boolean forceShutdown = false;
+
+    private DatabaseScanAsyncThread(final PDatabaseParallel database) {
+      this.database = database;
+    }
+
+    @Override
+    public void run() {
+      if (PTransactionTL.INSTANCE.get() == null)
+        PTransactionTL.INSTANCE.set(new PTransactionContext(database));
+
+      while (!forceShutdown) {
+        try {
+          final Object[] message = queue.poll(500, TimeUnit.MILLISECONDS);
+          if (message != null) {
+            final CountDownLatch semaphore = (CountDownLatch) message[0];
+            final PRecordCallback userCallback = (PRecordCallback) message[1];
+            final PBucket bucket = (PBucket) message[2];
+
+            try {
+              bucket.scan(new PRawRecordCallback() {
+                @Override
+                public boolean onRecord(final PRID rid, final PBinary view) {
+                  if (shutdown || forceShutdown)
+                    return false;
+
+                  final PRecord record = recordFactory.newImmutableRecord(PDatabaseParallel.this, rid, view);
+                  return userCallback.onRecord(record);
+                }
+              });
+            } finally {
+              // UNLOCK THE CALLER THREAD
+              semaphore.countDown();
+            }
+
+          } else if (shutdown)
+            break;
+
+        } catch (InterruptedException e) {
+          queue.clear();
+          break;
+        } catch (Exception e) {
+          PLogManager.instance().error(this, "Error on parallel scan", e);
+          queue.clear();
+          break;
+        }
+      }
+    }
+  }
+
   protected PDatabaseParallel(final String path, final PFile.MODE mode, final boolean multiThread) {
     super(path, mode, multiThread);
     createThreads(Runtime.getRuntime().availableProcessors());
+  }
+
+  @Override
+  public void scanType(final String typeName, final PRecordCallback callback) {
+    lock();
+    try {
+
+      checkDatabaseIsOpen();
+      try {
+        final PType type = schema.getType(typeName);
+        if (type == null)
+          throw new IllegalArgumentException("Type '" + typeName + "' not found");
+
+        final List<PBucket> buckets = type.getBuckets();
+        final CountDownLatch semaphore = new CountDownLatch(buckets.size());
+
+        for (PBucket b : type.getBuckets()) {
+          final int slot = b.getId() % parallelLevel;
+
+          try {
+            scanThreads[slot].queue.put(new Object[] { semaphore, callback, b });
+          } catch (InterruptedException e) {
+            throw new PDatabaseOperationException("Error on executing save");
+          }
+        }
+
+        semaphore.await();
+
+      } catch (Exception e) {
+        throw new PDatabaseOperationException("Error on executing parallel scan of type '" + schema.getType(typeName) + "'", e);
+      }
+
+    } finally {
+      unlock();
+    }
   }
 
   @Override
@@ -85,7 +179,7 @@ public class PDatabaseParallel extends PDatabaseImpl {
         final int slot = bucket.getId() % parallelLevel;
 
         try {
-          executorThread[slot].queue.put(new Object[] { record, bucket });
+          executorThreads[slot].queue.put(new Object[] { record, bucket });
         } catch (InterruptedException e) {
           throw new PDatabaseOperationException("Error on executing save");
         }
@@ -114,7 +208,7 @@ public class PDatabaseParallel extends PDatabaseImpl {
       if (record.getIdentity() == null)
         // NEW
         try {
-          executorThread[slot].queue.put(new Object[] { record, bucket });
+          executorThreads[slot].queue.put(new Object[] { record, bucket });
         } catch (InterruptedException e) {
           throw new PDatabaseOperationException("Error on executing save");
         }
@@ -178,25 +272,42 @@ public class PDatabaseParallel extends PDatabaseImpl {
   private void createThreads(final int parallelLevel) {
     shutdownThreads();
 
-    executorThread = new DatabaseThread[parallelLevel];
+    executorThreads = new DatabaseSaveAsyncThread[parallelLevel];
+    scanThreads = new DatabaseScanAsyncThread[parallelLevel];
 
     for (int i = 0; i < parallelLevel; ++i) {
-      executorThread[i] = new DatabaseThread(this, this.commitEvery);
-      executorThread[i].start();
+      executorThreads[i] = new DatabaseSaveAsyncThread(this, this.commitEvery);
+      executorThreads[i].start();
+
+      scanThreads[i] = new DatabaseScanAsyncThread(this);
+      scanThreads[i].start();
     }
 
     this.parallelLevel = parallelLevel;
   }
 
   private void shutdownThreads() {
-    if (executorThread != null) {
-      for (int i = 0; i < executorThread.length; ++i)
-        executorThread[i].shutdown = true;
+    if (executorThreads != null) {
+      for (int i = 0; i < executorThreads.length; ++i)
+        executorThreads[i].shutdown = true;
 
       // WAIT FOR SHUTDOWN, MAX 1S EACH
-      for (int i = 0; i < executorThread.length; ++i)
+      for (int i = 0; i < executorThreads.length; ++i)
         try {
-          executorThread[i].join(1000);
+          executorThreads[i].join(1000);
+        } catch (InterruptedException e) {
+          // IGNORE IT
+        }
+    }
+
+    if (scanThreads != null) {
+      for (int i = 0; i < scanThreads.length; ++i)
+        scanThreads[i].shutdown = true;
+
+      // WAIT FOR SHUTDOWN, MAX 1S EACH
+      for (int i = 0; i < scanThreads.length; ++i)
+        try {
+          scanThreads[i].join(1000);
         } catch (InterruptedException e) {
           // IGNORE IT
         }

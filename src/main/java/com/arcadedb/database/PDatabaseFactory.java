@@ -55,8 +55,9 @@ public class PDatabaseFactory {
     return multiThread;
   }
 
-  public void setMultiThread(final boolean multiThread) {
+  public PDatabaseFactory setMultiThread(final boolean multiThread) {
     this.multiThread = multiThread;
+    return this;
   }
 
   public PDatabaseFactory setAutoTransaction(final boolean enabled) {
