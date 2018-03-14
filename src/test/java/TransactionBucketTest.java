@@ -12,7 +12,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TransactionBucketTest {
-  private static final int TOT = 10000;
+  private static final int    TOT     = 10000;
+  private static final String DB_PATH = "target/database/testdb";
 
   @BeforeEach
   public void populate() {
@@ -21,7 +22,7 @@ public class TransactionBucketTest {
 
   @AfterEach
   public void drop() {
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
@@ -33,7 +34,7 @@ public class TransactionBucketTest {
   public void testScan() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       db.scanBucket("V", new PRecordCallback() {
@@ -68,7 +69,7 @@ public class TransactionBucketTest {
   public void testLookupAllRecordsByRID() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       db.scanBucket("V", new PRecordCallback() {
@@ -105,7 +106,7 @@ public class TransactionBucketTest {
   public void testDeleteAllRecordsReuseSpace() throws IOException {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
       db.scanBucket("V", new PRecordCallback() {
@@ -127,7 +128,7 @@ public class TransactionBucketTest {
 
     populate();
 
-    final PDatabase db2 = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db2.begin();
     try {
       Assertions.assertEquals(TOT, db2.countBucket("V"));
@@ -141,7 +142,7 @@ public class TransactionBucketTest {
   public void testDeleteFail() {
 
     Assertions.assertThrows(PDatabaseIsReadOnlyException.class, () -> {
-      final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+      final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
       db.begin();
       try {
         db.scanBucket("V", new PRecordCallback() {
@@ -161,7 +162,7 @@ public class TransactionBucketTest {
   }
 
   private void populate(final int total) {
-    new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
         if (!database.getSchema().existsBucket("V"))

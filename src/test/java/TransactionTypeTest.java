@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TransactionTypeTest {
   private static final int    TOT       = 10000;
   private static final String TYPE_NAME = "V";
+  private static final String DB_PATH   = "target/database/testdb";
 
   @BeforeEach
   public void populate() {
@@ -27,7 +28,7 @@ public class TransactionTypeTest {
 
   @AfterEach
   public void drop() {
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
@@ -39,7 +40,7 @@ public class TransactionTypeTest {
   public void testScan() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       db.scanType(TYPE_NAME, new PRecordCallback() {
@@ -74,7 +75,7 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByRID() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       db.scanType(TYPE_NAME, new PRecordCallback() {
@@ -111,7 +112,7 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByKey() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       for (int i = 0; i < TOT; i++) {
@@ -149,7 +150,7 @@ public class TransactionTypeTest {
   public void testDeleteAllRecordsReuseSpace() throws IOException {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
       db.scanType(TYPE_NAME, new PRecordCallback() {
@@ -171,7 +172,7 @@ public class TransactionTypeTest {
 
     populate();
 
-    final PDatabase db2 = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db2.begin();
     try {
       Assertions.assertEquals(TOT, db2.countType(TYPE_NAME));
@@ -185,7 +186,7 @@ public class TransactionTypeTest {
   public void testDeleteFail() {
 
     Assertions.assertThrows(PDatabaseIsReadOnlyException.class, () -> {
-      final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+      final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
       db.begin();
       try {
         db.scanType(TYPE_NAME, new PRecordCallback() {
@@ -205,9 +206,9 @@ public class TransactionTypeTest {
   }
 
   private void populate(final int total) {
-    PFileUtils.deleteRecursively(new File("/temp/proton/testdb"));
+    PFileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
         Assert.assertFalse(database.getSchema().existsType(TYPE_NAME));
