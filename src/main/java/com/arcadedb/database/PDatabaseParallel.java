@@ -42,7 +42,7 @@ public class PDatabaseParallel extends PDatabaseImpl {
             ((PRecordInternal) record).setIdentity(bucket.addRecord(record));
             if (record instanceof PModifiableDocument) {
               final PModifiableDocument doc = (PModifiableDocument) record;
-              indexRecord(doc, getSchema().getType(doc.getTypeName()), bucket);
+              indexRecord(doc, getSchema().getType(doc.getType()), bucket);
             }
             count++;
 
@@ -75,7 +75,7 @@ public class PDatabaseParallel extends PDatabaseImpl {
       if (mode == PFile.MODE.READ_ONLY)
         throw new PDatabaseIsReadOnlyException("Cannot save record");
 
-      final PType type = schema.getType(record.getTypeName());
+      final PType type = schema.getType(record.getType());
       if (type == null)
         throw new PDatabaseOperationException("Cannot save document because has no type");
 

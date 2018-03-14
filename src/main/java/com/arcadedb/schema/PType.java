@@ -107,6 +107,15 @@ public class PType {
     return indexesByProperties.get(Arrays.asList(properties));
   }
 
+  public PSchema getSchema() {
+    return schema;
+  }
+
+  @Override
+  public String toString() {
+    return name;
+  }
+
   protected void addIndexInternal(final PIndex index, final PBucket bucket, final String[] propertyNames) {
     final IndexMetadata metadata = new IndexMetadata(index, bucket.getId(), propertyNames);
 
@@ -125,10 +134,6 @@ public class PType {
       indexesByProperties.put(propertyList, list2);
     }
     list2.add(metadata);
-  }
-
-  public PSchema getSchema() {
-    return schema;
   }
 
   protected void addBucketInternal(final PBucket bucket) {

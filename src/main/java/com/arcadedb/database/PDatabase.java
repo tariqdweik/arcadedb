@@ -49,7 +49,9 @@ public interface PDatabase {
 
   void deleteRecord(PRID rid);
 
-  int countBucket(String bucketName);
+  long countType(String typeName);
+
+  long countBucket(String bucketName);
 
   PModifiableDocument newDocument();
 

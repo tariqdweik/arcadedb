@@ -4,7 +4,7 @@ public abstract class PBaseDocument implements PRecord {
   public static final byte RECORD_TYPE = 0;
 
   protected final PDatabase database;
-  protected       String    className;
+  protected       String    typeName;
   protected       PRID      rid;
 
   protected PBaseDocument(final PDatabase database, final PRID rid) {
@@ -12,12 +12,12 @@ public abstract class PBaseDocument implements PRecord {
     this.rid = rid;
   }
 
-  public String getTypeName() {
-    return className;
+  public String getType() {
+    return typeName;
   }
 
-  public void setType(final String className) {
-    this.className = className;
+  public void setType(final String typeName) {
+    this.typeName = typeName;
   }
 
   @Override

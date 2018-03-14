@@ -82,8 +82,7 @@ public class PIndex extends PPaginatedFile {
   public PIndex(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode,
       final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
-    final PBasePage currentPage = this.database.getTransaction()
-        .getPage(new PPageId(file.getFileId(), 0), pageSize);
+    final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), 0), pageSize);
 
     int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + getBFSize();
     final int len = currentPage.readByte(pos++);
@@ -384,10 +383,6 @@ public class PIndex extends PPaginatedFile {
 
   private PModifiablePage createNewPage() throws IOException {
     // NEW FILE, CREATE HEADER PAGE
-    final boolean txActive = database.isTransactionActive();
-    if (!txActive)
-      this.database.begin();
-
     final PModifiablePage currentPage = database.getTransaction().addPage(new PPageId(file.getFileId(), pageCount), pageSize);
 
     int pos = 0;
@@ -410,11 +405,6 @@ public class PIndex extends PPaginatedFile {
       }
       currentPage.writeByte(pos++, valueType);
     }
-
-    if (!txActive)
-      this.database.commit();
-
-    ++pageCount;
 
     return currentPage;
   }

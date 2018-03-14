@@ -1,0 +1,231 @@
+import com.arcadedb.database.*;
+import com.arcadedb.engine.PFile;
+import com.arcadedb.exception.PDatabaseIsReadOnlyException;
+import com.arcadedb.schema.PType;
+import com.arcadedb.utility.PFileUtils;
+import junit.framework.Assert;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class TransactionTypeTest {
+  private static final int    TOT       = 10000;
+  private static final String TYPE_NAME = "V";
+
+  @BeforeEach
+  public void populate() {
+    populate(TOT);
+  }
+
+  @AfterEach
+  public void drop() {
+    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    db.drop();
+  }
+
+  @Test
+  public void testPopulate() {
+  }
+
+  @Test
+  public void testScan() {
+    final AtomicInteger total = new AtomicInteger();
+
+    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      db.scanType(TYPE_NAME, new PRecordCallback() {
+        @Override
+        public boolean onRecord(final PRecord record) {
+          Assertions.assertNotNull(record);
+
+          Set<String> prop = new HashSet<String>();
+          for (String p : record.getPropertyNames())
+            prop.add(p);
+
+          Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+          Assertions.assertTrue(prop.contains("id"));
+          Assertions.assertTrue(prop.contains("name"));
+          Assertions.assertTrue(prop.contains("surname"));
+
+          total.incrementAndGet();
+          return true;
+        }
+      });
+
+      Assertions.assertEquals(TOT, total.get());
+
+      db.commit();
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
+  public void testLookupAllRecordsByRID() {
+    final AtomicInteger total = new AtomicInteger();
+
+    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      db.scanType(TYPE_NAME, new PRecordCallback() {
+        @Override
+        public boolean onRecord(final PRecord record) {
+          final PRecord record2 = db.lookupByRID(record.getIdentity());
+          Assertions.assertNotNull(record2);
+          Assertions.assertEquals(record, record2);
+
+          Set<String> prop = new HashSet<String>();
+          for (String p : record2.getPropertyNames())
+            prop.add(p);
+
+          Assertions.assertEquals(record2.getPropertyNames().size(), 3);
+          Assertions.assertTrue(prop.contains("id"));
+          Assertions.assertTrue(prop.contains("name"));
+          Assertions.assertTrue(prop.contains("surname"));
+
+          total.incrementAndGet();
+          return true;
+        }
+      });
+
+      db.commit();
+
+    } finally {
+      db.close();
+    }
+
+    Assertions.assertEquals(TOT, total.get());
+  }
+
+  @Test
+  public void testLookupAllRecordsByKey() {
+    final AtomicInteger total = new AtomicInteger();
+
+    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      for (int i = 0; i < TOT; i++) {
+        final List<? extends PRecord> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.size());
+
+        final PRecord record2 = result.get(0);
+
+        Assertions.assertEquals(i, record2.get("id"));
+
+        Set<String> prop = new HashSet<String>();
+        for (String p : record2.getPropertyNames())
+          prop.add(p);
+
+        Assertions.assertEquals(record2.getPropertyNames().size(), 3);
+        Assertions.assertTrue(prop.contains("id"));
+        Assertions.assertTrue(prop.contains("name"));
+        Assertions.assertTrue(prop.contains("surname"));
+
+        total.incrementAndGet();
+
+      }
+
+      db.commit();
+
+    } finally {
+      db.close();
+    }
+
+    Assertions.assertEquals(TOT, total.get());
+  }
+
+  @Test
+  public void testDeleteAllRecordsReuseSpace() throws IOException {
+    final AtomicInteger total = new AtomicInteger();
+
+    final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    db.begin();
+    try {
+      db.scanType(TYPE_NAME, new PRecordCallback() {
+        @Override
+        public boolean onRecord(final PRecord record) {
+          db.deleteRecord(record.getIdentity());
+          total.incrementAndGet();
+          return true;
+        }
+      });
+
+      db.commit();
+
+    } finally {
+      db.close();
+    }
+
+    Assertions.assertEquals(TOT, total.get());
+
+    populate();
+
+    final PDatabase db2 = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).acquire();
+    db2.begin();
+    try {
+      Assertions.assertEquals(TOT, db2.countType(TYPE_NAME));
+      db2.commit();
+    } finally {
+      db2.close();
+    }
+  }
+
+  @Test
+  public void testDeleteFail() {
+
+    Assertions.assertThrows(PDatabaseIsReadOnlyException.class, () -> {
+      final PDatabase db = new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_ONLY).acquire();
+      db.begin();
+      try {
+        db.scanType(TYPE_NAME, new PRecordCallback() {
+          @Override
+          public boolean onRecord(final PRecord record) {
+            db.deleteRecord(record.getIdentity());
+            return true;
+          }
+        });
+
+        db.commit();
+
+      } finally {
+        db.close();
+      }
+    });
+  }
+
+  private void populate(final int total) {
+    PFileUtils.deleteRecursively(new File("/temp/proton/testdb"));
+
+    new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase database) {
+        Assert.assertFalse(database.getSchema().existsType(TYPE_NAME));
+
+        final PType type = database.getSchema().createType(TYPE_NAME, 3);
+        type.createProperty("id", Integer.class);
+        database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" });
+
+        for (int i = 0; i < total; ++i) {
+          final PModifiableDocument v = database.newDocument();
+          v.setType(TYPE_NAME);
+          v.set("id", i);
+          v.set("name", "Jay");
+          v.set("surname", "Miner");
+
+          v.save();
+        }
+      }
+    });
+  }
+}

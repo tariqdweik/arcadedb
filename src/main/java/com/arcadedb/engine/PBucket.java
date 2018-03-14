@@ -234,14 +234,14 @@ public class PBucket extends PPaginatedFile {
     return name;
   }
 
-  public int count() throws IOException {
+  public long count() throws IOException {
     final PBasePage header = this.database.getTransaction().getPage(new PPageId(file.getFileId(), 0), pageSize);
     return header.readInt(0);
   }
 
-  private void incrementRecordCount(final int delta) throws IOException {
+  private void incrementRecordCount(final long delta) throws IOException {
     final PModifiablePage header = this.database.getTransaction().getPageToModify(new PPageId(file.getFileId(), 0), pageSize);
     final int recordCount = header.readInt(0);
-    header.writeInt(0, recordCount + delta);
+    header.writeInt(0, (int) (recordCount + delta));
   }
 }

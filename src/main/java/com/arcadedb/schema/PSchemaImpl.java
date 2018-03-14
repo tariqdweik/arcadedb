@@ -27,24 +27,24 @@ public class PSchemaImpl implements PSchema {
   public PSchemaImpl(final PDatabase database, final String databasePath, final PFile.MODE mode) {
     this.database = database;
     this.databasePath = databasePath;
-
-    if (database.getFileManager().getFiles().isEmpty())
-      create(mode);
-    else
-      load(mode);
   }
 
-  private void create(final PFile.MODE mode) {
+  public void create(final PFile.MODE mode) {
+    database.begin();
     try {
       dictionary = new PDictionary(database, "dictionary", databasePath + "/dictionary", mode, PDictionary.DEF_PAGE_SIZE);
       files.add(dictionary);
 
-    } catch (IOException e) {
+      database.commit();
+
+    } catch (Exception e) {
       PLogManager.instance().error(this, "Error on opening dictionary '%s' (error=%s)", e, databasePath, e.toString());
+      database.rollback();
+      throw new PDatabaseMetadataException("Error on loading dictionary (error=" + e.toString() + ")", e);
     }
   }
 
-  private void load(final PFile.MODE mode) {
+  public void load(final PFile.MODE mode) {
     for (PFile file : database.getFileManager().getFiles()) {
       final String fileName = file.getFileName();
       final int fileId = file.getFileId();

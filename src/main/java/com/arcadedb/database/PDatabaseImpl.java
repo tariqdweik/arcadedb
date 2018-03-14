@@ -52,20 +52,27 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
     fileManager = new PFileManager(path, mode, SUPPORTED_FILE_EXT);
     pageManager = new PPageManager(fileManager);
 
+    open = true;
+
     try {
       schema = new PSchemaImpl(this, databasePath, mode);
+
+      if (fileManager.getFiles().isEmpty())
+        schema.create(mode);
+      else
+        schema.load(mode);
 
       PProfiler.INSTANCE.registerDatabase(this);
 
     } catch (RuntimeException e) {
+      open = false;
       pageManager.close();
       throw e;
     } catch (Exception e) {
+      open = false;
       pageManager.close();
       throw new PDatabaseOperationException("Error on creating new database instance", e);
     }
-
-    open = true;
   }
 
   @Override
@@ -160,7 +167,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
-  public int countBucket(String bucketName) {
+  public long countBucket(final String bucketName) {
     lock();
     try {
 
@@ -169,6 +176,33 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
         return schema.getBucketByName(bucketName).count();
       } catch (IOException e) {
         throw new PDatabaseOperationException("Error on counting items in bucket '" + bucketName + "'", e);
+      }
+
+    } finally {
+      unlock();
+    }
+  }
+
+  @Override
+  public long countType(final String typeName) {
+    lock();
+    try {
+
+      checkDatabaseIsOpen();
+      try {
+        final PType type = schema.getType(typeName);
+        if (type == null)
+          throw new IllegalArgumentException("Type '" + typeName + "' not found");
+
+        long total = 0;
+        for (PBucket b : type.getBuckets()) {
+          total += b.count();
+        }
+
+        return total;
+
+      } catch (IOException e) {
+        throw new PDatabaseOperationException("Error on counting items in type '" + typeName + "'", e);
       }
 
     } finally {
@@ -296,7 +330,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
       if (mode == PFile.MODE.READ_ONLY)
         throw new PDatabaseIsReadOnlyException("Cannot save record");
 
-      final PType type = schema.getType(record.getTypeName());
+      final PType type = schema.getType(record.getType());
       if (type == null)
         throw new PDatabaseOperationException("Cannot save document because has no type");
 
@@ -313,20 +347,6 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
 
     } finally {
       unlock();
-    }
-  }
-
-  protected void indexRecord(final PModifiableDocument record, final PType type, final PBucket bucket) {
-    // INDEX THE RECORD
-    for (PType.IndexMetadata entry : type.getIndexMetadataByBucketId(bucket.getId())) {
-      final PIndex index = entry.index;
-      final String[] keyNames = entry.propertyNames;
-      final Object[] keyValues = new Object[keyNames.length];
-      for (int i = 0; i < keyNames.length; ++i) {
-        keyValues[i] = record.get(keyNames[i]);
-      }
-
-      index.put(keyValues, record.getIdentity());
     }
   }
 
@@ -483,5 +503,22 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
       begin();
     else if (!getTransaction().isActive())
       throw new PDatabaseOperationException("Transaction not begun");
+  }
+
+  protected void indexRecord(final PModifiableDocument record, final PType type, final PBucket bucket) {
+    // INDEX THE RECORD
+    final List<PType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
+    if (metadata != null) {
+      for (PType.IndexMetadata entry : metadata) {
+        final PIndex index = entry.index;
+        final String[] keyNames = entry.propertyNames;
+        final Object[] keyValues = new Object[keyNames.length];
+        for (int i = 0; i < keyNames.length; ++i) {
+          keyValues[i] = record.get(keyNames[i]);
+        }
+
+        index.put(keyValues, record.getIdentity());
+      }
+    }
   }
 }

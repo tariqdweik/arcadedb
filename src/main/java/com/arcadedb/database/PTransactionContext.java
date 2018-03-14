@@ -57,6 +57,7 @@ public class PTransactionContext {
 
         for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet())
           database.getSchema().getFileById(entry.getKey()).onAfterCommit(entry.getValue());
+        newPageCounters.clear();
 
         newPages = null;
       }
@@ -77,6 +78,11 @@ public class PTransactionContext {
   public void rollback() {
     modifiedPages = null;
     newPages = null;
+  }
+
+  public void assureIsActive() {
+    if (modifiedPages == null)
+      throw new PTransactionException("Transaction not begun");
   }
 
   public void addPageToDispose(final PPageId pageId) {
@@ -129,6 +135,8 @@ public class PTransactionContext {
   }
 
   public PModifiablePage addPage(final PPageId pageId, final int pageSize) throws IOException {
+    assureIsActive();
+
     if (newPages == null)
       newPages = new HashMap<PPageId, PModifiablePage>();
 
