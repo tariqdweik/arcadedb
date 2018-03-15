@@ -1,0 +1,103 @@
+package com.arcadedb.engine;
+
+import com.arcadedb.database.PBinary;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PRID;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PDatabaseOperationException;
+
+import java.io.IOException;
+import java.util.Iterator;
+
+import static com.arcadedb.database.PBinary.SHORT_SERIALIZED_SIZE;
+
+public class PBucketIterator implements Iterator<PRecord> {
+
+  private final PDatabase database;
+  private final PBucket   bucket;
+  int       nextPageNumber = 1;
+  PBasePage currentPage    = null;
+  short recordCountInCurrentPage;
+  int   totalPages;
+  PRecord next                = null;
+  int     currentRecordInPage = 0;
+
+  PBucketIterator(PBucket bucket, PDatabase db) throws IOException {
+    this.bucket = bucket;
+    this.database = db;
+    this.totalPages = bucket.pageCount;
+
+    fetchNext();
+  }
+
+  private void fetchNext() throws IOException {
+    database.executeInLock(() -> {
+      this.doFetchNext();
+      return null;
+    });
+  }
+
+  private void doFetchNext() throws IOException {
+    //TODO locks!!!
+    next = null;
+    while (true) {
+      if (currentPage == null) {
+        if (nextPageNumber > totalPages) {
+          return;
+        }
+        currentPage = database.getTransaction().getPage(new PPageId(bucket.file.getFileId(), nextPageNumber), bucket.pageSize);
+        recordCountInCurrentPage = currentPage.readShort(bucket.PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+      }
+
+      if (recordCountInCurrentPage > 0 && currentRecordInPage < recordCountInCurrentPage) {
+        final int recordPositionInPage = currentPage
+            .readUnsignedShort(bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
+
+        final int recordSize = currentPage.readUnsignedShort(recordPositionInPage);
+
+        if (recordSize > 0) {
+          // NOT DELETED
+          final int recordContentPositionInPage = recordPositionInPage + SHORT_SERIALIZED_SIZE;
+
+          final PRID rid = new PRID(bucket.id, (nextPageNumber - 1) * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
+
+          final PBinary view = currentPage.getImmutableView(recordContentPositionInPage, recordSize);
+
+          currentRecordInPage++;
+
+          final PRecord record = database.getRecordFactory().newImmutableRecord(database, rid, view);
+          next = record;
+          return;
+        }
+
+      } else if (currentRecordInPage == recordCountInCurrentPage) {
+        currentRecordInPage = 0;
+        currentPage = null;
+        nextPageNumber++;
+      } else {
+        currentRecordInPage++;
+      }
+    }
+  }
+
+  @Override
+  public boolean hasNext() {
+    return next != null;
+  }
+
+  @Override
+  public PRecord next() {
+    if (next == null) {
+      throw new IllegalStateException();
+    }
+    try {
+      return next;
+    } finally {
+      try {
+        fetchNext();
+      } catch (Exception e) {
+        throw new PDatabaseOperationException("Cannot scan bucket '" + bucket.name + "'", e);
+      }
+    }
+  }
+}

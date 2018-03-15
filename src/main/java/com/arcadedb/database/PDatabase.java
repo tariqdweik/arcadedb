@@ -5,6 +5,7 @@ import com.arcadedb.engine.PPageManager;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -38,6 +39,8 @@ public interface PDatabase {
   void scanType(String className, PRecordCallback callback);
 
   void scanBucket(String bucketName, PRecordCallback callback);
+
+  Iterator<PRecord> bucketIterator(String bucketName);
 
   PRecord lookupByRID(PRID rid);
 
