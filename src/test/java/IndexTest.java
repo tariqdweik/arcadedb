@@ -46,7 +46,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.newIterator(true);
+        final PIndexIterator iterator = index.iterator(true);
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -79,7 +79,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.newIterator(false);
+        final PIndexIterator iterator = index.iterator(false);
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -112,7 +112,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.newIterator(true, 0, 9);
+        final PIndexIterator iterator = index.iterator(true, new Object[] { 9 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -127,7 +127,41 @@ public class IndexTest {
         }
       }
 
-      Assertions.assertEquals(TOT - 30, total);
+      Assertions.assertEquals(TOT - 10, total);
+
+    } finally {
+      db.close();
+    }
+  }
+
+
+  @Test
+  public void testScanIndexDescendingPartial() throws IOException {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      int total = 0;
+
+      final PIndex[] indexes = db.getSchema().getIndexes();
+      for (PIndex index : indexes) {
+        Assertions.assertNotNull(index);
+
+        final PIndexIterator iterator = index.iterator(false, new Object[] { 9 });
+        Assertions.assertNotNull(iterator);
+
+        while (iterator.hasNext()) {
+          iterator.next();
+
+          Assertions.assertNotNull(iterator.getKeys());
+          Assertions.assertEquals(1, iterator.getKeys().length);
+
+          Assertions.assertNotNull(iterator.getValue());
+
+          total++;
+        }
+      }
+
+      Assertions.assertEquals(10, total);
 
     } finally {
       db.close();

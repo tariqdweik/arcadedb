@@ -10,11 +10,11 @@ public interface PIndex {
 
   void compact() throws IOException;
 
-  PIndexIterator newIterator(boolean ascendingOrder) throws IOException;
+  PIndexIterator iterator(boolean ascendingOrder) throws IOException;
 
-  PIndexIterator newIterator(boolean ascendingOrder, int startingPageId, int startingPosition) throws IOException;
+  PIndexIterator iterator(boolean ascendingOrder, Object[] fromKeys) throws IOException;
 
-  PIndexIterator newIterator(Object[] beginKeys, boolean beginInclusive, Object[] endKeys, boolean endInclusive);
+  PIndexIterator range(Object[] beginKeys, Object[] endKeys) throws IOException;
 
   List<PRID> get(Object[] keys);
 

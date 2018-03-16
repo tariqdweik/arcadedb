@@ -39,7 +39,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   private byte   valueType;
   private volatile boolean compacting = false;
 
-  private class LookupResult {
+  protected class LookupResult {
     public final boolean found;
     public final int     keyIndex;
     public final int     valueBeginPosition;
@@ -109,7 +109,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
     compacting = true;
     try {
-      final PIndexCompactor compactor = new PIndexCompactor(this);
+      final PIndexLSMCompactor compactor = new PIndexLSMCompactor(this);
       compactor.compact();
     } finally {
       compacting = false;
@@ -117,44 +117,21 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   }
 
   @Override
-  public PIndexIterator newIterator(final boolean ascendingOrder) throws IOException {
-    if (ascendingOrder) {
-      return new PIndexIterator(this, 0, -1, true);
-    } else {
-      final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageCount - 1), pageSize);
-      return new PIndexIterator(this, pageCount - 1, getCount(page), false);
-    }
+  public PIndexIterator iterator(final boolean ascendingOrder) throws IOException {
+    return new PIndexLSMIterator(this, ascendingOrder);
   }
 
   @Override
-  public PIndexIterator newIterator(final boolean ascendingOrder, final int startingPageId, final int startingPosition)
-      throws IOException {
-    return new PIndexIterator(this, startingPageId, startingPosition, ascendingOrder);
+  public PIndexIterator iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
+    if (ascendingOrder)
+      return range(fromKeys, null);
+
+    return range(null, fromKeys);
   }
 
   @Override
-  public PIndexIterator newIterator(final Object[] beginKeys, final boolean beginInclusive, final Object[] endKeys,
-      final boolean endInclusive) {
-    try {
-      for (int p = 0; p < pageCount; ++p) {
-        final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), p), pageSize);
-        final PBinary currentPageBuffer = new PBinary(currentPage.slice());
-
-        int count = getCount(currentPage);
-
-        final LookupResult result = lookup(p, count, currentPageBuffer, beginKeys);
-
-//        int startingPage ;
-//
-//        if (result.found)
-//          list.add((PRID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition));
-      }
-
-      return null;
-
-    } catch (IOException e) {
-      throw new PDatabaseOperationException("Cannot create filter iterator in index '" + name + "'", e);
-    }
+  public PIndexIterator range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
+    return new PIndexLSMIterator(this, true, fromKeys, toKeys);
   }
 
   public PIndexPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder)
@@ -171,8 +148,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
       for (int p = 0; p < pageCount; ++p) {
         final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), p), pageSize);
         final PBinary currentPageBuffer = new PBinary(currentPage.slice());
-
-        int count = getCount(currentPage);
+        final int count = getCount(currentPage);
 
         // SEARCH IN THE BF FIRST
         final int seed = getBFSeed(currentPage);
@@ -357,7 +333,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     return (int) (file.getSize() / pageSize);
   }
 
-  private LookupResult lookup(final int pageNum, final int count, final PBinary currentPageBuffer, final Object[] keys) {
+  protected LookupResult lookup(final int pageNum, final int count, final PBinary currentPageBuffer, final Object[] keys) {
     if (keyTypes.length == 0)
       throw new IllegalArgumentException("No key types found");
 
@@ -456,6 +432,18 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     }
 
     return currentPage;
+  }
+
+  protected static int compareKeys(final PBinaryComparator comparator, final byte[] keyTypes, final Object[] keys1,
+      final Object[] keys2) {
+    for (int k = 0; k < keyTypes.length; ++k) {
+      final int result = comparator.compare(keys1[k], keyTypes[k], keys2[k], keyTypes[k]);
+      if (result < 0)
+        return -1;
+      else if (result > 0)
+        return 1;
+    }
+    return 0;
   }
 
   protected int getCount(final PBasePage currentPage) {

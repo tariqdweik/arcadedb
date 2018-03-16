@@ -10,10 +10,10 @@ import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
 
-public class PIndexCompactor {
+public class PIndexLSMCompactor {
   private final PIndexLSM index;
 
-  public PIndexCompactor(final PIndexLSM index) {
+  public PIndexLSMCompactor(final PIndexLSM index) {
     this.index = index;
   }
 
@@ -82,7 +82,7 @@ public class PIndexCompactor {
           } else {
             if (keys[p] != null) {
               moreItems = true;
-              if (compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+              if (PIndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
                 minorKey = keys[p];
                 minorKeyIndex = p;
               }
@@ -129,16 +129,5 @@ public class PIndexCompactor {
 
     PLogManager.instance().info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index,
         newIndex.getTotalPages(), loops);
-  }
-
-  private int compareKeys(final PBinaryComparator comparator, final byte[] keyTypes, final Object[] keys1, final Object[] keys2) {
-    for (int k = 0; k < keyTypes.length; ++k) {
-      final int result = comparator.compare(keys1[k], keyTypes[k], keys2[k], keyTypes[k]);
-      if (result < 0)
-        return -1;
-      else if (result > 0)
-        return 1;
-    }
-    return 0;
   }
 }
