@@ -38,7 +38,7 @@ public class PerformanceScan {
 //              Object o = document.get(f);
 //            }
 
-            if (row.incrementAndGet() % 1000000 == 0)
+            if (row.incrementAndGet() % 10000000 == 0)
               System.out.println("- Scanned " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
             return true;

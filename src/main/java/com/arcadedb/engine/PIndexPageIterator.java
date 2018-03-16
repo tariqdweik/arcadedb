@@ -10,21 +10,22 @@ import java.util.List;
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 
 public class PIndexPageIterator {
-  private final PIndex            index;
+  private final PIndexLSM         index;
   private final PPageId           pageId;
   private final PBinary           buffer;
   private final byte[]            keyTypes;
   private final int               keyStartPosition;
   private final PBinarySerializer serializer;
   private final int               totalKeys;
+  private final boolean           ascendingOrder;
 
-  private int currentKeyIndex = 0;
-  private int valuePosition   = -1;
+  private int currentEntryIndex;
+  private int valuePosition = -1;
   private Object[] nextKeys;
   private Object   nextValue;
 
-  public PIndexPageIterator(final PIndex index, final PBasePage page, final int keyStartPosition, final byte[] keyTypes,
-      final int totalKeys) {
+  public PIndexPageIterator(final PIndexLSM index, final PBasePage page, final int currentEntryInPage, final int keyStartPosition,
+      final byte[] keyTypes, final int totalKeys, final boolean ascendingOrder) {
     this.index = index;
     this.pageId = page.getPageId();
     this.buffer = new PBinary(page.slice());
@@ -32,14 +33,18 @@ public class PIndexPageIterator {
     this.keyTypes = keyTypes;
     this.serializer = index.database.getSerializer();
     this.totalKeys = totalKeys;
+    this.currentEntryIndex = currentEntryInPage;
+    this.ascendingOrder = ascendingOrder;
   }
 
   public boolean hasNext() throws IOException {
-    return currentKeyIndex < totalKeys - 1;
+    if (ascendingOrder)
+      return currentEntryIndex < totalKeys - 1;
+    return currentEntryIndex > 0;
   }
 
   public void next() throws IOException {
-    ++currentKeyIndex;
+    currentEntryIndex += ascendingOrder ? 1 : -1;
     nextKeys = null;
     nextValue = null;
   }
@@ -48,7 +53,7 @@ public class PIndexPageIterator {
     if (nextKeys != null)
       return nextKeys;
 
-    final int contentPos = buffer.getInt(keyStartPosition + (currentKeyIndex * INT_SERIALIZED_SIZE));
+    final int contentPos = buffer.getInt(keyStartPosition + (currentEntryIndex * INT_SERIALIZED_SIZE));
     buffer.position(contentPos);
 
     nextKeys = new Object[keyTypes.length];
@@ -74,5 +79,13 @@ public class PIndexPageIterator {
     final List<PPageId> list = new ArrayList<PPageId>(1);
     list.add(pageId);
     index.database.getPageManager().addPagesToDispose(list);
+  }
+
+  public int getCurrentPosition() {
+    return currentEntryIndex;
+  }
+
+  public int getTotalEntries() {
+    return totalKeys;
   }
 }

@@ -11,9 +11,9 @@ import com.arcadedb.utility.PLogManager;
 import java.io.IOException;
 
 public class PIndexCompactor {
-  private final PIndex index;
+  private final PIndexLSM index;
 
-  public PIndexCompactor(final PIndex index) {
+  public PIndexCompactor(final PIndexLSM index) {
     this.index = index;
   }
 
@@ -24,7 +24,7 @@ public class PIndexCompactor {
     PLogManager.instance().info(this, "Compacting index '%s' (pages=%d)...", index, totalPages);
 
     index.database.begin();
-    final PIndex newIndex = index.copy();
+    final PIndexLSM newIndex = index.copy();
     ((PSchemaImpl) index.database.getSchema()).registerFile(newIndex);
 
     final byte[] keyTypes = index.getKeyTypes();
@@ -46,14 +46,15 @@ public class PIndexCompactor {
 
       final PIndexPageIterator[] iterators = new PIndexPageIterator[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
-        iterators[i] = index.newIterator(pageIndex + i);
+        iterators[i] = index.newPageIterator(pageIndex + i, 0, true);
 
       final Object[][] keys = new Object[pagesToCompact][keyTypes.length];
 
       for (int p = 0; p < pagesToCompact; ++p) {
-        if (iterators[p].hasNext())
+        if (iterators[p].hasNext()) {
+          iterators[p].next();
           keys[p] = iterators[p].getKeys();
-        else {
+        } else {
           iterators[p].close();
           iterators[p] = null;
           keys[p] = null;

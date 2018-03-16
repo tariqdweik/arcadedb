@@ -211,10 +211,10 @@ public class PPageManager extends PLockContext {
 
     final long ramToFree = maxRAM * PGlobalConfiguration.FREE_PAGE_RAM.getValueAsInteger() / 100;
 
-//    if (PLogManager.instance().isDebugEnabled())
-    PLogManager.instance()
-        .info(this, "Freeing RAM (target=%d, current %d > %d max, modifiedPagesRAM=%d)", ramToFree, totalRAM, maxRAM,
-            totalModifiedPagesRAM.get());
+    if (PLogManager.instance().isDebugEnabled())
+      PLogManager.instance()
+          .debug(this, "Freeing RAM (target=%d, current %d > %d max, modifiedPagesRAM=%d)", ramToFree, totalRAM, maxRAM,
+              totalModifiedPagesRAM.get());
 
     // GET THE <DISPOSE_PAGES_PER_CYCLE> OLDEST PAGES
     long oldestPagesRAM = 0;
@@ -297,9 +297,9 @@ public class PPageManager extends PLockContext {
 
     final long newTotalRAM = totalImmutablePagesRAM.get() + totalModifiedPagesRAM.get();
 
-//    if (PLogManager.instance().isDebugEnabled())
-    PLogManager.instance().info(this, "Freed %d RAM (current %d > %d max, modifiedPagesRAM=%d)", freedRAM, newTotalRAM, maxRAM,
-        totalModifiedPagesRAM.get());
+    if (PLogManager.instance().isDebugEnabled())
+      PLogManager.instance().debug(this, "Freed %d RAM (current %d - %d max, modifiedPagesRAM=%d)", freedRAM, newTotalRAM, maxRAM,
+          totalModifiedPagesRAM.get());
 
     if (newTotalRAM > maxRAM) {
       PLogManager.instance().warn(this, "Cannot free pages in RAM (current %d > %d max, modifiedPagesRAM=%d)", newTotalRAM, maxRAM,

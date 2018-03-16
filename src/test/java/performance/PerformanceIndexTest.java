@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class PerformanceIndexTest {
-  private static final int    TOT        = 1000000000;
+  private static final int    TOT        = 1000000;
   private static final String CLASS_NAME = "Person";
 
   public static void main(String[] args) throws Exception {

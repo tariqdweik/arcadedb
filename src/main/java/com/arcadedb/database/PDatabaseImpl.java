@@ -30,7 +30,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   protected volatile boolean open            = false;
 
   protected static final Set<String> SUPPORTED_FILE_EXT = new HashSet<String>(
-      Arrays.asList(PDictionary.DICT_EXT, PBucket.BUCKET_EXT, PIndex.INDEX_EXT));
+      Arrays.asList(PDictionary.DICT_EXT, PBucket.BUCKET_EXT, PIndexLSM.INDEX_EXT));
 
   protected PDatabaseImpl(final String path, final PFile.MODE mode, final boolean multiThread) {
     super(multiThread);

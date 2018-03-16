@@ -73,10 +73,10 @@ public class PSchemaImpl implements PSchema {
           PLogManager.instance().error(this, "Error on opening bucket '%s' (error=%s)", e, file, e.toString());
         }
 
-      } else if (fileExt.equals(PIndex.INDEX_EXT)) {
+      } else if (fileExt.equals(PIndexLSM.INDEX_EXT)) {
         // INDEX
         try {
-          final PIndex index = new PIndex(database, fileName, file.getFilePath(), fileId, mode, pageSize);
+          final PIndexLSM index = new PIndexLSM(database, fileName, file.getFilePath(), fileId, mode, pageSize);
           indexMap.put(fileName, index);
           pf = index;
         } catch (IOException e) {
@@ -177,7 +177,7 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames) {
-    return createClassIndexes(typeName, propertyNames, PIndex.DEF_PAGE_SIZE);
+    return createClassIndexes(typeName, propertyNames, PIndexLSM.DEF_PAGE_SIZE);
   }
 
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
@@ -207,7 +207,7 @@ public class PSchemaImpl implements PSchema {
             keyTypes[i++] = PBinaryTypes.getTypeFromClass(property.getType());
           }
 
-          final PIndex[] indexes = new PIndex[type.getBuckets().size()];
+          final PIndexLSM[] indexes = new PIndexLSM[type.getBuckets().size()];
           for (int idx = 0; idx < type.getBuckets().size(); ++idx) {
             final PBucket b = type.getBuckets().get(idx);
             final String indexName = b.getName() + "_" + System.currentTimeMillis();
@@ -216,7 +216,7 @@ public class PSchemaImpl implements PSchema {
               throw new PDatabaseMetadataException(
                   "Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-            indexes[idx] = new PIndex(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE, keyTypes,
+            indexes[idx] = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE, keyTypes,
                 PBinaryTypes.TYPE_RID, pageSize);
 
             registerFile(indexes[idx]);
@@ -237,7 +237,7 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize) {
-    return (PIndex) database.executeInLock(new Callable<Object>() {
+    return (PIndexLSM) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (database.getTransaction().getModifiedPages() > 0)
@@ -247,8 +247,8 @@ public class PSchemaImpl implements PSchema {
           throw new PSchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          final PIndex index = new PIndex(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE, keyTypes,
-              PBinaryTypes.TYPE_RID, pageSize);
+          final PIndexLSM index = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE,
+              keyTypes, PBinaryTypes.TYPE_RID, pageSize);
           registerFile(index);
           indexMap.put(indexName, index);
 
@@ -315,7 +315,7 @@ public class PSchemaImpl implements PSchema {
     });
   }
 
-  public void swapIndexes(final PIndex oldIndex, final PIndex newIndex) throws IOException {
+  public void swapIndexes(final PIndexLSM oldIndex, final PIndexLSM newIndex) throws IOException {
     newIndex.flush();
 
     indexMap.remove(oldIndex.getName());
