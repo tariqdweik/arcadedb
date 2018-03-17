@@ -168,6 +168,40 @@ public class IndexTest {
     }
   }
 
+
+  @Test
+  public void testScanIndexRange() throws IOException {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      int total = 0;
+
+      final PIndex[] indexes = db.getSchema().getIndexes();
+      for (PIndex index : indexes) {
+        Assertions.assertNotNull(index);
+
+        final PIndexIterator iterator = index.range(new Object[] { 10 }, new Object[] { 19 });
+        Assertions.assertNotNull(iterator);
+
+        while (iterator.hasNext()) {
+          iterator.next();
+
+          Assertions.assertNotNull(iterator.getKeys());
+          Assertions.assertEquals(1, iterator.getKeys().length);
+
+          Assertions.assertNotNull(iterator.getValue());
+
+          total++;
+        }
+      }
+
+      Assertions.assertEquals(10, total);
+
+    } finally {
+      db.close();
+    }
+  }
+
   private static void populate(final int total) {
     PFileUtils.deleteRecursively(new File(DB_PATH));
 
