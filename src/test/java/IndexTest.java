@@ -112,7 +112,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.iterator(true, new Object[] { 9 });
+        final PIndexIterator iterator = index.iterator(true, new Object[] { 10 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {

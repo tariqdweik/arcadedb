@@ -55,13 +55,16 @@ public class PIndexLSMIterator implements PIndexIterator {
         final PIndexLSM.LookupResult lookupResult = index.lookup(pageId, count, currentPageBuffer, fromKeys);
         pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
       } else {
-        if (ascendingOrder)
+        if (ascendingOrder) {
           pageIterators[pageId] = index.newPageIterator(pageId, -1, ascendingOrder);
-        else {
+        } else {
           final PBasePage currentPage = index.database.getTransaction()
               .getPage(new PPageId(index.file.getFileId(), pageId), index.pageSize);
           pageIterators[pageId] = index.newPageIterator(pageId, index.getCount(currentPage), ascendingOrder);
         }
+
+        if (pageIterators[pageId].hasNext())
+          pageIterators[pageId].next();
       }
 
       pageId += ascendingOrder ? 1 : -1;
@@ -75,7 +78,6 @@ public class PIndexLSMIterator implements PIndexIterator {
       final PIndexPageIterator it = pageIterators[p];
       if (it != null) {
         if (it.hasNext()) {
-          it.next();
           keys[p] = it.getKeys();
 
           if (toKeys != null && (PIndexLSM.compareKeys(comparator, keyTypes, keys[p], toKeys) > 0)) {
