@@ -23,6 +23,11 @@ public abstract class PBaseDocument implements PRecord {
   }
 
   @Override
+  public PRecord getRecord() {
+    return this;
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o)
       return true;

@@ -1,6 +1,7 @@
 package com.arcadedb.serializer;
 
 import com.arcadedb.database.PBinary;
+import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PRID;
 
 import java.math.BigDecimal;
@@ -25,9 +26,10 @@ public class PBinaryComparator {
    *
    * @return true if they match, otherwise false
    */
-  public boolean equals(final PBinary buffer1, final byte type1, final PBinary buffer2, final byte type2) {
-    final Object value1 = serializer.deserializeValue(buffer1, type1);
-    final Object value2 = serializer.deserializeValue(buffer2, type2);
+  public boolean equals(final PDatabase database, final PBinary buffer1, final byte type1, final PBinary buffer2,
+      final byte type2) {
+    final Object value1 = serializer.deserializeValue(database, buffer1, type1);
+    final Object value2 = serializer.deserializeValue(database, buffer2, type2);
 
     return equals(value1, type1, value2, type2);
   }
@@ -288,9 +290,9 @@ public class PBinaryComparator {
    *
    * @return 0 if they matches, >0 if first value is major than second, <0 in case is minor
    */
-  public int compare(final PBinary buffer1, final byte type1, final PBinary buffer2, final byte type2) {
-    final Object value1 = serializer.deserializeValue(buffer1, type1);
-    final Object value2 = serializer.deserializeValue(buffer2, type2);
+  public int compare(final PDatabase database, final PBinary buffer1, final byte type1, final PBinary buffer2, final byte type2) {
+    final Object value1 = serializer.deserializeValue(database, buffer1, type1);
+    final Object value2 = serializer.deserializeValue(database, buffer2, type2);
 
     return compare(value1, type1, value2, type2);
   }

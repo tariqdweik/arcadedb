@@ -112,7 +112,7 @@ public class PBinarySerializer {
 
       buffer.position(contentPosition);
 
-      value = deserializeValue(buffer, buffer.getByte());
+      value = deserializeValue(database, buffer, buffer.getByte());
 
       values.put(name, value);
 
@@ -169,7 +169,7 @@ public class PBinarySerializer {
     }
   }
 
-  public Object deserializeValue(final PBinary content, final byte type) {
+  public Object deserializeValue(final PDatabase database, final PBinary content, final byte type) {
     Object value;
     switch (type) {
     case PBinaryTypes.TYPE_NULL:
@@ -208,7 +208,7 @@ public class PBinarySerializer {
       value = new BigDecimal(new BigInteger(unscaledValue), scale);
       break;
     case PBinaryTypes.TYPE_RID:
-      value = new PRID((int) content.getNumber(), content.getNumber());
+      value = new PRID(database, (int) content.getNumber(), content.getNumber());
       break;
     default:
       PLogManager.instance().info(this, "Error on deserializing value of type " + type);

@@ -100,7 +100,7 @@ public class PBucket extends PPaginatedFile {
         recordCountInPage = 0;
       }
 
-      final PRID rid = new PRID(file.getFileId(),
+      final PRID rid = new PRID(database, file.getFileId(),
           (lastPage.getPageId().getPageNumber() - 1) * MAX_RECORDS_IN_PAGE + recordCountInPage);
 
       lastPage.writeUnsignedShort(newPosition, buffer.size());
@@ -210,7 +210,7 @@ public class PBucket extends PPaginatedFile {
               // NOT DELETED
               final int recordContentPositionInPage = recordPositionInPage + SHORT_SERIALIZED_SIZE;
 
-              final PRID rid = new PRID(id, (pageId - 1) * MAX_RECORDS_IN_PAGE + recordIdInPage);
+              final PRID rid = new PRID(database, id, (pageId - 1) * MAX_RECORDS_IN_PAGE + recordIdInPage);
 
               final PBinary view = page.getImmutableView(recordContentPositionInPage, recordSize);
 

@@ -4,10 +4,12 @@ package com.arcadedb.database;
  * Immutable class.
  */
 public class PRID implements PIdentifiable, Comparable<PRID> {
-  private int  bucketId;
-  private long offset;
+  private final PDatabase database;
+  private       int       bucketId;
+  private       long      offset;
 
-  public PRID(final int bucketId, final long offset) {
+  public PRID(final PDatabase database, final int bucketId, final long offset) {
+    this.database = database;
     this.bucketId = bucketId;
     this.offset = offset;
   }
@@ -33,6 +35,24 @@ public class PRID implements PIdentifiable, Comparable<PRID> {
   @Override
   public PRID getIdentity() {
     return this;
+  }
+
+  @Override
+  public PRecord getRecord() {
+    return database.lookupByRID(this);
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if (this == obj)
+      return true;
+
+    if (!(obj instanceof PIdentifiable))
+      return false;
+
+    final PRID o = ((PIdentifiable) obj).getIdentity();
+
+    return bucketId == o.bucketId && offset == o.offset;
   }
 
   @Override

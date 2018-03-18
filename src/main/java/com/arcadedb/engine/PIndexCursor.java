@@ -2,7 +2,7 @@ package com.arcadedb.engine;
 
 import java.io.IOException;
 
-public interface PIndexIterator {
+public interface PIndexCursor {
   Object[] getKeys();
 
   Object getValue();

@@ -117,12 +117,12 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   }
 
   @Override
-  public PIndexIterator iterator(final boolean ascendingOrder) throws IOException {
-    return new PIndexLSMIterator(this, ascendingOrder);
+  public PIndexCursor iterator(final boolean ascendingOrder) throws IOException {
+    return new PIndexLSMCursor(this, ascendingOrder);
   }
 
   @Override
-  public PIndexIterator iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
+  public PIndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
     if (ascendingOrder)
       return range(fromKeys, null);
 
@@ -130,13 +130,13 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   }
 
   @Override
-  public PIndexIterator iterator(final Object[] fromKeys) throws IOException {
+  public PIndexCursor iterator(final Object[] fromKeys) throws IOException {
     return range(fromKeys, fromKeys);
   }
 
   @Override
-  public PIndexIterator range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
-    return new PIndexLSMIterator(this, true, fromKeys, toKeys);
+  public PIndexCursor range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
+    return new PIndexLSMCursor(this, true, fromKeys, toKeys);
   }
 
   public PIndexPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder)
@@ -162,7 +162,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
             currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(), seed);
 
         if (bf.mightContain(PBinaryTypes.getHash(keys))) {
-          final LookupResult result = lookup(p, count, currentPageBuffer, keys);
+          final LookupResult result = lookup(p, count, currentPageBuffer, keys, 0);
           if (result.found)
             list.add((PRID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition));
         }
@@ -195,7 +195,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
       int count = getCount(currentPage);
 
-      final LookupResult result = lookup(pageNum, count, currentPageBuffer, keys);
+      final LookupResult result = lookup(pageNum, count, currentPageBuffer, keys, 0);
       if (result.found)
         // TODO: MANAGE ALL THE CASES
         return;
@@ -337,7 +337,19 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     return (int) (file.getSize() / pageSize);
   }
 
-  protected LookupResult lookup(final int pageNum, final int count, final PBinary currentPageBuffer, final Object[] keys) {
+  /**
+   * Lookup for an entry in the index.
+   *
+   * @param pageNum
+   * @param count
+   * @param currentPageBuffer
+   * @param keys
+   * @param purpose           0 = exists, 1 = ascending iterator, 2 = descending iterator
+   *
+   * @return
+   */
+  protected LookupResult lookup(final int pageNum, final int count, final PBinary currentPageBuffer, final Object[] keys,
+      final int purpose) {
     if (keyTypes.length == 0)
       throw new IllegalArgumentException("No key types found");
 
@@ -358,22 +370,22 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     final PBinaryComparator comparator = serializer.getComparator();
 
     while (low <= high) {
-      final int mid = (low + high) / 2;
+      int mid = (low + high) / 2;
 
       final int contentPos = currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE));
       currentPageBuffer.position(contentPos);
 
       int result;
       boolean found = false;
-      for (int i = 0; i < keys.length; ++i) {
+      for (int keyIndex = 0; keyIndex < keys.length; ++keyIndex) {
         // GET THE KEY
 
-        if (keyTypes[i] == PBinaryTypes.TYPE_STRING) {
+        if (keyTypes[keyIndex] == PBinaryTypes.TYPE_STRING) {
           // OPTIMIZATION: SPECIAL CASE, LAZY EVALUATE BYTE PER BYTE THE STRING
-          result = comparator.compareStrings((String) keys[i], currentPageBuffer);
+          result = comparator.compareStrings((String) keys[keyIndex], currentPageBuffer);
         } else {
-          final Object key = serializer.deserializeValue(currentPageBuffer, keyTypes[i]);
-          result = comparator.compare(keys[i], keyTypes[i], key, keyTypes[i]);
+          final Object key = serializer.deserializeValue(database, currentPageBuffer, keyTypes[keyIndex]);
+          result = comparator.compare(keys[keyIndex], keyTypes[keyIndex], key, keyTypes[keyIndex]);
         }
 
         if (result > 0) {
@@ -390,6 +402,62 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
         }
       }
 
+      if (found && keys.length < keyTypes.length) {
+        // PARTIAL MATCHING
+        if (purpose == 1) {
+          // FIND THE MOST LEFT ITEM
+          for (int i = mid - 1; i >= 0; --i) {
+            final int pos = currentPageBuffer.getInt(startIndexArray + (i * INT_SERIALIZED_SIZE));
+            currentPageBuffer.position(pos);
+
+            result = 1;
+            for (int keyIndex = 0; keyIndex < keys.length; ++keyIndex) {
+              if (keyTypes[keyIndex] == PBinaryTypes.TYPE_STRING) {
+                // OPTIMIZATION: SPECIAL CASE, LAZY EVALUATE BYTE PER BYTE THE STRING
+                result = comparator.compareStrings((String) keys[keyIndex], currentPageBuffer);
+              } else {
+                final Object key = serializer.deserializeValue(database, currentPageBuffer, keyTypes[keyIndex]);
+                result = comparator.compare(keys[keyIndex], keyTypes[keyIndex], key, keyTypes[keyIndex]);
+              }
+
+              if (result != 0)
+                break;
+            }
+
+            if (result == 0)
+              mid = i;
+            else
+              break;
+          }
+        } else if (purpose == 2) {
+          // FIND THE MOST RIGHT ITEM
+          for (int i = mid + 1; i < count; ++i) {
+            final int pos = currentPageBuffer.getInt(startIndexArray + (i * INT_SERIALIZED_SIZE));
+            currentPageBuffer.position(pos);
+
+            result = 1;
+            for (int keyIndex = 0; keyIndex < keys.length; ++keyIndex) {
+              if (keyTypes[i] == PBinaryTypes.TYPE_STRING) {
+                // OPTIMIZATION: SPECIAL CASE, LAZY EVALUATE BYTE PER BYTE THE STRING
+                result = comparator.compareStrings((String) keys[i], currentPageBuffer);
+              } else {
+                final Object key = serializer.deserializeValue(database, currentPageBuffer, keyTypes[i]);
+                result = comparator.compare(keys[i], keyTypes[i], key, keyTypes[i]);
+              }
+
+              if (result != 0)
+                break;
+            }
+
+            if (result == 0)
+              mid = i;
+            else
+              break;
+          }
+
+        }
+      }
+
       if (found)
         return new LookupResult(true, mid, currentPageBuffer.position());
     }
@@ -400,7 +468,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
   protected Object getValue(final PBinary currentPageBuffer, final PBinarySerializer serializer, final int valueBeginPosition) {
     currentPageBuffer.position(valueBeginPosition);
-    return serializer.deserializeValue(currentPageBuffer, valueType);
+    return serializer.deserializeValue(database, currentPageBuffer, valueType);
   }
 
   private int getHeaderSize(final int pageNum) {

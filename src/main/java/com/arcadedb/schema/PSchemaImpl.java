@@ -14,6 +14,8 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class PSchemaImpl implements PSchema {
+  public static final String EDGES_INDEX_NAME = "edges";
+
   private static final String SCHEMA_FILE_NAME = "/schema.pcsv";
   private final PDatabase database;
   private final List<PPaginatedFile>       files     = new ArrayList<PPaginatedFile>();
@@ -344,9 +346,8 @@ public class PSchemaImpl implements PSchema {
 
         c.addBucket(createBucket(typeName + "_0"));
 
-        final String edgesIndexName = typeName + "_edges";
-        if (!indexMap.containsKey(edgesIndexName)) {
-          createManualIndex(edgesIndexName,
+        if (!indexMap.containsKey(EDGES_INDEX_NAME)) {
+          createManualIndex(PSchemaImpl.EDGES_INDEX_NAME,
               new byte[] { PBinaryTypes.TYPE_RID, PBinaryTypes.TYPE_BYTE, PBinaryTypes.TYPE_INT, PBinaryTypes.TYPE_RID }, 65536);
         }
 

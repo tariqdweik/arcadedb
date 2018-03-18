@@ -1,5 +1,6 @@
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PIndexCursorEntry;
 import com.arcadedb.utility.PFileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -75,39 +76,55 @@ public class GraphTest {
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.getType());
       Assertions.assertEquals("V1", v1.get("name"));
 
-      final Iterator<PVertex> vertices2level = v1.getVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
+      final Iterator<PIndexCursorEntry> vertices2level = v1.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
       Assertions.assertNotNull(vertices2level);
       Assertions.assertTrue(vertices2level.hasNext());
 
-      final PVertex v2 = vertices2level.next();
-      Assertions.assertNotNull(v2);
+      final PIndexCursorEntry entry2 = vertices2level.next();
 
+      Assertions.assertEquals(root.getIdentity(), entry2.getVertex());
+      Assertions.assertEquals(EDGE1_TYPE_NAME, entry2.getEdgeTypeName());
+
+      final PVertex v2 = (PVertex) entry2.getConnectedVertex().getRecord();
+      Assertions.assertNotNull(v2);
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.getType());
+
       Assertions.assertEquals("V2", v2.get("name"));
 
-      final Iterator<PVertex> vertices2level2 = v1.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
-      Assertions.assertNotNull(vertices2level2);
+      final Iterator<PIndexCursorEntry> vertices2level2 = v1.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertTrue(vertices2level2.hasNext());
 
-      final PVertex v3 = vertices2level2.next();
+      final PIndexCursorEntry entry3 = vertices2level2.next();
+
+      final PVertex v3 = (PVertex) entry3.getConnectedVertex().getRecord();
       Assertions.assertNotNull(v3);
 
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v3.getType());
       Assertions.assertEquals("V3", v3.get("name"));
 
-      final Iterator<PVertex> vertices3level = v2.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      final Iterator<PIndexCursorEntry> vertices3level = v2.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertNotNull(vertices3level);
       Assertions.assertTrue(vertices3level.hasNext());
 
-      final PVertex v32 = vertices3level.next();
+      final PIndexCursorEntry entry32 = vertices3level.next();
+
+      final PVertex v32 = (PVertex) entry32.getConnectedVertex().getRecord();
       Assertions.assertNotNull(v32);
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v32.getType());
       Assertions.assertEquals("V3", v32.get("name"));
 
-
       // TEST CONNECTED EDGES
       final Iterator<PEdge> edges = v1.getEdges(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
       Assertions.assertNotNull(edges);
+
+      Assertions.assertTrue(v1.isConnectedTo(v2));
+      Assertions.assertTrue(v2.isConnectedTo(v1));
+      Assertions.assertTrue(v1.isConnectedTo(v3));
+      Assertions.assertTrue(v3.isConnectedTo(v1));
+      Assertions.assertTrue(v2.isConnectedTo(v3));
+
+      Assertions.assertFalse(v3.isConnectedTo(v1, PVertex.DIRECTION.OUT));
+      Assertions.assertFalse(v3.isConnectedTo(v2, PVertex.DIRECTION.OUT));
 
     } finally {
       db2.close();

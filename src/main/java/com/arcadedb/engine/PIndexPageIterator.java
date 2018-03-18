@@ -58,7 +58,7 @@ public class PIndexPageIterator {
 
     nextKeys = new Object[keyTypes.length];
     for (int k = 0; k < keyTypes.length; ++k)
-      nextKeys[k] = index.database.getSerializer().deserializeValue(buffer, keyTypes[k]);
+      nextKeys[k] = index.database.getSerializer().deserializeValue(index.database, buffer, keyTypes[k]);
 
     valuePosition = buffer.position();
     nextValue = null;

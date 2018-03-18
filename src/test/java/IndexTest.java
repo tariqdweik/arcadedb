@@ -3,7 +3,7 @@ import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.engine.PIndex;
-import com.arcadedb.engine.PIndexIterator;
+import com.arcadedb.engine.PIndexCursor;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
 import org.junit.jupiter.api.AfterAll;
@@ -41,7 +41,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.iterator(true);
+        final PIndexCursor iterator = index.iterator(true);
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -74,7 +74,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.iterator(false);
+        final PIndexCursor iterator = index.iterator(false);
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -107,7 +107,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.iterator(true, new Object[] { 10 });
+        final PIndexCursor iterator = index.iterator(true, new Object[] { 10 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -140,7 +140,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.iterator(false, new Object[] { 9 });
+        final PIndexCursor iterator = index.iterator(false, new Object[] { 9 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -173,7 +173,7 @@ public class IndexTest {
       for (PIndex index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexIterator iterator = index.range(new Object[] { 10 }, new Object[] { 19 });
+        final PIndexCursor iterator = index.range(new Object[] { 10 }, new Object[] { 19 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {

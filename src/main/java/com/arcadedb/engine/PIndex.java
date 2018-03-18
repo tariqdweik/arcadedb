@@ -10,13 +10,13 @@ public interface PIndex {
 
   void compact() throws IOException;
 
-  PIndexIterator iterator(Object[] fromKeys) throws IOException;
+  PIndexCursor iterator(Object[] fromKeys) throws IOException;
 
-  PIndexIterator iterator(boolean ascendingOrder) throws IOException;
+  PIndexCursor iterator(boolean ascendingOrder) throws IOException;
 
-  PIndexIterator iterator(boolean ascendingOrder, Object[] fromKeys) throws IOException;
+  PIndexCursor iterator(boolean ascendingOrder, Object[] fromKeys) throws IOException;
 
-  PIndexIterator range(Object[] beginKeys, Object[] endKeys) throws IOException;
+  PIndexCursor range(Object[] beginKeys, Object[] endKeys) throws IOException;
 
   List<PRID> get(Object[] keys);
 

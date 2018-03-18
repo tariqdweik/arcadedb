@@ -7,7 +7,7 @@ import com.arcadedb.serializer.PBinarySerializer;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class PIndexLSMIterator implements PIndexIterator {
+public class PIndexLSMCursor implements PIndexCursor {
   private final PIndexLSM            index;
   private final boolean              ascendingOrder;
   private final Object[]             fromKeys;
@@ -24,11 +24,11 @@ public class PIndexLSMIterator implements PIndexIterator {
 
   private int validIterators;
 
-  public PIndexLSMIterator(final PIndexLSM index, final boolean ascendingOrder) throws IOException {
+  public PIndexLSMCursor(final PIndexLSM index, final boolean ascendingOrder) throws IOException {
     this(index, ascendingOrder, null, null);
   }
 
-  public PIndexLSMIterator(final PIndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys)
+  public PIndexLSMCursor(final PIndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys)
       throws IOException {
     this.index = index;
     this.ascendingOrder = ascendingOrder;
@@ -54,7 +54,8 @@ public class PIndexLSMIterator implements PIndexIterator {
         final PBinary currentPageBuffer = new PBinary(currentPage.slice());
         final int count = index.getCount(currentPage);
 
-        final PIndexLSM.LookupResult lookupResult = index.lookup(pageId, count, currentPageBuffer, fromKeys);
+        final PIndexLSM.LookupResult lookupResult = index
+            .lookup(pageId, count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
         pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
       } else {
         if (ascendingOrder) {
