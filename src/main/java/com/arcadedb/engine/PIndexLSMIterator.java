@@ -14,6 +14,8 @@ public class PIndexLSMIterator implements PIndexIterator {
   private final Object[]             toKeys;
   private final PIndexPageIterator[] pageIterators;
   private       PIndexPageIterator   currentIterator;
+  private       Object[]             currentKeys;
+  private       Object               currentValue;
   private       int                  totalPages;
   private       byte[]               keyTypes;
   private final Object[][]           keys;
@@ -122,6 +124,8 @@ public class PIndexLSMIterator implements PIndexIterator {
     }
 
     currentIterator = pageIterators[minorKeyIndex];
+    currentKeys = currentIterator.getKeys();
+    currentValue = currentIterator.getValue();
 
     if (currentIterator.hasNext()) {
       currentIterator.next();
@@ -129,12 +133,14 @@ public class PIndexLSMIterator implements PIndexIterator {
 
       if (toKeys != null && (PIndexLSM.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
         currentIterator.close();
+        currentIterator = null;
         pageIterators[minorKeyIndex] = null;
         keys[minorKeyIndex] = null;
         --validIterators;
       }
     } else {
       currentIterator.close();
+      currentIterator = null;
       pageIterators[minorKeyIndex] = null;
       keys[minorKeyIndex] = null;
       --validIterators;
@@ -143,12 +149,12 @@ public class PIndexLSMIterator implements PIndexIterator {
 
   @Override
   public Object[] getKeys() {
-    return currentIterator.getKeys();
+    return currentKeys;
   }
 
   @Override
   public Object getValue() {
-    return currentIterator.getValue();
+    return currentValue;
   }
 
   @Override

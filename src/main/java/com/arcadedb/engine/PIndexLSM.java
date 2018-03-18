@@ -130,6 +130,11 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   }
 
   @Override
+  public PIndexIterator iterator(final Object[] fromKeys) throws IOException {
+    return range(fromKeys, fromKeys);
+  }
+
+  @Override
   public PIndexIterator range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
     return new PIndexLSMIterator(this, true, fromKeys, toKeys);
   }
@@ -172,8 +177,8 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
   @Override
   public void put(final Object[] keys, final PRID rid) {
-    if (rid.getBucketId() < 0)
-      throw new IllegalArgumentException("Invalid RID " + rid);
+    if (rid == null)
+      throw new IllegalArgumentException("RID is null");
 
     database.checkTransactionIsActive();
 
@@ -211,7 +216,6 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
           .size()) {
         // NO SPACE LEFT, CREATE A NEW PAGE
         try {
-//          checkPage(currentPage, currentPageBuffer);
           database.getTransaction().addPageToDispose(currentPage.pageId);
           currentPage = createNewPage();
           currentPageBuffer = new PBinary(currentPage.slice());
@@ -337,6 +341,10 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     if (keyTypes.length == 0)
       throw new IllegalArgumentException("No key types found");
 
+    if (keys.length > keyTypes.length)
+      throw new IllegalArgumentException(
+          "key is composed of " + keys.length + " items, while the index defined " + keyTypes.length + " items");
+
     if (count == 0)
       // EMPTY NOT FOUND
       return new LookupResult(false, 0, -1);
@@ -357,7 +365,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
       int result;
       boolean found = false;
-      for (int i = 0; i < keyTypes.length; ++i) {
+      for (int i = 0; i < keys.length; ++i) {
         // GET THE KEY
 
         if (keyTypes[i] == PBinaryTypes.TYPE_STRING) {
@@ -436,7 +444,9 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
   protected static int compareKeys(final PBinaryComparator comparator, final byte[] keyTypes, final Object[] keys1,
       final Object[] keys2) {
-    for (int k = 0; k < keyTypes.length; ++k) {
+    final int minKeySize = Math.min(keys1.length, keys2.length);
+
+    for (int k = 0; k < minKeySize; ++k) {
       final int result = comparator.compare(keys1[k], keyTypes[k], keys2[k], keyTypes[k]);
       if (result < 0)
         return -1;

@@ -9,7 +9,7 @@ import com.arcadedb.exception.PSchemaException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-public class PType {
+public class PDocumentType {
   private final PSchemaImpl schema;
   private final String      name;
   private final List<PBucket>                          buckets             = new ArrayList<PBucket>();
@@ -30,7 +30,7 @@ public class PType {
     }
   }
 
-  public PType(final PSchemaImpl schema, final String name) {
+  public PDocumentType(final PSchemaImpl schema, final String name) {
     this.schema = schema;
     this.name = name;
   }
@@ -46,7 +46,7 @@ public class PType {
   public PProperty createProperty(final String propertyName, final Class<?> propertyType) {
     if (properties.containsKey(propertyName))
       throw new PSchemaException(
-          "Cannot create the property '" + propertyName + "' in class '" + name + "' because it already exists");
+          "Cannot create the property '" + propertyName + "' in type '" + name + "' because it already exists");
 
     final PProperty property = new PProperty(this, propertyName, propertyType);
 
@@ -79,7 +79,7 @@ public class PType {
 
   public PBucket getBucketToSave() {
     if (buckets.isEmpty())
-      throw new PSchemaException("Cannot save on a bucket for class '" + name + "' because there are no buckets associated");
+      throw new PSchemaException("Cannot save on a bucket for type '" + name + "' because there are no buckets associated");
     return buckets.get(selectionStrategy.getBucketToSave());
   }
 
@@ -137,10 +137,10 @@ public class PType {
   }
 
   protected void addBucketInternal(final PBucket bucket) {
-    for (PType cl : schema.getTypes()) {
+    for (PDocumentType cl : schema.getTypes()) {
       if (cl.hasBucket(bucket.getName()))
-        throw new PSchemaException("Cannot add the bucket '" + bucket.getName() + "' to the class '" + name
-            + "', because the bucket is already associated to the class '" + cl.getName() + "'");
+        throw new PSchemaException("Cannot add the bucket '" + bucket.getName() + "' to the type '" + name
+            + "', because the bucket is already associated to the type '" + cl.getName() + "'");
     }
 
     buckets.add(bucket);

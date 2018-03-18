@@ -7,7 +7,7 @@ import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.schema.PSchemaImpl;
-import com.arcadedb.schema.PType;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.serializer.PBinarySerializer;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLockContext;
@@ -190,9 +190,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
 
       checkDatabaseIsOpen();
       try {
-        final PType type = schema.getType(typeName);
-        if (type == null)
-          throw new IllegalArgumentException("Type '" + typeName + "' not found");
+        final PDocumentType type = schema.getType(typeName);
 
         long total = 0;
         for (PBucket b : type.getBuckets()) {
@@ -217,9 +215,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
 
       checkDatabaseIsOpen();
       try {
-        final PType type = schema.getType(typeName);
-        if (type == null)
-          throw new IllegalArgumentException("Type '" + typeName + "' not found");
+        final PDocumentType type = schema.getType(typeName);
 
         for (PBucket b : type.getBuckets()) {
           b.scan(new PRawRecordCallback() {
@@ -228,7 +224,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
               unlock();
               try {
 
-                final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, rid, view);
+                final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, typeName, rid, view);
                 return callback.onRecord(record);
 
               } finally {
@@ -253,13 +249,14 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
 
       checkDatabaseIsOpen();
       try {
+        final String type = schema.getTypeNameByBucketId(schema.getBucketByName(bucketName).getId());
         schema.getBucketByName(bucketName).scan(new PRawRecordCallback() {
           @Override
           public boolean onRecord(final PRID rid, final PBinary view) {
             unlock();
             try {
 
-              final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, rid, view);
+              final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, type, rid, view);
               return callback.onRecord(record);
 
             } finally {
@@ -283,7 +280,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
     try {
 
       final PBinary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-      return recordFactory.newImmutableRecord(this, rid, buffer);
+      return recordFactory.newImmutableRecord(this, schema.getTypeNameByBucketId(rid.getBucketId()), rid, buffer);
 
     } finally {
       unlock();
@@ -296,16 +293,14 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
     lock();
     try {
 
-      final PType t = schema.getType(type);
-      if (t == null)
-        throw new IllegalArgumentException("Type '" + type + "' not exists");
+      final PDocumentType t = schema.getType(type);
 
-      final List<PType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
+      final List<PDocumentType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
       if (metadata == null || metadata.isEmpty())
         throw new IllegalArgumentException(
             "No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
-      for (PType.IndexMetadata m : metadata) {
+      for (PDocumentType.IndexMetadata m : metadata) {
         final List<PRID> rids = m.index.get(keys);
         if (!rids.isEmpty()) {
           final List<PRecord> result = new ArrayList<>();
@@ -330,9 +325,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
       if (mode == PFile.MODE.READ_ONLY)
         throw new PDatabaseIsReadOnlyException("Cannot save record");
 
-      final PType type = schema.getType(record.getType());
-      if (type == null)
-        throw new PDatabaseOperationException("Cannot save document because has no type");
+      final PDocumentType type = schema.getType(record.getType());
 
       if (record.getIdentity() == null) {
         // NEW
@@ -438,23 +431,23 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
-  public PModifiableDocument newDocument() {
+  public PModifiableDocument newDocument(final String typeName) {
     checkTransactionIsActive();
-    return new PModifiableDocument(this, null);
+    return new PModifiableDocument(this, typeName, null);
   }
 
   @Override
-  public PVertex newVertex() {
+  public PVertex newVertex(final String typeName) {
     //TODO support immutable/modifiable like for document
     checkTransactionIsActive();
-    return new PVertex(this, null);
+    return new PVertex(this, typeName, null);
   }
 
   @Override
-  public PEdge newEdge() {
+  public PEdge newEdge(final String typeName) {
     //TODO support immutable/modifiable like for document
     checkTransactionIsActive();
-    return new PEdge(this, null);
+    return new PEdge(this, typeName, null);
   }
 
   @Override
@@ -505,11 +498,11 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
       throw new PDatabaseOperationException("Transaction not begun");
   }
 
-  protected void indexRecord(final PModifiableDocument record, final PType type, final PBucket bucket) {
+  protected void indexRecord(final PModifiableDocument record, final PDocumentType type, final PBucket bucket) {
     // INDEX THE RECORD
-    final List<PType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
+    final List<PDocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
     if (metadata != null) {
-      for (PType.IndexMetadata entry : metadata) {
+      for (PDocumentType.IndexMetadata entry : metadata) {
         final PIndex index = entry.index;
         final String[] keyNames = entry.propertyNames;
         final Object[] keyValues = new Object[keyNames.length];

@@ -4,9 +4,8 @@ import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.engine.PIndex;
 import com.arcadedb.engine.PIndexIterator;
-import com.arcadedb.schema.PType;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
-import junit.framework.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,10 +28,6 @@ public class IndexTest {
   public static void drop() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db.drop();
-  }
-
-  @Test
-  public void testPopulate() {
   }
 
   @Test
@@ -134,7 +129,6 @@ public class IndexTest {
     }
   }
 
-
   @Test
   public void testScanIndexDescendingPartial() throws IOException {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
@@ -167,7 +161,6 @@ public class IndexTest {
       db.close();
     }
   }
-
 
   @Test
   public void testScanIndexRange() throws IOException {
@@ -208,15 +201,14 @@ public class IndexTest {
     new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
-        Assert.assertFalse(database.getSchema().existsType(TYPE_NAME));
+        Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
-        final PType type = database.getSchema().createType(TYPE_NAME, 3);
+        final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 20000);
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument();
-          v.setType(TYPE_NAME);
+          final PModifiableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

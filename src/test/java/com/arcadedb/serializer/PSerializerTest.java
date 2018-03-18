@@ -103,7 +103,7 @@ public class PSerializerTest {
         new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
             @Override
             public void execute(PDatabase database) {
-                final PModifiableDocument v = database.newDocument();
+                final PModifiableDocument v = database.newDocument(null);
                 v.set("id", 0);
                 v.set("idLong", Long.MAX_VALUE);
                 v.set("name", "Jay");

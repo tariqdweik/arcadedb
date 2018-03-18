@@ -1,6 +1,7 @@
 package com.arcadedb.serializer;
 
 import com.arcadedb.database.PBinary;
+import com.arcadedb.database.PRID;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -617,9 +618,16 @@ public class PBinaryComparator {
       }
       break;
     }
+
+    case PBinaryTypes.TYPE_RID: {
+      switch (type2) {
+      case PBinaryTypes.TYPE_RID:
+        return ((PRID) value1).compareTo((PRID) value2);
+      }
+    }
     }
 
     // NO COMPARE SUPPORTED, RETURN NON EQUALS
-    return 1;
+    throw new IllegalArgumentException("Comparison between type " + type1 + " and " + type2 + " not supported");
   }
 }

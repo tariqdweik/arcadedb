@@ -234,6 +234,14 @@ public class PBucket extends PPaginatedFile {
     return name;
   }
 
+  @Override
+  public boolean equals(final Object obj) {
+    if (!(obj instanceof PBucket))
+      return false;
+
+    return ((PBucket) obj).id == this.id;
+  }
+
   public long count() throws IOException {
     final PBasePage header = this.database.getTransaction().getPage(new PPageId(file.getFileId(), 0), pageSize);
     return header.readInt(0);

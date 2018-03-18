@@ -1,9 +1,6 @@
 package com.arcadedb.serializer;
 
-import com.arcadedb.database.PBinary;
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.*;
 import com.arcadedb.utility.PLogManager;
 
 import java.math.BigDecimal;
@@ -77,8 +74,7 @@ public class PBinarySerializer {
     return result;
   }
 
-  public Map<String, Object> deserializeFields(final PDatabase database, final PBinary buffer,
-      final String... fieldNames) {
+  public Map<String, Object> deserializeFields(final PDatabase database, final PBinary buffer, final String... fieldNames) {
     buffer.reset();
     final byte recordType = buffer.getByte();
     final int properties = (int) buffer.getNumber();
@@ -164,7 +160,7 @@ public class PBinarySerializer {
       content.putBytes(((BigDecimal) value).unscaledValue().toByteArray());
       break;
     case PBinaryTypes.TYPE_RID:
-      final PRID rid = (PRID) value;
+      final PRID rid = ((PIdentifiable) value).getIdentity();
       content.putNumber(rid.getBucketId());
       content.putNumber(rid.getPosition());
       break;

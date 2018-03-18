@@ -169,7 +169,7 @@ public class TransactionBucketTest {
           database.getSchema().createBucket("V");
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument();
+          final PModifiableDocument v = database.newDocument(null);
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

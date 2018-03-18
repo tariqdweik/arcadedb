@@ -10,6 +10,8 @@ public interface PIndex {
 
   void compact() throws IOException;
 
+  PIndexIterator iterator(Object[] fromKeys) throws IOException;
+
   PIndexIterator iterator(boolean ascendingOrder) throws IOException;
 
   PIndexIterator iterator(boolean ascendingOrder, Object[] fromKeys) throws IOException;

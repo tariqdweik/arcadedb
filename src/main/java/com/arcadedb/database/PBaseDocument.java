@@ -4,20 +4,17 @@ public abstract class PBaseDocument implements PRecord {
   public static final byte RECORD_TYPE = 0;
 
   protected final PDatabase database;
-  protected       String    typeName;
+  protected final String    typeName;
   protected       PRID      rid;
 
-  protected PBaseDocument(final PDatabase database, final PRID rid) {
+  protected PBaseDocument(final PDatabase database, final String typeName, final PRID rid) {
     this.database = database;
+    this.typeName = typeName;
     this.rid = rid;
   }
 
   public String getType() {
     return typeName;
-  }
-
-  public void setType(final String typeName) {
-    this.typeName = typeName;
   }
 
   @Override

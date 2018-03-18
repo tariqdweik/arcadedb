@@ -9,8 +9,8 @@ import java.util.Set;
 public class PImmutableDocument extends PBaseDocument {
   private final PBinary buffer;
 
-  protected PImmutableDocument(final PDatabase graph, final PRID rid, final PBinary buffer) {
-    super(graph, rid);
+  protected PImmutableDocument(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
+    super(graph, typeName, rid);
     this.buffer = buffer;
   }
 
@@ -21,7 +21,7 @@ public class PImmutableDocument extends PBaseDocument {
   }
 
   public PModifiableDocument modify() {
-    return new PModifiableDocument(database, rid, buffer);
+    return new PModifiableDocument(database, typeName, rid, buffer);
   }
 
   @Override

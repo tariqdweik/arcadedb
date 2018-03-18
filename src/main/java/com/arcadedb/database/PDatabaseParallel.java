@@ -5,7 +5,7 @@ import com.arcadedb.engine.PFile;
 import com.arcadedb.engine.PRawRecordCallback;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
-import com.arcadedb.schema.PType;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PLogManager;
 
 import java.util.List;
@@ -97,7 +97,8 @@ public class PDatabaseParallel extends PDatabaseImpl {
                   if (shutdown || forceShutdown)
                     return false;
 
-                  final PRecord record = recordFactory.newImmutableRecord(PDatabaseParallel.this, rid, view);
+                  final PRecord record = recordFactory
+                      .newImmutableRecord(PDatabaseParallel.this, schema.getTypeNameByBucketId(rid.getBucketId()), rid, view);
                   return userCallback.onRecord(record);
                 }
               });
@@ -133,9 +134,7 @@ public class PDatabaseParallel extends PDatabaseImpl {
 
       checkDatabaseIsOpen();
       try {
-        final PType type = schema.getType(typeName);
-        if (type == null)
-          throw new IllegalArgumentException("Type '" + typeName + "' not found");
+        final PDocumentType type = schema.getType(typeName);
 
         final List<PBucket> buckets = type.getBuckets();
         final CountDownLatch semaphore = new CountDownLatch(buckets.size());
@@ -169,9 +168,7 @@ public class PDatabaseParallel extends PDatabaseImpl {
       if (mode == PFile.MODE.READ_ONLY)
         throw new PDatabaseIsReadOnlyException("Cannot save record");
 
-      final PType type = schema.getType(record.getType());
-      if (type == null)
-        throw new PDatabaseOperationException("Cannot save document because has no type");
+      final PDocumentType type = schema.getType(record.getType());
 
       if (record.getIdentity() == null) {
         // NEW

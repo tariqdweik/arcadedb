@@ -53,11 +53,11 @@ public interface PDatabase {
 
   long countBucket(String bucketName);
 
-  PModifiableDocument newDocument();
+  PModifiableDocument newDocument(String typeName);
 
-  PVertex newVertex();
+  PVertex newVertex(String typeName);
 
-  PEdge newEdge();
+  PEdge newEdge(String typeName);
 
   PSchema getSchema();
 

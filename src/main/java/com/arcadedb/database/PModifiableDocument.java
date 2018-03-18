@@ -7,13 +7,13 @@ import java.util.Set;
 public class PModifiableDocument extends PBaseDocument implements PModifiableRecord, PRecordInternal {
   private final Map<String, Object> map;
 
-  protected PModifiableDocument(final PDatabase database, final PRID rid) {
-    super(database, rid);
+  protected PModifiableDocument(final PDatabase database, final String typeName, final PRID rid) {
+    super(database, typeName, rid);
     this.map = new LinkedHashMap<String, Object>();
   }
 
-  protected PModifiableDocument(final PDatabase database, final PRID rid, final PBinary buffer) {
-    super(database, rid);
+  protected PModifiableDocument(final PDatabase database, final String typeName, final PRID rid, final PBinary buffer) {
+    super(database, typeName, rid);
     this.map = this.database.getSerializer().deserializeFields(this.database, buffer);
   }
 
@@ -47,6 +47,10 @@ public class PModifiableDocument extends PBaseDocument implements PModifiableRec
     final StringBuilder buffer = new StringBuilder(256);
     if (rid != null)
       buffer.append(rid);
+    if (typeName != null) {
+      buffer.append('@');
+      buffer.append(typeName);
+    }
     buffer.append('[');
     int i = 0;
     for (Map.Entry<String, Object> entry : map.entrySet()) {

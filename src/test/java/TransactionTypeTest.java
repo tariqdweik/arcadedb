@@ -1,7 +1,7 @@
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
-import com.arcadedb.schema.PType;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
 import junit.framework.Assert;
 import org.junit.jupiter.api.AfterEach;
@@ -213,13 +213,12 @@ public class TransactionTypeTest {
       public void execute(PDatabase database) {
         Assert.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
-        final PType type = database.getSchema().createType(TYPE_NAME, 3);
+        final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" });
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument();
-          v.setType(TYPE_NAME);
+          final PModifiableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

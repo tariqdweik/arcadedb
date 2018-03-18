@@ -35,13 +35,23 @@ public interface PSchema {
 
   PDictionary getDictionary();
 
-  Collection<PType> getTypes();
+  Collection<PDocumentType> getTypes();
 
-  PType getType(String typeName);
+  PDocumentType getType(String typeName);
+
+  String getTypeNameByBucketId(int bucketId);
 
   boolean existsType(String typeName);
 
-  PType createType(String typeName);
+  PDocumentType createDocumentType(String typeName);
 
-  PType createType(String typeName, int buckets);
+  PDocumentType createDocumentType(String typeName, int buckets);
+
+  PDocumentType createVertexType(String typeName);
+
+  PDocumentType createVertexType(String typeName, int buckets);
+
+  PDocumentType createEdgeType(String typeName);
+
+  PDocumentType createEdgeType(String typeName, int buckets);
 }
