@@ -1,3 +1,5 @@
+package com.arcadedb;
+
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PModifiableDocument;

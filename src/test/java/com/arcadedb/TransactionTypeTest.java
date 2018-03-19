@@ -1,3 +1,5 @@
+package com.arcadedb;
+
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
