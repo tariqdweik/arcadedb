@@ -175,6 +175,7 @@ public class PPageManager extends PLockContext {
           throw new PDatabaseMetadataException("Cannot flush pages on disk because file is closed");
 
         file.write(page);
+
         totalPagesWritten.incrementAndGet();
         totalPagesWrittenSize.addAndGet(page.getPhysicalSize());
         return null;
@@ -281,16 +282,23 @@ public class PPageManager extends PLockContext {
           totalImmutablePagesRAM.addAndGet(-1 * page.getPhysicalSize());
         }
       } else {
-        try {
-          flushThread.asyncFlush((PModifiablePage) page);
-        } catch (Exception e) {
-          PLogManager.instance().error(this, "Error on flushing page", e);
-        }
+        final PModifiablePage p = modifiedPages.get(page.pageId);
+        if (p != null) {
+          // COPY THE PAGE IN RAM, TO AVOID READING AN OLD VERSION
+          pageMap.put(page.pageId, p.createImmutableCopy());
+          totalImmutablePagesRAM.addAndGet(page.getPhysicalSize());
 
-        final boolean removed = modifiedPages.remove(page.pageId) != null;
-        if (removed) {
-          freedRAM += page.getPhysicalSize();
-          totalModifiedPagesRAM.addAndGet(-1 * page.getPhysicalSize());
+          try {
+            flushThread.asyncFlush((PModifiablePage) page);
+          } catch (Exception e) {
+            PLogManager.instance().error(this, "Error on flushing page", e);
+          }
+
+          final boolean removed = modifiedPages.remove(page.pageId) != null;
+          if (removed) {
+            freedRAM += page.getPhysicalSize();
+            totalModifiedPagesRAM.addAndGet(-1 * page.getPhysicalSize());
+          }
         }
       }
     }
@@ -313,8 +321,14 @@ public class PPageManager extends PLockContext {
 
     synchronized (pagesToDispose) {
       for (PPageId pageId : pagesToDispose) {
-        PBasePage page = modifiedPages.remove(pageId);
+        PBasePage page = modifiedPages.get(pageId);
         if (page != null) {
+          // PUT THE PAGE IN RAM TO AVOID READING OLD COPY DURING FLUSHING
+          pageMap.put(pageId, ((PModifiablePage) page).createImmutableCopy());
+          totalImmutablePagesRAM.addAndGet(page.getPhysicalSize());
+
+          modifiedPages.remove(pageId);
+
           try {
             flushThread.asyncFlush((PModifiablePage) page);
             ++disposedPages;
@@ -323,13 +337,13 @@ public class PPageManager extends PLockContext {
           } catch (Exception e) {
             PLogManager.instance().error(this, "Error on flushing page", e);
           }
-        }
-
-        page = pageMap.remove(pageId);
-        if (page != null) {
-          ++disposedPages;
-          freedRAM += page.getPhysicalSize();
-          totalImmutablePagesRAM.addAndGet(-1 * page.getPhysicalSize());
+        } else {
+          page = pageMap.remove(pageId);
+          if (page != null) {
+            ++disposedPages;
+            freedRAM += page.getPhysicalSize();
+            totalImmutablePagesRAM.addAndGet(-1 * page.getPhysicalSize());
+          }
         }
       }
       pagesToDispose.clear();

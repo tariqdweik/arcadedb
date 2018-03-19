@@ -2,7 +2,7 @@ package com.arcadedb.serializer;
 
 import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PRID;
+import com.arcadedb.database.PIdentifiable;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -624,7 +624,7 @@ public class PBinaryComparator {
     case PBinaryTypes.TYPE_RID: {
       switch (type2) {
       case PBinaryTypes.TYPE_RID:
-        return ((PRID) value1).compareTo((PRID) value2);
+        return ((PIdentifiable) value1).getIdentity().compareTo((PIdentifiable) value2);
       }
     }
     }

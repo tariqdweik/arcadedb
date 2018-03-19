@@ -3,7 +3,7 @@ package com.arcadedb.database;
 /**
  * Immutable class.
  */
-public class PRID implements PIdentifiable, Comparable<PRID> {
+public class PRID implements PIdentifiable, Comparable<PIdentifiable> {
   private final PDatabase database;
   private       int       bucketId;
   private       long      offset;
@@ -56,15 +56,16 @@ public class PRID implements PIdentifiable, Comparable<PRID> {
   }
 
   @Override
-  public int compareTo(final PRID o) {
-    if (bucketId > o.bucketId)
+  public int compareTo(final PIdentifiable o) {
+    final PRID other = o.getIdentity();
+    if (bucketId > other.bucketId)
       return 1;
-    else if (bucketId < o.bucketId)
+    else if (bucketId < other.bucketId)
       return -1;
 
-    if (offset > o.offset)
+    if (offset > other.offset)
       return 1;
-    else if (offset < o.offset)
+    else if (offset < other.offset)
       return -1;
 
     return 0;

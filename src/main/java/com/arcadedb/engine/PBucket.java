@@ -122,13 +122,16 @@ public class PBucket extends PPaginatedFile {
     final int pageId = (int) (rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE + 1);
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
-    if (pageId > pageCount)
-      throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    if (pageId >= pageCount) {
+      final Integer txCounter = database.getTransaction().getPageCounter(rid.getBucketId());
+      if (txCounter != null && pageId >= txCounter)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    }
 
     try {
       final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
       final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
-      if (positionInPage > recordCountInPage)
+      if (positionInPage >= recordCountInPage)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
       final int recordPositionInPage = page.readUnsignedShort(PAGE_RECORD_TABLE_OFFSET + positionInPage * SHORT_SERIALIZED_SIZE);

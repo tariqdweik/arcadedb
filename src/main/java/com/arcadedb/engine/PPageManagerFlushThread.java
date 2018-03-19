@@ -18,6 +18,7 @@ public class PPageManagerFlushThread extends Thread {
   }
 
   public void asyncFlush(final PModifiablePage page) throws InterruptedException {
+    PLogManager.instance().debug(this, "Enqueuing flushing page %s in bg (size=%d)...", page.pageId, page.getPhysicalSize());
     queue.put(page);
   }
 
