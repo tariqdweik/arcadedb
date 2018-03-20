@@ -11,6 +11,8 @@ import java.util.Map;
 
 public class PSerializerTest {
 
+    public static final String DB_PATH = "./target/proton/testdb";
+
     @Test
     public void testVarNumber() {
         final PBinary binary = new PBinary();
@@ -100,7 +102,7 @@ public class PSerializerTest {
     public void testPropertiesInDocument() {
         final PBinarySerializer serializer = new PBinarySerializer();
 
-        new PDatabaseFactory("/temp/proton/testdb", PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+        new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
             @Override
             public void execute(PDatabase database) {
                 final PModifiableDocument v = database.newDocument(null);
