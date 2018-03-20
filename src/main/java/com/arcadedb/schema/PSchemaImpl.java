@@ -358,7 +358,8 @@ public class PSchemaImpl implements PSchema {
 
         if (!indexMap.containsKey(EDGES_INDEX_NAME)) {
           createManualIndex(PSchemaImpl.EDGES_INDEX_NAME,
-              new byte[] { PBinaryTypes.TYPE_RID, PBinaryTypes.TYPE_BYTE, PBinaryTypes.TYPE_INT, PBinaryTypes.TYPE_RID }, 65536);
+              new byte[] { PBinaryTypes.TYPE_RID, PBinaryTypes.TYPE_BYTE, PBinaryTypes.TYPE_INT, PBinaryTypes.TYPE_RID },
+              65536 * 10);
         }
 
         saveConfiguration();

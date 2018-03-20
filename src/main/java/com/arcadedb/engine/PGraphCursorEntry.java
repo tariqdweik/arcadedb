@@ -1,7 +1,7 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PVertex;
+import com.arcadedb.database.graph.PVertex;
 
 public interface PGraphCursorEntry {
   PIdentifiable getVertex();

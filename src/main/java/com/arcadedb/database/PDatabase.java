@@ -1,5 +1,7 @@
 package com.arcadedb.database;
 
+import com.arcadedb.database.graph.PEdge;
+import com.arcadedb.database.graph.PModifiableVertex;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
 import com.arcadedb.schema.PSchema;

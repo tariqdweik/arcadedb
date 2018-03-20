@@ -1,4 +1,6 @@
-package com.arcadedb.database;
+package com.arcadedb.database.graph;
+
+import com.arcadedb.database.*;
 
 public class PModifiableEdge extends PModifiableDocument implements PEdge {
   private PIdentifiable out;

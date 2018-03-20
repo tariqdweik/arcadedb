@@ -1,5 +1,9 @@
 package com.arcadedb.database;
 
+import com.arcadedb.database.graph.PEdge;
+import com.arcadedb.database.graph.PModifiableEdge;
+import com.arcadedb.database.graph.PModifiableVertex;
+import com.arcadedb.database.graph.PVertex;
 import com.arcadedb.exception.PDatabaseMetadataException;
 
 public class PRecordFactory {

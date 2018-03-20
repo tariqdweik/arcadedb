@@ -1,6 +1,9 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
+import com.arcadedb.database.graph.PEdge;
+import com.arcadedb.database.graph.PModifiableVertex;
+import com.arcadedb.database.graph.PVertex;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.engine.PGraphCursorEntry;
 import com.arcadedb.utility.PFileUtils;

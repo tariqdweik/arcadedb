@@ -4,6 +4,7 @@ import com.arcadedb.database.PRID;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public interface PIndex {
   String getName();
@@ -21,4 +22,6 @@ public interface PIndex {
   List<PRID> get(Object[] keys);
 
   void put(Object[] keys, PRID rid);
+
+  Map<String,Long> getStats();
 }

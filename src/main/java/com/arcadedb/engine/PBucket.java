@@ -74,7 +74,7 @@ public class PBucket extends PPaginatedFile {
         else if (recordCountInPage > 0) {
           // GET FIRST EMPTY POSITION
           final int lastRecordPositionInPage = (int) lastPage
-              .readInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
+              .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
           final long[] lastRecordSize = lastPage.readNumberAndSize(lastRecordPositionInPage);
           newPosition = lastRecordPositionInPage + (int) lastRecordSize[0] + (int) lastRecordSize[1];
 
@@ -103,7 +103,7 @@ public class PBucket extends PPaginatedFile {
 
       lastPage.writeBytes(newPosition, buffer.toByteArray());
 
-      lastPage.writeInt(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * INT_SERIALIZED_SIZE, newPosition);
+      lastPage.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * INT_SERIALIZED_SIZE, newPosition);
 
       lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
 
@@ -132,7 +132,7 @@ public class PBucket extends PPaginatedFile {
       if (positionInPage >= recordCountInPage)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
-      final int recordPositionInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
       final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
       if (recordSize[0] == 0)
         // DELETED
@@ -163,7 +163,7 @@ public class PBucket extends PPaginatedFile {
       if (positionInPage >= recordCountInPage)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
-      final int recordPositionInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
       final long[] removedRecordSize = page.readNumberAndSize(recordPositionInPage);
       if (removedRecordSize[0] == 0)
         // ALREADY DELETED
@@ -174,14 +174,14 @@ public class PBucket extends PPaginatedFile {
 
       // COMPACT PAGE BY SHIFTING THE RECORDS TO THE LEFT
       for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
-        final int nextRecordPosInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
+        final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
         final byte[] record = page.readBytes(nextRecordPosInPage);
 
         final int newPosition = nextRecordPosInPage - (int) removedRecordSize[0];
         page.writeBytes(newPosition, record);
 
         // OVERWRITE POS TABLE WITH NEW POSITION
-        page.writeInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
+        page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
       }
 
       incrementRecordCount(-1);
@@ -204,7 +204,8 @@ public class PBucket extends PPaginatedFile {
 
         if (recordCountInPage > 0) {
           for (int recordIdInPage = 0; recordIdInPage < recordCountInPage; ++recordIdInPage) {
-            final int recordPositionInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
+            final int recordPositionInPage = (int) page
+                .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
             final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
 
             if (recordSize[0] > 0) {
@@ -216,7 +217,7 @@ public class PBucket extends PPaginatedFile {
               final PBinary view = page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
 
               if (!callback.onRecord(rid, view))
-                break;
+                return;
             }
           }
         }

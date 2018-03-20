@@ -1,6 +1,9 @@
 package com.arcadedb.database;
 
 import com.arcadedb.PProfiler;
+import com.arcadedb.database.graph.PEdge;
+import com.arcadedb.database.graph.PModifiableEdge;
+import com.arcadedb.database.graph.PModifiableVertex;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.PDatabaseIsClosedException;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;

@@ -1,5 +1,6 @@
-package com.arcadedb.database;
+package com.arcadedb.database.graph;
 
+import com.arcadedb.database.*;
 import com.arcadedb.engine.PGraphCursorEntry;
 
 import java.util.Iterator;
@@ -30,6 +31,11 @@ public class PModifiableVertex extends PModifiableDocument implements PVertex {
   @Override
   public Iterator<PGraphCursorEntry> getConnectedVertices() {
     return PGraph.getVertexConnectedVertices(this);
+  }
+
+  @Override
+  public Iterator<PGraphCursorEntry> getConnectedVertices(final DIRECTION direction) {
+    return PGraph.getVertexConnectedVertices(this, direction);
   }
 
   @Override

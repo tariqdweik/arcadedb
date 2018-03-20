@@ -1,5 +1,8 @@
-package com.arcadedb.database;
+package com.arcadedb.database.graph;
 
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.database.PRID;
 import com.arcadedb.engine.*;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PEdgeType;
@@ -122,6 +125,58 @@ public class PGraph {
     } else if (direction == PVertex.DIRECTION.IN || direction == PVertex.DIRECTION.BOTH) {
       try {
         final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.IN.ordinal(), type.getDictionaryId() };
+        final PIndexCursor inVertices = edgeIndex.iterator(keys);
+
+        while (inVertices.hasNext()) {
+          inVertices.next();
+          final Object[] entryKeys = inVertices.getKeys();
+          result.add(new PGraphLSMCursorEntry((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
+              dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3], (PIdentifiable) inVertices.getValue()));
+        }
+
+      } catch (IOException e) {
+        throw new RuntimeException("Error on browsing incoming vertices for vertex " + vertex.getIdentity(), e);
+      }
+    }
+
+    return result.iterator();
+  }
+
+  /**
+   * Returns the connected vertices.
+   *
+   * @param direction Direction between OUT, IN or BOTH
+   *
+   * @return An iterator of PIndexCursorEntry entries
+   */
+  public static Iterator<PGraphCursorEntry> getVertexConnectedVertices(final PVertex vertex, final PVertex.DIRECTION direction) {
+    if (direction == null)
+      throw new IllegalArgumentException("Direction is null");
+
+    final PIndex edgeIndex = vertex.getDatabase().getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+
+    final PDictionary dictionary = vertex.getDatabase().getSchema().getDictionary();
+
+    final Set<PGraphCursorEntry> result = new HashSet<>();
+    if (direction == PVertex.DIRECTION.OUT || direction == PVertex.DIRECTION.BOTH) {
+      try {
+        final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal() };
+        final PIndexCursor outVertices = edgeIndex.iterator(keys);
+
+        while (outVertices.hasNext()) {
+          outVertices.next();
+          final Object[] entryKeys = outVertices.getKeys();
+          result.add(new PGraphLSMCursorEntry((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
+              dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3],
+              (PIdentifiable) outVertices.getValue()));
+        }
+
+      } catch (IOException e) {
+        throw new RuntimeException("Error on browsing outgoing vertices for vertex " + vertex.getIdentity(), e);
+      }
+    } else if (direction == PVertex.DIRECTION.IN || direction == PVertex.DIRECTION.BOTH) {
+      try {
+        final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.IN.ordinal() };
         final PIndexCursor inVertices = edgeIndex.iterator(keys);
 
         while (inVertices.hasNext()) {

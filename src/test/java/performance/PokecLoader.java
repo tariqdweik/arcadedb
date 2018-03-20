@@ -1,6 +1,8 @@
 package performance;
 
 import com.arcadedb.database.*;
+import com.arcadedb.database.graph.PModifiableVertex;
+import com.arcadedb.database.graph.PVertex;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.schema.PDocumentType;
@@ -134,7 +136,7 @@ public class PokecLoader {
     new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
-        PDocumentType v = database.getSchema().createVertexType("V", 3, PBucket.DEF_PAGE_SIZE * 10);
+        PDocumentType v = database.getSchema().createVertexType("V", 3, PBucket.DEF_PAGE_SIZE * 2);
         v.createProperty("id", Integer.class);
 
         for (int i = 0; i < COLUMNS.length; ++i) {

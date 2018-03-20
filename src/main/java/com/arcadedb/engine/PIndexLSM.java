@@ -10,10 +10,8 @@ import com.arcadedb.serializer.PBinarySerializer;
 import com.arcadedb.serializer.PBinaryTypes;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.arcadedb.database.PBinary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
@@ -38,6 +36,9 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   private byte[] keyTypes;
   private byte   valueType;
   private volatile boolean compacting = false;
+
+  private AtomicLong statsBFFalsePositive = new AtomicLong();
+  private AtomicLong statsAdjacentSteps   = new AtomicLong();
 
   protected class LookupResult {
     public final boolean found;
@@ -165,6 +166,8 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
           final LookupResult result = lookup(p, count, currentPageBuffer, keys, 0);
           if (result.found)
             list.add((PRID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition));
+          else
+            statsBFFalsePositive.incrementAndGet();
         }
       }
 
@@ -324,6 +327,13 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     return currentPage;
   }
 
+  public Map<String, Long> getStats() {
+    final Map<String, Long> stats = new HashMap<>();
+    stats.put("BFFalsePositive", statsBFFalsePositive.get());
+    stats.put("AdjacentSteps", statsAdjacentSteps.get());
+    return stats;
+  }
+
   @Override
   public String toString() {
     return name;
@@ -406,7 +416,8 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
         // PARTIAL MATCHING
         if (purpose == 1) {
           // FIND THE MOST LEFT ITEM
-          for (int i = mid - 1; i >= 0; --i) {
+          int jump = 5;
+          for (int i = mid - 1; i >= 0; i -= jump) {
             final int pos = currentPageBuffer.getInt(startIndexArray + (i * INT_SERIALIZED_SIZE));
             currentPageBuffer.position(pos);
 
@@ -424,10 +435,21 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
                 break;
             }
 
-            if (result == 0)
+            if (result == 0) {
               mid = i;
-            else
-              break;
+              statsAdjacentSteps.incrementAndGet();
+
+              if( i > 0 && i - jump < 0)
+                jump = i;
+            } else {
+              if (jump == 1)
+                break;
+
+              i += jump;
+              jump /= 2;
+              if (jump < 1)
+                jump = 1;
+            }
           }
         } else if (purpose == 2) {
           // FIND THE MOST RIGHT ITEM
@@ -449,9 +471,10 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
                 break;
             }
 
-            if (result == 0)
+            if (result == 0) {
               mid = i;
-            else
+              statsAdjacentSteps.incrementAndGet();
+            } else
               break;
           }
 

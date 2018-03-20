@@ -4,8 +4,6 @@ import com.arcadedb.database.PBinary;
 import com.arcadedb.serializer.PBinarySerializer;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 
@@ -76,9 +74,6 @@ public class PIndexPageIterator {
   }
 
   public void close() {
-    final List<PPageId> list = new ArrayList<PPageId>(1);
-    list.add(pageId);
-    index.database.getPageManager().addPagesToDispose(list);
   }
 
   public int getCurrentPosition() {

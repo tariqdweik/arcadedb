@@ -1,5 +1,7 @@
-package com.arcadedb.database;
+package com.arcadedb.database.graph;
 
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
 import com.arcadedb.engine.PGraphCursorEntry;
 
 import java.util.Iterator;
@@ -26,10 +28,11 @@ public interface PVertex extends PRecord {
    * Returns the connected vertices.
    *
    * @param direction Direction between OUT, IN or BOTH
-   * @param edgeType  Edge type name to filter
    *
    * @return An iterator of PIndexCursorEntry entries
    */
+  Iterator<PGraphCursorEntry> getConnectedVertices(DIRECTION direction);
+
   Iterator<PGraphCursorEntry> getConnectedVertices(DIRECTION direction, String edgeType);
 
   boolean isConnectedTo(PIdentifiable toVertex);
