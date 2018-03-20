@@ -26,22 +26,19 @@ public class PBinarySerializer {
     final PBinary content = new PBinary();
 
     header.putByte(record.getRecordType()); // RECORD TYPE
+    header.putInt(0); // TEMPORARY PLACEHOLDER FOR HEADER SIZE
 
     final Set<String> propertyNames = record.getPropertyNames();
     header.putNumber(propertyNames.size());
 
-    final int startHeaderFieldTable = header.position();
-
     for (String p : propertyNames) {
       // WRITE PROPERTY ID FROM THE DICTIONARY
       // TODO: USE UNSIGNED SHORT
-      header.putShort((short) database.getSchema().getDictionary().getIdByName(p, true));
+      header.putNumber(database.getSchema().getDictionary().getIdByName(p, true));
 
       final Object value = record.get(p);
 
-      final int startContentPosition =
-          content.position() + (startHeaderFieldTable + propertyNames.size() * (PBinary.SHORT_SERIALIZED_SIZE
-              + PBinary.SHORT_SERIALIZED_SIZE));
+      final int startContentPosition = content.position();
 
       final byte type = PBinaryTypes.getTypeFromValue(value);
       content.putByte(type);
@@ -49,11 +46,19 @@ public class PBinarySerializer {
       serializeValue(content, type, value);
 
       // WRITE PROPERTY CONTENT POSITION
-      header.putShort((short) startContentPosition);
+      header.putNumber(startContentPosition);
     }
 
     content.flip();
+
+    final int headerSize = header.position();
+
     header.append(content);
+
+    // UPDATE HEADER SIZE
+    header.putInt(PBinary.BYTE_SERIALIZED_SIZE, headerSize);
+
+    header.position(header.size());
     header.flip();
     return header;
   }
@@ -61,12 +66,13 @@ public class PBinarySerializer {
   public Set<String> getPropertyNames(final PDatabase database, final PBinary buffer) {
     buffer.reset();
     final byte recordType = buffer.getByte();
+    final int headerSize = buffer.getInt();
     final int properties = (int) buffer.getNumber();
     final Set<String> result = new LinkedHashSet<String>(properties);
 
     for (int i = 0; i < properties; ++i) {
-      final int nameId = (int) buffer.getShort();
-      final int contentPosition = (int) buffer.getShort();
+      final int nameId = (int) buffer.getNumber();
+      final long contentPosition = buffer.getNumber();
       final String name = database.getSchema().getDictionary().getNameById(nameId);
       result.add(name);
     }
@@ -77,6 +83,7 @@ public class PBinarySerializer {
   public Map<String, Object> deserializeFields(final PDatabase database, final PBinary buffer, final String... fieldNames) {
     buffer.reset();
     final byte recordType = buffer.getByte();
+    final int headerSize = buffer.getInt();
     final int properties = (int) buffer.getNumber();
 
     final Map<String, Object> values = new LinkedHashMap<String, Object>(properties);
@@ -88,8 +95,8 @@ public class PBinarySerializer {
       fieldIds[i] = database.getSchema().getDictionary().getIdByName(fieldNames[i], false);
 
     for (int i = 0; i < properties; ++i) {
-      final int nameId = (int) buffer.getShort();
-      final int contentPosition = (int) buffer.getShort();
+      final int nameId = (int) buffer.getNumber();
+      final int contentPosition = (int) buffer.getNumber();
 
       lastHeaderPosition = buffer.position();
 
@@ -108,11 +115,9 @@ public class PBinarySerializer {
 
       final String name = database.getSchema().getDictionary().getNameById(nameId);
 
-      final Object value;
+      buffer.position(headerSize + contentPosition);
 
-      buffer.position(contentPosition);
-
-      value = deserializeValue(database, buffer, buffer.getByte());
+      final Object value = deserializeValue(database, buffer, buffer.getByte());
 
       values.put(name, value);
 

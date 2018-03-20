@@ -118,11 +118,11 @@ public class TransactionTypeTest {
     db.begin();
     try {
       for (int i = 0; i < TOT; i++) {
-        final List<? extends PRecord> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
+        final List<PRID> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.size());
 
-        final PRecord record2 = result.get(0);
+        final PRecord record2 = result.get(0).getRecord();
 
         Assertions.assertEquals(i, record2.get("id"));
 
@@ -136,7 +136,6 @@ public class TransactionTypeTest {
         Assertions.assertTrue(prop.contains("surname"));
 
         total.incrementAndGet();
-
       }
 
       db.commit();

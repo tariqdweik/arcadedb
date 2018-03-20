@@ -9,10 +9,10 @@ import com.arcadedb.exception.PRecordNotFoundException;
 
 import java.io.IOException;
 
-import static com.arcadedb.database.PBinary.SHORT_SERIALIZED_SIZE;
+import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 
 /**
- * HEADER = [recordCount(int:4)] CONTENT-PAGES = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(512*ushort=2048)]
+ * HEADER = [recordCount(int:4)] CONTENT-PAGES = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(2048*uint=8192)]
  */
 public class PBucket extends PPaginatedFile {
   public static final String BUCKET_EXT          = "pbucket";
@@ -22,7 +22,7 @@ public class PBucket extends PPaginatedFile {
   private static final int PAGE_RECORD_COUNT_IN_PAGE_OFFSET = 0;
   private static final int PAGE_RECORD_TABLE_OFFSET         = PAGE_RECORD_COUNT_IN_PAGE_OFFSET + PBinary.SHORT_SERIALIZED_SIZE;
   private static final int CONTENT_HEADER_SIZE              =
-      PAGE_RECORD_TABLE_OFFSET + (MAX_RECORDS_IN_PAGE * SHORT_SERIALIZED_SIZE);
+      PAGE_RECORD_TABLE_OFFSET + (MAX_RECORDS_IN_PAGE * INT_SERIALIZED_SIZE);
 
   /**
    * Called at creation time.
@@ -63,9 +63,7 @@ public class PBucket extends PPaginatedFile {
       int recordCountInPage = -1;
       boolean createNewPage = false;
 
-      Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
-      if (txPageCounter == null)
-        txPageCounter = pageCount;
+      final int txPageCounter = getTotalPages();
 
       if (txPageCounter > 1) {
         lastPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize);
@@ -75,12 +73,12 @@ public class PBucket extends PPaginatedFile {
           createNewPage = true;
         else if (recordCountInPage > 0) {
           // GET FIRST EMPTY POSITION
-          final int lastRecordPositionInPage = lastPage
-              .readUnsignedShort(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * SHORT_SERIALIZED_SIZE);
-          final int lastRecordSize = lastPage.readUnsignedShort(lastRecordPositionInPage);
-          newPosition = lastRecordPositionInPage + SHORT_SERIALIZED_SIZE + lastRecordSize;
+          final int lastRecordPositionInPage = (int) lastPage
+              .readInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
+          final long[] lastRecordSize = lastPage.readNumberAndSize(lastRecordPositionInPage);
+          newPosition = lastRecordPositionInPage + (int) lastRecordSize[0] + (int) lastRecordSize[1];
 
-          if (newPosition + SHORT_SERIALIZED_SIZE + buffer.size() > lastPage.getMaxContentSize())
+          if (newPosition + INT_SERIALIZED_SIZE + buffer.size() > lastPage.getMaxContentSize())
             // RECORD TOO BIG FOR THIS PAGE, USE A NEW PAGE
             createNewPage = true;
 
@@ -103,9 +101,9 @@ public class PBucket extends PPaginatedFile {
       final PRID rid = new PRID(database, file.getFileId(),
           (lastPage.getPageId().getPageNumber() - 1) * MAX_RECORDS_IN_PAGE + recordCountInPage);
 
-      lastPage.writeUnsignedShort(newPosition, buffer.size());
-      lastPage.writeByteArray(newPosition + SHORT_SERIALIZED_SIZE, buffer.toByteArray());
-      lastPage.writeUnsignedShort(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * SHORT_SERIALIZED_SIZE, newPosition);
+      lastPage.writeBytes(newPosition, buffer.toByteArray());
+
+      lastPage.writeInt(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * INT_SERIALIZED_SIZE, newPosition);
 
       lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
 
@@ -123,8 +121,8 @@ public class PBucket extends PPaginatedFile {
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
     if (pageId >= pageCount) {
-      final Integer txCounter = database.getTransaction().getPageCounter(rid.getBucketId());
-      if (txCounter != null && pageId >= txCounter)
+      int txPageCount = getTotalPages();
+      if (pageId >= txPageCount)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
     }
 
@@ -134,15 +132,15 @@ public class PBucket extends PPaginatedFile {
       if (positionInPage >= recordCountInPage)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
-      final int recordPositionInPage = page.readUnsignedShort(PAGE_RECORD_TABLE_OFFSET + positionInPage * SHORT_SERIALIZED_SIZE);
-      final int recordSize = page.readUnsignedShort(recordPositionInPage);
-      if (recordSize == 0)
+      final int recordPositionInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+      if (recordSize[0] == 0)
         // DELETED
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
-      final int recordContentPositionInPage = recordPositionInPage + SHORT_SERIALIZED_SIZE;
+      final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
 
-      return page.getImmutableView(recordContentPositionInPage, recordSize);
+      return page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
 
     } catch (IOException e) {
       throw new PDatabaseOperationException("Error on lookup of record " + rid);
@@ -153,38 +151,37 @@ public class PBucket extends PPaginatedFile {
     final int pageId = (int) (rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE + 1);
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
-    if (pageId > pageCount)
-      throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    if (pageId >= pageCount) {
+      int txPageCount = getTotalPages();
+      if (pageId >= txPageCount)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    }
 
     try {
       final PModifiablePage page = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), pageId), pageSize);
       final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
-      if (positionInPage > recordCountInPage)
+      if (positionInPage >= recordCountInPage)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
-      final int recordPositionInPage = page.readUnsignedShort(PAGE_RECORD_TABLE_OFFSET + positionInPage * SHORT_SERIALIZED_SIZE);
-      final int removedRecordSize = page.readUnsignedShort(recordPositionInPage);
-      if (removedRecordSize == 0)
+      final int recordPositionInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final long[] removedRecordSize = page.readNumberAndSize(recordPositionInPage);
+      if (removedRecordSize[0] == 0)
         // ALREADY DELETED
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
-      page.writeUnsignedShort(recordPositionInPage, 0);
+      // CONTENT SIZE = 0 MEANS DELETED
+      page.writeNumber(recordPositionInPage, 0);
 
       // COMPACT PAGE BY SHIFTING THE RECORDS TO THE LEFT
       for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
-        final int recordPos = page.readUnsignedShort(PAGE_RECORD_TABLE_OFFSET + pos * SHORT_SERIALIZED_SIZE);
+        final int nextRecordPosInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
+        final byte[] record = page.readBytes(nextRecordPosInPage);
 
-        final int size = page.readUnsignedShort(recordPos);
-
-        final int recordContentPos = recordPos + SHORT_SERIALIZED_SIZE;
-        final byte[] record = new byte[size];
-        page.readByteArray(recordContentPos, record);
-
-        page.writeUnsignedShort(recordPos - removedRecordSize, size);
-        page.writeByteArray(recordPos - removedRecordSize + SHORT_SERIALIZED_SIZE, record);
+        final int newPosition = nextRecordPosInPage - (int) removedRecordSize[0];
+        page.writeBytes(newPosition, record);
 
         // OVERWRITE POS TABLE WITH NEW POSITION
-        page.writeUnsignedShort(PAGE_RECORD_TABLE_OFFSET + pos * SHORT_SERIALIZED_SIZE, recordPos - removedRecordSize);
+        page.writeInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
       }
 
       incrementRecordCount(-1);
@@ -198,24 +195,25 @@ public class PBucket extends PPaginatedFile {
     if (count() == 0)
       return;
 
+    final int txPageCount = getTotalPages();
+
     try {
-      for (int pageId = 1; pageId < pageCount; ++pageId) {
+      for (int pageId = 1; pageId < txPageCount; ++pageId) {
         final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
         final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
 
         if (recordCountInPage > 0) {
           for (int recordIdInPage = 0; recordIdInPage < recordCountInPage; ++recordIdInPage) {
-            final int recordPositionInPage = page
-                .readUnsignedShort(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * SHORT_SERIALIZED_SIZE);
-            final int recordSize = page.readUnsignedShort(recordPositionInPage);
+            final int recordPositionInPage = (int) page.readInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
+            final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
 
-            if (recordSize > 0) {
+            if (recordSize[0] > 0) {
               // NOT DELETED
-              final int recordContentPositionInPage = recordPositionInPage + SHORT_SERIALIZED_SIZE;
+              final int recordContentPositionInPage = recordPositionInPage + (int) recordSize[1];
 
               final PRID rid = new PRID(database, id, (pageId - 1) * MAX_RECORDS_IN_PAGE + recordIdInPage);
 
-              final PBinary view = page.getImmutableView(recordContentPositionInPage, recordSize);
+              final PBinary view = page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
 
               if (!callback.onRecord(rid, view))
                 break;
@@ -248,6 +246,13 @@ public class PBucket extends PPaginatedFile {
   public long count() throws IOException {
     final PBasePage header = this.database.getTransaction().getPage(new PPageId(file.getFileId(), 0), pageSize);
     return header.readInt(0);
+  }
+
+  private int getTotalPages() {
+    final Integer txPageCounter = database.getTransaction().getPageCounter(id);
+    if (txPageCounter != null)
+      return txPageCounter;
+    return pageCount;
   }
 
   private void incrementRecordCount(final long delta) throws IOException {

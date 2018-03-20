@@ -69,6 +69,14 @@ public abstract class PBasePage {
     return version;
   }
 
+  public long readNumber(final int index) {
+    return this.content.getNumber(PAGE_HEADER_SIZE + index);
+  }
+
+  public long[] readNumberAndSize(final int index) {
+    return this.content.getNumberAndSize(PAGE_HEADER_SIZE + index);
+  }
+
   public long readLong(final int index) {
     return this.content.getLong(PAGE_HEADER_SIZE + index);
   }

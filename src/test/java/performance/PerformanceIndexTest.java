@@ -81,12 +81,12 @@ public class PerformanceIndexTest {
     try {
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {
-        final List<PBaseDocument> records = (List<PBaseDocument>) database
+        final List<PRID> records = (List<PRID>) database
             .lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
 
-        final PBaseDocument record = records.get(0);
+        final PBaseRecord record = (PBaseRecord) records.get(0).getRecord();
         Assertions.assertEquals(id, record.get("id"));
 
         if (id % 100000 == 0)

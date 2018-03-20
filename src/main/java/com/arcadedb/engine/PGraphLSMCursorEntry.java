@@ -6,14 +6,14 @@ import com.arcadedb.database.PVertex;
 /**
  * Immutable entry of index cursor.
  */
-public class PIndexLSMCursorEntry implements PIndexCursorEntry {
+public class PGraphLSMCursorEntry implements PGraphCursorEntry {
   private final PIdentifiable     vertex;
   private final PVertex.DIRECTION direction;
   private final String            edgeTypeName;
   private final PIdentifiable     connectedVertex;
   private final PIdentifiable     edge;
 
-  public PIndexLSMCursorEntry(final PIdentifiable vertex, final PVertex.DIRECTION direction, final String edgeTypeName,
+  public PGraphLSMCursorEntry(final PIdentifiable vertex, final PVertex.DIRECTION direction, final String edgeTypeName,
       final PIdentifiable connectedVertex, final PIdentifiable edge) {
     this.vertex = vertex;
     this.direction = direction;

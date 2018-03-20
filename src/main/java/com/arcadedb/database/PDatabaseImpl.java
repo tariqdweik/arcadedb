@@ -5,9 +5,9 @@ import com.arcadedb.engine.*;
 import com.arcadedb.exception.PDatabaseIsClosedException;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.schema.PSchemaImpl;
-import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.serializer.PBinarySerializer;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLockContext;
@@ -288,7 +288,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
-  public List<? extends PRecord> lookupByKey(final String type, final String[] properties, final Object[] keys) {
+  public List<PRID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
     checkDatabaseIsOpen();
     lock();
     try {
@@ -300,20 +300,15 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
         throw new IllegalArgumentException(
             "No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
-      for (PDocumentType.IndexMetadata m : metadata) {
-        final List<PRID> rids = m.index.get(keys);
-        if (!rids.isEmpty()) {
-          final List<PRecord> result = new ArrayList<>();
-          for (PRID rid : rids)
-            result.add(lookupByRID(rid));
-          return result;
-        }
-      }
+      final List<PRID> result = new ArrayList<>();
+      for (PDocumentType.IndexMetadata m : metadata)
+        result.addAll(m.index.get(keys));
+
+      return result;
 
     } finally {
       unlock();
     }
-    return Collections.emptyList();
   }
 
   @Override
@@ -437,17 +432,15 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
-  public PVertex newVertex(final String typeName) {
-    //TODO support immutable/modifiable like for document
+  public PModifiableVertex newVertex(final String typeName) {
     checkTransactionIsActive();
-    return new PVertex(this, typeName, null);
+    return new PModifiableVertex(this, typeName, null);
   }
 
   @Override
   public PEdge newEdge(final String typeName) {
-    //TODO support immutable/modifiable like for document
     checkTransactionIsActive();
-    return new PEdge(this, typeName, null);
+    return new PModifiableEdge(this, typeName, null);
   }
 
   @Override

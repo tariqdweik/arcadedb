@@ -27,7 +27,8 @@ public class PDatabaseParallel extends PDatabaseImpl {
     public volatile boolean forceShutdown = false;
     public          long    count         = 0;
 
-    private DatabaseSaveAsyncThread(final PDatabaseParallel database, final int commitEvery) {
+    private DatabaseSaveAsyncThread(final PDatabaseParallel database, final int commitEvery, final int id) {
+      super("AsyncSave-" + id);
       this.database = database;
       this.commitEvery = commitEvery;
     }
@@ -73,7 +74,8 @@ public class PDatabaseParallel extends PDatabaseImpl {
     public volatile boolean shutdown      = false;
     public volatile boolean forceShutdown = false;
 
-    private DatabaseScanAsyncThread(final PDatabaseParallel database) {
+    private DatabaseScanAsyncThread(final PDatabaseParallel database, final int id) {
+      super("AsyncScan-" + id);
       this.database = database;
     }
 
@@ -273,10 +275,10 @@ public class PDatabaseParallel extends PDatabaseImpl {
     scanThreads = new DatabaseScanAsyncThread[parallelLevel];
 
     for (int i = 0; i < parallelLevel; ++i) {
-      executorThreads[i] = new DatabaseSaveAsyncThread(this, this.commitEvery);
+      executorThreads[i] = new DatabaseSaveAsyncThread(this, this.commitEvery, i);
       executorThreads[i].start();
 
-      scanThreads[i] = new DatabaseScanAsyncThread(this);
+      scanThreads[i] = new DatabaseScanAsyncThread(this, i);
       scanThreads[i].start();
     }
 

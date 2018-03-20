@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class PModifiableDocument extends PBaseDocument implements PModifiableRecord, PRecordInternal {
+public class PModifiableDocument extends PBaseRecord implements PModifiableRecord, PRecordInternal {
   private final Map<String, Object> map;
 
   protected PModifiableDocument(final PDatabase database, final String typeName, final PRID rid) {

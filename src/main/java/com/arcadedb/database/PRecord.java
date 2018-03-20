@@ -7,6 +7,8 @@ public interface PRecord extends PIdentifiable {
 
   PRID getIdentity();
 
+  String getType();
+
   byte getRecordType();
 
   Set<String> getPropertyNames();

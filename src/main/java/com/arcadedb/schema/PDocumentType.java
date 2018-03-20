@@ -91,8 +91,15 @@ public class PDocumentType {
     this.selectionStrategy = selectionStrategy;
   }
 
+  public boolean existsProperty(final String propertyName) {
+    return properties.containsKey(propertyName);
+  }
+
   public PProperty getProperty(final String propertyName) {
-    return properties.get(propertyName);
+    final PProperty prop = properties.get(propertyName);
+    if (prop == null)
+      throw new PSchemaException("Cannot find property '" + propertyName + "' in type '" + name + "'");
+    return prop;
   }
 
   public Collection<List<IndexMetadata>> getAllIndexesMetadata() {

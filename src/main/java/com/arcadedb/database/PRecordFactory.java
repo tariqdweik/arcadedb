@@ -8,12 +8,12 @@ public class PRecordFactory {
     content.reset();
 
     switch (type) {
-    case PImmutableDocument.RECORD_TYPE:
+    case PBaseRecord.RECORD_TYPE:
       return new PImmutableDocument(database, typeName, rid, content);
     case PVertex.RECORD_TYPE:
-      return new PVertex(database, typeName, rid, content);
+      return new PImmutableVertex(database, typeName, rid, content);
     case PEdge.RECORD_TYPE:
-      return new PEdge(database, typeName, rid, content);
+      return new PImmutableEdge(database, typeName, rid, content);
     }
     throw new PDatabaseMetadataException("Cannot find record type '" + type + "'");
   }
@@ -23,12 +23,12 @@ public class PRecordFactory {
     content.reset();
 
     switch (type) {
-    case PModifiableDocument.RECORD_TYPE:
+    case PBaseRecord.RECORD_TYPE:
       return new PModifiableDocument(database, typeName, rid, content);
     case PVertex.RECORD_TYPE:
-      return new PVertex(database, typeName, rid);
+      return new PModifiableVertex(database, typeName, rid);
     case PEdge.RECORD_TYPE:
-      return new PEdge(database, typeName, rid);
+      return new PModifiableEdge(database, typeName, rid);
     }
     throw new PDatabaseMetadataException("Cannot find record type '" + type + "'");
   }

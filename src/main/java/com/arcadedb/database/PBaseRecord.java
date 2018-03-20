@@ -1,13 +1,13 @@
 package com.arcadedb.database;
 
-public abstract class PBaseDocument implements PRecord {
+public abstract class PBaseRecord implements PRecord {
   public static final byte RECORD_TYPE = 0;
 
   protected final PDatabase database;
   protected final String    typeName;
   protected       PRID      rid;
 
-  protected PBaseDocument(final PDatabase database, final String typeName, final PRID rid) {
+  protected PBaseRecord(final PDatabase database, final String typeName, final PRID rid) {
     this.database = database;
     this.typeName = typeName;
     this.rid = rid;
@@ -34,7 +34,7 @@ public abstract class PBaseDocument implements PRecord {
     if (o == null || !(o instanceof PRecord))
       return false;
 
-    final PBaseDocument pRecord = (PBaseDocument) o;
+    final PBaseRecord pRecord = (PBaseRecord) o;
 
     if (!database.equals(pRecord.database))
       return false;

@@ -305,6 +305,10 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PDocumentType createDocumentType(final String typeName, final int buckets) {
+    return createDocumentType(typeName, buckets, PBucket.DEF_PAGE_SIZE);
+  }
+
+  public PDocumentType createDocumentType(final String typeName, final int buckets, final int pageSize) {
     return (PDocumentType) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -317,7 +321,7 @@ public class PSchemaImpl implements PSchema {
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
-          c.addBucket(createBucket(typeName + "_" + i));
+          c.addBucket(createBucket(typeName + "_" + i, pageSize));
 
         saveConfiguration();
 
@@ -332,7 +336,12 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PDocumentType createVertexType(String typeName, final int buckets) {
+  public PDocumentType createVertexType(final String typeName, final int buckets) {
+    return createVertexType(typeName, buckets, PBucket.DEF_PAGE_SIZE);
+  }
+
+  @Override
+  public PDocumentType createVertexType(String typeName, final int buckets, final int pageSize) {
     return (PDocumentType) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -344,7 +353,8 @@ public class PSchemaImpl implements PSchema {
         final PDocumentType c = new PVertexType(PSchemaImpl.this, typeName);
         types.put(typeName, c);
 
-        c.addBucket(createBucket(typeName + "_0"));
+        for (int i = 0; i < buckets; ++i)
+          c.addBucket(createBucket(typeName + "_" + i, pageSize));
 
         if (!indexMap.containsKey(EDGES_INDEX_NAME)) {
           createManualIndex(PSchemaImpl.EDGES_INDEX_NAME,
@@ -364,7 +374,12 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PDocumentType createEdgeType(String typeName, final int buckets) {
+  public PDocumentType createEdgeType(final String typeName, final int buckets) {
+    return createEdgeType(typeName, buckets, PBucket.DEF_PAGE_SIZE);
+  }
+
+  @Override
+  public PDocumentType createEdgeType(final String typeName, final int buckets, final int pageSize) {
     return (PDocumentType) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -376,7 +391,8 @@ public class PSchemaImpl implements PSchema {
         final PDocumentType c = new PEdgeType(PSchemaImpl.this, typeName, dictionary.getIdByName(typeName, true));
         types.put(typeName, c);
 
-        c.addBucket(createBucket(typeName + "_0"));
+        for (int i = 0; i < buckets; ++i)
+          c.addBucket(createBucket(typeName + "_" + i, pageSize));
 
         saveConfiguration();
 

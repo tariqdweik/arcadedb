@@ -41,7 +41,7 @@ public interface PDatabase {
 
   PRecord lookupByRID(PRID rid);
 
-  List<? extends PRecord> lookupByKey(String type, String[] properties, Object[] keys);
+  List<PRID> lookupByKey(String type, String[] properties, Object[] keys);
 
   void saveRecord(PModifiableDocument record);
 
@@ -55,7 +55,7 @@ public interface PDatabase {
 
   PModifiableDocument newDocument(String typeName);
 
-  PVertex newVertex(String typeName);
+  PModifiableVertex newVertex(String typeName);
 
   PEdge newEdge(String typeName);
 

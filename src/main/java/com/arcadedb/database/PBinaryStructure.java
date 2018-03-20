@@ -49,11 +49,15 @@ public interface PBinaryStructure {
 
   byte getByte();
 
+  long[] getNumberAndSize(int index);
+
   long getNumber(int index);
 
   long getNumber();
 
   long getUnsignedNumber();
+
+  long[] getUnsignedNumberAndSize();
 
   short getShort(int index);
 

@@ -183,6 +183,18 @@ public class PBinary implements PBinaryStructure {
   }
 
   @Override
+  public long[] getNumberAndSize(final int index) {
+    position(index);
+    final long[] raw = getUnsignedNumberAndSize();
+    final long temp = (((raw[0] << 63) >> 63) ^ raw[0]) >> 1;
+    // This extra step lets us deal with the largest signed values by
+    // treating negative results from read unsigned methods as like unsigned values
+    // Must re-flip the top bit if the original read value had it set.
+    raw[0] = temp ^ (raw[0] & (1L << 63));
+    return raw;
+  }
+
+  @Override
   public long getNumber(final int index) {
     position(index);
     return getNumber();
@@ -210,6 +222,22 @@ public class PBinary implements PBinaryStructure {
         throw new IllegalArgumentException("Variable length quantity is too long (must be <= 63)");
     }
     return value | (b << i);
+  }
+
+  @Override
+  public long[] getUnsignedNumberAndSize() {
+    long value = 0L;
+    int i = 0;
+    long b;
+    int byteRead = 1;
+    while (((b = buffer.get()) & 0x80L) != 0) {
+      value |= (b & 0x7F) << i;
+      i += 7;
+      if (i > 63)
+        throw new IllegalArgumentException("Variable length quantity is too long (must be <= 63)");
+      ++byteRead;
+    }
+    return new long[] { value | (b << i), byteRead };
   }
 
   @Override

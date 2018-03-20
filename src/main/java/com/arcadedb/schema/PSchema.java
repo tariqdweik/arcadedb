@@ -47,11 +47,17 @@ public interface PSchema {
 
   PDocumentType createDocumentType(String typeName, int buckets);
 
+  PDocumentType createDocumentType(String typeName, int buckets, int pageSize);
+
   PDocumentType createVertexType(String typeName);
 
   PDocumentType createVertexType(String typeName, int buckets);
 
+  PDocumentType createVertexType(String typeName, int buckets, int pageSize);
+
   PDocumentType createEdgeType(String typeName);
 
   PDocumentType createEdgeType(String typeName, int buckets);
+
+  PDocumentType createEdgeType(String typeName, int buckets, int pageSize);
 }
