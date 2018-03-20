@@ -11,7 +11,9 @@ public interface PVertex extends PRecord {
     OUT, IN, BOTH
   }
 
-  Iterator<PEdge> getEdges(final DIRECTION direction, final String edgeType);
+  void newEdge(String edgeType, PIdentifiable toVertex, boolean bidirectional);
+
+  Iterator<PEdge> getEdges(DIRECTION direction, String edgeType);
 
   /**
    * Returns all the connected vertices, both directions, any edge type.
@@ -28,11 +30,11 @@ public interface PVertex extends PRecord {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  Iterator<PGraphCursorEntry> getConnectedVertices(final DIRECTION direction, final String edgeType);
+  Iterator<PGraphCursorEntry> getConnectedVertices(DIRECTION direction, String edgeType);
 
-  boolean isConnectedTo(final PIdentifiable toVertex);
+  boolean isConnectedTo(PIdentifiable toVertex);
 
-  boolean isConnectedTo(final PIdentifiable toVertex, final DIRECTION direction);
+  boolean isConnectedTo(PIdentifiable toVertex, DIRECTION direction);
 
-  boolean isConnectedTo(final PIdentifiable toVertex, final DIRECTION direction, final String edgeType);
+  boolean isConnectedTo(PIdentifiable toVertex, DIRECTION direction, String edgeType);
 }

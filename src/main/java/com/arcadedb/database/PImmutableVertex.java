@@ -19,6 +19,10 @@ public class PImmutableVertex extends PImmutableDocument implements PVertex {
     return new PModifiableVertex(database, typeName, rid, buffer);
   }
 
+  public void newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional) {
+    PGraph.newEdge(this, edgeType, toVertex, bidirectional);
+  }
+
   @Override
   public Iterator<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
     return PGraph.getVertexEdges(this, direction, edgeType);

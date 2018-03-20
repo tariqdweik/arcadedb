@@ -14,6 +14,36 @@ import java.util.Set;
 public class PGraph {
   public static final PRID NULL_RID = new PRID(null, -1, -1);
 
+  public static void newEdge(final PVertex vertex, final String edgeType, final PIdentifiable toVertex,
+      final boolean bidirectional) {
+    if (toVertex == null)
+      throw new IllegalArgumentException("Destination vertex is null");
+
+    final PRID rid = vertex.getIdentity();
+    if (rid == null)
+      throw new IllegalArgumentException("Current vertex is not persistent");
+
+    if (toVertex instanceof PModifiableDocument && toVertex.getIdentity() == null)
+      throw new IllegalArgumentException("Target vertex is not persistent");
+
+    final PEdgeType type = PGraph.getEdgeType(vertex, edgeType);
+
+    final PIndex edgeIndex = vertex.getDatabase().getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+
+    final Object[] outKeys = new Object[] { rid, (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId(), toVertex };
+
+    // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
+    edgeIndex.put(outKeys, NULL_RID);
+
+    if (bidirectional) {
+      final Object[] inKeys = new Object[] { toVertex.getIdentity(), (byte) PVertex.DIRECTION.IN.ordinal(), type.getDictionaryId(),
+          rid };
+
+      // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
+      edgeIndex.put(inKeys, NULL_RID);
+    }
+  }
+
   public static Iterator<PEdge> getVertexEdges(final PVertex vertex, final PVertex.DIRECTION direction, final String edgeType) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");

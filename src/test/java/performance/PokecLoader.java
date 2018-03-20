@@ -91,13 +91,13 @@ public class PokecLoader {
 
         final int id1 = Integer.parseInt(profiles[0]);
         final List<PRID> result1 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id1 });
-        PModifiableVertex v1;
+        PVertex v1;
         if (result1.isEmpty()) {
           v1 = db.newVertex("V");
-          v1.set("id", id1);
-          v1.save();
+          ((PModifiableVertex) v1).set("id", id1);
+          ((PModifiableVertex) v1).save();
         } else
-          v1 = ((PImmutableVertex) result1.get(0).getRecord()).modify();
+          v1 = ((PVertex) result1.get(0).getRecord());
 
         final int id2 = Integer.parseInt(profiles[1]);
         final List<PRID> result2 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id2 });

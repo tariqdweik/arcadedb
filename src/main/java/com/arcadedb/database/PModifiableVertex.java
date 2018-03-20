@@ -1,13 +1,8 @@
 package com.arcadedb.database;
 
 import com.arcadedb.engine.PGraphCursorEntry;
-import com.arcadedb.engine.PIndex;
-import com.arcadedb.schema.PEdgeType;
-import com.arcadedb.schema.PSchemaImpl;
 
 import java.util.Iterator;
-
-import static com.arcadedb.database.PGraph.NULL_RID;
 
 public class PModifiableVertex extends PModifiableDocument implements PVertex {
   public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid) {
@@ -24,32 +19,7 @@ public class PModifiableVertex extends PModifiableDocument implements PVertex {
   }
 
   public void newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional) {
-    if (toVertex == null)
-      throw new IllegalArgumentException("Destination vertex is null");
-
-    if (rid == null)
-      throw new IllegalArgumentException("Current vertex is not persistent");
-
-    if (toVertex instanceof PModifiableDocument && toVertex.getIdentity() == null)
-      throw new IllegalArgumentException("Target vertex is not persistent");
-
-    final PEdgeType type = PGraph.getEdgeType(this, edgeType);
-
-    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
-
-    final Object[] outKeys = new Object[] { getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId(),
-        toVertex };
-
-    // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
-    edgeIndex.put(outKeys, NULL_RID);
-
-    if (bidirectional) {
-      final Object[] inKeys = new Object[] { toVertex.getIdentity(), (byte) PVertex.DIRECTION.IN.ordinal(), type.getDictionaryId(),
-          getIdentity() };
-
-      // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
-      edgeIndex.put(inKeys, NULL_RID);
-    }
+    PGraph.newEdge(this, edgeType, toVertex, bidirectional);
   }
 
   @Override
