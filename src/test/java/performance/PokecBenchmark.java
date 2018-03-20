@@ -5,6 +5,7 @@ import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.database.PRecordCallback;
 import com.arcadedb.engine.PFile;
+import com.arcadedb.utility.PLogManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,26 +26,29 @@ public class PokecBenchmark {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
 
-    final Map<Integer, AtomicInteger> aggregate = new HashMap<>();
-
     try {
-      db.scanType("V", new PRecordCallback() {
-        @Override
-        public boolean onRecord(final PRecord record) {
-          Integer age = (Integer) record.get("age");
+      for (int i = 0; i < 20; ++i) {
+        final long begin = System.currentTimeMillis();
 
-          AtomicInteger counter = aggregate.get(age);
-          if (counter == null) {
-            counter = new AtomicInteger(1);
-            aggregate.put(age, counter);
-          } else
-            counter.incrementAndGet();
+        final Map<String, AtomicInteger> aggregate = new HashMap<>();
+        db.scanType("V", new PRecordCallback() {
+          @Override
+          public boolean onRecord(final PRecord record) {
+            String age = (String) record.get("age");
 
-          return false;
-        }
-      });
+            AtomicInteger counter = aggregate.get(age);
+            if (counter == null) {
+              counter = new AtomicInteger(1);
+              aggregate.put(age, counter);
+            } else
+              counter.incrementAndGet();
 
+            return false;
+          }
+        });
 
+        PLogManager.instance().info(this, "Elapsed: " + (System.currentTimeMillis() - begin));
+      }
 
     } finally {
       db.close();

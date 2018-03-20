@@ -122,6 +122,10 @@ public class PBinarySerializer {
       values.put(name, value);
 
       buffer.position(lastHeaderPosition);
+
+      if (fieldIds.length > 0 && values.size() >= fieldIds.length)
+        // ALL REQUESTED PROPERTIES ALREADY FOUND
+        break;
     }
 
     return values;
