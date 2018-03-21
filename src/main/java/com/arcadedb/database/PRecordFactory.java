@@ -1,10 +1,7 @@
 package com.arcadedb.database;
 
 import com.arcadedb.exception.PDatabaseMetadataException;
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PModifiableEdge;
-import com.arcadedb.graph.PModifiableVertex;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.graph.*;
 
 public class PRecordFactory {
   public PRecord newImmutableRecord(final PDatabase database, final String typeName, final PRID rid, final byte type) {
@@ -14,7 +11,7 @@ public class PRecordFactory {
     case PVertex.RECORD_TYPE:
       return new PImmutableVertex(database, typeName, rid, null);
     case PEdge.RECORD_TYPE:
-      return new PImmutableEdge(database, typeName, rid, null);
+      return new PImmutableEdge(database, typeName, rid, (PBinary) null);
     }
     throw new PDatabaseMetadataException("Cannot find record type '" + type + "'");
   }

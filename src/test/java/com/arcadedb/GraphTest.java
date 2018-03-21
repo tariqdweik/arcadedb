@@ -52,14 +52,21 @@ public class GraphTest {
       v2.set("name", "V2");
       v2.save();
 
-      v1.newEdge(EDGE1_TYPE_NAME, v2, true);
+      PEdge e1 = v1.newEdge(EDGE1_TYPE_NAME, v2, true);
+      Assertions.assertEquals(e1.getOut(), v1);
+      Assertions.assertEquals(e1.getIn(), v2);
 
       final PModifiableVertex v3 = db.newVertex(VERTEX2_TYPE_NAME);
       v3.set("name", "V3");
       v3.save();
 
-      v2.newEdge(EDGE2_TYPE_NAME, v3, true);
-      v1.newEdge(EDGE2_TYPE_NAME, v3, true);
+      PEdge e2 = v2.newEdge(EDGE2_TYPE_NAME, v3, true);
+      Assertions.assertEquals(e2.getOut(), v2);
+      Assertions.assertEquals(e2.getIn(), v3);
+
+      PEdge e3 = v1.newEdge(EDGE2_TYPE_NAME, v3, true);
+      Assertions.assertEquals(e3.getOut(), v1);
+      Assertions.assertEquals(e3.getIn(), v3);
 
       db.commit();
 

@@ -3,7 +3,9 @@ package com.arcadedb.graph;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRID;
-import com.arcadedb.engine.*;
+import com.arcadedb.engine.PDictionary;
+import com.arcadedb.engine.PGraphCursorEntry;
+import com.arcadedb.engine.PGraphLSMCursorEntry;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.schema.PDocumentType;
@@ -19,7 +21,7 @@ import java.util.Set;
 public class PGraph {
   public static final PRID NULL_RID = new PRID(null, -1, -1);
 
-  public static void newEdge(final PVertex vertex, final String edgeType, final PIdentifiable toVertex,
+  public static PEdge newEdge(final PVertex vertex, final String edgeType, final PIdentifiable toVertex,
       final boolean bidirectional) {
     if (toVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
@@ -47,6 +49,9 @@ public class PGraph {
       // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
       edgeIndex.put(inKeys, NULL_RID);
     }
+
+    // NO IDENTITY YET, AN ACTUAL RECORD WILL BE CREATED WHEN THE FIRST PROPERTY IS CREATED
+    return new PModifiableEdge(vertex.getDatabase(), edgeType, vertex.getIdentity(), toVertex.getIdentity());
   }
 
   public static Iterator<PEdge> getVertexEdges(final PVertex vertex, final PVertex.DIRECTION direction, final String edgeType) {

@@ -13,7 +13,7 @@ public interface PVertex extends PRecord {
     OUT, IN, BOTH
   }
 
-  void newEdge(String edgeType, PIdentifiable toVertex, boolean bidirectional);
+  PEdge newEdge(String edgeType, PIdentifiable toVertex, boolean bidirectional);
 
   Iterator<PEdge> getEdges(DIRECTION direction, String edgeType);
 

@@ -1,9 +1,6 @@
-package com.arcadedb.database;
+package com.arcadedb.graph;
 
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PGraph;
-import com.arcadedb.graph.PModifiableVertex;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.PGraphCursorEntry;
 
 import java.util.Iterator;
@@ -23,8 +20,8 @@ public class PImmutableVertex extends PImmutableDocument implements PVertex {
     return new PModifiableVertex(database, typeName, rid, buffer);
   }
 
-  public void newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional) {
-    PGraph.newEdge(this, edgeType, toVertex, bidirectional);
+  public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional) {
+    return PGraph.newEdge(this, edgeType, toVertex, bidirectional);
   }
 
   @Override

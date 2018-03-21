@@ -19,8 +19,8 @@ public class PModifiableVertex extends PModifiableDocument implements PVertex {
     return PVertex.RECORD_TYPE;
   }
 
-  public void newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional) {
-    PGraph.newEdge(this, edgeType, toVertex, bidirectional);
+  public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional) {
+    return PGraph.newEdge(this, edgeType, toVertex, bidirectional);
   }
 
   @Override
