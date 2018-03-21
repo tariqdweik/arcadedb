@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -57,6 +58,41 @@ public class TransactionBucketTest {
           return true;
         }
       });
+
+      Assertions.assertEquals(TOT, total.get());
+
+      db.commit();
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
+  public void testIterator() {
+    final AtomicInteger total = new AtomicInteger();
+
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      Iterator<PRecord> iterator = db.bucketIterator("V");
+
+      while (iterator.hasNext()) {
+        PRecord record = iterator.next();
+        Assertions.assertNotNull(record);
+
+        Set<String> prop = new HashSet<String>();
+        for (String p : record.getPropertyNames())
+          prop.add(p);
+
+        Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+        Assertions.assertTrue(prop.contains("id"));
+        Assertions.assertTrue(prop.contains("name"));
+        Assertions.assertTrue(prop.contains("surname"));
+
+        total.incrementAndGet();
+
+      }
 
       Assertions.assertEquals(TOT, total.get());
 

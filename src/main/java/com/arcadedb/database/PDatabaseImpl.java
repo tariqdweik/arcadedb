@@ -279,6 +279,24 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
+  public Iterator<PRecord> bucketIterator(final String bucketName) {
+    lock();
+    try {
+
+      checkDatabaseIsOpen();
+      try {
+        PBucket bucket = schema.getBucketByName(bucketName);
+        return bucket.iterator();
+      } catch (Exception e) {
+        throw new PDatabaseOperationException("Error on executing scan of bucket '" + bucketName + "'", e);
+      }
+
+    } finally {
+      unlock();
+    }
+  }
+
+  @Override
   public PRecord lookupByRID(final PRID rid, final boolean loadContent) {
     checkDatabaseIsOpen();
     lock();
