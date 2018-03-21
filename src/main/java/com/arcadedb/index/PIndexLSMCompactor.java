@@ -1,8 +1,10 @@
-package com.arcadedb.engine;
+package com.arcadedb.index;
 
 import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.database.PBinary;
+import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PRID;
+import com.arcadedb.engine.PModifiablePage;
 import com.arcadedb.schema.PSchemaImpl;
 import com.arcadedb.serializer.PBinaryComparator;
 import com.arcadedb.serializer.PBinarySerializer;
@@ -18,14 +20,16 @@ public class PIndexLSMCompactor {
   }
 
   public void compact() throws IOException {
+    final PDatabase database = index.getDatabase();
+
     index.flush();
 
     final int totalPages = index.getTotalPages();
     PLogManager.instance().info(this, "Compacting index '%s' (pages=%d)...", index, totalPages);
 
-    index.database.begin();
+    index.getDatabase().begin();
     final PIndexLSM newIndex = index.copy();
-    ((PSchemaImpl) index.database.getSchema()).registerFile(newIndex);
+    ((PSchemaImpl) index.getDatabase().getSchema()).registerFile(newIndex);
 
     final byte[] keyTypes = index.getKeyTypes();
 
@@ -44,7 +48,7 @@ public class PIndexLSMCompactor {
       else
         pagesToCompact = totalPages - pageIndex;
 
-      final PIndexPageIterator[] iterators = new PIndexPageIterator[pagesToCompact];
+      final PIndexLSMPageIterator[] iterators = new PIndexLSMPageIterator[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
         iterators[i] = index.newPageIterator(pageIndex + i, 0, true);
 
@@ -61,7 +65,7 @@ public class PIndexLSMCompactor {
         }
       }
 
-      final PBinarySerializer serializer = index.database.getSerializer();
+      final PBinarySerializer serializer = database.getSerializer();
       final PBinaryComparator comparator = serializer.getComparator();
 
       PModifiablePage lastPage = null;
@@ -115,17 +119,17 @@ public class PIndexLSMCompactor {
 
       PLogManager.instance().info(this, "Compacted %s pages, total %d...", pagesToCompact, pageIndex + pagesToCompact);
 
-      index.database.commit();
-      index.database.begin();
+      database.commit();
+      database.begin();
 
       pageIndex += pagesToCompact;
     }
 
     // SWAP OLD WITH NEW INDEX
     // TODO
-    ((PSchemaImpl) index.database.getSchema()).swapIndexes(index, newIndex);
+    ((PSchemaImpl) database.getSchema()).swapIndexes(index, newIndex);
 
-    index.database.commit();
+    database.commit();
 
     PLogManager.instance().info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index,
         newIndex.getTotalPages(), loops);

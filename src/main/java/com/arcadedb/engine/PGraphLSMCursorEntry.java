@@ -1,7 +1,7 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.graph.PVertex;
+import com.arcadedb.graph.PVertex;
 
 /**
  * Immutable entry of index cursor.

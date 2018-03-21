@@ -2,10 +2,15 @@ package com.arcadedb.schema;
 
 import com.arcadedb.PConstants;
 import com.arcadedb.database.PDatabase;
-import com.arcadedb.engine.*;
+import com.arcadedb.engine.PBucket;
+import com.arcadedb.engine.PDictionary;
+import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
 import com.arcadedb.exception.PSchemaException;
+import com.arcadedb.index.PIndex;
+import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.serializer.PBinaryTypes;
 import com.arcadedb.utility.PLogManager;
 
@@ -289,6 +294,19 @@ public class PSchemaImpl implements PSchema {
       for (PBucket b : t.getBuckets()) {
         if (b.getId() == bucketId)
           return t.getName();
+      }
+    }
+
+    // NOT FOUND
+    return null;
+  }
+
+  @Override
+  public PDocumentType getTypeByBucketId(final int bucketId) {
+    for (PDocumentType t : types.values()) {
+      for (PBucket b : t.getBuckets()) {
+        if (b.getId() == bucketId)
+          return t;
       }
     }
 

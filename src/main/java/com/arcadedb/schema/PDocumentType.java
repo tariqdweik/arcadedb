@@ -1,10 +1,11 @@
 package com.arcadedb.schema;
 
+import com.arcadedb.database.PBaseRecord;
 import com.arcadedb.database.PBucketSelectionStrategy;
 import com.arcadedb.database.PRoundRobinBucketSelectionStrategy;
 import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PIndex;
 import com.arcadedb.exception.PSchemaException;
+import com.arcadedb.index.PIndex;
 
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -37,6 +38,10 @@ public class PDocumentType {
 
   public String getName() {
     return name;
+  }
+
+  public byte getType() {
+    return PBaseRecord.RECORD_TYPE;
   }
 
   public Set<String> getPropertyNames() {

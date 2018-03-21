@@ -83,7 +83,7 @@ public class TransactionTypeTest {
       db.scanType(TYPE_NAME, new PRecordCallback() {
         @Override
         public boolean onRecord(final PRecord record) {
-          final PRecord record2 = db.lookupByRID(record.getIdentity());
+          final PRecord record2 = db.lookupByRID(record.getIdentity(), false);
           Assertions.assertNotNull(record2);
           Assertions.assertEquals(record, record2);
 

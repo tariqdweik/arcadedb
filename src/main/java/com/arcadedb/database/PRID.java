@@ -39,7 +39,7 @@ public class PRID implements PIdentifiable, Comparable<PIdentifiable> {
 
   @Override
   public PRecord getRecord() {
-    return database.lookupByRID(this);
+    return database.lookupByRID(this, false);
   }
 
   @Override
@@ -53,6 +53,13 @@ public class PRID implements PIdentifiable, Comparable<PIdentifiable> {
     final PRID o = ((PIdentifiable) obj).getIdentity();
 
     return bucketId == o.bucketId && offset == o.offset;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = bucketId;
+    result = 31 * result + (int) (offset ^ (offset >>> 32));
+    return result;
   }
 
   @Override

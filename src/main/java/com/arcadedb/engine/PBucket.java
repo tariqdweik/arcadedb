@@ -249,13 +249,6 @@ public class PBucket extends PPaginatedFile {
     return header.readInt(0);
   }
 
-  private int getTotalPages() {
-    final Integer txPageCounter = database.getTransaction().getPageCounter(id);
-    if (txPageCounter != null)
-      return txPageCounter;
-    return pageCount;
-  }
-
   private void incrementRecordCount(final long delta) throws IOException {
     final PModifiablePage header = this.database.getTransaction().getPageToModify(new PPageId(file.getFileId(), 0), pageSize);
     final int recordCount = header.readInt(0);

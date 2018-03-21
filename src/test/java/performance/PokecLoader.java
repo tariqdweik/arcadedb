@@ -1,8 +1,8 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.database.graph.PModifiableVertex;
-import com.arcadedb.database.graph.PVertex;
+import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.graph.PVertex;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.schema.PDocumentType;

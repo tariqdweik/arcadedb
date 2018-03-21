@@ -37,7 +37,7 @@ public abstract class PPaginatedFile {
       pageCount = (int) (file.getSize() / getPageSize());
   }
 
-  protected int getPageSize() {
+  public int getPageSize() {
     return pageSize;
   }
 
@@ -54,6 +54,10 @@ public abstract class PPaginatedFile {
     return id;
   }
 
+  public PDatabaseImpl getDatabase() {
+    return database;
+  }
+
   public void flush() throws IOException {
     database.getPageManager().flushFile(file.getFileId());
   }
@@ -62,5 +66,12 @@ public abstract class PPaginatedFile {
     database.getSchema().removeFile(file.getFileId());
     database.getPageManager().disposeFile(file.getFileId());
     database.getFileManager().dropFile(file.getFileId());
+  }
+
+  protected int getTotalPages() {
+    final Integer txPageCounter = database.getTransaction().getPageCounter(id);
+    if (txPageCounter != null)
+      return txPageCounter;
+    return pageCount;
   }
 }

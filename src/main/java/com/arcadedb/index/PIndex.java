@@ -1,4 +1,4 @@
-package com.arcadedb.engine;
+package com.arcadedb.index;
 
 import com.arcadedb.database.PRID;
 
@@ -24,4 +24,6 @@ public interface PIndex {
   void put(Object[] keys, PRID rid);
 
   Map<String,Long> getStats();
+
+  int getFileId();
 }

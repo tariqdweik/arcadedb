@@ -1,13 +1,15 @@
 package com.arcadedb.database;
 
 import com.arcadedb.PProfiler;
-import com.arcadedb.database.graph.PEdge;
-import com.arcadedb.database.graph.PModifiableEdge;
-import com.arcadedb.database.graph.PModifiableVertex;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.PDatabaseIsClosedException;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PModifiableEdge;
+import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.index.PIndex;
+import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.schema.PSchemaImpl;
@@ -277,13 +279,22 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
-  public PRecord lookupByRID(final PRID rid) {
+  public PRecord lookupByRID(final PRID rid, final boolean loadContent) {
     checkDatabaseIsOpen();
     lock();
     try {
 
-      final PBinary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-      return recordFactory.newImmutableRecord(this, schema.getTypeNameByBucketId(rid.getBucketId()), rid, buffer);
+      final PDocumentType type = schema.getTypeByBucketId(rid.getBucketId());
+
+      if (loadContent) {
+        final PBinary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
+        return recordFactory.newImmutableRecord(this, type != null ? type.getName() : null, rid, buffer);
+      }
+
+      if (type != null)
+        return recordFactory.newImmutableRecord(this, type.getName(), rid, type.getType());
+
+      return recordFactory.newImmutableRecord(this, null, rid, PBaseRecord.RECORD_TYPE);
 
     } finally {
       unlock();

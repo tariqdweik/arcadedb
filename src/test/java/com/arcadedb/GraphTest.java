@@ -1,11 +1,13 @@
 package com.arcadedb;
 
-import com.arcadedb.database.*;
-import com.arcadedb.database.graph.PEdge;
-import com.arcadedb.database.graph.PModifiableVertex;
-import com.arcadedb.database.graph.PVertex;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseFactory;
+import com.arcadedb.database.PRID;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.engine.PGraphCursorEntry;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.graph.PVertex;
 import com.arcadedb.utility.PFileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -74,7 +76,7 @@ public class GraphTest {
       Assertions.assertEquals(1, db2.countType(VERTEX1_TYPE_NAME));
       Assertions.assertEquals(2, db2.countType(VERTEX2_TYPE_NAME));
 
-      final PVertex v1 = (PVertex) db2.lookupByRID(root);
+      final PVertex v1 = (PVertex) db2.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
       // TEST CONNECTED VERTICES

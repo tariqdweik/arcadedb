@@ -122,9 +122,13 @@ public class PBinaryTypes {
   }
 
   public static int getHash(final Object[] keys) {
+    return getHash(keys, keys.length);
+  }
+
+  public static int getHash(final Object[] keys, final int keyCount) {
     int hash = 0;
 
-    for (int i = 0; i < keys.length; ++i)
+    for (int i = 0; i < keyCount; ++i)
       hash += getHash(keys[i]);
 
     return hash;

@@ -1,6 +1,8 @@
-package com.arcadedb.engine;
+package com.arcadedb.index;
 
 import com.arcadedb.database.PBinary;
+import com.arcadedb.engine.PBasePage;
+import com.arcadedb.engine.PPageId;
 import com.arcadedb.serializer.PBinaryComparator;
 import com.arcadedb.serializer.PBinarySerializer;
 
@@ -8,19 +10,19 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class PIndexLSMCursor implements PIndexCursor {
-  private final PIndexLSM            index;
-  private final boolean              ascendingOrder;
-  private final Object[]             fromKeys;
-  private final Object[]             toKeys;
-  private final PIndexPageIterator[] pageIterators;
-  private       PIndexPageIterator   currentIterator;
-  private       Object[]             currentKeys;
-  private       Object               currentValue;
-  private       int                  totalPages;
-  private       byte[]               keyTypes;
-  private final Object[][]           keys;
-  private       PBinarySerializer    serializer;
-  private       PBinaryComparator    comparator;
+  private final PIndexLSM               index;
+  private final boolean                 ascendingOrder;
+  private final Object[]                fromKeys;
+  private final Object[]                toKeys;
+  private final PIndexLSMPageIterator[] pageIterators;
+  private       PIndexLSMPageIterator   currentIterator;
+  private       Object[]                currentKeys;
+  private       Object                  currentValue;
+  private       int                     totalPages;
+  private       byte[]                  keyTypes;
+  private final Object[][]              keys;
+  private       PBinarySerializer       serializer;
+  private       PBinaryComparator       comparator;
 
   private int validIterators;
 
@@ -36,33 +38,41 @@ public class PIndexLSMCursor implements PIndexCursor {
     this.toKeys = toKeys;
 
     this.keyTypes = index.getKeyTypes();
-    this.totalPages = index.pageCount;
+    this.totalPages = index.getTotalPages();
 
-    this.serializer = index.database.getSerializer();
+    this.serializer = index.getDatabase().getSerializer();
     this.comparator = this.serializer.getComparator();
 
     // CREATE ITERATORS, ONE PER PAGE
-    pageIterators = new PIndexPageIterator[totalPages];
+    pageIterators = new PIndexLSMPageIterator[totalPages];
 
     int pageId = ascendingOrder ? 0 : totalPages - 1;
 
     while (ascendingOrder ? pageId < totalPages : pageId >= 0) {
       if (fromKeys != null) {
         // SEEK FOR THE FROM RANGE
-        final PBasePage currentPage = index.database.getTransaction()
-            .getPage(new PPageId(index.file.getFileId(), pageId), index.pageSize);
+        final PBasePage currentPage = index.getDatabase().getTransaction()
+            .getPage(new PPageId(index.getFileId(), pageId), index.getPageSize());
         final PBinary currentPageBuffer = new PBinary(currentPage.slice());
         final int count = index.getCount(currentPage);
 
-        final PIndexLSM.LookupResult lookupResult = index
-            .lookup(pageId, count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
-        pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
+        final PIndexLSM.LookupResult lookupResult;
+        if (fromKeys == toKeys)
+          // USE THE BLOOM FILTER
+          lookupResult = index.searchInPage(currentPage, currentPageBuffer, fromKeys, count, ascendingOrder ? 1 : 2);
+        else
+          lookupResult = index
+              .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
+
+        if (lookupResult != null)
+          pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
+
       } else {
         if (ascendingOrder) {
           pageIterators[pageId] = index.newPageIterator(pageId, -1, ascendingOrder);
         } else {
-          final PBasePage currentPage = index.database.getTransaction()
-              .getPage(new PPageId(index.file.getFileId(), pageId), index.pageSize);
+          final PBasePage currentPage = index.getDatabase().getTransaction()
+              .getPage(new PPageId(index.getFileId(), pageId), index.getPageSize());
           pageIterators[pageId] = index.newPageIterator(pageId, index.getCount(currentPage), ascendingOrder);
         }
 
@@ -78,7 +88,7 @@ public class PIndexLSMCursor implements PIndexCursor {
     // CHECK ALL THE ITERATORS (NULL=SKIP)
     validIterators = 0;
     for (int p = 0; p < totalPages; ++p) {
-      final PIndexPageIterator it = pageIterators[p];
+      final PIndexLSMPageIterator it = pageIterators[p];
       if (it != null) {
         if (it.hasNext()) {
           keys[p] = it.getKeys();
@@ -160,7 +170,7 @@ public class PIndexLSMCursor implements PIndexCursor {
 
   @Override
   public void close() {
-    for (PIndexPageIterator it : pageIterators)
+    for (PIndexLSMPageIterator it : pageIterators)
       if (it != null)
         it.close();
     Arrays.fill(pageIterators, null);

@@ -3,7 +3,7 @@ package performance;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.engine.PFile;
-import com.arcadedb.engine.PIndex;
+import com.arcadedb.index.PIndex;
 
 import java.io.IOException;
 

@@ -1,9 +1,11 @@
-package com.arcadedb.database.graph;
+package com.arcadedb.graph;
 
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRID;
 import com.arcadedb.engine.*;
+import com.arcadedb.index.PIndex;
+import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PEdgeType;
 import com.arcadedb.schema.PSchemaImpl;

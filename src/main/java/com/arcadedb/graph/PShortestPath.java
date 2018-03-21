@@ -1,4 +1,4 @@
-package com.arcadedb.database.graph;
+package com.arcadedb.graph;
 
 /**
  * Shortest path algorithm to find the shortest path from one node to another node in a directed graph.

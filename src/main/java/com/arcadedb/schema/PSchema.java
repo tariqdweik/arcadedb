@@ -2,7 +2,7 @@ package com.arcadedb.schema;
 
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PDictionary;
-import com.arcadedb.engine.PIndex;
+import com.arcadedb.index.PIndex;
 import com.arcadedb.engine.PPaginatedFile;
 
 import java.util.Collection;
@@ -40,6 +40,8 @@ public interface PSchema {
   PDocumentType getType(String typeName);
 
   String getTypeNameByBucketId(int bucketId);
+
+  PDocumentType getTypeByBucketId(int bucketId);
 
   boolean existsType(String typeName);
 

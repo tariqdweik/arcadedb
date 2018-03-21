@@ -1,7 +1,7 @@
 package com.arcadedb.database;
 
-import com.arcadedb.database.graph.PEdge;
-import com.arcadedb.database.graph.PModifiableVertex;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
 import com.arcadedb.schema.PSchema;
@@ -41,7 +41,7 @@ public interface PDatabase {
 
   void scanBucket(String bucketName, PRecordCallback callback);
 
-  PRecord lookupByRID(PRID rid);
+  PRecord lookupByRID(PRID rid, boolean loadContent);
 
   List<PRID> lookupByKey(String type, String[] properties, Object[] keys);
 

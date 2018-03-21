@@ -7,7 +7,7 @@ import java.util.Set;
  * Immutable document implementation. To modify the content, call modify() to obtain a modifiable copy.
  */
 public class PImmutableDocument extends PBaseRecord {
-  protected final PBinary buffer;
+  protected PBinary buffer;
 
   protected PImmutableDocument(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
     super(graph, typeName, rid);
@@ -16,11 +16,13 @@ public class PImmutableDocument extends PBaseRecord {
 
   @Override
   public Object get(final String name) {
+    checkForLazyLoading();
     final Map<String, Object> map = database.getSerializer().deserializeFields(database, buffer, name);
     return map.get(name);
   }
 
   public PModifiableDocument modify() {
+    checkForLazyLoading();
     return new PModifiableDocument(database, typeName, rid, buffer);
   }
 
@@ -31,21 +33,29 @@ public class PImmutableDocument extends PBaseRecord {
       buffer.append(rid);
     buffer.append('[');
     int i = 0;
-    for (String name : getPropertyNames()) {
-      if (i > 0)
-        buffer.append(',');
+    if (buffer != null) {
+      for (String name : getPropertyNames()) {
+        if (i > 0)
+          buffer.append(',');
 
-      buffer.append(name);
-      buffer.append('=');
-      buffer.append(get(name));
-      i++;
+        buffer.append(name);
+        buffer.append('=');
+        buffer.append(get(name));
+        i++;
+      }
+      buffer.append(']');
     }
-    buffer.append(']');
     return buffer.toString();
   }
 
   @Override
   public Set<String> getPropertyNames() {
+    checkForLazyLoading();
     return database.getSerializer().getPropertyNames(database, buffer);
+  }
+
+  protected void checkForLazyLoading() {
+    if (buffer == null)
+      buffer = database.getSchema().getBucketById(rid.getBucketId()).getRecord(rid);
   }
 }

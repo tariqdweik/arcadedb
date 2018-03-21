@@ -1,12 +1,9 @@
 package performance;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.database.PRecordCallback;
-import com.arcadedb.database.graph.PVertex;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.engine.PGraphCursorEntry;
+import com.arcadedb.graph.PVertex;
 import com.arcadedb.utility.PLogManager;
 
 import java.util.HashMap;
@@ -65,7 +62,7 @@ public class PokecBenchmark {
             for (final Iterator<PGraphCursorEntry> neighbors2 = neighbor.getConnectedVertices(PVertex.DIRECTION.OUT); neighbors2
                 .hasNext(); ) {
               final PGraphCursorEntry neighborEntry2 = neighbors2.next();
-              final PVertex neighbor2 = (PVertex) neighborEntry2.getConnectedVertex().getRecord();
+              final PRID neighbor2 = neighborEntry2.getConnectedVertex().getIdentity();
 
               totalTraversed.incrementAndGet();
             }

@@ -1,4 +1,4 @@
-package com.arcadedb.database.graph;
+package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PGraphCursorEntry;

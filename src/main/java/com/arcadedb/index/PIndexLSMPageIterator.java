@@ -1,13 +1,15 @@
-package com.arcadedb.engine;
+package com.arcadedb.index;
 
 import com.arcadedb.database.PBinary;
+import com.arcadedb.engine.PBasePage;
+import com.arcadedb.engine.PPageId;
 import com.arcadedb.serializer.PBinarySerializer;
 
 import java.io.IOException;
 
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 
-public class PIndexPageIterator {
+public class PIndexLSMPageIterator {
   private final PIndexLSM         index;
   private final PPageId           pageId;
   private final PBinary           buffer;
@@ -22,14 +24,14 @@ public class PIndexPageIterator {
   private Object[] nextKeys;
   private Object   nextValue;
 
-  public PIndexPageIterator(final PIndexLSM index, final PBasePage page, final int currentEntryInPage, final int keyStartPosition,
+  public PIndexLSMPageIterator(final PIndexLSM index, final PBasePage page, final int currentEntryInPage, final int keyStartPosition,
       final byte[] keyTypes, final int totalKeys, final boolean ascendingOrder) {
     this.index = index;
     this.pageId = page.getPageId();
     this.buffer = new PBinary(page.slice());
     this.keyStartPosition = keyStartPosition;
     this.keyTypes = keyTypes;
-    this.serializer = index.database.getSerializer();
+    this.serializer = index.getDatabase().getSerializer();
     this.totalKeys = totalKeys;
     this.currentEntryIndex = currentEntryInPage;
     this.ascendingOrder = ascendingOrder;
@@ -56,7 +58,7 @@ public class PIndexPageIterator {
 
     nextKeys = new Object[keyTypes.length];
     for (int k = 0; k < keyTypes.length; ++k)
-      nextKeys[k] = index.database.getSerializer().deserializeValue(index.database, buffer, keyTypes[k]);
+      nextKeys[k] = index.getDatabase().getSerializer().deserializeValue(index.getDatabase(), buffer, keyTypes[k]);
 
     valuePosition = buffer.position();
     nextValue = null;
