@@ -187,6 +187,11 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
+    return createClassIndexes(typeName, propertyNames, pageSize, propertyNames.length);
+  }
+
+  public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize,
+      final int bfKeyDepth) {
     return (PIndex[]) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -220,7 +225,7 @@ public class PSchemaImpl implements PSchema {
                   "Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
             indexes[idx] = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE, keyTypes,
-                PBinaryTypes.TYPE_RID, pageSize);
+                PBinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
 
             registerFile(indexes[idx]);
             indexMap.put(indexName, indexes[idx]);
@@ -240,6 +245,10 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize) {
+    return createManualIndex(indexName, keyTypes, pageSize, keyTypes.length);
+  }
+
+  public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
     return (PIndexLSM) database.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -248,7 +257,7 @@ public class PSchemaImpl implements PSchema {
 
         try {
           final PIndexLSM index = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE,
-              keyTypes, PBinaryTypes.TYPE_RID, pageSize);
+              keyTypes, PBinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
           registerFile(index);
           indexMap.put(indexName, index);
 
@@ -377,7 +386,7 @@ public class PSchemaImpl implements PSchema {
         if (!indexMap.containsKey(EDGES_INDEX_NAME)) {
           createManualIndex(PSchemaImpl.EDGES_INDEX_NAME,
               new byte[] { PBinaryTypes.TYPE_RID, PBinaryTypes.TYPE_BYTE, PBinaryTypes.TYPE_INT, PBinaryTypes.TYPE_RID },
-              65536 * 10);
+              65536 * 10, 1);
         }
 
         saveConfiguration();

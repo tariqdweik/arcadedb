@@ -25,7 +25,7 @@ import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
  * When a page is full, another page is created, waiting for a compaction.
  * <p>
  * HEADER 1st PAGE = [numberOfEntries(int:4),offsetFreeKeyValueContent(int:4),bloomFilterSeed(int:4),
- * bloomFilter(bytes[]:<bloomFilterLength>), numberOfKeys(byte:1),keyType(byte:1)*,valueType(byte:1)]
+ * bloomFilter(bytes[]:<bloomFilterLength>), numberOfKeys(byte:1),keyType(byte:1)*,valueType(byte:1),bfKeyDepth(byte:1)]
  * <p>
  * HEADER Nst PAGE = [numberOfEntries(int:4),offsetFreeKeyValueContent(int:4),bloomFilterSeed(int:4),
  * bloomFilter(bytes[]:<bloomFilterLength>)]
@@ -36,6 +36,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
   private byte[] keyTypes;
   private byte   valueType;
+  private int    bfKeyDepth;
   private volatile boolean compacting = false;
 
   private AtomicLong statsBFFalsePositive = new AtomicLong();
@@ -57,10 +58,11 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
    * Called at creation time.
    */
   public PIndexLSM(final PDatabase database, final String name, String filePath, final PFile.MODE mode, final byte[] keyTypes,
-      final byte valueType, final int pageSize) throws IOException {
+      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), PIndexLSM.INDEX_EXT, mode, pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
+    this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
     createNewPage();
   }
@@ -69,11 +71,12 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
    * Called at cloning time.
    */
   public PIndexLSM(final PDatabase database, final String name, String filePath, final byte[] keyTypes, final byte valueType,
-      final int pageSize) throws IOException {
+      final int pageSize, final int bfKeyDepth) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndexLSM.INDEX_EXT, PFile.MODE.READ_WRITE,
         pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
+    this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
     createNewPage();
   }
@@ -92,12 +95,13 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     for (int i = 0; i < len; ++i)
       this.keyTypes[i] = currentPage.readByte(pos++);
     this.valueType = currentPage.readByte(pos++);
+    this.bfKeyDepth = currentPage.readByte(pos++);
   }
 
   public PIndexLSM copy() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-    return new PIndexLSM(database, newName, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize);
+    return new PIndexLSM(database, newName, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize, bfKeyDepth);
   }
 
   public void removeTempSuffix() {
@@ -144,7 +148,8 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   public PIndexLSMPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder)
       throws IOException {
     final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
-    return new PIndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page), ascendingOrder);
+    return new PIndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page),
+        ascendingOrder);
   }
 
   @Override
@@ -243,8 +248,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
           getBFSeed(currentPage));
 
       // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
-      for (int k = 1; k <= keys.length; ++k)
-        bf.add(PBinaryTypes.getHash(keys, k));
+      bf.add(PBinaryTypes.getHash(keys, bfKeyDepth));
 
       setCount(currentPage, count + 1);
       setKeyValueFreePosition(currentPage, keyValueFreePosition);
@@ -316,8 +320,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
         currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
         getBFSeed(currentPage));
 
-    for (int k = 1; k <= keys.length; ++k)
-      bf.add(PBinaryTypes.getHash(keys, k));
+    bf.add(PBinaryTypes.getHash(keys, bfKeyDepth));
 
     setCount(currentPage, count + 1);
     setKeyValueFreePosition(currentPage, keyValueFreePosition);
@@ -354,7 +357,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     final BufferBloomFilter bf = new BufferBloomFilter(
         currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(), seed);
 
-    if (bf.mightContain(PBinaryTypes.getHash(keys)))
+    if (bf.mightContain(PBinaryTypes.getHash(keys, bfKeyDepth)))
       return lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, keys, purpose);
     else
       statsBFFalsePositive.incrementAndGet();
@@ -524,6 +527,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     int size = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + getBFSize();
     if (pageNum == 0)
       size += BYTE_SERIALIZED_SIZE + keyTypes.length + BYTE_SERIALIZED_SIZE;
+    size += BYTE_SERIALIZED_SIZE;
     return size;
   }
 
@@ -554,6 +558,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
         currentPage.writeByte(pos++, keyTypes[i]);
       }
       currentPage.writeByte(pos++, valueType);
+      currentPage.writeByte(pos++, (byte) bfKeyDepth);
     }
 
     return currentPage;
