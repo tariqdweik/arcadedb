@@ -21,7 +21,6 @@ public class PBucket extends PPaginatedFile {
   public static final int    MAX_RECORDS_IN_PAGE = 2048;
   public static final int    DEF_PAGE_SIZE       = 65536;
 
-
   protected static final int PAGE_RECORD_COUNT_IN_PAGE_OFFSET = 0;
   protected static final int PAGE_RECORD_TABLE_OFFSET         = PAGE_RECORD_COUNT_IN_PAGE_OFFSET + PBinary.SHORT_SERIALIZED_SIZE;
   protected static final int CONTENT_HEADER_SIZE              =
