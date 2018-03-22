@@ -3,7 +3,7 @@ package com.arcadedb.database;
 import java.util.Collection;
 import java.util.Iterator;
 
-public class PCursorCollection<T extends PRecord> implements PCursor<T> {
+public class PCursorCollection<T extends PIdentifiable> implements PCursor<T> {
   private final Collection<T> collection;
   private final Iterator<T>   iterator;
 

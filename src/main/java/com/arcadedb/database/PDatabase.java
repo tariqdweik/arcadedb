@@ -1,13 +1,12 @@
 package com.arcadedb.database;
 
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
 
-import java.util.List;
 import java.util.concurrent.Callable;
 
 public interface PDatabase {
@@ -43,7 +42,7 @@ public interface PDatabase {
 
   PRecord lookupByRID(PRID rid, boolean loadContent);
 
-  List<PRID> lookupByKey(String type, String[] properties, Object[] keys);
+  PCursor<PRID> lookupByKey(String type, String[] properties, Object[] keys);
 
   void deleteRecord(PRID rid);
 
@@ -60,6 +59,8 @@ public interface PDatabase {
   PSchema getSchema();
 
   PFileManager getFileManager();
+
+  void transaction(PTransaction txBlock, int retries);
 
   PRecordFactory getRecordFactory();
 

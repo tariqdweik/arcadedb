@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -118,11 +117,11 @@ public class TransactionTypeTest {
     db.begin();
     try {
       for (int i = 0; i < TOT; i++) {
-        final List<PRID> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
+        final PCursor<PRID> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.size());
 
-        final PRecord record2 = result.get(0).getRecord();
+        final PRecord record2 = result.next().getRecord();
 
         Assertions.assertEquals(i, record2.get("id"));
 
