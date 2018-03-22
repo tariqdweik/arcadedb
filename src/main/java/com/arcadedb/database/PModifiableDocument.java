@@ -29,12 +29,12 @@ public class PModifiableDocument extends PBaseRecord implements PModifiableRecor
 
   @Override
   public void save() {
-    database.saveRecord(this);
+    ((PDatabaseInternal) database).saveRecord(this);
   }
 
   @Override
   public void save(final String bucketName) {
-    database.saveRecord(this, bucketName);
+    ((PDatabaseInternal) database).saveRecord(this, bucketName);
   }
 
   @Override

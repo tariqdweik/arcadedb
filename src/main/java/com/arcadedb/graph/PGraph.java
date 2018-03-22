@@ -1,11 +1,10 @@
 package com.arcadedb.graph;
 
+import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRID;
 import com.arcadedb.engine.PDictionary;
-import com.arcadedb.engine.PGraphCursorEntry;
-import com.arcadedb.engine.PGraphLSMCursorEntry;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.schema.PDocumentType;
@@ -13,16 +12,13 @@ import com.arcadedb.schema.PEdgeType;
 import com.arcadedb.schema.PSchemaImpl;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 public class PGraph {
   public static final PRID NULL_RID = new PRID(null, -1, -1);
 
   public static PEdge newEdge(final PVertex vertex, final String edgeType, final PIdentifiable toVertex,
-      final boolean bidirectional) {
+      final boolean bidirectional, final Object... properties) {
     if (toVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 
@@ -39,19 +35,31 @@ public class PGraph {
 
     final Object[] outKeys = new Object[] { rid, (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId(), toVertex };
 
-    // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
-    edgeIndex.put(outKeys, NULL_RID);
+    final PModifiableEdge edge = new PModifiableEdge(vertex.getDatabase(), edgeType, vertex.getIdentity(), toVertex.getIdentity());
+
+    PRID edgeRID;
+
+    if (properties == null || properties.length == 0)
+      // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
+      edgeRID = NULL_RID;
+    else {
+      // SAVE THE PROPERTIES, THE EDGE AS A PERSISTENT RECORD AND AS VALUE FOR THE INDEX
+      setProperties(edge, properties);
+      ((PDatabaseInternal) vertex.getDatabase()).saveRecord(edge);
+      edgeRID = edge.getIdentity();
+    }
+
+    edgeIndex.put(outKeys, edgeRID);
 
     if (bidirectional) {
       final Object[] inKeys = new Object[] { toVertex.getIdentity(), (byte) PVertex.DIRECTION.IN.ordinal(), type.getDictionaryId(),
           rid };
 
-      // DON'T CREATE THE EDGE UNTIL IT'S NEEDED
-      edgeIndex.put(inKeys, NULL_RID);
+      edgeIndex.put(inKeys, edgeRID);
     }
 
     // NO IDENTITY YET, AN ACTUAL RECORD WILL BE CREATED WHEN THE FIRST PROPERTY IS CREATED
-    return new PModifiableEdge(vertex.getDatabase(), edgeType, vertex.getIdentity(), toVertex.getIdentity());
+    return edge;
   }
 
   public static Iterator<PEdge> getVertexEdges(final PVertex vertex, final PVertex.DIRECTION direction, final String edgeType) {
@@ -68,13 +76,13 @@ public class PGraph {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  public static Iterator<PGraphCursorEntry> getVertexConnectedVertices(final PVertex vertex) {
+  public static Iterator<PImmutableEdge3> getVertexConnectedVertices(final PVertex vertex) {
     // TODO implement lazy fetching
     final PIndex edgeIndex = vertex.getDatabase().getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
 
     final PDictionary dictionary = vertex.getDatabase().getSchema().getDictionary();
 
-    final Set<PGraphCursorEntry> result = new HashSet<>();
+    final Set<PImmutableEdge3> result = new HashSet<>();
     try {
       final Object[] keys = new Object[] { vertex.getIdentity() };
       final PIndexCursor outVertices = edgeIndex.iterator(keys);
@@ -82,7 +90,7 @@ public class PGraph {
       while (outVertices.hasNext()) {
         outVertices.next();
         final Object[] entryKeys = outVertices.getKeys();
-        result.add(new PGraphLSMCursorEntry((PIdentifiable) entryKeys[0], (PVertex.DIRECTION) entryKeys[1],
+        result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], (PVertex.DIRECTION) entryKeys[1],
             dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3], (PIdentifiable) outVertices.getValue()));
       }
 
@@ -101,7 +109,7 @@ public class PGraph {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  public static Iterator<PGraphCursorEntry> getVertexConnectedVertices(final PVertex vertex, final PVertex.DIRECTION direction,
+  public static Iterator<PImmutableEdge3> getVertexConnectedVertices(final PVertex vertex, final PVertex.DIRECTION direction,
       final String edgeType) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
@@ -112,7 +120,7 @@ public class PGraph {
 
     final PDictionary dictionary = vertex.getDatabase().getSchema().getDictionary();
 
-    final Set<PGraphCursorEntry> result = new HashSet<>();
+    final Set<PImmutableEdge3> result = new HashSet<>();
     if (direction == PVertex.DIRECTION.OUT || direction == PVertex.DIRECTION.BOTH) {
       try {
         final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId() };
@@ -121,7 +129,7 @@ public class PGraph {
         while (outVertices.hasNext()) {
           outVertices.next();
           final Object[] entryKeys = outVertices.getKeys();
-          result.add(new PGraphLSMCursorEntry((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
+          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
               dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3],
               (PIdentifiable) outVertices.getValue()));
         }
@@ -137,7 +145,7 @@ public class PGraph {
         while (inVertices.hasNext()) {
           inVertices.next();
           final Object[] entryKeys = inVertices.getKeys();
-          result.add(new PGraphLSMCursorEntry((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
+          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
               dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3], (PIdentifiable) inVertices.getValue()));
         }
 
@@ -156,7 +164,7 @@ public class PGraph {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  public static Iterator<PGraphCursorEntry> getVertexConnectedVertices(final PVertex vertex, final PVertex.DIRECTION direction) {
+  public static Iterator<PImmutableEdge3> getVertexConnectedVertices(final PVertex vertex, final PVertex.DIRECTION direction) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
@@ -164,7 +172,7 @@ public class PGraph {
 
     final PDictionary dictionary = vertex.getDatabase().getSchema().getDictionary();
 
-    final Set<PGraphCursorEntry> result = new HashSet<>();
+    final Set<PImmutableEdge3> result = new HashSet<>();
     if (direction == PVertex.DIRECTION.OUT || direction == PVertex.DIRECTION.BOTH) {
       try {
         final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal() };
@@ -173,7 +181,7 @@ public class PGraph {
         while (outVertices.hasNext()) {
           outVertices.next();
           final Object[] entryKeys = outVertices.getKeys();
-          result.add(new PGraphLSMCursorEntry((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
+          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
               dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3],
               (PIdentifiable) outVertices.getValue()));
         }
@@ -189,7 +197,7 @@ public class PGraph {
         while (inVertices.hasNext()) {
           inVertices.next();
           final Object[] entryKeys = inVertices.getKeys();
-          result.add(new PGraphLSMCursorEntry((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
+          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
               dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3], (PIdentifiable) inVertices.getValue()));
         }
 
@@ -282,5 +290,19 @@ public class PGraph {
       throw new IllegalArgumentException("Type '" + edgeType + "' is not an edge type");
 
     return (PEdgeType) type;
+  }
+
+  private static void setProperties(final PModifiableDocument edge, final Object[] properties) {
+    if (properties.length == 1 && properties[0] instanceof Map) {
+      // GET PROPERTIES FROM THE MAP
+      final Map<String, Object> map = (Map<String, Object>) properties[0];
+      for (Map.Entry<String, Object> entry : map.entrySet())
+        edge.set(entry.getKey(), entry.getValue());
+    } else {
+      if (properties.length % 2 != 0)
+        throw new IllegalArgumentException("Properties must be an even number as pairs of name, value");
+      for (int i = 0; i < properties.length; i += 2)
+        edge.set((String) properties[i], properties[i + 1]);
+    }
   }
 }

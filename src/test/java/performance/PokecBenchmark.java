@@ -2,7 +2,7 @@ package performance;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PFile;
-import com.arcadedb.engine.PGraphCursorEntry;
+import com.arcadedb.graph.PImmutableEdge3;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.utility.PLogManager;
 
@@ -52,17 +52,17 @@ public class PokecBenchmark {
 
           rootTraversed.incrementAndGet();
 
-          for (final Iterator<PGraphCursorEntry> neighbors = v.getConnectedVertices(PVertex.DIRECTION.OUT); neighbors.hasNext(); ) {
-            final PGraphCursorEntry neighborEntry = neighbors.next();
+          for (final Iterator<PImmutableEdge3> neighbors = v.getConnectedVertices(PVertex.DIRECTION.OUT); neighbors.hasNext(); ) {
+            final PImmutableEdge3 neighborEntry = neighbors.next();
 
             totalTraversed.incrementAndGet();
 
-            final PVertex neighbor = (PVertex) neighborEntry.getConnectedVertex().getRecord();
+            final PVertex neighbor = (PVertex) neighborEntry.getTargetVertex().getRecord();
 
-            for (final Iterator<PGraphCursorEntry> neighbors2 = neighbor.getConnectedVertices(PVertex.DIRECTION.OUT); neighbors2
+            for (final Iterator<PImmutableEdge3> neighbors2 = neighbor.getConnectedVertices(PVertex.DIRECTION.OUT); neighbors2
                 .hasNext(); ) {
-              final PGraphCursorEntry neighborEntry2 = neighbors2.next();
-              final PRID neighbor2 = neighborEntry2.getConnectedVertex().getIdentity();
+              final PImmutableEdge3 neighborEntry2 = neighbors2.next();
+              final PRID neighbor2 = neighborEntry2.getTargetVertex().getIdentity();
 
               totalTraversed.incrementAndGet();
             }

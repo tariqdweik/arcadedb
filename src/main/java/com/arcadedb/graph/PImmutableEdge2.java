@@ -1,19 +1,15 @@
-package com.arcadedb.engine;
+package com.arcadedb.graph;
 
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.graph.PVertex;
 
-/**
- * Immutable entry of index cursor.
- */
-public class PGraphLSMCursorEntry implements PGraphCursorEntry {
+public class PImmutableEdge2 implements PImmutableEdge3 {
   private final PIdentifiable     vertex;
   private final PVertex.DIRECTION direction;
   private final String            edgeTypeName;
   private final PIdentifiable     connectedVertex;
   private final PIdentifiable     edge;
 
-  public PGraphLSMCursorEntry(final PIdentifiable vertex, final PVertex.DIRECTION direction, final String edgeTypeName,
+  public PImmutableEdge2(final PIdentifiable vertex, final PVertex.DIRECTION direction, final String edgeTypeName,
       final PIdentifiable connectedVertex, final PIdentifiable edge) {
     this.vertex = vertex;
     this.direction = direction;
@@ -23,7 +19,7 @@ public class PGraphLSMCursorEntry implements PGraphCursorEntry {
   }
 
   @Override
-  public PIdentifiable getVertex() {
+  public PIdentifiable getSourceVertex() {
     return vertex;
   }
 
@@ -33,12 +29,12 @@ public class PGraphLSMCursorEntry implements PGraphCursorEntry {
   }
 
   @Override
-  public String getEdgeTypeName() {
+  public String getTypeName() {
     return edgeTypeName;
   }
 
   @Override
-  public PIdentifiable getConnectedVertex() {
+  public PIdentifiable getTargetVertex() {
     return connectedVertex;
   }
 

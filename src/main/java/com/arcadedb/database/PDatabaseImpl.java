@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public class PDatabaseImpl extends PLockContext implements PDatabase {
+public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseInternal {
   protected final String       name;
   protected final PFile.MODE   mode;
   protected final String       databasePath;

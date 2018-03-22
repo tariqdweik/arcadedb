@@ -2,7 +2,6 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
-import com.arcadedb.engine.PGraphCursorEntry;
 
 import java.util.Iterator;
 
@@ -13,7 +12,7 @@ public interface PVertex extends PRecord {
     OUT, IN, BOTH
   }
 
-  PEdge newEdge(String edgeType, PIdentifiable toVertex, boolean bidirectional);
+  PEdge newEdge(String edgeType, PIdentifiable toVertex, boolean bidirectional, final Object... properties);
 
   Iterator<PEdge> getEdges(DIRECTION direction, String edgeType);
 
@@ -22,7 +21,7 @@ public interface PVertex extends PRecord {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  Iterator<PGraphCursorEntry> getConnectedVertices();
+  Iterator<PImmutableEdge3> getConnectedVertices();
 
   /**
    * Returns the connected vertices.
@@ -31,9 +30,9 @@ public interface PVertex extends PRecord {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  Iterator<PGraphCursorEntry> getConnectedVertices(DIRECTION direction);
+  Iterator<PImmutableEdge3> getConnectedVertices(DIRECTION direction);
 
-  Iterator<PGraphCursorEntry> getConnectedVertices(DIRECTION direction, String edgeType);
+  Iterator<PImmutableEdge3> getConnectedVertices(DIRECTION direction, String edgeType);
 
   boolean isConnectedTo(PIdentifiable toVertex);
 

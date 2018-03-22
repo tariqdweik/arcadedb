@@ -45,10 +45,6 @@ public interface PDatabase {
 
   List<PRID> lookupByKey(String type, String[] properties, Object[] keys);
 
-  void saveRecord(PModifiableDocument record);
-
-  void saveRecord(PRecord record, String bucketName);
-
   void deleteRecord(PRID rid);
 
   long countType(String typeName);

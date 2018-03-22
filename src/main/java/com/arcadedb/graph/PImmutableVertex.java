@@ -1,7 +1,6 @@
 package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PGraphCursorEntry;
 
 import java.util.Iterator;
 
@@ -20,8 +19,8 @@ public class PImmutableVertex extends PImmutableDocument implements PVertex {
     return new PModifiableVertex(database, typeName, rid, buffer);
   }
 
-  public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional) {
-    return PGraph.newEdge(this, edgeType, toVertex, bidirectional);
+  public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional, final Object... properties) {
+    return PGraph.newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 
   @Override
@@ -30,17 +29,17 @@ public class PImmutableVertex extends PImmutableDocument implements PVertex {
   }
 
   @Override
-  public Iterator<PGraphCursorEntry> getConnectedVertices() {
+  public Iterator<PImmutableEdge3> getConnectedVertices() {
     return PGraph.getVertexConnectedVertices(this);
   }
 
   @Override
-  public Iterator<PGraphCursorEntry> getConnectedVertices(final DIRECTION direction) {
+  public Iterator<PImmutableEdge3> getConnectedVertices(final DIRECTION direction) {
     return PGraph.getVertexConnectedVertices(this, direction);
   }
 
   @Override
-  public Iterator<PGraphCursorEntry> getConnectedVertices(final DIRECTION direction, final String edgeType) {
+  public Iterator<PImmutableEdge3> getConnectedVertices(final DIRECTION direction, final String edgeType) {
     return PGraph.getVertexConnectedVertices(this, direction, edgeType);
   }
 
