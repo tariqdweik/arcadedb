@@ -168,11 +168,18 @@ public class PBinarySerializer {
       content.putNumber(((BigDecimal) value).scale());
       content.putBytes(((BigDecimal) value).unscaledValue().toByteArray());
       break;
-    case PBinaryTypes.TYPE_RID:
+    case PBinaryTypes.TYPE_COMPRESSED_RID: {
       final PRID rid = ((PIdentifiable) value).getIdentity();
       content.putNumber(rid.getBucketId());
       content.putNumber(rid.getPosition());
       break;
+    }
+    case PBinaryTypes.TYPE_RID: {
+      final PRID rid = ((PIdentifiable) value).getIdentity();
+      content.putInt(rid.getBucketId());
+      content.putLong(rid.getPosition());
+      break;
+    }
     default:
       PLogManager.instance().info(this, "Error on serializing value '" + value + "', type not supported");
     }
@@ -216,8 +223,11 @@ public class PBinarySerializer {
       final byte[] unscaledValue = content.getBytes();
       value = new BigDecimal(new BigInteger(unscaledValue), scale);
       break;
-    case PBinaryTypes.TYPE_RID:
+    case PBinaryTypes.TYPE_COMPRESSED_RID:
       value = new PRID(database, (int) content.getNumber(), content.getNumber());
+      break;
+    case PBinaryTypes.TYPE_RID:
+      value = new PRID(database, content.getInt(), content.getLong());
       break;
     default:
       PLogManager.instance().info(this, "Error on deserializing value of type " + type);

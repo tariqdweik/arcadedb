@@ -1,10 +1,6 @@
 package com.arcadedb.graph;
 
-import com.arcadedb.database.PDatabaseInternal;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRID;
-import com.arcadedb.engine.PDictionary;
+import com.arcadedb.database.*;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.schema.PDocumentType;
@@ -31,11 +27,13 @@ public class PGraph {
 
     final PEdgeType type = PGraph.getEdgeType(vertex, edgeType);
 
-    final PIndex edgeIndex = vertex.getDatabase().getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+    final PDatabase database = vertex.getDatabase();
+
+    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
 
     final Object[] outKeys = new Object[] { rid, (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId(), toVertex };
 
-    final PModifiableEdge edge = new PModifiableEdge(vertex.getDatabase(), edgeType, vertex.getIdentity(), toVertex.getIdentity());
+    final PModifiableEdge edge = new PModifiableEdge(database, edgeType, vertex.getIdentity(), toVertex.getIdentity());
 
     PRID edgeRID;
 
@@ -45,7 +43,7 @@ public class PGraph {
     else {
       // SAVE THE PROPERTIES, THE EDGE AS A PERSISTENT RECORD AND AS VALUE FOR THE INDEX
       setProperties(edge, properties);
-      ((PDatabaseInternal) vertex.getDatabase()).saveRecord(edge);
+      ((PDatabaseInternal) database).saveRecord(edge);
       edgeRID = edge.getIdentity();
     }
 
@@ -62,13 +60,123 @@ public class PGraph {
     return edge;
   }
 
-  public static Iterator<PEdge> getVertexEdges(final PVertex vertex, final PVertex.DIRECTION direction, final String edgeType) {
+  public static PCursor<PEdge> getEdges(final PVertex vertex) {
+    final PDatabase database = vertex.getDatabase();
+
+    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+
+    final List<PEdge> result = new ArrayList<>();
+    try {
+      final Object[] keys = new Object[] { vertex.getIdentity() };
+      final PIndexCursor connections = edgeIndex.iterator(keys);
+
+      while (connections.hasNext()) {
+        connections.next();
+        final Object[] entryKeys = connections.getKeys();
+        final PRID edgeRID = (PRID) connections.getValue();
+        result.add(new PImmutableEdge(database, database.getSchema().getDictionary().getNameById((Integer) entryKeys[2]),
+            NULL_RID.equals(edgeRID) ? null : edgeRID, (PRID) entryKeys[0], (PRID) entryKeys[3]));
+      }
+
+    } catch (IOException e) {
+      throw new RuntimeException("Error on browsing outgoing edges for vertex " + vertex.getIdentity(), e);
+    }
+
+    return new PCursorCollection<PEdge>(result);
+  }
+
+  public static PCursor<PEdge> getEdges(final PVertex vertex, final PVertex.DIRECTION direction) {
+    if (direction == null)
+      throw new IllegalArgumentException("Direction is null");
+
+    final PDatabase database = vertex.getDatabase();
+
+    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+
+    final Set<PEdge> result = new HashSet<>();
+    if (direction == PVertex.DIRECTION.OUT || direction == PVertex.DIRECTION.BOTH) {
+      try {
+        final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal() };
+        final PIndexCursor connections = edgeIndex.iterator(keys);
+
+        while (connections.hasNext()) {
+          connections.next();
+          final Object[] entryKeys = connections.getKeys();
+          final PRID edgeRID = (PRID) connections.getValue();
+          result.add(new PImmutableEdge(database, database.getSchema().getDictionary().getNameById((Integer) entryKeys[2]),
+              NULL_RID.equals(edgeRID) ? null : edgeRID, (PRID) entryKeys[0], (PRID) entryKeys[3]));
+        }
+
+      } catch (IOException e) {
+        throw new RuntimeException("Error on browsing outgoing edges for vertex " + vertex.getIdentity(), e);
+      }
+    } else if (direction == PVertex.DIRECTION.IN || direction == PVertex.DIRECTION.BOTH) {
+      try {
+        final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.IN.ordinal() };
+        final PIndexCursor connections = edgeIndex.iterator(keys);
+
+        while (connections.hasNext()) {
+          connections.next();
+          final Object[] entryKeys = connections.getKeys();
+          final PRID edgeRID = (PRID) connections.getValue();
+          result.add(new PImmutableEdge(database, database.getSchema().getDictionary().getNameById((Integer) entryKeys[2]),
+              NULL_RID.equals(edgeRID) ? null : edgeRID, (PRID) entryKeys[3], (PRID) entryKeys[0]));
+        }
+
+      } catch (IOException e) {
+        throw new RuntimeException("Error on browsing incoming edges for vertex " + vertex.getIdentity(), e);
+      }
+    }
+
+    return new PCursorCollection<PEdge>(result);
+  }
+
+  public static PCursor<PEdge> getEdges(final PVertex vertex, final PVertex.DIRECTION direction, final String edgeType) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
     final PEdgeType type = getEdgeType(vertex, edgeType);
 
-    return Collections.EMPTY_LIST.iterator();
+    final PDatabase database = vertex.getDatabase();
+
+    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+
+    final Set<PEdge> result = new HashSet<>();
+    if (direction == PVertex.DIRECTION.OUT || direction == PVertex.DIRECTION.BOTH) {
+      try {
+        final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId() };
+        final PIndexCursor connections = edgeIndex.iterator(keys);
+
+        while (connections.hasNext()) {
+          connections.next();
+          final Object[] entryKeys = connections.getKeys();
+          final PRID edgeRID = (PRID) connections.getValue();
+          result.add(new PImmutableEdge(database, database.getSchema().getDictionary().getNameById((Integer) entryKeys[2]),
+              NULL_RID.equals(edgeRID) ? null : edgeRID, (PRID) entryKeys[0], (PRID) entryKeys[3]));
+        }
+
+      } catch (IOException e) {
+        throw new RuntimeException("Error on browsing outgoing edges for vertex " + vertex.getIdentity(), e);
+      }
+    } else if (direction == PVertex.DIRECTION.IN || direction == PVertex.DIRECTION.BOTH) {
+      try {
+        final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.IN.ordinal(), type.getDictionaryId() };
+        final PIndexCursor connections = edgeIndex.iterator(keys);
+
+        while (connections.hasNext()) {
+          connections.next();
+          final Object[] entryKeys = connections.getKeys();
+          final PRID edgeRID = (PRID) connections.getValue();
+          result.add(new PImmutableEdge(database, database.getSchema().getDictionary().getNameById((Integer) entryKeys[2]),
+              NULL_RID.equals(edgeRID) ? null : edgeRID, (PRID) entryKeys[3], (PRID) entryKeys[0]));
+        }
+
+      } catch (IOException e) {
+        throw new RuntimeException("Error on browsing incoming edges for vertex " + vertex.getIdentity(), e);
+      }
+    }
+
+    return new PCursorCollection<PEdge>(result);
   }
 
   /**
@@ -76,29 +184,29 @@ public class PGraph {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  public static Iterator<PImmutableEdge3> getVertexConnectedVertices(final PVertex vertex) {
-    // TODO implement lazy fetching
-    final PIndex edgeIndex = vertex.getDatabase().getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+  public static PCursor<PVertex> getVertices(final PVertex vertex) {
+    final PDatabase database = vertex.getDatabase();
 
-    final PDictionary dictionary = vertex.getDatabase().getSchema().getDictionary();
+    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
 
-    final Set<PImmutableEdge3> result = new HashSet<>();
+    final Set<PVertex> result = new HashSet<>();
     try {
       final Object[] keys = new Object[] { vertex.getIdentity() };
-      final PIndexCursor outVertices = edgeIndex.iterator(keys);
+      final PIndexCursor connections = edgeIndex.iterator(keys);
 
-      while (outVertices.hasNext()) {
-        outVertices.next();
-        final Object[] entryKeys = outVertices.getKeys();
-        result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], (PVertex.DIRECTION) entryKeys[1],
-            dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3], (PIdentifiable) outVertices.getValue()));
+      while (connections.hasNext()) {
+        connections.next();
+        final Object[] entryKeys = connections.getKeys();
+        final PRID vertexRID = (PRID) entryKeys[3];
+        result.add(
+            new PImmutableVertex(database, database.getSchema().getTypeNameByBucketId(vertexRID.getBucketId()), vertexRID, null));
       }
 
     } catch (IOException e) {
       throw new RuntimeException("Error on browsing outgoing vertices for vertex " + vertex.getIdentity(), e);
     }
 
-    return result.iterator();
+    return new PCursorCollection<PVertex>(result);
   }
 
   /**
@@ -109,18 +217,17 @@ public class PGraph {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  public static Iterator<PImmutableEdge3> getVertexConnectedVertices(final PVertex vertex, final PVertex.DIRECTION direction,
-      final String edgeType) {
+  public static PCursor<PVertex> getVertices(final PVertex vertex, final PVertex.DIRECTION direction, final String edgeType) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
     final PEdgeType type = getEdgeType(vertex, edgeType);
 
-    final PIndex edgeIndex = vertex.getDatabase().getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+    final PDatabase database = vertex.getDatabase();
 
-    final PDictionary dictionary = vertex.getDatabase().getSchema().getDictionary();
+    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
 
-    final Set<PImmutableEdge3> result = new HashSet<>();
+    final Set<PVertex> result = new HashSet<>();
     if (direction == PVertex.DIRECTION.OUT || direction == PVertex.DIRECTION.BOTH) {
       try {
         final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId() };
@@ -129,9 +236,9 @@ public class PGraph {
         while (outVertices.hasNext()) {
           outVertices.next();
           final Object[] entryKeys = outVertices.getKeys();
-          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
-              dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3],
-              (PIdentifiable) outVertices.getValue()));
+          final PRID vertexRID = (PRID) entryKeys[3];
+          result.add(
+              new PImmutableVertex(database, database.getSchema().getTypeNameByBucketId(vertexRID.getBucketId()), vertexRID, null));
         }
 
       } catch (IOException e) {
@@ -145,8 +252,9 @@ public class PGraph {
         while (inVertices.hasNext()) {
           inVertices.next();
           final Object[] entryKeys = inVertices.getKeys();
-          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
-              dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3], (PIdentifiable) inVertices.getValue()));
+          final PRID vertexRID = (PRID) entryKeys[3];
+          result.add(
+              new PImmutableVertex(database, database.getSchema().getTypeNameByBucketId(vertexRID.getBucketId()), vertexRID, null));
         }
 
       } catch (IOException e) {
@@ -154,7 +262,7 @@ public class PGraph {
       }
     }
 
-    return result.iterator();
+    return new PCursorCollection<PVertex>(result);
   }
 
   /**
@@ -164,15 +272,15 @@ public class PGraph {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  public static Iterator<PImmutableEdge3> getVertexConnectedVertices(final PVertex vertex, final PVertex.DIRECTION direction) {
+  public static PCursor<PVertex> getVertices(final PVertex vertex, final PVertex.DIRECTION direction) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
-    final PIndex edgeIndex = vertex.getDatabase().getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
+    final PDatabase database = vertex.getDatabase();
 
-    final PDictionary dictionary = vertex.getDatabase().getSchema().getDictionary();
+    final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
 
-    final Set<PImmutableEdge3> result = new HashSet<>();
+    final Set<PVertex> result = new HashSet<>();
     if (direction == PVertex.DIRECTION.OUT || direction == PVertex.DIRECTION.BOTH) {
       try {
         final Object[] keys = new Object[] { vertex.getIdentity(), (byte) PVertex.DIRECTION.OUT.ordinal() };
@@ -181,9 +289,9 @@ public class PGraph {
         while (outVertices.hasNext()) {
           outVertices.next();
           final Object[] entryKeys = outVertices.getKeys();
-          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
-              dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3],
-              (PIdentifiable) outVertices.getValue()));
+          final PRID vertexRID = (PRID) entryKeys[3];
+          result.add(
+              new PImmutableVertex(database, database.getSchema().getTypeNameByBucketId(vertexRID.getBucketId()), vertexRID, null));
         }
 
       } catch (IOException e) {
@@ -197,8 +305,9 @@ public class PGraph {
         while (inVertices.hasNext()) {
           inVertices.next();
           final Object[] entryKeys = inVertices.getKeys();
-          result.add(new PImmutableEdge2((PIdentifiable) entryKeys[0], PVertex.DIRECTION.values()[(Byte) entryKeys[1]],
-              dictionary.getNameById((Integer) entryKeys[2]), (PIdentifiable) entryKeys[3], (PIdentifiable) inVertices.getValue()));
+          final PRID vertexRID = (PRID) entryKeys[3];
+          result.add(
+              new PImmutableVertex(database, database.getSchema().getTypeNameByBucketId(vertexRID.getBucketId()), vertexRID, null));
         }
 
       } catch (IOException e) {
@@ -206,7 +315,7 @@ public class PGraph {
       }
     }
 
-    return result.iterator();
+    return new PCursorCollection<PVertex>(result);
   }
 
   public static boolean isVertexConnectedTo(final PVertex vertex, final PIdentifiable toVertex) {

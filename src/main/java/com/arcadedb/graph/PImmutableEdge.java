@@ -9,8 +9,8 @@ public class PImmutableEdge extends PImmutableDocument implements PEdge {
   private PRID out;
   private PRID in;
 
-  public PImmutableEdge(final PDatabase graph, final String typeName, final PRID out, PRID in) {
-    super(graph, typeName, null, null);
+  public PImmutableEdge(final PDatabase graph, final String typeName, final PRID edgeRID, final PRID out, PRID in) {
+    super(graph, typeName, edgeRID, null);
     this.out = out;
     this.in = in;
   }

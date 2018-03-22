@@ -2,8 +2,6 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 
-import java.util.Iterator;
-
 public class PModifiableVertex extends PModifiableDocument implements PVertex {
   public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid) {
     super(graph, typeName, rid);
@@ -18,28 +16,39 @@ public class PModifiableVertex extends PModifiableDocument implements PVertex {
     return PVertex.RECORD_TYPE;
   }
 
-  public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional, final Object... properties) {
+  public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional,
+      final Object... properties) {
     return PGraph.newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 
   @Override
-  public Iterator<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
-    return PGraph.getVertexEdges(this, direction, edgeType);
+  public PCursor<PEdge> getEdges() {
+    return PGraph.getEdges(this);
   }
 
   @Override
-  public Iterator<PImmutableEdge3> getConnectedVertices() {
-    return PGraph.getVertexConnectedVertices(this);
+  public PCursor<PEdge> getEdges(final DIRECTION direction) {
+    return PGraph.getEdges(this, direction);
   }
 
   @Override
-  public Iterator<PImmutableEdge3> getConnectedVertices(final DIRECTION direction) {
-    return PGraph.getVertexConnectedVertices(this, direction);
+  public PCursor<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
+    return PGraph.getEdges(this, direction, edgeType);
   }
 
   @Override
-  public Iterator<PImmutableEdge3> getConnectedVertices(final DIRECTION direction, final String edgeType) {
-    return PGraph.getVertexConnectedVertices(this, direction, edgeType);
+  public PCursor<PVertex> getVertices() {
+    return PGraph.getVertices(this);
+  }
+
+  @Override
+  public PCursor<PVertex> getVertices(final DIRECTION direction) {
+    return PGraph.getVertices(this, direction);
+  }
+
+  @Override
+  public PCursor<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
+    return PGraph.getVertices(this, direction, edgeType);
   }
 
   @Override

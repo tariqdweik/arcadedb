@@ -9,20 +9,21 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 public class PBinaryTypes {
-  public final static byte TYPE_NULL     = 0;
-  public final static byte TYPE_STRING   = 1;
-  public final static byte TYPE_BYTE     = 2;
-  public final static byte TYPE_SHORT    = 3;
-  public final static byte TYPE_INT      = 4;
-  public final static byte TYPE_LONG     = 5;
-  public final static byte TYPE_FLOAT    = 6;
-  public final static byte TYPE_DOUBLE   = 7;
-  public final static byte TYPE_DATE     = 8;
-  public final static byte TYPE_DATETIME = 9;
-  public final static byte TYPE_DECIMAL  = 10;
-  public final static byte TYPE_BOOLEAN  = 11;
-  public final static byte TYPE_BINARY   = 12;
-  public final static byte TYPE_RID      = 13;
+  public final static byte TYPE_NULL           = 0;
+  public final static byte TYPE_STRING         = 1;
+  public final static byte TYPE_BYTE           = 2;
+  public final static byte TYPE_SHORT          = 3;
+  public final static byte TYPE_INT            = 4;
+  public final static byte TYPE_LONG           = 5;
+  public final static byte TYPE_FLOAT          = 6;
+  public final static byte TYPE_DOUBLE         = 7;
+  public final static byte TYPE_DATE           = 8;
+  public final static byte TYPE_DATETIME       = 9;
+  public final static byte TYPE_DECIMAL        = 10;
+  public final static byte TYPE_BOOLEAN        = 11;
+  public final static byte TYPE_BINARY         = 12;
+  public final static byte TYPE_COMPRESSED_RID = 13;
+  public final static byte TYPE_RID            = 14;
 
   public static byte getTypeFromValue(final Object value) {
     final byte type;
@@ -52,7 +53,7 @@ public class PBinaryTypes {
     else if (value instanceof byte[])
       type = TYPE_BINARY;
     else if (value instanceof PRID)
-      type = TYPE_RID;
+      type = TYPE_COMPRESSED_RID;
     else
       throw new PDatabaseMetadataException("Cannot serialize value '" + value + "' of type " + value.getClass());
 
@@ -114,7 +115,7 @@ public class PBinaryTypes {
     else if (clazz == byte[].class)
       type = TYPE_BINARY;
     else if (clazz == PRID.class)
-      type = TYPE_RID;
+      type = TYPE_COMPRESSED_RID;
     else
       throw new PDatabaseMetadataException("Cannot find type for class '" + clazz + "'");
 

@@ -4,7 +4,6 @@ import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PRID;
 import com.arcadedb.engine.PFile;
-import com.arcadedb.graph.PImmutableEdge3;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableEdge;
 import com.arcadedb.graph.PModifiableVertex;
@@ -61,7 +60,7 @@ public class GraphTest {
       v2.save();
 
       // CREATION OF EDGE PASSING PARAMS AS VARARGS
-      PModifiableEdge e1 = (PModifiableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "e1");
+      PModifiableEdge e1 = (PModifiableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
       Assertions.assertEquals(e1.getOut(), v1);
       Assertions.assertEquals(e1.getIn(), v2);
 
@@ -70,7 +69,7 @@ public class GraphTest {
       v3.save();
 
       Map<String, Object> params = new HashMap<>();
-      params.put("name", "e2");
+      params.put("name", "E2");
 
       // CREATION OF EDGE PASSING PARAMS AS MAP
       PModifiableEdge e2 = (PModifiableEdge) v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
@@ -82,7 +81,7 @@ public class GraphTest {
       Assertions.assertEquals(e3.getIn(), v3);
 
       // SETTING EDGE PARAMS AFTER CREATION
-      e3.set("name", "e1");
+      e3.set("name", "E3");
       e3.save();
 
       db.commit();
@@ -116,46 +115,35 @@ public class GraphTest {
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.getType());
       Assertions.assertEquals("V1", v1.get("name"));
 
-      final Iterator<PImmutableEdge3> vertices2level = v1.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
+      final Iterator<PVertex> vertices2level = v1.getVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
       Assertions.assertNotNull(vertices2level);
       Assertions.assertTrue(vertices2level.hasNext());
 
-      final PImmutableEdge3 entry2 = vertices2level.next();
+      final PVertex v2 = vertices2level.next();
 
-      Assertions.assertEquals(root.getIdentity(), entry2.getSourceVertex());
-      Assertions.assertEquals(EDGE1_TYPE_NAME, entry2.getTypeName());
-
-      final PVertex v2 = (PVertex) entry2.getTargetVertex().getRecord();
       Assertions.assertNotNull(v2);
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.getType());
 
       Assertions.assertEquals("V2", v2.get("name"));
 
-      final Iterator<PImmutableEdge3> vertices2level2 = v1.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      final Iterator<PVertex> vertices2level2 = v1.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertTrue(vertices2level2.hasNext());
 
-      final PImmutableEdge3 entry3 = vertices2level2.next();
-
-      final PVertex v3 = (PVertex) entry3.getTargetVertex().getRecord();
+      final PVertex v3 = vertices2level2.next();
       Assertions.assertNotNull(v3);
 
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v3.getType());
       Assertions.assertEquals("V3", v3.get("name"));
 
-      final Iterator<PImmutableEdge3> vertices3level = v2.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      final Iterator<PVertex> vertices3level = v2.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertNotNull(vertices3level);
       Assertions.assertTrue(vertices3level.hasNext());
 
-      final PImmutableEdge3 entry32 = vertices3level.next();
+      final PVertex v32 = vertices3level.next();
 
-      final PVertex v32 = (PVertex) entry32.getTargetVertex().getRecord();
       Assertions.assertNotNull(v32);
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v32.getType());
       Assertions.assertEquals("V3", v32.get("name"));
-
-      // TEST CONNECTED EDGES
-      final Iterator<PEdge> edges = v1.getEdges(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
-      Assertions.assertNotNull(edges);
 
       Assertions.assertTrue(v1.isConnectedTo(v2));
       Assertions.assertTrue(v2.isConnectedTo(v1));
@@ -184,55 +172,47 @@ public class GraphTest {
       Assertions.assertNotNull(v1);
 
       // TEST CONNECTED EDGES
-      final Iterator<PImmutableEdge3> vertices2level = v1.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
-      Assertions.assertNotNull(vertices2level);
-      Assertions.assertTrue(vertices2level.hasNext());
+      final Iterator<PEdge> edges1 = v1.getEdges(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
+      Assertions.assertNotNull(edges1);
+      Assertions.assertTrue(edges1.hasNext());
 
-      final PImmutableEdge3 entry2 = vertices2level.next();
+      final PEdge e1 = edges1.next();
 
-      Assertions.assertEquals(root.getIdentity(), entry2.getSourceVertex());
-      Assertions.assertEquals(EDGE1_TYPE_NAME, entry2.getTypeName());
+      Assertions.assertNotNull(e1);
+      Assertions.assertEquals(EDGE1_TYPE_NAME, e1.getType());
+      Assertions.assertEquals(v1, e1.getOut());
+      Assertions.assertEquals("E1", e1.get("name"));
 
-      final PVertex v2 = (PVertex) entry2.getTargetVertex().getRecord();
-      Assertions.assertNotNull(v2);
-      Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.getType());
-
+      PVertex v2 = (PVertex) e1.getIn().getRecord();
       Assertions.assertEquals("V2", v2.get("name"));
 
-      final Iterator<PImmutableEdge3> vertices2level2 = v1.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
-      Assertions.assertTrue(vertices2level2.hasNext());
+      final Iterator<PEdge> edges2 = v2.getEdges(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      Assertions.assertTrue(edges2.hasNext());
 
-      final PImmutableEdge3 entry3 = vertices2level2.next();
+      final PEdge e2 = edges2.next();
+      Assertions.assertNotNull(e2);
 
-      final PVertex v3 = (PVertex) entry3.getTargetVertex().getRecord();
-      Assertions.assertNotNull(v3);
+      Assertions.assertEquals(EDGE2_TYPE_NAME, e2.getType());
+      Assertions.assertEquals(v2, e2.getOut());
+      Assertions.assertEquals("E2", e2.get("name"));
 
-      Assertions.assertEquals(VERTEX2_TYPE_NAME, v3.getType());
+      PVertex v3 = (PVertex) e2.getIn().getRecord();
       Assertions.assertEquals("V3", v3.get("name"));
 
-      final Iterator<PImmutableEdge3> vertices3level = v2.getConnectedVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
-      Assertions.assertNotNull(vertices3level);
-      Assertions.assertTrue(vertices3level.hasNext());
+      final Iterator<PEdge> edges3 = v1.getEdges(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      Assertions.assertNotNull(edges3);
+      Assertions.assertTrue(edges3.hasNext());
 
-      final PImmutableEdge3 entry32 = vertices3level.next();
+      final PEdge e3 = edges3.next();
 
-      final PVertex v32 = (PVertex) entry32.getTargetVertex().getRecord();
-      Assertions.assertNotNull(v32);
-      Assertions.assertEquals(VERTEX2_TYPE_NAME, v32.getType());
-      Assertions.assertEquals("V3", v32.get("name"));
+      Assertions.assertNotNull(e3);
+      Assertions.assertEquals(EDGE2_TYPE_NAME, e3.getType());
+      Assertions.assertEquals(v1, e3.getOut());
+      Assertions.assertEquals(v3, e3.getIn());
+      Assertions.assertEquals("E3", e3.get("name"));
 
-      // TEST CONNECTED EDGES
-      final Iterator<PEdge> edges = v1.getEdges(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
-      Assertions.assertNotNull(edges);
+      v2.getEdges();
 
-      Assertions.assertTrue(v1.isConnectedTo(v2));
-      Assertions.assertTrue(v2.isConnectedTo(v1));
-      Assertions.assertTrue(v1.isConnectedTo(v3));
-      Assertions.assertTrue(v3.isConnectedTo(v1));
-      Assertions.assertTrue(v2.isConnectedTo(v3));
-
-      Assertions.assertFalse(v3.isConnectedTo(v1, PVertex.DIRECTION.OUT));
-      Assertions.assertFalse(v3.isConnectedTo(v2, PVertex.DIRECTION.OUT));
 
     } finally {
       db2.close();
