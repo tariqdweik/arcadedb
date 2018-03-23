@@ -7,11 +7,7 @@ import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
 
-<<<<<<< HEAD
 import java.util.Iterator;
-import java.util.List;
-=======
->>>>>>> master
 import java.util.concurrent.Callable;
 
 public interface PDatabase {
