@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PVertex;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.graph.PVertex;
 
 import java.util.Map;
 import java.util.Optional;

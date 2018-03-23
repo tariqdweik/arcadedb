@@ -3,8 +3,8 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
-import com.arcadedb.schema.PType;
 
 /**
  * <p>
@@ -52,11 +52,11 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
       PDatabase db = ctx.getDatabase();
 
       PSchema schema = db.getSchema();
-      PType parentClazz = schema.getType(this.parentClass);
+      PDocumentType parentClazz = schema.getType(this.parentClass);
       if (parentClazz == null) {
         throw new PCommandExecutionException("Class not found: " + this.parentClass);
       }
-      PType targetClazz = schema.getType(this.targetClass);
+      PDocumentType targetClazz = schema.getType(this.targetClass);
       if (targetClazz == null) {
         throw new PCommandExecutionException("Class not found: " + this.targetClass);
       }

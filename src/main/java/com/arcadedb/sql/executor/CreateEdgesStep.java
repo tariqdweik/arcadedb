@@ -1,15 +1,13 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.database.PRID;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PVertex;
+import com.arcadedb.sql.parser.OBatch;
+import com.arcadedb.sql.parser.OIdentifier;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.id.ORID;
-import com.orientechnologies.orient.core.record.OEdge;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.record.OVertex;
-import com.orientechnologies.orient.core.sql.parser.OBatch;
-import com.orientechnologies.orient.core.sql.parser.OIdentifier;
 
 import java.util.*;
 
@@ -29,7 +27,7 @@ public class CreateEdgesStep extends AbstractExecutionStep {
   //operation stuff
   Iterator fromIter;
   Iterator toIterator;
-  OVertex  currentFrom;
+  PVertex  currentFrom;
   List toList = new ArrayList<>();
   private boolean inited = false;
 
@@ -49,7 +47,7 @@ public class CreateEdgesStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init();
     return new OResultSet() {
@@ -72,18 +70,18 @@ public class CreateEdgesStep extends AbstractExecutionStep {
         if (currentBatch < nRecords && (toIterator.hasNext() || (toList.size() > 0 && fromIter.hasNext()))) {
 
           if (currentFrom == null) {
-            throw new OCommandExecutionException("Invalid FROM vertex for edge");
+            throw new PCommandExecutionException("Invalid FROM vertex for edge");
           }
 
           Object obj = toIterator.next();
           long begin = profilingEnabled ? System.nanoTime() : 0;
           try {
-            OVertex currentTo = asVertex(obj);
+            PVertex currentTo = asVertex(obj);
             if (currentTo == null) {
-              throw new OCommandExecutionException("Invalid TO vertex for edge");
+              throw new PCommandExecutionException("Invalid TO vertex for edge");
             }
 
-            OEdge edge = currentFrom.addEdge(currentTo, targetClass.getStringValue());
+            PEdge edge = currentFrom.newEdge(targetClass.getStringValue(), currentTo, true);
 
             OUpdatableResult result = new OUpdatableResult(edge);
             result.setElement(edge);
@@ -161,18 +159,15 @@ public class CreateEdgesStep extends AbstractExecutionStep {
 
   }
 
-  private OVertex asVertex(Object currentFrom) {
-    if (currentFrom instanceof ORID) {
-      currentFrom = ((ORID) currentFrom).getRecord();
+  private PVertex asVertex(Object currentFrom) {
+    if (currentFrom instanceof PRID) {
+      currentFrom = ((PRID) currentFrom).getRecord();
     }
-    if (currentFrom instanceof OResult) {
-      return ((OResult) currentFrom).getVertex().orElse(null);
+    if (currentFrom instanceof OResult && ((OResult) currentFrom).isVertex()) {
+      return (PVertex)((OResult) currentFrom).getElement().get();
     }
-    if (currentFrom instanceof OVertex) {
-      return (OVertex) currentFrom;
-    }
-    if (currentFrom instanceof OElement) {
-      return ((OElement) currentFrom).asVertex().orElse(null);
+    if (currentFrom instanceof PVertex) {
+      return (PVertex) currentFrom;
     }
     return null;
   }

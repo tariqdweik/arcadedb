@@ -1,10 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.sql.parser.OIdentifier;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.sql.parser.OIdentifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -36,7 +35,7 @@ public class CountFromClassStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
       @Override
@@ -51,15 +50,17 @@ public class CountFromClassStep extends AbstractExecutionStep {
         }
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          OClass clazz = ctx.getDatabase().getClass(target.getStringValue());
+          PDocumentType clazz = ctx.getDatabase().getSchema().getType(target.getStringValue());
           if (clazz == null) {
-            throw new OCommandExecutionException("Class " + target.getStringValue() + " does not exist in the database schema");
+            throw new PCommandExecutionException("Class " + target.getStringValue() + " does not exist in the database schema");
           }
-          long size = clazz.count();
-          executed = true;
-          OResultInternal result = new OResultInternal();
-          result.setProperty(alias, size);
-          return result;
+          //TODO
+          throw new UnsupportedOperationException("TODO");
+//          long size = clazz.count();
+//          executed = true;
+//          OResultInternal result = new OResultInternal();
+//          result.setProperty(alias, size);
+//          return result;
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);

@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.sql.parser.OIndexIdentifier;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.sql.parser.OIndexIdentifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -34,7 +32,7 @@ public class CountFromIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
 
     return new OResultSet() {
@@ -50,12 +48,14 @@ public class CountFromIndexStep extends AbstractExecutionStep {
         }
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          OIndex<?> idx = ctx.getDatabase().getMetadata().getIndexManager().getIndex(target.getIndexName());
-          long size = idx.getSize();
-          executed = true;
-          OResultInternal result = new OResultInternal();
-          result.setProperty(alias, size);
-          return result;
+          //TODO
+          throw new UnsupportedOperationException("TODO");
+//          OIndex<?> idx = ctx.getDatabase().getMetadata().getIndexManager().getIndex(target.getIndexName());
+//          long size = idx.getSize();
+//          executed = true;
+//          OResultInternal result = new OResultInternal();
+//          result.setProperty(alias, size);
+//          return result;
         } finally {
           count += (System.nanoTime() - begin);
         }

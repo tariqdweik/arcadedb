@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PBaseDocument;
+import com.arcadedb.database.PBaseRecord;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.schema.PType;
+import com.arcadedb.schema.PDocumentType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -44,9 +44,9 @@ public class CheckSafeDeleteStep extends AbstractExecutionStep {
           if (result.isElement()) {
 
             PRecord record = result.getElement().get();
-            if (record instanceof PBaseDocument) {
-              PBaseDocument doc = (PBaseDocument) record;
-              PType clazz = ctx.getDatabase().getSchema().getType(doc.getType());
+            if (record instanceof PBaseRecord) {
+              PBaseRecord doc = (PBaseRecord) record;
+              PDocumentType clazz = ctx.getDatabase().getSchema().getType(doc.getType());
               //TODO
 //              if (clazz != null) {
 //                if (clazz.getName().equalsIgnoreCase("V") || clazz.isSubClassOf("V")) {

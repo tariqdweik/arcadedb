@@ -1,10 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.PBaseRecord;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -25,7 +24,7 @@ public class CopyRecordContentBeforeUpdateStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     OResultSet lastFetched = getPrev().get().syncPull(ctx, nRecords);
     return new OResultSet() {
       @Override
@@ -41,18 +40,17 @@ public class CopyRecordContentBeforeUpdateStep extends AbstractExecutionStep {
 
           if (result instanceof OUpdatableResult) {
             OResultInternal prevValue = new OResultInternal();
-            ORecord rec = result.getElement().get().getRecord();
+            PRecord rec = result.getElement().get().getRecord();
             prevValue.setProperty("@rid", rec.getIdentity());
-            prevValue.setProperty("@version", rec.getVersion());
-            if (rec instanceof ODocument) {
-              prevValue.setProperty("@class", ((ODocument) rec).getSchemaClass().getName());
+            if (rec instanceof PBaseRecord) {
+              prevValue.setProperty("@class", ((PBaseRecord) rec).getType());
             }
             for (String propName : result.getPropertyNames()) {
               prevValue.setProperty(propName, result.getProperty(propName));
             }
             ((OUpdatableResult) result).previousValue = prevValue;
           } else {
-            throw new OCommandExecutionException("Cannot fetch previous value: " + result);
+            throw new PCommandExecutionException("Cannot fetch previous value: " + result);
           }
           return result;
         } finally {

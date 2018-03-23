@@ -1,7 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.exception.PTimeoutException;
 
 /**
  * Counts the records from the previous steps.
@@ -25,7 +24,7 @@ public class CountStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (executed) {
       return new OInternalResultSet();
     }

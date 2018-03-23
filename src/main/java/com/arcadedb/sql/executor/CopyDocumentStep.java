@@ -1,11 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.record.impl.OBlob;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.record.impl.ORecordBytes;
+import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +24,7 @@ public class CopyDocumentStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
     return new OResultSet() {
       @Override
@@ -40,24 +37,27 @@ public class CopyDocumentStep extends AbstractExecutionStep {
         OResult toCopy = upstream.next();
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          ORecord resultDoc = null;
+          PRecord resultDoc = null;
           if (toCopy.isElement()) {
-            ORecord docToCopy = toCopy.getElement().get().getRecord();
-            if (docToCopy instanceof ODocument) {
-              resultDoc = ((ODocument) docToCopy).copy();
-              resultDoc.getIdentity().reset();
-              ((ODocument) resultDoc).setClassName(null);
-              resultDoc.setDirty();
-            } else if (docToCopy instanceof OBlob) {
-              ORecordBytes newBlob = ((ORecordBytes) docToCopy).copy();
-              OResultInternal result = new OResultInternal();
-              result.setElement(newBlob);
-              return result;
-            }
+
+            PRecord docToCopy = toCopy.getElement().get().getRecord();
+
+            throw new UnsupportedOperationException("TODO");
+//            if (docToCopy instanceof PBaseRecord) {
+//              resultDoc = ((PBaseRecord) docToCopy).copy();
+//              resultDoc.getIdentity().reset();
+//              ((ODocument) resultDoc).setClassName(null);
+//              resultDoc.setDirty();
+//            } else if (docToCopy instanceof OBlob) {
+//              ORecordBytes newBlob = ((ORecordBytes) docToCopy).copy();
+//              OResultInternal result = new OResultInternal();
+//              result.setElement(newBlob);
+//              return result;
+//            }
           } else {
             resultDoc = toCopy.toElement().getRecord();
           }
-          return new OUpdatableResult((ODocument) resultDoc);
+          return new OUpdatableResult((PModifiableDocument) resultDoc);
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);
