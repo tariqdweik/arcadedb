@@ -31,14 +31,12 @@ public abstract class PBaseRecord implements PRecord {
   public boolean equals(final Object o) {
     if (this == o)
       return true;
-    if (o == null || !(o instanceof PRecord))
+    if (o == null || !(o instanceof PIdentifiable))
       return false;
 
-    final PBaseRecord pRecord = (PBaseRecord) o;
+    final PRID pRID = ((PIdentifiable) o).getIdentity();
 
-    if (!database.equals(pRecord.database))
-      return false;
-    return rid != null ? rid.equals(pRecord.rid) : pRecord.rid == null;
+    return rid != null ? rid.equals(pRID) : pRID == null;
   }
 
   @Override

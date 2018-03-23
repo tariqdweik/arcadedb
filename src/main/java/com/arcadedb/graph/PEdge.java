@@ -1,12 +1,12 @@
 package com.arcadedb.graph;
 
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 
 public interface PEdge extends PRecord {
   byte RECORD_TYPE = 2;
 
-  PIdentifiable getOut();
+  PRID getOut();
 
-  PIdentifiable getIn();
+  PRID getIn();
 }

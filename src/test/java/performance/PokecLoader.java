@@ -1,16 +1,15 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.graph.PModifiableVertex;
-import com.arcadedb.graph.PVertex;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PFile;
+import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.graph.PVertex;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.*;
-import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -92,24 +91,24 @@ public class PokecLoader {
         final String[] profiles = line.split("\t");
 
         final int id1 = Integer.parseInt(profiles[0]);
-        final List<PRID> result1 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id1 });
+        final PCursor<PRID> result1 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id1 });
         PVertex v1;
-        if (result1.isEmpty()) {
+        if (!result1.hasNext()) {
           v1 = db.newVertex("V");
           ((PModifiableVertex) v1).set("id", id1);
           ((PModifiableVertex) v1).save();
         } else
-          v1 = ((PVertex) result1.get(0).getRecord());
+          v1 = ((PVertex) result1.next().getRecord());
 
         final int id2 = Integer.parseInt(profiles[1]);
-        final List<PRID> result2 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id2 });
+        final PCursor<PRID> result2 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id2 });
         PIdentifiable v2;
-        if (result2.isEmpty()) {
+        if (!result2.hasNext()) {
           v2 = db.newVertex("V");
           ((PModifiableVertex) v2).set("id", id2);
           ((PModifiableVertex) v2).save();
         } else
-          v2 = result2.get(0);
+          v2 = result2.next();
 
         v1.newEdge("E", v2, true);
 

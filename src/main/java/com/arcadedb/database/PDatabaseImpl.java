@@ -2,6 +2,7 @@ package com.arcadedb.database;
 
 import com.arcadedb.PProfiler;
 import com.arcadedb.engine.*;
+import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PDatabaseIsClosedException;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
@@ -21,7 +22,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public class PDatabaseImpl extends PLockContext implements PDatabase {
+public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseInternal {
+  private static final int DEFAULT_RETRIES = 10;
+
   protected final String       name;
   protected final PFile.MODE   mode;
   protected final String       databasePath;
@@ -320,7 +323,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
   }
 
   @Override
-  public List<PRID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
+  public PCursor<PRID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
     checkDatabaseIsOpen();
     lock();
     try {
@@ -336,7 +339,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
       for (PDocumentType.IndexMetadata m : metadata)
         result.addAll(m.index.get(keys));
 
-      return result;
+      return new PCursorCollection<PRID>(result);
 
     } finally {
       unlock();
@@ -417,23 +420,42 @@ public class PDatabaseImpl extends PLockContext implements PDatabase {
 
   @Override
   public void transaction(final PTransaction txBlock) {
+    transaction(txBlock, DEFAULT_RETRIES);
+  }
+
+  @Override
+  public void transaction(final PTransaction txBlock, final int retries) {
     if (txBlock == null)
       throw new IllegalArgumentException("Transaction block is null");
 
-    lock();
-    try {
+    PConcurrentModificationException lastException = null;
 
-      begin();
-      txBlock.execute(this);
-      commit();
-    } catch (Exception e) {
-      if (getTransaction().isActive())
-        rollback();
-      throw e;
+    for (int retry = 0; retry < retries; ++retry) {
+      lock();
+      try {
 
-    } finally {
-      unlock();
+        begin();
+        txBlock.execute(this);
+        commit();
+
+        // OK
+        return;
+
+      } catch (PConcurrentModificationException e) {
+        // RETRY
+        lastException = e;
+        continue;
+      } catch (Exception e) {
+        if (getTransaction().isActive())
+          rollback();
+        throw e;
+
+      } finally {
+        unlock();
+      }
     }
+
+    throw lastException;
   }
 
   @Override

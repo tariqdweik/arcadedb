@@ -621,8 +621,10 @@ public class PBinaryComparator {
       break;
     }
 
+    case PBinaryTypes.TYPE_COMPRESSED_RID:
     case PBinaryTypes.TYPE_RID: {
       switch (type2) {
+      case PBinaryTypes.TYPE_COMPRESSED_RID:
       case PBinaryTypes.TYPE_RID:
         return ((PIdentifiable) value1).getIdentity().compareTo((PIdentifiable) value2);
       }

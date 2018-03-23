@@ -182,6 +182,9 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     if (rid == null)
       throw new IllegalArgumentException("RID is null");
 
+    if (keys.length != keyTypes.length)
+      throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
+
     database.checkTransactionIsActive();
 
     Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
@@ -198,17 +201,18 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
       int count = getCount(currentPage);
 
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
-      if (result.found)
-        // TODO: MANAGE ALL THE CASES
+      if (result.found) {
+        // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE VALUE
+        final PBinary valueContent = new PBinary();
+        database.getSerializer().serializeValue(valueContent, valueType, rid);
+        currentPageBuffer.putByteArray(result.valueBeginPosition, valueContent.toByteArray());
         return;
-      //throw new PDuplicatedKeyException("Key '" + key + "' already exists");
+      }
 
       // WRITE KEY/VALUE PAIRS FIRST
       final PBinary keyValueContent = new PBinary();
-      // MULTI KEYS
       for (int i = 0; i < keyTypes.length; ++i)
         database.getSerializer().serializeValue(keyValueContent, keyTypes[i], keys[i]);
-
       database.getSerializer().serializeValue(keyValueContent, valueType, rid);
 
       int keyValueFreePosition = getKeyValueFreePosition(currentPage);

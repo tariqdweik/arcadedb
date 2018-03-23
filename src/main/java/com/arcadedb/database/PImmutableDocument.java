@@ -55,7 +55,11 @@ public class PImmutableDocument extends PBaseRecord {
   }
 
   protected void checkForLazyLoading() {
-    if (buffer == null)
+    if (buffer == null) {
+      if (rid == null)
+        throw new RuntimeException("Document cannot be loaded because RID is null");
+
       buffer = database.getSchema().getBucketById(rid.getBucketId()).getRecord(rid);
+    }
   }
 }

@@ -1,14 +1,17 @@
 package com.arcadedb.database;
 
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
 
+<<<<<<< HEAD
 import java.util.Iterator;
 import java.util.List;
+=======
+>>>>>>> master
 import java.util.concurrent.Callable;
 
 public interface PDatabase {
@@ -46,11 +49,11 @@ public interface PDatabase {
 
   Iterator<PRecord> bucketIterator(String bucketName);
 
-  List<PRID> lookupByKey(String type, String[] properties, Object[] keys);
-
   void saveRecord(PModifiableDocument record);
 
   void saveRecord(PRecord record, String bucketName);
+
+  PCursor<PRID> lookupByKey(String type, String[] properties, Object[] keys);
 
   void deleteRecord(PRID rid);
 
@@ -67,6 +70,8 @@ public interface PDatabase {
   PSchema getSchema();
 
   PFileManager getFileManager();
+
+  void transaction(PTransaction txBlock, int retries);
 
   PRecordFactory getRecordFactory();
 

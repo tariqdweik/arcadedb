@@ -2,18 +2,19 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 
-public class PModifiableVertex extends PModifiableDocument implements PVertex {
-  public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid) {
-    super(graph, typeName, rid);
-  }
+public class PImmutableVertex extends PImmutableDocument implements PVertex {
 
-  public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
+  public PImmutableVertex(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
     super(graph, typeName, rid, buffer);
   }
 
   @Override
   public byte getRecordType() {
     return PVertex.RECORD_TYPE;
+  }
+
+  public PModifiableVertex modify() {
+    return new PModifiableVertex(database, typeName, rid, buffer);
   }
 
   public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional,
