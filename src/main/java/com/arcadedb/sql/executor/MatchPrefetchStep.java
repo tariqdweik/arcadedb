@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ public class MatchPrefetchStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (!executed) {
       getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
 

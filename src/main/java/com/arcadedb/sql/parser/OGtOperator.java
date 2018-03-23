@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 
 public class OGtOperator extends SimpleNode implements OBinaryCompareOperator {
@@ -35,7 +35,7 @@ public class OGtOperator extends SimpleNode implements OBinaryCompareOperator {
     }
     if (iRight == null)
       return false;
-    if (iLeft instanceof OIdentifiable && !(iRight instanceof OIdentifiable)) {
+    if (iLeft instanceof PIdentifiable && !(iRight instanceof PIdentifiable)) {
       return false;
     }
     if (!(iLeft instanceof Comparable)) {

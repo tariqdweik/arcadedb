@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
@@ -63,7 +63,7 @@ public class FetchFromClustersExecutionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
 

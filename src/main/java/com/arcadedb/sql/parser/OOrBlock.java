@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -27,7 +27,7 @@ public class OOrBlock extends OBooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
     if (getSubBlocks() == null) {
       return true;
     }
@@ -57,8 +57,8 @@ public class OOrBlock extends OBooleanExpression {
   public boolean evaluate(Object currentRecord, OCommandContext ctx) {
     if (currentRecord instanceof OResult) {
       return evaluate((OResult) currentRecord, ctx);
-    } else if (currentRecord instanceof OIdentifiable) {
-      return evaluate((OIdentifiable) currentRecord, ctx);
+    } else if (currentRecord instanceof PIdentifiable) {
+      return evaluate((PIdentifiable) currentRecord, ctx);
     } else if (currentRecord instanceof Map) {
       ODocument doc = new ODocument();
       doc.fromMap((Map<String, Object>) currentRecord);

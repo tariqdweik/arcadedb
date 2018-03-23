@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
@@ -26,7 +26,7 @@ public class OValueExpression extends OExpression {
     this.value = val;
   }
 
-  public Object execute(OIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
     return value;
   }
 

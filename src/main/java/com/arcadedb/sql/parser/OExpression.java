@@ -8,7 +8,7 @@ import com.arcadedb.sql.executor.AggregationContext;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.record.OElement;
@@ -59,7 +59,7 @@ public class OExpression extends SimpleNode {
     return visitor.visit(this, data);
   }
 
-  public Object execute(PRecord iCurrentRecord, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
     if (isNull) {
       return null;
     }
@@ -292,7 +292,7 @@ public class OExpression extends SimpleNode {
     return -1;
   }
 
-  public Iterable<OIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (mathExpression != null) {
       return mathExpression.executeIndexedFunction(target, context, operator, right);

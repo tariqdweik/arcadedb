@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.sql.parser.OUpdateItem;
+import com.arcadedb.sql.parser.OUpdateItem;
 
 import java.util.List;
 import java.util.Map;
@@ -20,7 +20,7 @@ public class UpdateSetStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
     return new OResultSet() {
       @Override

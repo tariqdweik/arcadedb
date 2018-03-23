@@ -2,15 +2,13 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.sql.executor.AggregationContext;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.AggregationContext;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.OResultInternal;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -21,14 +19,14 @@ public class OMathExpression extends SimpleNode {
   private static final Object NULL_VALUE = new Object();
 
   public OExpression getExpandContent() {
-    throw new OCommandExecutionException("Invalid expand expression");
+    throw new PCommandExecutionException("Invalid expand expression");
   }
 
   public boolean isDefinedFor(OResult currentRecord) {
     return true;
   }
 
-  public boolean isDefinedFor(OElement currentRecord) {
+  public boolean isDefinedFor(PRecord currentRecord) {
     return true;
   }
 
@@ -576,7 +574,7 @@ public class OMathExpression extends SimpleNode {
     return true;
   }
 
-  public Object execute(OIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
     if (childExpressions.size() == 0) {
       return null;
     }
@@ -638,7 +636,7 @@ public class OMathExpression extends SimpleNode {
     return iterateOnPriorities(valuesStack, operatorsStack);
   }
 
-  private Object calculateWithOpPriority(OIdentifiable iCurrentRecord, OCommandContext ctx) {
+  private Object calculateWithOpPriority(PIdentifiable iCurrentRecord, OCommandContext ctx) {
     Deque valuesStack = new ArrayDeque<>();
     Deque<Operator> operatorsStack = new ArrayDeque<Operator>();
 
@@ -796,7 +794,7 @@ public class OMathExpression extends SimpleNode {
     return this.childExpressions.get(0).estimateIndexedFunction(target, context, operator, right);
   }
 
-  public Iterable<OIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (this.childExpressions.size() != 1) {
       return null;
@@ -862,9 +860,10 @@ public class OMathExpression extends SimpleNode {
     return false;
   }
 
-  public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
-    if (childExpressions.size() == 1)
-      return childExpressions.get(0).getCollate(currentRecord, ctx);
+  //TODO
+  public Object getCollate(OResult currentRecord, OCommandContext ctx) {
+//    if (childExpressions.size() == 1)
+//      return childExpressions.get(0).getCollate(currentRecord, ctx);
     return null;
   }
 
@@ -890,7 +889,7 @@ public class OMathExpression extends SimpleNode {
     for (OMathExpression expr : this.childExpressions) {
       if (expr.isExpand()) {
         if (this.childExpressions.size() > 1) {
-          throw new OCommandExecutionException("Cannot calculate expand() with other expressions");
+          throw new PCommandExecutionException("Cannot calculate expand() with other expressions");
         }
         return true;
       }
@@ -928,7 +927,7 @@ public class OMathExpression extends SimpleNode {
           if (res.isEarlyCalculated() || res.isAggregate()) {
             result.childExpressions.add(res);
           } else {
-            throw new OCommandExecutionException("Cannot mix aggregate and single record attribute values in the same projection");
+            throw new PCommandExecutionException("Cannot mix aggregate and single record attribute values in the same projection");
           }
         } else if (splitResult instanceof OExpression) {
           result.childExpressions.add(((OExpression) splitResult).mathExpression);//this comes from a splitted aggregate function
@@ -1018,7 +1017,7 @@ public class OMathExpression extends SimpleNode {
 
   public void applyRemove(OResultInternal result, OCommandContext ctx) {
     if (childExpressions.size() != 1) {
-      throw new OCommandExecutionException("cannot apply REMOVE " + toString());
+      throw new PCommandExecutionException("cannot apply REMOVE " + toString());
     }
     childExpressions.get(0).applyRemove(result, ctx);
   }
@@ -1030,7 +1029,7 @@ public class OMathExpression extends SimpleNode {
       result.deserialize(fromResult);
       return result;
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException( e);
     }
 
   }

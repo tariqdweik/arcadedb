@@ -2,9 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRID;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
 import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -48,34 +51,34 @@ public class ORid extends SimpleNode {
     }
   }
 
-  public ORecordId toRecordId(OResult target, OCommandContext ctx) {
+  public PRID toRecordId(OResult target, OCommandContext ctx) {
     if (legacy) {
-      return new ORecordId(cluster.value.intValue(), position.value.longValue());
+      return new PRID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
     } else {
       Object result = expression.execute(target, ctx);
       if (result == null) {
         return null;
       }
-      if (result instanceof OIdentifiable) {
-        return (ORecordId) ((OIdentifiable) result).getIdentity();
+      if (result instanceof PIdentifiable) {
+        return ((PIdentifiable) result).getIdentity();
       }
       if (result instanceof String) {
-        return new ORecordId((String) result);
+        throw new UnsupportedOperationException();
       }
       return null;
     }
   }
 
-  public ORecordId toRecordId(OIdentifiable target, OCommandContext ctx) {
+  public PRID toRecordId(PIdentifiable target, OCommandContext ctx) {
     if (legacy) {
-      return new ORecordId(cluster.value.intValue(), position.value.longValue());
+      return new PRID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
     } else {
       Object result = expression.execute(target, ctx);
       if (result == null) {
         return null;
       }
-      if (result instanceof OIdentifiable) {
-        return (ORecordId) ((OIdentifiable) result).getIdentity();
+      if (result instanceof PIdentifiable) {
+        return (ORecordId) ((PIdentifiable) result).getIdentity();
       }
       if (result instanceof String) {
         return new ORecordId((String) result);

@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.collection.OMultiValue;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 
 import java.util.*;
@@ -82,7 +82,7 @@ public class OContainsAllCondition extends OBooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
     Object leftValue = left.execute(currentRecord, ctx);
     if (right != null) {
       Object rightValue = right.execute(currentRecord, ctx);
@@ -94,8 +94,8 @@ public class OContainsAllCondition extends OBooleanExpression {
       Iterator<Object> iter = OMultiValue.getMultiValueIterator(leftValue);
       while (iter.hasNext()) {
         Object item = iter.next();
-        if (item instanceof OIdentifiable) {
-          if (!rightBlock.evaluate((OIdentifiable) item, ctx)) {
+        if (item instanceof PIdentifiable) {
+          if (!rightBlock.evaluate((PIdentifiable) item, ctx)) {
             return false;
           }
         } else if (item instanceof OResult) {
@@ -123,8 +123,8 @@ public class OContainsAllCondition extends OBooleanExpression {
       Iterator<Object> iter = OMultiValue.getMultiValueIterator(leftValue);
       while (iter.hasNext()) {
         Object item = iter.next();
-        if (item instanceof OIdentifiable) {
-          if (!rightBlock.evaluate((OIdentifiable) item, ctx)) {
+        if (item instanceof PIdentifiable) {
+          if (!rightBlock.evaluate((PIdentifiable) item, ctx)) {
             return false;
           }
         } else if (item instanceof OResult) {

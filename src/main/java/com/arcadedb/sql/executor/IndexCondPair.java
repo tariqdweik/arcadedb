@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.sql.parser.OAndBlock;
-import com.orientechnologies.orient.core.sql.parser.OBinaryCondition;
+import com.arcadedb.sql.parser.OAndBlock;
+import com.arcadedb.sql.parser.OBinaryCondition;
 
 /**
  * For internal use.

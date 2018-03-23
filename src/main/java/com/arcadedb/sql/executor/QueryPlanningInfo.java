@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.sql.parser.*;
 import com.orientechnologies.orient.core.storage.OStorage;
 
 import java.util.List;

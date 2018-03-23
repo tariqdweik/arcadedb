@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
@@ -58,7 +58,7 @@ public class OAlterPropertyStatement extends ODDLStatement {
     if (customPropertyName != null) {
       String customName = customPropertyName.getStringValue();
       Object oldValue = property.getCustom(customName);
-      Object finalValue = customPropertyValue.execute((OIdentifiable) null, ctx);
+      Object finalValue = customPropertyValue.execute((PIdentifiable) null, ctx);
       property.setCustom(customName, finalValue == null ? null : "" + finalValue);
 
       result.setProperty("operation", "alter property custom");
@@ -67,7 +67,7 @@ public class OAlterPropertyStatement extends ODDLStatement {
       result.setProperty("newValue", finalValue != null ? finalValue.toString() : null);
     } else {
       String setting = settingName.getStringValue();
-      Object finalValue = settingValue.execute((OIdentifiable) null, ctx);
+      Object finalValue = settingValue.execute((PIdentifiable) null, ctx);
 
       OProperty.ATTRIBUTES attribute;
       try {

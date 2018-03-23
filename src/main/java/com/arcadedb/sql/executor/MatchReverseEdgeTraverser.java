@@ -1,10 +1,10 @@
 package com.arcadedb.sql.executor;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.sql.parser.OMatchPathItem;
-import com.orientechnologies.orient.core.sql.parser.ORid;
-import com.orientechnologies.orient.core.sql.parser.OWhereClause;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.sql.parser.OMatchPathItem;
+import com.arcadedb.sql.parser.ORid;
+import com.arcadedb.sql.parser.OWhereClause;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +41,7 @@ public class MatchReverseEdgeTraverser extends MatchEdgeTraverser {
   }
 
   @Override
-  protected Iterable<OResultInternal> traversePatternEdge(OIdentifiable startingPoint, OCommandContext iCommandContext) {
+  protected Iterable<OResultInternal> traversePatternEdge(PIdentifiable startingPoint, OCommandContext iCommandContext) {
 
     Object qR = this.item.getMethod().executeReverse(startingPoint, iCommandContext);
     if (qR == null) {
@@ -50,15 +50,15 @@ public class MatchReverseEdgeTraverser extends MatchEdgeTraverser {
     if (qR instanceof OResultInternal) {
       return Collections.singleton((OResultInternal) qR);
     }
-    if (qR instanceof OIdentifiable) {
-      return Collections.singleton(new OResultInternal((OIdentifiable) qR));
+    if (qR instanceof PIdentifiable) {
+      return Collections.singleton(new OResultInternal((PIdentifiable) qR));
     }
     if (qR instanceof Iterable) {
       Iterable iterable = (Iterable) qR;
       List<OResultInternal> result = new ArrayList<>();
       for (Object o : iterable) {
-        if (o instanceof OIdentifiable) {
-          result.add(new OResultInternal((OIdentifiable) o));
+        if (o instanceof PIdentifiable) {
+          result.add(new OResultInternal((PIdentifiable) o));
         } else if (o instanceof OResultInternal) {
           result.add((OResultInternal) o);
         } else if (o == null) {

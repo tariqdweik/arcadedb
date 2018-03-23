@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OPropertyImpl;
 
@@ -68,7 +68,7 @@ public class OCreatePropertyAttributeStatement extends SimpleNode {
 
   public Object setOnProperty(OPropertyImpl internalProp, OCommandContext ctx) {
     String attrName = settingName.getStringValue();
-    Object attrValue = this.settingValue == null ? true : this.settingValue.execute((OIdentifiable) null, ctx);
+    Object attrValue = this.settingValue == null ? true : this.settingValue.execute((PIdentifiable) null, ctx);
     try {
       if (attrName.equalsIgnoreCase("readonly")) {
         internalProp.setReadonly((boolean) attrValue);

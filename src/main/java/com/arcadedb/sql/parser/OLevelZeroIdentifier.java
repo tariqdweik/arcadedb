@@ -6,7 +6,7 @@ import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
 import com.orientechnologies.orient.core.sql.executor.OResult;

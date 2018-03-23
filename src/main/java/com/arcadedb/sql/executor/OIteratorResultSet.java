@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,8 +28,8 @@ public class OIteratorResultSet implements OResultSet {
     }
 
     OResultInternal result = new OResultInternal();
-    if (val instanceof OIdentifiable) {
-      result.setElement((OIdentifiable) val);
+    if (val instanceof PIdentifiable) {
+      result.setElement((PIdentifiable) val);
     } else {
       result.setProperty("value", val);
     }

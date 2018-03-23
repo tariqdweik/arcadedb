@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 
@@ -71,10 +71,10 @@ public class OTraverseProjectionItem extends SimpleNode {
   }
 
   private boolean isValidIdentifiable(Object val) {
-    if (!(val instanceof OIdentifiable)) {
+    if (!(val instanceof PIdentifiable)) {
       return false;
     }
-    return ((OIdentifiable) val).getIdentity().isPersistent();
+    return ((PIdentifiable) val).getIdentity().isPersistent();
   }
 
   private boolean isOResult(Object val) {

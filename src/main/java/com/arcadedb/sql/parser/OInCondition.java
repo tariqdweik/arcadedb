@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.collection.OMultiValue;
 import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import com.orientechnologies.orient.core.sql.operator.OQueryOperatorEquals;
@@ -43,7 +43,7 @@ public class OInCondition extends OBooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
     Object leftVal = evaluateLeft(currentRecord, ctx);
     Object rightVal = evaluateRight(currentRecord, ctx);
     if (rightVal == null) {
@@ -52,7 +52,7 @@ public class OInCondition extends OBooleanExpression {
     return evaluateExpression(leftVal, rightVal);
   }
 
-  public Object evaluateRight(OIdentifiable currentRecord, OCommandContext ctx) {
+  public Object evaluateRight(PIdentifiable currentRecord, OCommandContext ctx) {
     Object rightVal = null;
     if (rightStatement != null) {
       rightVal = executeQuery(rightStatement, ctx);
@@ -64,7 +64,7 @@ public class OInCondition extends OBooleanExpression {
     return rightVal;
   }
 
-  public Object evaluateLeft(OIdentifiable currentRecord, OCommandContext ctx) {
+  public Object evaluateLeft(PIdentifiable currentRecord, OCommandContext ctx) {
     return left.execute(currentRecord, ctx);
   }
 

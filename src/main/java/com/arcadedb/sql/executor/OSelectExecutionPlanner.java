@@ -5,7 +5,7 @@ import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.ODatabaseInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
@@ -13,7 +13,7 @@ import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.index.OIndexDefinition;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.sql.OCommandExecutorSQLAbstract;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.sql.parser.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -1043,7 +1043,7 @@ public class OSelectExecutionPlanner {
           obj = ((OBinaryCondition) ridRangeCondition).getRight().execute((OResult) null, ctx);
         }
 
-        conditionRid = ((OIdentifiable) obj).getIdentity();
+        conditionRid = ((PIdentifiable) obj).getIdentity();
 
         if (conditionRid != null) {
           int conditionClusterId = conditionRid.getClusterId();
@@ -1090,7 +1090,7 @@ public class OSelectExecutionPlanner {
         } else {
           obj = cond.getRight().execute((OResult) null, ctx);
         }
-        return obj instanceof OIdentifiable;
+        return obj instanceof PIdentifiable;
       }
     }
     return false;
@@ -1119,8 +1119,8 @@ public class OSelectExecutionPlanner {
       from.setItem(item);
       item.setIdentifier(new OIdentifier((String) paramValue));
       handleClassAsTarget(result, filterClusters, from, info, ctx, profilingEnabled);
-    } else if (paramValue instanceof OIdentifiable) {
-      ORID orid = ((OIdentifiable) paramValue).getIdentity();
+    } else if (paramValue instanceof PIdentifiable) {
+      ORID orid = ((PIdentifiable) paramValue).getIdentity();
 
       ORid rid = new ORid(-1);
       OInteger cluster = new OInteger(-1);
@@ -1141,10 +1141,10 @@ public class OSelectExecutionPlanner {
       //try list of RIDs
       List<ORid> rids = new ArrayList<>();
       for (Object x : (Iterable) paramValue) {
-        if (!(x instanceof OIdentifiable)) {
+        if (!(x instanceof PIdentifiable)) {
           throw new OCommandExecutionException("Cannot use colleciton as target: " + paramValue);
         }
-        ORID orid = ((OIdentifiable) x).getIdentity();
+        ORID orid = ((PIdentifiable) x).getIdentity();
 
         ORid rid = new ORid(-1);
         OInteger cluster = new OInteger(-1);

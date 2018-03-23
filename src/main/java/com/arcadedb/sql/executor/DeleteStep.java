@@ -1,7 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -19,7 +18,7 @@ public class DeleteStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
     return new OResultSet() {
       @Override
@@ -33,7 +32,7 @@ public class DeleteStep extends AbstractExecutionStep {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           if (result.isElement()) {
-            result.getElement().get().delete();
+            ctx.getDatabase().deleteRecord(result.getElement().get().getIdentity());
           }
           return result;
         } finally {

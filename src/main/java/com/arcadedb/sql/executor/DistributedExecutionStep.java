@@ -1,8 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +26,7 @@ public class DistributedExecutionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     init(ctx);
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
@@ -66,8 +65,9 @@ public class DistributedExecutionStep extends AbstractExecutionStep {
   }
 
   private OResultSet sendSerializedExecutionPlan(String nodeName, OExecutionPlan serializedExecutionPlan, OCommandContext ctx) {
-    ODatabaseDocumentInternal db = (ODatabaseDocumentInternal) ctx.getDatabase();
-    return db.queryOnNode(nodeName, serializedExecutionPlan, ctx.getInputParameters());
+    PDatabase db = ctx.getDatabase();
+    throw new UnsupportedOperationException();
+//    return db.queryOnNode(nodeName, serializedExecutionPlan, ctx.getInputParameters());
   }
 
   @Override

@@ -1,12 +1,12 @@
 package com.arcadedb.sql.executor;
 
 import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.sql.parser.*;
 
 import java.util.Iterator;
 import java.util.List;
@@ -29,7 +29,7 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
       @Override
@@ -115,8 +115,8 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
         int count = 0;
         Object key = keyExp.execute((OResult) null, ctx);
         Object value = valueExp.execute((OResult) null, ctx);
-        if (value instanceof OIdentifiable) {
-          index.put(key, (OIdentifiable) value);
+        if (value instanceof PIdentifiable) {
+          index.put(key, (PIdentifiable) value);
           count++;
         } else if (value instanceof OResult && ((OResult) value).isElement()) {
           index.put(key, ((OResult) value).getElement().get());
@@ -127,8 +127,8 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
           Iterator iterator = OMultiValue.getMultiValueIterator(value);
           while (iterator.hasNext()) {
             Object item = iterator.next();
-            if (value instanceof OIdentifiable) {
-              index.put(key, (OIdentifiable) value);
+            if (value instanceof PIdentifiable) {
+              index.put(key, (PIdentifiable) value);
               count++;
             } else if (value instanceof OResult && ((OResult) value).isElement()) {
               index.put(key, ((OResult) value).getElement().get());

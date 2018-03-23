@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.sql.parser.OSkip;
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.sql.parser.OSkip;
+import com.arcadedb.sql.parser.OSkip;
 
 /**
  * Created by luigidellaquila on 08/07/16.

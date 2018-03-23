@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.sql.parser.OLocalResultSet;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.sql.parser.OLocalResultSet;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -40,7 +40,7 @@ public class MatchFirstStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init(ctx);
     return new OResultSet() {
@@ -92,7 +92,7 @@ public class MatchFirstStep extends AbstractExecutionStep {
     };
   }
 
-  private Object toResult(OIdentifiable nextElement) {
+  private Object toResult(PIdentifiable nextElement) {
     OResultInternal result = new OResultInternal();
     result.setElement(nextElement);
     return result;

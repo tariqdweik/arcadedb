@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
@@ -169,7 +169,7 @@ public class OUpdateItem extends SimpleNode {
     if (value instanceof OResult) {
       return ((OResult) value).toElement();
     }
-    if (value instanceof OIdentifiable) {
+    if (value instanceof PIdentifiable) {
       return value;
     }
     if (value instanceof List && containsOResult((Collection) value)) {

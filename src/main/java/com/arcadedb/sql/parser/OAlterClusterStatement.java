@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -58,7 +58,7 @@ public class OAlterClusterStatement extends ODDLStatement {
   public OResultSet executeDDL(OCommandContext ctx) {
     OInternalResultSet result = new OInternalResultSet();
     List<com.orientechnologies.orient.core.storage.OCluster> clustersToUpdate = getClusters(ctx);
-    Object finalValue = attributeValue.execute((OIdentifiable) null, ctx);
+    Object finalValue = attributeValue.execute((PIdentifiable) null, ctx);
 
     com.orientechnologies.orient.core.storage.OCluster.ATTRIBUTES attribute;
     try {

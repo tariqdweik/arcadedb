@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.sql.parser.OMatchPathItem;
+import com.arcadedb.sql.parser.OMatchPathItem;
 
 import java.util.LinkedHashSet;
 import java.util.Set;

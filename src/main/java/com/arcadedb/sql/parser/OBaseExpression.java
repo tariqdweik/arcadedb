@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.serialization.serializer.OStringSerializerHelper;
@@ -91,7 +91,7 @@ public class OBaseExpression extends OMathExpression {
 
   }
 
-  public Object execute(OIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
     Object result = null;
     if (number != null) {
       result = number.getValue();
@@ -147,7 +147,7 @@ public class OBaseExpression extends OMathExpression {
     return identifier.estimateIndexedFunction(target, context, operator, right);
   }
 
-  public Iterable<OIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return null;

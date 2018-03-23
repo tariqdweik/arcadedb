@@ -7,7 +7,7 @@ import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
@@ -89,7 +89,7 @@ public class OBaseIdentifier extends SimpleNode {
     return -1;
   }
 
-  public Iterable<OIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (levelZero != null) {
       return levelZero.executeIndexedFunction(target, context, operator, right);

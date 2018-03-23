@@ -1,10 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.ORecord;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -28,9 +27,9 @@ public class ExpandStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (prev == null || !prev.isPresent()) {
-      throw new OCommandExecutionException("Cannot expand without a target");
+      throw new PCommandExecutionException("Cannot expand without a target");
     }
     return new OResultSet() {
       long localCount = 0;
@@ -93,8 +92,8 @@ public class ExpandStep extends AbstractExecutionStep {
           Object nextElementObj = nextSubsequence.next();
           if (nextElementObj instanceof OResult) {
             nextElement = (OResult) nextElementObj;
-          } else if (nextElementObj instanceof OIdentifiable) {
-            ORecord record = ((OIdentifiable) nextElementObj).getRecord();
+          } else if (nextElementObj instanceof PIdentifiable) {
+            PRecord record = ((PIdentifiable) nextElementObj).getRecord();
             if (record == null) {
               continue;
             }
@@ -136,8 +135,8 @@ public class ExpandStep extends AbstractExecutionStep {
         if (projValue == null) {
           continue;
         }
-        if (projValue instanceof OIdentifiable) {
-          ORecord rec = ((OIdentifiable) projValue).getRecord();
+        if (projValue instanceof PIdentifiable) {
+          PRecord rec = ((PIdentifiable) projValue).getRecord();
           if (rec == null) {
             continue;
           }

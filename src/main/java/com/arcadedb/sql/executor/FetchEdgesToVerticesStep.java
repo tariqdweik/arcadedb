@@ -1,13 +1,12 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.ODirection;
-import com.orientechnologies.orient.core.record.OEdge;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.sql.parser.OIdentifier;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PVertex;
+import com.arcadedb.sql.parser.OIdentifier;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -23,9 +22,9 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
   private final OIdentifier targetClass;
 
   private boolean inited = false;
-  private Iterator        toIter;
-  private OEdge           nextEdge;
-  private Iterator<OEdge> currentToEdgesIter;
+  private Iterator       toIter;
+  private PEdge          nextEdge;
+  private Iterator<PEdge> currentToEdgesIter;
 
   public FetchEdgesToVerticesStep(String toAlias, OIdentifier targetClass, OIdentifier targetCluster, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
@@ -35,7 +34,7 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init();
 
@@ -52,7 +51,7 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
         if (!hasNext()) {
           throw new IllegalStateException();
         }
-        OEdge edge = nextEdge;
+        PEdge edge = nextEdge;
         fetchNextEdge();
         OResultInternal result = new OResultInternal();
         result.setElement(edge);
@@ -89,7 +88,7 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
     Object toValues = null;
 
     toValues = ctx.getVariable(toAlias);
-    if (toValues instanceof Iterable && !(toValues instanceof OIdentifiable)) {
+    if (toValues instanceof Iterable && !(toValues instanceof PIdentifiable)) {
       toValues = ((Iterable) toValues).iterator();
     } else if (!(toValues instanceof Iterator)) {
       toValues = Collections.singleton(toValues).iterator();
@@ -112,20 +111,20 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
           if (from instanceof OResult) {
             from = ((OResult) from).toElement();
           }
-          if (from instanceof OIdentifiable && !(from instanceof OElement)) {
-            from = ((OIdentifiable) from).getRecord();
+          if (from instanceof PIdentifiable && !(from instanceof PRecord)) {
+            from = ((PIdentifiable) from).getRecord();
           }
-          if (from instanceof OElement && ((OElement) from).isVertex()) {
-            Iterable<OEdge> edges = ((OElement) from).asVertex().get().getEdges(ODirection.IN);
+          if (from instanceof PVertex) {
+            Iterable<PEdge> edges = ((PVertex) from).getEdges(PVertex.DIRECTION.IN);
             currentToEdgesIter = edges.iterator();
           } else {
-            throw new OCommandExecutionException("Invalid vertex: " + from);
+            throw new PCommandExecutionException("Invalid vertex: " + from);
           }
         } else {
           return;
         }
       }
-      OEdge edge = this.currentToEdgesIter.next();
+      PEdge edge = this.currentToEdgesIter.next();
       if (matchesClass(edge) && matchesCluster(edge)) {
         this.nextEdge = edge;
         return;
@@ -133,20 +132,20 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
     }
   }
 
-  private boolean matchesCluster(OEdge edge) {
+  private boolean matchesCluster(PEdge edge) {
     if (targetCluster == null) {
       return true;
     }
-    int clusterId = edge.getIdentity().getClusterId();
-    String clusterName = ctx.getDatabase().getClusterNameById(clusterId);
+    int clusterId = edge.getIdentity().getBucketId();
+    String clusterName = ctx.getDatabase().getSchema().getBucketById(clusterId).getName();
     return clusterName.equals(targetCluster.getStringValue());
   }
 
-  private boolean matchesClass(OEdge edge) {
+  private boolean matchesClass(PEdge edge) {
     if (targetClass == null) {
       return true;
     }
-    return edge.getSchemaType().get().isSubClassOf(targetClass.getStringValue());
+    return edge.getType().equals(targetClass.getStringValue());
   }
 
   @Override

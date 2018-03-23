@@ -1,8 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.id.ORID;
+import com.arcadedb.database.PRID;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +26,7 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
 
     OResultSet result = new OResultSet() {
       int nextLocal = 0;
@@ -109,9 +108,9 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
 
   private void markAsVisited(OResult nextValue) {
     if (nextValue.isElement()) {
-      ORID identity = nextValue.getElement().get().getIdentity();
-      int cluster = identity.getClusterId();
-      long pos = identity.getClusterPosition();
+      PRID identity = nextValue.getElement().get().getIdentity();
+      int cluster = identity.getBucketId();
+      long pos = identity.getPosition();
       if (cluster >= 0 && pos >= 0) {
         pastRids.add(identity);
         return;
@@ -122,9 +121,9 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
 
   private boolean alreadyVisited(OResult nextValue) {
     if (nextValue.isElement()) {
-      ORID identity = nextValue.getElement().get().getIdentity();
-      int cluster = identity.getClusterId();
-      long pos = identity.getClusterPosition();
+      PRID identity = nextValue.getElement().get().getIdentity();
+      int cluster = identity.getBucketId();
+      long pos = identity.getPosition();
       if (cluster >= 0 && pos >= 0) {
         return pastRids.contains(identity);
       }

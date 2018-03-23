@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.collection.OMultiValue;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -66,7 +66,7 @@ public class OModifier extends SimpleNode {
     }
   }
 
-  public Object execute(OIdentifiable iCurrentRecord, Object result, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, Object result, OCommandContext ctx) {
     if (methodCall != null) {
       result = methodCall.execute(result, ctx);
     } else if (suffix != null) {
@@ -120,7 +120,7 @@ public class OModifier extends SimpleNode {
       }
       return result;
     }
-    if (iResult instanceof OIdentifiable) {
+    if (iResult instanceof PIdentifiable) {
       iResult = Collections.singleton(iResult);
     }
     if (iResult instanceof Iterable) {
@@ -307,7 +307,7 @@ public class OModifier extends SimpleNode {
     } else if (arrayRange != null) {
       return arrayRange.execute(currentRecord, target, ctx);
     } else if (condition != null) {
-      if (target instanceof OResult || target instanceof OIdentifiable || target instanceof Map) {
+      if (target instanceof OResult || target instanceof PIdentifiable || target instanceof Map) {
         if (condition.evaluate(target, ctx)) {
           return target;
         } else {

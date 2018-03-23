@@ -1,8 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -17,13 +15,15 @@ public class CreateRecordStep extends AbstractExecutionStep {
   int created = 0;
   int total   = 0;
 
+  String typeName = null;
+
   public CreateRecordStep(OCommandContext ctx, int total, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.total = total;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
       int locallyCreated = 0;
@@ -45,7 +45,8 @@ public class CreateRecordStep extends AbstractExecutionStep {
           }
           created++;
           locallyCreated++;
-          return new OUpdatableResult((ODocument) ctx.getDatabase().newInstance());
+          throw new UnsupportedOperationException("Pass type name here!!");
+//          return new OUpdatableResult((PModifiableDocument) ctx.getDatabase().newDocument(typeName));
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);

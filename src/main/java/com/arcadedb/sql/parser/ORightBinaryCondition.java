@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -58,7 +58,7 @@ public class ORightBinaryCondition extends SimpleNode {
       return null;
     }
     Iterator iterator;
-    if (elementToFilter instanceof OIdentifiable) {
+    if (elementToFilter instanceof PIdentifiable) {
       iterator = Collections.singleton(elementToFilter).iterator();
     } else if (elementToFilter instanceof Iterable) {
       iterator = ((Iterable) elementToFilter).iterator();
@@ -78,12 +78,12 @@ public class ORightBinaryCondition extends SimpleNode {
     return result;
   }
 
-  public Object execute(OIdentifiable iCurrentRecord, Object elementToFilter, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, Object elementToFilter, OCommandContext ctx) {
     if (elementToFilter == null) {
       return null;
     }
     Iterator iterator;
-    if (elementToFilter instanceof OIdentifiable) {
+    if (elementToFilter instanceof PIdentifiable) {
       iterator = Collections.singleton(elementToFilter).iterator();
     } else if (elementToFilter instanceof Iterable) {
       iterator = ((Iterable) elementToFilter).iterator();
@@ -103,7 +103,7 @@ public class ORightBinaryCondition extends SimpleNode {
     return result;
   }
 
-  private boolean matchesFilters(OIdentifiable iCurrentRecord, Object element, OCommandContext ctx) {
+  private boolean matchesFilters(PIdentifiable iCurrentRecord, Object element, OCommandContext ctx) {
     if (operator != null) {
       operator.execute(element, right.execute(iCurrentRecord, ctx));
     } else if (inOperator != null) {
@@ -139,7 +139,7 @@ public class ORightBinaryCondition extends SimpleNode {
     return false;
   }
 
-  public Object evaluateRight(OIdentifiable currentRecord, OCommandContext ctx) {
+  public Object evaluateRight(PIdentifiable currentRecord, OCommandContext ctx) {
     return right.execute(currentRecord, ctx);
   }
 

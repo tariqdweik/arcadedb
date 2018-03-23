@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 
@@ -44,7 +44,7 @@ public class OArraySelector extends SimpleNode {
     }
   }
 
-  public Integer getValue(OIdentifiable iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public Integer getValue(PIdentifiable iCurrentRecord, Object iResult, OCommandContext ctx) {
     Object result = null;
     if (inputParam != null) {
       result = inputParam.getValue(ctx.getInputParameters());

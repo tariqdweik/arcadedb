@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.OSQLEngine;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -68,24 +68,24 @@ public class OMethodCall extends SimpleNode {
     return execute(targetObjects, ctx, methodName.getStringValue(), params, null);
   }
 
-  public Object execute(Object targetObjects, Iterable<OIdentifiable> iPossibleResults, OCommandContext ctx) {
+  public Object execute(Object targetObjects, Iterable<PIdentifiable> iPossibleResults, OCommandContext ctx) {
     return execute(targetObjects, ctx, methodName.getStringValue(), params, iPossibleResults);
   }
 
   private Object execute(Object targetObjects, OCommandContext ctx, String name, List<OExpression> iParams,
-      Iterable<OIdentifiable> iPossibleResults) {
+      Iterable<PIdentifiable> iPossibleResults) {
     List<Object> paramValues = new ArrayList<Object>();
     Object val = ctx.getVariable("$current");
     if (val == null && targetObjects == null) {
       return null;
     }
     for (OExpression expr : iParams) {
-      if (val instanceof OIdentifiable) {
-        paramValues.add(expr.execute((OIdentifiable) val, ctx));
+      if (val instanceof PIdentifiable) {
+        paramValues.add(expr.execute((PIdentifiable) val, ctx));
       } else if (val instanceof OResult) {
         paramValues.add(expr.execute((OResult) val, ctx));
-      } else if (targetObjects instanceof OIdentifiable) {
-        paramValues.add(expr.execute((OIdentifiable) targetObjects, ctx));
+      } else if (targetObjects instanceof PIdentifiable) {
+        paramValues.add(expr.execute((PIdentifiable) targetObjects, ctx));
       } else if (targetObjects instanceof OResult) {
         paramValues.add(expr.execute((OResult) targetObjects, ctx));
       } else {
@@ -100,11 +100,11 @@ public class OMethodCall extends SimpleNode {
           current = ((OResult) current).getElement().orElse(null);
         }
         return ((OSQLFunctionFiltered) function)
-            .execute(targetObjects, (OIdentifiable) current, null, paramValues.toArray(), iPossibleResults, ctx);
+            .execute(targetObjects, (PIdentifiable) current, null, paramValues.toArray(), iPossibleResults, ctx);
       } else {
         Object current = ctx.getVariable("$current");
-        if (current instanceof OIdentifiable) {
-          return function.execute(targetObjects, (OIdentifiable) current, null, paramValues.toArray(), ctx);
+        if (current instanceof PIdentifiable) {
+          return function.execute(targetObjects, (PIdentifiable) current, null, paramValues.toArray(), ctx);
         } else if (current instanceof OResult) {
           return function.execute(targetObjects, ((OResult) current).getElement().orElse(null), null, paramValues.toArray(), ctx);
         } else {
@@ -118,7 +118,7 @@ public class OMethodCall extends SimpleNode {
       if (val instanceof OResult) {
         val = ((OResult) val).getElement().orElse(null);
       }
-      return method.execute(targetObjects, (OIdentifiable) val, ctx, targetObjects, paramValues.toArray());
+      return method.execute(targetObjects, (PIdentifiable) val, ctx, targetObjects, paramValues.toArray());
     }
     throw new UnsupportedOperationException("OMethod call, something missing in the implementation...?");
 

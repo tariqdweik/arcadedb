@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -44,7 +44,7 @@ public class OJson extends SimpleNode {
     builder.append("}");
   }
 
-  public ODocument toDocument(OIdentifiable source, OCommandContext ctx) {
+  public ODocument toDocument(PIdentifiable source, OCommandContext ctx) {
     String className = getClassNameForDocument(ctx);
     ODocument doc;
     if (className != null) {
@@ -69,7 +69,7 @@ public class OJson extends SimpleNode {
     return doc;
   }
 
-  public Map<String, Object> toMap(OIdentifiable source, OCommandContext ctx) {
+  public Map<String, Object> toMap(PIdentifiable source, OCommandContext ctx) {
     Map<String, Object> doc = new HashMap<String, Object>();
     for (OJsonItem item : items) {
       String name = item.getLeftValue();

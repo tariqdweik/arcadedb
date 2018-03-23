@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.sql.parser.*;
 
 import java.util.*;
 
@@ -15,7 +15,7 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     super(lastUpstreamRecord, edge);
   }
 
-  protected Iterable<OResultInternal> traversePatternEdge(OIdentifiable startingPoint, OCommandContext iCommandContext) {
+  protected Iterable<OResultInternal> traversePatternEdge(PIdentifiable startingPoint, OCommandContext iCommandContext) {
 
     Iterable possibleResults = null;
     //    if (this.edge.edge.item.getFilter() != null) {
@@ -53,7 +53,7 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
             current = ((OResult) current).getElement().orElse(null);
           }
           MatchEdgeTraverser subtraverser = new MatchEdgeTraverser(null, sub);
-          subtraverser.executeTraversal(iCommandContext, sub, (OIdentifiable) current, 0, null).forEach(x -> rightSide.add(x));
+          subtraverser.executeTraversal(iCommandContext, sub, (PIdentifiable) current, 0, null).forEach(x -> rightSide.add(x));
 
         } else {
           iCommandContext.setVariable("$current", o);
@@ -61,8 +61,8 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
           if (nextSteps instanceof Collection) {
             ((Collection) nextSteps).stream().map(x -> toOResultInternal(x)).filter(Objects::nonNull)
                 .forEach(i -> rightSide.add((OResultInternal) i));
-          } else if (nextSteps instanceof OIdentifiable) {
-            rightSide.add(new OResultInternal((OIdentifiable) nextSteps));
+          } else if (nextSteps instanceof PIdentifiable) {
+            rightSide.add(new OResultInternal((PIdentifiable) nextSteps));
           } else if (nextSteps instanceof OResultInternal) {
             rightSide.add((OResultInternal) nextSteps);
           } else if (nextSteps instanceof Iterable) {
@@ -88,7 +88,7 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     }
 
     iCommandContext.setVariable("$current", oldCurrent);
-    //    return (qR instanceof Iterable) ? (Iterable) qR : Collections.singleton((OIdentifiable) qR);
+    //    return (qR instanceof Iterable) ? (Iterable) qR : Collections.singleton((PIdentifiable) qR);
     return (Iterable) result;
   }
 
@@ -96,8 +96,8 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     if (x instanceof OResultInternal) {
       return (OResultInternal) x;
     }
-    if (x instanceof OIdentifiable) {
-      return new OResultInternal((OIdentifiable) x);
+    if (x instanceof PIdentifiable) {
+      return new OResultInternal((PIdentifiable) x);
     }
     throw new OCommandExecutionException("Cannot execute traversal on " + x);
   }

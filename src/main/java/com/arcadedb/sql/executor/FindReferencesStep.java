@@ -1,10 +1,10 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.ODatabaseInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.db.record.ORecordLazyMap;
 import com.orientechnologies.orient.core.db.record.ORecordLazyMultiValue;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
@@ -14,8 +14,8 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.parser.OCluster;
-import com.orientechnologies.orient.core.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.OCluster;
+import com.arcadedb.sql.parser.OIdentifier;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,7 +40,7 @@ public class FindReferencesStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (!inited) {
       init(ctx, nRecords);
     }
@@ -173,8 +173,8 @@ public class FindReferencesStep extends AbstractExecutionStep {
     if (value instanceof OResult) {
       return checkRoot(iSourceRIDs, (OResult) value, iRootObject, prefix).stream().map(y -> value + "." + y)
           .collect(Collectors.toList());
-    } else if (value instanceof OIdentifiable) {
-      return checkRecord(iSourceRIDs, (OIdentifiable) value, iRootObject, prefix).stream().map(y -> value + "." + y)
+    } else if (value instanceof PIdentifiable) {
+      return checkRecord(iSourceRIDs, (PIdentifiable) value, iRootObject, prefix).stream().map(y -> value + "." + y)
           .collect(Collectors.toList());
     } else if (value instanceof Collection<?>) {
       return checkCollection(iSourceRIDs, (Collection<?>) value, iRootObject, prefix).stream().map(y -> value + "." + y)
@@ -217,7 +217,7 @@ public class FindReferencesStep extends AbstractExecutionStep {
     return result;
   }
 
-  private static List<String> checkRecord(final Set<ORID> iSourceRIDs, final OIdentifiable value, final ORecord iRootObject,
+  private static List<String> checkRecord(final Set<ORID> iSourceRIDs, final PIdentifiable value, final ORecord iRootObject,
       String prefix) {
     List<String> result = new ArrayList<>();
     if (iSourceRIDs.contains(value.getIdentity())) {

@@ -33,7 +33,7 @@ options {
 
 PARSER_BEGIN(OrientSql)
 
-package com.orientechnologies.orient.core.sql.parser;
+package com.arcadedb.sql.parser;
 
 import java.io.InputStream;
 import java.util.List;

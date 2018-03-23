@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 
 import java.util.Collections;
@@ -31,7 +31,7 @@ public class OIsNullCondition extends OBooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
     return expression.execute(currentRecord, ctx) == null;
   }
 

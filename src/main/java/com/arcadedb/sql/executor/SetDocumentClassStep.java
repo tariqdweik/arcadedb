@@ -1,10 +1,10 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.OIdentifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -23,7 +23,7 @@ public class SetDocumentClassStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
     return new OResultSet() {
       @Override
@@ -35,7 +35,7 @@ public class SetDocumentClassStep extends AbstractExecutionStep {
       public OResult next() {
         OResult result = upstream.next();
         if (result.isElement()) {
-          OIdentifiable element = result.getElement().get().getRecord();
+          PIdentifiable element = result.getElement().get().getRecord();
           if (element instanceof ODocument) {
             ODocument doc = (ODocument) element;
             doc.setClassName(targetClass);

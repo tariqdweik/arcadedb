@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -28,9 +28,9 @@ public class OReturnStatement extends OSimpleExecStatement {
     Object result = expression.execute((OResult) null, ctx);
     if (result instanceof OResult) {
       rs.add((OResult) result);
-    } else if (result instanceof OIdentifiable) {
+    } else if (result instanceof PIdentifiable) {
       OResultInternal res = new OResultInternal();
-      res.setElement((OIdentifiable) result);
+      res.setElement((PIdentifiable) result);
       rs.add(res);
     } else if (result instanceof OResultSet) {
       if (!((OResultSet) result).hasNext()) {

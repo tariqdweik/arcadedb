@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.sql.parser.ORid;
-import com.orientechnologies.orient.core.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.ORid;
+import com.arcadedb.sql.parser.OWhereClause;
 
 /**
  * Created by luigidellaquila on 20/09/16.
@@ -11,7 +11,7 @@ public class EdgeTraversal {
   public  PatternEdge  edge;
   private String       leftClass;
   private String       leftCluster;
-  private ORid       leftRid;
+  private ORid         leftRid;
   private OWhereClause leftFilter;
 
   public EdgeTraversal(PatternEdge edge, boolean out) {

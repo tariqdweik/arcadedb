@@ -1,7 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +21,7 @@ public class EmptyDataGeneratorStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
       @Override

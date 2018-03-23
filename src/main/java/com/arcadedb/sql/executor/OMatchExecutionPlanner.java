@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.sql.parser.*;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.sql.parser.*;
 import com.orientechnologies.orient.core.storage.OStorage;
 
 /**
@@ -46,7 +46,7 @@ public class OMoveVertexExecutionPlanner {
   }
 
   /**
-   * add a step that transforms a normal OResult in a specific object that under setProperty() updates the actual OIdentifiable
+   * add a step that transforms a normal OResult in a specific object that under setProperty() updates the actual PIdentifiable
    *
    * @param plan the execution plan
    * @param ctx  the executino context

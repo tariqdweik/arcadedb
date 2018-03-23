@@ -147,7 +147,7 @@ public class OWhereClause extends SimpleNode {
 //      } else if (index.supportsOrderedIterations()) {
 //        result = index.iterateEntriesBetween(key, true, key, true, true);
 //      }
-//      if (result instanceof OIdentifiable) {
+//      if (result instanceof PIdentifiable) {
 //        return 1;
 //      }
 //      if (result instanceof Collection) {

@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.id.ORID;
 
 import java.util.Arrays;
@@ -34,7 +34,7 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
 
     if (!prev.isPresent()) {
       throw new IllegalStateException("filter step requires a previous step");
@@ -108,10 +108,10 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
           try {
             Object finalVal = val.getProperty("rid");
             if (filterClusterIds != null) {
-              if (!(finalVal instanceof OIdentifiable)) {
+              if (!(finalVal instanceof PIdentifiable)) {
                 continue;
               }
-              ORID rid = ((OIdentifiable) finalVal).getIdentity();
+              ORID rid = ((PIdentifiable) finalVal).getIdentity();
               boolean found = false;
               for (int filterClusterId : filterClusterIds) {
                 if (rid.getClusterId() < 0 || filterClusterId == rid.getClusterId()) {
@@ -123,9 +123,9 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
                 continue;
               }
             }
-            if (finalVal instanceof OIdentifiable) {
+            if (finalVal instanceof PIdentifiable) {
               OResultInternal res = new OResultInternal();
-              res.setElement((OIdentifiable) finalVal);
+              res.setElement((PIdentifiable) finalVal);
               nextItem = res;
             } else if (finalVal instanceof OResult) {
               nextItem = (OResult) finalVal;

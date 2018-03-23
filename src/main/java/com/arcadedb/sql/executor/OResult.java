@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PEdge;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
-import com.arcadedb.database.PVertex;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PVertex;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -157,6 +157,20 @@ public interface OResult {
 
   default boolean isVertex() {
     return getElement().map(x -> x instanceof PVertex).orElse(false);
+  }
+
+  default Optional<PVertex> getVertex() {
+    if (isVertex()) {
+      return Optional.ofNullable((PVertex) getElement().get());
+    }
+    return Optional.empty();
+  }
+
+  default Optional<PEdge> getEdge() {
+    if (isEdge()) {
+      return Optional.ofNullable((PEdge) getElement().get());
+    }
+    return Optional.empty();
   }
 
   boolean hasProperty(String varName);

@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.sql.parser.OOrderBy;
+import com.arcadedb.sql.parser.OOrderBy;
 
 import java.util.*;
 
@@ -32,7 +32,7 @@ public class OrderByStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (cachedResult == null) {
       cachedResult = new ArrayList<>();
       prev.ifPresent(p -> init(p, ctx));

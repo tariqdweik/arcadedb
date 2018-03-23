@@ -1,12 +1,12 @@
 package com.arcadedb.sql.executor;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.sql.parser.OMatchPathItem;
-import com.orientechnologies.orient.core.sql.parser.ORid;
-import com.orientechnologies.orient.core.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.OMatchPathItem;
+import com.arcadedb.sql.parser.ORid;
+import com.arcadedb.sql.parser.OWhereClause;
 
 import java.util.*;
 
@@ -43,7 +43,7 @@ public class MatchEdgeTraverser {
     }
     String endPointAlias = getEndpointAlias();
     OResultInternal nextR = downstream.next();
-    OIdentifiable nextElement = nextR.getElement().get();
+    PIdentifiable nextElement = nextR.getElement().get();
     Object prevValue = sourceRecord.getProperty(endPointAlias);
     if (prevValue != null && !equals(prevValue, nextElement)) {
       return null;
@@ -62,7 +62,7 @@ public class MatchEdgeTraverser {
     return result;
   }
 
-  protected boolean equals(Object prevValue, OIdentifiable nextElement) {
+  protected boolean equals(Object prevValue, PIdentifiable nextElement) {
     if (prevValue instanceof OResult) {
       prevValue = ((OResult) prevValue).getElement().orElse(null);
     }
@@ -72,7 +72,7 @@ public class MatchEdgeTraverser {
     return prevValue != null && prevValue.equals(nextElement);
   }
 
-  protected Object toResult(OIdentifiable nextElement) {
+  protected Object toResult(PIdentifiable nextElement) {
     OResultInternal result = new OResultInternal();
     result.setElement(nextElement);
     return result;
@@ -95,12 +95,12 @@ public class MatchEdgeTraverser {
       if (startingElem instanceof OResult) {
         startingElem = ((OResult) startingElem).getElement().orElse(null);
       }
-      downstream = executeTraversal(ctx, this.item, (OIdentifiable) startingElem, 0, null).iterator();
+      downstream = executeTraversal(ctx, this.item, (PIdentifiable) startingElem, 0, null).iterator();
     }
   }
 
   protected Iterable<OResultInternal> executeTraversal(OCommandContext iCommandContext, OMatchPathItem item,
-      OIdentifiable startingPoint, int depth, List<OIdentifiable> pathToHere) {
+      PIdentifiable startingPoint, int depth, List<PIdentifiable> pathToHere) {
 
     OWhereClause filter = null;
     OWhereClause whileCondition = null;
@@ -163,7 +163,7 @@ public class MatchEdgeTraverser {
           //          }
           // TODO consider break strategies (eg. re-traverse nodes)
 
-          List<OIdentifiable> newPath = new ArrayList<>();
+          List<PIdentifiable> newPath = new ArrayList<>();
           if (pathToHere != null) {
             newPath.addAll(pathToHere);
           }
@@ -202,7 +202,7 @@ public class MatchEdgeTraverser {
     return item.getFilter().getRid(iCommandContext);
   }
 
-  private boolean matchesClass(OCommandContext iCommandContext, String className, OIdentifiable origin) {
+  private boolean matchesClass(OCommandContext iCommandContext, String className, PIdentifiable origin) {
     if (className == null) {
       return true;
     }
@@ -225,7 +225,7 @@ public class MatchEdgeTraverser {
     return false;
   }
 
-  private boolean matchesCluster(OCommandContext iCommandContext, Integer clusterId, OIdentifiable origin) {
+  private boolean matchesCluster(OCommandContext iCommandContext, Integer clusterId, PIdentifiable origin) {
     if (clusterId == null) {
       return true;
     }
@@ -239,7 +239,7 @@ public class MatchEdgeTraverser {
     return clusterId.equals(origin.getIdentity().getClusterId());
   }
 
-  private boolean matchesRid(OCommandContext iCommandContext, ORid rid, OIdentifiable origin) {
+  private boolean matchesRid(OCommandContext iCommandContext, ORid rid, PIdentifiable origin) {
     if (rid == null) {
       return true;
     }
@@ -253,13 +253,13 @@ public class MatchEdgeTraverser {
     return origin.getIdentity().equals(rid.toRecordId(origin, iCommandContext));
   }
 
-  protected boolean matchesFilters(OCommandContext iCommandContext, OWhereClause filter, OIdentifiable origin) {
+  protected boolean matchesFilters(OCommandContext iCommandContext, OWhereClause filter, PIdentifiable origin) {
     return filter == null || filter.matchesFilters(origin, iCommandContext);
   }
 
   //TODO refactor this method to receive the item.
 
-  protected Iterable<OResultInternal> traversePatternEdge(OIdentifiable startingPoint, OCommandContext iCommandContext) {
+  protected Iterable<OResultInternal> traversePatternEdge(PIdentifiable startingPoint, OCommandContext iCommandContext) {
 
     Iterable possibleResults = null;
     if (this.item.getFilter() != null) {
@@ -286,15 +286,15 @@ public class MatchEdgeTraverser {
     if (qR == null) {
       return Collections.EMPTY_LIST;
     }
-    if (qR instanceof OIdentifiable) {
-      return Collections.singleton(new OResultInternal((OIdentifiable) qR));
+    if (qR instanceof PIdentifiable) {
+      return Collections.singleton(new OResultInternal((PIdentifiable) qR));
     }
     if (qR instanceof Iterable) {
       Iterable iterable = (Iterable) qR;
       List<OResultInternal> result = new ArrayList<>();
       for (Object o : iterable) {
-        if (o instanceof OIdentifiable) {
-          result.add(new OResultInternal((OIdentifiable) o));
+        if (o instanceof PIdentifiable) {
+          result.add(new OResultInternal((PIdentifiable) o));
         } else if (o instanceof OResultInternal) {
           result.add((OResultInternal) o);
         } else if (o == null) {

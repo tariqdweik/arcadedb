@@ -3,10 +3,10 @@ package com.arcadedb.sql.executor;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.sql.parser.OAndBlock;
-import com.orientechnologies.orient.core.sql.parser.OBinaryCompareOperator;
-import com.orientechnologies.orient.core.sql.parser.OBinaryCondition;
-import com.orientechnologies.orient.core.sql.parser.OBooleanExpression;
+import com.arcadedb.sql.parser.OAndBlock;
+import com.arcadedb.sql.parser.OBinaryCompareOperator;
+import com.arcadedb.sql.parser.OBinaryCondition;
+import com.arcadedb.sql.parser.OBooleanExpression;
 
 /**
  * Created by luigidellaquila on 26/07/16.

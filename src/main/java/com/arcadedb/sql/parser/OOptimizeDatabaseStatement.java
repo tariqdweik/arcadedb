@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.db.record.ridbag.ORidBag;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
@@ -95,9 +95,9 @@ public class OOptimizeDatabaseStatement extends OSimpleExecStatement {
               // OUTGOING
               final Object outField = outV.field("out_" + doc.getClassName());
               if (outField instanceof ORidBag) {
-                final Iterator<OIdentifiable> it = ((ORidBag) outField).iterator();
+                final Iterator<PIdentifiable> it = ((ORidBag) outField).iterator();
                 while (it.hasNext()) {
-                  OIdentifiable v = it.next();
+                  PIdentifiable v = it.next();
                   if (edgeIdentity.equals(v)) {
                     // REPLACE EDGE RID WITH IN-VERTEX RID
                     it.remove();
@@ -112,9 +112,9 @@ public class OOptimizeDatabaseStatement extends OSimpleExecStatement {
               // INCOMING
               final Object inField = inV.field("in_" + doc.getClassName());
               if (outField instanceof ORidBag) {
-                final Iterator<OIdentifiable> it = ((ORidBag) inField).iterator();
+                final Iterator<PIdentifiable> it = ((ORidBag) inField).iterator();
                 while (it.hasNext()) {
-                  OIdentifiable v = it.next();
+                  PIdentifiable v = it.next();
                   if (edgeIdentity.equals(v)) {
                     // REPLACE EDGE RID WITH IN-VERTEX RID
                     it.remove();

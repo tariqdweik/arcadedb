@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.collection.OMultiValue;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -43,7 +43,7 @@ public class OArraySingleValuesSelector extends SimpleNode {
     }
   }
 
-  public Object execute(OIdentifiable iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, Object iResult, OCommandContext ctx) {
     List<Object> result = new ArrayList<Object>();
     for (OArraySelector item : items) {
       Integer index = item.getValue(iCurrentRecord, iResult, ctx);

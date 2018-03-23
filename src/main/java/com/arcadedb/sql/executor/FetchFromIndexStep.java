@@ -2,19 +2,19 @@ package com.arcadedb.sql.executor;
 
 import com.orientechnologies.common.collection.OMultiCollectionIterator;
 import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.index.OCompositeKey;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.index.OIndexCursor;
 import com.orientechnologies.orient.core.index.OIndexDefinition;
 import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.sql.parser.*;
 
 import java.util.*;
 
@@ -37,9 +37,9 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   private OIndexCursor cursor;
   private List<OIndexCursor> nextCursors = new ArrayList<>();
 
-  OMultiCollectionIterator<Map.Entry<Object, OIdentifiable>> customIterator;
+  OMultiCollectionIterator<Map.Entry<Object, PIdentifiable>> customIterator;
   private Iterator nullKeyIterator;
-  private Map.Entry<Object, OIdentifiable> nextEntry = null;
+  private Map.Entry<Object, PIdentifiable> nextEntry = null;
 
   public FetchFromIndexStep(OIndex<?> index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition,
       OCommandContext ctx, boolean profilingEnabled) {
@@ -66,7 +66,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     init(ctx.getDatabase());
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
@@ -91,7 +91,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           Object key = nextEntry.getKey();
-          OIdentifiable value = nextEntry.getValue();
+          PIdentifiable value = nextEntry.getValue();
 
           nextEntry = null;
 
@@ -139,20 +139,20 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     }
 
     if (nextEntry == null && nullKeyIterator != null && nullKeyIterator.hasNext()) {
-      OIdentifiable nextValue = (OIdentifiable) nullKeyIterator.next();
-      nextEntry = new Map.Entry<Object, OIdentifiable>() {
+      PIdentifiable nextValue = (PIdentifiable) nullKeyIterator.next();
+      nextEntry = new Map.Entry<Object, PIdentifiable>() {
         @Override
         public Object getKey() {
           return null;
         }
 
         @Override
-        public OIdentifiable getValue() {
+        public PIdentifiable getValue() {
           return nextValue;
         }
 
         @Override
-        public OIdentifiable setValue(OIdentifiable value) {
+        public PIdentifiable setValue(PIdentifiable value) {
           return null;
         }
       };
@@ -259,7 +259,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
             if (!localCursor.hasNext()) {
               throw new IllegalStateException();
             }
-            OIdentifiable value = localCursor.next();
+            PIdentifiable value = localCursor.next();
             return new Map.Entry() {
 
               @Override
@@ -314,7 +314,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       return;
     }
     Object nullIter = index.get(null);
-    if (nullIter instanceof OIdentifiable) {
+    if (nullIter instanceof PIdentifiable) {
       nullKeyIterator = Collections.singleton(nullIter).iterator();
     } else if (nullIter instanceof Iterable) {
       nullKeyIterator = ((Iterable) nullIter).iterator();
@@ -365,7 +365,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     }
     OExpression nextElementInKey = key.getExpressions().get(0);
     Object value = nextElementInKey.execute(new OResultInternal(), ctx);
-    if (value instanceof Iterable && !(value instanceof OIdentifiable)) {
+    if (value instanceof Iterable && !(value instanceof PIdentifiable)) {
       List<OCollection> result = new ArrayList<>();
       for (Object elemInKey : (Collection) value) {
         OCollection newHead = new OCollection(-1);

@@ -1,10 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.schema.PDocumentType;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,14 +48,14 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
     } else if (Boolean.FALSE.equals(ridOrder)) {
       orderByRidDesc = true;
     }
-    OClass clazz = ctx.getDatabase().getMetadata().getSchema().getClass(className);
+    PDocumentType clazz = ctx.getDatabase().getSchema().getType(className);
     if (clazz == null) {
-      throw new OCommandExecutionException("Class " + className + " not found");
+      throw new PCommandExecutionException("Class " + className + " not found");
     }
-    int[] classClusters = clazz.getPolymorphicClusterIds();
+    int[] classClusters = clazz.getBuckets().stream().mapToInt(x -> x.getId()).toArray();
     List<Integer> filteredClassClusters = new ArrayList<>();
     for (int clusterId : classClusters) {
-      String clusterName = ctx.getDatabase().getClusterNameById(clusterId);
+      String clusterName = ctx.getDatabase().getSchema().getBucketById(clusterId).getName();
       if (clusters == null || clusters.contains(clusterName)) {
         filteredClassClusters.add(clusterId);
       }
@@ -107,7 +105,7 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
 
@@ -234,7 +232,7 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
       this.orderByRidAsc = fromResult.getProperty("orderByRidAsc");
       this.orderByRidDesc = fromResult.getProperty("orderByRidDesc");
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException("", e);
     }
   }
 

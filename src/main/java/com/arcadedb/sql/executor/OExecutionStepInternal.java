@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ import java.util.List;
  */
 public interface OExecutionStepInternal extends OExecutionStep {
 
-  OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException;
+  OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException;
 
   void sendTimeout();
 

@@ -1,11 +1,11 @@
 package com.arcadedb.sql.executor;
 
 import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.parser.OUnwind;
+import com.arcadedb.sql.parser.OUnwind;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,7 +31,7 @@ public class UnwindStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (prev == null || !prev.isPresent()) {
       throw new OCommandExecutionException("Cannot expand without a target");
     }

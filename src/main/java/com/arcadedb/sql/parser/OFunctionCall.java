@@ -7,7 +7,7 @@ import com.arcadedb.sql.executor.OCommandContext;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.OSQLEngine;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
@@ -97,8 +97,8 @@ public class OFunctionCall extends SimpleNode {
     Object record = null;
 
     if (record == null) {
-      if (targetObjects instanceof OIdentifiable) {
-        record = (OIdentifiable) targetObjects;
+      if (targetObjects instanceof PIdentifiable) {
+        record = (PIdentifiable) targetObjects;
       } else if (targetObjects instanceof OResult) {
         record = ((OResult) targetObjects).toElement();
       } else {
@@ -108,7 +108,7 @@ public class OFunctionCall extends SimpleNode {
     if (record == null) {
       Object current = ctx == null ? null : ctx.getVariable("$current");
       if (current != null) {
-        if (current instanceof OIdentifiable) {
+        if (current instanceof PIdentifiable) {
           record = current;
         } else if (current instanceof OResult) {
           record = ((OResult) current).toElement();
@@ -118,8 +118,8 @@ public class OFunctionCall extends SimpleNode {
       }
     }
     for (OExpression expr : this.params) {
-      if (record instanceof OIdentifiable) {
-        paramValues.add(expr.execute((OIdentifiable) record, ctx));
+      if (record instanceof PIdentifiable) {
+        paramValues.add(expr.execute((PIdentifiable) record, ctx));
       } else if (record instanceof OResult) {
         paramValues.add(expr.execute((OResult) record, ctx));
       } else if (record == null) {
@@ -130,8 +130,8 @@ public class OFunctionCall extends SimpleNode {
     }
     OSQLFunction function = OSQLEngine.getInstance().getFunction(name);
     if (function != null) {
-      if (record instanceof OIdentifiable) {
-        return function.execute(targetObjects, (OIdentifiable) record, null, paramValues.toArray(), ctx);
+      if (record instanceof PIdentifiable) {
+        return function.execute(targetObjects, (PIdentifiable) record, null, paramValues.toArray(), ctx);
       } else if (record instanceof OResult) {
         return function.execute(targetObjects, ((OResult) record).getElement().orElse(null), null, paramValues.toArray(), ctx);
       } else if (record == null) {

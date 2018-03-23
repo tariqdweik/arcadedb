@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -310,7 +310,7 @@ public class OAlterClassStatement extends ODDLStatement {
       case CUSTOM:
         Object value = null;
         if (customValue != null) {
-          value = customValue.execute((OIdentifiable) null, ctx);
+          value = customValue.execute((PIdentifiable) null, ctx);
         }
         if (value != null) {
           value = "" + value;

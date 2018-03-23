@@ -6,7 +6,7 @@ import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -35,7 +35,7 @@ public class OBinaryCondition extends OBooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
     return operator.execute(left.execute(currentRecord, ctx), right.execute(currentRecord, ctx));
   }
 
@@ -111,7 +111,7 @@ public class OBinaryCondition extends OBooleanExpression {
     return left.estimateIndexedFunction(target, context, operator, right.execute((OResult) null, context));
   }
 
-  public Iterable<OIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context) {
+  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context) {
     return left.executeIndexedFunction(target, context, operator, right.execute((OResult) null, context));
   }
 

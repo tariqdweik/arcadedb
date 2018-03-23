@@ -1,10 +1,11 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.sql.parser.OInteger;
-import com.orientechnologies.orient.core.sql.parser.OTraverseProjectionItem;
-import com.orientechnologies.orient.core.sql.parser.OWhereClause;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRID;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.sql.parser.OInteger;
+import com.arcadedb.sql.parser.OTraverseProjectionItem;
+import com.arcadedb.sql.parser.OWhereClause;
 
 import java.util.*;
 
@@ -32,7 +33,7 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
       item.getIdentity().ifPresent(x -> stack.push(x));
       ((OResultInternal) item).setMetadata("$stack", stack);
 
-      List<OIdentifiable> path = new ArrayList<>();
+      List<PIdentifiable> path = new ArrayList<>();
       path.add(item.getIdentity().get());
       ((OResultInternal) item).setMetadata("$path", path);
 
@@ -47,17 +48,19 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
     OTraverseResult res = null;
     if (item instanceof OTraverseResult) {
       res = (OTraverseResult) item;
-    } else if (item.isElement() && item.getElement().get().getIdentity().isPersistent()) {
+    } else if (item.isElement()) {
       res = new OTraverseResult();
       res.setElement(item.getElement().get());
       res.depth = 0;
     } else if (item.getPropertyNames().size() == 1) {
       Object val = item.getProperty(item.getPropertyNames().iterator().next());
-      if (val instanceof OIdentifiable) {
+      if (val instanceof PRecord) {
         res = new OTraverseResult();
-        res.setElement((OIdentifiable) val);
+        res.setElement((PRecord) val);
         res.depth = 0;
         res.setMetadata("$depth", 0);
+      } else if (val instanceof PRID) {
+        throw new UnsupportedOperationException("manage prid");
       }
     }
 
@@ -78,9 +81,9 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
     }
   }
 
-  private void addNextEntryPoints(Object nextStep, int depth, List<OIdentifiable> path, OCommandContext ctx) {
-    if (nextStep instanceof OIdentifiable) {
-      addNextEntryPoint(((OIdentifiable) nextStep), depth, path, ctx);
+  private void addNextEntryPoints(Object nextStep, int depth, List<PIdentifiable> path, OCommandContext ctx) {
+    if (nextStep instanceof PIdentifiable) {
+      addNextEntryPoint(((PIdentifiable) nextStep), depth, path, ctx);
     } else if (nextStep instanceof Iterable) {
       addNextEntryPoints(((Iterable) nextStep).iterator(), depth, path, ctx);
     } else if (nextStep instanceof OResult) {
@@ -88,22 +91,26 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
     }
   }
 
-  private void addNextEntryPoints(Iterator nextStep, int depth, List<OIdentifiable> path, OCommandContext ctx) {
+  private void addNextEntryPoints(Iterator nextStep, int depth, List<PIdentifiable> path, OCommandContext ctx) {
     while (nextStep.hasNext()) {
       addNextEntryPoints(nextStep.next(), depth, path, ctx);
     }
   }
 
-  private void addNextEntryPoint(OIdentifiable nextStep, int depth, List<OIdentifiable> path, OCommandContext ctx) {
+  private void addNextEntryPoint(PIdentifiable nextStep, int depth, List<PIdentifiable> path, OCommandContext ctx) {
     if (this.traversed.contains(nextStep.getIdentity())) {
       return;
     }
     OTraverseResult res = new OTraverseResult();
-    res.setElement(nextStep);
+    if (nextStep instanceof PRecord) {
+      res.setElement((PRecord) nextStep);
+    } else {
+      throw new UnsupportedOperationException("TODO");
+    }
     res.depth = depth;
     res.setMetadata("$depth", depth);
 
-    List<OIdentifiable> newPath = new ArrayList<>();
+    List<PIdentifiable> newPath = new ArrayList<>();
     newPath.addAll(path);
     newPath.add(res.getIdentity().get());
     res.setMetadata("$path", newPath);
@@ -119,7 +126,7 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
     tryAddEntryPoint(res, ctx);
   }
 
-  private void addNextEntryPoint(OResult nextStep, int depth, List<OIdentifiable> path, OCommandContext ctx) {
+  private void addNextEntryPoint(OResult nextStep, int depth, List<PIdentifiable> path, OCommandContext ctx) {
     if (!nextStep.isElement()) {
       return;
     }
@@ -129,7 +136,7 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
     if (nextStep instanceof OTraverseResult) {
       ((OTraverseResult) nextStep).depth = depth;
       ((OTraverseResult) nextStep).setMetadata("$depth", depth);
-      List<OIdentifiable> newPath = new ArrayList<>();
+      List<PIdentifiable> newPath = new ArrayList<>();
       newPath.addAll(path);
       nextStep.getIdentity().ifPresent(x -> newPath.add(x.getIdentity()));
       ((OTraverseResult) nextStep).setMetadata("$path", newPath);
@@ -147,7 +154,7 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
       res.setElement(nextStep.getElement().get());
       res.depth = depth;
       res.setMetadata("$depth", depth);
-      List<OIdentifiable> newPath = new ArrayList<>();
+      List<PIdentifiable> newPath = new ArrayList<>();
       newPath.addAll(path);
       nextStep.getIdentity().ifPresent(x -> newPath.add(x.getIdentity()));
       ((OTraverseResult) nextStep).setMetadata("$path", newPath);

@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,19 +41,19 @@ public class OMultiMatchPathItem extends OMatchPathItem {
     }
   }
 
-  protected Iterable<OIdentifiable> traversePatternEdge(OMatchStatement.MatchContext matchContext, OIdentifiable startingPoint,
+  protected Iterable<PIdentifiable> traversePatternEdge(OMatchStatement.MatchContext matchContext, PIdentifiable startingPoint,
       OCommandContext iCommandContext) {
-    Set<OIdentifiable> result = new HashSet<OIdentifiable>();
+    Set<PIdentifiable> result = new HashSet<PIdentifiable>();
     result.add(startingPoint);
     for (OMatchPathItem subItem : items) {
-      Set<OIdentifiable> startingPoints = result;
-      result = new HashSet<OIdentifiable>();
-      for (OIdentifiable sp : startingPoints) {
-        Iterable<OIdentifiable> subResult = subItem.executeTraversal(matchContext, iCommandContext, sp, 0);
+      Set<PIdentifiable> startingPoints = result;
+      result = new HashSet<PIdentifiable>();
+      for (PIdentifiable sp : startingPoints) {
+        Iterable<PIdentifiable> subResult = subItem.executeTraversal(matchContext, iCommandContext, sp, 0);
         if (subResult instanceof Collection) {
           result.addAll((Collection) subResult);
         } else {
-          for (OIdentifiable id : subResult) {
+          for (PIdentifiable id : subResult) {
             result.add(id);
           }
         }

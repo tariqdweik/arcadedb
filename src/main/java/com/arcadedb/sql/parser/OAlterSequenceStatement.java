@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.sequence.OSequence;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
@@ -44,21 +44,21 @@ public class OAlterSequenceStatement extends ODDLStatement {
     OSequence.CreateParams params = new OSequence.CreateParams();
 
     if (start != null) {
-      Object val = start.execute((OIdentifiable) null, ctx);
+      Object val = start.execute((PIdentifiable) null, ctx);
       if (!(val instanceof Number)) {
         throw new OCommandExecutionException("invalid start value for a sequence: " + val);
       }
       params.start = ((Number) val).longValue();
     }
     if (increment != null) {
-      Object val = increment.execute((OIdentifiable) null, ctx);
+      Object val = increment.execute((PIdentifiable) null, ctx);
       if (!(val instanceof Number)) {
         throw new OCommandExecutionException("invalid increment value for a sequence: " + val);
       }
       params.increment = ((Number) val).intValue();
     }
     if (cache != null) {
-      Object val = cache.execute((OIdentifiable) null, ctx);
+      Object val = cache.execute((PIdentifiable) null, ctx);
       if (!(val instanceof Number)) {
         throw new OCommandExecutionException("invalid cache value for a sequence: " + val);
       }

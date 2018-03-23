@@ -1,7 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.exception.PTimeoutException;
 
 /**
  * Created by luigidellaquila on 08/07/16.
@@ -12,7 +11,7 @@ public class EmptyStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     OInternalResultSet result = new OInternalResultSet();
     return result;

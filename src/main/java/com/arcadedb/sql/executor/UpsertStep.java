@@ -1,13 +1,13 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.parser.OAndBlock;
-import com.orientechnologies.orient.core.sql.parser.OBooleanExpression;
-import com.orientechnologies.orient.core.sql.parser.OFromClause;
-import com.orientechnologies.orient.core.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.OAndBlock;
+import com.arcadedb.sql.parser.OBooleanExpression;
+import com.arcadedb.sql.parser.OFromClause;
+import com.arcadedb.sql.parser.OWhereClause;
 
 import java.util.List;
 
@@ -27,7 +27,7 @@ public class UpsertStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (applied) {
       return getPrev().get().syncPull(ctx, nRecords);
     }

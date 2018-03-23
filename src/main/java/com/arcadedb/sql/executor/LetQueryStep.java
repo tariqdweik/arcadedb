@@ -1,12 +1,12 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.sql.parser.OIdentifier;
-import com.orientechnologies.orient.core.sql.parser.OLocalResultSet;
-import com.orientechnologies.orient.core.sql.parser.OStatement;
+import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.OLocalResultSet;
+import com.arcadedb.sql.parser.OStatement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +28,7 @@ public class LetQueryStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (!getPrev().isPresent()) {
       throw new OCommandExecutionException("Cannot execute a local LET on a query without a target");
     }

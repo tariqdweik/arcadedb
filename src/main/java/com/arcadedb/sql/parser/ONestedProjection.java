@@ -8,7 +8,7 @@ import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.db.record.ridbag.ORidBag;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.record.ORecord;

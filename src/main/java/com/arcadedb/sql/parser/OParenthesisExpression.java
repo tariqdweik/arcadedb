@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OInternalExecutionPlan;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -40,7 +40,7 @@ public class OParenthesisExpression extends OMathExpression {
   }
 
   @Override
-  public Object execute(OIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
     if (expression != null) {
       return expression.execute(iCurrentRecord, ctx);
     }

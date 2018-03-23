@@ -19,7 +19,7 @@
  */
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.db.ODatabase;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -307,7 +307,7 @@ public class OBasicCommandContext implements OCommandContext {
         case RETURN:
           return false;
         case EXCEPTION:
-          throw new OTimeoutException("Command execution timeout exceed (" + timeoutMs + "ms)");
+          throw new PTimeoutException("Command execution timeout exceed (" + timeoutMs + "ms)");
         }
       }
     } else if (parent != null)

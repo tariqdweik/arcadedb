@@ -1,16 +1,14 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.id.ORID;
-import com.orientechnologies.orient.core.iterator.ORecordIteratorCluster;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.sql.parser.*;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRID;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.sql.parser.*;
 
+import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,7 +24,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
   private int    clusterId;
   private Object order;
 
-  private ORecordIteratorCluster iterator;
+  private Iterator<PRecord> iterator;
   private long cost = 0;
 
   public FetchFromClusterExecutionStep(int clusterId, OCommandContext ctx, boolean profilingEnabled) {
@@ -41,18 +39,21 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     long begin = profilingEnabled ? System.nanoTime() : 0;
     try {
       if (iterator == null) {
         long minClusterPosition = calculateMinClusterPosition();
         long maxClusterPosition = calculateMaxClusterPosition();
-        iterator = new ORecordIteratorCluster((ODatabaseDocumentInternal) ctx.getDatabase(),
-            (ODatabaseDocumentInternal) ctx.getDatabase(), clusterId, minClusterPosition, maxClusterPosition);
-        if (ORDER_DESC == order) {
-          iterator.last();
-        }
+        iterator = ctx.getDatabase().getSchema().getBucketById(clusterId).iterator();
+
+        //TODO check how to support ranges and DESC
+//            new ORecordIteratorCluster((ODatabaseDocumentInternal) ctx.getDatabase(),
+//            (ODatabaseDocumentInternal) ctx.getDatabase(), clusterId, minClusterPosition, maxClusterPosition);
+//        if (ORDER_DESC == order) {
+//          iterator.last();
+//        }
       }
       OResultSet rs = new OResultSet() {
 
@@ -65,11 +66,12 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
             if (nFetched >= nRecords) {
               return false;
             }
-            if (ORDER_DESC == order) {
-              return iterator.hasPrevious();
-            } else {
+            //TODO
+//            if (ORDER_DESC == order) {
+//              return iterator.hasPrevious();
+//            } else {
               return iterator.hasNext();
-            }
+//            }
           } finally {
             if (profilingEnabled) {
               cost += (System.nanoTime() - begin);
@@ -84,18 +86,19 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
             if (nFetched >= nRecords) {
               throw new IllegalStateException();
             }
-            if (ORDER_DESC == order && !iterator.hasPrevious()) {
-              throw new IllegalStateException();
-            } else if (ORDER_DESC != order && !iterator.hasNext()) {
+//            if (ORDER_DESC == order && !iterator.hasPrevious()) {
+//              throw new IllegalStateException();
+//            } else
+              if (!iterator.hasNext()) {
               throw new IllegalStateException();
             }
 
-            ORecord record = null;
-            if (ORDER_DESC == order) {
-              record = iterator.previous();
-            } else {
+            PRecord record = null;
+//            if (ORDER_DESC == order) {
+//              record = iterator.previous();
+//            } else {
               record = iterator.next();
-            }
+//            }
             nFetched++;
             OResultInternal result = new OResultInternal();
             result.element = record;
@@ -125,6 +128,8 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 
       };
       return rs;
+    } catch (IOException e) {
+      throw new PCommandExecutionException(e);
     } finally {
       if (profilingEnabled) {
         cost += (System.nanoTime() - begin);
@@ -168,7 +173,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
     for (OBooleanExpression ridRangeCondition : queryPlanning.ridRangeConditions.getSubBlocks()) {
       if (ridRangeCondition instanceof OBinaryCondition) {
         OBinaryCondition cond = (OBinaryCondition) ridRangeCondition;
-        ORID conditionRid;
+        PRID conditionRid;
 
         Object obj;
         if (((OBinaryCondition) ridRangeCondition).getRight().getRid() != null) {
@@ -177,14 +182,14 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
           obj = ((OBinaryCondition) ridRangeCondition).getRight().execute((OResult) null, ctx);
         }
 
-        conditionRid = ((OIdentifiable) obj).getIdentity();
+        conditionRid = ((PIdentifiable) obj).getIdentity();
         OBinaryCompareOperator operator = cond.getOperator();
         if (conditionRid != null) {
-          if (conditionRid.getClusterId() != this.clusterId) {
+          if (conditionRid.getBucketId() != this.clusterId) {
             continue;
           }
           if (operator instanceof OLtOperator || operator instanceof OLeOperator) {
-            minValue = Math.min(minValue, conditionRid.getClusterPosition());
+            minValue = Math.min(minValue, conditionRid.getPosition());
           }
         }
       }
@@ -242,7 +247,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
         this.order = ORDER_ASC.equals(fromResult.getProperty("order")) ? ORDER_ASC : ORDER_DESC;
       }
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 

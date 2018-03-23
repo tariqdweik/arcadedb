@@ -14,9 +14,9 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.query.live.OLiveQueryHookV2;
 import com.orientechnologies.orient.core.query.live.OLiveQueryListenerV2;
 import com.orientechnologies.orient.core.sql.OSQLEngine;
-import com.orientechnologies.orient.core.sql.parser.OSelectStatement;
-import com.orientechnologies.orient.core.sql.parser.OStatement;
-import com.orientechnologies.orient.core.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.OSelectStatement;
+import com.arcadedb.sql.parser.OStatement;
+import com.arcadedb.sql.parser.OWhereClause;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,7 +1,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -9,24 +9,24 @@ import java.util.NoSuchElementException;
 /**
  * Created by luigidellaquila on 02/10/15.
  */
-public class OQueryCursor implements Iterator<OIdentifiable> {
+public class OQueryCursor implements Iterator<PIdentifiable> {
   private int                     limit;
   private int                     skip;
   private OWhereClause            filter;
-  private Iterator<OIdentifiable> iterator;
+  private Iterator<PIdentifiable> iterator;
   private OOrderBy                orderBy;
   private OCommandContext         ctx;
 
-  private OIdentifiable           next         = null;
+  private PIdentifiable           next         = null;
   private long                    countFetched = 0;
 
   public OQueryCursor() {
 
   }
 
-  public OQueryCursor(Iterator<OIdentifiable> oIdentifiableIterator, OWhereClause filter, OOrderBy orderBy, int skip, int limit,
+  public OQueryCursor(Iterator<PIdentifiable> PIdentifiableIterator, OWhereClause filter, OOrderBy orderBy, int skip, int limit,
       OCommandContext ctx) {
-    this.iterator = oIdentifiableIterator;
+    this.iterator = PIdentifiableIterator;
     this.filter = filter;
     this.skip = skip;
     this.limit = limit;
@@ -56,13 +56,13 @@ public class OQueryCursor implements Iterator<OIdentifiable> {
     countFetched++;
   }
 
-  private OIdentifiable getNextFromIterator() {
+  private PIdentifiable getNextFromIterator() {
     while (true) {
       if (iterator == null || !iterator.hasNext()) {
         return null;
       }
 
-      OIdentifiable result = iterator.next();
+      PIdentifiable result = iterator.next();
       if (filter==null || filter.matchesFilters(result, ctx)) {
         return result;
       }
@@ -77,8 +77,8 @@ public class OQueryCursor implements Iterator<OIdentifiable> {
     throw new UnsupportedOperationException("remove");
   }
 
-  public OIdentifiable next() {
-    OIdentifiable result = next;
+  public PIdentifiable next() {
+    PIdentifiable result = next;
     if (result == null) {
       throw new NoSuchElementException();
     }

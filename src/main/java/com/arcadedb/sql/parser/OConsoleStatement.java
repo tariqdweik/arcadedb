@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -27,7 +27,7 @@ public class OConsoleStatement extends OSimpleExecStatement {
   @Override public OResultSet executeSimple(OCommandContext ctx) {
     OInternalResultSet result = new OInternalResultSet();
     OResultInternal item = new OResultInternal();
-    Object msg = "" + message.execute((OIdentifiable) null, ctx);
+    Object msg = "" + message.execute((PIdentifiable) null, ctx);
 
     if (logLevel.getStringValue().equalsIgnoreCase("log")) {
       OLogManager.instance().info(this, "%s", msg);

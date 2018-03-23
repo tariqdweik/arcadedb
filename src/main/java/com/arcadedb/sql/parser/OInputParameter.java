@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.common.collection.OMultiValue;
 import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -110,10 +110,10 @@ public class OInputParameter extends SimpleNode {
       }
       return json;
     }
-    if (value instanceof OIdentifiable) {
+    if (value instanceof PIdentifiable) {
       // TODO if invalid build a JSON
       ORid rid = new ORid(-1);
-      String stringVal = ((OIdentifiable) value).getIdentity().toString().substring(1);
+      String stringVal = ((PIdentifiable) value).getIdentity().toString().substring(1);
       String[] splitted = stringVal.split(":");
       OInteger c = new OInteger(-1);
       c.setValue(Integer.parseInt(splitted[0]));

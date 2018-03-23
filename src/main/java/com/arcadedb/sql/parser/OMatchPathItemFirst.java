@@ -1,7 +1,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 
 import java.util.Collections;
 import java.util.Map;
@@ -34,10 +34,10 @@ public class OMatchPathItemFirst extends OMatchPathItem {
     }
   }
 
-  protected Iterable<OIdentifiable> traversePatternEdge(OMatchStatement.MatchContext matchContext, OIdentifiable startingPoint,
+  protected Iterable<PIdentifiable> traversePatternEdge(OMatchStatement.MatchContext matchContext, PIdentifiable startingPoint,
       OCommandContext iCommandContext) {
     Object qR = this.function.execute(startingPoint, iCommandContext);
-    return (qR instanceof Iterable) ? (Iterable) qR : Collections.singleton((OIdentifiable) qR);
+    return (qR instanceof Iterable) ? (Iterable) qR : Collections.singleton((PIdentifiable) qR);
   }
 
   @Override

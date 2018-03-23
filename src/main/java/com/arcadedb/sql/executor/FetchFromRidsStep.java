@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.id.ORecordId;
 
@@ -32,7 +32,7 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new OResultSet() {
       int internalNext = 0;
@@ -46,7 +46,7 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
           if (nextRid == null) {
             continue;
           }
-          OIdentifiable nextDoc = (OIdentifiable) ctx.getDatabase().load(nextRid);
+          PIdentifiable nextDoc = (PIdentifiable) ctx.getDatabase().load(nextRid);
           if (nextDoc == null) {
             continue;
           }

@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.OTimeoutException;
+import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.sql.parser.OBooleanExpression;
+import com.arcadedb.sql.parser.OBooleanExpression;
 
 /**
  * Created by luigidellaquila on 19/09/16.
@@ -18,7 +18,7 @@ public class IfStep extends AbstractExecutionStep {
     super(ctx, profilingEnabled);
   }
 
-  @Override public OResultSet syncPull(OCommandContext ctx, int nRecords) throws OTimeoutException {
+  @Override public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     init(ctx);
     if (conditionMet) {
       return positivePlan.fetchNext(nRecords);

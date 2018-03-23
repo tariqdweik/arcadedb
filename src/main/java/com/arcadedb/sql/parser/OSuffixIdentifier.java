@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.exception.OCommandExecutionException;
 import com.orientechnologies.orient.core.id.OContextualRecordId;
 import com.orientechnologies.orient.core.record.OElement;
@@ -56,7 +56,7 @@ public class OSuffixIdentifier extends SimpleNode {
     }
   }
 
-  public Object execute(OIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
     if (star) {
       return iCurrentRecord;
     }
@@ -192,8 +192,8 @@ public class OSuffixIdentifier extends SimpleNode {
     if (currentValue instanceof OResult) {
       return execute((OResult) currentValue, ctx);
     }
-    if (currentValue instanceof OIdentifiable) {
-      return execute((OIdentifiable) currentValue, ctx);
+    if (currentValue instanceof PIdentifiable) {
+      return execute((PIdentifiable) currentValue, ctx);
     }
     if (currentValue instanceof Map) {
       return execute((Map) currentValue, ctx);
@@ -309,14 +309,14 @@ public class OSuffixIdentifier extends SimpleNode {
   public void setValue(Object target, Object value, OCommandContext ctx) {
     if (target instanceof OResult) {
       setValue((OResult) target, value, ctx);
-    } else if (target instanceof OIdentifiable) {
-      setValue((OIdentifiable) target, value, ctx);
+    } else if (target instanceof PIdentifiable) {
+      setValue((PIdentifiable) target, value, ctx);
     } else if (target instanceof Map) {
       setValue((Map) target, value, ctx);
     }
   }
 
-  public void setValue(OIdentifiable target, Object value, OCommandContext ctx) {
+  public void setValue(PIdentifiable target, Object value, OCommandContext ctx) {
     if (target == null) {
       return;
     }

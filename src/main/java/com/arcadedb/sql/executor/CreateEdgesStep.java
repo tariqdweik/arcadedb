@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRID;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
@@ -7,7 +8,6 @@ import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.sql.parser.OBatch;
 import com.arcadedb.sql.parser.OIdentifier;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
 
 import java.util.*;
 
@@ -83,12 +83,17 @@ public class CreateEdgesStep extends AbstractExecutionStep {
 
             PEdge edge = currentFrom.newEdge(targetClass.getStringValue(), currentTo, true);
 
-            OUpdatableResult result = new OUpdatableResult(edge);
+            if (!(edge instanceof PModifiableDocument)) {
+              throw new UnsupportedOperationException("How to make an unmodifiable edge modifiable?");
+            }
+            OUpdatableResult result = new OUpdatableResult((PModifiableDocument) edge);
             result.setElement(edge);
             currentBatch++;
             return result;
           } finally {
-            if(profilingEnabled){cost += (System.nanoTime() - begin);}
+            if (profilingEnabled) {
+              cost += (System.nanoTime() - begin);
+            }
           }
         } else {
           throw new IllegalStateException();
@@ -120,22 +125,22 @@ public class CreateEdgesStep extends AbstractExecutionStep {
       inited = true;
     }
     Object fromValues = ctx.getVariable(fromAlias.getStringValue());
-    if (fromValues instanceof Iterable && !(fromValues instanceof OIdentifiable)) {
+    if (fromValues instanceof Iterable) {
       fromValues = ((Iterable) fromValues).iterator();
     } else if (!(fromValues instanceof Iterator)) {
       fromValues = Collections.singleton(fromValues).iterator();
     }
 
     Object toValues = ctx.getVariable(toAlias.getStringValue());
-    if (toValues instanceof Iterable && !(toValues instanceof OIdentifiable)) {
+    if (toValues instanceof Iterable) {
       toValues = ((Iterable) toValues).iterator();
     } else if (!(toValues instanceof Iterator)) {
       toValues = Collections.singleton(toValues).iterator();
     }
 
     fromIter = (Iterator) fromValues;
-    if(fromIter instanceof OResultSet){
-      try{
+    if (fromIter instanceof OResultSet) {
+      try {
         ((OResultSet) fromIter).reset();
       } catch (Exception ignore) {
       }
@@ -148,8 +153,8 @@ public class CreateEdgesStep extends AbstractExecutionStep {
     }
 
     toIterator = toList.iterator();
-    if(toIter instanceof OResultSet){
-      try{
+    if (toIter instanceof OResultSet) {
+      try {
         ((OResultSet) toIter).reset();
       } catch (Exception ignore) {
       }
@@ -164,7 +169,7 @@ public class CreateEdgesStep extends AbstractExecutionStep {
       currentFrom = ((PRID) currentFrom).getRecord();
     }
     if (currentFrom instanceof OResult && ((OResult) currentFrom).isVertex()) {
-      return (PVertex)((OResult) currentFrom).getElement().get();
+      return (PVertex) ((OResult) currentFrom).getElement().get();
     }
     if (currentFrom instanceof PVertex) {
       return (PVertex) currentFrom;
