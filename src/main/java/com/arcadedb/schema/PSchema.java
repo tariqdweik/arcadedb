@@ -17,6 +17,8 @@ public interface PSchema {
 
   PBucket getBucketByName(String name);
 
+  Collection<PBucket> getBuckets();
+
   PBucket getBucketById(int id);
 
   PBucket createBucket(String bucketName);

@@ -4,25 +4,29 @@ import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
-import com.arcadedb.exception.PDatabaseOperationException;
-import com.arcadedb.utility.PLockContext;
+import com.arcadedb.utility.PLockManager;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.Callable;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Manages pages from disk to RAM. Each page can have different size. TODO: check if the lock on flush is necessary
+ * Manages pages from disk to RAM. Each page can have different size.
  */
-public class PPageManager extends PLockContext {
+public class PPageManager {
   private final PFileManager fileManager;
-  private final ConcurrentMap<PPageId, PImmutablePage>  pageMap        = new ConcurrentHashMap<PPageId, PImmutablePage>(65536);
-  private final ConcurrentMap<PPageId, PModifiablePage> modifiedPages  = new ConcurrentHashMap<PPageId, PModifiablePage>(65536);
-  private final Set<PPageId>                            pagesToDispose = new HashSet<PPageId>();
+  private final ConcurrentMap<PPageId, PImmutablePage>  pageMap        = new ConcurrentHashMap<>(65536);
+  private final ConcurrentMap<PPageId, PModifiablePage> modifiedPages  = new ConcurrentHashMap<>(65536);
+  private final ConcurrentMap<PPageId, PPageId>         pagesToDispose = new ConcurrentHashMap<>();
+
+  private final PLockManager<Integer, Thread> lockManager = new PLockManager();
+
   private long maxRAM;
   private AtomicLong totalImmutablePagesRAM = new AtomicLong();
   private AtomicLong totalModifiedPagesRAM  = new AtomicLong();
@@ -46,8 +50,6 @@ public class PPageManager extends PLockContext {
   }
 
   public PPageManager(final PFileManager fileManager) {
-    super(true);
-
     this.fileManager = fileManager;
     maxRAM = PGlobalConfiguration.MAX_PAGE_RAM.getValueAsLong() * 1024;
     if (maxRAM < 0)
@@ -65,17 +67,22 @@ public class PPageManager extends PLockContext {
       }
     }
 
-    try {
-      flushNow();
-    } catch (IOException e) {
-      throw new PDatabaseOperationException("Error on flushing modified pages to disk", e);
+    for (PModifiablePage p : modifiedPages.values()) {
+      try {
+        flushPage(p);
+      } catch (IOException e) {
+        PLogManager.instance().error(this, "Error on flushing page %s on closing RAM", e, p);
+      }
     }
+    modifiedPages.clear();
+    totalModifiedPagesRAM.set(0);
 
     pageMap.clear();
     totalImmutablePagesRAM.set(0);
+    lockManager.close();
   }
 
-  public void disposeFile(final int fileId) throws IOException {
+  public void disposeFile(final int fileId) {
     for (Iterator<PModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
       final PModifiablePage p = it.next();
       if (p.getPageId().getFileId() == fileId) {
@@ -95,8 +102,10 @@ public class PPageManager extends PLockContext {
   public void flushFile(final int fileId) throws IOException {
     for (Iterator<PModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
       final PModifiablePage p = it.next();
-      if (p.getPageId().getFileId() == fileId)
+      if (p.getPageId().getFileId() == fileId) {
         flushPage(p);
+        it.remove();
+      }
     }
   }
 
@@ -114,10 +123,6 @@ public class PPageManager extends PLockContext {
     if (page == null)
       throw new IllegalArgumentException("Page id '" + pageId + "' does not exists");
     return page;
-  }
-
-  public PModifiablePage getPageToModify(final PPageId pageId, final int size) throws IOException {
-    return getPage(pageId, size).createModifiableCopy();
   }
 
   public void checkPageVersion(final PModifiablePage page) throws IOException {
@@ -160,27 +165,80 @@ public class PPageManager extends PLockContext {
   }
 
   public void addPagesToDispose(final Collection<PPageId> pageIds) {
-    synchronized (pagesToDispose) {
-      pagesToDispose.addAll(pageIds);
-      removeCandidatePages();
+    for (PPageId p : pageIds)
+      pagesToDispose.put(p, p);
+    removeCandidatePages();
+  }
+
+  public boolean tryLockFile(final Integer fileId, final long timeout) throws InterruptedException {
+    return lockManager.tryLock(fileId, Thread.currentThread(), timeout);
+  }
+
+  public void unlockFile(final Integer fileId) {
+    lockManager.unlock(fileId, Thread.currentThread());
+  }
+
+  public void removeCandidatePages() {
+    int disposedPages = 0;
+    long freedRAM = 0;
+
+    for (PPageId pageId : pagesToDispose.keySet()) {
+      PBasePage page = modifiedPages.get(pageId);
+      if (page != null) {
+        // PUT THE PAGE IN RAM TO AVOID READING OLD COPY DURING FLUSHING
+        pageMap.put(pageId, ((PModifiablePage) page).createImmutableCopy());
+        totalImmutablePagesRAM.addAndGet(page.getPhysicalSize());
+
+        modifiedPages.remove(pageId);
+
+        try {
+          flushThread.asyncFlush((PModifiablePage) page);
+          ++disposedPages;
+          freedRAM += page.getPhysicalSize();
+          totalModifiedPagesRAM.addAndGet(-1 * page.getPhysicalSize());
+        } catch (Exception e) {
+          PLogManager.instance().error(this, "Error on flushing page", e);
+        }
+      } else {
+        page = pageMap.remove(pageId);
+        if (page != null) {
+          ++disposedPages;
+          freedRAM += page.getPhysicalSize();
+          totalImmutablePagesRAM.addAndGet(-1 * page.getPhysicalSize());
+        }
+      }
+    }
+    pagesToDispose.clear();
+
+    if (disposedPages > 0) {
+      if (PLogManager.instance().isDebugEnabled())
+        PLogManager.instance().debug(this, "Disposed %d pages (totalDisposedRAM=%d)", disposedPages, freedRAM);
+    }
+  }
+
+  public void preloadFile(final int fileId) {
+    try {
+      final PFile file = fileManager.getFile(fileId);
+      final int pageSize = file.getPageSize();
+      final int pages = (int) (file.getSize() / pageSize);
+
+      for (int pageNumber = 0; pageNumber < pages; ++pageNumber)
+        loadPage(new PPageId(fileId, pageNumber), pageSize);
+
+    } catch (IOException e) {
+      throw new PDatabaseMetadataException("Cannot load file in RAM", e);
     }
   }
 
   protected void flushPage(final PModifiablePage page) throws IOException {
-    executeInLock(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        final PFile file = fileManager.getFile(page.getPageId().getFileId());
-        if (!file.isOpen())
-          throw new PDatabaseMetadataException("Cannot flush pages on disk because file is closed");
+    final PFile file = fileManager.getFile(page.getPageId().getFileId());
+    if (!file.isOpen())
+      throw new PDatabaseMetadataException("Cannot flush pages on disk because file is closed");
 
-        file.write(page);
+    file.write(page);
 
-        totalPagesWritten.incrementAndGet();
-        totalPagesWrittenSize.addAndGet(page.getPhysicalSize());
-        return null;
-      }
-    });
+    totalPagesWritten.incrementAndGet();
+    totalPagesWrittenSize.addAndGet(page.getPhysicalSize());
   }
 
   private PImmutablePage loadPage(final PPageId pageId, final int size) throws IOException {
@@ -193,12 +251,13 @@ public class PPageManager extends PLockContext {
 
     final PFile file = fileManager.getFile(pageId.getFileId());
     file.read(page);
+
     page.loadMetadata();
 
     totalPagesRead.incrementAndGet();
     totalPagesReadSize.addAndGet(page.getPhysicalSize());
 
-    if (pageMap.put(pageId, page) == null)
+    if (pageMap.putIfAbsent(pageId, page) == null)
       totalImmutablePagesRAM.addAndGet(page.getPhysicalSize());
 
     return page;
@@ -313,62 +372,5 @@ public class PPageManager extends PLockContext {
       PLogManager.instance().warn(this, "Cannot free pages in RAM (current %d > %d max, modifiedPagesRAM=%d)", newTotalRAM, maxRAM,
           totalModifiedPagesRAM.get());
     }
-  }
-
-  public void removeCandidatePages() {
-    int disposedPages = 0;
-    long freedRAM = 0;
-
-    synchronized (pagesToDispose) {
-      for (PPageId pageId : pagesToDispose) {
-        PBasePage page = modifiedPages.get(pageId);
-        if (page != null) {
-          // PUT THE PAGE IN RAM TO AVOID READING OLD COPY DURING FLUSHING
-          pageMap.put(pageId, ((PModifiablePage) page).createImmutableCopy());
-          totalImmutablePagesRAM.addAndGet(page.getPhysicalSize());
-
-          modifiedPages.remove(pageId);
-
-          try {
-            flushThread.asyncFlush((PModifiablePage) page);
-            ++disposedPages;
-            freedRAM += page.getPhysicalSize();
-            totalModifiedPagesRAM.addAndGet(-1 * page.getPhysicalSize());
-          } catch (Exception e) {
-            PLogManager.instance().error(this, "Error on flushing page", e);
-          }
-        } else {
-          page = pageMap.remove(pageId);
-          if (page != null) {
-            ++disposedPages;
-            freedRAM += page.getPhysicalSize();
-            totalImmutablePagesRAM.addAndGet(-1 * page.getPhysicalSize());
-          }
-        }
-      }
-      pagesToDispose.clear();
-    }
-
-    if (disposedPages > 0) {
-      if (PLogManager.instance().isDebugEnabled())
-        PLogManager.instance().debug(this, "Disposed %d pages (totalDisposedRAM=%d)", disposedPages, freedRAM);
-    }
-  }
-
-  private void flushNow() throws IOException {
-    executeInLock(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        for (PModifiablePage p : modifiedPages.values())
-          try {
-            flushPage(p);
-          } catch (IOException e) {
-            throw new PDatabaseOperationException("Error on flushing page " + p.getPageId() + " to disk", e);
-          }
-        modifiedPages.clear();
-        totalModifiedPagesRAM.set(0);
-        return null;
-      }
-    });
   }
 }

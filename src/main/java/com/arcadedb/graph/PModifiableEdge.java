@@ -4,11 +4,6 @@ import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRID;
-import com.arcadedb.index.PIndex;
-import com.arcadedb.schema.PEdgeType;
-import com.arcadedb.schema.PSchemaImpl;
-
-import java.util.List;
 
 public class PModifiableEdge extends PModifiableDocument implements PEdge {
   private PRID out;
@@ -25,34 +20,12 @@ public class PModifiableEdge extends PModifiableDocument implements PEdge {
   }
 
   public PModifiableEdge(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
-    super(graph, typeName, rid, buffer);
-  }
+    super(graph, typeName, rid);
 
-  public PModifiableEdge(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer, final PRID out,
-      final PRID in) {
-    super(graph, typeName, rid, buffer);
-    this.out = out;
-    this.in = in;
-  }
-
-  @Override
-  public void save() {
-    final boolean noIdentity = rid == null;
-
-    super.save();
-
-    if (noIdentity) {
-      // SET THE EDGE RID AS VALUE OF THE EDGE INDEX
-      final PIndex edgeIndex = database.getSchema().getIndexByName(PSchemaImpl.EDGES_INDEX_NAME);
-      final PEdgeType type = (PEdgeType) database.getSchema().getType(typeName);
-      edgeIndex.put(new Object[] { out, (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId(), in }, rid);
-
-      // UPDATE OPPOSITE DIRECTION
-      final Object[] inKeys = new Object[] { out, (byte) PVertex.DIRECTION.OUT.ordinal(), type.getDictionaryId(), in };
-      List<PRID> value = edgeIndex.get(inKeys);
-      if (!value.isEmpty())
-        edgeIndex.put(inKeys, rid);
-    }
+    buffer.position(1); // SKIP RECORD TYPE
+    out = new PRID(graph,  buffer.getInt(), buffer.getLong());
+    in = new PRID(graph, buffer.getInt(), buffer.getLong());
+    init(buffer);
   }
 
   @Override

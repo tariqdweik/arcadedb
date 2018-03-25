@@ -45,10 +45,10 @@ public class TransactionBucketTest {
           Assertions.assertNotNull(record);
 
           Set<String> prop = new HashSet<String>();
-          for (String p : record.getPropertyNames())
+          for (String p : ((PDocument) record).getPropertyNames())
             prop.add(p);
 
-          Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+          Assertions.assertEquals(3, ((PDocument) record).getPropertyNames().size(), 9);
           Assertions.assertTrue(prop.contains("id"));
           Assertions.assertTrue(prop.contains("name"));
           Assertions.assertTrue(prop.contains("surname"));
@@ -77,7 +77,7 @@ public class TransactionBucketTest {
       db.scanBucket("V", new PRecordCallback() {
         @Override
         public boolean onRecord(final PRecord record) {
-          final PRecord record2 = db.lookupByRID(record.getIdentity(), false);
+          final PDocument record2 = (PDocument) db.lookupByRID(record.getIdentity(), false);
           Assertions.assertNotNull(record2);
           Assertions.assertEquals(record, record2);
 

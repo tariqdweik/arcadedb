@@ -44,9 +44,9 @@ public class TransactionTypeTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME, new PRecordCallback() {
+      db.scanType(TYPE_NAME, new PDocumentCallback() {
         @Override
-        public boolean onRecord(final PRecord record) {
+        public boolean onRecord(final PDocument record) {
           Assertions.assertNotNull(record);
 
           Set<String> prop = new HashSet<String>();
@@ -79,10 +79,10 @@ public class TransactionTypeTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME, new PRecordCallback() {
+      db.scanType(TYPE_NAME, new PDocumentCallback() {
         @Override
-        public boolean onRecord(final PRecord record) {
-          final PRecord record2 = db.lookupByRID(record.getIdentity(), false);
+        public boolean onRecord(final PDocument record) {
+          final PDocument record2 = (PDocument) db.lookupByRID(record.getIdentity(), false);
           Assertions.assertNotNull(record2);
           Assertions.assertEquals(record, record2);
 
@@ -121,7 +121,7 @@ public class TransactionTypeTest {
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.size());
 
-        final PRecord record2 = result.next().getRecord();
+        final PDocument record2 = (PDocument) result.next().getRecord();
 
         Assertions.assertEquals(i, record2.get("id"));
 
@@ -153,9 +153,9 @@ public class TransactionTypeTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME, new PRecordCallback() {
+      db.scanType(TYPE_NAME, new PDocumentCallback() {
         @Override
-        public boolean onRecord(final PRecord record) {
+        public boolean onRecord(final PDocument record) {
           db.deleteRecord(record.getIdentity());
           total.incrementAndGet();
           return true;
@@ -189,9 +189,9 @@ public class TransactionTypeTest {
       final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
       db.begin();
       try {
-        db.scanType(TYPE_NAME, new PRecordCallback() {
+        db.scanType(TYPE_NAME, new PDocumentCallback() {
           @Override
-          public boolean onRecord(final PRecord record) {
+          public boolean onRecord(final PDocument record) {
             db.deleteRecord(record.getIdentity());
             return true;
           }

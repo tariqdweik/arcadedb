@@ -2,7 +2,6 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
-import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
@@ -14,13 +13,15 @@ public interface PDatabase {
     void execute(PDatabase database);
   }
 
-  String getDatabasePath();
-
-  PTransactionContext getTransaction();
-
   void drop();
 
   void close();
+
+  PDatabaseAsynchExecutor asynch();
+
+  String getDatabasePath();
+
+  PTransactionContext getTransaction();
 
   boolean isTransactionActive();
 
@@ -36,7 +37,7 @@ public interface PDatabase {
 
   void rollback();
 
-  void scanType(String className, PRecordCallback callback);
+  void scanType(String className, PDocumentCallback callback);
 
   void scanBucket(String bucketName, PRecordCallback callback);
 
@@ -54,8 +55,6 @@ public interface PDatabase {
 
   PModifiableVertex newVertex(String typeName);
 
-  PEdge newEdge(String typeName);
-
   PSchema getSchema();
 
   PFileManager getFileManager();
@@ -68,5 +67,7 @@ public interface PDatabase {
 
   PPageManager getPageManager();
 
-  Object executeInLock(Callable<Object> callable);
+  Object executeInReadLock(Callable<Object> callable);
+
+  Object executeInWriteLock(Callable<Object> callable);
 }

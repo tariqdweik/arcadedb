@@ -1,10 +1,11 @@
 package com.arcadedb.graph;
 
-import com.arcadedb.database.PCursor;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
 
-public interface PVertex extends PRecord {
+import java.util.Iterator;
+
+public interface PVertex extends PDocument {
   byte RECORD_TYPE = 1;
 
   enum DIRECTION {
@@ -13,18 +14,18 @@ public interface PVertex extends PRecord {
 
   PEdge newEdge(String edgeType, PIdentifiable toVertex, boolean bidirectional, final Object... properties);
 
-  PCursor<PEdge> getEdges();
+  Iterator<PEdge> getEdges();
 
-  PCursor<PEdge> getEdges(DIRECTION direction);
+  Iterator<PEdge> getEdges(DIRECTION direction);
 
-  PCursor<PEdge> getEdges(DIRECTION direction, String edgeType);
+  Iterator<PEdge> getEdges(DIRECTION direction, String edgeType);
 
   /**
    * Returns all the connected vertices, both directions, any edge type.
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  PCursor<PVertex> getVertices();
+  Iterator<PVertex> getVertices();
 
   /**
    * Returns the connected vertices.
@@ -33,13 +34,11 @@ public interface PVertex extends PRecord {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  PCursor<PVertex> getVertices(DIRECTION direction);
+  Iterator<PVertex> getVertices(DIRECTION direction);
 
-  PCursor<PVertex> getVertices(DIRECTION direction, String edgeType);
+  Iterator<PVertex> getVertices(DIRECTION direction, String edgeType);
 
   boolean isConnectedTo(PIdentifiable toVertex);
 
   boolean isConnectedTo(PIdentifiable toVertex, DIRECTION direction);
-
-  boolean isConnectedTo(PIdentifiable toVertex, DIRECTION direction, String edgeType);
 }

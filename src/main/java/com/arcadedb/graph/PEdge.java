@@ -1,9 +1,9 @@
 package com.arcadedb.graph;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
 
-public interface PEdge extends PRecord {
+public interface PEdge extends PDocument {
   byte RECORD_TYPE = 2;
 
   PRID getOut();

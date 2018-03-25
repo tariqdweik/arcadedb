@@ -10,7 +10,6 @@ import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.*;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Imports the POKEC relationships (https://snap.stanford.edu/data/soc-pokec.html)
@@ -18,8 +17,8 @@ import java.util.zip.GZIPInputStream;
 public class PokecLoader {
 
   private static final String DB_PATH                 = "target/database/pokec";
-  private static final String POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt.gz";
-  private static final String POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt.gz";
+  private static final String POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt";
+  private static final String POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
 
   private static String[] COLUMNS = new String[] { "id", "public", "completion_percentage", "gender", "region", "last_login",
       "registration", "age", "body", "I_am_working_in_field", "spoken_languages", "hobbies", "I_most_enjoy_good_food", "pets",
@@ -45,31 +44,35 @@ public class PokecLoader {
 
   private void loadProfiles() throws IOException {
     InputStream fileStream = new FileInputStream(POKEC_PROFILES_FILE);
-    InputStream gzipStream = new GZIPInputStream(fileStream);
-    Reader decoder = new InputStreamReader(gzipStream);
+//    InputStream gzipStream = new GZIPInputStream(fileStream);
+    Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).useParallel(true).acquire();
-    ((PDatabaseParallel) db).setParallelLevel(3);
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+//    db.asynch().setParallelLevel(2);
+
     db.begin();
     try {
       for (int i = 0; buffered.ready(); ++i) {
         final String line = buffered.readLine();
         final String[] profile = line.split("\t");
 
-        PModifiableVertex v = db.newVertex("V");
-        v.set(COLUMNS[0], Integer.parseInt(profile[0]));
+        final PModifiableVertex v = db.newVertex("V");
+        final int id = Integer.parseInt(profile[0]);
+        v.set(COLUMNS[0], id);
         for (int c = 1; c < COLUMNS.length; ++c) {
           v.set(COLUMNS[c], profile[c]);
         }
         v.save();
+//        db.asynch().createRecord(v);
 
         if (i % 10000 == 0) {
-          PLogManager.instance().info(this, "Committing %d vertices...", i);
+          PLogManager.instance().info(this, "Inserted %d vertices...", i);
           db.commit();
           db.begin();
         }
       }
+
       db.commit();
 
     } finally {
@@ -79,8 +82,8 @@ public class PokecLoader {
 
   private void loadRelationships() throws IOException {
     InputStream fileStream = new FileInputStream(POKEC_RELATIONSHIP_FILE);
-    InputStream gzipStream = new GZIPInputStream(fileStream);
-    Reader decoder = new InputStreamReader(gzipStream);
+//    InputStream gzipStream = new GZIPInputStream(fileStream);
+    Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
@@ -94,6 +97,7 @@ public class PokecLoader {
         final PCursor<PRID> result1 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id1 });
         PVertex v1;
         if (!result1.hasNext()) {
+          PLogManager.instance().info(this, "Source vertex %d not found (line=%d)", id1, i);
           v1 = db.newVertex("V");
           ((PModifiableVertex) v1).set("id", id1);
           ((PModifiableVertex) v1).save();
@@ -104,6 +108,7 @@ public class PokecLoader {
         final PCursor<PRID> result2 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id2 });
         PIdentifiable v2;
         if (!result2.hasNext()) {
+          PLogManager.instance().info(this, "Destination vertex %d not found (line=%d)", id2, i);
           v2 = db.newVertex("V");
           ((PModifiableVertex) v2).set("id", id2);
           ((PModifiableVertex) v2).save();

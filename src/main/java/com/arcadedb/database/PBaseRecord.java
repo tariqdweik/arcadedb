@@ -1,20 +1,12 @@
 package com.arcadedb.database;
 
 public abstract class PBaseRecord implements PRecord {
-  public static final byte RECORD_TYPE = 0;
+  protected final PDatabaseInternal database;
+  protected       PRID              rid;
 
-  protected final PDatabase database;
-  protected final String    typeName;
-  protected       PRID      rid;
-
-  protected PBaseRecord(final PDatabase database, final String typeName, final PRID rid) {
-    this.database = database;
-    this.typeName = typeName;
+  protected PBaseRecord(final PDatabase database, final PRID rid) {
+    this.database = (PDatabaseInternal) database;
     this.rid = rid;
-  }
-
-  public String getType() {
-    return typeName;
   }
 
   @Override
@@ -25,6 +17,9 @@ public abstract class PBaseRecord implements PRecord {
   @Override
   public PRecord getRecord() {
     return this;
+  }
+
+  public void onSerialize(int bucketId) {
   }
 
   @Override
@@ -47,12 +42,12 @@ public abstract class PBaseRecord implements PRecord {
   }
 
   @Override
-  public PDatabase getDatabase() {
-    return database;
+  public String toString() {
+    return rid != null ? rid.toString() : "#?:?";
   }
 
   @Override
-  public byte getRecordType() {
-    return RECORD_TYPE;
+  public PDatabase getDatabase() {
+    return database;
   }
 }

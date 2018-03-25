@@ -1,16 +1,15 @@
 package com.arcadedb.engine;
 
+import com.arcadedb.utility.PRWLockContext;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-public class PFile {
+public class PFile extends PRWLockContext {
   public enum MODE {
     READ_ONLY, READ_WRITE
   }
@@ -22,9 +21,10 @@ public class PFile {
   private       String      fileName;
   private final String      fileExtension;
   private       boolean     open;
-  private final Lock lock = new ReentrantLock();
 
   protected PFile(final String filePath, final MODE mode) throws FileNotFoundException {
+    super(true);
+
     this.filePath = filePath;
 
     String filePrefix = filePath.substring(0, filePath.lastIndexOf("."));
@@ -64,25 +64,31 @@ public class PFile {
   }
 
   public void write(final PModifiablePage page) throws IOException {
-    assert page.getPageId().getFileId() == fileId;
-    final ByteBuffer buffer = page.getContent();
-    buffer.rewind();
-    channel.write(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
+    writeLock();
+    try {
+
+      assert page.getPageId().getFileId() == fileId;
+      final ByteBuffer buffer = page.getContent();
+      buffer.rewind();
+      channel.write(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
+
+    } finally {
+      writeUnlock();
+    }
   }
 
   public void read(final PImmutablePage page) throws IOException {
-    assert page.getPageId().getFileId() == fileId;
-    final ByteBuffer buffer = page.getContent();
-    buffer.clear();
-    channel.read(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
-  }
+    readLock();
+    try {
 
-  public boolean tryLock(final long timeInMs) throws InterruptedException {
-    return lock.tryLock(timeInMs, TimeUnit.MILLISECONDS);
-  }
+      assert page.getPageId().getFileId() == fileId;
+      final ByteBuffer buffer = page.getContent();
+      buffer.clear();
+      channel.read(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
 
-  public void unlock() {
-    lock.unlock();
+    } finally {
+      readUnlock();
+    }
   }
 
   public boolean isOpen() {

@@ -80,10 +80,6 @@ public class GraphTest {
       Assertions.assertEquals(e3.getOut(), v1);
       Assertions.assertEquals(e3.getIn(), v3);
 
-      // SETTING EDGE PARAMS AFTER CREATION
-      e3.set("name", "E3");
-      e3.save();
-
       db.commit();
 
       root = v1.getIdentity();
@@ -209,7 +205,6 @@ public class GraphTest {
       Assertions.assertEquals(EDGE2_TYPE_NAME, e3.getType());
       Assertions.assertEquals(v1, e3.getOut());
       Assertions.assertEquals(v3, e3.getIn());
-      Assertions.assertEquals("E3", e3.get("name"));
 
       v2.getEdges();
 

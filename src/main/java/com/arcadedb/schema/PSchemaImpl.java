@@ -2,6 +2,7 @@ package com.arcadedb.schema;
 
 import com.arcadedb.PConstants;
 import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PDictionary;
 import com.arcadedb.engine.PFile;
@@ -19,10 +20,8 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class PSchemaImpl implements PSchema {
-  public static final String EDGES_INDEX_NAME = "edges";
-
   private static final String SCHEMA_FILE_NAME = "/schema.pcsv";
-  private final PDatabase database;
+  private final PDatabaseInternal database;
   private final List<PPaginatedFile>       files     = new ArrayList<PPaginatedFile>();
   private final Map<String, PDocumentType> types     = new HashMap<String, PDocumentType>();
   private final Map<String, PBucket>       bucketMap = new HashMap<String, PBucket>();
@@ -30,7 +29,7 @@ public class PSchemaImpl implements PSchema {
   private final String      databasePath;
   private       PDictionary dictionary;
 
-  public PSchemaImpl(final PDatabase database, final String databasePath, final PFile.MODE mode) {
+  public PSchemaImpl(final PDatabaseInternal database, final String databasePath, final PFile.MODE mode) {
     this.database = database;
     this.databasePath = databasePath;
   }
@@ -115,10 +114,16 @@ public class PSchemaImpl implements PSchema {
     files.set(fileId, null);
   }
 
+  @Override
+  public Collection<PBucket> getBuckets() {
+    return Collections.unmodifiableCollection(bucketMap.values());
+  }
+
   public boolean existsBucket(final String bucketName) {
     return bucketMap.containsKey(bucketName);
   }
 
+  @Override
   public PBucket getBucketByName(final String name) {
     final PBucket p = bucketMap.get(name);
     if (p == null)
@@ -126,6 +131,7 @@ public class PSchemaImpl implements PSchema {
     return p;
   }
 
+  @Override
   public PBucket getBucketById(final int id) {
     if (id < 0 || id >= files.size())
       throw new PSchemaException("Bucket with id '" + id + "' was not found");
@@ -136,12 +142,13 @@ public class PSchemaImpl implements PSchema {
     return (PBucket) p;
   }
 
+  @Override
   public PBucket createBucket(final String bucketName) {
     return createBucket(bucketName, PBucket.DEF_PAGE_SIZE);
   }
 
   public PBucket createBucket(final String bucketName, final int pageSize) {
-    return (PBucket) database.executeInLock(new Callable<Object>() {
+    return (PBucket) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (bucketMap.containsKey(bucketName))
@@ -162,6 +169,7 @@ public class PSchemaImpl implements PSchema {
     });
   }
 
+  @Override
   public boolean existsIndex(final String indexName) {
     return indexMap.containsKey(indexName);
   }
@@ -175,6 +183,7 @@ public class PSchemaImpl implements PSchema {
     return indexes;
   }
 
+  @Override
   public PIndex getIndexByName(final String indexName) {
     final PIndex p = indexMap.get(indexName);
     if (p == null)
@@ -182,17 +191,19 @@ public class PSchemaImpl implements PSchema {
     return p;
   }
 
+  @Override
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames) {
     return createClassIndexes(typeName, propertyNames, PIndexLSM.DEF_PAGE_SIZE);
   }
 
+  @Override
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
     return createClassIndexes(typeName, propertyNames, pageSize, propertyNames.length);
   }
 
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize,
       final int bfKeyDepth) {
-    return (PIndex[]) database.executeInLock(new Callable<Object>() {
+    return (PIndex[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         try {
@@ -249,7 +260,7 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
-    return (PIndexLSM) database.executeInLock(new Callable<Object>() {
+    return (PIndexLSM) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (indexMap.containsKey(indexName))
@@ -336,7 +347,7 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PDocumentType createDocumentType(final String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInLock(new Callable<Object>() {
+    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -369,7 +380,7 @@ public class PSchemaImpl implements PSchema {
 
   @Override
   public PDocumentType createVertexType(String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInLock(new Callable<Object>() {
+    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -383,11 +394,7 @@ public class PSchemaImpl implements PSchema {
         for (int i = 0; i < buckets; ++i)
           c.addBucket(createBucket(typeName + "_" + i, pageSize));
 
-        if (!indexMap.containsKey(EDGES_INDEX_NAME)) {
-          createManualIndex(PSchemaImpl.EDGES_INDEX_NAME,
-              new byte[] { PBinaryTypes.TYPE_COMPRESSED_RID, PBinaryTypes.TYPE_BYTE, PBinaryTypes.TYPE_INT,
-                  PBinaryTypes.TYPE_COMPRESSED_RID }, 65536 * 10, 1);
-        }
+        database.getGraphEngine().createVertexType(database, c);
 
         saveConfiguration();
 
@@ -408,7 +415,7 @@ public class PSchemaImpl implements PSchema {
 
   @Override
   public PDocumentType createEdgeType(final String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInLock(new Callable<Object>() {
+    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)

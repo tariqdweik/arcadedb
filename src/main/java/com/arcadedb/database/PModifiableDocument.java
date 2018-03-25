@@ -4,8 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class PModifiableDocument extends PBaseRecord implements PModifiableRecord, PRecordInternal {
-  private final Map<String, Object> map;
+public class PModifiableDocument extends PBaseDocument implements PRecordInternal {
+  private Map<String, Object> map;
 
   protected PModifiableDocument(final PDatabase database, final String typeName, final PRID rid) {
     super(database, typeName, rid);
@@ -14,27 +14,31 @@ public class PModifiableDocument extends PBaseRecord implements PModifiableRecor
 
   protected PModifiableDocument(final PDatabase database, final String typeName, final PRID rid, final PBinary buffer) {
     super(database, typeName, rid);
-    this.map = this.database.getSerializer().deserializeFields(this.database, buffer);
+    buffer.position(buffer.position() + 1); // SKIP RECORD TYPE
+    this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
   }
 
-  @Override
+  protected void init(final PBinary buffer) {
+    this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
+  }
+
   public void set(final String name, final Object value) {
     map.put(name, value);
   }
 
-  @Override
   public Object get(final String name) {
     return map.get(name);
   }
 
-  @Override
   public void save() {
-    ((PDatabaseInternal) database).saveRecord(this);
+    if (getIdentity() != null)
+      database.updateRecord(this);
+    else
+      database.createRecord(this);
   }
 
-  @Override
   public void save(final String bucketName) {
-    ((PDatabaseInternal) database).saveRecord(this, bucketName);
+    ((PDatabaseInternal) database).createRecord(this, bucketName);
   }
 
   @Override
@@ -69,5 +73,10 @@ public class PModifiableDocument extends PBaseRecord implements PModifiableRecor
   @Override
   public Set<String> getPropertyNames() {
     return map.keySet();
+  }
+
+  @Override
+  public PRecord modify() {
+    return this;
   }
 }

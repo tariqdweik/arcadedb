@@ -1,29 +1,33 @@
 package performance;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.PCursor;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseFactory;
+import com.arcadedb.database.PRID;
 import com.arcadedb.engine.PFile;
+import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.graph.PVertex;
 import com.arcadedb.schema.PDocumentType;
 import org.junit.jupiter.api.Assertions;
 
-public class PerformanceIndexTest {
-  private static final int    TOT       = 5000000;
+public class PerformanceVertexIndexTest {
+  private static final int    TOT       = 10000000;
   private static final String TYPE_NAME = "Person";
+  private static final int    PARALLEL  = 2;
 
   public static void main(String[] args) throws Exception {
-    new PerformanceIndexTest().run();
+    new PerformanceVertexIndexTest().run();
   }
 
   private void run() {
     PerformanceTest.clean();
-
-    final int parallel = 3;
 
     PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
 
-        final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, parallel);
+        final PDocumentType type = database.getSchema().createVertexType(TYPE_NAME, PARALLEL);
 
         type.createProperty("id", Long.class);
         type.createProperty("name", String.class);
@@ -44,15 +48,17 @@ public class PerformanceIndexTest {
     try {
 
       database.asynch().setCommitEvery(5000);
-      database.asynch().setParallelLevel(parallel);
+      database.asynch().setParallelLevel(PARALLEL);
 
       long row = 0;
       for (; row < TOT; ++row) {
-        final PModifiableDocument record = database.newDocument(TYPE_NAME);
+        final PModifiableVertex record = database.newVertex(TYPE_NAME);
 
         record.set("id", row);
         record.set("name", "Luca" + row);
-        record.set("surname", "Skywalker" + row);
+        record.set("surname",
+            "Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker"
+                + row);
         record.set("locali", 10);
 
         database.asynch().createRecord(record);
@@ -75,9 +81,15 @@ public class PerformanceIndexTest {
       for (long id = 0; id < TOT; ++id) {
         final PCursor<PRID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
+
+        if (records.size() > 1) {
+          for (PRID r : records)
+            System.out.println("FOUND " + r.getRecord());
+        }
+
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
 
-        final PDocument record = (PDocument) records.next().getRecord();
+        final PVertex record = (PVertex) records.next().getRecord();
         Assertions.assertEquals(id, record.get("id"));
 
         if (id % 100000 == 0)

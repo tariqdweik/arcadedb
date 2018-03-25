@@ -22,6 +22,12 @@ public class PBinary implements PBinaryStructure {
     size = 0;
   }
 
+  public PBinary(final int initialSize) {
+    this.content = new byte[initialSize];
+    this.buffer = ByteBuffer.wrap(content);
+    size = 0;
+  }
+
   public PBinary(final byte[] buffer, final int contentSize) {
     this.content = buffer;
     this.buffer = ByteBuffer.wrap(content);
@@ -41,8 +47,10 @@ public class PBinary implements PBinaryStructure {
   @Override
   public void append(final PBinary toCopy) {
     final int contentSize = toCopy.size();
-    allocate(buffer.position() + contentSize);
-    buffer.put(toCopy.content, 0, contentSize);
+    if (contentSize > 0) {
+      allocate(buffer.position() + contentSize);
+      buffer.put(toCopy.content, 0, contentSize);
+    }
   }
 
   @Override
@@ -167,9 +175,21 @@ public class PBinary implements PBinaryStructure {
   }
 
   @Override
+  public void putByteArray(final int index, final byte[] value, final int length) {
+    position(index);
+    putByteArray(value, length);
+  }
+
+  @Override
   public void putByteArray(final byte[] value) {
     allocate(buffer.position() + value.length);
     buffer.put(value);
+  }
+
+  @Override
+  public void putByteArray(final byte[] value, final int length) {
+    allocate(buffer.position() + length);
+    buffer.put(value, 0, length);
   }
 
   @Override
@@ -381,5 +401,14 @@ public class PBinary implements PBinaryStructure {
 
   public byte[] getContent() {
     return content;
+  }
+
+  public int getContentSize() {
+    return content.length;
+  }
+
+  @Override
+  public String toString() {
+    return "PBinary size=" + size + " pos=" + buffer.position();
   }
 }

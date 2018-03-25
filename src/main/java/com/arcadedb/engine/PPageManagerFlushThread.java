@@ -14,6 +14,7 @@ public class PPageManagerFlushThread extends Thread {
   private volatile boolean                              running = true;
 
   public PPageManagerFlushThread(final PPageManager pageManager) {
+    super("AsynchFlush");
     this.pageManager = pageManager;
   }
 

@@ -14,13 +14,15 @@ import java.util.*;
 /**
  * Manage the transaction context. When the transaction begins, the modifiedPages map is initialized. This allows to always delegate
  * to the transaction context, even if there is not active transaction by ignoring tx data. This keeps code smaller.
+ * <p>
+ * At commit time, the files are locked in order (to avoid deadlocks) and to allow parallel commit on different files.
  */
 public class PTransactionContext {
   private final PDatabase                     database;
   private       Map<PPageId, PModifiablePage> modifiedPages;
   private       Map<PPageId, PModifiablePage> newPages;
-  private final Map<Integer, Integer> newPageCounters = new HashMap<Integer, Integer>();
-  private final Set<PPageId>          pagesToDispose  = new HashSet<PPageId>();
+  private final Map<Integer, Integer> newPageCounters = new HashMap<>();
+  private final Set<PPageId>          pagesToDispose  = new HashSet<>();
 
   public PTransactionContext(final PDatabase database) {
     this.database = database;
@@ -30,26 +32,26 @@ public class PTransactionContext {
     if (modifiedPages != null)
       throw new PTransactionException("Transaction already begun");
 
-    modifiedPages = new HashMap<PPageId, PModifiablePage>();
+    modifiedPages = new HashMap<>();
   }
 
   public void commit() {
     if (modifiedPages == null)
       throw new PTransactionException("Transaction not begun");
 
+    final PPageManager pageManager = database.getPageManager();
+
     // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
-    final List<Integer> lockedFiles = lockFilesInOrder();
+    final List<Integer> lockedFiles = lockFilesInOrder(pageManager);
     try {
 
       // CHECK THE VERSION FIRST
-      final PPageManager pageManager = database.getPageManager();
       for (PModifiablePage p : modifiedPages.values())
         pageManager.checkPageVersion(p);
 
-      // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK
+      // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       for (PModifiablePage p : modifiedPages.values())
         pageManager.updatePage(p);
-      modifiedPages = null;
 
       if (newPages != null) {
         for (PModifiablePage p : newPages.values())
@@ -57,27 +59,24 @@ public class PTransactionContext {
 
         for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet())
           database.getSchema().getFileById(entry.getKey()).onAfterCommit(entry.getValue());
-        newPageCounters.clear();
-
-        newPages = null;
       }
 
-      pageManager.addPagesToDispose(pagesToDispose);
-      pagesToDispose.clear();
-
     } catch (PConcurrentModificationException e) {
+      rollback();
       throw e;
     } catch (Exception e) {
       rollback();
       throw new PTransactionException("Transaction error on commit", e);
     } finally {
-      unlockFilesInOrder(lockedFiles);
+      unlockFilesInOrder(pageManager, lockedFiles);
     }
+
+    pageManager.addPagesToDispose(pagesToDispose);
+    reset();
   }
 
   public void rollback() {
-    modifiedPages = null;
-    newPages = null;
+    reset();
   }
 
   public void assureIsActive() {
@@ -124,7 +123,7 @@ public class PTransactionContext {
         // NOT FOUND, DELEGATES TO THE DATABASE
         final PBasePage loadedPage = database.getPageManager().getPage(pageId, size);
         if (loadedPage != null) {
-          PModifiablePage modifiablePage = loadedPage.createModifiableCopy();
+          PModifiablePage modifiablePage = loadedPage.modify();
           modifiedPages.put(pageId, modifiablePage);
           page = modifiablePage;
         }
@@ -138,7 +137,7 @@ public class PTransactionContext {
     assureIsActive();
 
     if (newPages == null)
-      newPages = new HashMap<PPageId, PModifiablePage>();
+      newPages = new HashMap<>();
 
     // CREATE A PAGE ID BASED ON NEW PAGES IN TX. IN CASE OF ROLLBACK THEY ARE SIMPLY REMOVED AND THE GLOBAL PAGE COUNT IS UNCHANGED
     final PModifiablePage page = new PModifiablePage(database.getPageManager(), pageId, pageSize);
@@ -168,7 +167,7 @@ public class PTransactionContext {
     return result;
   }
 
-  private List<Integer> lockFilesInOrder() {
+  private List<Integer> lockFilesInOrder(final PPageManager pageManager) {
     final Set<Integer> modifiedFiles = new HashSet<>();
     for (PPageId p : modifiedPages.keySet())
       modifiedFiles.add(p.getFileId());
@@ -184,7 +183,7 @@ public class PTransactionContext {
     final List<Integer> lockedFiles = new ArrayList<>(orderedModifiedFiles.size());
     try {
       for (Integer fileId : orderedModifiedFiles) {
-        if (database.getFileManager().getFile(fileId).tryLock(timeout))
+        if (pageManager.tryLockFile(fileId, timeout))
           lockedFiles.add(fileId);
         else
           break;
@@ -199,12 +198,20 @@ public class PTransactionContext {
     }
 
     // ERROR: UNLOCK LOCKED FILES
-    unlockFilesInOrder(lockedFiles);
+    unlockFilesInOrder(pageManager, lockedFiles);
+
     throw new PTransactionException("Timeout on locking resource during commit");
   }
 
-  private void unlockFilesInOrder(final List<Integer> lockedFiles) {
+  private void unlockFilesInOrder(final PPageManager pageManager, final List<Integer> lockedFiles) {
     for (Integer fileId : lockedFiles)
-      database.getFileManager().getFile(fileId).unlock();
+      pageManager.unlockFile(fileId);
+  }
+
+  private void reset() {
+    modifiedPages = null;
+    newPages = null;
+    newPageCounters.clear();
+    pagesToDispose.clear();
   }
 }

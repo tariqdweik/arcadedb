@@ -6,8 +6,7 @@ import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PDatabaseIsClosedException;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PModifiableEdge;
+import com.arcadedb.graph.PGraphEngine;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexLSM;
@@ -16,13 +15,14 @@ import com.arcadedb.schema.PSchema;
 import com.arcadedb.schema.PSchemaImpl;
 import com.arcadedb.serializer.PBinarySerializer;
 import com.arcadedb.utility.PFileUtils;
-import com.arcadedb.utility.PLockContext;
+import com.arcadedb.utility.PRWLockContext;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
 
-public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseInternal {
+public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabaseInternal {
   private static final int DEFAULT_RETRIES = 10;
 
   protected final String       name;
@@ -33,6 +33,8 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
   protected final PBinarySerializer serializer    = new PBinarySerializer();
   protected final PRecordFactory    recordFactory = new PRecordFactory();
   protected final PSchemaImpl schema;
+  protected final PGraphEngine            graphEngine = new PGraphEngine();
+  private         PDatabaseAsynchExecutor asynch      = null;
 
   protected          boolean autoTransaction = false;
   protected volatile boolean open            = false;
@@ -85,45 +87,59 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
 
   @Override
   public void drop() {
-    lock();
-    try {
+    super.executeInWriteLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        checkDatabaseIsOpen();
+        if (mode == PFile.MODE.READ_ONLY)
+          throw new PDatabaseIsReadOnlyException("Cannot drop database");
 
-      checkDatabaseIsOpen();
-      if (mode == PFile.MODE.READ_ONLY)
-        throw new PDatabaseIsReadOnlyException("Cannot drop database");
-
-      close();
-      PFileUtils.deleteRecursively(new File(databasePath));
-
-    } finally {
-      unlock();
-    }
+        close();
+        PFileUtils.deleteRecursively(new File(databasePath));
+        return null;
+      }
+    });
   }
 
   @Override
   public void close() {
-    lock();
-    try {
+    super.executeInWriteLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        if (!open)
+          return null;
 
-      if (!open)
-        return;
+        if (asynch != null)
+          asynch.close();
 
-      if (getTransaction().isActive())
-        // ROLLBACK ANY PENDING OPERATION
-        getTransaction().rollback();
+        if (getTransaction().isActive())
+          // ROLLBACK ANY PENDING OPERATION
+          getTransaction().rollback();
 
-      try {
-        schema.close();
-        pageManager.close();
-        fileManager.close();
-      } finally {
-        open = false;
-        PProfiler.INSTANCE.unregisterDatabase(this);
+        try {
+          schema.close();
+          pageManager.close();
+          fileManager.close();
+        } finally {
+          open = false;
+          PProfiler.INSTANCE.unregisterDatabase(PDatabaseImpl.this);
+        }
+        return null;
       }
+    });
+  }
 
-    } finally {
-      unlock();
+  public PDatabaseAsynchExecutor asynch() {
+    if (asynch == null) {
+      super.executeInWriteLock(new Callable<Object>() {
+        @Override
+        public Object call() throws Exception {
+          asynch = new PDatabaseAsynchExecutor(PDatabaseImpl.this);
+          return null;
+        }
+      });
     }
+    return asynch;
   }
 
   @Override
@@ -137,262 +153,270 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
 
   @Override
   public void begin() {
-    lock();
-    try {
-
-      checkDatabaseIsOpen();
-      getTransaction().begin();
-
-    } finally {
-      unlock();
-    }
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        checkDatabaseIsOpen();
+        getTransaction().begin();
+        return null;
+      }
+    });
   }
 
   @Override
   public void commit() {
-    lock();
-    try {
-
-      checkTransactionIsActive();
-      getTransaction().commit();
-
-    } finally {
-      unlock();
-    }
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        checkTransactionIsActive();
+        getTransaction().commit();
+        return null;
+      }
+    });
   }
 
   @Override
   public void rollback() {
-    lock();
-    try {
-
-      checkTransactionIsActive();
-      getTransaction().rollback();
-
-    } finally {
-      unlock();
-    }
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        checkTransactionIsActive();
+        getTransaction().rollback();
+        return null;
+      }
+    });
   }
 
   @Override
   public long countBucket(final String bucketName) {
-    lock();
-    try {
-
-      checkDatabaseIsOpen();
-      try {
-        return schema.getBucketByName(bucketName).count();
-      } catch (IOException e) {
-        throw new PDatabaseOperationException("Error on counting items in bucket '" + bucketName + "'", e);
+    return (Long) super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        checkDatabaseIsOpen();
+        try {
+          return schema.getBucketByName(bucketName).count();
+        } catch (IOException e) {
+          throw new PDatabaseOperationException("Error on counting items in bucket '" + bucketName + "'", e);
+        }
       }
-
-    } finally {
-      unlock();
-    }
+    });
   }
 
   @Override
   public long countType(final String typeName) {
-    lock();
-    try {
+    return (Long) super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        checkDatabaseIsOpen();
+        try {
+          final PDocumentType type = schema.getType(typeName);
 
-      checkDatabaseIsOpen();
-      try {
-        final PDocumentType type = schema.getType(typeName);
+          long total = 0;
+          for (PBucket b : type.getBuckets()) {
+            total += b.count();
+          }
 
-        long total = 0;
-        for (PBucket b : type.getBuckets()) {
-          total += b.count();
+          return total;
+
+        } catch (IOException e) {
+          throw new PDatabaseOperationException("Error on counting items in type '" + typeName + "'", e);
         }
-
-        return total;
-
-      } catch (IOException e) {
-        throw new PDatabaseOperationException("Error on counting items in type '" + typeName + "'", e);
       }
-
-    } finally {
-      unlock();
-    }
+    });
   }
 
   @Override
-  public void scanType(final String typeName, final PRecordCallback callback) {
-    lock();
-    try {
+  public void scanType(final String typeName, final PDocumentCallback callback) {
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
 
-      checkDatabaseIsOpen();
-      try {
-        final PDocumentType type = schema.getType(typeName);
+        checkDatabaseIsOpen();
+        try {
+          final PDocumentType type = schema.getType(typeName);
 
-        for (PBucket b : type.getBuckets()) {
-          b.scan(new PRawRecordCallback() {
-            @Override
-            public boolean onRecord(final PRID rid, final PBinary view) {
-              unlock();
-              try {
-
-                final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, typeName, rid, view);
+          for (PBucket b : type.getBuckets()) {
+            b.scan(new PRawRecordCallback() {
+              @Override
+              public boolean onRecord(final PRID rid, final PBinary view) {
+                final PDocument record = (PDocument) recordFactory.newImmutableRecord(PDatabaseImpl.this, typeName, rid, view);
                 return callback.onRecord(record);
-
-              } finally {
-                lock();
               }
-            }
-          });
+            });
+          }
+        } catch (IOException e) {
+          throw new PDatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
         }
-      } catch (IOException e) {
-        throw new PDatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
+        return null;
       }
-
-    } finally {
-      unlock();
-    }
+    });
   }
 
   @Override
   public void scanBucket(final String bucketName, final PRecordCallback callback) {
-    lock();
-    try {
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
 
-      checkDatabaseIsOpen();
-      try {
-        final String type = schema.getTypeNameByBucketId(schema.getBucketByName(bucketName).getId());
-        schema.getBucketByName(bucketName).scan(new PRawRecordCallback() {
-          @Override
-          public boolean onRecord(final PRID rid, final PBinary view) {
-            unlock();
-            try {
-
+        checkDatabaseIsOpen();
+        try {
+          final String type = schema.getTypeNameByBucketId(schema.getBucketByName(bucketName).getId());
+          schema.getBucketByName(bucketName).scan(new PRawRecordCallback() {
+            @Override
+            public boolean onRecord(final PRID rid, final PBinary view) {
               final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, type, rid, view);
               return callback.onRecord(record);
-
-            } finally {
-              lock();
             }
-          }
-        });
-      } catch (IOException e) {
-        throw new PDatabaseOperationException("Error on executing scan of bucket '" + bucketName + "'", e);
+          });
+        } catch (IOException e) {
+          throw new PDatabaseOperationException("Error on executing scan of bucket '" + bucketName + "'", e);
+        }
+        return null;
       }
-
-    } finally {
-      unlock();
-    }
+    });
   }
 
   @Override
   public PRecord lookupByRID(final PRID rid, final boolean loadContent) {
-    checkDatabaseIsOpen();
-    lock();
-    try {
+    return (PRecord) super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
 
-      final PDocumentType type = schema.getTypeByBucketId(rid.getBucketId());
+        checkDatabaseIsOpen();
+        final PDocumentType type = schema.getTypeByBucketId(rid.getBucketId());
 
-      if (loadContent) {
-        final PBinary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-        return recordFactory.newImmutableRecord(this, type != null ? type.getName() : null, rid, buffer);
+        if (loadContent) {
+          final PBinary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
+          return recordFactory.newImmutableRecord(PDatabaseImpl.this, type != null ? type.getName() : null, rid, buffer);
+        }
+
+        if (type != null)
+          return recordFactory.newImmutableRecord(PDatabaseImpl.this, type.getName(), rid, type.getType());
+
+        return recordFactory.newImmutableRecord(PDatabaseImpl.this, null, rid, PDocument.RECORD_TYPE);
       }
-
-      if (type != null)
-        return recordFactory.newImmutableRecord(this, type.getName(), rid, type.getType());
-
-      return recordFactory.newImmutableRecord(this, null, rid, PBaseRecord.RECORD_TYPE);
-
-    } finally {
-      unlock();
-    }
+    });
   }
 
   @Override
   public PCursor<PRID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
-    checkDatabaseIsOpen();
-    lock();
-    try {
+    return (PCursor<PRID>) super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
 
-      final PDocumentType t = schema.getType(type);
+        checkDatabaseIsOpen();
+        final PDocumentType t = schema.getType(type);
 
-      final List<PDocumentType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
-      if (metadata == null || metadata.isEmpty())
-        throw new IllegalArgumentException(
-            "No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
+        final List<PDocumentType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
+        if (metadata == null || metadata.isEmpty())
+          throw new IllegalArgumentException(
+              "No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
-      final List<PRID> result = new ArrayList<>();
-      for (PDocumentType.IndexMetadata m : metadata)
-        result.addAll(m.index.get(keys));
+        final List<PRID> result = new ArrayList<>();
+        for (PDocumentType.IndexMetadata m : metadata)
+          result.addAll(m.index.get(keys));
 
-      return new PCursorCollection<PRID>(result);
-
-    } finally {
-      unlock();
-    }
+        return new PCursorCollection<PRID>(result);
+      }
+    });
   }
 
   @Override
-  public void saveRecord(final PModifiableDocument record) {
-    lock();
-    try {
+  public PGraphEngine getGraphEngine() {
+    return graphEngine;
+  }
 
-      checkTransactionIsActive();
-      if (mode == PFile.MODE.READ_ONLY)
-        throw new PDatabaseIsReadOnlyException("Cannot save record");
+  @Override
+  public void createRecord(final PModifiableDocument record) {
+    if (record.getIdentity() != null)
+      throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
-      final PDocumentType type = schema.getType(record.getType());
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
 
-      if (record.getIdentity() == null) {
+        checkTransactionIsActive();
+        if (mode == PFile.MODE.READ_ONLY)
+          throw new PDatabaseIsReadOnlyException("Cannot create a new record");
+
+        final PDocumentType type = schema.getType(record.getType());
+
         // NEW
         final PBucket bucket = type.getBucketToSave();
-        record.setIdentity(bucket.addRecord(record));
-        indexRecord(record, type, bucket);
-
-      } else {
-        // UPDATE
-        // TODO
+        record.setIdentity(bucket.createRecord(record));
+        indexDocument(record, type, bucket);
+        return null;
       }
-
-    } finally {
-      unlock();
-    }
+    });
   }
 
   @Override
-  public void saveRecord(final PRecord record, final String bucketName) {
-    lock();
-    try {
+  public void createRecord(final PRecord record, final String bucketName) {
+    if (record.getIdentity() != null)
+      throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
-      checkTransactionIsActive();
-      if (mode == PFile.MODE.READ_ONLY)
-        throw new PDatabaseIsReadOnlyException("Cannot save record");
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
 
-      final PBucket bucket = schema.getBucketByName(bucketName);
+        checkTransactionIsActive();
+        if (mode == PFile.MODE.READ_ONLY)
+          throw new PDatabaseIsReadOnlyException("Cannot create a new record");
 
-      if (record.getIdentity() == null)
-        // NEW
-        ((PRecordInternal) record).setIdentity(bucket.addRecord(record));
-      else {
-        // UPDATE
-        // TODO
+        final PBucket bucket = schema.getBucketByName(bucketName);
+
+        ((PRecordInternal) record).setIdentity(bucket.createRecord(record));
+        return null;
       }
+    });
+  }
 
-    } finally {
-      unlock();
-    }
+  @Override
+  public void createRecordNoLock(final PRecord record, final String bucketName) {
+    if (record.getIdentity() != null)
+      throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
+
+    checkTransactionIsActive();
+    if (mode == PFile.MODE.READ_ONLY)
+      throw new PDatabaseIsReadOnlyException("Cannot create a new record");
+
+    final PBucket bucket = schema.getBucketByName(bucketName);
+
+    ((PRecordInternal) record).setIdentity(bucket.createRecord(record));
+  }
+
+  @Override
+  public void updateRecord(final PRecord record) {
+    if (record.getIdentity() == null)
+      throw new IllegalArgumentException("Cannot update the record because it is not persistent");
+
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+
+        checkTransactionIsActive();
+        if (mode == PFile.MODE.READ_ONLY)
+          throw new PDatabaseIsReadOnlyException("Cannot update a record");
+
+        schema.getBucketById(record.getIdentity().getBucketId()).update(record);
+        return null;
+      }
+    });
   }
 
   @Override
   public void deleteRecord(final PRID rid) {
-    lock();
-    try {
+    super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        checkTransactionIsActive();
+        if (mode == PFile.MODE.READ_ONLY)
+          throw new PDatabaseIsReadOnlyException("Cannot delete record " + rid);
 
-      checkTransactionIsActive();
-      if (mode == PFile.MODE.READ_ONLY)
-        throw new PDatabaseIsReadOnlyException("Cannot delete record " + rid);
-
-      schema.getBucketById(rid.getBucketId()).deleteRecord(rid);
-
-    } finally {
-      unlock();
-    }
+        schema.getBucketById(rid.getBucketId()).deleteRecord(rid);
+        return null;
+      }
+    });
   }
 
   @Override
@@ -413,9 +437,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
     PConcurrentModificationException lastException = null;
 
     for (int retry = 0; retry < retries; ++retry) {
-      lock();
       try {
-
         begin();
         txBlock.execute(this);
         commit();
@@ -431,12 +453,8 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
         if (getTransaction().isActive())
           rollback();
         throw e;
-
-      } finally {
-        unlock();
       }
     }
-
     throw lastException;
   }
 
@@ -463,20 +481,12 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
 
   @Override
   public PModifiableDocument newDocument(final String typeName) {
-    checkTransactionIsActive();
     return new PModifiableDocument(this, typeName, null);
   }
 
   @Override
   public PModifiableVertex newVertex(final String typeName) {
-    checkTransactionIsActive();
     return new PModifiableVertex(this, typeName, null);
-  }
-
-  @Override
-  public PEdge newEdge(final String typeName) {
-    checkTransactionIsActive();
-    return new PModifiableEdge(this, typeName, null);
   }
 
   @Override
@@ -491,6 +501,33 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
 
   public String getName() {
     return name;
+  }
+
+  @Override
+  public void checkTransactionIsActive() {
+    checkDatabaseIsOpen();
+    if (autoTransaction && !isTransactionActive())
+      begin();
+    else if (!getTransaction().isActive())
+      throw new PDatabaseOperationException("Transaction not begun");
+  }
+
+  @Override
+  public void indexDocument(final PModifiableDocument record, final PDocumentType type, final PBucket bucket) {
+    // INDEX THE RECORD
+    final List<PDocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
+    if (metadata != null) {
+      for (PDocumentType.IndexMetadata entry : metadata) {
+        final PIndex index = entry.index;
+        final String[] keyNames = entry.propertyNames;
+        final Object[] keyValues = new Object[keyNames.length];
+        for (int i = 0; i < keyNames.length; ++i) {
+          keyValues[i] = record.get(keyNames[i]);
+        }
+
+        index.put(keyValues, record.getIdentity());
+      }
+    }
   }
 
   @Override
@@ -516,31 +553,5 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
 
     if (PTransactionTL.INSTANCE.get() == null)
       PTransactionTL.INSTANCE.set(new PTransactionContext(this));
-  }
-
-  @Override
-  public void checkTransactionIsActive() {
-    checkDatabaseIsOpen();
-    if (autoTransaction && !isTransactionActive())
-      begin();
-    else if (!getTransaction().isActive())
-      throw new PDatabaseOperationException("Transaction not begun");
-  }
-
-  protected void indexRecord(final PModifiableDocument record, final PDocumentType type, final PBucket bucket) {
-    // INDEX THE RECORD
-    final List<PDocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
-    if (metadata != null) {
-      for (PDocumentType.IndexMetadata entry : metadata) {
-        final PIndex index = entry.index;
-        final String[] keyNames = entry.propertyNames;
-        final Object[] keyValues = new Object[keyNames.length];
-        for (int i = 0; i < keyNames.length; ++i) {
-          keyValues[i] = record.get(keyNames[i]);
-        }
-
-        index.put(keyValues, record.getIdentity());
-      }
-    }
   }
 }

@@ -1,10 +1,12 @@
 package performance;
 
 import com.arcadedb.database.*;
+import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.utility.PLogManager;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -121,8 +123,11 @@ public class PokecBenchmark {
     db.begin();
 
     try {
-      aggregate(db);
-      neighbors2(db);
+      //aggregate(db);
+      //warmup(db);
+      for (int i = 0; i < 10; ++i) {
+        neighbors2(db);
+      }
 
     } finally {
       db.close();
@@ -159,7 +164,6 @@ public class PokecBenchmark {
 
       if (rootTraversed.get() % 100 == 0) {
         PLogManager.instance().info(this, "- traversed %d roots - %d total", rootTraversed.get(), totalTraversed.get());
-        PLogManager.instance().info(this, "- edges stats %s", db.getSchema().getIndexByName("edges").getStats());
       }
     }
 
@@ -175,9 +179,9 @@ public class PokecBenchmark {
       final long begin = System.currentTimeMillis();
 
       final Map<String, AtomicInteger> aggregate = new HashMap<>();
-      db.scanType("V", new PRecordCallback() {
+      db.scanType("V", new PDocumentCallback() {
         @Override
-        public boolean onRecord(final PRecord record) {
+        public boolean onRecord(final PDocument record) {
           String age = (String) record.get("age");
 
           AtomicInteger counter = aggregate.get(age);
@@ -193,5 +197,19 @@ public class PokecBenchmark {
 
       PLogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
     }
+  }
+
+  private void warmup(PDatabase db) throws IOException {
+    PLogManager.instance().info(this, "Warming up...");
+
+    final long begin = System.currentTimeMillis();
+
+    for (PBucket bucket : db.getSchema().getBuckets()) {
+      PLogManager.instance().info(this, "Loading bucket %s in RAM...", bucket);
+      db.getPageManager().preloadFile(bucket.getId());
+      PLogManager.instance().info(this, "- done, elapsed so far " + (System.currentTimeMillis() - begin));
+    }
+
+    PLogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
   }
 }

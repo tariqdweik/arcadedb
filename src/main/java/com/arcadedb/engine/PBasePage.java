@@ -31,7 +31,7 @@ public abstract class PBasePage {
     this.version = version;
   }
 
-  public PModifiablePage createModifiableCopy() {
+  public PModifiablePage modify() {
     final PModifiablePage copy = new PModifiablePage(manager, pageId, size, this.content.getByteBuffer().array(), version,
         content.size());
     // COPY THE CONTENT, SO CHANGES DOES NOT AFFECT IMMUTABLE COPY

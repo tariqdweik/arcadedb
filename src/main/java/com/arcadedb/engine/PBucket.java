@@ -50,8 +50,8 @@ public class PBucket extends PPaginatedFile {
     super(database, name, filePath, id, mode, pageSize);
   }
 
-  public PRID addRecord(final PRecord record) {
-    final PBinary buffer = database.getSerializer().serialize(database, record);
+  public PRID createRecord(final PRecord record) {
+    final PBinary buffer = database.getSerializer().serialize(database, record, id);
 
     if (buffer.size() > pageSize - CONTENT_HEADER_SIZE)
       // TODO: SUPPORT MULTI-PAGE CONTENT
@@ -113,6 +113,45 @@ public class PBucket extends PPaginatedFile {
 
     } catch (IOException e) {
       throw new PDatabaseOperationException("Cannot add a new record to the bucket '" + name + "'", e);
+    }
+  }
+
+  public void update(final PRecord record) {
+    final PBinary buffer = database.getSerializer().serialize(database, record, id);
+    final PRID rid = record.getIdentity();
+
+    final int pageId = (int) (rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE + 1);
+    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
+
+    if (pageId >= pageCount) {
+      int txPageCount = getTotalPages();
+      if (pageId >= txPageCount)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    }
+
+    try {
+      final PModifiablePage page = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), pageId), pageSize);
+      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+      if (positionInPage >= recordCountInPage)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+      if (recordSize[0] == 0)
+        // DELETED
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      if (buffer.size() != recordSize[0])
+        throw new IllegalArgumentException(
+            "Record " + rid + " cannot be updated because the size (" + buffer.size() + ") is different than the existent one ("
+                + recordSize[0] + ")");
+
+      final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
+
+      page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
+
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Error on update record " + rid);
     }
   }
 

@@ -1,14 +1,13 @@
 package com.arcadedb.schema;
 
-import com.arcadedb.database.PBaseRecord;
 import com.arcadedb.database.PBucketSelectionStrategy;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRoundRobinBucketSelectionStrategy;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.exception.PSchemaException;
 import com.arcadedb.index.PIndex;
 
 import java.util.*;
-import java.util.concurrent.Callable;
 
 public class PDocumentType {
   private final PSchemaImpl schema;
@@ -41,7 +40,7 @@ public class PDocumentType {
   }
 
   public byte getType() {
-    return PBaseRecord.RECORD_TYPE;
+    return PDocument.RECORD_TYPE;
   }
 
   public Set<String> getPropertyNames() {
@@ -72,14 +71,8 @@ public class PDocumentType {
   }
 
   public void addBucket(final PBucket bucket) {
-    schema.getDatabase().executeInLock(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        addBucketInternal(bucket);
-        schema.saveConfiguration();
-        return null;
-      }
-    });
+    addBucketInternal(bucket);
+    schema.saveConfiguration();
   }
 
   public PBucket getBucketToSave() {

@@ -11,7 +11,6 @@ public class PDatabaseFactory {
   private final String     databasePath;
   private boolean multiThread     = true;
   private boolean autoTransaction = false;
-  private boolean parallel        = false;
 
   public PDatabaseFactory(final String path, final PFile.MODE mode) {
     this.mode = mode;
@@ -22,16 +21,9 @@ public class PDatabaseFactory {
   }
 
   public PDatabase acquire() {
-    PDatabase db = parallel ?
-        new PDatabaseParallel(databasePath, mode, multiThread) :
-        new PDatabaseImpl(databasePath, mode, multiThread);
+    final PDatabase db = new PDatabaseImpl(databasePath, mode, multiThread);
     db.setAutoTransaction(autoTransaction);
     return db;
-  }
-
-  public PDatabaseFactory useParallel(final boolean value) {
-    this.parallel = value;
-    return this;
   }
 
   public void execute(final POperation operation) {
