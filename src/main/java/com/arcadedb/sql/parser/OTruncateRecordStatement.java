@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -54,7 +54,7 @@ public class OTruncateRecordStatement extends OSimpleExecStatement {
           rs.add(recordRes);
         }
       } catch (Exception e) {
-        throw OException.wrapException(new OCommandExecutionException("Error on executing command"), e);
+        throw OException.wrapException(new PCommandExecutionException("Error on executing command"), e);
       }
     }
 

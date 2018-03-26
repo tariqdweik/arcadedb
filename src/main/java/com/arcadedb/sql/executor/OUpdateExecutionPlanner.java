@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.sql.parser.*;
-import com.orientechnologies.orient.core.storage.OStorage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +25,7 @@ public class OUpdateExecutionPlanner {
 
   protected OProjection returnProjection;
 
-  public OStorage.LOCKING_STRATEGY lockRecord = null;
+//  public OStorage.LOCKING_STRATEGY lockRecord = null;
 
   public OLimit   limit;
   public OTimeout timeout;
@@ -47,7 +45,7 @@ public class OUpdateExecutionPlanner {
     this.returnAfter = oUpdateStatement.isReturnAfter();
     this.returnCount = !(returnAfter || returnBefore);
     this.returnProjection = oUpdateStatement.getReturnProjection() == null ? null : oUpdateStatement.getReturnProjection().copy();
-    this.lockRecord = oUpdateStatement.getLockRecord();
+//    this.lockRecord = oUpdateStatement.getLockRecord();
     this.limit = oUpdateStatement.getLimit() == null ? null : oUpdateStatement.getLimit().copy();
     this.timeout = oUpdateStatement.getTimeout() == null ? null : oUpdateStatement.getTimeout().copy();
   }
@@ -65,7 +63,7 @@ public class OUpdateExecutionPlanner {
     handleLimit(result, ctx, this.limit, enableProfiling);
     handleReturnBefore(result, ctx, this.returnBefore, enableProfiling);
     handleOperations(result, ctx, this.operations, enableProfiling);
-    handleLock(result, ctx, this.lockRecord);
+//    handleLock(result, ctx, this.lockRecord);
     handleSave(result, ctx, enableProfiling);
     handleResultForReturnBefore(result, ctx, this.returnBefore, returnProjection, enableProfiling);
     handleResultForReturnAfter(result, ctx, this.returnAfter, returnProjection, enableProfiling);
@@ -126,9 +124,9 @@ public class OUpdateExecutionPlanner {
     }
   }
 
-  private void handleLock(OUpdateExecutionPlan result, OCommandContext ctx, OStorage.LOCKING_STRATEGY lockRecord) {
-
-  }
+//  private void handleLock(OUpdateExecutionPlan result, OCommandContext ctx, OStorage.LOCKING_STRATEGY lockRecord) {
+//
+//  }
 
   private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, OLimit limit, boolean profilingEnabled) {
     if (limit != null) {
@@ -165,7 +163,7 @@ public class OUpdateExecutionPlanner {
         case OUpdateOperations.TYPE_PUT:
         case OUpdateOperations.TYPE_INCREMENT:
         case OUpdateOperations.TYPE_ADD:
-          throw new OCommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
+          throw new PCommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
         }
       }
     }

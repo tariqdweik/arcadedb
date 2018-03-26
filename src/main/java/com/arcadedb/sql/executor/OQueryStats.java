@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
+import com.arcadedb.database.PDatabase;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,8 +16,8 @@ public class OQueryStats {
 
   public Map<String, Long> stats = new ConcurrentHashMap<>();
 
-  public static OQueryStats get(ODatabaseDocumentInternal db) {
-    return db.getSharedContext().getQueryStats();
+  public static OQueryStats get(PDatabase db) {
+    return new OQueryStats();//TODO
   }
 
   public long getIndexStats(String indexName, int params, boolean range, boolean additionalRange) {

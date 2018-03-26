@@ -1,14 +1,11 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.util.OPair;
-import com.orientechnologies.orient.core.command.OBasicCommandContext;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.PSchema;
 import com.arcadedb.sql.parser.*;
+import com.arcadedb.utility.PPair;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -105,7 +102,7 @@ public class OMatchExecutionPlanner {
         result.chain(new DistinctExecutionStep(context, enableProfiling));
       }
       if (groupBy != null) {
-        throw new OCommandExecutionException(
+        throw new PCommandExecutionException(
             "Cannot execute GROUP BY in MATCH query with RETURN $elements, $pathElements, $patterns or $paths");
       }
 
@@ -221,16 +218,21 @@ public class OMatchExecutionPlanner {
     Set<PatternEdge> visitedEdges = new HashSet<>();
 
     // Sort the possible root vertices in order of estimated size, since we want to start with a small vertex set.
-    List<OPair<Long, String>> rootWeights = new ArrayList<>();
+    List<PPair<Long, String>> rootWeights = new ArrayList<>();
     for (Map.Entry<String, Long> root : estimatedRootEntries.entrySet()) {
-      rootWeights.add(new OPair<>(root.getValue(), root.getKey()));
+      rootWeights.add(new PPair<>(root.getValue(), root.getKey()));
     }
-    Collections.sort(rootWeights);
+    Collections.sort(rootWeights, new Comparator<PPair<Long, String>>() {
+      @Override
+      public int compare(PPair<Long, String> o1, PPair<Long, String> o2) {
+        return o1.getFirst().compareTo(o2.getFirst());
+      }
+    });
 
     // Add the starting vertices, in the correct order, to an ordered set.
     Set<String> remainingStarts = new LinkedHashSet<String>();
-    for (OPair<Long, String> item : rootWeights) {
-      remainingStarts.add(item.getValue());
+    for (PPair<Long, String> item : rootWeights) {
+      remainingStarts.add(item.getSecond());
     }
     // Add all the remaining aliases after all the suggested start points.
     for (String alias : pattern.aliasToNode.keySet()) {
@@ -263,7 +265,7 @@ public class OMatchExecutionPlanner {
         // We didn't manage to find a valid root, and yet we haven't constructed a complete schedule.
         // This means there must be a cycle in our dependency graph, or all dependency-free nodes are optional.
         // Therefore, the query is invalid.
-        throw new OCommandExecutionException("This query contains MATCH conditions that cannot be evaluated, "
+        throw new PCommandExecutionException("This query contains MATCH conditions that cannot be evaluated, "
             + "like an undefined alias or a circular dependency on a $matched condition.");
       }
 
@@ -482,25 +484,30 @@ public class OMatchExecutionPlanner {
   private List<EdgeTraversal> sortEdges(Map<String, Long> estimatedRootEntries, Pattern pattern, OCommandContext ctx) {
     OQueryStats stats = null;
     if (ctx != null && ctx.getDatabase() != null) {
-      stats = OQueryStats.get((ODatabaseDocumentInternal) ctx.getDatabase());
+      stats = OQueryStats.get(ctx.getDatabase());
     }
     //TODO use the stats
 
     List<EdgeTraversal> result = new ArrayList<EdgeTraversal>();
 
-    List<OPair<Long, String>> rootWeights = new ArrayList<OPair<Long, String>>();
+    List<PPair<Long, String>> rootWeights = new ArrayList<PPair<Long, String>>();
     for (Map.Entry<String, Long> root : estimatedRootEntries.entrySet()) {
-      rootWeights.add(new OPair<Long, String>(root.getValue(), root.getKey()));
+      rootWeights.add(new PPair<Long, String>(root.getValue(), root.getKey()));
     }
-    Collections.sort(rootWeights);
+    Collections.sort(rootWeights, new Comparator<PPair<Long, String>>() {
+      @Override
+      public int compare(PPair<Long, String> o1, PPair<Long, String> o2) {
+        return o1.getFirst().compareTo(o2.getFirst());
+      }
+    });
 
     Set<PatternEdge> traversedEdges = new HashSet<PatternEdge>();
     Set<PatternNode> traversedNodes = new HashSet<PatternNode>();
     List<PatternNode> nextNodes = new ArrayList<PatternNode>();
 
     while (result.size() < pattern.getNumOfEdges()) {
-      for (OPair<Long, String> rootPair : rootWeights) {
-        PatternNode root = pattern.get(rootPair.getValue());
+      for (PPair<Long, String> rootPair : rootWeights) {
+        PatternNode root = pattern.get(rootPair.getSecond());
         if (root.isOptionalNode()) {
           continue;
         }
@@ -614,7 +621,7 @@ public class OMatchExecutionPlanner {
         } else {
           String lower = getLowerSubclass(context.getDatabase(), clazz, previousClass);
           if (lower == null) {
-            throw new OCommandExecutionException(
+            throw new PCommandExecutionException(
                 "classes defined for alias " + alias + " (" + clazz + ", " + previousClass + ") are not in the same hierarchy");
           }
           aliasClasses.put(alias, lower);
@@ -627,7 +634,7 @@ public class OMatchExecutionPlanner {
         if (previousCluster == null) {
           aliasClusters.put(alias, clusterName);
         } else if (!previousCluster.equalsIgnoreCase(clusterName)) {
-          throw new OCommandExecutionException(
+          throw new PCommandExecutionException(
               "Invalid expression for alias " + alias + " cannot be of both clusters " + previousCluster + " and " + clusterName);
         }
       }
@@ -638,22 +645,19 @@ public class OMatchExecutionPlanner {
         if (previousRid == null) {
           aliasRids.put(alias, rid);
         } else if (!previousRid.equals(rid)) {
-          throw new OCommandExecutionException(
+          throw new PCommandExecutionException(
               "Invalid expression for alias " + alias + " cannot be of both RIDs " + previousRid + " and " + rid);
         }
       }
     }
   }
 
-  private String getLowerSubclass(ODatabase db, String className1, String className2) {
-    OSchema schema = db.getMetadata().getSchema();
-    OClass class1 = schema.getClass(className1);
-    OClass class2 = schema.getClass(className2);
-    if (class1.isSubClassOf(class2)) {
+  private String getLowerSubclass(PDatabase db, String className1, String className2) {
+    PSchema schema = db.getSchema();
+    PDocumentType class1 = schema.getType(className1);
+    PDocumentType class2 = schema.getType(className2);
+    if (class1.equals(class2)) {
       return class1.getName();
-    }
-    if (class2.isSubClassOf(class1)) {
-      return class2.getName();
     }
     return null;
   }
@@ -689,7 +693,7 @@ public class OMatchExecutionPlanner {
     allAliases.addAll(aliasClusters.keySet());
     allAliases.addAll(aliasRids.keySet());
 
-    OSchema schema = ctx.getDatabase().getMetadata().getSchema();
+    PSchema schema = ctx.getDatabase().getSchema();
 
     Map<String, Long> result = new LinkedHashMap<String, Long>();
     for (String alias : allAliases) {
@@ -701,36 +705,36 @@ public class OMatchExecutionPlanner {
       }
 
       if (className != null) {
-        if (!schema.existsClass(className)) {
-          throw new OCommandExecutionException("class not defined: " + className);
+        if (schema.getType(className)==null) {
+          throw new PCommandExecutionException("class not defined: " + className);
         }
-        OClass oClass = schema.getClass(className);
+        PDocumentType oClass = schema.getType(className);
         long upperBound;
         OWhereClause filter = aliasFilters.get(alias);
         if (filter != null) {
           upperBound = filter.estimate(oClass, this.threshold, ctx);
         } else {
-          upperBound = oClass.count();
+          upperBound = ctx.getDatabase().countType(oClass.getName());
         }
         result.put(alias, upperBound);
       } else if (clusterName != null) {
-        ODatabase db = ctx.getDatabase();
-        if (!db.existsCluster(clusterName)) {
-          throw new OCommandExecutionException("cluster not defined: " + clusterName);
+        PDatabase db = ctx.getDatabase();
+        if (db.getSchema().getBucketByName(clusterName)==null) {
+          throw new PCommandExecutionException("cluster not defined: " + clusterName);
         }
-        int clusterId = db.getClusterIdByName(clusterName);
-        OClass oClass = db.getMetadata().getSchema().getClassByClusterId(clusterId);
+        int clusterId = db.getSchema().getBucketByName(clusterName).getId();
+        PDocumentType oClass = db.getSchema().getTypeByBucketId(clusterId);
         if (oClass != null) {
           long upperBound;
           OWhereClause filter = aliasFilters.get(alias);
           if (filter != null) {
-            upperBound = Math.min(db.countClusterElements(clusterName), filter.estimate(oClass, this.threshold, ctx));
+            upperBound = Math.min(db.countBucket(clusterName), filter.estimate(oClass, this.threshold, ctx));
           } else {
-            upperBound = db.countClusterElements(clusterName);
+            upperBound = db.countBucket(clusterName);
           }
           result.put(alias, upperBound);
         } else {
-          result.put(alias, db.countClusterElements(clusterName));
+          result.put(alias, db.countBucket(clusterName));
         }
       } else if (rid != null) {
         result.put(alias, 1L);

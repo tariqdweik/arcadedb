@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OIdentifier;
 
 import java.util.Map;
@@ -37,9 +37,9 @@ public class SaveElementStep extends AbstractExecutionStep {
         OResult result = upstream.next();
         if (result.isElement()) {
           if (cluster == null) {
-            ctx.getDatabase().save(result.getElement().orElse(null));
+            ctx.getDatabase().saveRecord((PModifiableDocument) result.getElement().orElse(null));
           } else {
-            ctx.getDatabase().save(result.getElement().orElse(null), cluster.getStringValue());
+            ctx.getDatabase().saveRecord(result.getElement().orElse(null), cluster.getStringValue());
           }
         }
         return result;

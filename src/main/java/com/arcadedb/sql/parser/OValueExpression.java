@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -94,7 +94,7 @@ public class OValueExpression extends OExpression {
   }
 
   public AggregationContext getAggregationContext(OCommandContext ctx) {
-    throw new OCommandExecutionException("Cannot aggregate on " + toString());
+    throw new PCommandExecutionException("Cannot aggregate on " + toString());
   }
 
   public OValueExpression copy() {
@@ -138,7 +138,7 @@ public class OValueExpression extends OExpression {
   }
 
   public void applyRemove(OResultInternal result, OCommandContext ctx) {
-    throw new OCommandExecutionException("Cannot apply REMOVE " + toString());
+    throw new PCommandExecutionException("Cannot apply REMOVE " + toString());
   }
 
   public boolean isCount() {

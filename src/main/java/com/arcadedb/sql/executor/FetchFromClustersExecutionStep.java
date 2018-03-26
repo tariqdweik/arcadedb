@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.*;
 
@@ -195,7 +193,7 @@ public class FetchFromClustersExecutionStep extends AbstractExecutionStep {
       this.orderByRidAsc = fromResult.getProperty("orderByRidAsc");
       this.orderByRidDesc = fromResult.getProperty("orderByRidDesc");
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 }

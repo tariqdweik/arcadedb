@@ -2,18 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.AggregationContext;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.*;
 
 import java.util.List;
 import java.util.Map;
@@ -85,7 +78,7 @@ public class OExpression extends SimpleNode {
     //from here it's old stuff, only for the old executor
     if (value instanceof ORid) {
       ORid v = (ORid) value;
-      return new ORecordId(v.cluster.getValue().intValue(), v.position.getValue().longValue());
+      return new PRID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
     } else if (value instanceof OMathExpression) {
       return ((OMathExpression) value).execute(iCurrentRecord, ctx);
     } else if (value instanceof OArrayConcatExpression) {
@@ -127,7 +120,7 @@ public class OExpression extends SimpleNode {
     //from here it's old stuff, only for the old executor
     if (value instanceof ORid) {
       ORid v = (ORid) value;
-      return new ORecordId(v.cluster.getValue().intValue(), v.position.getValue().longValue());
+      return new PRID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
     } else if (value instanceof OMathExpression) {
       return ((OMathExpression) value).execute(iCurrentRecord, ctx);
     } else if (value instanceof OArrayConcatExpression) {
@@ -565,7 +558,7 @@ public class OExpression extends SimpleNode {
     if (mathExpression != null) {
       mathExpression.applyRemove(result, ctx);
     } else {
-      throw new OCommandExecutionException("Cannot apply REMOVE " + toString());
+      throw new PCommandExecutionException("Cannot apply REMOVE " + toString());
     }
   }
 
@@ -637,7 +630,7 @@ public class OExpression extends SimpleNode {
     }
   }
 
-  public boolean isDefinedFor(OElement currentRecord) {
+  public boolean isDefinedFor(PRecord currentRecord) {
     if (mathExpression != null) {
       return mathExpression.isDefinedFor(currentRecord);
     } else {

@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OPropertyImpl;
 
 import java.util.Map;
@@ -82,7 +82,7 @@ public class OCreatePropertyAttributeStatement extends SimpleNode {
         internalProp.setMin("" + attrValue);
       } else if (attrName.equalsIgnoreCase("default")) {
         if(this.settingValue==null){
-          throw new OCommandExecutionException("");
+          throw new PCommandExecutionException("");
         }
         internalProp.setDefaultValue("" + attrValue);
       } else if (attrName.equalsIgnoreCase("collate")) {
@@ -90,11 +90,11 @@ public class OCreatePropertyAttributeStatement extends SimpleNode {
       } else if (attrName.equalsIgnoreCase("regexp")) {
         internalProp.setRegexp("" + attrName);
       } else {
-        throw new OCommandExecutionException("Invalid attribute definition: '" + attrName + "'");
+        throw new PCommandExecutionException("Invalid attribute definition: '" + attrName + "'");
       }
     } catch (Exception e) {
       throw OException.wrapException(
-          new OCommandExecutionException("Cannot set attribute on property " + settingName.getStringValue() + " " + attrValue), e);
+          new PCommandExecutionException("Cannot set attribute on property " + settingName.getStringValue() + " " + attrValue), e);
     }
     return attrValue;
   }

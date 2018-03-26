@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.sql.parser.*;
 
 import java.util.*;
@@ -61,8 +61,8 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
           if (nextSteps instanceof Collection) {
             ((Collection) nextSteps).stream().map(x -> toOResultInternal(x)).filter(Objects::nonNull)
                 .forEach(i -> rightSide.add((OResultInternal) i));
-          } else if (nextSteps instanceof PIdentifiable) {
-            rightSide.add(new OResultInternal((PIdentifiable) nextSteps));
+          } else if (nextSteps instanceof PRecord) {
+            rightSide.add(new OResultInternal((PRecord) nextSteps));
           } else if (nextSteps instanceof OResultInternal) {
             rightSide.add((OResultInternal) nextSteps);
           } else if (nextSteps instanceof Iterable) {
@@ -96,9 +96,9 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     if (x instanceof OResultInternal) {
       return (OResultInternal) x;
     }
-    if (x instanceof PIdentifiable) {
-      return new OResultInternal((PIdentifiable) x);
+    if (x instanceof PRecord) {
+      return new OResultInternal((PRecord) x);
     }
-    throw new OCommandExecutionException("Cannot execute traversal on " + x);
+    throw new PCommandExecutionException("Cannot execute traversal on " + x);
   }
 }

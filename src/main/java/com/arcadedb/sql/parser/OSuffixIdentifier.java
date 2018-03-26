@@ -2,18 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.id.OContextualRecordId;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.executor.AggregationContext;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.*;
 
 import java.util.*;
 
@@ -67,18 +60,12 @@ public class OSuffixIdentifier extends SimpleNode {
       }
 
       if (iCurrentRecord != null) {
-        if (iCurrentRecord instanceof OContextualRecordId) {
-          Map<String, Object> meta = ((OContextualRecordId) iCurrentRecord).getContext();
-          if (meta != null && meta.containsKey(varName)) {
-            return meta.get(varName);
-          }
-        }
-        return ((OElement) iCurrentRecord.getRecord()).getProperty(varName);
+        return ((PRecord) iCurrentRecord.getRecord()).get(varName);
       }
       return null;
     }
     if (recordAttribute != null) {
-      return ((OElement) iCurrentRecord.getRecord()).getProperty(recordAttribute.name);
+      return ((PRecord) iCurrentRecord.getRecord()).get(recordAttribute.name);
     }
     return null;
   }
@@ -320,19 +307,19 @@ public class OSuffixIdentifier extends SimpleNode {
     if (target == null) {
       return;
     }
-    OElement doc = null;
-    if (target instanceof OElement) {
-      doc = (OElement) target;
+    PModifiableDocument doc = null;
+    if (target instanceof PModifiableDocument) {
+      doc = (PModifiableDocument) target;
     } else {
-      ORecord rec = target.getRecord();
-      if (rec instanceof OElement) {
-        doc = (OElement) rec;
+      PRecord rec = target.getRecord();
+      if (rec instanceof PRecord) {
+        doc = (PModifiableDocument) rec;
       }
     }
     if (doc != null) {
-      doc.setProperty(identifier.getStringValue(), value);
+      doc.set(identifier.getStringValue(), value);
     } else {
-      throw new OCommandExecutionException("Cannot set record attribute " + recordAttribute + " on existing document");
+      throw new PCommandExecutionException("Cannot set record attribute " + recordAttribute + " on existing document");
     }
   }
 
@@ -359,7 +346,7 @@ public class OSuffixIdentifier extends SimpleNode {
         intTarget.setProperty(recordAttribute.getName(), value);
       }
     } else {
-      throw new OCommandExecutionException("Cannot set property on unmodifiable target: " + target);
+      throw new PCommandExecutionException("Cannot set property on unmodifiable target: " + target);
     }
   }
 
@@ -370,8 +357,8 @@ public class OSuffixIdentifier extends SimpleNode {
     if (identifier != null) {
       if (currentValue instanceof OResultInternal) {
         ((OResultInternal) currentValue).removeProperty(identifier.getStringValue());
-      } else if (currentValue instanceof OElement) {
-        ((OElement) currentValue).removeProperty(identifier.getStringValue());
+      } else if (currentValue instanceof PModifiableDocument) {
+        ((PModifiableDocument) currentValue).set(identifier.getStringValue(), null);
       } else if (currentValue instanceof Map) {
         ((Map) currentValue).remove(identifier.getStringValue());
       }
@@ -409,18 +396,18 @@ public class OSuffixIdentifier extends SimpleNode {
     return true;
   }
 
-  public boolean isDefinedFor(OElement currentRecord) {
+  public boolean isDefinedFor(PRecord currentRecord) {
     if (identifier != null) {
-      return ((ODocument) currentRecord.getRecord()).containsField(identifier.getStringValue());
+      return ((PRecord) currentRecord.getRecord()).getPropertyNames().contains(identifier.getStringValue());
     }
     return true;
   }
 
   public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
-    if (identifier != null) {
-      return currentRecord.getRecord().map(x -> (OElement) x).flatMap(elem -> elem.getSchemaType())
-          .map(clazz -> clazz.getProperty(identifier.getStringValue())).map(prop -> prop.getCollate()).orElse(null);
-    }
+//    if (identifier != null) {
+//      return currentRecord.getRecord().map(x -> (PRecord) x).ap(elem -> elem.getType())
+//          .map(clazz -> clazz.getProperty(identifier.getStringValue())).map(prop -> prop.getCollate()).orElse(null);
+//    }
     return null;
   }
 

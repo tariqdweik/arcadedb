@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
@@ -217,7 +217,7 @@ public class OAlterClassStatement extends ODDLStatement {
   public OResultSet executeDDL(OCommandContext ctx) {
     OClass oClass = ctx.getDatabase().getMetadata().getSchema().getClass(name.getStringValue());
     if (oClass == null) {
-      throw new OCommandExecutionException("Class not found: " + name);
+      throw new PCommandExecutionException("Class not found: " + name);
     }
     if (property != null) {
       switch (property) {
@@ -229,7 +229,7 @@ public class OAlterClassStatement extends ODDLStatement {
         try {
           oClass.setName(identifierValue.getStringValue());
         } catch (Exception e) {
-          OException x = OException.wrapException(new OCommandExecutionException("Invalid class name: " + toString()), e);
+          OException x = OException.wrapException(new PCommandExecutionException("Invalid class name: " + toString()), e);
           throw x;
         }
         break;
@@ -238,11 +238,11 @@ public class OAlterClassStatement extends ODDLStatement {
           try {
             oClass.setShortName(identifierValue.getStringValue());
           } catch (Exception e) {
-            OException x = OException.wrapException(new OCommandExecutionException("Invalid class name: " + toString()), e);
+            OException x = OException.wrapException(new PCommandExecutionException("Invalid class name: " + toString()), e);
             throw x;
           }
         } else {
-          throw new OCommandExecutionException("Invalid class name: " + toString());
+          throw new PCommandExecutionException("Invalid class name: " + toString());
         }
         break;
       case ADDCLUSTER:
@@ -251,7 +251,7 @@ public class OAlterClassStatement extends ODDLStatement {
         } else if (numberValue != null) {
           oClass.addClusterId(numberValue.getValue().intValue());
         } else {
-          throw new OCommandExecutionException("Invalid cluster value: " + toString());
+          throw new PCommandExecutionException("Invalid cluster value: " + toString());
         }
         break;
       case REMOVECLUSTER:
@@ -259,12 +259,12 @@ public class OAlterClassStatement extends ODDLStatement {
         if (identifierValue != null) {
           clusterId = ctx.getDatabase().getClusterIdByName(identifierValue.getStringValue());
           if (clusterId < 0) {
-            throw new OCommandExecutionException("Cluster not found: " + toString());
+            throw new PCommandExecutionException("Cluster not found: " + toString());
           }
         } else if (numberValue != null) {
           clusterId = numberValue.getValue().intValue();
         } else {
-          throw new OCommandExecutionException("Invalid cluster value: " + toString());
+          throw new PCommandExecutionException("Invalid cluster value: " + toString());
         }
         oClass.removeClusterId(clusterId);
         break;
@@ -272,7 +272,7 @@ public class OAlterClassStatement extends ODDLStatement {
         if (identifierValue != null) {
           oClass.setDescription(identifierValue.getStringValue());
         } else {
-          throw new OCommandExecutionException("Invalid class name: " + toString());
+          throw new PCommandExecutionException("Invalid class name: " + toString());
         }
         break;
       case ENCRYPTION:
@@ -335,25 +335,25 @@ public class OAlterClassStatement extends ODDLStatement {
   private void checkNotIndexed(OClass oClass) {
     Set<OIndex<?>> indexes = oClass.getIndexes();
     if (indexes != null && indexes.size() > 0) {
-      throw new OCommandExecutionException("Cannot rename class '" + oClass.getName()
+      throw new PCommandExecutionException("Cannot rename class '" + oClass.getName()
           + "' because it has indexes defined on it. Drop indexes before or use UNSAFE (at your won risk)");
     }
   }
 
   private void checkNotEdge(OClass oClass) {
     if (oClass.isSubClassOf("E")) {
-      throw new OCommandExecutionException("Cannot alter class '" + oClass
+      throw new PCommandExecutionException("Cannot alter class '" + oClass
           + "' because is an Edge class and could break vertices. Use UNSAFE if you want to force it");
     }
   }
 
   private void doSetSuperclass(OCommandContext ctx, OClass oClass, OIdentifier superclassName) {
     if (superclassName == null) {
-      throw new OCommandExecutionException("Invalid superclass name: " + toString());
+      throw new PCommandExecutionException("Invalid superclass name: " + toString());
     }
     OClass superclass = ctx.getDatabase().getMetadata().getSchema().getClass(superclassName.getStringValue());
     if (superclass == null) {
-      throw new OCommandExecutionException("superclass not found: " + toString());
+      throw new PCommandExecutionException("superclass not found: " + toString());
     }
     if (Boolean.TRUE.equals(add)) {
       oClass.addSuperClass(superclass);
@@ -366,13 +366,13 @@ public class OAlterClassStatement extends ODDLStatement {
 
   private void doSetSuperclasses(OCommandContext ctx, OClass oClass, List<OIdentifier> superclassNames) {
     if (superclassNames == null) {
-      throw new OCommandExecutionException("Invalid superclass name: " + toString());
+      throw new PCommandExecutionException("Invalid superclass name: " + toString());
     }
     List<OClass> superclasses = new ArrayList<>();
     for (OIdentifier superclassName : superclassNames) {
       OClass superclass = ctx.getDatabase().getMetadata().getSchema().getClass(superclassName.getStringValue());
       if (superclass == null) {
-        throw new OCommandExecutionException("superclass not found: " + toString());
+        throw new PCommandExecutionException("superclass not found: " + toString());
       }
       superclasses.add(superclass);
     }

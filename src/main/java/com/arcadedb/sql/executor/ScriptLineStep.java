@@ -1,7 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.exception.PTimeoutException;
 
 /**
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)

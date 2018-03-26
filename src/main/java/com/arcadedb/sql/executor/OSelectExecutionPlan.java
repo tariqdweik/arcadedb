@@ -1,8 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -112,7 +110,7 @@ public class OSelectExecutionPlan implements OInternalExecutionPlan {
         step.deserialize(serializedStep);
         chain(step);
       } catch (Exception e) {
-        throw OException.wrapException(new OCommandExecutionException("Cannot deserialize execution step:" + serializedStep), e);
+        throw new PCommandExecutionException("Cannot deserialize execution step:" + serializedStep, e);
       }
     }
   }

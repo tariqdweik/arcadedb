@@ -1,11 +1,10 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.id.ORecordId;
+import com.arcadedb.database.PRID;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,13 +13,13 @@ import java.util.stream.Collectors;
  * Created by luigidellaquila on 22/07/16.
  */
 public class FetchFromRidsStep extends AbstractExecutionStep {
-  private Collection<ORecordId> rids;
+  private Collection<PRID> rids;
 
-  private Iterator<ORecordId> iterator;
+  private Iterator<PRID> iterator;
 
   private OResult nextResult = null;
 
-  public FetchFromRidsStep(Collection<ORecordId> rids, OCommandContext ctx, boolean profilingEnabled) {
+  public FetchFromRidsStep(Collection<PRID> rids, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.rids = rids;
     reset();
@@ -42,16 +41,16 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
           return;
         }
         while (iterator.hasNext()) {
-          ORecordId nextRid = iterator.next();
+          PRID nextRid = iterator.next();
           if (nextRid == null) {
             continue;
           }
-          PIdentifiable nextDoc = (PIdentifiable) ctx.getDatabase().load(nextRid);
+          PIdentifiable nextDoc = (PIdentifiable) ctx.getDatabase().lookupByRID(nextRid, true);
           if (nextDoc == null) {
             continue;
           }
           nextResult = new OResultInternal();
-          ((OResultInternal) nextResult).setElement(nextDoc);
+          ((OResultInternal) nextResult).setElement((PRecord) nextDoc);
           return;
         }
         return;
@@ -118,11 +117,12 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
       if (fromResult.getProperty("rids") != null) {
         List<String> ser = fromResult.getProperty("rids");
-        rids = ser.stream().map(x -> new ORecordId(x)).collect(Collectors.toList());
+        throw new UnsupportedOperationException();
+//        rids = ser.stream().map(x -> new PRID(x)).collect(Collectors.toList());
       }
       reset();
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 }

@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -31,7 +31,7 @@ public class ORevokeStatement extends OSimpleExecStatement {
   @Override public OResultSet executeSimple(OCommandContext ctx) {
     ORole role = getDatabase().getMetadata().getSecurity().getRole(actor.getStringValue());
     if (role == null)
-      throw new OCommandExecutionException("Invalid role: " + actor.getStringValue());
+      throw new PCommandExecutionException("Invalid role: " + actor.getStringValue());
 
     String resourcePath = toResourcePath(resourceChain, ctx);
     role.revoke(resourcePath, toPrivilege(permission.permission));
@@ -78,7 +78,7 @@ public class ORevokeStatement extends OSimpleExecStatement {
     else if ("NONE".equals(privilegeName))
       privilege = ORole.PERMISSION_NONE;
     else
-      throw new OCommandExecutionException("Unrecognized privilege '" + privilegeName + "'");
+      throw new PCommandExecutionException("Unrecognized privilege '" + privilegeName + "'");
     return privilege;
   }
 

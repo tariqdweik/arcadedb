@@ -1,8 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OJson;
 
 import java.util.Map;
@@ -30,17 +29,18 @@ public class UpdateMergeStep extends AbstractExecutionStep {
 
       @Override
       public OResult next() {
-        OResult result = upstream.next();
-        if (result instanceof OResultInternal) {
-          if (!(result.getElement().orElse(null) instanceof ODocument)) {
-            ((OResultInternal) result).setElement(result.getElement().get().getRecord());
-          }
-          if (!(result.getElement().orElse(null) instanceof ODocument)) {
-            return result;
-          }
-          handleMerge((ODocument) result.getElement().orElse(null), ctx);
-        }
-        return result;
+        throw new UnsupportedOperationException();
+//        OResult result = upstream.next();
+//        if (result instanceof OResultInternal) {
+//          if (!(result.getElement().orElse(null) instanceof ODocument)) {
+//            ((OResultInternal) result).setElement(result.getElement().get().getRecord());
+//          }
+//          if (!(result.getElement().orElse(null) instanceof ODocument)) {
+//            return result;
+//          }
+//          handleMerge((ODocument) result.getElement().orElse(null), ctx);
+//        }
+//        return result;
       }
 
       @Override
@@ -60,8 +60,9 @@ public class UpdateMergeStep extends AbstractExecutionStep {
     };
   }
 
-  private void handleMerge(ODocument record, OCommandContext ctx) {
-    record.merge(json.toDocument(record, ctx), true, false);
+  private void handleMerge(PRecord record, OCommandContext ctx) {
+    throw new UnsupportedOperationException();
+//    record.merge(json.toDocument(record, ctx), true, false);
   }
 
   @Override

@@ -4,7 +4,7 @@ import com.orientechnologies.common.collection.OMultiValue;
 import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.arcadedb.sql.parser.*;
 
@@ -45,11 +45,11 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
         //TODO
         OIndex<?> index = ctx.getDatabase().getMetadata().getIndexManager().getIndex(targetIndex.getIndexName());
         if (index == null) {
-          throw new OCommandExecutionException("Index not found: " + targetIndex);
+          throw new PCommandExecutionException("Index not found: " + targetIndex);
         }
         List<OInsertSetExpression> setExps = body.getSetExpressions();
         if (body.getContent() != null) {
-          throw new OCommandExecutionException("Invalid expression: INSERT INTO INDEX:... CONTENT ...");
+          throw new PCommandExecutionException("Invalid expression: INSERT INTO INDEX:... CONTENT ...");
         }
         int count;
         if (setExps != null) {
@@ -69,12 +69,12 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
         OExpression keyExp = null;
         OExpression valueExp = null;
         if (identifierList == null || setExpressions == null) {
-          throw new OCommandExecutionException("Invalid insert expression");
+          throw new PCommandExecutionException("Invalid insert expression");
         }
         int count = 0;
         for (List<OExpression> valList : setExpressions) {
           if (identifierList.size() != valList.size()) {
-            throw new OCommandExecutionException("Invalid insert expression");
+            throw new PCommandExecutionException("Invalid insert expression");
           }
           for (int i = 0; i < identifierList.size(); i++) {
             OIdentifier key = identifierList.get(i);
@@ -88,7 +88,7 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
           count += doExecute(index, ctx, keyExp, valueExp);
         }
         if (keyExp == null || valueExp == null) {
-          throw new OCommandExecutionException("Invalid insert expression");
+          throw new PCommandExecutionException("Invalid insert expression");
         }
         return count;
       }
@@ -102,11 +102,11 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
           } else if (exp.getLeft().getStringValue().equalsIgnoreCase("rid")) {
             valueExp = exp.getRight();
           } else {
-            throw new OCommandExecutionException("Cannot set " + exp + " on index");
+            throw new PCommandExecutionException("Cannot set " + exp + " on index");
           }
         }
         if (keyExp == null || valueExp == null) {
-          throw new OCommandExecutionException("Invalid insert expression");
+          throw new PCommandExecutionException("Invalid insert expression");
         }
         return doExecute(index, ctx, keyExp, valueExp);
       }
@@ -134,7 +134,7 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
               index.put(key, ((OResult) value).getElement().get());
               count++;
             } else {
-              throw new OCommandExecutionException("Cannot insert into index " + value);
+              throw new PCommandExecutionException("Cannot insert into index " + value);
             }
           }
         }

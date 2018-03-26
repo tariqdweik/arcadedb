@@ -12,7 +12,7 @@ import com.arcadedb.schema.PSchema;
  * </p>
  * <p>
  * It accepts two values: a target class and a parent class. If the two classes are the same or if the parent class is indeed
- * a parent class of the target class, then the syncPool() returns an empty result set, otherwise it throws an OCommandExecutionException
+ * a parent class of the target class, then the syncPool() returns an empty result set, otherwise it throws an PCommandExecutionException
  * </p>
  * @author Luigi Dell'Aquila (luigi.dellaquila - at - orientdb.com)
  */

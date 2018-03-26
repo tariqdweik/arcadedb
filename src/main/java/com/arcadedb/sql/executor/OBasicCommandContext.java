@@ -19,12 +19,7 @@
  */
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.record.impl.ODocumentHelper;
-import com.orientechnologies.orient.core.serialization.serializer.OStringSerializerHelper;
+import com.arcadedb.database.PDatabase;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,7 +39,7 @@ public class OBasicCommandContext implements OCommandContext {
   public static final String TIMEOUT_STRATEGY      = "TIMEOUT_STARTEGY";
   public static final String INVALID_COMPARE_COUNT = "INVALID_COMPARE_COUNT";
 
-  protected ODatabase database;
+  protected PDatabase database;
   protected Object[]  args;
 
   protected boolean recordMetrics = false;
@@ -55,9 +50,11 @@ public class OBasicCommandContext implements OCommandContext {
   protected Map<Object, Object> inputParameters;
 
   // MANAGES THE TIMEOUT
-  private long                                                                       executionStartedOn;
-  private long                                                                       timeoutMs;
-  private com.orientechnologies.orient.core.command.OCommandContext.TIMEOUT_STRATEGY timeoutStrategy;
+  private long executionStartedOn;
+  private long timeoutMs;
+
+//  private com.orientechnologies.orient.core.command.OCommandContext.TIMEOUT_STRATEGY timeoutStrategy;
+
   protected AtomicLong  resultsProcessed = new AtomicLong(0);
   protected Set<Object> uniqueResult     = new HashSet<Object>();
 
@@ -77,7 +74,7 @@ public class OBasicCommandContext implements OCommandContext {
     if (iName.startsWith("$"))
       iName = iName.substring(1);
 
-    int pos = OStringSerializerHelper.getLowerIndexOf(iName, 0, ".", "[");
+    int pos = getLowerIndexOf(iName, 0, ".", "[");
 
     String firstPart;
     String lastPart;
@@ -91,7 +88,8 @@ public class OBasicCommandContext implements OCommandContext {
         if (lastPart.startsWith("$"))
           result = parent.getVariable(lastPart.substring(1));
         else
-          result = ODocumentHelper.getFieldValue(parent, lastPart);
+//          result = ODocumentHelper.getFieldValue(parent, lastPart);
+          result = parent.getVariable(lastPart);
 
         return result != null ? result : iDefault;
 
@@ -103,7 +101,8 @@ public class OBasicCommandContext implements OCommandContext {
         if (lastPart.startsWith("$"))
           result = p.getVariable(lastPart.substring(1));
         else
-          result = ODocumentHelper.getFieldValue(p, lastPart, this);
+//          result = ODocumentHelper.getFieldValue(p, lastPart, this);
+          result = p.getVariable(lastPart);
 
         return result != null ? result : iDefault;
       }
@@ -132,8 +131,11 @@ public class OBasicCommandContext implements OCommandContext {
       }
     }
 
-    if (pos > -1)
-      result = ODocumentHelper.getFieldValue(result, lastPart, this);
+    if (pos > -1) {
+      throw new UnsupportedOperationException();
+      //TODO!
+//      result = ODocumentHelper.getFieldValue(result, lastPart, this);
+    }
 
     return result != null ? result : iDefault;
   }
@@ -157,7 +159,7 @@ public class OBasicCommandContext implements OCommandContext {
 
     init();
 
-    int pos = OStringSerializerHelper.getHigherIndexOf(iName, 0, ".", "[");
+    int pos = getHigherIndexOf(iName, 0, ".", "[");
     if (pos > -1) {
       Object nested = getVariable(iName.substring(0, pos));
       if (nested != null && nested instanceof OCommandContext)
@@ -184,14 +186,15 @@ public class OBasicCommandContext implements OCommandContext {
     return false;
   }
 
-  @Override public OCommandContext incrementVariable(String iName) {
+  @Override
+  public OCommandContext incrementVariable(String iName) {
     if (iName != null) {
       if (iName.startsWith("$"))
         iName = iName.substring(1);
 
       init();
 
-      int pos = OStringSerializerHelper.getHigherIndexOf(iName, 0, ".", "[");
+      int pos = getHigherIndexOf(iName, 0, ".", "[");
       if (pos > -1) {
         Object nested = getVariable(iName.substring(0, pos));
         if (nested != null && nested instanceof OCommandContext)
@@ -201,7 +204,7 @@ public class OBasicCommandContext implements OCommandContext {
         if (v == null)
           variables.put(iName, 1);
         else if (v instanceof Number)
-          variables.put(iName, OType.increment((Number) v, 1));
+          variables.put(iName, ((Number) v).longValue() + 1);
         else
           throw new IllegalArgumentException("Variable '" + iName + "' is not a number, but: " + v.getClass());
       }
@@ -278,7 +281,8 @@ public class OBasicCommandContext implements OCommandContext {
     return this;
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return getVariables().toString();
   }
 
@@ -291,33 +295,37 @@ public class OBasicCommandContext implements OCommandContext {
     return this;
   }
 
-  @Override public void beginExecution(final long iTimeout, final TIMEOUT_STRATEGY iStrategy) {
+  @Override
+  public void beginExecution(final long iTimeout, final TIMEOUT_STRATEGY iStrategy) {
     if (iTimeout > 0) {
       executionStartedOn = System.currentTimeMillis();
       timeoutMs = iTimeout;
-      timeoutStrategy = iStrategy;
+//      timeoutStrategy = iStrategy;
     }
   }
 
   public boolean checkTimeout() {
-    if (timeoutMs > 0) {
-      if (System.currentTimeMillis() - executionStartedOn > timeoutMs) {
-        // TIMEOUT!
-        switch (timeoutStrategy) {
-        case RETURN:
-          return false;
-        case EXCEPTION:
-          throw new PTimeoutException("Command execution timeout exceed (" + timeoutMs + "ms)");
-        }
-      }
-    } else if (parent != null)
-      // CHECK THE TIMER OF PARENT CONTEXT
-      return parent.checkTimeout();
+//    if (timeoutMs > 0) {
+//      if (System.currentTimeMillis() - executionStartedOn > timeoutMs) {
+//        // TIMEOUT!
+//        switch (timeoutStrategy) {
+//        case RETURN:
+//          return false;
+//        case EXCEPTION:
+//          throw new PTimeoutException("Command execution timeout exceed (" + timeoutMs + "ms)");
+//        }
+//      }
+//    } else if (parent != null)
+//      // CHECK THE TIMER OF PARENT CONTEXT
+//      return parent.checkTimeout();
+
+    //TODO
 
     return true;
   }
 
-  @Override public OCommandContext copy() {
+  @Override
+  public OCommandContext copy() {
     final OBasicCommandContext copy = new OBasicCommandContext();
     copy.init();
 
@@ -330,7 +338,8 @@ public class OBasicCommandContext implements OCommandContext {
     return copy;
   }
 
-  @Override public void merge(final OCommandContext iContext) {
+  @Override
+  public void merge(final OCommandContext iContext) {
     // TODO: SOME VALUES NEED TO BE MERGED
   }
 
@@ -365,17 +374,19 @@ public class OBasicCommandContext implements OCommandContext {
    * adds an item to the unique result set
    *
    * @param o the result item to add
+   *
    * @return true if the element is successfully added (it was not present yet), false otherwise (it was already present)
    */
   public synchronized boolean addToUniqueResult(Object o) {
     Object toAdd = o;
-    if (o instanceof ODocument && ((ODocument) o).getIdentity().isNew()) {
-      toAdd = new ODocumentEqualityWrapper((ODocument) o);
-    }
+    //TODO
+//    if (o instanceof PRecord && ((PRecord) o).getIdentity().isNew()) {
+//      toAdd = new ODocumentEqualityWrapper((PRecord) o);
+//    }
     return this.uniqueResult.add(toAdd);
   }
 
-  public ODatabase getDatabase() {
+  public PDatabase getDatabase() {
     if (database != null) {
       return database;
     }
@@ -385,7 +396,57 @@ public class OBasicCommandContext implements OCommandContext {
     return null;
   }
 
-  public void setDatabase(ODatabase database) {
+  public void setDatabase(PDatabase database) {
     this.database = database;
+  }
+
+  public static int getLowerIndexOf(final String iText, final int iBeginOffset, final String... iToSearch) {
+    int lowest = -1;
+    for (String toSearch : iToSearch) {
+      boolean singleQuote = false;
+      boolean doubleQuote = false;
+      boolean backslash = false;
+      for (int i = iBeginOffset; i < iText.length(); i++) {
+        if (lowest == -1 || i < lowest) {
+          if (backslash && (iText.charAt(i) == '\'' || iText.charAt(i) == '"')) {
+            backslash = false;
+            continue;
+          }
+          if (iText.charAt(i) == '\\') {
+            backslash = true;
+            continue;
+          }
+          if (iText.charAt(i) == '\'' && !doubleQuote) {
+            singleQuote = !singleQuote;
+            continue;
+          }
+          if (iText.charAt(i) == '"' && !singleQuote) {
+            singleQuote = !singleQuote;
+            continue;
+          }
+
+          if (!singleQuote && !doubleQuote && iText.startsWith(toSearch, i)) {
+            lowest = i;
+          }
+        }
+      }
+    }
+
+    // for (String toSearch : iToSearch) {
+    // int index = iText.indexOf(toSearch, iBeginOffset);
+    // if (index > -1 && (lowest == -1 || index < lowest))
+    // lowest = index;
+    // }
+    return lowest;
+  }
+
+  public static int getHigherIndexOf(final String iText, final int iBeginOffset, final String... iToSearch) {
+    int lowest = -1;
+    for (String toSearch : iToSearch) {
+      int index = iText.indexOf(toSearch, iBeginOffset);
+      if (index > -1 && (lowest == -1 || index > lowest))
+        lowest = index;
+    }
+    return lowest;
   }
 }

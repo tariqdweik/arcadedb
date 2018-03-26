@@ -3,9 +3,9 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.engine.PIndex;
-import com.arcadedb.schema.PType;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.index.PIndex;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
@@ -33,7 +33,7 @@ public class OWhereClause extends SimpleNode {
     return visitor.visit(this, data);
   }
 
-  public boolean matchesFilters(PRecord currentRecord, OCommandContext ctx) {
+  public boolean matchesFilters(PIdentifiable currentRecord, OCommandContext ctx) {
     if (baseExpression == null) {
       return true;
     }
@@ -62,7 +62,7 @@ public class OWhereClause extends SimpleNode {
    * @return an estimation of the number of records of this class returned applying this filter, 0 if and only if sure that no
    * records are returned
    */
-  public long estimate(PType oClass, long threshold, OCommandContext ctx) {
+  public long estimate(PDocumentType oClass, long threshold, OCommandContext ctx) {
 //    long count = oClass.count();
 //    if (count > 1) {
 //      count = count / 2;
@@ -171,7 +171,7 @@ public class OWhereClause extends SimpleNode {
     return Long.MAX_VALUE;
   }
 
-  public Iterable fetchFromIndexes(PType oClass, OCommandContext ctx) {
+  public Iterable fetchFromIndexes(PDocumentType oClass, OCommandContext ctx) {
 
       //TODO
       throw new UnsupportedOperationException("TODO");
@@ -223,7 +223,7 @@ public class OWhereClause extends SimpleNode {
 //    return result;
   }
 
-  private Iterable fetchFromIndex(PType index, Map<String, Object> conditions) {
+  private Iterable fetchFromIndex(PDocumentType index, Map<String, Object> conditions) {
       //TODO
 //    OIndexDefinition definition = index.getDefinition();
 //    List<String> definitionFields = definition.getFields();
@@ -262,7 +262,7 @@ public class OWhereClause extends SimpleNode {
     return null;
   }
 
-  private Object convert(Object o, PType oType) {
+  private Object convert(Object o, PDocumentType oType) {
     return o;
     //TODO
 //    return PType.convert(o, oType.getDefaultJavaType());
@@ -295,7 +295,7 @@ public class OWhereClause extends SimpleNode {
 
   }
 
-  public List<OBinaryCondition> getIndexedFunctionConditions(PType iSchemaClass, PDatabase database) {
+  public List<OBinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, PDatabase database) {
     if (baseExpression == null) {
       return null;
     }

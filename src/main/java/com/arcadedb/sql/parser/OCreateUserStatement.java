@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
@@ -87,7 +87,7 @@ public class OCreateUserStatement extends OSimpleExecStatement {
       String roleName = this.roles.get(i).getStringValue();
       ORole role = security.getRole(roleName);
       if (role == null) {
-        throw new OCommandExecutionException("Cannot create user " + this.name + ": role " + roleName + " does not exist");
+        throw new PCommandExecutionException("Cannot create user " + this.name + ": role " + roleName + " does not exist");
       }
       if (i > 0) {
         sb.append(", ");

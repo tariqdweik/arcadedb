@@ -1,6 +1,5 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.sql.parser.OWhereClause;
 
 import java.util.ArrayList;

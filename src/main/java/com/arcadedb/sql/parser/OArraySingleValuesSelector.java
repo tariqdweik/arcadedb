@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.collection.OMultiValue;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -169,7 +169,7 @@ public class OArraySingleValuesSelector extends SimpleNode {
         }
       }
     } else {
-      throw new OCommandExecutionException(
+      throw new PCommandExecutionException(
           "Trying to remove elements from " + currentValue + " (" + currentValue.getClass().getSimpleName() + ")");
     }
 

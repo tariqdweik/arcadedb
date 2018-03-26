@@ -6,7 +6,7 @@ import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.cache.OCommandCache;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.OMetadataInternal;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
@@ -37,16 +37,16 @@ public class OTruncateClassStatement extends ODDLStatement {
     OSchema schema = db.getMetadata().getSchema();
     OClass clazz = schema.getClass(className.getStringValue());
     if (clazz == null) {
-      throw new OCommandExecutionException("Schema Class not found: " + className);
+      throw new PCommandExecutionException("Schema Class not found: " + className);
     }
 
     final long recs = clazz.count(polymorphic);
     if (recs > 0 && !unsafe) {
       if (clazz.isSubClassOf("V")) {
-        throw new OCommandExecutionException(
+        throw new PCommandExecutionException(
             "'TRUNCATE CLASS' command cannot be used on not empty vertex classes. Apply the 'UNSAFE' keyword to force it (at your own risk)");
       } else if (clazz.isSubClassOf("E")) {
-        throw new OCommandExecutionException(
+        throw new PCommandExecutionException(
             "'TRUNCATE CLASS' command cannot be used on not empty edge classes. Apply the 'UNSAFE' keyword to force it (at your own risk)");
       }
     }
@@ -59,11 +59,11 @@ public class OTruncateClassStatement extends ODDLStatement {
         long subclassRecs = clazz.count();
         if (subclassRecs > 0) {
           if (subclass.isSubClassOf("V")) {
-            throw new OCommandExecutionException(
+            throw new PCommandExecutionException(
                 "'TRUNCATE CLASS' command cannot be used on not empty vertex classes (" + subclass.getName()
                     + "). Apply the 'UNSAFE' keyword to force it (at your own risk)");
           } else if (subclass.isSubClassOf("E")) {
-            throw new OCommandExecutionException(
+            throw new PCommandExecutionException(
                 "'TRUNCATE CLASS' command cannot be used on not empty edge classes (" + subclass.getName()
                     + "). Apply the 'UNSAFE' keyword to force it (at your own risk)");
           }
@@ -89,7 +89,7 @@ public class OTruncateClassStatement extends ODDLStatement {
         }
       }
     } catch (IOException e) {
-      throw OException.wrapException(new OCommandExecutionException("Error on executing command"), e);
+      throw OException.wrapException(new PCommandExecutionException("Error on executing command"), e);
     }
 
 

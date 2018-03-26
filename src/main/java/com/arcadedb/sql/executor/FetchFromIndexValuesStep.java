@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.index.OIndex;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.index.PIndex;
 
 /**
  * Created by luigidellaquila on 02/08/16.
@@ -12,7 +10,7 @@ public class FetchFromIndexValuesStep extends FetchFromIndexStep {
 
   private boolean asc;
 
-  public FetchFromIndexValuesStep(OIndex<?> index, boolean asc, OCommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexValuesStep(PIndex index, boolean asc, OCommandContext ctx, boolean profilingEnabled) {
     super(index, null, null, ctx, profilingEnabled);
     this.asc = asc;
   }
@@ -44,7 +42,7 @@ public class FetchFromIndexValuesStep extends FetchFromIndexStep {
       super.deserialize(fromResult);
       this.asc = fromResult.getProperty("asc");
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 

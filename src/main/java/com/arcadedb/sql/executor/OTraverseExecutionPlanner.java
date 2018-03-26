@@ -1,17 +1,11 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.sql.parser.*;
-import com.orientechnologies.orient.core.command.OBasicCommandContext;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.db.ODatabaseInternal;
+import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.id.ORID;
-import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.sql.OCommandExecutorSQLAbstract;
+import com.arcadedb.database.PRID;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.index.PIndex;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.parser.*;
 
 import java.util.ArrayList;
@@ -95,7 +89,7 @@ public class OTraverseExecutionPlanner {
       handleSubqueryAsTarget(result, target.getStatement(), ctx, profilingEnabled);
     } else if (target.getFunctionCall() != null) {
       //        handleFunctionCallAsTarget(result, target.getFunctionCall(), ctx);//TODO
-      throw new OCommandExecutionException("function call as target is not supported yet");
+      throw new PCommandExecutionException("function call as target is not supported yet");
     } else if (target.getInputParam() != null) {
       handleInputParamAsTarget(result, target.getInputParam(), ctx, profilingEnabled);
     } else if (target.getIndex() != null) {
@@ -114,11 +108,11 @@ public class OTraverseExecutionPlanner {
     Object paramValue = inputParam.getValue(ctx.getInputParameters());
     if (paramValue == null) {
       result.chain(new EmptyStep(ctx, profilingEnabled));//nothing to return
-    } else if (paramValue instanceof OClass) {
+    } else if (paramValue instanceof PDocumentType) {
       OFromClause from = new OFromClause(-1);
       OFromItem item = new OFromItem(-1);
       from.setItem(item);
-      item.setIdentifier(new OIdentifier(((OClass) paramValue).getName()));
+      item.setIdentifier(new OIdentifier(((PDocumentType) paramValue).getName()));
       handleClassAsTarget(result, from, ctx, profilingEnabled);
     } else if (paramValue instanceof String) {
       //strings are treated as classes
@@ -128,13 +122,13 @@ public class OTraverseExecutionPlanner {
       item.setIdentifier(new OIdentifier((String) paramValue));
       handleClassAsTarget(result, from, ctx, profilingEnabled);
     } else if (paramValue instanceof PIdentifiable) {
-      ORID orid = ((PIdentifiable) paramValue).getIdentity();
+      PRID orid = ((PIdentifiable) paramValue).getIdentity();
 
       ORid rid = new ORid(-1);
       OInteger cluster = new OInteger(-1);
-      cluster.setValue(orid.getClusterId());
+      cluster.setValue(orid.getBucketId());
       OInteger position = new OInteger(-1);
-      position.setValue(orid.getClusterPosition());
+      position.setValue(orid.getPosition());
       rid.setLegacy(true);
       rid.setCluster(cluster);
       rid.setPosition(position);
@@ -145,15 +139,15 @@ public class OTraverseExecutionPlanner {
       List<ORid> rids = new ArrayList<>();
       for (Object x : (Iterable) paramValue) {
         if (!(x instanceof PIdentifiable)) {
-          throw new OCommandExecutionException("Cannot use colleciton as target: " + paramValue);
+          throw new PCommandExecutionException("Cannot use colleciton as target: " + paramValue);
         }
-        ORID orid = ((PIdentifiable) x).getIdentity();
+        PRID orid = ((PIdentifiable) x).getIdentity();
 
         ORid rid = new ORid(-1);
         OInteger cluster = new OInteger(-1);
-        cluster.setValue(orid.getClusterId());
+        cluster.setValue(orid.getBucketId());
         OInteger position = new OInteger(-1);
-        position.setValue(orid.getClusterPosition());
+        position.setValue(orid.getPosition());
         rid.setCluster(cluster);
         rid.setPosition(position);
 
@@ -161,7 +155,7 @@ public class OTraverseExecutionPlanner {
       }
       handleRidsAsTarget(result, rids, ctx, profilingEnabled);
     } else {
-      throw new OCommandExecutionException("Invalid target: " + paramValue);
+      throw new PCommandExecutionException("Invalid target: " + paramValue);
     }
   }
 
@@ -171,33 +165,33 @@ public class OTraverseExecutionPlanner {
 
   private void handleIndexAsTarget(OSelectExecutionPlan result, OIndexIdentifier indexIdentifier, OCommandContext ctx, boolean profilingEnabled) {
     String indexName = indexIdentifier.getIndexName();
-    OIndex<?> index = ctx.getDatabase().getMetadata().getIndexManager().getIndex(indexName);
+    PIndex index = ctx.getDatabase().getSchema().getIndexByName(indexName);
     if (index == null) {
-      throw new OCommandExecutionException("Index not found: " + indexName);
+      throw new PCommandExecutionException("Index not found: " + indexName);
     }
 
     switch (indexIdentifier.getType()) {
     case INDEX:
 
-      if (!index.supportsOrderedIterations()) {
-        throw new OCommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
-      }
+//      if (!index.supportsOrderedIterations()) {
+//        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
+//      }
 
       result.chain(new FetchFromIndexStep(index, null, null, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
     case VALUES:
     case VALUESASC:
-      if (!index.supportsOrderedIterations()) {
-        throw new OCommandExecutionException("Index " + indexName + " does not allow iteration on values");
-      }
+//      if (!index.supportsOrderedIterations()) {
+//        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
+//      }
       result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
     case VALUESDESC:
-      if (!index.supportsOrderedIterations()) {
-        throw new OCommandExecutionException("Index " + indexName + " does not allow iteration on values");
-      }
+//      if (!index.supportsOrderedIterations()) {
+//        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
+//      }
       result.chain(new FetchFromIndexValuesStep(index, false, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
@@ -205,22 +199,23 @@ public class OTraverseExecutionPlanner {
   }
 
   private void handleMetadataAsTarget(OSelectExecutionPlan plan, OMetadataIdentifier metadata, OCommandContext ctx, boolean profilingEnabled) {
-    ODatabaseInternal db = (ODatabaseInternal) ctx.getDatabase();
-    String schemaRecordIdAsString = null;
-    if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_SCHEMA)) {
-      schemaRecordIdAsString = db.getStorage().getConfiguration().getSchemaRecordId();
-    } else if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_INDEXMGR)) {
-      schemaRecordIdAsString = db.getStorage().getConfiguration().getIndexMgrRecordId();
-    } else {
-      throw new UnsupportedOperationException("Invalid metadata: " + metadata.getName());
-    }
-    ORecordId schemaRid = new ORecordId(schemaRecordIdAsString);
-    plan.chain(new FetchFromRidsStep(Collections.singleton(schemaRid), ctx, profilingEnabled));
+    PDatabase db = ctx.getDatabase();
+    throw new UnsupportedOperationException();
+//    String schemaRecordIdAsString = null;
+//    if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_SCHEMA)) {
+//      schemaRecordIdAsString = db.getStorage().getConfiguration().getSchemaRecordId();
+//    } else if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_INDEXMGR)) {
+//      schemaRecordIdAsString = db.getStorage().getConfiguration().getIndexMgrRecordId();
+//    } else {
+//      throw new UnsupportedOperationException("Invalid metadata: " + metadata.getName());
+//    }
+//    ORecordId schemaRid = new ORecordId(schemaRecordIdAsString);
+//    plan.chain(new FetchFromRidsStep(Collections.singleton(schemaRid), ctx, profilingEnabled));
 
   }
 
   private void handleRidsAsTarget(OSelectExecutionPlan plan, List<ORid> rids, OCommandContext ctx, boolean profilingEnabled) {
-    List<ORecordId> actualRids = new ArrayList<>();
+    List<PRID> actualRids = new ArrayList<>();
     for (ORid rid : rids) {
       actualRids.add(rid.toRecordId((OResult) null, ctx));
     }
@@ -236,16 +231,16 @@ public class OTraverseExecutionPlanner {
   }
 
   private void handleClustersAsTarget(OSelectExecutionPlan plan, List<OCluster> clusters, OCommandContext ctx, boolean profilingEnabled) {
-    ODatabase db = ctx.getDatabase();
+    PDatabase db = ctx.getDatabase();
     Boolean orderByRidAsc = null;//null: no order. true: asc, false:desc
     if (clusters.size() == 1) {
       OCluster cluster = clusters.get(0);
       Integer clusterId = cluster.getClusterNumber();
       if (clusterId == null) {
-        clusterId = db.getClusterIdByName(cluster.getClusterName());
+        clusterId = db.getSchema().getBucketByName(cluster.getClusterName()).getId();
       }
       if (clusterId == null) {
-        throw new OCommandExecutionException("Cluster " + cluster + " does not exist");
+        throw new PCommandExecutionException("Cluster " + cluster + " does not exist");
       }
       FetchFromClusterExecutionStep step = new FetchFromClusterExecutionStep(clusterId, ctx, profilingEnabled);
       if (Boolean.TRUE.equals(orderByRidAsc)) {
@@ -260,10 +255,10 @@ public class OTraverseExecutionPlanner {
         OCluster cluster = clusters.get(i);
         Integer clusterId = cluster.getClusterNumber();
         if (clusterId == null) {
-          clusterId = db.getClusterIdByName(cluster.getClusterName());
+          clusterId = db.getSchema().getBucketByName(cluster.getClusterName()).getId();
         }
         if (clusterId == null) {
-          throw new OCommandExecutionException("Cluster " + cluster + " does not exist");
+          throw new PCommandExecutionException("Cluster " + cluster + " does not exist");
         }
         clusterIds[i] = clusterId;
       }

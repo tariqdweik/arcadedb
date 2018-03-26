@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.sequence.OSequence;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -40,7 +40,7 @@ public class OCreateSequenceStatement extends OSimpleExecStatement {
       if (ifNotExists) {
         return new OInternalResultSet();
       } else {
-        throw new OCommandExecutionException("Sequence " + name.getStringValue() + " already exists");
+        throw new PCommandExecutionException("Sequence " + name.getStringValue() + " already exists");
       }
 
     }
@@ -70,7 +70,7 @@ public class OCreateSequenceStatement extends OSimpleExecStatement {
         params.setStart(((Number) o).longValue());
         result.setProperty("start", o);
       } else {
-        throw new OCommandExecutionException("Invalid start value: " + o);
+        throw new PCommandExecutionException("Invalid start value: " + o);
       }
     }
     if (increment != null) {
@@ -79,7 +79,7 @@ public class OCreateSequenceStatement extends OSimpleExecStatement {
         params.setIncrement(((Number) o).intValue());
         result.setProperty("increment", o);
       } else {
-        throw new OCommandExecutionException("Invalid increment value: " + o);
+        throw new PCommandExecutionException("Invalid increment value: " + o);
       }
     }
     if (cache != null) {
@@ -88,7 +88,7 @@ public class OCreateSequenceStatement extends OSimpleExecStatement {
         params.setCacheSize(((Number) o).intValue());
         result.setProperty("cacheSize", o);
       } else {
-        throw new OCommandExecutionException("Invalid cache value: " + o);
+        throw new PCommandExecutionException("Invalid cache value: " + o);
       }
     }
     return params;

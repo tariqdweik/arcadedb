@@ -2,15 +2,15 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
+import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.sql.executor.OCollate;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.OResultInternal;
 
 import java.util.*;
 
@@ -35,7 +35,7 @@ public class OBinaryCondition extends OBooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(PRecord currentRecord, OCommandContext ctx) {
     return operator.execute(left.execute(currentRecord, ctx), right.execute(currentRecord, ctx));
   }
 
@@ -100,7 +100,7 @@ public class OBinaryCondition extends OBooleanExpression {
     return result;
   }
 
-  public OBinaryCondition isIndexedFunctionCondition(OClass iSchemaClass, ODatabaseDocumentInternal database) {
+  public OBinaryCondition isIndexedFunctionCondition(PDocumentType iSchemaClass, PDatabase database) {
     if (left.isIndexedFunctionCal()) {
       return this;
     }
@@ -154,7 +154,7 @@ public class OBinaryCondition extends OBooleanExpression {
     return left.executeIndexedFunctionAfterIndexSearch(target, context, operator, right.execute((OResult) null, context));
   }
 
-  public List<OBinaryCondition> getIndexedFunctionConditions(OClass iSchemaClass, ODatabaseDocumentInternal database) {
+  public List<OBinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, PDatabase database) {
     if (left.isIndexedFunctionCal()) {
       return Collections.singletonList(this);
     }
@@ -337,7 +337,7 @@ public class OBinaryCondition extends OBooleanExpression {
             OExpression val = identifierToStringExpr(identifier);
             newColl.expressions.add(val);
           } else {
-            throw new OCommandExecutionException("Cannot execute because of invalid LUCENE expression");
+            throw new PCommandExecutionException("Cannot execute because of invalid LUCENE expression");
           }
         }
         OExpression result = new OExpression(-1);
@@ -349,7 +349,7 @@ public class OBinaryCondition extends OBooleanExpression {
         return result;
       }
     }
-    throw new OCommandExecutionException("Cannot execute because of invalid LUCENE expression");
+    throw new PCommandExecutionException("Cannot execute because of invalid LUCENE expression");
   }
 
   private OExpression identifierToStringExpr(OIdentifier identifier) {
@@ -374,7 +374,7 @@ public class OBinaryCondition extends OBooleanExpression {
     try {
       operator = (OBinaryCompareOperator) Class.forName(String.valueOf(fromResult.getProperty("operator"))).newInstance();
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
     right = new OExpression(-1);
     right.deserialize(fromResult.getProperty("right"));

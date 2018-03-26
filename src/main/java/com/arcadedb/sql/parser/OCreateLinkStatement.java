@@ -9,7 +9,7 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.db.record.ORecordLazyList;
 import com.orientechnologies.orient.core.db.record.ORecordLazySet;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -63,7 +63,7 @@ public class OCreateLinkStatement extends OSimpleExecStatement {
    */
   private Object execute(OCommandContext ctx) {
     if (destField == null)
-      throw new OCommandExecutionException("Cannot execute the command because it has not been parsed yet");
+      throw new PCommandExecutionException("Cannot execute the command because it has not been parsed yet");
 
     final ODatabaseDocumentInternal database = getDatabase();
     if (!(database.getDatabaseOwner() instanceof ODatabaseDocument))
@@ -74,11 +74,11 @@ public class OCreateLinkStatement extends OSimpleExecStatement {
 
     final OClass sourceClass = database.getMetadata().getSchema().getClass(getSourceClass().getStringValue());
     if (sourceClass == null)
-      throw new OCommandExecutionException("Source class '" + getSourceClass().getStringValue() + "' not found");
+      throw new PCommandExecutionException("Source class '" + getSourceClass().getStringValue() + "' not found");
 
     final OClass destClass = database.getMetadata().getSchema().getClass(getDestClass().getStringValue());
     if (destClass == null)
-      throw new OCommandExecutionException("Destination class '" + getDestClass().getStringValue() + "' not found");
+      throw new PCommandExecutionException("Destination class '" + getDestClass().getStringValue() + "' not found");
 
     Object value;
 
@@ -136,7 +136,7 @@ public class OCreateLinkStatement extends OSimpleExecStatement {
             if (result == null || result.size() == 0)
               value = null;
             else if (result.size() > 1)
-              throw new OCommandExecutionException(
+              throw new PCommandExecutionException(
                   "Cannot create link because multiple records was found in class '" + destClass.getName() + "' with value " + value
                       + " in field '" + destField + "'");
             else {
@@ -218,7 +218,7 @@ public class OCreateLinkStatement extends OSimpleExecStatement {
         }
       }
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException("Error on creation of links"), e);
+      throw OException.wrapException(new PCommandExecutionException("Error on creation of links"), e);
     } finally {
       database.declareIntent(null);
     }

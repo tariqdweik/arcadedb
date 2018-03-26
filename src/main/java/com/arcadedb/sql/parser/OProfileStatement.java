@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OExecutionPlan;
 import com.orientechnologies.orient.core.sql.executor.OInternalExecutionPlan;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
@@ -58,7 +58,7 @@ public class OProfileStatement extends OStatement {
     }
 
     OExplainResultSet result = new OExplainResultSet(
-        rs.getExecutionPlan().orElseThrow(() -> new OCommandExecutionException("Cannot profile command: " + statement)));
+        rs.getExecutionPlan().orElseThrow(() -> new PCommandExecutionException("Cannot profile command: " + statement)));
     rs.close();
     return result;
 
@@ -82,7 +82,7 @@ public class OProfileStatement extends OStatement {
     }
 
     OExplainResultSet result = new OExplainResultSet(
-        rs.getExecutionPlan().orElseThrow(() -> new OCommandExecutionException("Cannot profile command: " + statement)));
+        rs.getExecutionPlan().orElseThrow(() -> new PCommandExecutionException("Cannot profile command: " + statement)));
     rs.close();
     return result;
   }

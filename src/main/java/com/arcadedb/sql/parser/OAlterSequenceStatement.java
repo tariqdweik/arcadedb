@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.sequence.OSequence;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -33,12 +33,12 @@ public class OAlterSequenceStatement extends ODDLStatement {
     String sequenceName = name.getStringValue();
 
     if (sequenceName == null) {
-      throw new OCommandExecutionException("Cannot execute the command because it has not been parsed yet");
+      throw new PCommandExecutionException("Cannot execute the command because it has not been parsed yet");
     }
     final ODatabaseDocument database = getDatabase();
     OSequence sequence = database.getMetadata().getSequenceLibrary().getSequence(sequenceName);
     if (sequence == null) {
-      throw new OCommandExecutionException("Sequence not found: " + sequenceName);
+      throw new PCommandExecutionException("Sequence not found: " + sequenceName);
     }
 
     OSequence.CreateParams params = new OSequence.CreateParams();
@@ -46,21 +46,21 @@ public class OAlterSequenceStatement extends ODDLStatement {
     if (start != null) {
       Object val = start.execute((PIdentifiable) null, ctx);
       if (!(val instanceof Number)) {
-        throw new OCommandExecutionException("invalid start value for a sequence: " + val);
+        throw new PCommandExecutionException("invalid start value for a sequence: " + val);
       }
       params.start = ((Number) val).longValue();
     }
     if (increment != null) {
       Object val = increment.execute((PIdentifiable) null, ctx);
       if (!(val instanceof Number)) {
-        throw new OCommandExecutionException("invalid increment value for a sequence: " + val);
+        throw new PCommandExecutionException("invalid increment value for a sequence: " + val);
       }
       params.increment = ((Number) val).intValue();
     }
     if (cache != null) {
       Object val = cache.execute((PIdentifiable) null, ctx);
       if (!(val instanceof Number)) {
-        throw new OCommandExecutionException("invalid cache value for a sequence: " + val);
+        throw new PCommandExecutionException("invalid cache value for a sequence: " + val);
       }
       params.cacheSize = ((Number) val).intValue();
     }

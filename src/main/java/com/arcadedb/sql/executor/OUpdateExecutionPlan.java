@@ -4,8 +4,7 @@ package com.arcadedb.sql.executor;
  * Created by luigidellaquila on 08/08/16.
  */
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +40,7 @@ public class OUpdateExecutionPlan extends OSelectExecutionPlan {
     executeInternal();
   }
 
-  public void executeInternal() throws OCommandExecutionException {
+  public void executeInternal() throws PCommandExecutionException {
     while (true) {
       OResultSet nextBlock = super.fetchNext(100);
       if (!nextBlock.hasNext()) {

@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
@@ -33,17 +33,17 @@ public class ODropClassStatement extends ODDLStatement {
       if (ifExists) {
         return new OInternalResultSet();
       }
-      throw new OCommandExecutionException("Class " + name.getStringValue() + " does not exist");
+      throw new PCommandExecutionException("Class " + name.getStringValue() + " does not exist");
     }
 
     if (!unsafe && clazz.count() > 0) {
       //check vertex or edge
       if (clazz.isVertexType()) {
-        throw new OCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
+        throw new PCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
             + "' because it contains Vertices. Use 'DELETE VERTEX' command first to avoid broken edges in a database, or apply the 'UNSAFE' keyword to force it");
       } else if (clazz.isEdgeType()) {
         // FOUND EDGE CLASS
-        throw new OCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
+        throw new PCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
             + "' because it contains Edges. Use 'DELETE EDGE' command first to avoid broken vertices in a database, or apply the 'UNSAFE' keyword to force it");
       }
     }

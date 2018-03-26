@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.serialization.serializer.OStringSerializerHelper;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
@@ -287,7 +287,7 @@ public class OBaseExpression extends OMathExpression {
     if (identifier != null) {
       return identifier.getAggregationContext(ctx);
     } else {
-      throw new OCommandExecutionException("cannot aggregate on " + toString());
+      throw new PCommandExecutionException("cannot aggregate on " + toString());
     }
   }
 

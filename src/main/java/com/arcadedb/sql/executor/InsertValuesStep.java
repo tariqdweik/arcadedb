@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.arcadedb.sql.parser.OExpression;
 import com.arcadedb.sql.parser.OIdentifier;
@@ -41,13 +41,13 @@ public class InsertValuesStep extends AbstractExecutionStep {
         OResult result = upstream.next();
         if (!(result instanceof OResultInternal)) {
           if (!result.isElement()) {
-            throw new OCommandExecutionException("Error executing INSERT, cannot modify element: " + result);
+            throw new PCommandExecutionException("Error executing INSERT, cannot modify element: " + result);
           }
           result = new OUpdatableResult((ODocument) result.getElement().get());
         }
         List<OExpression> currentValues = values.get(nextValueSet++);
         if (currentValues.size() != identifiers.size()) {
-          throw new OCommandExecutionException(
+          throw new PCommandExecutionException(
               "Cannot execute INSERT, the number of fields is different from the number of expressions: " + identifiers + " "
                   + currentValues);
         }

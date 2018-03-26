@@ -1,13 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.record.OElement;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * <p>This is intended for INSERT FROM SELECT. This step removes existing edge pointers so that the resulting graph is still
@@ -34,35 +30,36 @@ public class RemoveEdgePointersStep extends AbstractExecutionStep {
 
       @Override
       public OResult next() {
-        OResultInternal elem = (OResultInternal) upstream.next();
-        long begin = profilingEnabled ? System.nanoTime() : 0;
-        try {
-
-          Set<String> propNames = elem.getPropertyNames();
-          for (String propName : propNames.stream().filter(x -> x.startsWith("in_") || x.startsWith("out_"))
-              .collect(Collectors.toList())) {
-            Object val = elem.getProperty(propName);
-            if (val instanceof OElement) {
-              if (((OElement) val).getSchemaType().map(x -> x.isSubClassOf("E")).orElse(false)) {
-                elem.removeProperty(propName);
-              }
-            } else if (val instanceof Iterable) {
-              for (Object o : (Iterable) val) {
-                if (o instanceof OElement) {
-                  if (((OElement) o).getSchemaType().map(x -> x.isSubClassOf("E")).orElse(false)) {
-                    elem.removeProperty(propName);
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        } finally {
-          if (profilingEnabled) {
-            cost += (System.nanoTime() - begin);
-          }
-        }
-        return elem;
+//        OResultInternal elem = (OResultInternal) upstream.next();
+//        long begin = profilingEnabled ? System.nanoTime() : 0;
+//        try {
+//
+//          Set<String> propNames = elem.getPropertyNames();
+//          for (String propName : propNames.stream().filter(x -> x.startsWith("in_") || x.startsWith("out_"))
+//              .collect(Collectors.toList())) {
+//            Object val = elem.getProperty(propName);
+//            if (val instanceof PRecord) {
+//              if (((OElement) val).getSchemaType().map(x -> x.isSubClassOf("E")).orElse(false)) {
+//                elem.removeProperty(propName);
+//              }
+//            } else if (val instanceof Iterable) {
+//              for (Object o : (Iterable) val) {
+//                if (o instanceof OElement) {
+//                  if (((OElement) o).getSchemaType().map(x -> x.isSubClassOf("E")).orElse(false)) {
+//                    elem.removeProperty(propName);
+//                    break;
+//                  }
+//                }
+//              }
+//            }
+//          }
+//        } finally {
+//          if (profilingEnabled) {
+//            cost += (System.nanoTime() - begin);
+//          }
+//        }
+//        return elem;
+        throw new UnsupportedOperationException();//TODO
       }
 
       @Override

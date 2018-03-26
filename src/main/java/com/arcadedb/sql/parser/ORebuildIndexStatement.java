@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -41,10 +41,10 @@ public class ORebuildIndexStatement extends OSimpleExecStatement {
     } else {
       final OIndex<?> idx = database.getMetadata().getIndexManager().getIndex(name.getValue());
       if (idx == null)
-        throw new OCommandExecutionException("Index '" + name + "' not found");
+        throw new PCommandExecutionException("Index '" + name + "' not found");
 
       if (!idx.isAutomatic())
-        throw new OCommandExecutionException(
+        throw new PCommandExecutionException(
             "Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
 
       long val = idx.rebuild();

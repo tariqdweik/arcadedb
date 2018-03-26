@@ -3,7 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
@@ -54,7 +54,7 @@ public class OCreateClassStatement extends ODDLStatement {
       if(ifNotExists){
         return new OInternalResultSet();
       }else {
-        throw new OCommandExecutionException("Class " + name + " already exists");
+        throw new PCommandExecutionException("Class " + name + " already exists");
       }
     }
     checkSuperclasses(schema, ctx);
@@ -99,7 +99,7 @@ public class OCreateClassStatement extends ODDLStatement {
     if (superclasses != null) {
       for (OIdentifier superclass : superclasses) {
         if (!schema.existsClass(superclass.getStringValue())) {
-          throw new OCommandExecutionException("Superclass " + superclass + " not found");
+          throw new PCommandExecutionException("Superclass " + superclass + " not found");
         }
       }
     }

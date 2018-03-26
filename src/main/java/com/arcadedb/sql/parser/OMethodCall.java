@@ -2,17 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.sql.OSQLEngine;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.functions.OSQLFunction;
-import com.orientechnologies.orient.core.sql.functions.OSQLFunctionFiltered;
-import com.orientechnologies.orient.core.sql.method.OSQLMethod;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -89,7 +81,7 @@ public class OMethodCall extends SimpleNode {
       } else if (targetObjects instanceof OResult) {
         paramValues.add(expr.execute((OResult) targetObjects, ctx));
       } else {
-        throw new OCommandExecutionException("Invalild value for $current: " + val);
+        throw new PCommandExecutionException("Invalild value for $current: " + val);
       }
     }
     if (isGraphFunction()) {
@@ -158,10 +150,6 @@ public class OMethodCall extends SimpleNode {
     }
 
     throw new UnsupportedOperationException("Invalid reverse traversal: " + methodName);
-  }
-
-  public static ODatabaseDocumentInternal getDatabase() {
-    return ODatabaseRecordThreadLocal.instance().get();
   }
 
   public boolean needsAliases(Set<String> aliases) {

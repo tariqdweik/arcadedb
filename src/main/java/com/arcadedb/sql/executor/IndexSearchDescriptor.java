@@ -1,8 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.index.OIndex;
+import com.arcadedb.index.PIndex;
 import com.arcadedb.sql.parser.OAndBlock;
 import com.arcadedb.sql.parser.OBinaryCompareOperator;
 import com.arcadedb.sql.parser.OBinaryCondition;
@@ -12,12 +10,12 @@ import com.arcadedb.sql.parser.OBooleanExpression;
  * Created by luigidellaquila on 26/07/16.
  */
 public class IndexSearchDescriptor {
-  protected OIndex             idx;
+  protected PIndex             idx;
   protected OAndBlock          keyCondition;
   protected OBinaryCondition   additionalRangeCondition;
   protected OBooleanExpression remainingCondition;
 
-  public IndexSearchDescriptor(OIndex idx, OAndBlock keyCondition, OBinaryCondition additional,
+  public IndexSearchDescriptor(PIndex idx, OAndBlock keyCondition, OBinaryCondition additional,
       OBooleanExpression remainingCondition) {
     this.idx = idx;
     this.keyCondition = keyCondition;
@@ -30,7 +28,7 @@ public class IndexSearchDescriptor {
   }
 
   public int cost(OCommandContext ctx) {
-    OQueryStats stats = OQueryStats.get((ODatabaseDocumentInternal) ctx.getDatabase());
+    OQueryStats stats = OQueryStats.get(ctx.getDatabase());
 
     String indexName = idx.getName();
     int size = keyCondition.getSubBlocks().size();

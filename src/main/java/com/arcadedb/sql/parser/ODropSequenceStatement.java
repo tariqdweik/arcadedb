@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.sequence.OSequence;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -32,7 +32,7 @@ public class ODropSequenceStatement extends ODDLStatement {
       if(ifExists){
         return new OInternalResultSet();
       }else {
-        throw new OCommandExecutionException("Sequence not found: " + name);
+        throw new PCommandExecutionException("Sequence not found: " + name);
       }
     }
 

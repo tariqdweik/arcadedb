@@ -1,7 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OCluster;
 import com.arcadedb.sql.parser.OIdentifier;
 
@@ -21,7 +20,7 @@ public class MoveVertexStep extends AbstractExecutionStep {
     if (targetCluster != null) {
       this.targetCluster = targetCluster.getClusterName();
       if (this.targetCluster == null) {
-        this.targetCluster = ctx.getDatabase().getClusterNameById(targetCluster.getClusterNumber());
+        this.targetCluster = ctx.getDatabase().getSchema().getBucketById(targetCluster.getClusterNumber()).getName();
       }
     }
   }
@@ -38,8 +37,9 @@ public class MoveVertexStep extends AbstractExecutionStep {
       @Override
       public OResult next() {
         OResult current = upstream.next();
-        current.getVertex().ifPresent(x -> x.moveTo(targetClass, targetCluster));
-        return current;
+        throw new UnsupportedOperationException();
+//        current.getVertex().ifPresent(x -> x.moveTo(targetClass, targetCluster));
+//        return current;
       }
 
       @Override

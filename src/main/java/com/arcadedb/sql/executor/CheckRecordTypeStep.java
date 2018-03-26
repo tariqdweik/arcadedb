@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Checks that all the records from the upstream are of a particular type (or subclasses). Throws OCommandExecutionException in case
+ * Checks that all the records from the upstream are of a particular type (or subclasses). Throws PCommandExecutionException in case
  * it's not true
  */
 public class CheckRecordTypeStep extends AbstractExecutionStep {
@@ -44,7 +44,7 @@ public class CheckRecordTypeStep extends AbstractExecutionStep {
 //          Optional<PType> schema = doc.getSchemaType();
 //
 //          if (!schema.isPresent() || !schema.get().isSubClassOf(clazz)) {
-//            throw new OCommandExecutionException("record " + result + " is not an instance of " + clazz);
+//            throw new PCommandExecutionException("record " + result + " is not an instance of " + clazz);
 //          }
 //          return result;
 //        } finally {

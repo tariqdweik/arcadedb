@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.id.ORID;
+import com.arcadedb.database.PRID;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -111,10 +111,10 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
               if (!(finalVal instanceof PIdentifiable)) {
                 continue;
               }
-              ORID rid = ((PIdentifiable) finalVal).getIdentity();
+              PRID rid = ((PIdentifiable) finalVal).getIdentity();
               boolean found = false;
               for (int filterClusterId : filterClusterIds) {
-                if (rid.getClusterId() < 0 || filterClusterId == rid.getClusterId()) {
+                if (rid.getBucketId() < 0 || filterClusterId == rid.getBucketId()) {
                   found = true;
                   break;
                 }
@@ -123,9 +123,9 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
                 continue;
               }
             }
-            if (finalVal instanceof PIdentifiable) {
+            if (finalVal instanceof PRecord) {
               OResultInternal res = new OResultInternal();
-              res.setElement((PIdentifiable) finalVal);
+              res.setElement((PRecord) finalVal);
               nextItem = res;
             } else if (finalVal instanceof OResult) {
               nextItem = (OResult) finalVal;

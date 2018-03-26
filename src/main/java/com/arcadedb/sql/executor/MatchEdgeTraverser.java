@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.record.OElement;
+import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.parser.OMatchPathItem;
 import com.arcadedb.sql.parser.ORid;
 import com.arcadedb.sql.parser.OWhereClause;
@@ -43,7 +41,7 @@ public class MatchEdgeTraverser {
     }
     String endPointAlias = getEndpointAlias();
     OResultInternal nextR = downstream.next();
-    PIdentifiable nextElement = nextR.getElement().get();
+    PRecord nextElement = nextR.getElement().get();
     Object prevValue = sourceRecord.getProperty(endPointAlias);
     if (prevValue != null && !equals(prevValue, nextElement)) {
       return null;
@@ -72,7 +70,7 @@ public class MatchEdgeTraverser {
     return prevValue != null && prevValue.equals(nextElement);
   }
 
-  protected Object toResult(PIdentifiable nextElement) {
+  protected Object toResult(PRecord nextElement) {
     OResultInternal result = new OResultInternal();
     result.setElement(nextElement);
     return result;
@@ -115,7 +113,7 @@ public class MatchEdgeTraverser {
       className = targetClassName(item, iCommandContext);
       String clusterName = targetClusterName(item, iCommandContext);
       if (clusterName != null) {
-        clusterId = iCommandContext.getDatabase().getClusterIdByName(clusterName);
+        clusterId = iCommandContext.getDatabase().getSchema().getBucketByName(clusterName).getId();
       }
       targetRid = targetRid(item, iCommandContext);
     }
@@ -128,7 +126,7 @@ public class MatchEdgeTraverser {
 
       for (OResultInternal origin : queryResult) {
         Object previousMatch = iCommandContext.getVariable("$currentMatch");
-        OElement elem = origin.toElement();
+        PRecord elem = origin.toElement();
         iCommandContext.setVariable("$currentMatch", elem);
         if (matchesFilters(iCommandContext, filter, elem) && matchesClass(iCommandContext, className, elem) && matchesCluster(
             iCommandContext, clusterId, elem) && matchesRid(iCommandContext, targetRid, elem)) {
@@ -143,7 +141,7 @@ public class MatchEdgeTraverser {
 
       if (matchesFilters(iCommandContext, filter, startingPoint) && matchesClass(iCommandContext, className, startingPoint)
           && matchesCluster(iCommandContext, clusterId, startingPoint) && matchesRid(iCommandContext, targetRid, startingPoint)) {
-        OResultInternal rs = new OResultInternal(startingPoint);
+        OResultInternal rs = new OResultInternal(startingPoint.getRecord());
         // set traversal depth in the metadata
         rs.setMetadata("$depth", depth);
         // set traversal path in the metadata
@@ -168,7 +166,7 @@ public class MatchEdgeTraverser {
             newPath.addAll(pathToHere);
           }
 
-          OElement elem = origin.toElement();
+          PRecord elem = origin.toElement();
           newPath.add(elem.getIdentity());
 
           Iterable<OResultInternal> subResult = executeTraversal(iCommandContext, item, elem, depth + 1, newPath);
@@ -206,21 +204,21 @@ public class MatchEdgeTraverser {
     if (className == null) {
       return true;
     }
-    OElement element = null;
-    if (origin instanceof OElement) {
-      element = (OElement) origin;
+    PRecord element = null;
+    if (origin instanceof PRecord) {
+      element = (PRecord) origin;
     } else {
       Object record = origin.getRecord();
-      if (record instanceof OElement) {
-        element = (OElement) record;
+      if (record instanceof PRecord) {
+        element = (PRecord) record;
       }
     }
     if (element != null) {
-      Optional<OClass> clazz = element.getSchemaType();
-      if (!clazz.isPresent()) {
+      Object clazz = element.getType();
+      if (clazz == null) {
         return false;
       }
-      return clazz.get().isSubClassOf(className);
+      return clazz.equals(className);
     }
     return false;
   }
@@ -236,7 +234,7 @@ public class MatchEdgeTraverser {
     if (origin.getIdentity() == null) {
       return false;
     }
-    return clusterId.equals(origin.getIdentity().getClusterId());
+    return clusterId.equals(origin.getIdentity().getBucketId());
   }
 
   private boolean matchesRid(OCommandContext iCommandContext, ORid rid, PIdentifiable origin) {
@@ -286,15 +284,15 @@ public class MatchEdgeTraverser {
     if (qR == null) {
       return Collections.EMPTY_LIST;
     }
-    if (qR instanceof PIdentifiable) {
-      return Collections.singleton(new OResultInternal((PIdentifiable) qR));
+    if (qR instanceof PRecord) {
+      return Collections.singleton(new OResultInternal((PRecord) qR));
     }
     if (qR instanceof Iterable) {
       Iterable iterable = (Iterable) qR;
       List<OResultInternal> result = new ArrayList<>();
       for (Object o : iterable) {
-        if (o instanceof PIdentifiable) {
-          result.add(new OResultInternal((PIdentifiable) o));
+        if (o instanceof PRecord) {
+          result.add(new OResultInternal((PRecord) o));
         } else if (o instanceof OResultInternal) {
           result.add((OResultInternal) o);
         } else if (o == null) {

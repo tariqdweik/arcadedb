@@ -9,7 +9,7 @@ import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.OLiveQueryResultListener;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
 import com.orientechnologies.orient.core.db.record.ORecordOperation;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.query.live.OLiveQueryHookV2;
 import com.orientechnologies.orient.core.query.live.OLiveQueryListenerV2;
@@ -53,13 +53,13 @@ public class LiveQueryListenerImpl implements OLiveQueryListenerV2 {
     }
     OStatement stm = OSQLEngine.parse(query, (ODatabaseDocumentInternal) db);
     if (!(stm instanceof OSelectStatement)) {
-      throw new OCommandExecutionException("Only SELECT statement can be used as a live query: " + query);
+      throw new PCommandExecutionException("Only SELECT statement can be used as a live query: " + query);
     }
     this.statement = (OSelectStatement) stm;
     validateStatement(statement);
     this.className = statement.getTarget().getItem().getIdentifier().getStringValue();
     if (db.getClass(className) == null) {
-      throw new OCommandExecutionException("Class " + className + " not found in the schema: " + query);
+      throw new PCommandExecutionException("Class " + className + " not found in the schema: " + query);
     }
     execInSeparateDatabase(new OCallable() {
       @Override
@@ -87,22 +87,22 @@ public class LiveQueryListenerImpl implements OLiveQueryListenerV2 {
   private void validateStatement(OSelectStatement statement) {
     if (statement.getProjection() != null) {
       if (statement.getProjection().getItems().size() > 1) {
-        throw new OCommandExecutionException("Projections cannot be used in live query " + statement);
+        throw new PCommandExecutionException("Projections cannot be used in live query " + statement);
       } else if (statement.getProjection().getItems().get(0).isAll()) {
-        throw new OCommandExecutionException("Projections cannot be used in live query " + statement);
+        throw new PCommandExecutionException("Projections cannot be used in live query " + statement);
       }
     }
     if (statement.getTarget().getItem().getIdentifier() == null) {
-      throw new OCommandExecutionException("Live queries can only be edecuted against a Class" + statement);
+      throw new PCommandExecutionException("Live queries can only be edecuted against a Class" + statement);
     }
     if (statement.getOrderBy() != null) {
-      throw new OCommandExecutionException("Live queries do not support ORDER BY" + statement);
+      throw new PCommandExecutionException("Live queries do not support ORDER BY" + statement);
     }
     if (statement.getGroupBy() != null) {
-      throw new OCommandExecutionException("Live queries do not support GROUP BY" + statement);
+      throw new PCommandExecutionException("Live queries do not support GROUP BY" + statement);
     }
     if (statement.getSkip() != null || statement.getLimit() != null) {
-      throw new OCommandExecutionException("Live queries do not support SKIP/LIMIT" + statement);
+      throw new PCommandExecutionException("Live queries do not support SKIP/LIMIT" + statement);
     }
   }
 

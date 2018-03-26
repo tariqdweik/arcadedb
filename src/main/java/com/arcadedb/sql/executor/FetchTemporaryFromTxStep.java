@@ -4,7 +4,7 @@ import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.record.ORecordOperation;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.ORecord;
@@ -208,7 +208,7 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
       className = fromResult.getProperty("className");
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw OException.wrapException(new PCommandExecutionException(""), e);
     }
   }
 

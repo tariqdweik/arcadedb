@@ -1,9 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OIdentifier;
 
 import java.util.Map;
@@ -34,19 +31,20 @@ public class SetDocumentClassStep extends AbstractExecutionStep {
       @Override
       public OResult next() {
         OResult result = upstream.next();
-        if (result.isElement()) {
-          PIdentifiable element = result.getElement().get().getRecord();
-          if (element instanceof ODocument) {
-            ODocument doc = (ODocument) element;
-            doc.setClassName(targetClass);
-            if (!(result instanceof OResultInternal)) {
-              result = new OUpdatableResult(doc);
-            } else {
-              ((OResultInternal) result).setElement(doc);
-            }
-          }
-        }
-        return result;
+        throw new UnsupportedOperationException();
+//        if (result.isElement()) {
+//          PIdentifiable element = result.getElement().get().getRecord();
+//          if (element instanceof PRecord) {
+//            PRecord doc = (PRecord) element;
+//            doc.setClassName(targetClass);
+//            if (!(result instanceof OResultInternal)) {
+//              result = new OUpdatableResult(doc);
+//            } else {
+//              ((OResultInternal) result).setElement(doc);
+//            }
+//          }
+//        }
+//        return result;
       }
 
       @Override

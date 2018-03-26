@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.index.OIndexManager;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
@@ -43,7 +43,7 @@ public class ODropIndexStatement extends ODDLStatement {
 
     } else {
       if (!idxMgr.existsIndex(name.getValue()) && !ifExists) {
-        throw new OCommandExecutionException("Index not found: " + name.getValue());
+        throw new PCommandExecutionException("Index not found: " + name.getValue());
       }
       idxMgr.dropIndex(name.getValue());
       OResultInternal result = new OResultInternal();

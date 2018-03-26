@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OWhereClause;
 
 import java.util.Map;
@@ -156,7 +154,7 @@ public class FilterStep extends AbstractExecutionStep {
       whereClause = new OWhereClause(-1);
       whereClause.deserialize(fromResult.getProperty("whereClause"));
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 

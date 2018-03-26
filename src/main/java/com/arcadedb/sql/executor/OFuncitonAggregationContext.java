@@ -1,7 +1,5 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.sql.functions.OSQLFunction;
 import com.arcadedb.sql.parser.OExpression;
 
 import java.util.ArrayList;

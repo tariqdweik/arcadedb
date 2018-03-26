@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.*;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -48,18 +48,18 @@ public class OCreatePropertyStatement extends ODDLStatement {
     ODatabase db = ctx.getDatabase();
     OClassEmbedded clazz = (OClassEmbedded) db.getMetadata().getSchema().getClass(className.getStringValue());
     if (clazz == null) {
-      throw new OCommandExecutionException("Class not found: " + className.getStringValue());
+      throw new PCommandExecutionException("Class not found: " + className.getStringValue());
     }
     if (clazz.getProperty(propertyName.getStringValue()) != null) {
       if (ifNotExists) {
         return;
       }
-      throw new OCommandExecutionException(
+      throw new PCommandExecutionException(
           "Property " + className.getStringValue() + "." + propertyName.getStringValue() + " already exists");
     }
     OType type = OType.valueOf(propertyType.getStringValue().toUpperCase(Locale.ENGLISH));
     if (type == null) {
-      throw new OCommandExecutionException("Invalid property type: " + propertyType.getStringValue());
+      throw new PCommandExecutionException("Invalid property type: " + propertyType.getStringValue());
     }
     OClass linkedClass = null;
     OType linkedType = null;

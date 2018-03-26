@@ -1,8 +1,8 @@
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.log.OLogManager;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.sql.executor.OResult;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.utility.PLogManager;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 
 import java.util.Map;
@@ -101,7 +101,7 @@ public class OOrderByItem {
       try {
         result = ((Comparable) aVal).compareTo(bVal);
       } catch (Exception e) {
-        OLogManager.instance().error(this, "Error during comparision", e);
+        PLogManager.instance().error(this, "Error during comparision", e);
         result = 0;
       }
     }

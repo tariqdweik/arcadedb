@@ -2,11 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.sql.executor.OCommandContext;
 
 import java.util.*;
 
@@ -55,13 +54,13 @@ public class OMatchPathItem extends SimpleNode {
     OWhereClause filter = null;
     OWhereClause whileCondition = null;
     Integer maxDepth = null;
-    OClass oClass = null;
+    PDocumentType oClass = null;
     if (this.filter != null) {
       filter = this.filter.getFilter();
       whileCondition = this.filter.getWhileCondition();
       maxDepth = this.filter.getMaxDepth();
       String className = this.filter.getClassName(iCommandContext);
-      oClass = getDatabase().getMetadata().getSchema().getClass(className);
+      oClass = iCommandContext.getDatabase().getSchema().getType(className);
     }
 
     Set<PIdentifiable> result = new HashSet<PIdentifiable>();
@@ -74,11 +73,11 @@ public class OMatchPathItem extends SimpleNode {
         return queryResult;
       }
 
-
       for (PIdentifiable origin : queryResult) {
         Object previousMatch = iCommandContext.getVariable("$currentMatch");
         iCommandContext.setVariable("$currentMatch", origin);
-        if ((oClass==null || matchesClass(origin, oClass)) && (filter == null || filter.matchesFilters(origin, iCommandContext))) {
+        if ((oClass == null || matchesClass(origin, oClass)) && (filter == null || filter
+            .matchesFilters(origin, iCommandContext))) {
           result.add(origin);
         }
         iCommandContext.setVariable("$currentMatch", previousMatch);
@@ -87,7 +86,8 @@ public class OMatchPathItem extends SimpleNode {
       iCommandContext.setVariable("$depth", depth);
       Object previousMatch = iCommandContext.getVariable("$currentMatch");
       iCommandContext.setVariable("$currentMatch", startingPoint);
-      if ((oClass==null || matchesClass(startingPoint, oClass)) && (filter == null || filter.matchesFilters(startingPoint, iCommandContext))) {
+      if ((oClass == null || matchesClass(startingPoint, oClass)) && (filter == null || filter
+          .matchesFilters(startingPoint, iCommandContext))) {
         result.add(startingPoint);
       }
 
@@ -113,20 +113,17 @@ public class OMatchPathItem extends SimpleNode {
     return result;
   }
 
-  private boolean matchesClass(PIdentifiable identifiable, OClass oClass) {
+  private boolean matchesClass(PIdentifiable identifiable, PDocumentType oClass) {
     if (identifiable == null) {
       return false;
     }
-    ORecord record = identifiable.getRecord();
+    PRecord record = identifiable.getRecord();
     if (record == null) {
       return false;
     }
-    if (record instanceof ODocument) {
-      return ((ODocument) record).getSchemaClass().isSubClassOf(oClass);
-    }
-    return false;
-  }
 
+    return ((PRecord) record).getType().equals(oClass);
+  }
 
   protected Iterable<PIdentifiable> traversePatternEdge(OMatchStatement.MatchContext matchContext, PIdentifiable startingPoint,
       OCommandContext iCommandContext) {
@@ -144,10 +141,11 @@ public class OMatchPathItem extends SimpleNode {
     }
 
     Object qR = this.method.execute(startingPoint, possibleResults, iCommandContext);
-    return (qR instanceof Iterable && !(qR instanceof ODocument)) ? (Iterable) qR : Collections.singleton((PIdentifiable) qR);
+    return (qR instanceof Iterable && !(qR instanceof PRecord)) ? (Iterable) qR : Collections.singleton((PIdentifiable) qR);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -163,13 +161,15 @@ public class OMatchPathItem extends SimpleNode {
     return true;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     int result = method != null ? method.hashCode() : 0;
     result = 31 * result + (filter != null ? filter.hashCode() : 0);
     return result;
   }
 
-  @Override public OMatchPathItem copy() {
+  @Override
+  public OMatchPathItem copy() {
     OMatchPathItem result = null;
     try {
       result = getClass().getConstructor(Integer.TYPE).newInstance(-1);

@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.sql.parser.*;
-import com.orientechnologies.orient.core.storage.OStorage;
 
 /**
  * Created by luigidellaquila on 08/08/16.
@@ -98,7 +96,7 @@ public class OMoveVertexExecutionPlanner {
     }
   }
 
-  private void handleLock(OUpdateExecutionPlan result, OCommandContext ctx, OStorage.LOCKING_STRATEGY lockRecord) {
+  private void handleLock(OUpdateExecutionPlan result, OCommandContext ctx, Object lockRecord) {
 
   }
 
@@ -133,7 +131,7 @@ public class OMoveVertexExecutionPlanner {
       case OUpdateOperations.TYPE_PUT:
       case OUpdateOperations.TYPE_INCREMENT:
       case OUpdateOperations.TYPE_ADD:
-        throw new OCommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
+        throw new PCommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
       }
     }
   }

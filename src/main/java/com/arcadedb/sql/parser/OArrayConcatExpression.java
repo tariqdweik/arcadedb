@@ -2,13 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.sql.executor.AggregationContext;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -138,7 +134,7 @@ public class OArrayConcatExpression extends SimpleNode {
 
   public SimpleNode splitForAggregation(AggregateProjectionSplit aggregateProj) {
     if (isAggregate()) {
-      throw new OCommandExecutionException("Cannot use aggregate functions in array concatenation");
+      throw new PCommandExecutionException("Cannot use aggregate functions in array concatenation");
     } else {
       return this;
     }

@@ -1,28 +1,26 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.collection.OMultiCollectionIterator;
-import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
+import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.index.OCompositeKey;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.index.OIndexCursor;
-import com.orientechnologies.orient.core.index.OIndexDefinition;
-import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.index.PIndex;
+import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.sql.parser.*;
+import com.arcadedb.utility.PPair;
+import com.orientechnologies.common.exception.OException;
+import com.orientechnologies.orient.core.index.OCompositeKey;
+import com.orientechnologies.orient.core.index.OIndexDefinition;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 /**
  * Created by luigidellaquila on 23/07/16.
  */
 public class FetchFromIndexStep extends AbstractExecutionStep {
-  protected OIndex             index;
+  protected PIndex             index;
   protected OBooleanExpression condition;
   private   OBinaryCondition   additionalRangeCondition;
 
@@ -34,20 +32,21 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   private long count = 0;
 
   private boolean inited = false;
-  private OIndexCursor cursor;
-  private List<OIndexCursor> nextCursors = new ArrayList<>();
+  private PIndexCursor cursor;
+  private List<PIndexCursor> nextCursors = new ArrayList<>();
 
-  OMultiCollectionIterator<Map.Entry<Object, PIdentifiable>> customIterator;
+//  OMultiCollectionIterator<Map.Entry<Object, PIdentifiable>> customIterator;
+
   private Iterator nullKeyIterator;
-  private Map.Entry<Object, PIdentifiable> nextEntry = null;
+  private PPair<Object, PIdentifiable> nextEntry = null;
 
-  public FetchFromIndexStep(OIndex<?> index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition,
+  public FetchFromIndexStep(PIndex index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition,
       OCommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, true, ctx, profilingEnabled);
   }
 
-  public FetchFromIndexStep(OIndex<?> index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition,
-      boolean orderAsc, OCommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexStep(PIndex index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition, boolean orderAsc,
+      OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
     this.indexName = index.getName();
@@ -78,7 +77,11 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
           return false;
         }
         if (nextEntry == null) {
-          fetchNextEntry();
+          try {
+            fetchNextEntry();
+          } catch (IOException e) {
+            throw new PCommandExecutionException(e);
+          }
         }
         return nextEntry != null;
       }
@@ -90,8 +93,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
         }
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          Object key = nextEntry.getKey();
-          PIdentifiable value = nextEntry.getValue();
+          Object key = nextEntry.getFirst();
+          PIdentifiable value = nextEntry.getSecond();
 
           nextEntry = null;
 
@@ -125,48 +128,33 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     };
   }
 
-  private void fetchNextEntry() {
+  private void fetchNextEntry() throws IOException {
     nextEntry = null;
-    if (cursor != null) {
-      nextEntry = cursor.nextEntry();
-      while (nextEntry == null && nextCursors.size() > 0) {
+    while (true) {
+      if (cursor == null) {
+        if (nextCursors.size() == 0) {
+          if (nextEntry == null && nullKeyIterator != null && nullKeyIterator.hasNext()) {
+            PIdentifiable nextValue = (PIdentifiable) nullKeyIterator.next();
+            nextEntry = new PPair(null, nextValue);
+          } else {
+            updateIndexStats();
+          }
+          return;
+        }
         cursor = nextCursors.remove(0);
-        nextEntry = cursor.nextEntry();
       }
-    }
-    if (nextEntry == null && customIterator != null && customIterator.hasNext()) {
-      nextEntry = customIterator.next();
-    }
-
-    if (nextEntry == null && nullKeyIterator != null && nullKeyIterator.hasNext()) {
-      PIdentifiable nextValue = (PIdentifiable) nullKeyIterator.next();
-      nextEntry = new Map.Entry<Object, PIdentifiable>() {
-        @Override
-        public Object getKey() {
-          return null;
-        }
-
-        @Override
-        public PIdentifiable getValue() {
-          return nextValue;
-        }
-
-        @Override
-        public PIdentifiable setValue(PIdentifiable value) {
-          return null;
-        }
-      };
-    }
-    if (nextEntry == null) {
-      updateIndexStats();
-    } else {
-      count++;
+      if (cursor.hasNext()) {
+        cursor.next();
+        nextEntry = new PPair(cursor.getKeys(), cursor.getValue());
+        count++;
+        return;
+      }
     }
   }
 
   private void updateIndexStats() {
     //stats
-    OQueryStats stats = OQueryStats.get((ODatabaseDocumentInternal) ctx.getDatabase());
+    OQueryStats stats = OQueryStats.get(ctx.getDatabase());
     if (index == null) {
       return;//this could happen, if not inited yet
     }
@@ -195,7 +183,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     stats.pushIndexStats(indexName, size, range, additionalRangeCondition != null, count);
   }
 
-  private synchronized void init(ODatabase db) {
+  private synchronized void init(PDatabase db) {
     if (inited) {
       return;
     }
@@ -203,15 +191,12 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     init(condition, db);
   }
 
-  private void init(OBooleanExpression condition, ODatabase db) {
+  private void init(OBooleanExpression condition, PDatabase db) {
     long begin = profilingEnabled ? System.nanoTime() : 0;
     if (index == null) {
-      index = db.getMetadata().getIndexManager().getIndex(indexName);
+      index = db.getSchema().getIndexByName(indexName);
     }
     try {
-      if (index.getDefinition() == null) {
-        return;
-      }
       if (condition == null) {
         processFlatIteration();
       } else if (condition instanceof OBinaryCondition) {
@@ -224,8 +209,10 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
         processInCondition();
       } else {
         //TODO process containsAny
-        throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
+        throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
       }
+    } catch (IOException e) {
+      throw new PCommandExecutionException(e);
     } finally {
       if (profilingEnabled) {
         cost += (System.nanoTime() - begin);
@@ -234,64 +221,65 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   private void processInCondition() {
-    OIndexDefinition definition = index.getDefinition();
-    OInCondition inCondition = (OInCondition) condition;
-
-    OExpression left = inCondition.getLeft();
-    if (!left.toString().equalsIgnoreCase("key")) {
-      throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
-    }
-    Object rightValue = inCondition.evaluateRight((OResult) null, ctx);
-    OEqualsCompareOperator equals = new OEqualsCompareOperator(-1);
-    if (OMultiValue.isMultiValue(rightValue)) {
-      customIterator = new OMultiCollectionIterator<>();
-      for (Object item : OMultiValue.getMultiValueIterable(rightValue)) {
-        OIndexCursor localCursor = createCursor(equals, definition, item, ctx);
-
-        customIterator.add(new Iterator<Map.Entry>() {
-          @Override
-          public boolean hasNext() {
-            return localCursor.hasNext();
-          }
-
-          @Override
-          public Map.Entry next() {
-            if (!localCursor.hasNext()) {
-              throw new IllegalStateException();
-            }
-            PIdentifiable value = localCursor.next();
-            return new Map.Entry() {
-
-              @Override
-              public Object getKey() {
-                return item;
-              }
-
-              @Override
-              public Object getValue() {
-
-                return value;
-              }
-
-              @Override
-              public Object setValue(Object value) {
-                return null;
-              }
-            };
-          }
-        });
-      }
-      customIterator.reset();
-    } else {
-      cursor = createCursor(equals, definition, rightValue, ctx);
-    }
-    fetchNextEntry();
+    throw new UnsupportedOperationException();
+//    OIndexDefinition definition = index.getDefinition();
+//    OInCondition inCondition = (OInCondition) condition;
+//
+//    OExpression left = inCondition.getLeft();
+//    if (!left.toString().equalsIgnoreCase("key")) {
+//      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
+//    }
+//    Object rightValue = inCondition.evaluateRight((OResult) null, ctx);
+//    OEqualsCompareOperator equals = new OEqualsCompareOperator(-1);
+//    if (OMultiValue.isMultiValue(rightValue)) {
+//      customIterator = new OMultiCollectionIterator<>();
+//      for (Object item : OMultiValue.getMultiValueIterable(rightValue)) {
+//        PIndexCursor localCursor = createCursor(equals, definition, item, ctx);
+//
+//        customIterator.add(new Iterator<Map.Entry>() {
+//          @Override
+//          public boolean hasNext() {
+//            return localCursor.hasNext();
+//          }
+//
+//          @Override
+//          public Map.Entry next() {
+//            if (!localCursor.hasNext()) {
+//              throw new IllegalStateException();
+//            }
+//            PIdentifiable value = localCursor.next();
+//            return new Map.Entry() {
+//
+//              @Override
+//              public Object getKey() {
+//                return item;
+//              }
+//
+//              @Override
+//              public Object getValue() {
+//
+//                return value;
+//              }
+//
+//              @Override
+//              public Object setValue(Object value) {
+//                return null;
+//              }
+//            };
+//          }
+//        });
+//      }
+//      customIterator.reset();
+//    } else {
+//      cursor = createCursor(equals, definition, rightValue, ctx);
+//    }
+//    fetchNextEntry();
   }
 
   /**
    * it's not key = [...] but a real condition on field names, already ordered (field names will be ignored)
    */
-  private void processAndBlock() {
+  private void processAndBlock() throws IOException {
     OCollection fromKey = indexKeyFrom((OAndBlock) condition, additionalRangeCondition);
     OCollection toKey = indexKeyTo((OAndBlock) condition, additionalRangeCondition);
     boolean fromKeyIncluded = indexKeyFromIncluded((OAndBlock) condition, additionalRangeCondition);
@@ -299,8 +287,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     init(fromKey, fromKeyIncluded, toKey, toKeyIncluded);
   }
 
-  private void processFlatIteration() {
-    cursor = isOrderAsc() ? index.cursor() : index.descCursor();
+  private void processFlatIteration() throws IOException {
+    cursor = index.iterator(isOrderAsc());
 
     fetchNullKeys();
     if (cursor != null) {
@@ -309,23 +297,23 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   private void fetchNullKeys() {
-    if (index.getDefinition().isNullValuesIgnored()) {
-      nullKeyIterator = Collections.emptyIterator();
-      return;
-    }
-    Object nullIter = index.get(null);
-    if (nullIter instanceof PIdentifiable) {
-      nullKeyIterator = Collections.singleton(nullIter).iterator();
-    } else if (nullIter instanceof Iterable) {
-      nullKeyIterator = ((Iterable) nullIter).iterator();
-    } else if (nullIter instanceof Iterator) {
-      nullKeyIterator = (Iterator) nullIter;
-    } else {
-      nullKeyIterator = Collections.emptyIterator();
-    }
+//    if (index.getDefinition().isNullValuesIgnored()) {
+    nullKeyIterator = Collections.emptyIterator();
+//      return;
+//    }
+//    Object nullIter = index.get(null);
+//    if (nullIter instanceof PIdentifiable) {
+//      nullKeyIterator = Collections.singleton(nullIter).iterator();
+//    } else if (nullIter instanceof Iterable) {
+//      nullKeyIterator = ((Iterable) nullIter).iterator();
+//    } else if (nullIter instanceof Iterator) {
+//      nullKeyIterator = (Iterator) nullIter;
+//    } else {
+//      nullKeyIterator = Collections.emptyIterator();
+//    }
   }
 
-  private void init(OCollection fromKey, boolean fromKeyIncluded, OCollection toKey, boolean toKeyIncluded) {
+  private void init(OCollection fromKey, boolean fromKeyIncluded, OCollection toKey, boolean toKeyIncluded) throws IOException {
     List<OCollection> secondValueCombinations = cartesianProduct(fromKey);
     List<OCollection> thirdValueCombinations = cartesianProduct(toKey);
 
@@ -334,18 +322,16 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       Object secondValue = secondValueCombinations.get(i).execute((OResult) null, ctx);
       Object thirdValue = thirdValueCombinations.get(i).execute((OResult) null, ctx);
 
-      OIndexDefinition indexDef = index.getDefinition();
-      secondValue = convertToIndexDefinitionTypes(secondValue, indexDef.getTypes());
-      thirdValue = convertToIndexDefinitionTypes(thirdValue, indexDef.getTypes());
-      OIndexCursor cursor;
-      if (index.supportsOrderedIterations()) {
-        cursor = index.iterateEntriesBetween(toBetweenIndexKey(indexDef, secondValue), fromKeyIncluded,
-            toBetweenIndexKey(indexDef, thirdValue), toKeyIncluded, isOrderAsc());
-      } else if (additionalRangeCondition == null && allEqualities((OAndBlock) condition)) {
-        cursor = index.iterateEntries(toIndexKey(indexDef, secondValue), isOrderAsc());
-      } else {
-        throw new UnsupportedOperationException("Cannot evaluate " + this.condition + " on index " + index);
-      }
+      secondValue = convertToIndexDefinitionTypes(secondValue);
+      thirdValue = convertToIndexDefinitionTypes(thirdValue);
+      PIndexCursor cursor;
+//      if (index.supportsOrderedIterations()) {
+      cursor = index.range(toBetweenIndexKey(index, secondValue), toBetweenIndexKey(index, thirdValue));
+//      } else if (additionalRangeCondition == null && allEqualities((OAndBlock) condition)) {
+//        cursor = index.iterateEntries(toIndexKey(indexDef, secondValue), isOrderAsc());
+//      } else {
+//        throw new UnsupportedOperationException("Cannot evaluate " + this.condition + " on index " + index);
+//      }
       nextCursors.add(cursor);
 
     }
@@ -395,19 +381,22 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     return new OValueExpression(value);
   }
 
-  private Object convertToIndexDefinitionTypes(Object val, OType[] types) {
-    if (val == null) {
-      return null;
-    }
-    if (OMultiValue.isMultiValue(val)) {
-      List<Object> result = new ArrayList<>();
-      int i = 0;
-      for (Object o : OMultiValue.getMultiValueIterable(val)) {
-        result.add(OType.convert(o, types[i++].getDefaultJavaType()));
-      }
-      return result;
-    }
-    return OType.convert(val, types[0].getDefaultJavaType());
+  private Object convertToIndexDefinitionTypes(Object val/*, OType[] types*/) {
+    //TODO
+    return val;
+
+//    if (val == null) {
+//      return null;
+//    }
+//    if (OMultiValue.isMultiValue(val)) {
+//      List<Object> result = new ArrayList<>();
+//      int i = 0;
+//      for (Object o : OMultiValue.getMultiValueIterable(val)) {
+//        result.add(OType.convert(o, types[i++].getDefaultJavaType()));
+//      }
+//      return result;
+//    }
+//    return OType.convert(val, types[0].getDefaultJavaType());
   }
 
   private boolean allEqualities(OAndBlock condition) {
@@ -427,54 +416,55 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   private void processBetweenCondition() {
-    OIndexDefinition definition = index.getDefinition();
-    OExpression key = ((OBetweenCondition) condition).getFirst();
-    if (!key.toString().equalsIgnoreCase("key")) {
-      throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
-    }
-    OExpression second = ((OBetweenCondition) condition).getSecond();
-    OExpression third = ((OBetweenCondition) condition).getThird();
-
-    Object secondValue = second.execute((OResult) null, ctx);
-    Object thirdValue = third.execute((OResult) null, ctx);
-    cursor = index
-        .iterateEntriesBetween(toBetweenIndexKey(definition, secondValue), true, toBetweenIndexKey(definition, thirdValue), true,
-            isOrderAsc());
-    if (cursor != null) {
-      fetchNextEntry();
-    }
+    throw new UnsupportedOperationException();
+//    OIndexDefinition definition = index.getDefinition();
+//    OExpression key = ((OBetweenCondition) condition).getFirst();
+//    if (!key.toString().equalsIgnoreCase("key")) {
+//      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
+//    }
+//    OExpression second = ((OBetweenCondition) condition).getSecond();
+//    OExpression third = ((OBetweenCondition) condition).getThird();
+//
+//    Object secondValue = second.execute((OResult) null, ctx);
+//    Object thirdValue = third.execute((OResult) null, ctx);
+//    cursor = index
+//        .iterateEntriesBetween(toBetweenIndexKey(definition, secondValue), true, toBetweenIndexKey(definition, thirdValue), true,
+//            isOrderAsc());
+//    if (cursor != null) {
+//      fetchNextEntry();
+//    }
   }
 
-  private void processBinaryCondition() {
-    OIndexDefinition definition = index.getDefinition();
+  private void processBinaryCondition() throws IOException {
+//    OIndexDefinition definition = index.getDefinition();
     OBinaryCompareOperator operator = ((OBinaryCondition) condition).getOperator();
     OExpression left = ((OBinaryCondition) condition).getLeft();
     if (!left.toString().equalsIgnoreCase("key")) {
-      throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
+      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
     }
     Object rightValue = ((OBinaryCondition) condition).getRight().execute((OResult) null, ctx);
-    cursor = createCursor(operator, definition, rightValue, ctx);
+    cursor = createCursor(operator, rightValue, ctx);
     if (cursor != null) {
       fetchNextEntry();
     }
   }
 
-  private Collection toIndexKey(OIndexDefinition definition, Object rightValue) {
-    if (definition.getFields().size() == 1 && rightValue instanceof Collection) {
-      rightValue = ((Collection) rightValue).iterator().next();
-    }
-    if (rightValue instanceof List) {
-      rightValue = definition.createValue((List<?>) rightValue);
-    } else if (!(rightValue instanceof OCompositeKey)) {
-      rightValue = definition.createValue(rightValue);
-    }
-    if (!(rightValue instanceof Collection)) {
-      rightValue = Collections.singleton(rightValue);
-    }
-    return (Collection) rightValue;
-  }
+//  private Collection toIndexKey(OIndexDefinition definition, Object rightValue) {
+//    if (definition.getFields().size() == 1 && rightValue instanceof Collection) {
+//      rightValue = ((Collection) rightValue).iterator().next();
+//    }
+//    if (rightValue instanceof List) {
+//      rightValue = definition.createValue((List<?>) rightValue);
+//    } else if (!(rightValue instanceof OCompositeKey)) {
+//      rightValue = definition.createValue(rightValue);
+//    }
+//    if (!(rightValue instanceof Collection)) {
+//      rightValue = Collections.singleton(rightValue);
+//    }
+//    return (Collection) rightValue;
+//  }
 
-  private Object toBetweenIndexKey(OIndexDefinition definition, Object rightValue) {
+  private Object[] toBetweenIndexKey(PIndex definition, Object rightValue) {
     if (definition.getFields().size() == 1 && rightValue instanceof Collection) {
       if (((Collection) rightValue).size() > 0) {
         rightValue = ((Collection) rightValue).iterator().next();
@@ -490,21 +480,29 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     return rightValue;
   }
 
-  private OIndexCursor createCursor(OBinaryCompareOperator operator, OIndexDefinition definition, Object value,
-      OCommandContext ctx) {
+  private PIndexCursor createCursor(OBinaryCompareOperator operator, Object value, OCommandContext ctx)
+      throws IOException {
     boolean orderAsc = isOrderAsc();
     if (operator instanceof OEqualsCompareOperator) {
-      return index.iterateEntries(toIndexKey(definition, value), orderAsc);
+      if (value instanceof Object[]) {
+        return index.iterator((Object[]) value);
+      } else {
+        return index.iterator(new Object[] { value });
+      }
     } else if (operator instanceof OGeOperator) {
-      return index.iterateEntriesMajor(value, true, orderAsc);
+//      return index.iterateEntriesMajor(value, true, orderAsc);
+      throw new UnsupportedEncodingException();
     } else if (operator instanceof OGtOperator) {
-      return index.iterateEntriesMajor(value, false, orderAsc);
+//      return index.iterateEntriesMajor(value, false, orderAsc);
+      throw new UnsupportedEncodingException();
     } else if (operator instanceof OLeOperator) {
-      return index.iterateEntriesMinor(value, true, orderAsc);
+//      return index.iterateEntriesMinor(value, true, orderAsc);
+      throw new UnsupportedEncodingException();
     } else if (operator instanceof OLtOperator) {
-      return index.iterateEntriesMinor(value, false, orderAsc);
+//      return index.iterateEntriesMinor(value, false, orderAsc);
+      throw new UnsupportedEncodingException();
     } else {
-      throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
+      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
     }
 
   }
@@ -706,7 +704,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       }
       orderAsc = fromResult.getProperty("orderAsc");
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 
@@ -721,7 +719,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
     inited = false;
     cursor = null;
-    customIterator = null;
+//    customIterator = null;
     nullKeyIterator = null;
     nextEntry = null;
   }

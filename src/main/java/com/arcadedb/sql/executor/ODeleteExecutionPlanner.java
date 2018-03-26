@@ -1,9 +1,10 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.index.OIndex;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.index.PIndex;
 import com.arcadedb.sql.parser.*;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
+import com.orientechnologies.orient.core.index.OIndex;
 
 import java.util.List;
 
@@ -31,13 +32,13 @@ public class ODeleteExecutionPlanner {
 
     if (handleIndexAsTarget(result, fromClause.getItem().getIndex(), whereClause, ctx,enableProfiling)) {
       if (limit != null) {
-        throw new OCommandExecutionException("Cannot apply a LIMIT on a delete from index");
+        throw new PCommandExecutionException("Cannot apply a LIMIT on a delete from index");
       }
       if (unsafe) {
-        throw new OCommandExecutionException("Cannot apply a UNSAFE on a delete from index");
+        throw new PCommandExecutionException("Cannot apply a UNSAFE on a delete from index");
       }
       if (returnBefore) {
-        throw new OCommandExecutionException("Cannot apply a RETURN BEFORE on a delete from index");
+        throw new PCommandExecutionException("Cannot apply a RETURN BEFORE on a delete from index");
       }
 
       handleReturn(result, ctx, this.returnBefore, enableProfiling);
@@ -57,9 +58,9 @@ public class ODeleteExecutionPlanner {
       return false;
     }
     String indexName = indexIdentifier.getIndexName();
-    OIndex<?> index = ctx.getDatabase().getMetadata().getIndexManager().getIndex(indexName);
+    PIndex index = ctx.getDatabase().getSchema().getIndexByName(indexName);
     if (index == null) {
-      throw new OCommandExecutionException("Index not found: " + indexName);
+      throw new PCommandExecutionException("Index not found: " + indexName);
     }
     List<OAndBlock> flattenedWhereClause = whereClause == null ? null : whereClause.flatten();
 
@@ -68,11 +69,12 @@ public class ODeleteExecutionPlanner {
       OBooleanExpression keyCondition = null;
       OBooleanExpression ridCondition = null;
       if (flattenedWhereClause == null || flattenedWhereClause.size() == 0) {
-        if (!index.supportsOrderedIterations()) {
-          throw new OCommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
-        }
+        //TODO
+//        if (!index.supportsOrderedIterations()) {
+          throw new PCommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
+//        }
       } else if (flattenedWhereClause.size() > 1) {
-        throw new OCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
+        throw new PCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
       } else {
         OAndBlock andBlock = flattenedWhereClause.get(0);
         if (andBlock.getSubBlocks().size() == 1) {
@@ -81,7 +83,7 @@ public class ODeleteExecutionPlanner {
           flattenedWhereClause = null;
           keyCondition = getKeyCondition(andBlock);
           if (keyCondition == null) {
-            throw new OCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
+            throw new PCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
           }
         } else if (andBlock.getSubBlocks().size() == 2) {
           whereClause = null;//The WHERE clause won't be used anymore, the index does all the filtering
@@ -89,10 +91,10 @@ public class ODeleteExecutionPlanner {
           keyCondition = getKeyCondition(andBlock);
           ridCondition = getRidCondition(andBlock);
           if (keyCondition == null || ridCondition == null) {
-            throw new OCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
+            throw new PCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
           }
         } else {
-          throw new OCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
+          throw new PCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
         }
       }
       result.chain(new DeleteFromIndexStep(index, keyCondition, null, ridCondition, ctx, profilingEnabled));
@@ -103,16 +105,19 @@ public class ODeleteExecutionPlanner {
       }
       return true;
     case VALUES:
+      result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
+      result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
+      break;
     case VALUESASC:
       if (!index.supportsOrderedIterations()) {
-        throw new OCommandExecutionException("Index " + indexName + " does not allow iteration on values");
+        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
       }
       result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
     case VALUESDESC:
       if (!index.supportsOrderedIterations()) {
-        throw new OCommandExecutionException("Index " + indexName + " does not allow iteration on values");
+        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
       }
       result.chain(new FetchFromIndexValuesStep(index, false, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));

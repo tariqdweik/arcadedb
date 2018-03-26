@@ -4,7 +4,7 @@ import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -157,7 +157,7 @@ public class FilterByClustersStep extends AbstractExecutionStep {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
       clusters = fromResult.getProperty("clusters");
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw OException.wrapException(new PCommandExecutionException(""), e);
     }
   }
 

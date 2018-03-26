@@ -11,7 +11,7 @@ import com.orientechnologies.orient.core.db.ODatabase;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -324,16 +324,16 @@ public class OMatchStatement extends OStatement implements OCommandExecutor, OIt
    */
   public Object execute(OSQLAsynchQuery<ODocument> request, OCommandContext context, OProgressListener progressListener) {
     if (orderBy != null) {
-      throw new OCommandExecutionException("ORDER BY is not supported in MATCH on the legacy API");
+      throw new PCommandExecutionException("ORDER BY is not supported in MATCH on the legacy API");
     }
     if (groupBy != null) {
-      throw new OCommandExecutionException("GROUP BY is not supported in MATCH on the legacy API");
+      throw new PCommandExecutionException("GROUP BY is not supported in MATCH on the legacy API");
     }
     if (unwind != null) {
-      throw new OCommandExecutionException("UNWIND is not supported in MATCH on the legacy API");
+      throw new PCommandExecutionException("UNWIND is not supported in MATCH on the legacy API");
     }
     if (skip != null) {
-      throw new OCommandExecutionException("SKIP is not supported in MATCH on the legacy API");
+      throw new PCommandExecutionException("SKIP is not supported in MATCH on the legacy API");
     }
 
     Map<Object, Object> iArgs = context.getInputParameters();
@@ -537,7 +537,7 @@ public class OMatchStatement extends OStatement implements OCommandExecutor, OIt
         // We didn't manage to find a valid root, and yet we haven't constructed a complete schedule.
         // This means there must be a cycle in our dependency graph, or all dependency-free nodes are optional.
         // Therefore, the query is invalid.
-        throw new OCommandExecutionException("This query contains MATCH conditions that cannot be evaluated, "
+        throw new PCommandExecutionException("This query contains MATCH conditions that cannot be evaluated, "
             + "like an undefined alias or a circular dependency on a $matched condition.");
       }
 
@@ -892,7 +892,7 @@ public class OMatchStatement extends OStatement implements OCommandExecutor, OIt
       if (!matchContext.matched.containsKey(alias)) {
         String target = aliasClasses.get(alias);
         if (target == null) {
-          throw new OCommandExecutionException("Cannot execute MATCH statement on alias " + alias + ": class not defined");
+          throw new PCommandExecutionException("Cannot execute MATCH statement on alias " + alias + ": class not defined");
         }
 
         Iterable<PIdentifiable> values = fetchAliasCandidates(alias, aliasFilters, iCommandContext, aliasClasses);
@@ -1170,7 +1170,7 @@ public class OMatchStatement extends OStatement implements OCommandExecutor, OIt
     }
 
     if (lowerValue == null) {
-      throw new OCommandExecutionException("Cannot calculate this pattern (maybe a circular dependency on $matched conditions)");
+      throw new PCommandExecutionException("Cannot calculate this pattern (maybe a circular dependency on $matched conditions)");
     }
     return lowerValue.getKey();
   }
@@ -1191,7 +1191,7 @@ public class OMatchStatement extends OStatement implements OCommandExecutor, OIt
       }
 
       if (!schema.existsClass(className)) {
-        throw new OCommandExecutionException("class not defined: " + className);
+        throw new PCommandExecutionException("class not defined: " + className);
       }
       OClass oClass = schema.getClass(className);
       long upperBound;
@@ -1247,7 +1247,7 @@ public class OMatchStatement extends OStatement implements OCommandExecutor, OIt
         } else {
           String lower = getLowerSubclass(clazz, previousClass);
           if (lower == null) {
-            throw new OCommandExecutionException(
+            throw new PCommandExecutionException(
                 "classes defined for alias " + alias + " (" + clazz + ", " + previousClass + ") are not in the same hierarchy");
           }
           aliasClasses.put(alias, lower);
@@ -1261,10 +1261,10 @@ public class OMatchStatement extends OStatement implements OCommandExecutor, OIt
     OClass class1 = schema.getClass(className1);
     OClass class2 = schema.getClass(className2);
     if (class1 == null) {
-      throw new OCommandExecutionException("Class " + className1 + " not found in the schema");
+      throw new PCommandExecutionException("Class " + className1 + " not found in the schema");
     }
     if (class2 == null) {
-      throw new OCommandExecutionException("Class " + className2 + " not found in the schema");
+      throw new PCommandExecutionException("Class " + className2 + " not found in the schema");
     }
     if (class1.isSubClassOf(class2)) {
       return class1.getName();

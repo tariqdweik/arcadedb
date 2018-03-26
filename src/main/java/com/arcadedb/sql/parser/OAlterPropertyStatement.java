@@ -6,7 +6,7 @@ import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.sql.OCommandSQLParsingException;
@@ -43,12 +43,12 @@ public class OAlterPropertyStatement extends ODDLStatement {
     OClass clazz = db.getMetadata().getSchema().getClass(className.getStringValue());
 
     if (clazz == null) {
-      throw new OCommandExecutionException("Invalid class name or class not found: " + clazz);
+      throw new PCommandExecutionException("Invalid class name or class not found: " + clazz);
     }
 
     OProperty property = clazz.getProperty(propertyName.getStringValue());
     if (property == null) {
-      throw new OCommandExecutionException("Property " + property + " not found on class " + clazz);
+      throw new PCommandExecutionException("Property " + property + " not found on class " + clazz);
     }
 
     OResultInternal result = new OResultInternal();
@@ -73,7 +73,7 @@ public class OAlterPropertyStatement extends ODDLStatement {
       try {
         attribute = OProperty.ATTRIBUTES.valueOf(setting.toUpperCase(Locale.ENGLISH));
       } catch (IllegalArgumentException e) {
-        throw OException.wrapException(new OCommandExecutionException(
+        throw OException.wrapException(new PCommandExecutionException(
             "Unknown property attribute '" + setting + "'. Supported attributes are: " + Arrays
                 .toString(OProperty.ATTRIBUTES.values())), e);
       }

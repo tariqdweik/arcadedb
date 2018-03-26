@@ -2,17 +2,15 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.OResultInternal;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class OUpdateItem extends SimpleNode {
@@ -141,28 +139,29 @@ public class OUpdateItem extends SimpleNode {
   }
 
   private Object convertToPropertyType(OResultInternal res, OIdentifier attrName, Object newValue) {
-    OElement doc = res.toElement();
-    Optional<OClass> optSchema = doc.getSchemaType();
-    if (!optSchema.isPresent()) {
-      return newValue;
-    }
-    OProperty prop = optSchema.get().getProperty(attrName.getStringValue());
-    if (prop == null) {
-      return newValue;
-    }
-
-    if (newValue instanceof Collection) {
-      if (prop.getType() == OType.LINK) {
-        if (((Collection) newValue).size() == 0) {
-          newValue = null;
-        } else if (((Collection) newValue).size() == 1) {
-          newValue = ((Collection) newValue).iterator().next();
-        } else {
-          throw new OCommandExecutionException("Cannot assign a collection to a LINK property");
-        }
-      }
-    }
-    return newValue;
+//    PRecord doc = res.toElement();
+//    Optional<PDocumentType> optSchema = doc.getType();
+//    if (!optSchema.isPresent()) {
+//      return newValue;
+//    }
+//    OProperty prop = optSchema.get().getProperty(attrName.getStringValue());
+//    if (prop == null) {
+//      return newValue;
+//    }
+//
+//    if (newValue instanceof Collection) {
+//      if (prop.getType() == OType.LINK) {
+//        if (((Collection) newValue).size() == 0) {
+//          newValue = null;
+//        } else if (((Collection) newValue).size() == 1) {
+//          newValue = ((Collection) newValue).iterator().next();
+//        } else {
+//          throw new PCommandExecutionException("Cannot assign a collection to a LINK property");
+//        }
+//      }
+//    }
+//    return newValue;
+    throw new UnsupportedOperationException();//TODO
   }
 
   private Object convertResultToDocument(Object value) {

@@ -8,7 +8,7 @@ import com.arcadedb.sql.executor.OResult;
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
 import com.orientechnologies.orient.core.sql.executor.OResult;
@@ -237,10 +237,10 @@ public class OBaseIdentifier extends SimpleNode {
       } else if (suffix != null) {
         return suffix.getAggregationContext(ctx);
       } else {
-        throw new OCommandExecutionException("cannot aggregate on " + toString());
+        throw new PCommandExecutionException("cannot aggregate on " + toString());
       }
     } else {
-      throw new OCommandExecutionException("cannot aggregate on " + toString());
+      throw new PCommandExecutionException("cannot aggregate on " + toString());
     }
   }
 
@@ -302,7 +302,7 @@ public class OBaseIdentifier extends SimpleNode {
     if (suffix != null) {
       suffix.applyRemove(result, ctx);
     } else {
-      throw new OCommandExecutionException("cannot apply REMOVE " + toString());
+      throw new PCommandExecutionException("cannot apply REMOVE " + toString());
     }
   }
 

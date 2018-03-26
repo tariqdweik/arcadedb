@@ -6,7 +6,7 @@ import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
@@ -64,7 +64,7 @@ public class OAlterClusterStatement extends ODDLStatement {
     try {
       attribute = OCluster.ATTRIBUTES.valueOf(attributeName.getStringValue());
     } catch (IllegalArgumentException e) {
-      throw OException.wrapException(new OCommandExecutionException(
+      throw OException.wrapException(new PCommandExecutionException(
           "Unknown class attribute '" + attributeName + "'. Supported attributes are: " + Arrays
               .toString(OCluster.ATTRIBUTES.values())), e);
     }
@@ -76,7 +76,7 @@ public class OAlterClusterStatement extends ODDLStatement {
       try {
         cluster.set(attribute, finalValue);
       } catch (IOException e) {
-        OException.wrapException(new OCommandExecutionException("Cannot execute alter cluster"), e);
+        OException.wrapException(new PCommandExecutionException("Cannot execute alter cluster"), e);
       }
       OResultInternal resultItem = new OResultInternal();
       resultItem.setProperty("cluster", cluster.getName());
@@ -103,7 +103,7 @@ public class OAlterClusterStatement extends ODDLStatement {
     } else {
       int clusterId = ctx.getDatabase().getClusterIdByName(name.getStringValue());
       if (clusterId <= 0) {
-        throw new OCommandExecutionException("Cannot find cluster " + name);
+        throw new PCommandExecutionException("Cannot find cluster " + name);
       }
       com.orientechnologies.orient.core.storage.OCluster cluster = storage.getClusterById(clusterId);
       return Collections.singletonList(cluster);

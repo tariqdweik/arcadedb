@@ -7,7 +7,7 @@ import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -152,7 +152,7 @@ public class OLevelZeroIdentifier extends SimpleNode {
 
   public OExpression getExpandContent() {
     if (functionCall.getParams().size() != 1) {
-      throw new OCommandExecutionException("Invalid expand expression: " + functionCall.toString());
+      throw new PCommandExecutionException("Invalid expand expression: " + functionCall.toString());
     }
     return functionCall.getParams().get(0);
   }
@@ -223,7 +223,7 @@ public class OLevelZeroIdentifier extends SimpleNode {
         return functionCall.getAggregationContext(ctx);
       }
     }
-    throw new OCommandExecutionException("cannot aggregate on " + toString());
+    throw new PCommandExecutionException("cannot aggregate on " + toString());
   }
 
   public OLevelZeroIdentifier copy() {

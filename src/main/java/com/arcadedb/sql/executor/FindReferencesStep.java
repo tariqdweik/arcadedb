@@ -7,7 +7,7 @@ import com.orientechnologies.orient.core.db.ODatabaseInternal;
 import com.arcadedb.database.PIdentifiable;
 import com.orientechnologies.orient.core.db.record.ORecordLazyMap;
 import com.orientechnologies.orient.core.db.record.ORecordLazyMultiValue;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.iterator.ORecordIteratorCluster;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -128,7 +128,7 @@ public class FindReferencesStep extends AbstractExecutionStep {
           } else {
             String clusterName = db.getClusterNameById(c.getClusterNumber());
             if (clusterName == null) {
-              throw new OCommandExecutionException("Cluster not found: " + c.getClusterNumber());
+              throw new PCommandExecutionException("Cluster not found: " + c.getClusterNumber());
             }
             targetClusterNames.add(clusterName);
           }
@@ -137,7 +137,7 @@ public class FindReferencesStep extends AbstractExecutionStep {
         for (OIdentifier className : this.classes) {
           OClass clazz = schema.getClass(className.getStringValue());
           if (clazz == null) {
-            throw new OCommandExecutionException("Class not found: " + className);
+            throw new PCommandExecutionException("Class not found: " + className);
           }
           for (int clusterId : clazz.getPolymorphicClusterIds()) {
             targetClusterNames.add(db.getClusterNameById(clusterId));

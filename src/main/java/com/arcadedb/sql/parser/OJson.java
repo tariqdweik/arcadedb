@@ -2,11 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.OResultInternal;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,13 +45,13 @@ public class OJson extends SimpleNode {
     builder.append("}");
   }
 
-  public ODocument toDocument(PIdentifiable source, OCommandContext ctx) {
+  public PRecord toDocument(PIdentifiable source, OCommandContext ctx) {
     String className = getClassNameForDocument(ctx);
-    ODocument doc;
+    PModifiableDocument doc;
     if (className != null) {
-      doc = new ODocument(className);
+      doc = ctx.getDatabase().newDocument(className);
     } else {
-      doc = new ODocument();
+      doc = ctx.getDatabase().newDocument(null);
     }
     for (OJsonItem item : items) {
       String name = item.getLeftValue();
@@ -63,7 +64,7 @@ public class OJson extends SimpleNode {
       } else {
         value = item.right.execute(source, ctx);
       }
-      doc.field(name, value);
+      doc.set(name, value);
     }
 
     return doc;

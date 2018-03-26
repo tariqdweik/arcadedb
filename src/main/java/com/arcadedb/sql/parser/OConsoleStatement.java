@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
@@ -41,7 +41,7 @@ public class OConsoleStatement extends OSimpleExecStatement {
     } else if (logLevel.getStringValue().equalsIgnoreCase("debug")) {
       OLogManager.instance().debug(this, "%s", msg);
     } else {
-      throw new OCommandExecutionException("Unsupported log level: " + logLevel);
+      throw new PCommandExecutionException("Unsupported log level: " + logLevel);
     }
 
     item.setProperty("operation", "console");

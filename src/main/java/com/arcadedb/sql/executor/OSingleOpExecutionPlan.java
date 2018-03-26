@@ -1,8 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OBasicCommandContext;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.sql.parser.OSimpleExecStatement;
 
 import java.util.Collections;
@@ -47,9 +45,9 @@ public class OSingleOpExecutionPlan implements OInternalExecutionPlan {
     return false;
   }
 
-  public OResultSet executeInternal(OBasicCommandContext ctx) throws OCommandExecutionException {
+  public OResultSet executeInternal(OBasicCommandContext ctx) throws PCommandExecutionException {
     if (executed) {
-      throw new OCommandExecutionException("Trying to execute a result-set twice. Please use reset()");
+      throw new PCommandExecutionException("Trying to execute a result-set twice. Please use reset()");
     }
     executed = true;
     OResultSet result = statement.executeSimple(this.ctx);

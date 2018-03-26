@@ -6,6 +6,8 @@
  */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.sql.executor.*;
 import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
@@ -269,7 +271,7 @@ public class OSelectStatement extends OStatement {
   }
 
   @Override
-  public OResultSet execute(ODatabase db, Map params, OCommandContext parentCtx) {
+  public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
     OBasicCommandContext ctx = new OBasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);

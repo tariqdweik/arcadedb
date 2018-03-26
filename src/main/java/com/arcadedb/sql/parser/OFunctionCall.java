@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.sql.OSQLEngine;
 import com.orientechnologies.orient.core.sql.executor.AggregationContext;
 import com.orientechnologies.orient.core.sql.executor.OFuncitonAggregationContext;
@@ -125,7 +125,7 @@ public class OFunctionCall extends SimpleNode {
       } else if (record == null) {
         paramValues.add(expr.execute((OResult) record, ctx));
       } else {
-        throw new OCommandExecutionException("Invalid value for $current: " + record);
+        throw new PCommandExecutionException("Invalid value for $current: " + record);
       }
     }
     OSQLFunction function = OSQLEngine.getInstance().getFunction(name);
@@ -137,10 +137,10 @@ public class OFunctionCall extends SimpleNode {
       } else if (record == null) {
         return function.execute(targetObjects, null, null, paramValues.toArray(), ctx);
       } else {
-        throw new OCommandExecutionException("Invalid value for $current: " + record);
+        throw new PCommandExecutionException("Invalid value for $current: " + record);
       }
     } else {
-      throw new OCommandExecutionException("Funciton not found: " + name);
+      throw new PCommandExecutionException("Funciton not found: " + name);
     }
   }
 
@@ -289,7 +289,7 @@ public class OFunctionCall extends SimpleNode {
         } else {
           for (OExpression param : params) {
             if (param.isAggregate()) {
-              throw new OCommandExecutionException(
+              throw new PCommandExecutionException(
                   "Cannot calculate an aggregate function of another aggregate function " + toString());
             }
             OIdentifier nextAlias = aggregateProj.getNextAlias();

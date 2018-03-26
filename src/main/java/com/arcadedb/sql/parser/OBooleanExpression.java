@@ -1,9 +1,9 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.schema.PType;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
@@ -17,7 +17,7 @@ public abstract class OBooleanExpression extends SimpleNode {
 
   public static final OBooleanExpression TRUE = new OBooleanExpression(0) {
     @Override
-    public boolean evaluate(PRecord currentRecord, OCommandContext ctx) {
+    public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
       return true;
     }
 
@@ -94,7 +94,7 @@ public abstract class OBooleanExpression extends SimpleNode {
 
   public static final OBooleanExpression FALSE = new OBooleanExpression(0) {
     @Override
-    public boolean evaluate(PRecord currentRecord, OCommandContext ctx) {
+    public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
       return false;
     }
 
@@ -184,7 +184,7 @@ public abstract class OBooleanExpression extends SimpleNode {
     return visitor.visit(this, data);
   }
 
-  public abstract boolean evaluate(PRecord currentRecord, OCommandContext ctx);
+  public abstract boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx);
 
   public abstract boolean evaluate(OResult currentRecord, OCommandContext ctx);
 
@@ -203,7 +203,7 @@ public abstract class OBooleanExpression extends SimpleNode {
    */
   protected abstract List<Object> getExternalCalculationConditions();
 
-  public List<OBinaryCondition> getIndexedFunctionConditions(PType iSchemaClass, PDatabase database) {
+  public List<OBinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, PDatabase database) {
     return null;
   }
 

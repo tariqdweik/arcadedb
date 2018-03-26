@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OMultiValue;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.OResultInternal;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -339,7 +339,7 @@ public class OArrayRangeSelector extends SimpleNode {
       to = toSelector.getValue(originalRecord, null, ctx);
     }
     if (from == null || to == null) {
-      throw new OCommandExecutionException("Invalid range expression: " + toString() + " one of the elements is null");
+      throw new PCommandExecutionException("Invalid range expression: " + toString() + " one of the elements is null");
     }
     if (included) {
       to++;
@@ -375,7 +375,7 @@ public class OArrayRangeSelector extends SimpleNode {
         count++;
       }
     } else {
-      throw new OCommandExecutionException(
+      throw new PCommandExecutionException(
           "Trying to remove elements from " + currentValue + " (" + currentValue.getClass().getSimpleName() + ")");
     }
   }

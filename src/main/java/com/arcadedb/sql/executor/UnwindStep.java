@@ -1,10 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OUnwind;
 
 import java.util.*;
@@ -33,7 +31,7 @@ public class UnwindStep extends AbstractExecutionStep {
   @Override
   public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
     if (prev == null || !prev.isPresent()) {
-      throw new OCommandExecutionException("Cannot expand without a target");
+      throw new PCommandExecutionException("Cannot expand without a target");
     }
     return new OResultSet() {
       long localCount = 0;
@@ -121,7 +119,7 @@ public class UnwindStep extends AbstractExecutionStep {
       final List<String> nextFields = unwindFields.subList(1, unwindFields.size());
 
       Object fieldValue = doc.getProperty(firstField);
-      if (fieldValue == null || fieldValue instanceof ODocument) {
+      if (fieldValue == null || fieldValue instanceof PRecord) {
         result.addAll(unwind(doc, nextFields, iContext));
         return result;
       }

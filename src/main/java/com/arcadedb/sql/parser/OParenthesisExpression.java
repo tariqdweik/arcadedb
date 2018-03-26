@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.sql.executor.OInternalExecutionPlan;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultInternal;
@@ -209,7 +209,7 @@ public class OParenthesisExpression extends OMathExpression {
     if (expression != null) {
       expression.applyRemove(result, ctx);
     } else {
-      throw new OCommandExecutionException("Cannot apply REMOVE " + toString());
+      throw new PCommandExecutionException("Cannot apply REMOVE " + toString());
     }
   }
 

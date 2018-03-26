@@ -4,7 +4,7 @@ import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.arcadedb.sql.parser.OBinaryCondition;
 import com.arcadedb.sql.parser.OFromClause;
 
@@ -140,7 +140,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
       queryTarget.deserialize(fromResult.getProperty("functionCondition "));
 
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw OException.wrapException(new PCommandExecutionException(""), e);
     }
   }
 }

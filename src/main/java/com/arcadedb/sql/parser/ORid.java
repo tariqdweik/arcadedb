@@ -4,13 +4,10 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRID;
+import com.arcadedb.sql.executor.OBasicCommandContext;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
-import com.orientechnologies.orient.core.command.OBasicCommandContext;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.OResultInternal;
 
 import java.util.Map;
 
@@ -78,10 +75,10 @@ public class ORid extends SimpleNode {
         return null;
       }
       if (result instanceof PIdentifiable) {
-        return (ORecordId) ((PIdentifiable) result).getIdentity();
+        return ((PIdentifiable) result).getIdentity();
       }
       if (result instanceof String) {
-        return new ORecordId((String) result);
+        throw new UnsupportedOperationException();
       }
       return null;
     }
@@ -139,10 +136,10 @@ public class ORid extends SimpleNode {
 
   public OInteger getCluster() {
     if (expression != null) {
-      ORecordId rid = toRecordId((OResult) null, new OBasicCommandContext());
+      PRID rid = toRecordId((OResult) null, new OBasicCommandContext());
       if (rid == null) {
         OInteger result = new OInteger(-1);
-        result.setValue(rid.getClusterId());
+        result.setValue(rid.getBucketId());
         return result;
       }
     }
@@ -151,10 +148,10 @@ public class ORid extends SimpleNode {
 
   public OInteger getPosition() {
     if (expression != null) {
-      ORecordId rid = toRecordId((OResult) null, new OBasicCommandContext());
+      PRID rid = toRecordId((OResult) null, new OBasicCommandContext());
       if (rid == null) {
         OInteger result = new OInteger(-1);
-        result.setValue(rid.getClusterPosition());
+        result.setValue(rid.getPosition());
         return result;
       }
     }

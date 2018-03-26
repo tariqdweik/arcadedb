@@ -1,8 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.parser.*;
 
 import java.util.ArrayList;
@@ -42,8 +41,9 @@ public class OCreateEdgeExecutionPlanner {
       if (targetClusterName == null) {
         targetClass = new OIdentifier("E");
       } else {
-        ODatabase db = ctx.getDatabase();
-        OClass clazz = db.getMetadata().getSchema().getClassByClusterId(db.getClusterIdByName(targetClusterName.getStringValue()));
+        PDatabase db = ctx.getDatabase();
+        PDocumentType clazz = db.getSchema()
+            .getTypeByBucketId((db.getSchema().getBucketByName(targetClusterName.getStringValue()).getId()));
         if (clazz != null) {
           targetClass = new OIdentifier(clazz.getName());
         } else {

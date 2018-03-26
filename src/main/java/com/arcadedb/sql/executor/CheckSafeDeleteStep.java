@@ -10,10 +10,10 @@ import java.util.Optional;
 
 /**
  * <p>
- * Checks if a record can be safely deleted (throws OCommandExecutionException in case).
+ * Checks if a record can be safely deleted (throws PCommandExecutionException in case).
  * A record cannot be safely deleted if it's a vertex or an edge (it requires additional operations).</p>
  * <p>
- * The result set returned by syncPull() throws an OCommandExecutionException as soon as it finds a record
+ * The result set returned by syncPull() throws an PCommandExecutionException as soon as it finds a record
  * that cannot be safely deleted (eg. a vertex or an edge)</p>
  * <p>This step is used used in DELETE statement to make sure that you are not deleting vertices or edges without passing for an
  * explicit DELETE VERTEX/EDGE</p>
@@ -50,10 +50,10 @@ public class CheckSafeDeleteStep extends AbstractExecutionStep {
               //TODO
 //              if (clazz != null) {
 //                if (clazz.getName().equalsIgnoreCase("V") || clazz.isSubClassOf("V")) {
-//                  throw new OCommandExecutionException("Cannot safely delete a vertex, please use DELETE VERTEX or UNSAFE");
+//                  throw new PCommandExecutionException("Cannot safely delete a vertex, please use DELETE VERTEX or UNSAFE");
 //                }
 //                if (clazz.getName().equalsIgnoreCase("E") || clazz.isSubClassOf("E")) {
-//                  throw new OCommandExecutionException("Cannot safely delete an edge, please use DELETE EDGE or UNSAFE");
+//                  throw new PCommandExecutionException("Cannot safely delete an edge, please use DELETE EDGE or UNSAFE");
 //                }
 //              }
             }

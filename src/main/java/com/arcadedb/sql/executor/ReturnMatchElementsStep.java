@@ -1,6 +1,5 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
 
 import java.util.ArrayList;
@@ -16,14 +15,15 @@ public class ReturnMatchElementsStep extends AbstractUnrollStep {
     super(context, profilingEnabled);
   }
 
-  @Override protected Collection<OResult> unroll(OResult doc, OCommandContext iContext) {
+  @Override
+  protected Collection<OResult> unroll(OResult doc, OCommandContext iContext) {
     List<OResult> result = new ArrayList<>();
     for (String s : doc.getPropertyNames()) {
       if (!s.startsWith(OMatchExecutionPlanner.DEFAULT_ALIAS_PREFIX)) {
         Object elem = doc.getProperty(s);
         if (elem instanceof PIdentifiable) {
           OResultInternal newelem = new OResultInternal();
-          newelem.setElement((PIdentifiable) elem);
+          newelem.setElement(((PIdentifiable) elem).getRecord());
           elem = newelem;
         }
         if (elem instanceof OResult) {
@@ -35,7 +35,8 @@ public class ReturnMatchElementsStep extends AbstractUnrollStep {
     return result;
   }
 
-  @Override public String prettyPrint(int depth, int indent) {
+  @Override
+  public String prettyPrint(int depth, int indent) {
     String spaces = OExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ UNROLL $elements";
   }

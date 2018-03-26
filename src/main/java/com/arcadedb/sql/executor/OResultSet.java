@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.record.OEdge;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.record.OVertex;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PVertex;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -77,10 +77,10 @@ public interface OResultSet extends Spliterator<OResult>, Iterator<OResult>, Aut
    * @return
    */
 
-  default Stream<OElement> elementStream() {
-    return StreamSupport.stream(new Spliterator<OElement>() {
+  default Stream<PRecord> elementStream() {
+    return StreamSupport.stream(new Spliterator<PRecord>() {
       @Override
-      public boolean tryAdvance(Consumer<? super OElement> action) {
+      public boolean tryAdvance(Consumer<? super PRecord> action) {
         while (hasNext()) {
           OResult elem = next();
           if (elem.isElement()) {
@@ -92,7 +92,7 @@ public interface OResultSet extends Spliterator<OResult>, Iterator<OResult>, Aut
       }
 
       @Override
-      public Spliterator<OElement> trySplit() {
+      public Spliterator<PRecord> trySplit() {
         return null;
       }
 
@@ -115,10 +115,10 @@ public interface OResultSet extends Spliterator<OResult>, Iterator<OResult>, Aut
    * @return
    */
 
-  default Stream<OVertex> vertexStream() {
-    return StreamSupport.stream(new Spliterator<OVertex>() {
+  default Stream<PVertex> vertexStream() {
+    return StreamSupport.stream(new Spliterator<PVertex>() {
       @Override
-      public boolean tryAdvance(Consumer<? super OVertex> action) {
+      public boolean tryAdvance(Consumer<? super PVertex> action) {
         while (hasNext()) {
           OResult elem = next();
           if (elem.isVertex()) {
@@ -130,7 +130,7 @@ public interface OResultSet extends Spliterator<OResult>, Iterator<OResult>, Aut
       }
 
       @Override
-      public Spliterator<OVertex> trySplit() {
+      public Spliterator<PVertex> trySplit() {
         return null;
       }
 
@@ -153,10 +153,10 @@ public interface OResultSet extends Spliterator<OResult>, Iterator<OResult>, Aut
    * @return
    */
 
-  default Stream<OEdge> edgeStream() {
-    return StreamSupport.stream(new Spliterator<OEdge>() {
+  default Stream<PEdge> edgeStream() {
+    return StreamSupport.stream(new Spliterator<PEdge>() {
       @Override
-      public boolean tryAdvance(Consumer<? super OEdge> action) {
+      public boolean tryAdvance(Consumer<? super PEdge> action) {
         while (hasNext()) {
           OResult nextElem = next();
           if (nextElem != null && nextElem.isEdge()) {
@@ -168,7 +168,7 @@ public interface OResultSet extends Spliterator<OResult>, Iterator<OResult>, Aut
       }
 
       @Override
-      public Spliterator<OEdge> trySplit() {
+      public Spliterator<PEdge> trySplit() {
         return null;
       }
 

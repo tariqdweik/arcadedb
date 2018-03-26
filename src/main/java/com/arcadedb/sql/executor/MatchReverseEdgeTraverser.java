@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.parser.OMatchPathItem;
 import com.arcadedb.sql.parser.ORid;
 import com.arcadedb.sql.parser.OWhereClause;
@@ -50,15 +50,15 @@ public class MatchReverseEdgeTraverser extends MatchEdgeTraverser {
     if (qR instanceof OResultInternal) {
       return Collections.singleton((OResultInternal) qR);
     }
-    if (qR instanceof PIdentifiable) {
-      return Collections.singleton(new OResultInternal((PIdentifiable) qR));
+    if (qR instanceof PRecord) {
+      return Collections.singleton(new OResultInternal((PRecord) qR));
     }
     if (qR instanceof Iterable) {
       Iterable iterable = (Iterable) qR;
       List<OResultInternal> result = new ArrayList<>();
       for (Object o : iterable) {
-        if (o instanceof PIdentifiable) {
-          result.add(new OResultInternal((PIdentifiable) o));
+        if (o instanceof PRecord) {
+          result.add(new OResultInternal((PRecord) o));
         } else if (o instanceof OResultInternal) {
           result.add((OResultInternal) o);
         } else if (o == null) {

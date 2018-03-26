@@ -5,7 +5,7 @@ package com.arcadedb.sql.parser;
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.exception.ODatabaseException;
 import com.orientechnologies.orient.core.index.*;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -134,7 +134,7 @@ public class OCreateIndexStatement extends ODDLStatement {
     }
     OClass result = ctx.getDatabase().getMetadata().getSchema().getClass(className.getStringValue());
     if (result == null) {
-      throw new OCommandExecutionException("Cannot find class " + className);
+      throw new PCommandExecutionException("Cannot find class " + className);
     }
     return result;
   }

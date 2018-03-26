@@ -198,7 +198,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
 //    OIndexDefinition definition = index.getDefinition();
 //    OExpression key = ((OBetweenCondition) condition).getFirst();
 //    if (!key.toString().equalsIgnoreCase("key")) {
-//      throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
+//      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
 //    }
 //    OExpression second = ((OBetweenCondition) condition).getSecond();
 //    OExpression third = ((OBetweenCondition) condition).getThird();
@@ -216,7 +216,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
 //    OBinaryCompareOperator operator = ((OBinaryCondition) condition).getOperator();
 //    OExpression left = ((OBinaryCondition) condition).getLeft();
 //    if (!left.toString().equalsIgnoreCase("key")) {
-//      throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
+//      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
 //    }
 //    Object rightValue = ((OBinaryCondition) condition).getRight().execute((OResult) null, ctx);
 //    cursor = createCursor(operator, definition, rightValue, ctx);
@@ -264,7 +264,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
 //    } else if (operator instanceof OLtOperator) {
 //      return index.iterateEntriesMinor(value, false, orderAsc);
 //    } else {
-//      throw new OCommandExecutionException("search for index for " + condition + " is not supported yet");
+//      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
 //    }
 //
 //  }

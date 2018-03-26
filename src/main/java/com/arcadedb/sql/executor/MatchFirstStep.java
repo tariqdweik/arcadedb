@@ -1,8 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OLocalResultSet;
 
 import java.util.Collections;
@@ -92,7 +91,7 @@ public class MatchFirstStep extends AbstractExecutionStep {
     };
   }
 
-  private Object toResult(PIdentifiable nextElement) {
+  private Object toResult(PRecord nextElement) {
     OResultInternal result = new OResultInternal();
     result.setElement(nextElement);
     return result;

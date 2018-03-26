@@ -1,11 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.db.record.ridbag.ORidBag;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.graph.PEdge;
 
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +30,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
       public OResult next() {
         OResult result = upstream.next();
         if (result instanceof OResultInternal) {
-          handleUpdateEdge((ODocument) result.getElement().get().getRecord());
+          handleUpdateEdge((PRecord) result.getElement().get().getRecord());
         }
         return result;
       }
@@ -76,17 +74,18 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
    *
    * @param record the edge record
    */
-  private void handleUpdateEdge(ODocument record) {
-    Object currentOut = record.field("out");
-    Object currentIn = record.field("in");
+  private void handleUpdateEdge(PRecord record) {
+    Object currentOut = record.get("out");
+    Object currentIn = record.get("in");
 
-    Object prevOut = record.getOriginalValue("out");
-    Object prevIn = record.getOriginalValue("in");
-
-    validateOutInForEdge(record, currentOut, currentIn);
-
-    changeVertexEdgePointer(record, (PIdentifiable) prevIn, (PIdentifiable) currentIn, "in");
-    changeVertexEdgePointer(record, (PIdentifiable) prevOut, (PIdentifiable) currentOut, "out");
+    throw new UnsupportedOperationException();
+//    Object prevOut = record.getOriginalValue("out");
+//    Object prevIn = record.getOriginalValue("in");
+//
+//    validateOutInForEdge(record, currentOut, currentIn);
+//
+//    changeVertexEdgePointer(record, (PIdentifiable) prevIn, (PIdentifiable) currentIn, "in");
+//    changeVertexEdgePointer(record, (PIdentifiable) prevOut, (PIdentifiable) currentOut, "out");
   }
 
   /**
@@ -97,37 +96,37 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
    * @param currentVertex the currently connected vertex
    * @param direction     the direction ("out" or "in")
    */
-  private void changeVertexEdgePointer(ODocument edge, PIdentifiable prevVertex, PIdentifiable currentVertex, String direction) {
-    if (prevVertex != null && !prevVertex.equals(currentVertex)) {
-      String edgeClassName = edge.getClassName();
-      if (edgeClassName.equalsIgnoreCase("E")) {
-        edgeClassName = "";
-      }
-      String vertexFieldName = direction + "_" + edgeClassName;
-      ODocument prevOutDoc = ((PIdentifiable) prevVertex).getRecord();
-      ORidBag prevBag = prevOutDoc.field(vertexFieldName);
-      if (prevBag != null) {
-        prevBag.remove(edge);
-        prevOutDoc.save();
-      }
-
-      ODocument currentVertexDoc = ((PIdentifiable) currentVertex).getRecord();
-      ORidBag currentBag = currentVertexDoc.field(vertexFieldName);
-      if (currentBag == null) {
-        currentBag = new ORidBag();
-        currentVertexDoc.field(vertexFieldName, currentBag);
-      }
-      currentBag.add(edge);
-    }
+  private void changeVertexEdgePointer(PEdge edge, PIdentifiable prevVertex, PIdentifiable currentVertex, String direction) {
+//    if (prevVertex != null && !prevVertex.equals(currentVertex)) {
+//      String edgeClassName = edge.getClassName();
+//      if (edgeClassName.equalsIgnoreCase("E")) {
+//        edgeClassName = "";
+//      }
+//      String vertexFieldName = direction + "_" + edgeClassName;
+//      ODocument prevOutDoc = ((PIdentifiable) prevVertex).getRecord();
+//      ORidBag prevBag = prevOutDoc.field(vertexFieldName);
+//      if (prevBag != null) {
+//        prevBag.remove(edge);
+//        prevOutDoc.save();
+//      }
+//
+//      ODocument currentVertexDoc = ((PIdentifiable) currentVertex).getRecord();
+//      ORidBag currentBag = currentVertexDoc.field(vertexFieldName);
+//      if (currentBag == null) {
+//        currentBag = new ORidBag();
+//        currentVertexDoc.field(vertexFieldName, currentBag);
+//      }
+//      currentBag.add(edge);
+//    }
   }
 
-  private void validateOutInForEdge(ODocument record, Object currentOut, Object currentIn) {
-    if (!isRecordInstanceOf(currentOut, "V")) {
-      throw new OCommandExecutionException("Error updating edge: 'out' is not a vertex - " + currentOut + "");
-    }
-    if (!isRecordInstanceOf(currentIn, "V")) {
-      throw new OCommandExecutionException("Error updating edge: 'in' is not a vertex - " + currentIn + "");
-    }
+  private void validateOutInForEdge(PRecord record, Object currentOut, Object currentIn) {
+//    if (!isRecordInstanceOf(currentOut, "V")) {
+//      throw new PCommandExecutionException("Error updating edge: 'out' is not a vertex - " + currentOut + "");
+//    }
+//    if (!isRecordInstanceOf(currentIn, "V")) {
+//      throw new PCommandExecutionException("Error updating edge: 'in' is not a vertex - " + currentIn + "");
+//    }
   }
 
   /**
@@ -145,10 +144,10 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
     if (!(iRecord instanceof PIdentifiable)) {
       return false;
     }
-    ODocument record = ((PIdentifiable) iRecord).getRecord();
+    PRecord record = ((PIdentifiable) iRecord).getRecord();
     if (iRecord == null) {
       return false;
     }
-    return (record.getSchemaClass().isSubClassOf(orientClass));
+    return (record.getType().equals(orientClass));
   }
 }

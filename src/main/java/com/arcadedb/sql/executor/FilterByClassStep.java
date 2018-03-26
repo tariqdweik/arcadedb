@@ -3,7 +3,7 @@ package com.arcadedb.sql.executor;
 import com.orientechnologies.common.concur.PTimeoutException;
 import com.orientechnologies.common.exception.OException;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.arcadedb.sql.parser.OIdentifier;
 
@@ -159,7 +159,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
       identifier = OIdentifier.deserialize(fromResult.getProperty("identifier"));
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw OException.wrapException(new PCommandExecutionException(""), e);
     }
   }
 

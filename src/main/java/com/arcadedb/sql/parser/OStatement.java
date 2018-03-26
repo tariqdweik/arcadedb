@@ -2,15 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.common.listener.OProgressListener;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.OCommandSQLParsingException;
-import com.orientechnologies.orient.core.sql.executor.*;
-import com.orientechnologies.orient.core.sql.query.OSQLAsynchQuery;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.sql.executor.*;
 
 import java.util.Map;
 
@@ -40,7 +35,7 @@ public class OStatement extends SimpleNode {
     throw new UnsupportedOperationException("missing implementation in " + getClass().getSimpleName());
   }
 
-  public void validate() throws OCommandSQLParsingException {
+  public void validate() throws PCommandSQLParsingException {
 
   }
 
@@ -51,23 +46,23 @@ public class OStatement extends SimpleNode {
     return builder.toString();
   }
 
-  public Object execute(OSQLAsynchQuery<ODocument> request, OCommandContext context, OProgressListener progressListener) {
-    throw new UnsupportedOperationException("Unsupported command: " + getClass().getSimpleName());
-  }
+//  public Object execute(OSQLAsynchQuery<ODocument> request, OCommandContext context, OProgressListener progressListener) {
+//    throw new UnsupportedOperationException("Unsupported command: " + getClass().getSimpleName());
+//  }
 
-  public OResultSet execute(ODatabase db, Object[] args) {
+  public OResultSet execute(PDatabase db, Object[] args) {
     return execute(db, args, null);
   }
 
-  public OResultSet execute(ODatabase db, Object[] args, OCommandContext parentContext) {
+  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentContext) {
     throw new UnsupportedOperationException();
   }
 
-  public OResultSet execute(ODatabase db, Map args) {
+  public OResultSet execute(PDatabase db, Map args) {
     return execute(db, args, null);
   }
 
-  public OResultSet execute(ODatabase db, Map args, OCommandContext parentContext) {
+  public OResultSet execute(PDatabase db, Map args, OCommandContext parentContext) {
     throw new UnsupportedOperationException();
   }
 
@@ -111,7 +106,7 @@ public class OStatement extends SimpleNode {
       OStatement result = (OStatement) Class.forName(doc.getProperty("__class")).getConstructor(Integer.class).newInstance(-1);
       result.deserialize(doc);
     } catch (Exception e) {
-      throw OException.wrapException(new OCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
     return null;
   }

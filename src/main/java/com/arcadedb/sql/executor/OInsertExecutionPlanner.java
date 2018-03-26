@@ -1,6 +1,5 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.sql.parser.*;
 
 import java.util.ArrayList;
@@ -50,7 +49,7 @@ public class OInsertExecutionPlanner {
       if (targetCluster != null) {
         String name = targetCluster.getClusterName();
         if (name == null) {
-          name = ctx.getDatabase().getClusterNameById(targetCluster.getClusterNumber());
+          name = ctx.getDatabase().getSchema().getBucketById(targetCluster.getClusterNumber()).getName();
         }
         handleSave(result, new OIdentifier(name), ctx, enableProfiling);
       } else {

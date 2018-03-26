@@ -7,12 +7,14 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
- * Special implementation of Java Set&lt;ORID&gt; to efficiently handle memory and performance.
- * It does not store actual RIDs, but it only keeps track that a RID was stored, so the iterator will return new instances.
+ * Special implementation of Java Set&lt;ORID&gt; to efficiently handle memory and performance. It does not store actual RIDs, but
+ * it only keeps track that a RID was stored, so the iterator will return new instances.
  *
  * @author Luigi Dell'Aquila
  */
 public class ORidSet implements Set<PRID> {
+
+  OCommandContext ctx; //TODO, set this!!!
 
   protected static int INITIAL_BLOCK_SIZE = 4096;
 
@@ -36,22 +38,24 @@ public class ORidSet implements Set<PRID> {
   }
 
   /**
-   *
-   * @param bucketSize 
+   * @param bucketSize
    */
   public ORidSet(int bucketSize) {
     maxArraySize = bucketSize;
   }
 
-  @Override public int size() {
+  @Override
+  public int size() {
     return size <= Integer.MAX_VALUE ? (int) size : Integer.MAX_VALUE;
   }
 
-  @Override public boolean isEmpty() {
+  @Override
+  public boolean isEmpty() {
     return size == 0L;
   }
 
-  @Override public boolean contains(Object o) {
+  @Override
+  public boolean contains(Object o) {
     if (size == 0L) {
       return false;
     }
@@ -94,19 +98,23 @@ public class ORidSet implements Set<PRID> {
     return existed > 0L;
   }
 
-  @Override public Iterator<PRID> iterator() {
-    return new ORidSetIterator(this);
+  @Override
+  public Iterator<PRID> iterator() {
+    return new ORidSetIterator(ctx, this);
   }
 
-  @Override public Object[] toArray() {
+  @Override
+  public Object[] toArray() {
     return new Object[0];
   }
 
-  @Override public <T> T[] toArray(T[] a) {
+  @Override
+  public <T> T[] toArray(T[] a) {
     return null;
   }
 
-  @Override public boolean add(PRID identifiable) {
+  @Override
+  public boolean add(PRID identifiable) {
     if (identifiable == null) {
       throw new IllegalArgumentException();
     }
@@ -184,7 +192,8 @@ public class ORidSet implements Set<PRID> {
     return result;
   }
 
-  @Override public boolean remove(Object o) {
+  @Override
+  public boolean remove(Object o) {
     if (!(o instanceof PRID)) {
       throw new IllegalArgumentException();
     }
@@ -227,7 +236,8 @@ public class ORidSet implements Set<PRID> {
 
   }
 
-  @Override public boolean containsAll(Collection<?> c) {
+  @Override
+  public boolean containsAll(Collection<?> c) {
     for (Object o : c) {
       if (!contains(o)) {
         return false;
@@ -236,7 +246,8 @@ public class ORidSet implements Set<PRID> {
     return true;
   }
 
-  @Override public boolean addAll(Collection<? extends PRID> c) {
+  @Override
+  public boolean addAll(Collection<? extends PRID> c) {
     boolean added = false;
     for (PRID o : c) {
       added = added && add(o);
@@ -244,18 +255,21 @@ public class ORidSet implements Set<PRID> {
     return added;
   }
 
-  @Override public boolean retainAll(Collection<?> c) {
+  @Override
+  public boolean retainAll(Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean removeAll(Collection<?> c) {
+  @Override
+  public boolean removeAll(Collection<?> c) {
     for (Object o : c) {
       remove(o);
     }
     return true;
   }
 
-  @Override public void clear() {
+  @Override
+  public void clear() {
     content = new long[8][][];
     size = 0;
   }

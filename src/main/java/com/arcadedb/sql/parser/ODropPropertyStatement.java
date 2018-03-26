@@ -6,7 +6,7 @@ import com.orientechnologies.common.comparator.OCaseInsentiveComparator;
 import com.orientechnologies.common.util.OCollections;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClassImpl;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
@@ -37,13 +37,13 @@ public class ODropPropertyStatement extends ODDLStatement {
     final ODatabase database = ctx.getDatabase();
     final OClassImpl sourceClass = (OClassImpl) database.getMetadata().getSchema().getClass(className.getStringValue());
     if (sourceClass == null)
-      throw new OCommandExecutionException("Source class '" + className + "' not found");
+      throw new PCommandExecutionException("Source class '" + className + "' not found");
 
     if (sourceClass.getProperty(propertyName.getStringValue()) == null) {
       if(ifExists){
         return rs;
       }
-      throw new OCommandExecutionException("Property '" + propertyName + "' not found on class " + className);
+      throw new PCommandExecutionException("Property '" + propertyName + "' not found on class " + className);
     }
     final List<OIndex<?>> indexes = relatedIndexes(propertyName.getStringValue(), database);
     if (!indexes.isEmpty()) {
@@ -68,7 +68,7 @@ public class ODropPropertyStatement extends ODDLStatement {
           indexNames.append(index.getName());
         }
 
-        throw new OCommandExecutionException("Property used in indexes (" + indexNames.toString()
+        throw new PCommandExecutionException("Property used in indexes (" + indexNames.toString()
             + "). Please drop these indexes before removing property or use FORCE parameter.");
       }
     }

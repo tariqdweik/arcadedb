@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OAndBlock;
 import com.arcadedb.sql.parser.OBooleanExpression;
 import com.arcadedb.sql.parser.OFromClause;
@@ -42,16 +40,17 @@ public class UpsertStep extends AbstractExecutionStep {
   }
 
   private OResult createNewRecord(OFromClause commandTarget, OWhereClause initialFilter) {
-    if (commandTarget.getItem().getIdentifier() == null) {
-      throw new OCommandExecutionException("Cannot execute UPSERT on target '" + commandTarget + "'");
-    }
-
-    ODocument doc = new ODocument(commandTarget.getItem().getIdentifier().getStringValue());
-    OUpdatableResult result = new OUpdatableResult(doc);
-    if (initialFilter != null) {
-      setContent(result, initialFilter);
-    }
-    return result;
+    throw new UnsupportedOperationException(); //TODO
+//    if (commandTarget.getItem().getIdentifier() == null) {
+//      throw new PCommandExecutionException("Cannot execute UPSERT on target '" + commandTarget + "'");
+//    }
+//
+//    ODocument doc = new ODocument(commandTarget.getItem().getIdentifier().getStringValue());
+//    OUpdatableResult result = new OUpdatableResult(doc);
+//    if (initialFilter != null) {
+//      setContent(result, initialFilter);
+//    }
+//    return result;
   }
 
   private void setContent(OResultInternal doc, OWhereClause initialFilter) {
@@ -60,7 +59,7 @@ public class UpsertStep extends AbstractExecutionStep {
       return;
     }
     if (flattened.size() > 1) {
-      throw new OCommandExecutionException("Cannot UPSERT on OR conditions");
+      throw new PCommandExecutionException("Cannot UPSERT on OR conditions");
     }
     OAndBlock andCond = flattened.get(0);
     for (OBooleanExpression condition : andCond.getSubBlocks()) {

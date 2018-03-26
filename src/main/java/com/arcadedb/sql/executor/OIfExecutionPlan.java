@@ -4,8 +4,6 @@ package com.arcadedb.sql.executor;
  * Created by luigidellaquila on 08/08/16.
  */
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-
 import java.util.Collections;
 import java.util.List;
 

@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.db.ODatabaseInternal;
-import com.orientechnologies.orient.core.exception.OCommandExecutionException;
+import com.orientechnologies.orient.core.exception.PCommandExecutionException;
 import com.orientechnologies.orient.core.metadata.OMetadataInternal;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
@@ -39,7 +39,7 @@ public class ODropClusterStatement extends ODDLStatement {
         if (ifExists) {
           return new OInternalResultSet();
         } else {
-          throw new OCommandExecutionException("Cluster not found: " + name);
+          throw new PCommandExecutionException("Cluster not found: " + name);
         }
       }
     }
@@ -47,7 +47,7 @@ public class ODropClusterStatement extends ODDLStatement {
       for (int i : iClass.getClusterIds()) {
         if (i == clusterId) {
           // IN USE
-          throw new OCommandExecutionException(
+          throw new PCommandExecutionException(
               "Cannot drop cluster " + clusterId + " because it's used by class " + iClass.getName());
         }
       }
@@ -59,7 +59,7 @@ public class ODropClusterStatement extends ODDLStatement {
       if (ifExists) {
         return new OInternalResultSet();
       } else {
-        throw new OCommandExecutionException("Cluster not found: " + clusterId);
+        throw new PCommandExecutionException("Cluster not found: " + clusterId);
       }
     }
     ((OMetadataInternal) database.getMetadata()).getCommandCache().invalidateResultsOfCluster(clusterName);

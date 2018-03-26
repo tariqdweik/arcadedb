@@ -1,20 +1,20 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PDatabase;
-import com.arcadedb.engine.PBucket;
 import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.sql.parser.OCluster;
 
 /**
  * <p> This step is used just as a gate check to verify that a cluster belongs to a class. </p> <p> It accepts two values: a target
  * cluster (name or OCluster) and a class. If the cluster belongs to the class, then the syncPool() returns an empty result set,
- * otherwise it throws an OCommandExecutionException </p>
+ * otherwise it throws an PCommandExecutionException </p>
  *
  * @author Luigi Dell'Aquila (luigi.dellaquila - at - orientdb.com)
  */
 public class CheckClusterTypeStep extends AbstractExecutionStep {
 
-  PBucket cluster;
-  String  clusterName;
+  OCluster cluster;
+  String   clusterName;
 
   String targetClass;
 
@@ -28,7 +28,7 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
     this.targetClass = clazz;
   }
 
-  public CheckClusterTypeStep(PBucket targetCluster, String clazz, OCommandContext ctx, boolean profilingEnabled) {
+  public CheckClusterTypeStep(OCluster targetCluster, String clazz, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.cluster = targetCluster;
     this.targetClass = clazz;
@@ -54,16 +54,16 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
 //      } else {
 //        clusterId = cluster.getClusterNumber();
 //        if (db.getClusterNameById(clusterId) == null) {
-//          throw new OCommandExecutionException("Cluster not found: " + clusterId);
+//          throw new PCommandExecutionException("Cluster not found: " + clusterId);
 //        }
 //      }
 //      if (clusterId < 0) {
-//        throw new OCommandExecutionException("Cluster not found: " + clusterName);
+//        throw new PCommandExecutionException("Cluster not found: " + clusterName);
 //      }
 //
 //      OClass clazz = db.getMetadata().getSchema().getClass(targetClass);
 //      if (clazz == null) {
-//        throw new OCommandExecutionException("Class not found: " + targetClass);
+//        throw new PCommandExecutionException("Class not found: " + targetClass);
 //      }
 //
 //      for (int clust : clazz.getPolymorphicClusterIds()) {

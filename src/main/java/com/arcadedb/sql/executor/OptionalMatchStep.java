@@ -1,7 +1,5 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-
 /**
  * Created by luigidellaquila on 17/10/16.
  */

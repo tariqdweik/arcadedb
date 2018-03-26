@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,8 +28,8 @@ public class OIteratorResultSet implements OResultSet {
     }
 
     OResultInternal result = new OResultInternal();
-    if (val instanceof PIdentifiable) {
-      result.setElement((PIdentifiable) val);
+    if (val instanceof PRecord) {
+      result.setElement((PRecord) val);
     } else {
       result.setProperty("value", val);
     }

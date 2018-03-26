@@ -1,13 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.security.OSecurity;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.record.impl.ODocumentInternal;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OJson;
 
 import java.util.Map;
@@ -38,13 +32,13 @@ public class UpdateContentStep extends AbstractExecutionStep {
       public OResult next() {
         OResult result = upstream.next();
         if (result instanceof OResultInternal) {
-          if (!(result.getElement().get() instanceof OElement)) {
+          if (!(result.getElement().get() instanceof PRecord)) {
             ((OResultInternal) result).setElement(result.getElement().get().getRecord());
           }
-          if (!(result.getElement().get() instanceof OElement)) {
+          if (!(result.getElement().get() instanceof PRecord)) {
             return result;
           }
-          handleContent((OElement) result.getElement().get(), ctx);
+          handleContent((PRecord) result.getElement().get(), ctx);
         }
         return result;
       }
@@ -66,41 +60,42 @@ public class UpdateContentStep extends AbstractExecutionStep {
     };
   }
 
-  private boolean handleContent(OElement record, OCommandContext ctx) {
+  private boolean handleContent(PRecord record, OCommandContext ctx) {
     boolean updated = false;
 
-    // REPLACE ALL THE CONTENT
-    final ODocument fieldsToPreserve = new ODocument();
-
-    final OClass restricted = ctx.getDatabase().getMetadata().getSchema().getClass(OSecurity.RESTRICTED_CLASSNAME);
-
-    if (restricted != null && restricted.isSuperClassOf(record.getSchemaType().orElse(null))) {
-      for (OProperty prop : restricted.properties()) {
-        fieldsToPreserve.field(prop.getName(), record.<Object>getProperty(prop.getName()));
-      }
-    }
-
-    OClass recordClass = ODocumentInternal.getImmutableSchemaClass(record.getRecord());
-    if (recordClass != null && recordClass.isSubClassOf("V")) {
-      for (String fieldName : record.getPropertyNames()) {
-        if (fieldName.startsWith("in_") || fieldName.startsWith("out_")) {
-          fieldsToPreserve.field(fieldName, record.<Object>getProperty(fieldName));
-        }
-      }
-    } else if (recordClass != null && recordClass.isSubClassOf("E")) {
-      for (String fieldName : record.getPropertyNames()) {
-        if (fieldName.equals("in") || fieldName.equals("out")) {
-          fieldsToPreserve.field(fieldName, record.<Object>getProperty(fieldName));
-        }
-      }
-    }
-    ODocument doc = record.getRecord();
-    doc.merge(json.toDocument(record, ctx), false, false);
-    doc.merge(fieldsToPreserve, true, false);
-
-    updated = true;
-
-    return updated;
+//    // REPLACE ALL THE CONTENT
+//    final ODocument fieldsToPreserve = new ODocument();
+//
+//    final OClass restricted = ctx.getDatabase().getMetadata().getSchema().getClass(OSecurity.RESTRICTED_CLASSNAME);
+//
+//    if (restricted != null && restricted.isSuperClassOf(record.getSchemaType().orElse(null))) {
+//      for (OProperty prop : restricted.properties()) {
+//        fieldsToPreserve.field(prop.getName(), record.<Object>getProperty(prop.getName()));
+//      }
+//    }
+//
+//    OClass recordClass = ODocumentInternal.getImmutableSchemaClass(record.getRecord());
+//    if (recordClass != null && recordClass.isSubClassOf("V")) {
+//      for (String fieldName : record.getPropertyNames()) {
+//        if (fieldName.startsWith("in_") || fieldName.startsWith("out_")) {
+//          fieldsToPreserve.field(fieldName, record.<Object>getProperty(fieldName));
+//        }
+//      }
+//    } else if (recordClass != null && recordClass.isSubClassOf("E")) {
+//      for (String fieldName : record.getPropertyNames()) {
+//        if (fieldName.equals("in") || fieldName.equals("out")) {
+//          fieldsToPreserve.field(fieldName, record.<Object>getProperty(fieldName));
+//        }
+//      }
+//    }
+//    ODocument doc = record.getRecord();
+//    doc.merge(json.toDocument(record, ctx), false, false);
+//    doc.merge(fieldsToPreserve, true, false);
+//
+//    updated = true;
+//
+//    return updated;
+    throw new UnsupportedOperationException();
   }
 
   @Override

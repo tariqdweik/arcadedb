@@ -9,24 +9,29 @@ import java.util.Iterator;
  */
 public class ORidSetIterator implements Iterator<PRID> {
 
+  OCommandContext ctx;
+
   private ORidSet set;
   int  currentCluster = -1;
   long currentId      = -1;
 
-  ORidSetIterator(ORidSet set) {
+  ORidSetIterator(OCommandContext ctx, ORidSet set) {
     this.set = set;
+    this.ctx = ctx;
     fetchNext();
   }
 
-  @Override public boolean hasNext() {
+  @Override
+  public boolean hasNext() {
     return currentCluster >= 0;
   }
 
-  @Override public PRID next() {
+  @Override
+  public PRID next() {
     if (!hasNext()) {
       throw new IllegalStateException();
     }
-    PRID result = new PRID(currentCluster, currentId);
+    PRID result = new PRID(ctx.getDatabase(), currentCluster, currentId);
     currentId++;
     fetchNext();
     return result;
@@ -51,7 +56,7 @@ public class ORidSetIterator implements Iterator<PRID> {
             currentArrayPos++;
             continue;
           }
-          if (set.contains(new PRID(currentCluster, currentArrayPos * 63 + currentBit))) {
+          if (set.contains(new PRID(ctx.getDatabase(), currentCluster, currentArrayPos * 63 + currentBit))) {
             currentId = currentArrayPos * 63 + currentBit;
             return;
           } else {
