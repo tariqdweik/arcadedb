@@ -20,12 +20,11 @@ public class PModifiableEdge extends PModifiableDocument implements PEdge {
   }
 
   public PModifiableEdge(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
-    super(graph, typeName, rid);
+    super(graph, typeName, rid, buffer);
 
     buffer.position(1); // SKIP RECORD TYPE
-    out = new PRID(graph,  buffer.getInt(), buffer.getLong());
+    out = new PRID(graph, buffer.getInt(), buffer.getLong());
     in = new PRID(graph, buffer.getInt(), buffer.getLong());
-    init(buffer);
   }
 
   @Override

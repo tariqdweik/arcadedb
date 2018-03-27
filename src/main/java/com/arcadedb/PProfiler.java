@@ -1,6 +1,7 @@
 package com.arcadedb;
 
 import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseAsynchExecutor;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
 import com.arcadedb.utility.PFileUtils;
@@ -42,44 +43,53 @@ public class PProfiler {
 
   public synchronized void dumpMetrics(final PrintStream out) {
 
-    final StringBuilder buffer = new StringBuilder();
+    final StringBuilder buffer = new StringBuilder("\n");
 
     final long freeSpaceInMB = new File(".").getFreeSpace();
     final long totalSpaceInMB = new File(".").getTotalSpace();
 
-    long diskCacheUsed = 0;
-    long diskCacheTotal = 0;
-    long readRAM = 0;
-    long writeRAM = 0;
-    int pagesToDispose = 0;
+    long readCacheUsed = 0;
+    long writeCacheUsed = 0;
+    long cacheMax = 0;
     int pagesRead = 0;
     int pagesWritten = 0;
     long pagesReadSize = 0;
     long pagesWrittenSize = 0;
+    long pageFlushQueueLength = 0;
+    int asynchQueueLength = 0;
+    long pageCacheHits = 0;
+    long pageCacheMiss = 0;
 
     long totalOpenFiles = 0;
     long maxOpenFiles = 0;
 
     for (PDatabase db : databases) {
       final PPageManager.PPageManagerStats pStats = db.getPageManager().getStats();
-      diskCacheTotal += pStats.maxRAM;
-      readRAM += pStats.totalImmutablePagesRAM;
-      writeRAM += pStats.totalModifiedPagesRAM;
-      pagesToDispose += pStats.pagesToDispose;
+      readCacheUsed += pStats.readCacheRAM;
+      writeCacheUsed += pStats.writeCacheRAM;
+      cacheMax += pStats.maxRAM;
       pagesRead += pStats.pagesRead;
       pagesReadSize += pStats.pagesReadSize;
       pagesWritten += pStats.pagesWritten;
       pagesWrittenSize += pStats.pagesWrittenSize;
+      pageFlushQueueLength += pStats.pageFlushQueueLength;
+      pageCacheHits += pStats.cacheHits;
+      pageCacheMiss += pStats.cacheMiss;
 
       final PFileManager.PFileManagerStats fStats = db.getFileManager().getStats();
       totalOpenFiles += fStats.totalOpenFiles;
       maxOpenFiles += fStats.maxOpenFiles;
+
+      final PDatabaseAsynchExecutor.PDBAsynchStats aStats = db.asynch().getStats();
+      asynchQueueLength += aStats.queueSize;
     }
-    diskCacheUsed = readRAM + writeRAM;
+
+    buffer.append(String.format("PROTON %s Profiler", PConstants.getVersion()));
 
     final Runtime runtime = Runtime.getRuntime();
 
     final long gcTime = getGarbageCollectionTime();
+
     try {
       MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
       ObjectName osMBeanName = ObjectName.getInstance(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
@@ -89,29 +99,30 @@ public class PProfiler {
         final long osUsedMem = osTotalMem - ((Number) mbs.getAttribute(osMBeanName, "FreePhysicalMemorySize")).longValue();
 
         buffer.append(String
-            .format("PROTON %s Memory profiler: HEAP=%s/%s - DISKCACHE (%s dbs)=%s/%s - OS=%s/%s - FS=%s/%s - GC=%dms",
-                PConstants.getVersion(), PFileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
-                PFileUtils.getSizeAsString(runtime.maxMemory()), databases.size(), PFileUtils.getSizeAsString(diskCacheUsed),
-                PFileUtils.getSizeAsString(diskCacheTotal), PFileUtils.getSizeAsString(osUsedMem),
-                PFileUtils.getSizeAsString(osTotalMem), PFileUtils.getSizeAsString(freeSpaceInMB),
-                PFileUtils.getSizeAsString(totalSpaceInMB), gcTime));
+            .format("\n JVM HEAP=%s/%s OS=%s/%s GC=%dms", PFileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
+                PFileUtils.getSizeAsString(runtime.maxMemory()), PFileUtils.getSizeAsString(osUsedMem),
+                PFileUtils.getSizeAsString(osTotalMem), gcTime));
+
+        buffer.append(String.format("\n DISKCACHE read=%s write=%s max=%s",
+            PFileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
+            PFileUtils.getSizeAsString(runtime.maxMemory()), PFileUtils.getSizeAsString(readCacheUsed),
+            PFileUtils.getSizeAsString(writeCacheUsed), PFileUtils.getSizeAsString(cacheMax)));
       }
 
     } catch (Exception e) {
       // JMX NOT AVAILABLE, AVOID OS DATA
-      buffer.append(String
-          .format("PROTON %s Memory profiler: HEAP=%s/%s - DISKCACHE (%s dbs)=%s/%s - FS=%s/%s - GC=%dms", PConstants.getVersion(),
-              PFileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
-              PFileUtils.getSizeAsString(runtime.maxMemory()), databases.size(), PFileUtils.getSizeAsString(diskCacheUsed),
-              PFileUtils.getSizeAsString(diskCacheTotal), PFileUtils.getSizeAsString(freeSpaceInMB),
-              PFileUtils.getSizeAsString(totalSpaceInMB), gcTime));
+      buffer.append(String.format("\n DISKCACHE read=%s write=%s max=%s", PFileUtils.getSizeAsString(readCacheUsed),
+          PFileUtils.getSizeAsString(writeCacheUsed), PFileUtils.getSizeAsString(cacheMax)));
     }
 
-    buffer.append(String.format("\n PageManager read=%d (%s) write=%d (%s) - CACHE read=%s write=%s - toDispose=%d", pagesRead,
-        PFileUtils.getSizeAsString(pagesReadSize), pagesWritten, PFileUtils.getSizeAsString(pagesWrittenSize),
-        PFileUtils.getSizeAsString(readRAM), PFileUtils.getSizeAsString(writeRAM), pagesToDispose));
+    buffer.append(String.format("\n DB databases=%d asynchQueue=%d", databases.size(), asynchQueueLength));
 
-    buffer.append(String.format("\n FileManager openFiles=%d - maxFilesOpened=%d", totalOpenFiles, maxOpenFiles));
+    buffer.append(String.format("\n PageManager read=%d (%s) write=%d (%s) flushQueue=%d cacheHits=%d cacheMiss=%d", pagesRead,
+        PFileUtils.getSizeAsString(pagesReadSize), pagesWritten, PFileUtils.getSizeAsString(pagesWrittenSize), pageFlushQueueLength,
+        pageCacheHits, pageCacheMiss));
+
+    buffer.append(String.format("\n FileManager FS=%s/%s openFiles=%d maxFilesOpened=%d", PFileUtils.getSizeAsString(freeSpaceInMB),
+        PFileUtils.getSizeAsString(totalSpaceInMB), totalOpenFiles, maxOpenFiles));
 
     out.println(buffer.toString());
   }

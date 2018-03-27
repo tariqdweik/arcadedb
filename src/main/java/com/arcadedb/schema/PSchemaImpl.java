@@ -437,8 +437,6 @@ public class PSchemaImpl implements PSchema {
   }
 
   public void swapIndexes(final PIndexLSM oldIndex, final PIndexLSM newIndex) throws IOException {
-    newIndex.flush();
-
     indexMap.remove(oldIndex.getName());
 
     indexMap.put(newIndex.getName(), newIndex);

@@ -44,26 +44,44 @@ public class PBinarySerializer {
   }
 
   public PBinary serializeVertex(final PDatabase database, final PModifiableVertex vertex, final int bucketId) {
-    vertex.onSerialize(bucketId);
+    PBinary header = vertex.getBuffer();
 
-    final PBinary header = new PBinary(64);
-    header.putByte(vertex.getRecordType()); // RECORD TYPE
+    final boolean serializeProperties;
+    if (header == null) {
+      header = new PBinary(64);
+      header.putByte(vertex.getRecordType()); // RECORD TYPE
+      serializeProperties = true;
+    } else {
+      header.position(PBinary.BYTE_SERIALIZED_SIZE);
+      serializeProperties = false;
+    }
 
     // WRITE OUT AND IN EDGES POINTER FIRST, THEN SERIALIZE THE VERTEX PROPERTIES (AS A DOCUMENT)
     final PRID outEdges = vertex.getOutEdgesHeadChunk();
-    header.putInt(outEdges.getBucketId());
-    header.putLong(outEdges.getPosition());
+    if (outEdges != null) {
+      header.putInt(outEdges.getBucketId());
+      header.putLong(outEdges.getPosition());
+    } else {
+      header.putInt(-1);
+      header.putLong(-1);
+    }
 
     final PRID inEdges = vertex.getInEdgesHeadChunk();
-    header.putInt(inEdges.getBucketId());
-    header.putLong(inEdges.getPosition());
+    if (inEdges != null) {
+      header.putInt(inEdges.getBucketId());
+      header.putLong(inEdges.getPosition());
+    } else {
+      header.putInt(-1);
+      header.putLong(-1);
+    }
 
-    return serializeProperties(database, vertex, header);
+    if (serializeProperties)
+      return serializeProperties(database, vertex, header);
+
+    return header;
   }
 
   public PBinary serializeEdge(final PDatabase database, final PModifiableEdge edge, final int bucketId) {
-    edge.onSerialize(bucketId);
-
     final PBinary header = new PBinary(64);
     header.putByte(edge.getRecordType()); // RECORD TYPE
 

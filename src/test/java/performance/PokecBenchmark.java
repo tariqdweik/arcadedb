@@ -123,11 +123,12 @@ public class PokecBenchmark {
     db.begin();
 
     try {
-      //aggregate(db);
       //warmup(db);
+//      aggregate(db);
       for (int i = 0; i < 10; ++i) {
         neighbors2(db);
       }
+//      displayVertices(db);
 
     } finally {
       db.close();
@@ -162,9 +163,9 @@ public class PokecBenchmark {
         }
       }
 
-      if (rootTraversed.get() % 100 == 0) {
-        PLogManager.instance().info(this, "- traversed %d roots - %d total", rootTraversed.get(), totalTraversed.get());
-      }
+//      if (rootTraversed.get() % 1000 == 0) {
+//        PLogManager.instance().info(this, "- traversed %d roots - %d total", rootTraversed.get(), totalTraversed.get());
+//      }
     }
 
     PLogManager.instance()
@@ -197,6 +198,28 @@ public class PokecBenchmark {
 
       PLogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
     }
+  }
+
+  private void displayVertices(PDatabase db) {
+    PLogManager.instance().info(this, "Display vertices...");
+
+    final long begin = System.currentTimeMillis();
+
+    final Map<String, AtomicInteger> aggregate = new HashMap<>();
+    db.scanType("V", new PDocumentCallback() {
+      @Override
+      public boolean onRecord(final PDocument record) {
+        final PVertex v = (PVertex) record;
+        final long countOut = v.countEdges(PVertex.DIRECTION.OUT, "E");
+        final long countIn = v.countEdges(PVertex.DIRECTION.IN, "E");
+
+        PLogManager.instance().info(this, "- %s out=%d in=%d", v.getIdentity(), countOut, countIn);
+
+        return true;
+      }
+    });
+
+    PLogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
   }
 
   private void warmup(PDatabase db) throws IOException {

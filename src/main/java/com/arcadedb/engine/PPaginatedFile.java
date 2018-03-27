@@ -58,13 +58,9 @@ public abstract class PPaginatedFile {
     return database;
   }
 
-  public void flush() throws IOException {
-    database.getPageManager().flushFile(file.getFileId());
-  }
-
   public void drop() throws IOException {
     database.getSchema().removeFile(file.getFileId());
-    database.getPageManager().disposeFile(file.getFileId());
+    database.getPageManager().deleteFile(file.getFileId());
     database.getFileManager().dropFile(file.getFileId());
   }
 

@@ -6,8 +6,10 @@ import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PDatabaseIsClosedException;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.exception.PDatabaseOperationException;
+import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PGraphEngine;
 import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.graph.PVertex;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.schema.PDocumentType;
@@ -45,42 +47,51 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   protected PDatabaseImpl(final String path, final PFile.MODE mode, final boolean multiThread) {
     super(multiThread);
 
-    this.mode = mode;
-    if (path.endsWith("/"))
-      databasePath = path.substring(0, path.length() - 1);
-    else
-      databasePath = path;
-
-    final int lastSeparatorPos = path.lastIndexOf("/");
-    if (lastSeparatorPos > -1)
-      name = path.substring(lastSeparatorPos + 1);
-    else
-      name = path;
-
-    PTransactionTL.INSTANCE.set(new PTransactionContext(this));
-
-    fileManager = new PFileManager(path, mode, SUPPORTED_FILE_EXT);
-    pageManager = new PPageManager(fileManager);
-
-    open = true;
-
     try {
-      schema = new PSchemaImpl(this, databasePath, mode);
-
-      if (fileManager.getFiles().isEmpty())
-        schema.create(mode);
+      this.mode = mode;
+      if (path.endsWith("/"))
+        databasePath = path.substring(0, path.length() - 1);
       else
-        schema.load(mode);
+        databasePath = path;
 
-      PProfiler.INSTANCE.registerDatabase(this);
+      final int lastSeparatorPos = path.lastIndexOf("/");
+      if (lastSeparatorPos > -1)
+        name = path.substring(lastSeparatorPos + 1);
+      else
+        name = path;
 
-    } catch (RuntimeException e) {
-      open = false;
-      pageManager.close();
-      throw e;
+      PTransactionTL.INSTANCE.set(new PTransactionContext(this));
+
+      fileManager = new PFileManager(path, mode, SUPPORTED_FILE_EXT);
+      pageManager = new PPageManager(fileManager);
+
+      open = true;
+
+      try {
+        schema = new PSchemaImpl(this, databasePath, mode);
+
+        if (fileManager.getFiles().isEmpty())
+          schema.create(mode);
+        else
+          schema.load(mode);
+
+        PProfiler.INSTANCE.registerDatabase(this);
+
+      } catch (RuntimeException e) {
+        open = false;
+        pageManager.close();
+        throw e;
+      } catch (Exception e) {
+        open = false;
+        pageManager.close();
+        throw new PDatabaseOperationException("Error on creating new database instance", e);
+      }
     } catch (Exception e) {
       open = false;
-      pageManager.close();
+
+      if (e instanceof PDatabaseOperationException)
+        throw (PDatabaseOperationException) e;
+
       throw new PDatabaseOperationException("Error on creating new database instance", e);
     }
   }
@@ -487,6 +498,53 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   @Override
   public PModifiableVertex newVertex(final String typeName) {
     return new PModifiableVertex(this, typeName, null);
+  }
+
+  // TODO Create the ASYNCH MT version of this
+  public PEdge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
+      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
+      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+    if (sourceVertexKey == null)
+      throw new IllegalArgumentException("Source vertex key is null");
+
+    if (sourceVertexKey.length != sourceVertexValue.length)
+      throw new IllegalArgumentException("Source vertex key and value arrays have different sizes");
+
+    if (destinationVertexKey == null)
+      throw new IllegalArgumentException("Destination vertex key is null");
+
+    if (destinationVertexKey.length != destinationVertexValue.length)
+      throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
+
+    final Iterator<PRID> v1Result = lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
+
+    PVertex sourceVertex;
+    if (!v1Result.hasNext()) {
+      if (createVertexIfNotExist) {
+        sourceVertex = newVertex(sourceVertexType);
+        for (int i = 0; i < sourceVertexKey.length; ++i)
+          ((PModifiableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
+      } else
+        throw new IllegalArgumentException(
+            "Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+    } else
+      sourceVertex = (PVertex) v1Result.next().getRecord();
+
+    final Iterator<PRID> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
+    PVertex destinationVertex;
+    if (!v2Result.hasNext()) {
+      if (createVertexIfNotExist) {
+        destinationVertex = newVertex(destinationVertexType);
+        for (int i = 0; i < destinationVertexKey.length; ++i)
+          ((PModifiableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+      } else
+        throw new IllegalArgumentException(
+            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
+                .toString(destinationVertexValue));
+    } else
+      destinationVertex = (PVertex) v2Result.next().getRecord();
+
+    return sourceVertex.newEdge(edgeType, destinationVertex, bidirectional, properties);
   }
 
   @Override

@@ -14,10 +14,11 @@ public class PFileManager {
   private final String     path;
   private final PFile.MODE mode;
 
-  private final List<PFile>                       files            = new ArrayList<PFile>();
-  private final ConcurrentHashMap<String, PFile>  fileNameMap      = new ConcurrentHashMap<String, PFile>();
-  private final ConcurrentHashMap<Integer, PFile> fileIdMap        = new ConcurrentHashMap<Integer, PFile>();
-  private final Set<String>                       supportedFileExt = new HashSet<String>();
+  private final List<PFile>                       files            = new ArrayList<>();
+  private final ConcurrentHashMap<String, PFile>  fileNameMap      = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, PFile> fileIdMap        = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, Long>  fileVirtualSize  = new ConcurrentHashMap<>();
+  private final Set<String>                       supportedFileExt = new HashSet<>();
   private final AtomicLong                        maxFilesOpened   = new AtomicLong();
 
   public class PFileManagerStats {
@@ -25,7 +26,7 @@ public class PFileManager {
     public long totalOpenFiles;
   }
 
-  public PFileManager(final String path, final PFile.MODE mode, final Set<String> supportedFileExt) {
+  public PFileManager(final String path, final PFile.MODE mode, final Set<String> supportedFileExt) throws IOException {
     this.path = path;
     this.mode = mode;
 
@@ -63,6 +64,7 @@ public class PFileManager {
     files.clear();
     fileNameMap.clear();
     fileIdMap.clear();
+    fileVirtualSize.clear();
   }
 
   public void dropFile(final int fileId) throws IOException {
@@ -72,6 +74,17 @@ public class PFileManager {
       files.set(fileId, null);
     }
     file.drop();
+  }
+
+  public long getVirtualFileSize(final Integer fileId) throws IOException {
+    Long fileSize = fileVirtualSize.get(fileId);
+    if (fileSize == null)
+      fileSize = getFile(fileId).getSize();
+    return fileSize;
+  }
+
+  public void setVirtualFileSize(final Integer fileId, final long fileSize) {
+    fileVirtualSize.put(fileId, fileSize);
   }
 
   public PFileManagerStats getStats() {
@@ -93,7 +106,7 @@ public class PFileManager {
     return f;
   }
 
-  public PFile getFile(final String fileName) throws FileNotFoundException {
+  public PFile getFile(final String fileName) throws IOException {
     PFile file = fileNameMap.get(fileName);
     if (file == null) {
       synchronized (this) {
@@ -109,7 +122,7 @@ public class PFileManager {
     return file;
   }
 
-  public PFile getOrCreateFile(final String filePath, final PFile.MODE mode) throws FileNotFoundException {
+  public PFile getOrCreateFile(final String filePath, final PFile.MODE mode) throws IOException {
     return getOrCreateFile(PFile.getFileNameFromPath(filePath), filePath, mode);
   }
 
@@ -122,7 +135,7 @@ public class PFileManager {
     return files.size();
   }
 
-  public PFile getOrCreateFile(final String fileName, final String filePath, final PFile.MODE mode) throws FileNotFoundException {
+  public PFile getOrCreateFile(final String fileName, final String filePath, final PFile.MODE mode) throws IOException {
     PFile file = fileNameMap.get(fileName);
     if (file != null)
       return file;

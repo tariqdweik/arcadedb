@@ -7,12 +7,9 @@ import java.util.Set;
  * Immutable document implementation. To modify the content, call modify() to obtain a modifiable copy.
  */
 public class PImmutableDocument extends PBaseDocument {
-  protected PBinary buffer;
-  protected int propertiesStartingPosition = 1;
 
   protected PImmutableDocument(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
-    super(graph, typeName, rid);
-    this.buffer = buffer;
+    super(graph, typeName, rid, buffer);
   }
 
   @Override

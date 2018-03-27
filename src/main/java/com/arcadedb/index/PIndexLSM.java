@@ -9,6 +9,7 @@ import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.serializer.PBinaryComparator;
 import com.arcadedb.serializer.PBinarySerializer;
 import com.arcadedb.serializer.PBinaryTypes;
+import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
 import java.util.*;
@@ -170,6 +171,9 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
           list.add((PRID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition));
       }
 
+      PLogManager.instance()
+          .debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, list.size());
+
       return list;
 
     } catch (IOException e) {
@@ -194,7 +198,8 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     int pageNum = txPageCounter - 1;
 
     try {
-      PModifiablePage currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), pageNum), pageSize);
+      PModifiablePage currentPage = database.getTransaction()
+          .getPageToModify(new PPageId(file.getFileId(), pageNum), pageSize, false);
 
       PBinary currentPageBuffer = new PBinary(currentPage.slice());
 
@@ -218,9 +223,11 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
       int keyValueFreePosition = getKeyValueFreePosition(currentPage);
 
       int keyIndex = result.keyIndex;
+      boolean newPage = false;
       if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent
           .size()) {
         // NO SPACE LEFT, CREATE A NEW PAGE
+        newPage = true;
         try {
           database.getTransaction().addPageToDispose(currentPage.getPageId());
           currentPage = createNewPage();
@@ -257,6 +264,10 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
       setCount(currentPage, count + 1);
       setKeyValueFreePosition(currentPage, keyValueFreePosition);
 
+      PLogManager.instance()
+          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name,
+              currentPage.getPageId(), count + 1, newPage);
+
     } catch (IOException e) {
       throw new PDatabaseOperationException(
           "Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
@@ -272,7 +283,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
         txPageCounter = pageCount;
 
       try {
-        currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize);
+        currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize, false);
         currentPageBuffer = new PBinary(currentPage.slice());
       } catch (IOException e) {
         throw new PDatabaseOperationException(
@@ -361,12 +372,14 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     final BufferBloomFilter bf = new BufferBloomFilter(
         currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(), seed);
 
-    if (bf.mightContain(PBinaryTypes.getHash(keys, bfKeyDepth)))
-      return lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, keys, purpose);
-    else
-      statsBFFalsePositive.incrementAndGet();
+    LookupResult result = null;
+    if (bf.mightContain(PBinaryTypes.getHash(keys, bfKeyDepth))) {
+      result = lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, keys, purpose);
+      if (!result.found)
+        statsBFFalsePositive.incrementAndGet();
+    }
 
-    return null;
+    return result;
   }
 
   protected int getTotalPages() {
@@ -374,7 +387,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
     if (txPageCounter != null)
       return txPageCounter;
     try {
-      return (int) (file.getSize() / pageSize);
+      return (int) database.getFileManager().getVirtualFileSize(file.getFileId()) / pageSize;
     } catch (IOException e) {
       throw new PIndexException("Error on determine the total pages", e);
     }
@@ -416,6 +429,10 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
       int mid = (low + high) / 2;
 
       final int contentPos = currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE));
+      if (contentPos < startIndexArray + (count * INT_SERIALIZED_SIZE))
+        throw new PIndexException("Internal error: invalid content position " + contentPos + " is < of " + (startIndexArray + (count
+            * INT_SERIALIZED_SIZE)));
+
       currentPageBuffer.position(contentPos);
 
       int result;

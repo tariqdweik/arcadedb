@@ -1,13 +1,10 @@
 package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
-import com.arcadedb.utility.PLogManager;
 
 import java.util.Iterator;
 
 public class PModifiableVertex extends PModifiableDocument implements PVertexInternal {
-  private static final int EDGES_LINKEDLIST_CHUNK_SIZE = 100;
-
   private PRID outEdges;
   private PRID inEdges;
 
@@ -22,27 +19,18 @@ public class PModifiableVertex extends PModifiableDocument implements PVertexInt
    * Copy constructor from PImmutableVertex.modify().
    */
   public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
-    super(graph, typeName, rid);
+    super(graph, typeName, rid, buffer);
 
     buffer.position(1); // SKIP RECORD TYPE
     outEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
+    if (outEdges.getBucketId() == -1)
+      outEdges = null;
     inEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
+    if (inEdges.getBucketId() == -1)
+      inEdges = null;
 
-    init(buffer);
-  }
-
-  @Override
-  public void onSerialize(final int bucketId) {
-    if (getIdentity() == null) {
-      final PModifiableEdgeChunk outChunk = new PModifiableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
-      database.createRecordNoLock(outChunk, database.getGraphEngine().getEdgesBucketName(database, bucketId, DIRECTION.OUT));
-      outEdges = outChunk.getIdentity();
-
-      final PModifiableEdgeChunk inChunk = new PModifiableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
-      database.createRecordNoLock(inChunk, database.getGraphEngine().getEdgesBucketName(database, bucketId, DIRECTION.IN));
-      inEdges = inChunk.getIdentity();
+    this.propertiesStartingPosition = propertiesStartingPosition;
     }
-  }
 
   public PRID getOutEdgesHeadChunk() {
     return outEdges;
@@ -54,15 +42,15 @@ public class PModifiableVertex extends PModifiableDocument implements PVertexInt
 
   @Override
   public void setOutEdgesHeadChunk(final PRID outEdges) {
-    if (outEdges.getBucketId() == 7 && outEdges.getPosition() == 2060476)
-      PLogManager.instance().info(this, "setOutEdgesHeadChunk in %s!", rid);
+//    if (outEdges.getBucketId() == 7 && outEdges.getPosition() == 2060476)
+//      PLogManager.instance().info(this, "setOutEdgesHeadChunk in %s!", rid);
     this.outEdges = outEdges;
   }
 
   @Override
   public void setInEdgesHeadChunk(final PRID inEdges) {
-    if (inEdges.getBucketId() == 7 && inEdges.getPosition() == 2060476)
-      PLogManager.instance().info(this, "setInEdgesHeadChunk in %s!", rid);
+//    if (inEdges.getBucketId() == 7 && inEdges.getPosition() == 2060476)
+//      PLogManager.instance().info(this, "setInEdgesHeadChunk in %s!", rid);
     this.inEdges = inEdges;
   }
 
@@ -74,6 +62,11 @@ public class PModifiableVertex extends PModifiableDocument implements PVertexInt
   public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional,
       final Object... properties) {
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
+  }
+
+  @Override
+  public long countEdges(DIRECTION direction, String edgeType) {
+    return database.getGraphEngine().countEdges(this, direction, edgeType);
   }
 
   @Override

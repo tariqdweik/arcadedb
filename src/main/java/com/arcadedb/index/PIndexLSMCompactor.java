@@ -22,8 +22,6 @@ public class PIndexLSMCompactor {
   public void compact() throws IOException {
     final PDatabase database = index.getDatabase();
 
-    index.flush();
-
     final int totalPages = index.getTotalPages();
     PLogManager.instance().info(this, "Compacting index '%s' (pages=%d)...", index, totalPages);
 

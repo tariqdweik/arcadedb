@@ -63,7 +63,7 @@ public class PFile extends PRWLockContext {
     return channel.size();
   }
 
-  public void write(final PModifiablePage page) throws IOException {
+  public void write(final PImmutablePage page) throws IOException {
     writeLock();
     try {
 

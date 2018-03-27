@@ -47,18 +47,25 @@ public class PTransactionContext {
 
       // CHECK THE VERSION FIRST
       for (PModifiablePage p : modifiedPages.values())
-        pageManager.checkPageVersion(p);
+        pageManager.checkPageVersion(p, false);
+
+      if (newPages != null)
+        for (PModifiablePage p : newPages.values())
+          pageManager.checkPageVersion(p, true);
 
       // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       for (PModifiablePage p : modifiedPages.values())
-        pageManager.updatePage(p);
+        pageManager.updatePage(p, false);
 
       if (newPages != null) {
         for (PModifiablePage p : newPages.values())
-          pageManager.updatePage(p);
+          pageManager.updatePage(p, true);
 
-        for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet())
+        for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
           database.getSchema().getFileById(entry.getKey()).onAfterCommit(entry.getValue());
+          database.getFileManager().setVirtualFileSize(entry.getKey(),
+              entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
+        }
       }
 
     } catch (PConcurrentModificationException e) {
@@ -71,7 +78,6 @@ public class PTransactionContext {
       unlockFilesInOrder(pageManager, lockedFiles);
     }
 
-    pageManager.addPagesToDispose(pagesToDispose);
     reset();
   }
 
@@ -85,7 +91,7 @@ public class PTransactionContext {
   }
 
   public void addPageToDispose(final PPageId pageId) {
-    pagesToDispose.add(pageId);
+//    pagesToDispose.add(pageId);
   }
 
   /**
@@ -102,7 +108,7 @@ public class PTransactionContext {
 
     if (page == null)
       // NOT FOUND, DELEGATES TO THE DATABASE
-      page = database.getPageManager().getPage(pageId, size);
+      page = database.getPageManager().getPage(pageId, size, false);
 
     return page;
   }
@@ -110,7 +116,7 @@ public class PTransactionContext {
   /**
    * If the page is not already in transaction tx, loads from the database and clone it locally.
    */
-  public PModifiablePage getPageToModify(final PPageId pageId, final int size) throws IOException {
+  public PModifiablePage getPageToModify(final PPageId pageId, final int size, final boolean isNew) throws IOException {
     if (!isActive())
       throw new PTransactionException("Transaction not active");
 
@@ -121,7 +127,7 @@ public class PTransactionContext {
 
       if (page == null) {
         // NOT FOUND, DELEGATES TO THE DATABASE
-        final PBasePage loadedPage = database.getPageManager().getPage(pageId, size);
+        final PBasePage loadedPage = database.getPageManager().getPage(pageId, size, isNew);
         if (loadedPage != null) {
           PModifiablePage modifiablePage = loadedPage.modify();
           modifiedPages.put(pageId, modifiablePage);
@@ -133,7 +139,7 @@ public class PTransactionContext {
     return page;
   }
 
-  public PModifiablePage addPage(final PPageId pageId, final int pageSize) throws IOException {
+  public PModifiablePage addPage(final PPageId pageId, final int pageSize) {
     assureIsActive();
 
     if (newPages == null)
@@ -148,6 +154,14 @@ public class PTransactionContext {
       newPageCounters.put(pageId.getFileId(), pageId.getPageNumber() + 1);
 
     return page;
+  }
+
+  public long getFileSize(final int fileId) throws IOException {
+    final Integer lastPage = newPageCounters.get(fileId);
+    if (lastPage != null)
+      return (lastPage + 1) * database.getFileManager().getFile(fileId).getPageSize();
+
+    return database.getFileManager().getVirtualFileSize(fileId);
   }
 
   public Integer getPageCounter(final int indexFileId) {
@@ -181,21 +195,17 @@ public class PTransactionContext {
     final long timeout = PGlobalConfiguration.COMMIT_LOCK_TIMEOUT.getValueAsLong();
 
     final List<Integer> lockedFiles = new ArrayList<>(orderedModifiedFiles.size());
-    try {
-      for (Integer fileId : orderedModifiedFiles) {
-        if (pageManager.tryLockFile(fileId, timeout))
-          lockedFiles.add(fileId);
-        else
-          break;
-      }
 
-      if (lockedFiles.size() == orderedModifiedFiles.size())
-        // OK: ALL LOCKED
-        return lockedFiles;
-
-    } catch (InterruptedException e) {
-      // MANAGE THIS BELOW AS TIMEOUT EXCEPTION
+    for (Integer fileId : orderedModifiedFiles) {
+      if (pageManager.tryLockFile(fileId, timeout))
+        lockedFiles.add(fileId);
+      else
+        break;
     }
+
+    if (lockedFiles.size() == orderedModifiedFiles.size())
+      // OK: ALL LOCKED
+      return lockedFiles;
 
     // ERROR: UNLOCK LOCKED FILES
     unlockFilesInOrder(pageManager, lockedFiles);

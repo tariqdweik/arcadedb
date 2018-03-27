@@ -79,12 +79,10 @@ public class PModifiablePage extends PBasePage {
   }
 
   /**
-   * Creates an immutable copy where the content has been copied too.
+   * Creates an immutable copy. The content is not copied, because after invoking this method the original page is never modified.
    */
   public PImmutablePage createImmutableCopy() {
-    final byte[] contentCopy = new byte[getPhysicalSize()];
-    System.arraycopy(content.getByteBuffer().array(), 0, contentCopy, 0, content.size());
-    return new PImmutablePage(manager, pageId, getPhysicalSize(), contentCopy, version, content.size());
+    return new PImmutablePage(manager, pageId, getPhysicalSize(), content.getByteBuffer().array(), version, content.size());
   }
 
   public void blank(final int index, final int length) {

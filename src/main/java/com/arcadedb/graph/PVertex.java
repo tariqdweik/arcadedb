@@ -14,6 +14,8 @@ public interface PVertex extends PDocument {
 
   PEdge newEdge(String edgeType, PIdentifiable toVertex, boolean bidirectional, final Object... properties);
 
+  long countEdges(DIRECTION direction, String edgeType);
+
   Iterator<PEdge> getEdges();
 
   Iterator<PEdge> getEdges(DIRECTION direction);

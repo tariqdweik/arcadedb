@@ -105,7 +105,7 @@ public class PDictionary extends PPaginatedFile {
 
     final PModifiablePage header;
     try {
-      header = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), 0), pageSize);
+      header = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), 0), pageSize, false);
 
       if (header.getAvailableContentSize() < PBinary.SHORT_SERIALIZED_SIZE + property.length)
         throw new PDatabaseMetadataException("No space left in dictionary file (items=" + itemCount + ")");

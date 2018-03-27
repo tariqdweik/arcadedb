@@ -3,6 +3,7 @@ package com.arcadedb.graph;
 import com.arcadedb.database.*;
 import com.arcadedb.serializer.PBinaryTypes;
 
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRecordInternal {
@@ -11,23 +12,21 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
       PBinary.BYTE_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinaryTypes.getTypeSize(PBinaryTypes.TYPE_RID);
   private static final PRID NULL_RID               = new PRID(null, -1, -1);
 
-  private PBinary buffer;
-  private int     bufferSize;
+  private int bufferSize;
 
   public PModifiableEdgeChunk(final PDatabase database, final PRID rid) {
-    super(database, rid);
+    super(database, rid, null);
     this.buffer = null;
   }
 
   public PModifiableEdgeChunk(final PDatabase database, final PRID rid, final PBinary buffer) {
-    super(database, rid);
+    super(database, rid, buffer);
     this.buffer = buffer;
     this.bufferSize = buffer.size();
   }
 
   public PModifiableEdgeChunk(final PDatabase database, final int bufferSize) {
-    super(database, null);
-    this.buffer = new PBinary(bufferSize);
+    super(database, null, new PBinary(bufferSize));
     this.bufferSize = bufferSize;
     buffer.putByte(0, RECORD_TYPE); // USED
     buffer.putInt(PBinary.BYTE_SERIALIZED_SIZE, CONTENT_START_POSITION); // USED
@@ -116,6 +115,32 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
     }
 
     return false;
+  }
+
+  @Override
+  public long count(final Set<Integer> fileIds) {
+    long total = 0;
+
+    final int used = getUsed();
+    if (used > 0) {
+      buffer.position(CONTENT_START_POSITION);
+
+      while (buffer.position() < used) {
+        final int fileId = (int) buffer.getNumber();
+        // SKIP EDGE RID POSITION AND VERTEX RID
+        buffer.getNumber();
+        buffer.getNumber();
+        buffer.getNumber();
+
+        if (fileIds != null) {
+          if (fileIds.contains(fileId))
+            ++total;
+        } else
+          ++total;
+      }
+    }
+
+    return total;
   }
 
   @Override

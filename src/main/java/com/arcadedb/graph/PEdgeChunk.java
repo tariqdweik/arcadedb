@@ -4,6 +4,7 @@ import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public interface PEdgeChunk extends PRecord {
@@ -28,4 +29,6 @@ public interface PEdgeChunk extends PRecord {
   PRID getVertex(AtomicInteger currentPosition);
 
   int getRecordSize();
+
+  long count(Set<Integer> fileIds);
 }

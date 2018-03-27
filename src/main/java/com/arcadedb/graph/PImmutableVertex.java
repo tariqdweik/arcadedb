@@ -14,7 +14,11 @@ public class PImmutableVertex extends PImmutableDocument implements PVertexInter
     if (buffer != null) {
       buffer.position(1); // SKIP RECORD TYPE
       outEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (outEdges.getBucketId() == -1)
+        outEdges = null;
       inEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (inEdges.getBucketId() == -1)
+        inEdges = null;
       propertiesStartingPosition = buffer.position();
     }
   }
@@ -65,6 +69,11 @@ public class PImmutableVertex extends PImmutableDocument implements PVertexInter
   }
 
   @Override
+  public long countEdges(DIRECTION direction, String edgeType) {
+    return database.getGraphEngine().countEdges(this, direction, edgeType);
+  }
+
+  @Override
   public Iterator<PEdge> getEdges() {
     return database.getGraphEngine().getEdges(this);
   }
@@ -109,7 +118,11 @@ public class PImmutableVertex extends PImmutableDocument implements PVertexInter
     if (super.checkForLazyLoading()) {
       buffer.position(1); // SKIP RECORD TYPE
       outEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (outEdges.getBucketId() == -1)
+        outEdges = null;
       inEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (inEdges.getBucketId() == -1)
+        inEdges = null;
       propertiesStartingPosition = buffer.position();
       return true;
     }

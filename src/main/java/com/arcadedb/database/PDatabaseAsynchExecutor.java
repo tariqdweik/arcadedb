@@ -2,6 +2,7 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PRawRecordCallback;
+import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PLogManager;
@@ -17,6 +18,10 @@ public class PDatabaseAsynchExecutor {
   private       DatabaseScanAsyncThread[]         scanThreads;
   private int parallelLevel = -1;
   private int commitEvery   = 10000;
+
+  // SPECIAL COMMANDS
+  private final static String FORCE_COMMIT = "COMMIT";
+  private final static String FORCE_EXIT   = "EXIT";
 
   private class DatabaseCreateRecordAsyncThread extends Thread {
     public final ArrayBlockingQueue<Object[]> queue = new ArrayBlockingQueue<>(2048);
@@ -42,30 +47,45 @@ public class PDatabaseAsynchExecutor {
         try {
           final Object[] message = queue.poll(500, TimeUnit.MILLISECONDS);
           if (message != null) {
-            final PRecord record = (PRecord) message[0];
-            final PBucket bucket = (PBucket) message[1];
-
-            database.createRecordNoLock(record, bucket.getName());
-
-            if (record instanceof PModifiableDocument) {
-              final PModifiableDocument doc = (PModifiableDocument) record;
-              database.indexDocument(doc, database.getSchema().getType(doc.getType()), bucket);
-            }
-
-            count++;
-
-            if (count % commitEvery == 0) {
+            if (message[0] == FORCE_COMMIT) {
+              // COMMIT SPECIAL CASE
               database.getTransaction().commit();
               database.getTransaction().begin();
+
+            } else if (message[0] == FORCE_EXIT) {
+              break;
+
+            } else {
+
+              final PRecord record = (PRecord) message[0];
+              final PBucket bucket = (PBucket) message[1];
+
+              database.createRecordNoLock(record, bucket.getName());
+
+              if (record instanceof PModifiableDocument) {
+                final PModifiableDocument doc = (PModifiableDocument) record;
+                database.indexDocument(doc, database.getSchema().getType(doc.getType()), bucket);
+              }
+
+              count++;
+
+              if (count % commitEvery == 0) {
+                database.getTransaction().commit();
+                database.getTransaction().begin();
+              }
             }
           } else if (shutdown)
             break;
+
+        } catch (PConcurrentModificationException e) {
+          PLogManager.instance().error(this, "Error on saving record (asyncThread=%s)", e, getName());
+          database.getTransaction().begin();
 
         } catch (InterruptedException e) {
           queue.clear();
           break;
         } catch (Exception e) {
-          PLogManager.instance().error(this, "Error on saving record", e);
+          PLogManager.instance().error(this, "Error on saving record (asyncThread=%s)", e, getName());
         }
       }
       database.getTransaction().commit();
@@ -91,27 +111,30 @@ public class PDatabaseAsynchExecutor {
         try {
           final Object[] message = queue.poll(500, TimeUnit.MILLISECONDS);
           if (message != null) {
-            final CountDownLatch semaphore = (CountDownLatch) message[0];
-            final PRecordCallback userCallback = (PRecordCallback) message[1];
-            final PBucket bucket = (PBucket) message[2];
+            if (message[0] == FORCE_EXIT) {
+              break;
+            } else {
+              final CountDownLatch semaphore = (CountDownLatch) message[0];
+              final PRecordCallback userCallback = (PRecordCallback) message[1];
+              final PBucket bucket = (PBucket) message[2];
 
-            try {
-              bucket.scan(new PRawRecordCallback() {
-                @Override
-                public boolean onRecord(final PRID rid, final PBinary view) {
-                  if (shutdown)
-                    return false;
+              try {
+                bucket.scan(new PRawRecordCallback() {
+                  @Override
+                  public boolean onRecord(final PRID rid, final PBinary view) {
+                    if (shutdown)
+                      return false;
 
-                  final PRecord record = database.getRecordFactory()
-                      .newImmutableRecord(database, database.getSchema().getTypeNameByBucketId(rid.getBucketId()), rid, view);
-                  return userCallback.onRecord(record);
-                }
-              });
-            } finally {
-              // UNLOCK THE CALLER THREAD
-              semaphore.countDown();
+                    final PRecord record = database.getRecordFactory()
+                        .newImmutableRecord(database, database.getSchema().getTypeNameByBucketId(rid.getBucketId()), rid, view);
+                    return userCallback.onRecord(record);
+                  }
+                });
+              } finally {
+                // UNLOCK THE CALLER THREAD
+                semaphore.countDown();
+              }
             }
-
           }
 
         } catch (InterruptedException e) {
@@ -124,9 +147,77 @@ public class PDatabaseAsynchExecutor {
     }
   }
 
+  public class PDBAsynchStats {
+    public long queueSize;
+  }
+
   public PDatabaseAsynchExecutor(final PDatabaseInternal database) {
     this.database = database;
     createThreads(Runtime.getRuntime().availableProcessors());
+  }
+
+  public PDBAsynchStats getStats() {
+    final PDBAsynchStats stats = new PDBAsynchStats();
+    stats.queueSize = 0;
+
+    if (executorThreads != null)
+      for (int i = 0; i < executorThreads.length; ++i)
+        stats.queueSize += executorThreads[i].queue.size();
+
+    if (scanThreads != null)
+      for (int i = 0; i < scanThreads.length; ++i)
+        stats.queueSize += scanThreads[i].queue.size();
+
+    return stats;
+  }
+
+  public void waitCompletion() {
+    while (true) {
+      if (executorThreads != null) {
+        int completed = 0;
+        for (int i = 0; i < executorThreads.length; ++i) {
+          try {
+            executorThreads[i].queue.put(new Object[] { FORCE_COMMIT });
+            if (executorThreads[i].queue.isEmpty())
+              ++completed;
+            else
+              break;
+          } catch (InterruptedException e) {
+            break;
+          }
+        }
+
+        if (completed < executorThreads.length) {
+          try {
+            Thread.sleep(100);
+            continue;
+          } catch (InterruptedException e) {
+            return;
+          }
+        }
+      }
+
+      if (scanThreads != null) {
+        int completed = 0;
+        for (int i = 0; i < scanThreads.length; ++i) {
+          if (scanThreads[i].queue.isEmpty())
+            ++completed;
+          else
+            break;
+        }
+
+        if (completed < scanThreads.length) {
+          try {
+            Thread.sleep(100);
+            continue;
+          } catch (InterruptedException e) {
+            return;
+          }
+        }
+
+        return;
+      }
+    }
   }
 
   public void scanType(final String typeName, final PDocumentCallback callback) {
@@ -228,12 +319,11 @@ public class PDatabaseAsynchExecutor {
 
   private void shutdownThreads() {
     if (executorThreads != null) {
-      for (int i = 0; i < executorThreads.length; ++i)
-        executorThreads[i].shutdown = true;
-
       // WAIT FOR SHUTDOWN, MAX 1S EACH
       for (int i = 0; i < executorThreads.length; ++i)
         try {
+          executorThreads[i].shutdown = true;
+          executorThreads[i].queue.put(new Object[] { FORCE_EXIT });
           executorThreads[i].join(10000);
         } catch (InterruptedException e) {
           // IGNORE IT
@@ -241,12 +331,11 @@ public class PDatabaseAsynchExecutor {
     }
 
     if (scanThreads != null) {
-      for (int i = 0; i < scanThreads.length; ++i)
-        scanThreads[i].shutdown = true;
-
       // WAIT FOR SHUTDOWN, MAX 1S EACH
       for (int i = 0; i < scanThreads.length; ++i)
         try {
+          scanThreads[i].shutdown = true;
+          scanThreads[i].queue.put(new Object[] { FORCE_EXIT });
           scanThreads[i].join(10000);
         } catch (InterruptedException e) {
           // IGNORE IT

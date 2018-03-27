@@ -2,7 +2,7 @@ package com.arcadedb.engine;
 
 import com.arcadedb.utility.PLogManager;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -10,29 +10,30 @@ import java.util.concurrent.TimeUnit;
  */
 public class PPageManagerFlushThread extends Thread {
   private final PPageManager pageManager;
-  private final    LinkedBlockingQueue<PModifiablePage> queue   = new LinkedBlockingQueue<PModifiablePage>();
-  private volatile boolean                              running = true;
+  public final     ArrayBlockingQueue<PPageId> queue   = new ArrayBlockingQueue<>(4096);
+  private volatile boolean                     running = true;
 
   public PPageManagerFlushThread(final PPageManager pageManager) {
     super("AsynchFlush");
     this.pageManager = pageManager;
   }
 
-  public void asyncFlush(final PModifiablePage page) throws InterruptedException {
-    PLogManager.instance().debug(this, "Enqueuing flushing page %s in bg (size=%d)...", page.pageId, page.getPhysicalSize());
-    queue.put(page);
+  public void asyncFlush(final PPageId pageId) throws InterruptedException {
+    PLogManager.instance().debug(this, "Enqueuing flushing page %s in bg...", pageId);
+    queue.put(pageId);
   }
 
   @Override
   public void run() {
     while (running || !queue.isEmpty()) {
       try {
-        final PModifiablePage page = queue.poll(300l, TimeUnit.MILLISECONDS);
+        final PPageId pageId = queue.poll(300l, TimeUnit.MILLISECONDS);
 
-        if (page != null) {
+        if (pageId != null) {
           if (PLogManager.instance().isDebugEnabled())
-            PLogManager.instance().debug(this, "Flushing page %s in bg (size=%d)...", page.pageId, page.getPhysicalSize());
-          pageManager.flushPage(page);
+            PLogManager.instance().debug(this, "Flushing page %s in bg...", pageId);
+
+          pageManager.flushPage(pageId);
         }
 
       } catch (InterruptedException e) {

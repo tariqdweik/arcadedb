@@ -8,25 +8,30 @@ public class PModifiableDocument extends PBaseDocument implements PRecordInterna
   private Map<String, Object> map;
 
   protected PModifiableDocument(final PDatabase database, final String typeName, final PRID rid) {
-    super(database, typeName, rid);
+    super(database, typeName, rid, null);
     this.map = new LinkedHashMap<String, Object>();
   }
 
   protected PModifiableDocument(final PDatabase database, final String typeName, final PRID rid, final PBinary buffer) {
-    super(database, typeName, rid);
+    super(database, typeName, rid, buffer);
     buffer.position(buffer.position() + 1); // SKIP RECORD TYPE
-    this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
   }
 
-  protected void init(final PBinary buffer) {
-    this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
+  protected void checkForLazyLoadingProperties() {
+    if (this.map == null && buffer != null) {
+      buffer.position(propertiesStartingPosition);
+      this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
+      buffer = null;
+    }
   }
 
   public void set(final String name, final Object value) {
+    checkForLazyLoadingProperties();
     map.put(name, value);
   }
 
   public Object get(final String name) {
+    checkForLazyLoadingProperties();
     return map.get(name);
   }
 
@@ -38,7 +43,7 @@ public class PModifiableDocument extends PBaseDocument implements PRecordInterna
   }
 
   public void save(final String bucketName) {
-    ((PDatabaseInternal) database).createRecord(this, bucketName);
+    database.createRecord(this, bucketName);
   }
 
   @Override
@@ -56,15 +61,19 @@ public class PModifiableDocument extends PBaseDocument implements PRecordInterna
       buffer.append(typeName);
     }
     buffer.append('[');
-    int i = 0;
-    for (Map.Entry<String, Object> entry : map.entrySet()) {
-      if (i > 0)
-        buffer.append(',');
+    if (map == null) {
+      buffer.append('?');
+    } else {
+      int i = 0;
+      for (Map.Entry<String, Object> entry : map.entrySet()) {
+        if (i > 0)
+          buffer.append(',');
 
-      buffer.append(entry.getKey());
-      buffer.append('=');
-      buffer.append(entry.getValue());
-      i++;
+        buffer.append(entry.getKey());
+        buffer.append('=');
+        buffer.append(entry.getValue());
+        i++;
+      }
     }
     buffer.append(']');
     return buffer.toString();
@@ -72,6 +81,7 @@ public class PModifiableDocument extends PBaseDocument implements PRecordInterna
 
   @Override
   public Set<String> getPropertyNames() {
+    checkForLazyLoadingProperties();
     return map.keySet();
   }
 

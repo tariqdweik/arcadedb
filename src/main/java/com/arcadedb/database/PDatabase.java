@@ -2,6 +2,7 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
+import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
@@ -54,6 +55,10 @@ public interface PDatabase {
   PModifiableDocument newDocument(String typeName);
 
   PModifiableVertex newVertex(String typeName);
+
+  PEdge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType,
+      String[] destinationVertexKey, Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType,
+      boolean bidirectional, Object... properties);
 
   PSchema getSchema();
 

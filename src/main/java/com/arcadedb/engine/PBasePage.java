@@ -16,10 +16,10 @@ public abstract class PBasePage {
 
   protected final PPageManager manager;
 
-  protected final PPageId pageId;
-  protected final PBinary content;
-  private final   int     size;
-  protected       int     version;
+  protected final    PPageId pageId;
+  protected final    PBinary content;
+  private final      int     size;
+  protected volatile int     version;
   private long lastAccessed = System.currentTimeMillis();
 
   protected PBasePage(final PPageManager manager, final PPageId pageId, final int size, final byte[] buffer, final int version,

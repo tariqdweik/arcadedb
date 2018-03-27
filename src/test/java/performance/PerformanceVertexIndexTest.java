@@ -34,7 +34,7 @@ public class PerformanceVertexIndexTest {
         type.createProperty("surname", String.class);
         type.createProperty("locali", Integer.class);
 
-        database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 50000000);
+        database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" });
         database.commit();
       }
     } finally {

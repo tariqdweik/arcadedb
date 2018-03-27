@@ -1,10 +1,10 @@
 package performance;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.graph.PModifiableVertex;
-import com.arcadedb.graph.PVertex;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
@@ -36,124 +36,100 @@ public class PokecLoader {
   }
 
   private PokecLoader() throws Exception {
-    createSchema();
-
-    loadProfiles();
-    loadRelationships();
-  }
-
-  private void loadProfiles() throws IOException {
-    InputStream fileStream = new FileInputStream(POKEC_PROFILES_FILE);
-//    InputStream gzipStream = new GZIPInputStream(fileStream);
-    Reader decoder = new InputStreamReader(fileStream);
-    BufferedReader buffered = new BufferedReader(decoder);
-
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
-//    db.asynch().setParallelLevel(2);
-
-    db.begin();
-    try {
-      for (int i = 0; buffered.ready(); ++i) {
-        final String line = buffered.readLine();
-        final String[] profile = line.split("\t");
-
-        final PModifiableVertex v = db.newVertex("V");
-        final int id = Integer.parseInt(profile[0]);
-        v.set(COLUMNS[0], id);
-        for (int c = 1; c < COLUMNS.length; ++c) {
-          v.set(COLUMNS[c], profile[c]);
-        }
-        v.save();
-//        db.asynch().createRecord(v);
-
-        if (i % 10000 == 0) {
-          PLogManager.instance().info(this, "Inserted %d vertices...", i);
-          db.commit();
-          db.begin();
-        }
-      }
-
-      db.commit();
-
-    } finally {
-      db.close();
-    }
-  }
-
-  private void loadRelationships() throws IOException {
-    InputStream fileStream = new FileInputStream(POKEC_RELATIONSHIP_FILE);
-//    InputStream gzipStream = new GZIPInputStream(fileStream);
-    Reader decoder = new InputStreamReader(fileStream);
-    BufferedReader buffered = new BufferedReader(decoder);
-
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
-    db.begin();
-    try {
-      for (int i = 0; buffered.ready(); ++i) {
-        final String line = buffered.readLine();
-        final String[] profiles = line.split("\t");
-
-        final int id1 = Integer.parseInt(profiles[0]);
-        final PCursor<PRID> result1 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id1 });
-        PVertex v1;
-        if (!result1.hasNext()) {
-          PLogManager.instance().info(this, "Source vertex %d not found (line=%d)", id1, i);
-          v1 = db.newVertex("V");
-          ((PModifiableVertex) v1).set("id", id1);
-          ((PModifiableVertex) v1).save();
-        } else
-          v1 = ((PVertex) result1.next().getRecord());
-
-        final int id2 = Integer.parseInt(profiles[1]);
-        final PCursor<PRID> result2 = db.lookupByKey("V", new String[] { "id" }, new Object[] { id2 });
-        PIdentifiable v2;
-        if (!result2.hasNext()) {
-          PLogManager.instance().info(this, "Destination vertex %d not found (line=%d)", id2, i);
-          v2 = db.newVertex("V");
-          ((PModifiableVertex) v2).set("id", id2);
-          ((PModifiableVertex) v2).save();
-        } else
-          v2 = result2.next();
-
-        v1.newEdge("E", v2, true);
-
-        if (i % 10000 == 0) {
-          PLogManager.instance().info(this, "Committing %d edges...", i);
-          db.commit();
-          db.begin();
-        }
-      }
-      db.commit();
-
-    } finally {
-      db.close();
-    }
-  }
-
-  private static void createSchema() {
     final File directory = new File(DB_PATH);
     if (directory.exists())
       PFileUtils.deleteRecursively(directory);
     else
       directory.mkdirs();
 
-    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
-      @Override
-      public void execute(PDatabase database) {
-        PDocumentType v = database.getSchema().createVertexType("V", 3, PBucket.DEF_PAGE_SIZE * 2);
-        v.createProperty("id", Integer.class);
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    try {
+      createSchema(db);
+      loadProfiles(db);
+      loadRelationships(db);
+    } finally {
+      db.close();
+    }
+  }
 
-        for (int i = 0; i < COLUMNS.length; ++i) {
-          final String column = COLUMNS[i];
-          if (!v.existsProperty(column)) {
-            v.createProperty(column, String.class);
-          }
-        }
+  private void loadProfiles(final PDatabase db) throws IOException {
+    InputStream fileStream = new FileInputStream(POKEC_PROFILES_FILE);
+//    InputStream gzipStream = new GZIPInputStream(fileStream);
+    Reader decoder = new InputStreamReader(fileStream);
+    BufferedReader buffered = new BufferedReader(decoder);
 
-        database.getSchema().createEdgeType("E");
+    db.asynch().setParallelLevel(3);
 
-        database.getSchema().createClassIndexes("V", new String[] { "id" });
+//    db.begin();
+    for (int i = 0; buffered.ready(); ++i) {
+      final String line = buffered.readLine();
+      final String[] profile = line.split("\t");
+
+      final PModifiableVertex v = db.newVertex("V");
+      final int id = Integer.parseInt(profile[0]);
+      v.set(COLUMNS[0], id);
+      for (int c = 1; c < COLUMNS.length; ++c) {
+        v.set(COLUMNS[c], profile[c]);
       }
-    });
+//      v.save();
+        db.asynch().createRecord(v);
+
+      if (i % 20000 == 0) {
+        PLogManager.instance().info(this, "Inserted %d vertices...", i);
+//        db.commit();
+//        db.begin();
+      }
+    }
+
+//    db.commit();
+  }
+
+  private void loadRelationships(PDatabase db) throws IOException {
+    InputStream fileStream = new FileInputStream(POKEC_RELATIONSHIP_FILE);
+//    InputStream gzipStream = new GZIPInputStream(fileStream);
+    Reader decoder = new InputStreamReader(fileStream);
+    BufferedReader buffered = new BufferedReader(decoder);
+
+    db.asynch().waitCompletion();
+
+//    db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+
+    db.begin();
+
+    for (int i = 0; buffered.ready(); ++i) {
+      final String line = buffered.readLine();
+      final String[] profiles = line.split("\t");
+
+      final int id1 = Integer.parseInt(profiles[0]);
+      final int id2 = Integer.parseInt(profiles[1]);
+
+      db.newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false,
+          "E", true);
+
+      if (i % 20000 == 0) {
+        PLogManager.instance().info(this, "Committing %d edges...", i);
+        db.commit();
+        db.begin();
+      }
+    }
+    db.commit();
+  }
+
+  private static void createSchema(final PDatabase db) {
+    db.begin();
+    PDocumentType v = db.getSchema().createVertexType("V", 3, PBucket.DEF_PAGE_SIZE * 2);
+    v.createProperty("id", Integer.class);
+
+    for (int i = 0; i < COLUMNS.length; ++i) {
+      final String column = COLUMNS[i];
+      if (!v.existsProperty(column)) {
+        v.createProperty(column, String.class);
+      }
+    }
+
+    db.getSchema().createEdgeType("E");
+
+    db.getSchema().createClassIndexes("V", new String[] { "id" });
+    db.commit();
   }
 }

@@ -2,6 +2,12 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.database.PRID;
+import com.arcadedb.engine.PBucket;
+import com.arcadedb.schema.PDocumentType;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class PEdgeLinkedList {
   private final PVertex           vertex;
@@ -54,17 +60,39 @@ public class PEdgeLinkedList {
     return false;
   }
 
+  /**
+   * Counts the items in the linked list.
+   *
+   * @param edgeType Type of edge to filter for the counting. If it is null, any type is counted.
+   *
+   * @return
+   */
+  public long count(final String edgeType) {
+    long total = 0;
+
+    final Set<Integer> fileIdToFilter;
+    if (edgeType != null) {
+      final PDocumentType type = vertex.getDatabase().getSchema().getType(edgeType);
+      final List<PBucket> buckets = type.getBuckets();
+      fileIdToFilter = new HashSet<Integer>(buckets.size());
+      for (PBucket b : buckets)
+        fileIdToFilter.add(b.getId());
+    } else
+      fileIdToFilter = null;
+
+    PEdgeChunk current = first;
+    while (current != null) {
+      total += current.count(fileIdToFilter);
+      current = current.getNext();
+    }
+
+    return total;
+  }
+
   public void add(final PRID edgeRID, final PRID vertexRID) {
     if (first.add(edgeRID, vertexRID))
       ((PDatabaseInternal) vertex.getDatabase()).updateRecord(first);
     else {
-//      if (direction == PVertex.DIRECTION.OUT)
-//        PLogManager.instance()
-//            .info(this, "Edge linked list chunk full, allocate a new one %s -(%s)-> vertex=%s)", vertex, edgeRID, vertexRID);
-//      else
-//        PLogManager.instance()
-//            .info(this, "Edge linked list chunk full, allocate a new one %s <-(%s)- vertex=%s)", vertex, edgeRID, vertexRID);
-
       // CHUNK FULL, ALLOCATE A NEW ONE
       PDatabaseInternal database = (PDatabaseInternal) vertex.getDatabase();
 
