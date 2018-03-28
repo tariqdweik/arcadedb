@@ -113,7 +113,7 @@ public class PokecLoader {
 
   private static void createSchema(final PDatabase db) {
     db.begin();
-    PDocumentType v = db.getSchema().createVertexType("V", PARALLEL_LEVEL, PBucket.DEF_PAGE_SIZE * 5);
+    PDocumentType v = db.getSchema().createVertexType("V", PARALLEL_LEVEL, PBucket.DEF_PAGE_SIZE * 2);
     v.createProperty("id", Integer.class);
 
     for (int i = 0; i < COLUMNS.length; ++i) {
@@ -125,7 +125,7 @@ public class PokecLoader {
 
     db.getSchema().createEdgeType("E");
 
-    db.getSchema().createClassIndexes("V", new String[] { "id" }, PIndexLSM.DEF_PAGE_SIZE * 50);
+    db.getSchema().createClassIndexes("V", new String[] { "id" }, PIndexLSM.DEF_PAGE_SIZE * 20);
     db.commit();
   }
 }
