@@ -22,6 +22,8 @@ public class PerformanceVertexIndexTest {
   private void run() {
     PerformanceTest.clean();
 
+    long begin = System.currentTimeMillis();
+
     PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
@@ -37,15 +39,6 @@ public class PerformanceVertexIndexTest {
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" });
         database.commit();
       }
-    } finally {
-      database.close();
-    }
-
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
-
-    long begin = System.currentTimeMillis();
-
-    try {
 
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(PARALLEL);
@@ -69,14 +62,6 @@ public class PerformanceVertexIndexTest {
 
       System.out.println("Inserted " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
-    } finally {
-      database.close();
-      System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
-    }
-
-    begin = System.currentTimeMillis();
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_ONLY).acquire();
-    try {
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {
         final PCursor<PRID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });

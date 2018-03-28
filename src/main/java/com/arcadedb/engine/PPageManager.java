@@ -45,8 +45,8 @@ public class PPageManager {
     public long writeCacheRAM;
     public long pagesRead;
     public long pagesReadSize;
-    public long pagesWrittenSize;
     public long pagesWritten;
+    public long pagesWrittenSize;
     public int  pageFlushQueueLength;
     public long cacheHits;
     public long cacheMiss;
@@ -245,10 +245,10 @@ public class PPageManager {
       // DELETE ONLY CURRENT VERSION OF THE PAGE (THIS PREVENT TO REMOVE NEWER PAGES)
       if (writeCache.remove(page.pageId, page))
         totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
-    }
 
-    totalPagesWritten.incrementAndGet();
-    totalPagesWrittenSize.addAndGet(page.getPhysicalSize());
+      totalPagesWritten.incrementAndGet();
+      totalPagesWrittenSize.addAndGet(page.getPhysicalSize());
+    }
   }
 
   private PImmutablePage loadPage(final PPageId pageId, final int size) throws IOException {

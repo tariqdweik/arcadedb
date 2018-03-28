@@ -1,5 +1,6 @@
 package com.arcadedb.database;
 
+import com.arcadedb.database.async.PDatabaseAsyncExecutor;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
 import com.arcadedb.graph.PEdge;
@@ -18,7 +19,7 @@ public interface PDatabase {
 
   void close();
 
-  PDatabaseAsynchExecutor asynch();
+  PDatabaseAsyncExecutor asynch();
 
   String getDatabasePath();
 

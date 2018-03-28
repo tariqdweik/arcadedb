@@ -5,6 +5,7 @@ import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PFile;
 import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
@@ -19,6 +20,7 @@ public class PokecLoader {
   private static final String DB_PATH                 = "target/database/pokec";
   private static final String POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt";
   private static final String POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
+  private static final int    PARALLEL_LEVEL          = 2;
 
   private static String[] COLUMNS = new String[] { "id", "public", "completion_percentage", "gender", "region", "last_login",
       "registration", "age", "body", "I_am_working_in_field", "spoken_languages", "hobbies", "I_most_enjoy_good_food", "pets",
@@ -58,9 +60,8 @@ public class PokecLoader {
     Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
-    db.asynch().setParallelLevel(3);
+    db.asynch().setParallelLevel(PARALLEL_LEVEL);
 
-//    db.begin();
     for (int i = 0; buffered.ready(); ++i) {
       final String line = buffered.readLine();
       final String[] profile = line.split("\t");
@@ -71,17 +72,13 @@ public class PokecLoader {
       for (int c = 1; c < COLUMNS.length; ++c) {
         v.set(COLUMNS[c], profile[c]);
       }
-//      v.save();
-        db.asynch().createRecord(v);
+
+      db.asynch().createRecord(v);
 
       if (i % 20000 == 0) {
         PLogManager.instance().info(this, "Inserted %d vertices...", i);
-//        db.commit();
-//        db.begin();
       }
     }
-
-//    db.commit();
   }
 
   private void loadRelationships(PDatabase db) throws IOException {
@@ -92,8 +89,6 @@ public class PokecLoader {
 
     db.asynch().waitCompletion();
 
-//    db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
-
     db.begin();
 
     for (int i = 0; buffered.ready(); ++i) {
@@ -103,8 +98,9 @@ public class PokecLoader {
       final int id1 = Integer.parseInt(profiles[0]);
       final int id2 = Integer.parseInt(profiles[1]);
 
-      db.newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false,
-          "E", true);
+      db.asynch()
+          .newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false,
+              "E", true);
 
       if (i % 20000 == 0) {
         PLogManager.instance().info(this, "Committing %d edges...", i);
@@ -117,7 +113,7 @@ public class PokecLoader {
 
   private static void createSchema(final PDatabase db) {
     db.begin();
-    PDocumentType v = db.getSchema().createVertexType("V", 3, PBucket.DEF_PAGE_SIZE * 2);
+    PDocumentType v = db.getSchema().createVertexType("V", PARALLEL_LEVEL, PBucket.DEF_PAGE_SIZE * 5);
     v.createProperty("id", Integer.class);
 
     for (int i = 0; i < COLUMNS.length; ++i) {
@@ -129,7 +125,7 @@ public class PokecLoader {
 
     db.getSchema().createEdgeType("E");
 
-    db.getSchema().createClassIndexes("V", new String[] { "id" });
+    db.getSchema().createClassIndexes("V", new String[] { "id" }, PIndexLSM.DEF_PAGE_SIZE * 50);
     db.commit();
   }
 }

@@ -1,6 +1,7 @@
 package com.arcadedb.database;
 
 import com.arcadedb.PProfiler;
+import com.arcadedb.database.async.PDatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PDatabaseIsClosedException;
@@ -35,8 +36,8 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   protected final PBinarySerializer serializer    = new PBinarySerializer();
   protected final PRecordFactory    recordFactory = new PRecordFactory();
   protected final PSchemaImpl schema;
-  protected final PGraphEngine            graphEngine = new PGraphEngine();
-  private         PDatabaseAsynchExecutor asynch      = null;
+  protected final PGraphEngine           graphEngine = new PGraphEngine();
+  private         PDatabaseAsyncExecutor asynch      = null;
 
   protected          boolean autoTransaction = false;
   protected volatile boolean open            = false;
@@ -140,12 +141,12 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     });
   }
 
-  public PDatabaseAsynchExecutor asynch() {
+  public PDatabaseAsyncExecutor asynch() {
     if (asynch == null) {
       super.executeInWriteLock(new Callable<Object>() {
         @Override
         public Object call() throws Exception {
-          asynch = new PDatabaseAsynchExecutor(PDatabaseImpl.this);
+          asynch = new PDatabaseAsyncExecutor(PDatabaseImpl.this);
           return null;
         }
       });
@@ -500,7 +501,6 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     return new PModifiableVertex(this, typeName, null);
   }
 
-  // TODO Create the ASYNCH MT version of this
   public PEdge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
       final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
       final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {

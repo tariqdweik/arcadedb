@@ -17,7 +17,7 @@ import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 public class PBucket extends PPaginatedFile {
   public static final String BUCKET_EXT          = "pbucket";
   public static final int    MAX_RECORDS_IN_PAGE = 2048;
-  public static final int    DEF_PAGE_SIZE       = 65536 * 2;
+  public static final int    DEF_PAGE_SIZE       = 65536;
 
   private static final int PAGE_RECORD_COUNT_IN_PAGE_OFFSET = 0;
   private static final int PAGE_RECORD_TABLE_OFFSET         = PAGE_RECORD_COUNT_IN_PAGE_OFFSET + PBinary.SHORT_SERIALIZED_SIZE;

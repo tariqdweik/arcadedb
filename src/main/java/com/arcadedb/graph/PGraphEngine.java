@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class PGraphEngine {
-  private static final int EDGES_LINKEDLIST_CHUNK_SIZE = 30;
+  public static final int EDGES_LINKEDLIST_CHUNK_SIZE = 30;
 
   public void createVertexType(PDatabaseInternal database, final PDocumentType type) {
     for (PBucket b : type.getBuckets()) {
@@ -342,7 +342,7 @@ public class PGraphEngine {
     return false;
   }
 
-  public String getEdgesBucketName(final PDatabase database, final int bucketId, final PVertex.DIRECTION direction) {
+  public static String getEdgesBucketName(final PDatabase database, final int bucketId, final PVertex.DIRECTION direction) {
     final PBucket vertexBucket = database.getSchema().getBucketById(bucketId);
 
     if (direction == PVertex.DIRECTION.OUT)
@@ -353,7 +353,7 @@ public class PGraphEngine {
     throw new IllegalArgumentException("Invalid direction");
   }
 
-  private void setProperties(final PModifiableDocument edge, final Object[] properties) {
+  public static void setProperties(final PModifiableDocument edge, final Object[] properties) {
     if (properties != null)
       if (properties.length == 1 && properties[0] instanceof Map) {
         // GET PROPERTIES FROM THE MAP

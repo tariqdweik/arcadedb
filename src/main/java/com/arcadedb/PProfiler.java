@@ -1,7 +1,7 @@
 package com.arcadedb;
 
 import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseAsynchExecutor;
+import com.arcadedb.database.async.PDatabaseAsyncExecutor;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
 import com.arcadedb.utility.PFileUtils;
@@ -80,7 +80,7 @@ public class PProfiler {
       totalOpenFiles += fStats.totalOpenFiles;
       maxOpenFiles += fStats.maxOpenFiles;
 
-      final PDatabaseAsynchExecutor.PDBAsynchStats aStats = db.asynch().getStats();
+      final PDatabaseAsyncExecutor.PDBAsynchStats aStats = db.asynch().getStats();
       asynchQueueLength += aStats.queueSize;
     }
 

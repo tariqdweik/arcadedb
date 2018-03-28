@@ -1,5 +1,6 @@
 package performance;
 
+import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PModifiableDocument;
@@ -16,6 +17,8 @@ public class PerformanceInsertNoIndexTest {
   }
 
   private void run() {
+    PGlobalConfiguration.FLUSH_INTERVAL.setValue(1000l);
+
     PerformanceTest.clean();
 
     PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
@@ -42,7 +45,7 @@ public class PerformanceInsertNoIndexTest {
 
     try {
 
-      database.asynch().setCommitEvery(10000);
+      database.asynch().setCommitEvery(30000);
       database.asynch().setParallelLevel(PARALLEL);
 
       long row = 0;
