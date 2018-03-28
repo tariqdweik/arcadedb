@@ -172,6 +172,25 @@ public class PTransactionContext {
     return modifiedPages != null;
   }
 
+  public Map<String, Object> stats() {
+    final Map<String, Object> map = new HashMap<>();
+
+    final Set<Integer> involvedFiles = new LinkedHashSet<>();
+    for (PPageId pid : modifiedPages.keySet())
+      involvedFiles.add(pid.getFileId());
+    for (PPageId pid : newPages.keySet())
+      involvedFiles.add(pid.getFileId());
+    for (Integer fid : newPageCounters.keySet())
+      involvedFiles.add(fid);
+
+    map.put("involvedFiles", involvedFiles);
+
+    map.put("modifiedPages", modifiedPages.size());
+    map.put("newPages", newPages != null ? newPages.size() : 0);
+    map.put("newPageCounters", newPageCounters);
+    return map;
+  }
+
   public int getModifiedPages() {
     int result = 0;
     if (modifiedPages != null)

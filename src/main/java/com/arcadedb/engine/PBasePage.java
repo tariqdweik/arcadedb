@@ -174,12 +174,12 @@ public abstract class PBasePage {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    final PBasePage pPage = (PBasePage) o;
+    final PBasePage other = (PBasePage) o;
 
-    if (pageId != null ? !pageId.equals(pPage.pageId) : pPage.pageId != null)
+    if (pageId != null ? !pageId.equals(other.pageId) : other.pageId != null)
       return false;
 
-    return true;
+    return version == other.version;
   }
 
   @Override

@@ -71,6 +71,7 @@ public class PPageManager {
     }
 
     // FLUSH REMAINING PAGES
+    final boolean flushOnlyAtCloseOld = flushOnlyAtClose;
     flushOnlyAtClose = true;
     for (PImmutablePage p : writeCache.values()) {
       try {
@@ -85,6 +86,8 @@ public class PPageManager {
     totalReadCacheRAM.set(0);
     totalWriteCacheRAM.set(0);
     lockManager.close();
+
+    flushOnlyAtClose = flushOnlyAtCloseOld;
   }
 
   public void deleteFile(final int fileId) {
@@ -149,16 +152,12 @@ public class PPageManager {
       page.incrementVersion();
       page.flushMetadata();
 
-      final boolean noOtherPagesWithSameId = writeCache.put(page.pageId, page.createImmutableCopy()) == null;
-      if (noOtherPagesWithSameId) {
+      if (writeCache.put(page.pageId, page.createImmutableCopy()) == null)
         totalWriteCacheRAM.addAndGet(page.getPhysicalSize());
 
-        if (!flushOnlyAtClose)
-          // ONLY IF NOT ALREADY IN THE QUEUE, ENQUEUE THE PAGE TO BE FLUSHED BY A SEPARATE THREAD
-          flushThread.asyncFlush(page.pageId);
-      }
-
-      removePageFromCache(page.pageId);
+      if (!flushOnlyAtClose)
+        // ONLY IF NOT ALREADY IN THE QUEUE, ENQUEUE THE PAGE TO BE FLUSHED BY A SEPARATE THREAD
+        flushThread.asyncFlush(page.pageId);
 
       PLogManager.instance()
           .debug(this, "Updated page %s (size=%d threadId=%d)", page, page.getPhysicalSize(), Thread.currentThread().getId());
@@ -243,8 +242,9 @@ public class PPageManager {
     if (!flushOnlyAtClose) {
       putPageInCache(page);
 
-      writeCache.remove(page.pageId);
-      totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
+      // DELETE ONLY CURRENT VERSION OF THE PAGE (THIS PREVENT TO REMOVE NEWER PAGES)
+      if (writeCache.remove(page.pageId, page))
+        totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
     }
 
     totalPagesWritten.incrementAndGet();

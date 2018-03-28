@@ -1,7 +1,5 @@
 package com.arcadedb.engine;
 
-import com.arcadedb.utility.PRWLockContext;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -9,7 +7,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-public class PFile extends PRWLockContext {
+public class PFile {
   public enum MODE {
     READ_ONLY, READ_WRITE
   }
@@ -23,8 +21,6 @@ public class PFile extends PRWLockContext {
   private       boolean     open;
 
   protected PFile(final String filePath, final MODE mode) throws FileNotFoundException {
-    super(true);
-
     this.filePath = filePath;
 
     String filePrefix = filePath.substring(0, filePath.lastIndexOf("."));
@@ -64,31 +60,17 @@ public class PFile extends PRWLockContext {
   }
 
   public void write(final PImmutablePage page) throws IOException {
-    writeLock();
-    try {
-
-      assert page.getPageId().getFileId() == fileId;
-      final ByteBuffer buffer = page.getContent();
-      buffer.rewind();
-      channel.write(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
-
-    } finally {
-      writeUnlock();
-    }
+    assert page.getPageId().getFileId() == fileId;
+    final ByteBuffer buffer = page.getContent();
+    buffer.rewind();
+    channel.write(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
   }
 
   public void read(final PImmutablePage page) throws IOException {
-    readLock();
-    try {
-
-      assert page.getPageId().getFileId() == fileId;
-      final ByteBuffer buffer = page.getContent();
-      buffer.clear();
-      channel.read(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
-
-    } finally {
-      readUnlock();
-    }
+    assert page.getPageId().getFileId() == fileId;
+    final ByteBuffer buffer = page.getContent();
+    buffer.clear();
+    channel.read(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
   }
 
   public boolean isOpen() {

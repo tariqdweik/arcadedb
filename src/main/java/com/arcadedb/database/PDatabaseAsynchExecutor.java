@@ -24,7 +24,7 @@ public class PDatabaseAsynchExecutor {
   private final static String FORCE_EXIT   = "EXIT";
 
   private class DatabaseCreateRecordAsyncThread extends Thread {
-    public final ArrayBlockingQueue<Object[]> queue = new ArrayBlockingQueue<>(2048);
+    public final ArrayBlockingQueue<Object[]> queue = new ArrayBlockingQueue<>(1024);
     public final PDatabaseInternal database;
     public final int               commitEvery;
     public volatile boolean shutdown      = false;
@@ -82,6 +82,7 @@ public class PDatabaseAsynchExecutor {
           database.getTransaction().begin();
 
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           queue.clear();
           break;
         } catch (Exception e) {
@@ -138,6 +139,7 @@ public class PDatabaseAsynchExecutor {
           }
 
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           queue.clear();
           break;
         } catch (Exception e) {
@@ -178,13 +180,17 @@ public class PDatabaseAsynchExecutor {
         for (int i = 0; i < executorThreads.length; ++i) {
           try {
             executorThreads[i].queue.put(new Object[] { FORCE_COMMIT });
-            if (executorThreads[i].queue.isEmpty())
-              ++completed;
-            else
-              break;
           } catch (InterruptedException e) {
-            break;
+            Thread.currentThread().interrupt();
+            return;
           }
+        }
+
+        for (int i = 0; i < executorThreads.length; ++i) {
+          if (executorThreads[i].queue.isEmpty())
+            ++completed;
+          else
+            break;
         }
 
         if (completed < executorThreads.length) {
@@ -192,6 +198,7 @@ public class PDatabaseAsynchExecutor {
             Thread.sleep(100);
             continue;
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return;
           }
         }
@@ -211,6 +218,7 @@ public class PDatabaseAsynchExecutor {
             Thread.sleep(100);
             continue;
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return;
           }
         }
@@ -233,6 +241,7 @@ public class PDatabaseAsynchExecutor {
         try {
           scanThreads[slot].queue.put(new Object[] { semaphore, callback, b });
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new PDatabaseOperationException("Error on executing save");
         }
       }
@@ -256,6 +265,7 @@ public class PDatabaseAsynchExecutor {
       try {
         executorThreads[slot].queue.put(new Object[] { record, bucket });
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on executing save");
       }
 
@@ -272,6 +282,7 @@ public class PDatabaseAsynchExecutor {
       try {
         executorThreads[slot].queue.put(new Object[] { record, bucket });
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on executing save");
       }
     else
@@ -318,28 +329,27 @@ public class PDatabaseAsynchExecutor {
   }
 
   private void shutdownThreads() {
-    if (executorThreads != null) {
-      // WAIT FOR SHUTDOWN, MAX 1S EACH
-      for (int i = 0; i < executorThreads.length; ++i)
-        try {
+    try {
+      if (executorThreads != null) {
+        // WAIT FOR SHUTDOWN, MAX 1S EACH
+        for (int i = 0; i < executorThreads.length; ++i) {
           executorThreads[i].shutdown = true;
           executorThreads[i].queue.put(new Object[] { FORCE_EXIT });
           executorThreads[i].join(10000);
-        } catch (InterruptedException e) {
-          // IGNORE IT
         }
-    }
+      }
 
-    if (scanThreads != null) {
-      // WAIT FOR SHUTDOWN, MAX 1S EACH
-      for (int i = 0; i < scanThreads.length; ++i)
-        try {
+      if (scanThreads != null) {
+        // WAIT FOR SHUTDOWN, MAX 1S EACH
+        for (int i = 0; i < scanThreads.length; ++i) {
           scanThreads[i].shutdown = true;
           scanThreads[i].queue.put(new Object[] { FORCE_EXIT });
           scanThreads[i].join(10000);
-        } catch (InterruptedException e) {
-          // IGNORE IT
         }
+      }
+    } catch (InterruptedException e) {
+      // IGNORE IT
+      Thread.currentThread().interrupt();
     }
   }
 }
