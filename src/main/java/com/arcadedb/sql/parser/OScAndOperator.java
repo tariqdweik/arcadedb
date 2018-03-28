@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.sql.operator.OQueryOperator;
+import com.arcadedb.sql.executor.OQueryOperatorEquals;
 
 public
 class OScAndOperator extends SimpleNode implements OBinaryCompareOperator {
 
-  OQueryOperator lowLevelOperator = null;
+  OQueryOperatorEquals lowLevelOperator = null;
   public OScAndOperator(int id) {
     super(id);
   }

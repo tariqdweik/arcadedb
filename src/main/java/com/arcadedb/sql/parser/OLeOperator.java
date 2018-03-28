@@ -2,8 +2,6 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.metadata.schema.OType;
-
 public class OLeOperator extends SimpleNode implements OBinaryCompareOperator {
   public OLeOperator(int id) {
     super(id);
@@ -28,13 +26,14 @@ public class OLeOperator extends SimpleNode implements OBinaryCompareOperator {
     if (iLeft == null || iRight == null) {
       return false;
     }
-    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
-      Number[] couple = OType.castComparableNumber((Number) iLeft, (Number) iRight);
-      iLeft = couple[0];
-      iRight = couple[1];
-    } else {
-      iRight = OType.convert(iRight, iLeft.getClass());
-    }
+    //TODO
+//    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
+//      Number[] couple = OType.castComparableNumber((Number) iLeft, (Number) iRight);
+//      iLeft = couple[0];
+//      iRight = couple[1];
+//    } else {
+//      iRight = OType.convert(iRight, iLeft.getClass());
+//    }
     if (iRight == null)
       return false;
     return ((Comparable<Object>) iLeft).compareTo(iRight) <= 0;

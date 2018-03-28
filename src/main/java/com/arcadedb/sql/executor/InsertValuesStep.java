@@ -1,9 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OExpression;
 import com.arcadedb.sql.parser.OIdentifier;
 
@@ -43,7 +42,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
           if (!result.isElement()) {
             throw new PCommandExecutionException("Error executing INSERT, cannot modify element: " + result);
           }
-          result = new OUpdatableResult((ODocument) result.getElement().get());
+          result = new OUpdatableResult((PModifiableDocument) result.getElement().get());
         }
         List<OExpression> currentValues = values.get(nextValueSet++);
         if (currentValues.size() != identifiers.size()) {

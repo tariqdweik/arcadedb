@@ -2,13 +2,14 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PVertex;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.PSchema;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.Map;
 
@@ -27,8 +28,8 @@ public class ODropClassStatement extends ODDLStatement {
   }
 
   @Override public OResultSet executeDDL(OCommandContext ctx) {
-    OSchema schema = ctx.getDatabase().getMetadata().getSchema();
-    OClass clazz = schema.getClass(name.getStringValue());
+    PSchema schema = ctx.getDatabase().getSchema();
+    PDocumentType clazz = schema.getType(name.getStringValue());
     if (clazz == null) {
       if (ifExists) {
         return new OInternalResultSet();
@@ -36,26 +37,27 @@ public class ODropClassStatement extends ODDLStatement {
       throw new PCommandExecutionException("Class " + name.getStringValue() + " does not exist");
     }
 
-    if (!unsafe && clazz.count() > 0) {
+    if (!unsafe && ctx.getDatabase().countType(clazz.getName()) > 0) {
       //check vertex or edge
-      if (clazz.isVertexType()) {
+      if (clazz.getType() == PVertex.RECORD_TYPE) {
         throw new PCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
             + "' because it contains Vertices. Use 'DELETE VERTEX' command first to avoid broken edges in a database, or apply the 'UNSAFE' keyword to force it");
-      } else if (clazz.isEdgeType()) {
+      } else if (clazz.getType() == PEdge.RECORD_TYPE) {
         // FOUND EDGE CLASS
         throw new PCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
             + "' because it contains Edges. Use 'DELETE EDGE' command first to avoid broken vertices in a database, or apply the 'UNSAFE' keyword to force it");
       }
     }
 
-    schema.dropClass(name.getStringValue());
-
-    OInternalResultSet rs = new OInternalResultSet();
-    OResultInternal result = new OResultInternal();
-    result.setProperty("operation", "drop class");
-    result.setProperty("className", name.getStringValue());
-    rs.add(result);
-    return rs;
+    throw new UnsupportedOperationException();
+//    schema.dropClass(name.getStringValue());
+//
+//    OInternalResultSet rs = new OInternalResultSet();
+//    OResultInternal result = new OResultInternal();
+//    result.setProperty("operation", "drop class");
+//    result.setProperty("className", name.getStringValue());
+//    rs.add(result);
+//    return rs;
   }
 
   @Override public void toString(Map<Object, Object> params, StringBuilder builder) {

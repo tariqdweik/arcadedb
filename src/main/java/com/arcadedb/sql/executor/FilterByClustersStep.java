@@ -1,10 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -23,15 +21,16 @@ public class FilterByClustersStep extends AbstractExecutionStep {
   public FilterByClustersStep(Set<String> filterClusters, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.clusters = filterClusters;
-    ODatabase db = ctx.getDatabase();
+    PDatabase db = ctx.getDatabase();
     init(db);
 
   }
 
-  private void init(ODatabase db) {
-    if (this.clusterIds == null) {
-      this.clusterIds = clusters.stream().map(x -> db.getClusterIdByName(x)).filter(x -> x != null).collect(Collectors.toSet());
-    }
+  private void init(PDatabase db) {
+//    if (this.clusterIds == null) {
+//      this.clusterIds = clusters.stream().map(x -> db.getClusterIdByName(x)).filter(x -> x != null).collect(Collectors.toSet());
+//    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -70,7 +69,7 @@ public class FilterByClustersStep extends AbstractExecutionStep {
           }
           nextItem = prevResult.next();
           if (nextItem.isElement()) {
-            int clusterId = nextItem.getIdentity().get().getClusterId();
+            int clusterId = nextItem.getIdentity().get().getBucketId();
             if (clusterId < 0) {
               // this record comes from a TX, it still doesn't have a cluster assigned
               break;
@@ -157,7 +156,7 @@ public class FilterByClustersStep extends AbstractExecutionStep {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
       clusters = fromResult.getProperty("clusters");
     } catch (Exception e) {
-      throw OException.wrapException(new PCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 

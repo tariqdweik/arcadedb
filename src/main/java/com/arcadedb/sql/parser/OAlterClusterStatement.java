@@ -2,19 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
-import com.orientechnologies.orient.core.storage.OCluster;
-import com.orientechnologies.orient.core.storage.OStorage;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultSet;
 
-import java.io.IOException;
-import java.util.*;
+import java.util.Map;
 
 public class OAlterClusterStatement extends ODDLStatement {
 
@@ -57,58 +49,59 @@ public class OAlterClusterStatement extends ODDLStatement {
   @Override
   public OResultSet executeDDL(OCommandContext ctx) {
     OInternalResultSet result = new OInternalResultSet();
-    List<com.orientechnologies.orient.core.storage.OCluster> clustersToUpdate = getClusters(ctx);
-    Object finalValue = attributeValue.execute((PIdentifiable) null, ctx);
+//    List<com.orientechnologies.orient.core.storage.OCluster> clustersToUpdate = getClusters(ctx);
+//    Object finalValue = attributeValue.execute((PIdentifiable) null, ctx);
+//
+//    com.orientechnologies.orient.core.storage.OCluster.ATTRIBUTES attribute;
+//    try {
+//      attribute = OCluster.ATTRIBUTES.valueOf(attributeName.getStringValue());
+//    } catch (IllegalArgumentException e) {
+//      throw OException.wrapException(new PCommandExecutionException(
+//          "Unknown class attribute '" + attributeName + "'. Supported attributes are: " + Arrays
+//              .toString(OCluster.ATTRIBUTES.values())), e);
+//    }
+//
+//    for (com.orientechnologies.orient.core.storage.OCluster cluster : clustersToUpdate) {
+//      if (attributeName.getStringValue().equalsIgnoreCase("status") || attributeName.getStringValue().equalsIgnoreCase("name"))
+//        // REMOVE CACHE OF COMMAND RESULTS IF ACTIVE
+//        getDatabase().getMetadata().getCommandCache().invalidateResultsOfCluster(cluster.getName());
+//      try {
+//        cluster.set(attribute, finalValue);
+//      } catch (IOException e) {
+//        OException.wrapException(new PCommandExecutionException("Cannot execute alter cluster"), e);
+//      }
+//      OResultInternal resultItem = new OResultInternal();
+//      resultItem.setProperty("cluster", cluster.getName());
+//      result.add(resultItem);
+//    }
 
-    com.orientechnologies.orient.core.storage.OCluster.ATTRIBUTES attribute;
-    try {
-      attribute = OCluster.ATTRIBUTES.valueOf(attributeName.getStringValue());
-    } catch (IllegalArgumentException e) {
-      throw OException.wrapException(new PCommandExecutionException(
-          "Unknown class attribute '" + attributeName + "'. Supported attributes are: " + Arrays
-              .toString(OCluster.ATTRIBUTES.values())), e);
-    }
-
-    for (com.orientechnologies.orient.core.storage.OCluster cluster : clustersToUpdate) {
-      if (attributeName.getStringValue().equalsIgnoreCase("status") || attributeName.getStringValue().equalsIgnoreCase("name"))
-        // REMOVE CACHE OF COMMAND RESULTS IF ACTIVE
-        getDatabase().getMetadata().getCommandCache().invalidateResultsOfCluster(cluster.getName());
-      try {
-        cluster.set(attribute, finalValue);
-      } catch (IOException e) {
-        OException.wrapException(new PCommandExecutionException("Cannot execute alter cluster"), e);
-      }
-      OResultInternal resultItem = new OResultInternal();
-      resultItem.setProperty("cluster", cluster.getName());
-      result.add(resultItem);
-    }
-
-    return result;
+//    return result;
+    throw new UnsupportedOperationException();
   }
 
-  private OCluster.ATTRIBUTES getClusterAttribute(OIdentifier attributeName) {
-    return null;
-  }
-
-  private List<com.orientechnologies.orient.core.storage.OCluster> getClusters(OCommandContext ctx) {
-    OStorage storage = ((ODatabaseDocumentInternal) ctx.getDatabase()).getStorage();
-    if (starred) {
-      List<com.orientechnologies.orient.core.storage.OCluster> result = new ArrayList<>();
-      for (String clusterName : storage.getClusterNames()) {
-        if (clusterName.startsWith(name.getStringValue())) {
-          result.add(storage.getClusterByName(clusterName));
-        }
-      }
-      return result;
-    } else {
-      int clusterId = ctx.getDatabase().getClusterIdByName(name.getStringValue());
-      if (clusterId <= 0) {
-        throw new PCommandExecutionException("Cannot find cluster " + name);
-      }
-      com.orientechnologies.orient.core.storage.OCluster cluster = storage.getClusterById(clusterId);
-      return Collections.singletonList(cluster);
-    }
-  }
+//  private OCluster.ATTRIBUTES getClusterAttribute(OIdentifier attributeName) {
+//    return null;
+//  }
+//
+//  private List<com.orientechnologies.orient.core.storage.OCluster> getClusters(OCommandContext ctx) {
+//    OStorage storage = ((ODatabaseDocumentInternal) ctx.getDatabase()).getStorage();
+//    if (starred) {
+//      List<com.orientechnologies.orient.core.storage.OCluster> result = new ArrayList<>();
+//      for (String clusterName : storage.getClusterNames()) {
+//        if (clusterName.startsWith(name.getStringValue())) {
+//          result.add(storage.getClusterByName(clusterName));
+//        }
+//      }
+//      return result;
+//    } else {
+//      int clusterId = ctx.getDatabase().getClusterIdByName(name.getStringValue());
+//      if (clusterId <= 0) {
+//        throw new PCommandExecutionException("Cannot find cluster " + name);
+//      }
+//      com.orientechnologies.orient.core.storage.OCluster cluster = storage.getClusterById(clusterId);
+//      return Collections.singletonList(cluster);
+//    }
+//  }
 
   @Override
   public boolean equals(Object o) {

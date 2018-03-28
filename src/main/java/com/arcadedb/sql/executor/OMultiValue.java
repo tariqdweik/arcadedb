@@ -22,4 +22,20 @@ public class OMultiValue {
   public static void remove(Object leftVal, Object rightVal, boolean b) {
 
   }
+
+  public static Object getValue(Object iResult, Integer index) {
+    return null;
+  }
+
+  public static Iterable<? extends Object> getMultiValueIterable(Object iRight, boolean b) {
+    return null;
+  }
+
+  public static int getSize(Object iLeft) {
+    return -1;
+  }
+
+  public static Object getFirstValue(Object iLeft) {
+    return null;
+  }
 }

@@ -791,7 +791,7 @@ public class OMathExpression extends SimpleNode {
     return this.childExpressions.get(0).estimateIndexedFunction(target, context, operator, right);
   }
 
-  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PRecord> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (this.childExpressions.size() != 1) {
       return null;

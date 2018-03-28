@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.collection.OMultiValue;
-import com.orientechnologies.orient.core.query.OQueryHelper;
+import com.arcadedb.sql.executor.OMultiValue;
+import com.arcadedb.sql.executor.OQueryHelper;
 
 public class OLikeOperator extends SimpleNode implements OBinaryCompareOperator {
   public OLikeOperator(int id) {

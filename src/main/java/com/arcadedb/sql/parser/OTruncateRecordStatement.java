@@ -2,18 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
-import com.orientechnologies.orient.core.storage.OStorageOperationResult;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResultSet;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,33 +23,34 @@ public class OTruncateRecordStatement extends OSimpleExecStatement {
 
   @Override
   public OResultSet executeSimple(OCommandContext ctx) {
-    List<ORid> recs = new ArrayList<>();
-    if (record != null) {
-      recs.add(record);
-    } else {
-      recs.addAll(records);
-    }
-
-    OInternalResultSet rs = new OInternalResultSet();
-    final ODatabaseDocumentInternal database = (ODatabaseDocumentInternal) ctx.getDatabase();
-    for (ORid rec : recs) {
-      try {
-        final ORecordId rid = rec.toRecordId((OResult) null, ctx);
-        final OStorageOperationResult<Boolean> result = database.getStorage().deleteRecord(rid, -1, 0, null);
-        database.getLocalCache().deleteRecord(rid);
-
-        if (result.getResult()) {
-          OResultInternal recordRes = new OResultInternal();
-          recordRes.setProperty("operation", "truncate record");
-          recordRes.setProperty("record", rec.toString());
-          rs.add(recordRes);
-        }
-      } catch (Exception e) {
-        throw OException.wrapException(new PCommandExecutionException("Error on executing command"), e);
-      }
-    }
-
-    return rs;
+//    List<ORid> recs = new ArrayList<>();
+//    if (record != null) {
+//      recs.add(record);
+//    } else {
+//      recs.addAll(records);
+//    }
+//
+//    OInternalResultSet rs = new OInternalResultSet();
+//    final ODatabaseDocumentInternal database = (ODatabaseDocumentInternal) ctx.getDatabase();
+//    for (ORid rec : recs) {
+//      try {
+//        final ORecordId rid = rec.toRecordId((OResult) null, ctx);
+//        final OStorageOperationResult<Boolean> result = database.getStorage().deleteRecord(rid, -1, 0, null);
+//        database.getLocalCache().deleteRecord(rid);
+//
+//        if (result.getResult()) {
+//          OResultInternal recordRes = new OResultInternal();
+//          recordRes.setProperty("operation", "truncate record");
+//          recordRes.setProperty("record", rec.toString());
+//          rs.add(recordRes);
+//        }
+//      } catch (Exception e) {
+//        throw OException.wrapException(new PCommandExecutionException("Error on executing command"), e);
+//      }
+//    }
+//
+//    return rs;
+    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -1,9 +1,8 @@
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.log.OLogManager;
-import com.orientechnologies.orient.core.db.ODatabaseDocumentInternal;
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
-import com.orientechnologies.orient.core.sql.OCommandSQLParsingException;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.utility.PLogManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -54,36 +53,13 @@ public class OStatementCache {
    *
    * @return a statement executor from the cache
    */
-  public static OStatement get(String statement, ODatabaseDocumentInternal db) {
-    if (db == null) {
-      return parse(statement);
-    }
-
-    OStatementCache resource = db.getSharedContext().getStatementCache();
-    return resource.get(statement);
-  }
-
-  /**
-   * @param statement an SQL statement
-   *
-   * @return the corresponding executor, taking it from the internal cache, if it exists
-   */
-  public OStatement get(String statement) {
-    OStatement result;
-    synchronized (map) {
-      //LRU
-      result = map.remove(statement);
-      if (result != null) {
-        map.put(statement, result);
-      }
-    }
-    if (result == null) {
-      result = parse(statement);
-      synchronized (map) {
-        map.put(statement, result);
-      }
-    }
-    return result;
+  public static OStatement get(String statement, PDatabase db) {
+//    if (db == null) {
+      return parse(statement, db);
+//    }
+//
+//    OStatementCache resource = db.getSharedContext().getStatementCache();
+//    return resource.get(statement);
   }
 
   /**
@@ -93,21 +69,23 @@ public class OStatementCache {
    *
    * @return the corresponding executor
    *
-   * @throws OCommandSQLParsingException if the input parameter is not a valid SQL statement
+   * @throws PCommandSQLParsingException if the input parameter is not a valid SQL statement
    */
-  protected static OStatement parse(String statement) throws OCommandSQLParsingException {
+  protected static OStatement parse(String statement, PDatabase db) throws PCommandSQLParsingException {
     try {
-      ODatabaseDocumentInternal db = ODatabaseRecordThreadLocal.instance().getIfDefined();
+
       InputStream is;
 
       if (db == null) {
         is = new ByteArrayInputStream(statement.getBytes());
       } else {
         try {
-          is = new ByteArrayInputStream(statement.getBytes(db.getStorage().getConfiguration().getCharset()));
+
+          is = new ByteArrayInputStream(statement.getBytes("UTF-8"));
+//          is = new ByteArrayInputStream(statement.getBytes(db.getStorage().getConfiguration().getCharset()));
         } catch (UnsupportedEncodingException e2) {
-          OLogManager.instance()
-              .warn(null, "Unsupported charset for database " + db + " " + db.getStorage().getConfiguration().getCharset());
+          PLogManager.instance()
+              .warn(null, "Unsupported charset for database " + db);
           is = new ByteArrayInputStream(statement.getBytes());
         }
       }
@@ -117,10 +95,11 @@ public class OStatementCache {
         osql = new OrientSql(is);
       } else {
         try {
-          osql = new OrientSql(is, db.getStorage().getConfiguration().getCharset());
+//          osql = new OrientSql(is, db.getStorage().getConfiguration().getCharset());
+          osql = new OrientSql(is, "UTF-8");
         } catch (UnsupportedEncodingException e2) {
-          OLogManager.instance()
-              .warn(null, "Unsupported charset for database " + db + " " + db.getStorage().getConfiguration().getCharset());
+          PLogManager.instance()
+              .warn(null, "Unsupported charset for database " + db );
           osql = new OrientSql(is);
         }
       }
@@ -137,11 +116,11 @@ public class OStatementCache {
   }
 
   protected static void throwParsingException(ParseException e, String statement) {
-    throw new OCommandSQLParsingException(e, statement);
+    throw new PCommandSQLParsingException(statement, e);
   }
 
   protected static void throwParsingException(TokenMgrError e, String statement) {
-    throw new OCommandSQLParsingException(e, statement);
+    throw new PCommandSQLParsingException(statement, e);
   }
 
   public void clear() {

@@ -1,9 +1,9 @@
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.sql.executor.OExecutionPlan;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.OExecutionPlan;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -2,11 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
-import com.orientechnologies.orient.core.tx.OTransaction;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.Map;
 
@@ -26,10 +25,10 @@ public class OBeginStatement extends OSimpleExecStatement {
     OInternalResultSet result = new OInternalResultSet();
     OResultInternal item = new OResultInternal();
     item.setProperty("operation", "begin");
-    if (isolation != null) {
-      ctx.getDatabase().getTransaction().setIsolationLevel(OTransaction.ISOLATION_LEVEL.valueOf(isolation.getStringValue()));
-      item.setProperty("isolation", isolation.getStringValue());
-    }
+//    if (isolation != null) {
+//      ctx.getDatabase().getTransaction().setIsolationLevel(OTransaction.ISOLATION_LEVEL.valueOf(isolation.getStringValue()));
+//      item.setProperty("isolation", isolation.getStringValue());
+//    }
     result.add(item);
     return result;
   }

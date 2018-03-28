@@ -1,7 +1,7 @@
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.sql.executor.OCommandContext;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

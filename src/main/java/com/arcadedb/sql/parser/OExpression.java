@@ -285,7 +285,7 @@ public class OExpression extends SimpleNode {
     return -1;
   }
 
-  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PRecord> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (mathExpression != null) {
       return mathExpression.executeIndexedFunction(target, context, operator, right);

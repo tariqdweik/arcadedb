@@ -1,6 +1,5 @@
 package com.arcadedb.engine;
 
-import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
@@ -59,13 +58,13 @@ public class PBucketIterator implements Iterator<PRecord> {
           // NOT DELETED
           final int recordContentPositionInPage = recordPositionInPage + SHORT_SERIALIZED_SIZE;
 
-          final PRID rid = new PRID(bucket.id, (nextPageNumber - 1) * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
+          final PRID rid = new PRID(database, bucket.id, (nextPageNumber - 1) * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
 
-          final PBinary view = currentPage.getImmutableView(recordContentPositionInPage, recordSize);
+//          final PBinary view = currentPage.getImmutableView(recordContentPositionInPage, recordSize);
 
           currentRecordInPage++;
 
-          final PRecord record = database.getRecordFactory().newImmutableRecord(database, rid, view);
+          final PRecord record = rid.getRecord();
           next = record;
           return;
         }

@@ -1,10 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OBinaryCondition;
 import com.arcadedb.sql.parser.OFromClause;
 
@@ -21,7 +19,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
 
   private long cost = 0;
   //runtime
-  Iterator<PIdentifiable> fullResult = null;
+  Iterator<PRecord> fullResult = null;
 
   public FetchFromIndexedFunctionStep(OBinaryCondition functionCondition, OFromClause queryTarget, OCommandContext ctx,
       boolean profilingEnabled) {
@@ -60,7 +58,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
             throw new IllegalStateException();
           }
           OResultInternal result = new OResultInternal();
-          result.setElement(fullResult.next());
+          result.setElement(fullResult.next().getRecord());
           localCount++;
           return result;
         } finally {
@@ -140,7 +138,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
       queryTarget.deserialize(fromResult.getProperty("functionCondition "));
 
     } catch (Exception e) {
-      throw OException.wrapException(new PCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 }

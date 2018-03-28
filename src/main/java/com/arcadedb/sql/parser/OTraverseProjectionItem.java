@@ -2,12 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -74,7 +72,7 @@ public class OTraverseProjectionItem extends SimpleNode {
     if (!(val instanceof PIdentifiable)) {
       return false;
     }
-    return ((PIdentifiable) val).getIdentity().isPersistent();
+    return true;
   }
 
   private boolean isOResult(Object val) {

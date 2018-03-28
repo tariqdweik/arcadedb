@@ -2,15 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.serialization.serializer.OStringSerializerHelper;
-import com.orientechnologies.orient.core.sql.executor.AggregationContext;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -44,7 +39,7 @@ public class OBaseExpression extends OMathExpression {
 
   public OBaseExpression(String string) {
     super(-1);
-    this.string = "\"" + OStringSerializerHelper.encode(string) + "\"";
+    this.string = "\"" + encode(string) + "\"";
   }
 
   public OBaseExpression(OIdentifier identifier, OModifier modifier) {
@@ -96,9 +91,9 @@ public class OBaseExpression extends OMathExpression {
     if (number != null) {
       result = number.getValue();
     } else if (identifier != null) {
-      result = identifier.execute(iCurrentRecord, ctx);
+      result = identifier.execute(iCurrentRecord.getRecord(), ctx);
     } else if (string != null && string.length() > 1) {
-      result = OStringSerializerHelper.decode(string.substring(1, string.length() - 1));
+      result = decode(string.substring(1, string.length() - 1));
     } else if (inputParam != null) {
       result = inputParam.getValue(ctx.getInputParameters());
     }
@@ -117,7 +112,7 @@ public class OBaseExpression extends OMathExpression {
     } else if (identifier != null) {
       result = identifier.execute(iCurrentRecord, ctx);
     } else if (string != null && string.length() > 1) {
-      result = OStringSerializerHelper.decode(string.substring(1, string.length() - 1));
+      result = decode(string.substring(1, string.length() - 1));
     } else if (inputParam != null) {
       result = inputParam.getValue(ctx.getInputParameters());
     }
@@ -147,7 +142,7 @@ public class OBaseExpression extends OMathExpression {
     return identifier.estimateIndexedFunction(target, context, operator, right);
   }
 
-  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PRecord> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return null;
@@ -436,7 +431,7 @@ public class OBaseExpression extends OMathExpression {
   }
 
   @Override
-  public boolean isDefinedFor(OElement currentRecord) {
+  public boolean isDefinedFor(PRecord currentRecord) {
     if (this.identifier != null) {
       if (modifier == null) {
         return identifier.isDefinedFor(currentRecord);
@@ -472,6 +467,88 @@ public class OBaseExpression extends OMathExpression {
   public void setInputParam(OInputParameter inputParam) {
     this.inputParam = inputParam;
   }
+
+  /**
+   * Transforms, only if needed, the source string escaping the characters \ and ".
+   *
+   * @param iText
+   *          Input String
+   * @return Modified string if needed, otherwise the same input object
+   */
+  public static String encode(final String iText) {
+    int pos = -1;
+
+    final int newSize = iText.length();
+    for (int i = 0; i < newSize; ++i) {
+      final char c = iText.charAt(i);
+
+      if (c == '"' || c == '\\') {
+        pos = i;
+        break;
+      }
+    }
+
+    if (pos > -1) {
+      // CHANGE THE INPUT STRING
+      final StringBuilder iOutput = new StringBuilder((int) ((float) newSize * 1.5f));
+
+      char c;
+      for (int i = 0; i < newSize; ++i) {
+        c = iText.charAt(i);
+
+        if (c == '"' || c == '\\')
+          iOutput.append('\\');
+
+        iOutput.append(c);
+      }
+      return iOutput.toString();
+    }
+
+    return iText;
+  }
+
+  /**
+   * Transforms, only if needed, the source string un-escaping the characters \ and ".
+   *
+   * @param iText
+   *          Input String
+   * @return Modified string if needed, otherwise the same input object
+   */
+  public static String decode(final String iText) {
+    int pos = -1;
+
+    final int textSize = iText.length();
+    for (int i = 0; i < textSize; ++i)
+      if (iText.charAt(i) == '"' || iText.charAt(i) == '\\') {
+        pos = i;
+        break;
+      }
+
+    if (pos == -1)
+      // NOT FOUND, RETURN THE SAME STRING (AVOID COPIES)
+      return iText;
+
+    // CHANGE THE INPUT STRING
+    final StringBuilder buffer = new StringBuilder(textSize);
+    buffer.append(iText.substring(0, pos));
+
+    boolean escaped = false;
+    for (int i = pos; i < textSize; ++i) {
+      final char c = iText.charAt(i);
+
+      if (escaped)
+        escaped = false;
+      else if (c == '\\') {
+        escaped = true;
+        continue;
+      }
+
+      buffer.append(c);
+    }
+
+    return buffer.toString();
+  }
+
 }
 
 /* JavaCC - OriginalChecksum=71b3e2d1b65c923dc7cfe11f9f449d2b (do not edit this line) */

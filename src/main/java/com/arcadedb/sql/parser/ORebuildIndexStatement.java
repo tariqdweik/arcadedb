@@ -2,13 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.Map;
 
@@ -29,31 +25,33 @@ public class ORebuildIndexStatement extends OSimpleExecStatement {
     OResultInternal result = new OResultInternal();
     result.setProperty("operation", "rebuild index");
 
-    final ODatabaseDocument database = getDatabase();
-    if (all) {
-      long totalIndexed = 0;
-      for (OIndex<?> idx : database.getMetadata().getIndexManager().getIndexes()) {
-        if (idx.isAutomatic())
-          totalIndexed += idx.rebuild();
-      }
+    throw new UnsupportedOperationException();
 
-      result.setProperty("totalIndexed", totalIndexed);
-    } else {
-      final OIndex<?> idx = database.getMetadata().getIndexManager().getIndex(name.getValue());
-      if (idx == null)
-        throw new PCommandExecutionException("Index '" + name + "' not found");
-
-      if (!idx.isAutomatic())
-        throw new PCommandExecutionException(
-            "Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
-
-      long val = idx.rebuild();
-      result.setProperty("totalIndexed", val);
-
-    }
-    OInternalResultSet rs = new OInternalResultSet();
-    rs.add(result);
-    return rs;
+//    final PDatabase database = getDatabase();
+//    if (all) {
+//      long totalIndexed = 0;
+//      for (PIndex idx : database.getSchema().getIndexes()) {
+////        if (idx.isAutomatic())
+////          totalIndexed += idx.rebuild();
+//      }
+//
+//      result.setProperty("totalIndexed", totalIndexed);
+//    } else {
+//      final OIndex<?> idx = database.getMetadata().getIndexManager().getIndex(name.getValue());
+//      if (idx == null)
+//        throw new PCommandExecutionException("Index '" + name + "' not found");
+//
+//      if (!idx.isAutomatic())
+//        throw new PCommandExecutionException(
+//            "Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
+//
+//      long val = idx.rebuild();
+//      result.setProperty("totalIndexed", val);
+//
+//    }
+//    OInternalResultSet rs = new OInternalResultSet();
+//    rs.add(result);
+//    return rs;
 
   }
 

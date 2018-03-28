@@ -1,10 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OIdentifier;
 
 import java.util.Map;
@@ -64,8 +61,8 @@ public class FilterByClassStep extends AbstractExecutionStep {
           long begin = profilingEnabled ? System.nanoTime() : 0;
           try {
             if (nextItem.isElement()) {
-              Optional<OClass> clazz = nextItem.getElement().get().getSchemaType();
-              if (clazz.isPresent() && clazz.get().isSubClassOf(identifier.getStringValue())) {
+              String clazz = nextItem.getElement().get().getType();
+              if (clazz!=null && clazz.equals(identifier.getStringValue())) {
                 break;
               }
             }
@@ -159,7 +156,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
       identifier = OIdentifier.deserialize(fromResult.getProperty("identifier"));
     } catch (Exception e) {
-      throw OException.wrapException(new PCommandExecutionException(""), e);
+      throw new PCommandExecutionException( e);
     }
   }
 

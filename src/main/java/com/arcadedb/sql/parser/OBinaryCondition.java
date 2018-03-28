@@ -35,7 +35,7 @@ public class OBinaryCondition extends OBooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PRecord currentRecord, OCommandContext ctx) {
+  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
     return operator.execute(left.execute(currentRecord, ctx), right.execute(currentRecord, ctx));
   }
 
@@ -111,7 +111,7 @@ public class OBinaryCondition extends OBooleanExpression {
     return left.estimateIndexedFunction(target, context, operator, right.execute((OResult) null, context));
   }
 
-  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context) {
+  public Iterable<PRecord> executeIndexedFunction(OFromClause target, OCommandContext context) {
     return left.executeIndexedFunction(target, context, operator, right.execute((OResult) null, context));
   }
 

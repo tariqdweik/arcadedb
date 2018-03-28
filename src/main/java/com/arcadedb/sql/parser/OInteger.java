@@ -4,8 +4,6 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 
 import java.util.Map;
 

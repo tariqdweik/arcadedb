@@ -2,17 +2,14 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.*;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -45,38 +42,39 @@ public class OCreatePropertyStatement extends ODDLStatement {
   }
 
   private void executeInternal(OCommandContext ctx, OResultInternal result) {
-    ODatabase db = ctx.getDatabase();
-    OClassEmbedded clazz = (OClassEmbedded) db.getMetadata().getSchema().getClass(className.getStringValue());
-    if (clazz == null) {
-      throw new PCommandExecutionException("Class not found: " + className.getStringValue());
-    }
-    if (clazz.getProperty(propertyName.getStringValue()) != null) {
-      if (ifNotExists) {
-        return;
-      }
-      throw new PCommandExecutionException(
-          "Property " + className.getStringValue() + "." + propertyName.getStringValue() + " already exists");
-    }
-    OType type = OType.valueOf(propertyType.getStringValue().toUpperCase(Locale.ENGLISH));
-    if (type == null) {
-      throw new PCommandExecutionException("Invalid property type: " + propertyType.getStringValue());
-    }
-    OClass linkedClass = null;
-    OType linkedType = null;
-    if (this.linkedType != null) {
-      String linked = this.linkedType.getStringValue();
-      // FIRST SEARCH BETWEEN CLASSES
-      linkedClass = db.getMetadata().getSchema().getClass(linked);
-      if (linkedClass == null)
-        // NOT FOUND: SEARCH BETWEEN TYPES
-        linkedType = OType.valueOf(linked.toUpperCase(Locale.ENGLISH));
-    }
-    // CREATE IT LOCALLY
-    OPropertyImpl internalProp = (OPropertyImpl) clazz.addProperty(propertyName.getStringValue(), type, linkedType, linkedClass, unsafe);
-    for (OCreatePropertyAttributeStatement attr : attributes) {
-      Object val = attr.setOnProperty(internalProp, ctx);
-      result.setProperty(attr.settingName.getStringValue(), val);
-    }
+    PDatabase db = ctx.getDatabase();
+//    OClassEmbedded clazz = (OClassEmbedded) db.getMetadata().getSchema().getClass(className.getStringValue());
+//    if (clazz == null) {
+//      throw new PCommandExecutionException("Class not found: " + className.getStringValue());
+//    }
+//    if (clazz.getProperty(propertyName.getStringValue()) != null) {
+//      if (ifNotExists) {
+//        return;
+//      }
+//      throw new PCommandExecutionException(
+//          "Property " + className.getStringValue() + "." + propertyName.getStringValue() + " already exists");
+//    }
+//    OType type = OType.valueOf(propertyType.getStringValue().toUpperCase(Locale.ENGLISH));
+//    if (type == null) {
+//      throw new PCommandExecutionException("Invalid property type: " + propertyType.getStringValue());
+//    }
+//    OClass linkedClass = null;
+//    OType linkedType = null;
+//    if (this.linkedType != null) {
+//      String linked = this.linkedType.getStringValue();
+//      // FIRST SEARCH BETWEEN CLASSES
+//      linkedClass = db.getMetadata().getSchema().getClass(linked);
+//      if (linkedClass == null)
+//        // NOT FOUND: SEARCH BETWEEN TYPES
+//        linkedType = OType.valueOf(linked.toUpperCase(Locale.ENGLISH));
+//    }
+//    // CREATE IT LOCALLY
+//    OPropertyImpl internalProp = (OPropertyImpl) clazz.addProperty(propertyName.getStringValue(), type, linkedType, linkedClass, unsafe);
+//    for (OCreatePropertyAttributeStatement attr : attributes) {
+//      Object val = attr.setOnProperty(internalProp, ctx);
+//      result.setProperty(attr.settingName.getStringValue(), val);
+//    }
+    throw new UnsupportedOperationException();
   }
 
   @Override public void toString(Map<Object, Object> params, StringBuilder builder) {

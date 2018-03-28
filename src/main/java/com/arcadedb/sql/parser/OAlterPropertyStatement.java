@@ -2,20 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.sql.OCommandSQLParsingException;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResultSet;
 
-import java.util.Arrays;
-import java.util.Locale;
 import java.util.Map;
 
 public class OAlterPropertyStatement extends ODDLStatement {
@@ -39,60 +30,62 @@ public class OAlterPropertyStatement extends ODDLStatement {
 
   @Override
   public OResultSet executeDDL(OCommandContext ctx) {
-    ODatabase db = ctx.getDatabase();
-    OClass clazz = db.getMetadata().getSchema().getClass(className.getStringValue());
+    PDatabase db = ctx.getDatabase();
 
-    if (clazz == null) {
-      throw new PCommandExecutionException("Invalid class name or class not found: " + clazz);
-    }
-
-    OProperty property = clazz.getProperty(propertyName.getStringValue());
-    if (property == null) {
-      throw new PCommandExecutionException("Property " + property + " not found on class " + clazz);
-    }
-
-    OResultInternal result = new OResultInternal();
-    result.setProperty("class", className.getStringValue());
-    result.setProperty("property", propertyName.getStringValue());
-
-    if (customPropertyName != null) {
-      String customName = customPropertyName.getStringValue();
-      Object oldValue = property.getCustom(customName);
-      Object finalValue = customPropertyValue.execute((PIdentifiable) null, ctx);
-      property.setCustom(customName, finalValue == null ? null : "" + finalValue);
-
-      result.setProperty("operation", "alter property custom");
-      result.setProperty("customAttribute", customPropertyName.getStringValue());
-      result.setProperty("oldValue", oldValue != null ? oldValue.toString() : null);
-      result.setProperty("newValue", finalValue != null ? finalValue.toString() : null);
-    } else {
-      String setting = settingName.getStringValue();
-      Object finalValue = settingValue.execute((PIdentifiable) null, ctx);
-
-      OProperty.ATTRIBUTES attribute;
-      try {
-        attribute = OProperty.ATTRIBUTES.valueOf(setting.toUpperCase(Locale.ENGLISH));
-      } catch (IllegalArgumentException e) {
-        throw OException.wrapException(new PCommandExecutionException(
-            "Unknown property attribute '" + setting + "'. Supported attributes are: " + Arrays
-                .toString(OProperty.ATTRIBUTES.values())), e);
-      }
-      Object oldValue = property.get(attribute);
-      property.set(attribute, finalValue);
-      finalValue = property.get(attribute);//it makes some conversions...
-
-      result.setProperty("operation", "alter property");
-      result.setProperty("attribute", setting);
-      result.setProperty("oldValue", oldValue != null ? oldValue.toString() : null);
-      result.setProperty("newValue", finalValue != null ? finalValue.toString() : null);
-    }
-    OInternalResultSet rs = new OInternalResultSet();
-    rs.add(result);
-    return rs;
+    throw new UnsupportedOperationException();
+//    OClass clazz = db.getMetadata().getSchema().getClass(className.getStringValue());
+//
+//    if (clazz == null) {
+//      throw new PCommandExecutionException("Invalid class name or class not found: " + clazz);
+//    }
+//
+//    OProperty property = clazz.getProperty(propertyName.getStringValue());
+//    if (property == null) {
+//      throw new PCommandExecutionException("Property " + property + " not found on class " + clazz);
+//    }
+//
+//    OResultInternal result = new OResultInternal();
+//    result.setProperty("class", className.getStringValue());
+//    result.setProperty("property", propertyName.getStringValue());
+//
+//    if (customPropertyName != null) {
+//      String customName = customPropertyName.getStringValue();
+//      Object oldValue = property.getCustom(customName);
+//      Object finalValue = customPropertyValue.execute((PIdentifiable) null, ctx);
+//      property.setCustom(customName, finalValue == null ? null : "" + finalValue);
+//
+//      result.setProperty("operation", "alter property custom");
+//      result.setProperty("customAttribute", customPropertyName.getStringValue());
+//      result.setProperty("oldValue", oldValue != null ? oldValue.toString() : null);
+//      result.setProperty("newValue", finalValue != null ? finalValue.toString() : null);
+//    } else {
+//      String setting = settingName.getStringValue();
+//      Object finalValue = settingValue.execute((PIdentifiable) null, ctx);
+//
+//      OProperty.ATTRIBUTES attribute;
+//      try {
+//        attribute = OProperty.ATTRIBUTES.valueOf(setting.toUpperCase(Locale.ENGLISH));
+//      } catch (IllegalArgumentException e) {
+//        throw OException.wrapException(new PCommandExecutionException(
+//            "Unknown property attribute '" + setting + "'. Supported attributes are: " + Arrays
+//                .toString(OProperty.ATTRIBUTES.values())), e);
+//      }
+//      Object oldValue = property.get(attribute);
+//      property.set(attribute, finalValue);
+//      finalValue = property.get(attribute);//it makes some conversions...
+//
+//      result.setProperty("operation", "alter property");
+//      result.setProperty("attribute", setting);
+//      result.setProperty("oldValue", oldValue != null ? oldValue.toString() : null);
+//      result.setProperty("newValue", finalValue != null ? finalValue.toString() : null);
+//    }
+//    OInternalResultSet rs = new OInternalResultSet();
+//    rs.add(result);
+//    return rs;
   }
 
   @Override
-  public void validate() throws OCommandSQLParsingException {
+  public void validate() throws PCommandSQLParsingException {
     super.validate();//TODO
   }
 

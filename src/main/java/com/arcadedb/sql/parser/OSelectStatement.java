@@ -7,13 +7,8 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandSQLParsingException;
 import com.arcadedb.sql.executor.*;
-import com.orientechnologies.orient.core.command.OBasicCommandContext;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.sql.OCommandSQLParsingException;
-import com.orientechnologies.orient.core.sql.executor.*;
-import com.orientechnologies.orient.core.storage.OStorage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +31,7 @@ public class OSelectStatement extends OStatement {
 
   protected OLimit limit;
 
-  protected OStorage.LOCKING_STRATEGY lockRecord = null;
+  protected Object lockRecord = null;
 
   protected OFetchPlan fetchPlan;
 
@@ -112,11 +107,11 @@ public class OSelectStatement extends OStatement {
     this.limit = limit;
   }
 
-  public OStorage.LOCKING_STRATEGY getLockRecord() {
+  public Object getLockRecord() {
     return lockRecord;
   }
 
-  public void setLockRecord(OStorage.LOCKING_STRATEGY lockRecord) {
+  public void setLockRecord(Object lockRecord) {
     this.lockRecord = lockRecord;
   }
 
@@ -181,23 +176,23 @@ public class OSelectStatement extends OStatement {
       limit.toString(params, builder);
     }
 
-    if (lockRecord != null) {
-      builder.append(" LOCK ");
-      switch (lockRecord) {
-      case DEFAULT:
-        builder.append("DEFAULT");
-        break;
-      case EXCLUSIVE_LOCK:
-        builder.append("RECORD");
-        break;
-      case SHARED_LOCK:
-        builder.append("SHARED");
-        break;
-      case NONE:
-        builder.append("NONE");
-        break;
-      }
-    }
+//    if (lockRecord != null) {
+//      builder.append(" LOCK ");
+//      switch (lockRecord) {
+//      case DEFAULT:
+//        builder.append("DEFAULT");
+//        break;
+//      case EXCLUSIVE_LOCK:
+//        builder.append("RECORD");
+//        break;
+//      case SHARED_LOCK:
+//        builder.append("SHARED");
+//        break;
+//      case NONE:
+//        builder.append("NONE");
+//        break;
+//      }
+//    }
 
     if (fetchPlan != null) {
       builder.append(" ");
@@ -217,11 +212,11 @@ public class OSelectStatement extends OStatement {
     }
   }
 
-  public void validate() throws OCommandSQLParsingException {
+  public void validate() throws PCommandSQLParsingException {
     if (projection != null) {
       projection.validate();
       if (projection.isExpand() && groupBy != null) {
-        throw new OCommandSQLParsingException("expand() cannot be used together with GROUP BY");
+        throw new PCommandSQLParsingException("expand() cannot be used together with GROUP BY");
       }
     }
   }
@@ -251,7 +246,7 @@ public class OSelectStatement extends OStatement {
   }
 
   @Override
-  public OResultSet execute(ODatabase db, Object[] args, OCommandContext parentCtx) {
+  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
     OBasicCommandContext ctx = new OBasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
@@ -500,7 +495,7 @@ public class OSelectStatement extends OStatement {
       limit.deserialize(fromResult.getProperty("limit"));
     }
     if (fromResult.getProperty("lockRecord") != null) {
-      lockRecord = OStorage.LOCKING_STRATEGY.valueOf(fromResult.getProperty("lockRecord"));
+      lockRecord = fromResult.getProperty("lockRecord");//TODO
     }
     if (fromResult.getProperty("fetchPlan") != null) {
       fetchPlan = new OFetchPlan(-1);

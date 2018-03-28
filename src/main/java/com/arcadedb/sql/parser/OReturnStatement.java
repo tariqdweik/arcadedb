@@ -2,12 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.sql.executor.*;
 
 import java.util.Map;
 
@@ -28,9 +24,9 @@ public class OReturnStatement extends OSimpleExecStatement {
     Object result = expression.execute((OResult) null, ctx);
     if (result instanceof OResult) {
       rs.add((OResult) result);
-    } else if (result instanceof PIdentifiable) {
+    } else if (result instanceof PRecord) {
       OResultInternal res = new OResultInternal();
-      res.setElement((PIdentifiable) result);
+      res.setElement((PRecord) result);
       rs.add(res);
     } else if (result instanceof OResultSet) {
       if (!((OResultSet) result).hasNext()) {

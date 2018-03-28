@@ -2,13 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.schema.PSchema;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.List;
 import java.util.Map;
@@ -49,61 +47,62 @@ public class OCreateClassStatement extends ODDLStatement {
 
   @Override public OResultSet executeDDL(OCommandContext ctx) {
 
-    OSchema schema = ctx.getDatabase().getMetadata().getSchema();
-    if (schema.existsClass(name.getStringValue())) {
+    PSchema schema = ctx.getDatabase().getSchema();
+    if (schema.getType(name.getStringValue())!=null) {
       if(ifNotExists){
         return new OInternalResultSet();
       }else {
         throw new PCommandExecutionException("Class " + name + " already exists");
       }
     }
-    checkSuperclasses(schema, ctx);
-
-    OResultInternal result = new OResultInternal();
-    result.setProperty("operation", "create class");
-    result.setProperty("className", name.getStringValue());
-
-    OClass clazz = null;
-    OClass[] superclasses = getSuperClasses(schema);
-    if (abstractClass) {
-      clazz = schema.createAbstractClass(name.getStringValue(), superclasses);
-      result.setProperty("abstract", abstractClass);
-    } else if (totalClusterNo != null) {
-      clazz = schema.createClass(name.getStringValue(), totalClusterNo.getValue().intValue(), superclasses);
-    } else if (clusters != null) {
-      clusters.stream().map(x -> x.getValue().intValue()).collect(Collectors.toList());
-      int[] clusterIds = new int[clusters.size()];
-      for (int i = 0; i < clusters.size(); i++) {
-        clusterIds[i] = clusters.get(i).getValue().intValue();
-      }
-      clazz = schema.createClass(name.getStringValue(), clusterIds, superclasses);
-    } else {
-      clazz = schema.createClass(name.getStringValue(), superclasses);
-    }
-
-    OInternalResultSet rs = new OInternalResultSet();
-    rs.add(result);
-    return rs;
+//    checkSuperclasses(schema, ctx);
+//
+//    OResultInternal result = new OResultInternal();
+//    result.setProperty("operation", "create class");
+//    result.setProperty("className", name.getStringValue());
+//
+//    OClass clazz = null;
+//    OClass[] superclasses = getSuperClasses(schema);
+//    if (abstractClass) {
+//      clazz = schema.createAbstractClass(name.getStringValue(), superclasses);
+//      result.setProperty("abstract", abstractClass);
+//    } else if (totalClusterNo != null) {
+//      clazz = schema.createClass(name.getStringValue(), totalClusterNo.getValue().intValue(), superclasses);
+//    } else if (clusters != null) {
+//      clusters.stream().map(x -> x.getValue().intValue()).collect(Collectors.toList());
+//      int[] clusterIds = new int[clusters.size()];
+//      for (int i = 0; i < clusters.size(); i++) {
+//        clusterIds[i] = clusters.get(i).getValue().intValue();
+//      }
+//      clazz = schema.createClass(name.getStringValue(), clusterIds, superclasses);
+//    } else {
+//      clazz = schema.createClass(name.getStringValue(), superclasses);
+//    }
+//
+//    OInternalResultSet rs = new OInternalResultSet();
+//    rs.add(result);
+//    return rs;
+    throw new UnsupportedOperationException();
   }
 
-  private OClass[] getSuperClasses(OSchema schema) {
-    if(superclasses==null){
-      return new OClass[]{};
-    }
-    return superclasses.stream().map(x -> schema.getClass(x.getStringValue())).filter(x -> x != null).collect(Collectors.toList())
-        .toArray(new OClass[] {});
-  }
-
-
-  private void checkSuperclasses(OSchema schema, OCommandContext ctx) {
-    if (superclasses != null) {
-      for (OIdentifier superclass : superclasses) {
-        if (!schema.existsClass(superclass.getStringValue())) {
-          throw new PCommandExecutionException("Superclass " + superclass + " not found");
-        }
-      }
-    }
-  }
+//  private OClass[] getSuperClasses(OSchema schema) {
+//    if(superclasses==null){
+//      return new OClass[]{};
+//    }
+//    return superclasses.stream().map(x -> schema.getClass(x.getStringValue())).filter(x -> x != null).collect(Collectors.toList())
+//        .toArray(new OClass[] {});
+//  }
+//
+//
+//  private void checkSuperclasses(OSchema schema, OCommandContext ctx) {
+//    if (superclasses != null) {
+//      for (OIdentifier superclass : superclasses) {
+//        if (!schema.existsClass(superclass.getStringValue())) {
+//          throw new PCommandExecutionException("Superclass " + superclass + " not found");
+//        }
+//      }
+//    }
+//  }
 
   @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("CREATE CLASS ");

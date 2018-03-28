@@ -1,10 +1,6 @@
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.db.document.OQueryLifecycleListener;
-import com.orientechnologies.orient.core.sql.executor.OExecutionPlan;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -2,11 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.schema.OPropertyImpl;
+import com.arcadedb.schema.PProperty;
+import com.arcadedb.sql.executor.OCommandContext;
 
 import java.util.Map;
 
@@ -66,37 +64,37 @@ public class OCreatePropertyAttributeStatement extends SimpleNode {
     return result;
   }
 
-  public Object setOnProperty(OPropertyImpl internalProp, OCommandContext ctx) {
+  public Object setOnProperty(PProperty internalProp, OCommandContext ctx) {
     String attrName = settingName.getStringValue();
     Object attrValue = this.settingValue == null ? true : this.settingValue.execute((PIdentifiable) null, ctx);
-    try {
-      if (attrName.equalsIgnoreCase("readonly")) {
-        internalProp.setReadonly((boolean) attrValue);
-      } else if (attrName.equalsIgnoreCase("mandatory")) {
-        internalProp.setMandatory((boolean) attrValue);
-      } else if (attrName.equalsIgnoreCase("notnull")) {
-        internalProp.setNotNull((boolean) attrValue);
-      } else if (attrName.equalsIgnoreCase("max")) {
-        internalProp.setMax("" + attrValue);
-      } else if (attrName.equalsIgnoreCase("min")) {
-        internalProp.setMin("" + attrValue);
-      } else if (attrName.equalsIgnoreCase("default")) {
-        if(this.settingValue==null){
-          throw new PCommandExecutionException("");
-        }
-        internalProp.setDefaultValue("" + attrValue);
-      } else if (attrName.equalsIgnoreCase("collate")) {
-        internalProp.setCollate("" + attrValue);
-      } else if (attrName.equalsIgnoreCase("regexp")) {
-        internalProp.setRegexp("" + attrName);
-      } else {
-        throw new PCommandExecutionException("Invalid attribute definition: '" + attrName + "'");
-      }
-    } catch (Exception e) {
-      throw OException.wrapException(
-          new PCommandExecutionException("Cannot set attribute on property " + settingName.getStringValue() + " " + attrValue), e);
-    }
-    return attrValue;
+    throw new UnsupportedOperationException();
+//    try {
+//      if (attrName.equalsIgnoreCase("readonly")) {
+//        internalProp.setReadonly((boolean) attrValue);
+//      } else if (attrName.equalsIgnoreCase("mandatory")) {
+//        internalProp.setMandatory((boolean) attrValue);
+//      } else if (attrName.equalsIgnoreCase("notnull")) {
+//        internalProp.setNotNull((boolean) attrValue);
+//      } else if (attrName.equalsIgnoreCase("max")) {
+//        internalProp.setMax("" + attrValue);
+//      } else if (attrName.equalsIgnoreCase("min")) {
+//        internalProp.setMin("" + attrValue);
+//      } else if (attrName.equalsIgnoreCase("default")) {
+//        if(this.settingValue==null){
+//          throw new PCommandExecutionException("");
+//        }
+//        internalProp.setDefaultValue("" + attrValue);
+//      } else if (attrName.equalsIgnoreCase("collate")) {
+//        internalProp.setCollate("" + attrValue);
+//      } else if (attrName.equalsIgnoreCase("regexp")) {
+//        internalProp.setRegexp("" + attrName);
+//      } else {
+//        throw new PCommandExecutionException("Invalid attribute definition: '" + attrName + "'");
+//      }
+//    } catch (Exception e) {
+//      throw new PCommandExecutionException("Cannot set attribute on property " + settingName.getStringValue() + " " + attrValue, e);
+//    }
+//    return attrValue;
   }
 }
 /* JavaCC - OriginalChecksum=6a7964c2b9dad541ca962eecea00651b (do not edit this line) */

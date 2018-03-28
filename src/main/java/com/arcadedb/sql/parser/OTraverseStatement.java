@@ -2,13 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OBasicCommandContext;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.sql.OCommandSQLParsingException;
-import com.orientechnologies.orient.core.sql.executor.OInternalExecutionPlan;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
-import com.orientechnologies.orient.core.sql.executor.OTraverseExecutionPlanner;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +40,7 @@ public class OTraverseStatement extends OStatement {
     super(p, id);
   }
 
-  public void validate() throws OCommandSQLParsingException {
+  public void validate() throws PCommandSQLParsingException {
 //    for(OTraverseProjectionItem projection:projections) {
 //
 //        projection. validate();
@@ -59,7 +55,7 @@ public class OTraverseStatement extends OStatement {
   }
 
   @Override
-  public OResultSet execute(ODatabase db, Object[] args, OCommandContext parentCtx) {
+  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
     OBasicCommandContext ctx = new OBasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
@@ -78,7 +74,7 @@ public class OTraverseStatement extends OStatement {
   }
 
   @Override
-  public OResultSet execute(ODatabase db, Map params, OCommandContext parentCtx) {
+  public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
     OBasicCommandContext ctx = new OBasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);

@@ -3,16 +3,8 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.PRecord;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.sql.executor.AggregationContext;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.*;
 
 import java.util.Map;
 import java.util.Set;
@@ -89,7 +81,7 @@ public class OBaseIdentifier extends SimpleNode {
     return -1;
   }
 
-  public Iterable<PIdentifiable> executeIndexedFunction(OFromClause target, OCommandContext context,
+  public Iterable<PRecord> executeIndexedFunction(OFromClause target, OCommandContext context,
       OBinaryCompareOperator operator, Object right) {
     if (levelZero != null) {
       return levelZero.executeIndexedFunction(target, context, operator, right);
@@ -335,7 +327,7 @@ public class OBaseIdentifier extends SimpleNode {
     return true;
   }
 
-  public boolean isDefinedFor(OElement currentRecord) {
+  public boolean isDefinedFor(PRecord currentRecord) {
     if (suffix != null) {
       return suffix.isDefinedFor(currentRecord);
     }

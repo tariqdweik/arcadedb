@@ -3,7 +3,6 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.metadata.schema.OType;
 
 public class OGtOperator extends SimpleNode implements OBinaryCompareOperator {
   public OGtOperator(int id) {
@@ -26,13 +25,14 @@ public class OGtOperator extends SimpleNode implements OBinaryCompareOperator {
     if (iLeft == null || iRight == null) {
       return false;
     }
-    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
-      Number[] couple = OType.castComparableNumber((Number) iLeft, (Number) iRight);
-      iLeft = couple[0];
-      iRight = couple[1];
-    } else {
-      iRight = OType.convert(iRight, iLeft.getClass());
-    }
+    //TODO
+//    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
+//      Number[] couple = OType.castComparableNumber((Number) iLeft, (Number) iRight);
+//      iLeft = couple[0];
+//      iRight = couple[1];
+//    } else {
+//      iRight = OType.convert(iRight, iLeft.getClass());
+//    }
     if (iRight == null)
       return false;
     if (iLeft instanceof PIdentifiable && !(iRight instanceof PIdentifiable)) {

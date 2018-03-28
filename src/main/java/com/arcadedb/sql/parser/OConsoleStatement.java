@@ -2,13 +2,13 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.log.OLogManager;
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.utility.PLogManager;
 
 import java.util.Map;
 
@@ -30,16 +30,16 @@ public class OConsoleStatement extends OSimpleExecStatement {
     Object msg = "" + message.execute((PIdentifiable) null, ctx);
 
     if (logLevel.getStringValue().equalsIgnoreCase("log")) {
-      OLogManager.instance().info(this, "%s", msg);
+      PLogManager.instance().info(this, "%s", msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("output")) {
       System.out.println(msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("error")) {
       System.err.println(msg);
-      OLogManager.instance().error(this, "%s", null, msg);
+      PLogManager.instance().error(this, "%s", null, msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("warn")) {
-      OLogManager.instance().warn(this, "%s", msg);
+      PLogManager.instance().warn(this, "%s", msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("debug")) {
-      OLogManager.instance().debug(this, "%s", msg);
+      PLogManager.instance().debug(this, "%s", msg);
     } else {
       throw new PCommandExecutionException("Unsupported log level: " + logLevel);
     }

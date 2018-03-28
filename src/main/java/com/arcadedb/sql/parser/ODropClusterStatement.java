@@ -2,14 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabaseInternal;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.OMetadataInternal;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.Map;
 
@@ -28,13 +26,13 @@ public class ODropClusterStatement extends ODDLStatement {
 
   @Override
   public OResultSet executeDDL(OCommandContext ctx) {
-    ODatabaseInternal database = (ODatabaseInternal) ctx.getDatabase();
+    PDatabase database = ctx.getDatabase();
     // CHECK IF ANY CLASS IS USING IT
     final int clusterId;
     if (id != null) {
       clusterId = id.getValue().intValue();
     } else {
-      clusterId = database.getStorage().getClusterIdByName(name.getStringValue());
+      clusterId = database.getSchema().getBucketByName(name.getStringValue()).getId();
       if (clusterId < 0) {
         if (ifExists) {
           return new OInternalResultSet();
@@ -43,18 +41,19 @@ public class ODropClusterStatement extends ODDLStatement {
         }
       }
     }
-    for (OClass iClass : database.getMetadata().getSchema().getClasses()) {
-      for (int i : iClass.getClusterIds()) {
-        if (i == clusterId) {
-          // IN USE
-          throw new PCommandExecutionException(
-              "Cannot drop cluster " + clusterId + " because it's used by class " + iClass.getName());
-        }
-      }
+    for (PDocumentType iClass : database.getSchema().getTypes()) {
+//      for (int i : iClass.getClusterIds()) {
+//        if (i == clusterId) {
+//          // IN USE
+//          throw new PCommandExecutionException(
+//              "Cannot drop cluster " + clusterId + " because it's used by class " + iClass.getName());
+//        }
+//      }
+      //TODO
     }
 
     // REMOVE CACHE OF COMMAND RESULTS IF ACTIVE
-    String clusterName = database.getClusterNameById(clusterId);
+    String clusterName = database.getSchema().getBucketById(clusterId).getName();
     if (clusterName == null) {
       if (ifExists) {
         return new OInternalResultSet();
@@ -62,17 +61,20 @@ public class ODropClusterStatement extends ODDLStatement {
         throw new PCommandExecutionException("Cluster not found: " + clusterId);
       }
     }
-    ((OMetadataInternal) database.getMetadata()).getCommandCache().invalidateResultsOfCluster(clusterName);
 
-    database.dropCluster(clusterId, true);
+//    ((OMetadataInternal) database.getMetadata()).getCommandCache().invalidateResultsOfCluster(clusterName);
 
-    OInternalResultSet rs = new OInternalResultSet();
-    OResultInternal result = new OResultInternal();
-    result.setProperty("operation", "drop cluster");
-    result.setProperty("clusterName", name == null ? null : name.getStringValue());
-    result.setProperty("clusterId", id == null ? null : id.getValue());
-    rs.add(result);
-    return rs;
+//    database.dropCluster(clusterId, true);
+//
+//    OInternalResultSet rs = new OInternalResultSet();
+//    OResultInternal result = new OResultInternal();
+//    result.setProperty("operation", "drop cluster");
+//    result.setProperty("clusterName", name == null ? null : name.getStringValue());
+//    result.setProperty("clusterId", id == null ? null : id.getValue());
+//    rs.add(result);
+//    return rs;
+
+    throw new UnsupportedOperationException();
   }
 
   @Override

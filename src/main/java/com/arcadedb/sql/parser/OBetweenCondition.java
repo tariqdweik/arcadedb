@@ -2,10 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.sql.executor.OResult;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
 
 import java.util.*;
 
@@ -42,13 +41,13 @@ public class OBetweenCondition extends OBooleanExpression {
       return false;
     }
 
-    secondValue = OType.convert(secondValue, firstValue.getClass());
+//    secondValue = OType.convert(secondValue, firstValue.getClass());
 
     Object thirdValue = third.execute(currentRecord, ctx);
     if (thirdValue == null) {
       return false;
     }
-    thirdValue = OType.convert(thirdValue, firstValue.getClass());
+//    thirdValue = OType.convert(thirdValue, firstValue.getClass());
 
     final int leftResult = ((Comparable<Object>) firstValue).compareTo(secondValue);
     final int rightResult = ((Comparable<Object>) firstValue).compareTo(thirdValue);
@@ -68,13 +67,13 @@ public class OBetweenCondition extends OBooleanExpression {
       return false;
     }
 
-    secondValue = OType.convert(secondValue, firstValue.getClass());
+//    secondValue = OType.convert(secondValue, firstValue.getClass());
 
     Object thirdValue = third.execute(currentRecord, ctx);
     if (thirdValue == null) {
       return false;
     }
-    thirdValue = OType.convert(thirdValue, firstValue.getClass());
+//    thirdValue = OType.convert(thirdValue, firstValue.getClass());
 
     final int leftResult = ((Comparable<Object>) firstValue).compareTo(secondValue);
     final int rightResult = ((Comparable<Object>) firstValue).compareTo(thirdValue);

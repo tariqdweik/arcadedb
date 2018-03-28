@@ -3,8 +3,6 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.sql.parser.*;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.index.OIndex;
 
 import java.util.List;
 
@@ -109,19 +107,19 @@ public class ODeleteExecutionPlanner {
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
     case VALUESASC:
-      if (!index.supportsOrderedIterations()) {
+//      if (!index.supportsOrderedIterations()) {
         throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
-      }
-      result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
-      result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
-      break;
+//      }
+//      result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
+//      result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
+//      break;
     case VALUESDESC:
-      if (!index.supportsOrderedIterations()) {
+//      if (!index.supportsOrderedIterations()) {
         throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
-      }
-      result.chain(new FetchFromIndexValuesStep(index, false, ctx, profilingEnabled));
-      result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
-      break;
+//      }
+//      result.chain(new FetchFromIndexValuesStep(index, false, ctx, profilingEnabled));
+//      result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
+//      break;
     }
     return false;
   }

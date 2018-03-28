@@ -2,18 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.db.record.ridbag.ORidBag;
-import com.orientechnologies.orient.core.record.OElement;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.sql.executor.OResult;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -229,11 +221,11 @@ public class ONestedProjection extends SimpleNode {
   }
 
   private Object convert(Object value) {
-    if (value instanceof ORidBag) {
-      List result = new ArrayList();
-      ((ORidBag) value).forEach(x -> result.add(x));
-      return result;
-    }
+//    if (value instanceof ORidBag) {
+//      List result = new ArrayList();
+//      ((ORidBag) value).forEach(x -> result.add(x));
+//      return result;
+//    }
     return value;
   }
 

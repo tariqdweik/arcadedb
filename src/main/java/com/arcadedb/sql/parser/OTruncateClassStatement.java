@@ -2,20 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.cache.OCommandCache;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.metadata.OMetadataInternal;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResultSet;
 
-import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 
 public class OTruncateClassStatement extends ODDLStatement {
@@ -33,86 +23,88 @@ public class OTruncateClassStatement extends ODDLStatement {
   }
 
   @Override public OResultSet executeDDL(OCommandContext ctx) {
-    ODatabase db = ctx.getDatabase();
-    OSchema schema = db.getMetadata().getSchema();
-    OClass clazz = schema.getClass(className.getStringValue());
-    if (clazz == null) {
-      throw new PCommandExecutionException("Schema Class not found: " + className);
-    }
+    PDatabase db = ctx.getDatabase();
+//    OSchema schema = db.getMetadata().getSchema();
+//    OClass clazz = schema.getClass(className.getStringValue());
+//    if (clazz == null) {
+//      throw new PCommandExecutionException("Schema Class not found: " + className);
+//    }
+//
+//    final long recs = clazz.count(polymorphic);
+//    if (recs > 0 && !unsafe) {
+//      if (clazz.isSubClassOf("V")) {
+//        throw new PCommandExecutionException(
+//            "'TRUNCATE CLASS' command cannot be used on not empty vertex classes. Apply the 'UNSAFE' keyword to force it (at your own risk)");
+//      } else if (clazz.isSubClassOf("E")) {
+//        throw new PCommandExecutionException(
+//            "'TRUNCATE CLASS' command cannot be used on not empty edge classes. Apply the 'UNSAFE' keyword to force it (at your own risk)");
+//      }
+//    }
+//
+//
+//    OInternalResultSet rs = new OInternalResultSet();
+//    Collection<OClass> subclasses = clazz.getAllSubclasses();
+//    if (polymorphic && !unsafe) {// for multiple inheritance
+//      for (OClass subclass : subclasses) {
+//        long subclassRecs = clazz.count();
+//        if (subclassRecs > 0) {
+//          if (subclass.isSubClassOf("V")) {
+//            throw new PCommandExecutionException(
+//                "'TRUNCATE CLASS' command cannot be used on not empty vertex classes (" + subclass.getName()
+//                    + "). Apply the 'UNSAFE' keyword to force it (at your own risk)");
+//          } else if (subclass.isSubClassOf("E")) {
+//            throw new PCommandExecutionException(
+//                "'TRUNCATE CLASS' command cannot be used on not empty edge classes (" + subclass.getName()
+//                    + "). Apply the 'UNSAFE' keyword to force it (at your own risk)");
+//          }
+//        }
+//      }
+//    }
+//
+//    try {
+//      clazz.truncate();
+//      OResultInternal result = new OResultInternal();
+//      result.setProperty("operation", "truncate class");
+//      result.setProperty("className", className.getStringValue());
+//      rs.add(result);
+//      invalidateCommandCache(clazz, db);
+//      if (polymorphic) {
+//        for (OClass subclass : subclasses) {
+//          subclass.truncate();
+//          result = new OResultInternal();
+//          result.setProperty("operation", "truncate class");
+//          result.setProperty("className", className.getStringValue());
+//          rs.add(result);
+//          invalidateCommandCache(subclass, db);
+//        }
+//      }
+//    } catch (IOException e) {
+//      throw OException.wrapException(new PCommandExecutionException("Error on executing command"), e);
+//    }
+//
+//
+//    return rs;
 
-    final long recs = clazz.count(polymorphic);
-    if (recs > 0 && !unsafe) {
-      if (clazz.isSubClassOf("V")) {
-        throw new PCommandExecutionException(
-            "'TRUNCATE CLASS' command cannot be used on not empty vertex classes. Apply the 'UNSAFE' keyword to force it (at your own risk)");
-      } else if (clazz.isSubClassOf("E")) {
-        throw new PCommandExecutionException(
-            "'TRUNCATE CLASS' command cannot be used on not empty edge classes. Apply the 'UNSAFE' keyword to force it (at your own risk)");
-      }
-    }
-
-
-    OInternalResultSet rs = new OInternalResultSet();
-    Collection<OClass> subclasses = clazz.getAllSubclasses();
-    if (polymorphic && !unsafe) {// for multiple inheritance
-      for (OClass subclass : subclasses) {
-        long subclassRecs = clazz.count();
-        if (subclassRecs > 0) {
-          if (subclass.isSubClassOf("V")) {
-            throw new PCommandExecutionException(
-                "'TRUNCATE CLASS' command cannot be used on not empty vertex classes (" + subclass.getName()
-                    + "). Apply the 'UNSAFE' keyword to force it (at your own risk)");
-          } else if (subclass.isSubClassOf("E")) {
-            throw new PCommandExecutionException(
-                "'TRUNCATE CLASS' command cannot be used on not empty edge classes (" + subclass.getName()
-                    + "). Apply the 'UNSAFE' keyword to force it (at your own risk)");
-          }
-        }
-      }
-    }
-
-    try {
-      clazz.truncate();
-      OResultInternal result = new OResultInternal();
-      result.setProperty("operation", "truncate class");
-      result.setProperty("className", className.getStringValue());
-      rs.add(result);
-      invalidateCommandCache(clazz, db);
-      if (polymorphic) {
-        for (OClass subclass : subclasses) {
-          subclass.truncate();
-          result = new OResultInternal();
-          result.setProperty("operation", "truncate class");
-          result.setProperty("className", className.getStringValue());
-          rs.add(result);
-          invalidateCommandCache(subclass, db);
-        }
-      }
-    } catch (IOException e) {
-      throw OException.wrapException(new PCommandExecutionException("Error on executing command"), e);
-    }
-
-
-    return rs;
+    throw new UnsupportedOperationException();
   }
 
-  private void invalidateCommandCache(OClass clazz, ODatabase db) {
-    if (clazz == null) {
-      return;
-    }
-    OCommandCache commandCache = ((OMetadataInternal)db.getMetadata()).getCommandCache();
-    if (commandCache != null && commandCache.isEnabled()) {
-      int[] clusterIds = clazz.getClusterIds();
-      if (clusterIds != null) {
-        for (int i : clusterIds) {
-          String clusterName = getDatabase().getClusterNameById(i);
-          if (clusterName != null) {
-            commandCache.invalidateResultsOfCluster(clusterName);
-          }
-        }
-      }
-    }
-  }
+//  private void invalidateCommandCache(OClass clazz, ODatabase db) {
+//    if (clazz == null) {
+//      return;
+//    }
+//    OCommandCache commandCache = ((OMetadataInternal)db.getMetadata()).getCommandCache();
+//    if (commandCache != null && commandCache.isEnabled()) {
+//      int[] clusterIds = clazz.getClusterIds();
+//      if (clusterIds != null) {
+//        for (int i : clusterIds) {
+//          String clusterName = getDatabase().getClusterNameById(i);
+//          if (clusterName != null) {
+//            commandCache.invalidateResultsOfCluster(clusterName);
+//          }
+//        }
+//      }
+//    }
+//  }
 
   /**
    * Accept the visitor.

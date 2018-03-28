@@ -1,9 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.common.concur.PTimeoutException;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OExpression;
 import com.arcadedb.sql.parser.OIdentifier;
 
@@ -92,7 +90,7 @@ public class LetExpressionStep extends AbstractExecutionStep {
       }
       reset();
     } catch (Exception e) {
-      throw OException.wrapException(new PCommandExecutionException(""), e);
+      throw new PCommandExecutionException(e);
     }
   }
 }

@@ -23,8 +23,6 @@
 
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.metadata.schema.OType;
-
 public class OGeOperator extends SimpleNode implements OBinaryCompareOperator {
   public OGeOperator(int id) {
     super(id);
@@ -49,13 +47,14 @@ public class OGeOperator extends SimpleNode implements OBinaryCompareOperator {
     if (iLeft == null || iRight == null) {
       return false;
     }
-    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
-      Number[] couple = OType.castComparableNumber((Number) iLeft, (Number) iRight);
-      iLeft = couple[0];
-      iRight = couple[1];
-    } else {
-      iRight = OType.convert(iRight, iLeft.getClass());
-    }
+    //TODO
+//    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
+//      Number[] couple = OType.castComparableNumber((Number) iLeft, (Number) iRight);
+//      iLeft = couple[0];
+//      iRight = couple[1];
+//    } else {
+//      iRight = OType.convert(iRight, iLeft.getClass());
+//    }
     if (iRight == null)
       return false;
     return ((Comparable<Object>) iLeft).compareTo(iRight) >= 0;

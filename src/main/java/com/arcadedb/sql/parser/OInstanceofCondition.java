@@ -2,13 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
+import com.arcadedb.database.PBaseRecord;
 import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.serialization.serializer.OStringSerializerHelper;
-import com.orientechnologies.orient.core.sql.executor.OResult;
+import com.arcadedb.database.PRecord;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResult;
 
 import java.util.Collections;
 import java.util.List;
@@ -41,22 +39,22 @@ public class OInstanceofCondition extends OBooleanExpression {
     if (currentRecord == null) {
       return false;
     }
-    ORecord record = currentRecord.getRecord();
+    PRecord record = currentRecord.getRecord();
     if (record == null) {
       return false;
     }
-    if (!(record instanceof ODocument)) {
+    if (!(record instanceof PBaseRecord)) {
       return false;
     }
-    ODocument doc = (ODocument) record;
-    OClass clazz = doc.getSchemaClass();
+    PBaseRecord doc = (PBaseRecord)record;
+    String clazz = doc.getType();
     if (clazz == null) {
       return false;
     }
     if (right != null) {
-      return clazz.isSubClassOf(right.getStringValue());
+      return clazz.equals(right.getStringValue());
     } else if (rightString != null) {
-      return clazz.isSubClassOf(decode(rightString));
+      return clazz.equals(decode(rightString));
     }
     return false;
   }
@@ -69,22 +67,22 @@ public class OInstanceofCondition extends OBooleanExpression {
     if (!currentRecord.isElement()) {
       return false;
     }
-    ORecord record = currentRecord.getElement().get().getRecord();
+    PRecord record = currentRecord.getElement().get().getRecord();
     if (record == null) {
       return false;
     }
-    if (!(record instanceof ODocument)) {
+    if (!(record instanceof PBaseRecord)) {
       return false;
     }
-    ODocument doc = (ODocument) record;
-    OClass clazz = doc.getSchemaClass();
+    PBaseRecord doc = (PBaseRecord) record;
+    String clazz = doc.getType();
     if (clazz == null) {
       return false;
     }
     if (right != null) {
-      return clazz.isSubClassOf(right.getStringValue());
+      return clazz.equals(right.getStringValue());
     } else if (rightString != null) {
-      return clazz.isSubClassOf(decode(rightString));
+      return clazz.equals(decode(rightString));
     }
     return false;
   }
@@ -93,7 +91,7 @@ public class OInstanceofCondition extends OBooleanExpression {
     if (rightString == null) {
       return null;
     }
-    return OStringSerializerHelper.decode(rightString.substring(1, rightString.length() - 1));
+    return OBaseExpression.decode(rightString.substring(1, rightString.length() - 1));
   }
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {

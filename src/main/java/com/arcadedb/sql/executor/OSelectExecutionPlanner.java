@@ -43,7 +43,7 @@ public class OSelectExecutionPlanner {
     info.unwind = this.statement.getUnwind() == null ? null : this.statement.getUnwind().copy();
     info.skip = this.statement.getSkip();
     info.limit = this.statement.getLimit();
-    info.lockRecord = this.statement.getLockRecord();
+//    info.lockRecord = this.statement.getLockRecord();
 
   }
 
@@ -101,9 +101,10 @@ public class OSelectExecutionPlanner {
   }
 
   private void handleLockRecord(OSelectExecutionPlan result, QueryPlanningInfo info, OCommandContext ctx, boolean enableProfiling) {
-    if (info.lockRecord != null) {
-      result.chain(new LockRecordStep(info.lockRecord, ctx, enableProfiling));
-    }
+    //TODO
+//    if (info.lockRecord != null) {
+//      result.chain(new LockRecordStep(info.lockRecord, ctx, enableProfiling));
+//    }
   }
 
   public static void handleProjectionsBlock(OSelectExecutionPlan result, QueryPlanningInfo info, OCommandContext ctx,

@@ -2,17 +2,13 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.arcadedb.database.PIdentifiable;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OResultSet;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OAlterClassStatement extends ODDLStatement {
@@ -24,7 +20,7 @@ public class OAlterClassStatement extends ODDLStatement {
   /**
    * the class property to be altered
    */
-  public    OClass.ATTRIBUTES property;
+  public    Object property;
 
   protected OIdentifier       identifierValue;
   protected List<OIdentifier> identifierListValue;
@@ -53,87 +49,88 @@ public class OAlterClassStatement extends ODDLStatement {
 
   @Override
   public void toString(Map<Object, Object> params, StringBuilder builder) {
-    builder.append("ALTER CLASS ");
-    name.toString(params, builder);
-    if (property != null) {
-      builder.append(" " + property.name() + " ");
-      switch (property) {
-      case NAME:
-      case SHORTNAME:
-      case ADDCLUSTER:
-      case REMOVECLUSTER:
-      case DESCRIPTION:
-      case ENCRYPTION:
-        if (numberValue != null) {
-          numberValue.toString(params, builder);//clusters only
-        } else if (identifierValue != null) {
-          identifierValue.toString(params, builder);
-        } else {
-          builder.append("null");
-        }
-        break;
-      case CLUSTERSELECTION:
-        if (identifierValue != null) {
-          identifierValue.toString(params, builder);
-        } else if (customString != null) {
-          builder.append('\'').append(customString).append('\'');
-        } else {
-          builder.append("null");
-        }
-        break;
-      case SUPERCLASS:
-        if (Boolean.TRUE.equals(add)) {
-          builder.append("+");
-        } else if (Boolean.TRUE.equals(remove)) {
-          builder.append("-");
-        }
-        if (identifierValue == null) {
-          builder.append("null");
-        } else {
-          identifierValue.toString(params, builder);
-        }
-        break;
-      case SUPERCLASSES:
-        if (identifierListValue == null) {
-          builder.append("null");
-        } else {
-          boolean first = true;
-          for (OIdentifier ident : identifierListValue) {
-            if (!first) {
-              builder.append(", ");
-            }
-            ident.toString(params, builder);
-            first = false;
-          }
-        }
-        break;
-      case OVERSIZE:
-        numberValue.toString(params, builder);
-        break;
-      case STRICTMODE:
-      case ABSTRACT:
-        builder.append(booleanValue.booleanValue());
-        break;
-      case CUSTOM:
-        customKey.toString(params, builder);
-        builder.append("=");
-        if (customValue == null) {
-          builder.append("null");
-        } else {
-          customValue.toString(params, builder);
-        }
-        break;
-      }
-    } else if (defaultClusterId != null) {
-      builder.append(" DEFAULTCLUSTER ");
-      defaultClusterId.toString(params, builder);
-    } else if (defaultClusterName != null) {
-      builder.append(" DEFAULTCLUSTER ");
-      defaultClusterName.toString(params, builder);
-    }
-    if (unsafe) {
-      builder.append(" UNSAFE");
-    }
+    throw new UnsupportedOperationException();
+//    builder.append("ALTER CLASS ");
+//    name.toString(params, builder);
+//    if (property != null) {
+//      builder.append(" " + property.name() + " ");
+//      switch (property) {
+//      case NAME:
+//      case SHORTNAME:
+//      case ADDCLUSTER:
+//      case REMOVECLUSTER:
+//      case DESCRIPTION:
+//      case ENCRYPTION:
+//        if (numberValue != null) {
+//          numberValue.toString(params, builder);//clusters only
+//        } else if (identifierValue != null) {
+//          identifierValue.toString(params, builder);
+//        } else {
+//          builder.append("null");
+//        }
+//        break;
+//      case CLUSTERSELECTION:
+//        if (identifierValue != null) {
+//          identifierValue.toString(params, builder);
+//        } else if (customString != null) {
+//          builder.append('\'').append(customString).append('\'');
+//        } else {
+//          builder.append("null");
+//        }
+//        break;
+//      case SUPERCLASS:
+//        if (Boolean.TRUE.equals(add)) {
+//          builder.append("+");
+//        } else if (Boolean.TRUE.equals(remove)) {
+//          builder.append("-");
+//        }
+//        if (identifierValue == null) {
+//          builder.append("null");
+//        } else {
+//          identifierValue.toString(params, builder);
+//        }
+//        break;
+//      case SUPERCLASSES:
+//        if (identifierListValue == null) {
+//          builder.append("null");
+//        } else {
+//          boolean first = true;
+//          for (OIdentifier ident : identifierListValue) {
+//            if (!first) {
+//              builder.append(", ");
+//            }
+//            ident.toString(params, builder);
+//            first = false;
+//          }
+//        }
+//        break;
+//      case OVERSIZE:
+//        numberValue.toString(params, builder);
+//        break;
+//      case STRICTMODE:
+//      case ABSTRACT:
+//        builder.append(booleanValue.booleanValue());
+//        break;
+//      case CUSTOM:
+//        customKey.toString(params, builder);
+//        builder.append("=");
+//        if (customValue == null) {
+//          builder.append("null");
+//        } else {
+//          customValue.toString(params, builder);
+//        }
+//        break;
+//      }
+//    } else if (defaultClusterId != null) {
+//      builder.append(" DEFAULTCLUSTER ");
+//      defaultClusterId.toString(params, builder);
+//    } else if (defaultClusterName != null) {
+//      builder.append(" DEFAULTCLUSTER ");
+//      defaultClusterName.toString(params, builder);
+//    }
+//    if (unsafe) {
+//      builder.append(" UNSAFE");
+//    }
   }
 
   public OStatement copy() {
@@ -215,178 +212,180 @@ public class OAlterClassStatement extends ODDLStatement {
 
   @Override
   public OResultSet executeDDL(OCommandContext ctx) {
-    OClass oClass = ctx.getDatabase().getMetadata().getSchema().getClass(name.getStringValue());
+    PDocumentType oClass = ctx.getDatabase().getSchema().getType(name.getStringValue());
     if (oClass == null) {
       throw new PCommandExecutionException("Class not found: " + name);
     }
-    if (property != null) {
-      switch (property) {
-      case NAME:
-        if (!unsafe) {
-          checkNotEdge(oClass);
-          checkNotIndexed(oClass);
-        }
-        try {
-          oClass.setName(identifierValue.getStringValue());
-        } catch (Exception e) {
-          OException x = OException.wrapException(new PCommandExecutionException("Invalid class name: " + toString()), e);
-          throw x;
-        }
-        break;
-      case SHORTNAME:
-        if (identifierValue != null) {
-          try {
-            oClass.setShortName(identifierValue.getStringValue());
-          } catch (Exception e) {
-            OException x = OException.wrapException(new PCommandExecutionException("Invalid class name: " + toString()), e);
-            throw x;
-          }
-        } else {
-          throw new PCommandExecutionException("Invalid class name: " + toString());
-        }
-        break;
-      case ADDCLUSTER:
-        if (identifierValue != null) {
-          oClass.addCluster(identifierValue.getStringValue());
-        } else if (numberValue != null) {
-          oClass.addClusterId(numberValue.getValue().intValue());
-        } else {
-          throw new PCommandExecutionException("Invalid cluster value: " + toString());
-        }
-        break;
-      case REMOVECLUSTER:
-        int clusterId = -1;
-        if (identifierValue != null) {
-          clusterId = ctx.getDatabase().getClusterIdByName(identifierValue.getStringValue());
-          if (clusterId < 0) {
-            throw new PCommandExecutionException("Cluster not found: " + toString());
-          }
-        } else if (numberValue != null) {
-          clusterId = numberValue.getValue().intValue();
-        } else {
-          throw new PCommandExecutionException("Invalid cluster value: " + toString());
-        }
-        oClass.removeClusterId(clusterId);
-        break;
-      case DESCRIPTION:
-        if (identifierValue != null) {
-          oClass.setDescription(identifierValue.getStringValue());
-        } else {
-          throw new PCommandExecutionException("Invalid class name: " + toString());
-        }
-        break;
-      case ENCRYPTION:
-        //TODO
+//    if (property != null) {
+//      switch (property) {
+//      case NAME:
+//        if (!unsafe) {
+//          checkNotEdge(oClass);
+//          checkNotIndexed(oClass);
+//        }
+//        try {
+//          oClass.setName(identifierValue.getStringValue());
+//        } catch (Exception e) {
+//          OException x = OException.wrapException(new PCommandExecutionException("Invalid class name: " + toString()), e);
+//          throw x;
+//        }
+//        break;
+//      case SHORTNAME:
+//        if (identifierValue != null) {
+//          try {
+//            oClass.setShortName(identifierValue.getStringValue());
+//          } catch (Exception e) {
+//            OException x = OException.wrapException(new PCommandExecutionException("Invalid class name: " + toString()), e);
+//            throw x;
+//          }
+//        } else {
+//          throw new PCommandExecutionException("Invalid class name: " + toString());
+//        }
+//        break;
+//      case ADDCLUSTER:
+//        if (identifierValue != null) {
+//          oClass.addCluster(identifierValue.getStringValue());
+//        } else if (numberValue != null) {
+//          oClass.addClusterId(numberValue.getValue().intValue());
+//        } else {
+//          throw new PCommandExecutionException("Invalid cluster value: " + toString());
+//        }
+//        break;
+//      case REMOVECLUSTER:
+//        int clusterId = -1;
+//        if (identifierValue != null) {
+//          clusterId = ctx.getDatabase().getClusterIdByName(identifierValue.getStringValue());
+//          if (clusterId < 0) {
+//            throw new PCommandExecutionException("Cluster not found: " + toString());
+//          }
+//        } else if (numberValue != null) {
+//          clusterId = numberValue.getValue().intValue();
+//        } else {
+//          throw new PCommandExecutionException("Invalid cluster value: " + toString());
+//        }
+//        oClass.removeClusterId(clusterId);
+//        break;
+//      case DESCRIPTION:
+//        if (identifierValue != null) {
+//          oClass.setDescription(identifierValue.getStringValue());
+//        } else {
+//          throw new PCommandExecutionException("Invalid class name: " + toString());
+//        }
+//        break;
+//      case ENCRYPTION:
+//        //TODO
+//
+//        break;
+//      case CLUSTERSELECTION:
+//        if (identifierValue != null) {
+//          oClass.setClusterSelection(identifierValue.getStringValue());
+//        } else if (customString != null) {
+//          oClass.setClusterSelection(customString);
+//        } else {
+//          oClass.setClusterSelection("null");
+//        }
+//        break;
+//      case SUPERCLASS:
+//        doSetSuperclass(ctx, oClass, identifierValue);
+//        break;
+//      case SUPERCLASSES:
+//        if (identifierListValue == null) {
+//          oClass.setSuperClasses(Collections.EMPTY_LIST);
+//        } else {
+//          doSetSuperclasses(ctx, oClass, identifierListValue);
+//        }
+//        break;
+//      case OVERSIZE:
+//        oClass.setOverSize(numberValue.getValue().floatValue());
+//        break;
+//      case STRICTMODE:
+//        oClass.setStrictMode(booleanValue.booleanValue());
+//        break;
+//      case ABSTRACT:
+//        oClass.setAbstract(booleanValue.booleanValue());
+//        break;
+//      case CUSTOM:
+//        Object value = null;
+//        if (customValue != null) {
+//          value = customValue.execute((PIdentifiable) null, ctx);
+//        }
+//        if (value != null) {
+//          value = "" + value;
+//        }
+//        oClass.setCustom(customKey.getStringValue(), (String) value);
+//        break;
+//      }
+//    } else if (defaultClusterId != null) {
+//      oClass.setDefaultClusterId(defaultClusterId.getValue().intValue());
+//    } else if (defaultClusterName != null) {
+//      int clusterId = ctx.getDatabase().getClusterIdByName(defaultClusterName.getStringValue());
+//      oClass.setDefaultClusterId(clusterId);
+//    }
+    throw new UnsupportedOperationException();
 
-        break;
-      case CLUSTERSELECTION:
-        if (identifierValue != null) {
-          oClass.setClusterSelection(identifierValue.getStringValue());
-        } else if (customString != null) {
-          oClass.setClusterSelection(customString);
-        } else {
-          oClass.setClusterSelection("null");
-        }
-        break;
-      case SUPERCLASS:
-        doSetSuperclass(ctx, oClass, identifierValue);
-        break;
-      case SUPERCLASSES:
-        if (identifierListValue == null) {
-          oClass.setSuperClasses(Collections.EMPTY_LIST);
-        } else {
-          doSetSuperclasses(ctx, oClass, identifierListValue);
-        }
-        break;
-      case OVERSIZE:
-        oClass.setOverSize(numberValue.getValue().floatValue());
-        break;
-      case STRICTMODE:
-        oClass.setStrictMode(booleanValue.booleanValue());
-        break;
-      case ABSTRACT:
-        oClass.setAbstract(booleanValue.booleanValue());
-        break;
-      case CUSTOM:
-        Object value = null;
-        if (customValue != null) {
-          value = customValue.execute((PIdentifiable) null, ctx);
-        }
-        if (value != null) {
-          value = "" + value;
-        }
-        oClass.setCustom(customKey.getStringValue(), (String) value);
-        break;
-      }
-    } else if (defaultClusterId != null) {
-      oClass.setDefaultClusterId(defaultClusterId.getValue().intValue());
-    } else if (defaultClusterName != null) {
-      int clusterId = ctx.getDatabase().getClusterIdByName(defaultClusterName.getStringValue());
-      oClass.setDefaultClusterId(clusterId);
-    }
-    OInternalResultSet resultSet = new OInternalResultSet();
-    OResultInternal result = new OResultInternal();
-    result.setProperty("operation", "ALTER CLASS");
-    result.setProperty("className", name.getStringValue());
-    result.setProperty("result", "OK");
-    return resultSet;
+//    OInternalResultSet resultSet = new OInternalResultSet();
+//    OResultInternal result = new OResultInternal();
+//    result.setProperty("operation", "ALTER CLASS");
+//    result.setProperty("className", name.getStringValue());
+//    result.setProperty("result", "OK");
+//    return resultSet;
   }
 
-  private void checkNotIndexed(OClass oClass) {
-    Set<OIndex<?>> indexes = oClass.getIndexes();
-    if (indexes != null && indexes.size() > 0) {
-      throw new PCommandExecutionException("Cannot rename class '" + oClass.getName()
-          + "' because it has indexes defined on it. Drop indexes before or use UNSAFE (at your won risk)");
-    }
+  private void checkNotIndexed(PDocumentType oClass) {
+//    Set<PIndex> indexes = oClass.getAllIndexesMetadata();
+//    if (indexes != null && indexes.size() > 0) {
+//      throw new PCommandExecutionException("Cannot rename class '" + oClass.getName()
+//          + "' because it has indexes defined on it. Drop indexes before or use UNSAFE (at your won risk)");
+//    }
   }
 
-  private void checkNotEdge(OClass oClass) {
-    if (oClass.isSubClassOf("E")) {
-      throw new PCommandExecutionException("Cannot alter class '" + oClass
-          + "' because is an Edge class and could break vertices. Use UNSAFE if you want to force it");
-    }
+  private void checkNotEdge(PDocumentType oClass) {
+//    if (oClass.isSubClassOf("E")) {
+//      throw new PCommandExecutionException("Cannot alter class '" + oClass
+//          + "' because is an Edge class and could break vertices. Use UNSAFE if you want to force it");
+//    }
   }
 
-  private void doSetSuperclass(OCommandContext ctx, OClass oClass, OIdentifier superclassName) {
-    if (superclassName == null) {
-      throw new PCommandExecutionException("Invalid superclass name: " + toString());
-    }
-    OClass superclass = ctx.getDatabase().getMetadata().getSchema().getClass(superclassName.getStringValue());
-    if (superclass == null) {
-      throw new PCommandExecutionException("superclass not found: " + toString());
-    }
-    if (Boolean.TRUE.equals(add)) {
-      oClass.addSuperClass(superclass);
-    } else if (Boolean.TRUE.equals(remove)) {
-      oClass.removeSuperClass(superclass);
-    } else {
-      oClass.setSuperClasses(Collections.singletonList(superclass));
-    }
+  private void doSetSuperclass(OCommandContext ctx, PDocumentType oClass, OIdentifier superclassName) {
+//    if (superclassName == null) {
+//      throw new PCommandExecutionException("Invalid superclass name: " + toString());
+//    }
+//    OClass superclass = ctx.getDatabase().getMetadata().getSchema().getClass(superclassName.getStringValue());
+//    if (superclass == null) {
+//      throw new PCommandExecutionException("superclass not found: " + toString());
+//    }
+//    if (Boolean.TRUE.equals(add)) {
+//      oClass.addSuperClass(superclass);
+//    } else if (Boolean.TRUE.equals(remove)) {
+//      oClass.removeSuperClass(superclass);
+//    } else {
+//      oClass.setSuperClasses(Collections.singletonList(superclass));
+//    }
   }
 
-  private void doSetSuperclasses(OCommandContext ctx, OClass oClass, List<OIdentifier> superclassNames) {
-    if (superclassNames == null) {
-      throw new PCommandExecutionException("Invalid superclass name: " + toString());
-    }
-    List<OClass> superclasses = new ArrayList<>();
-    for (OIdentifier superclassName : superclassNames) {
-      OClass superclass = ctx.getDatabase().getMetadata().getSchema().getClass(superclassName.getStringValue());
-      if (superclass == null) {
-        throw new PCommandExecutionException("superclass not found: " + toString());
-      }
-      superclasses.add(superclass);
-    }
-    if (Boolean.TRUE.equals(add)) {
-      for (OClass superclass : superclasses) {
-        oClass.addSuperClass(superclass);
-      }
-    } else if (Boolean.TRUE.equals(remove)) {
-      for (OClass superclass : superclasses) {
-        oClass.removeSuperClass(superclass);
-      }
-    } else {
-      oClass.setSuperClasses(superclasses);
-    }
+  private void doSetSuperclasses(OCommandContext ctx, PDocumentType oClass, List<OIdentifier> superclassNames) {
+//    if (superclassNames == null) {
+//      throw new PCommandExecutionException("Invalid superclass name: " + toString());
+//    }
+//    List<OClass> superclasses = new ArrayList<>();
+//    for (OIdentifier superclassName : superclassNames) {
+//      OClass superclass = ctx.getDatabase().getMetadata().getSchema().getClass(superclassName.getStringValue());
+//      if (superclass == null) {
+//        throw new PCommandExecutionException("superclass not found: " + toString());
+//      }
+//      superclasses.add(superclass);
+//    }
+//    if (Boolean.TRUE.equals(add)) {
+//      for (OClass superclass : superclasses) {
+//        oClass.addSuperClass(superclass);
+//      }
+//    } else if (Boolean.TRUE.equals(remove)) {
+//      for (OClass superclass : superclasses) {
+//        oClass.removeSuperClass(superclass);
+//      }
+//    } else {
+//      oClass.setSuperClasses(superclasses);
+//    }
   }
 }
 /* JavaCC - OriginalChecksum=4668bb1cd336844052df941f39bdb634 (do not edit this line) */

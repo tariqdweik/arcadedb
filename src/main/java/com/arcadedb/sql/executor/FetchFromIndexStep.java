@@ -8,9 +8,6 @@ import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.sql.parser.*;
 import com.arcadedb.utility.PPair;
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.core.index.OCompositeKey;
-import com.orientechnologies.orient.core.index.OIndexDefinition;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -465,19 +462,20 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 //  }
 
   private Object[] toBetweenIndexKey(PIndex definition, Object rightValue) {
-    if (definition.getFields().size() == 1 && rightValue instanceof Collection) {
-      if (((Collection) rightValue).size() > 0) {
-        rightValue = ((Collection) rightValue).iterator().next();
-      } else {
-        rightValue = null;
-      }
-    }
-    rightValue = definition.createValue(rightValue);
-
-    if (definition.getFields().size() > 1 && !(rightValue instanceof Collection)) {
-      rightValue = Collections.singleton(rightValue);
-    }
-    return rightValue;
+//    if (definition.getFields().size() == 1 && rightValue instanceof Collection) {
+//      if (((Collection) rightValue).size() > 0) {
+//        rightValue = ((Collection) rightValue).iterator().next();
+//      } else {
+//        rightValue = null;
+//      }
+//    }
+//    rightValue = definition.createValue(rightValue);
+//
+//    if (definition.getFields().size() > 1 && !(rightValue instanceof Collection)) {
+//      rightValue = Collections.singleton(rightValue);
+//    }
+//    return rightValue;
+    throw new UnsupportedOperationException();
   }
 
   private PIndexCursor createCursor(OBinaryCompareOperator operator, Object value, OCommandContext ctx)

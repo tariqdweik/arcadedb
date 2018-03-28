@@ -1,7 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
+import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.sql.parser.*;
 
 /**

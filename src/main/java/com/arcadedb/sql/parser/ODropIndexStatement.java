@@ -2,14 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.db.ODatabase;
-import com.orientechnologies.orient.core.exception.PCommandExecutionException;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.index.OIndexManager;
-import com.orientechnologies.orient.core.sql.executor.OInternalResultSet;
-import com.orientechnologies.orient.core.sql.executor.OResultInternal;
-import com.orientechnologies.orient.core.sql.executor.OResultSet;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OInternalResultSet;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.Map;
 
@@ -30,29 +26,30 @@ public class ODropIndexStatement extends ODDLStatement {
   @Override
   public OResultSet executeDDL(OCommandContext ctx) {
     OInternalResultSet rs = new OInternalResultSet();
-    ODatabase db = ctx.getDatabase();
-    OIndexManager idxMgr = db.getMetadata().getIndexManager();
-    if (all) {
-      for (OIndex<?> idx : idxMgr.getIndexes()) {
-        db.getMetadata().getIndexManager().dropIndex(idx.getName());
-        OResultInternal result = new OResultInternal();
-        result.setProperty("operation", "drop index");
-        result.setProperty("clusterName", idx.getName());
-        rs.add(result);
-      }
-
-    } else {
-      if (!idxMgr.existsIndex(name.getValue()) && !ifExists) {
-        throw new PCommandExecutionException("Index not found: " + name.getValue());
-      }
-      idxMgr.dropIndex(name.getValue());
-      OResultInternal result = new OResultInternal();
-      result.setProperty("operation", "drop index");
-      result.setProperty("indexName", name.getValue());
-      rs.add(result);
-    }
-
-    return rs;
+    PDatabase db = ctx.getDatabase();
+//    OIndexManager idxMgr = db.getMetadata().getIndexManager();
+//    if (all) {
+//      for (OIndex<?> idx : idxMgr.getIndexes()) {
+//        db.getMetadata().getIndexManager().dropIndex(idx.getName());
+//        OResultInternal result = new OResultInternal();
+//        result.setProperty("operation", "drop index");
+//        result.setProperty("clusterName", idx.getName());
+//        rs.add(result);
+//      }
+//
+//    } else {
+//      if (!idxMgr.existsIndex(name.getValue()) && !ifExists) {
+//        throw new PCommandExecutionException("Index not found: " + name.getValue());
+//      }
+//      idxMgr.dropIndex(name.getValue());
+//      OResultInternal result = new OResultInternal();
+//      result.setProperty("operation", "drop index");
+//      result.setProperty("indexName", name.getValue());
+//      rs.add(result);
+//    }
+//
+//    return rs;
+    throw new UnsupportedOperationException();
   }
 
   @Override
