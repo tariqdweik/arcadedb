@@ -2,10 +2,7 @@ package com.arcadedb.database;
 
 import com.arcadedb.PProfiler;
 import com.arcadedb.engine.*;
-import com.arcadedb.exception.PConcurrentModificationException;
-import com.arcadedb.exception.PDatabaseIsClosedException;
-import com.arcadedb.exception.PDatabaseIsReadOnlyException;
-import com.arcadedb.exception.PDatabaseOperationException;
+import com.arcadedb.exception.*;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableEdge;
 import com.arcadedb.graph.PModifiableVertex;
@@ -15,6 +12,9 @@ import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.schema.PSchemaImpl;
 import com.arcadedb.serializer.PBinarySerializer;
+import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.OSQLEngine;
+import com.arcadedb.sql.parser.OStatement;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLockContext;
 
@@ -560,5 +560,19 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
         index.put(keyValues, record.getIdentity());
       }
     }
+  }
+
+  @Override
+  public OResultSet query(String query, Map<String, Object> args) {
+    OStatement statement = OSQLEngine.parse(query, this);
+    if (!statement.isIdempotent()) {
+      throw new PCommandExecutionException("Cannot execute query on non idempotent statement: " + query);
+    }
+    OResultSet original = statement.execute(this, args);
+    return original;
+//    OLocalResultSetLifecycleDecorator result = new OLocalResultSetLifecycleDecorator(original);
+//    this.queryStarted(result.getQueryId(), result);
+//    result.addLifecycleListener(this);
+//    return result;
   }
 }

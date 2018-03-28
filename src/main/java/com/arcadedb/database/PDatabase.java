@@ -6,8 +6,10 @@ import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.serializer.PBinarySerializer;
+import com.arcadedb.sql.executor.OResultSet;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface PDatabase {
@@ -76,4 +78,6 @@ public interface PDatabase {
   PPageManager getPageManager();
 
   Object executeInLock(Callable<Object> callable);
+
+  OResultSet query(String query, Map<String, Object> args);
 }
