@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OBatch;
+import com.arcadedb.sql.parser.Batch;
 
 import java.util.Map;
 import java.util.Optional;
@@ -15,7 +15,7 @@ public class BatchStep extends AbstractExecutionStep {
 
   int count = 0;
 
-  public BatchStep(OBatch batch, OCommandContext ctx, boolean profilingEnabled) {
+  public BatchStep(Batch batch, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     batchSize = batch.evaluate(ctx);
   }

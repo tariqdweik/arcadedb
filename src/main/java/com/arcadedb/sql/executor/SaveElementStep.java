@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -12,9 +12,9 @@ import java.util.Optional;
  */
 public class SaveElementStep extends AbstractExecutionStep {
 
-  private final OIdentifier cluster;
+  private final Identifier cluster;
 
-  public SaveElementStep(OCommandContext ctx, OIdentifier cluster, boolean profilingEnabled) {
+  public SaveElementStep(OCommandContext ctx, Identifier cluster, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.cluster = cluster;
   }

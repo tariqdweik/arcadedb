@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.sql.parser.OAndBlock;
-import com.arcadedb.sql.parser.OBinaryCondition;
+import com.arcadedb.sql.parser.AndBlock;
+import com.arcadedb.sql.parser.BinaryCondition;
 
 /**
  * For internal use.
@@ -10,10 +10,10 @@ import com.arcadedb.sql.parser.OBinaryCondition;
  */
 class IndexCondPair {
 
-  OAndBlock        mainCondition;
-  OBinaryCondition additionalRange;
+  AndBlock        mainCondition;
+  BinaryCondition additionalRange;
 
-  public IndexCondPair(OAndBlock keyCondition, OBinaryCondition additionalRangeCondition) {
+  public IndexCondPair(AndBlock keyCondition, BinaryCondition additionalRangeCondition) {
     this.mainCondition = keyCondition;
     this.additionalRange = additionalRangeCondition;
   }

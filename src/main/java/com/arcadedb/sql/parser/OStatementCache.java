@@ -18,16 +18,16 @@ import java.util.Map;
  */
 public class OStatementCache {
 
-  Map<String, OStatement> map;
-  int                     mapSize;
+  Map<String, Statement> map;
+  int                    mapSize;
 
   /**
    * @param size the size of the cache
    */
   public OStatementCache(int size) {
     this.mapSize = size;
-    map = new LinkedHashMap<String, OStatement>(size) {
-      protected boolean removeEldestEntry(final Map.Entry<String, OStatement> eldest) {
+    map = new LinkedHashMap<String, Statement>(size) {
+      protected boolean removeEldestEntry(final Map.Entry<String, Statement> eldest) {
         return super.size() > mapSize;
       }
     };
@@ -53,7 +53,7 @@ public class OStatementCache {
    *
    * @return a statement executor from the cache
    */
-  public static OStatement get(String statement, PDatabase db) {
+  public static Statement get(String statement, PDatabase db) {
 //    if (db == null) {
       return parse(statement, db);
 //    }
@@ -71,7 +71,7 @@ public class OStatementCache {
    *
    * @throws PCommandSQLParsingException if the input parameter is not a valid SQL statement
    */
-  protected static OStatement parse(String statement, PDatabase db) throws PCommandSQLParsingException {
+  protected static Statement parse(String statement, PDatabase db) throws PCommandSQLParsingException {
     try {
 
       InputStream is;
@@ -103,7 +103,7 @@ public class OStatementCache {
           osql = new OrientSql(is);
         }
       }
-      OStatement result = osql.parse();
+      Statement result = osql.parse();
       result.originalStatement = statement;
 
       return result;

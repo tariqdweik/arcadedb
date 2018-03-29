@@ -14,15 +14,15 @@ public class QueryPlanningInfo {
   boolean distinct = false;
   boolean expand   = false;
 
-  OProjection preAggregateProjection;
-  OProjection aggregateProjection;
-  OProjection projection             = null;
-  OProjection projectionAfterOrderBy = null;
+  Projection preAggregateProjection;
+  Projection aggregateProjection;
+  Projection projection             = null;
+  Projection projectionAfterOrderBy = null;
 
-  OLetClause globalLetClause  = null;
-  boolean    globalLetPresent = false;
+  LetClause globalLetClause  = null;
+  boolean   globalLetPresent = false;
 
-  OLetClause perRecordLetClause = null;
+  LetClause perRecordLetClause = null;
 
   /**
    * in a sharded execution plan, this maps the single server to the clusters it will be queried for to execute the query.
@@ -36,19 +36,19 @@ public class QueryPlanningInfo {
    */
   public boolean distributedPlanCreated = false;
 
-  OFromClause     target;
-  OWhereClause    whereClause;
-  List<OAndBlock> flattenedWhereClause;
-  OGroupBy        groupBy;
-  OOrderBy        orderBy;
-  OUnwind         unwind;
-  OSkip           skip;
-  OLimit          limit;
+  FromClause     target;
+  WhereClause    whereClause;
+  List<AndBlock> flattenedWhereClause;
+  GroupBy        groupBy;
+  OrderBy        orderBy;
+  Unwind         unwind;
+  Skip           skip;
+  Limit          limit;
 
   boolean orderApplied          = false;
   boolean projectionsCalculated = false;
 
-  OAndBlock ridRangeConditions;
+  AndBlock ridRangeConditions;
 //  OStorage.LOCKING_STRATEGY lockRecord;
 
   public QueryPlanningInfo copy() {

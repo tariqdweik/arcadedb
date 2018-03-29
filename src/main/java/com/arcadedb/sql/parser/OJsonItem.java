@@ -10,9 +10,9 @@ import java.util.Set;
  * Created by luigidellaquila on 18/02/15.
  */
 public class OJsonItem {
-  protected OIdentifier leftIdentifier;
-  protected String      leftString;
-  protected OExpression right;
+  protected Identifier leftIdentifier;
+  protected String     leftString;
+  protected Expression right;
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     if (leftIdentifier != null) {
@@ -22,7 +22,7 @@ public class OJsonItem {
     }
     if (leftString != null) {
       builder.append("\"");
-      builder.append(OExpression.encode(leftString));
+      builder.append(Expression.encode(leftString));
       builder.append("\"");
     }
     builder.append(": ");
@@ -115,14 +115,14 @@ public class OJsonItem {
 
   public void deserialize(OResult fromResult) {
     if (fromResult.getProperty("leftIdentifier") != null) {
-      leftIdentifier = new OIdentifier(-1);
+      leftIdentifier = new Identifier(-1);
       leftIdentifier.deserialize(fromResult.getProperty("leftIdentifier"));
     }
     if (fromResult.getProperty("leftString") != null) {
       leftString = fromResult.getProperty("leftString");
     }
     if (fromResult.getProperty("right") != null) {
-      right = new OExpression(-1);
+      right = new Expression(-1);
       right.deserialize(fromResult.getProperty("right"));
     }
 

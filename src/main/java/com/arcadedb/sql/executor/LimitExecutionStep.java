@@ -1,17 +1,17 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OLimit;
+import com.arcadedb.sql.parser.Limit;
 
 /**
  * Created by luigidellaquila on 08/07/16.
  */
 public class LimitExecutionStep extends AbstractExecutionStep {
-  private final OLimit limit;
+  private final Limit limit;
 
   int loaded = 0;
 
-  public LimitExecutionStep(OLimit limit, OCommandContext ctx, boolean profilingEnabled) {
+  public LimitExecutionStep(Limit limit, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.limit = limit;
   }

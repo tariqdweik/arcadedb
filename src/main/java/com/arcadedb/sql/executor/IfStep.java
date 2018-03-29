@@ -1,13 +1,13 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OBooleanExpression;
+import com.arcadedb.sql.parser.BooleanExpression;
 
 /**
  * Created by luigidellaquila on 19/09/16.
  */
 public class IfStep extends AbstractExecutionStep {
-  OBooleanExpression   condition;
+  BooleanExpression    condition;
   OScriptExecutionPlan positivePlan;
   OScriptExecutionPlan negativePlan;
 
@@ -34,11 +34,11 @@ public class IfStep extends AbstractExecutionStep {
     }
   }
 
-  public OBooleanExpression getCondition() {
+  public BooleanExpression getCondition() {
     return condition;
   }
 
-  public void setCondition(OBooleanExpression condition) {
+  public void setCondition(BooleanExpression condition) {
     this.condition = condition;
   }
 

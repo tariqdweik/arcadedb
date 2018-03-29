@@ -12,21 +12,21 @@ import java.util.stream.Collectors;
  */
 public class ODeleteEdgeExecutionPlanner {
 
-  protected OIdentifier className;
-  protected OIdentifier targetClusterName;
+  protected Identifier className;
+  protected Identifier targetClusterName;
 
-  protected List<ORid> rids;
+  protected List<Rid> rids;
 
-  private OExpression leftExpression;
-  private OExpression rightExpression;
+  private Expression leftExpression;
+  private Expression rightExpression;
 
-  protected OBatch batch = null;
+  protected Batch batch = null;
 
-  private OWhereClause whereClause;
+  private WhereClause whereClause;
 
-  private OLimit limit;
+  private Limit limit;
 
-  public ODeleteEdgeExecutionPlanner(ODeleteEdgeStatement stm) {
+  public ODeleteEdgeExecutionPlanner(DeleteEdgeStatement stm) {
 
     this.className = stm.getClassName() == null ? null : stm.getClassName().copy();
     this.targetClusterName = stm.getTargetClusterName() == null ? null : stm.getTargetClusterName().copy();
@@ -49,16 +49,16 @@ public class ODeleteEdgeExecutionPlanner {
     ODeleteExecutionPlan result = new ODeleteExecutionPlan(ctx);
 
     if (leftExpression != null || rightExpression != null) {
-      handleGlobalLet(result, new OIdentifier("$__ORIENT_DELETE_EDGE_fromV"), leftExpression, ctx, enableProfiling);
-      handleGlobalLet(result, new OIdentifier("$__ORIENT_DELETE_EDGE_toV"), rightExpression, ctx, enableProfiling);
+      handleGlobalLet(result, new Identifier("$__ORIENT_DELETE_EDGE_fromV"), leftExpression, ctx, enableProfiling);
+      handleGlobalLet(result, new Identifier("$__ORIENT_DELETE_EDGE_toV"), rightExpression, ctx, enableProfiling);
       handleFetchFromTo(result, ctx, "$__ORIENT_DELETE_EDGE_fromV", "$__ORIENT_DELETE_EDGE_toV", className, targetClusterName,
           enableProfiling);
       handleWhere(result, ctx, whereClause, enableProfiling);
     } else if (whereClause != null) {
-      OFromClause fromClause = new OFromClause(-1);
-      OFromItem item = new OFromItem(-1);
+      FromClause fromClause = new FromClause(-1);
+      FromItem item = new FromItem(-1);
       if (className == null) {
-        item.setIdentifier(new OIdentifier("E"));
+        item.setIdentifier(new Identifier("E"));
       } else {
         item.setIdentifier(className);
       }
@@ -80,14 +80,14 @@ public class ODeleteEdgeExecutionPlanner {
     return result;
   }
 
-  private void handleWhere(ODeleteExecutionPlan result, OCommandContext ctx, OWhereClause whereClause, boolean profilingEnabled) {
+  private void handleWhere(ODeleteExecutionPlan result, OCommandContext ctx, WhereClause whereClause, boolean profilingEnabled) {
     if (whereClause != null) {
       result.chain(new FilterStep(whereClause, ctx, profilingEnabled));
     }
   }
 
   private void handleFetchFromTo(ODeleteExecutionPlan result, OCommandContext ctx, String fromAlias, String toAlias,
-      OIdentifier targetClass, OIdentifier targetCluster, boolean profilingEnabled) {
+      Identifier targetClass, Identifier targetCluster, boolean profilingEnabled) {
     if (fromAlias != null && toAlias != null) {
       result.chain(new FetchEdgesFromToVerticesStep(fromAlias, toAlias, targetClass, targetCluster, ctx, profilingEnabled));
     } else if (toAlias != null) {
@@ -95,7 +95,7 @@ public class ODeleteEdgeExecutionPlanner {
     }
   }
 
-  private void handleTargetRids(ODeleteExecutionPlan result, OCommandContext ctx, List<ORid> rids, boolean profilingEnabled) {
+  private void handleTargetRids(ODeleteExecutionPlan result, OCommandContext ctx, List<Rid> rids, boolean profilingEnabled) {
     if (rids != null) {
       result.chain(
           new FetchFromRidsStep(rids.stream().map(x -> x.toRecordId((OResult) null, ctx)).collect(Collectors.toList()), ctx,
@@ -103,7 +103,7 @@ public class ODeleteEdgeExecutionPlanner {
     }
   }
 
-  private void handleTargetCluster(ODeleteExecutionPlan result, OCommandContext ctx, OIdentifier targetClusterName,
+  private void handleTargetCluster(ODeleteExecutionPlan result, OCommandContext ctx, Identifier targetClusterName,
       boolean profilingEnabled) {
     if (targetClusterName != null) {
       String name = targetClusterName.getStringValue();
@@ -115,14 +115,14 @@ public class ODeleteEdgeExecutionPlanner {
     }
   }
 
-  private void handleTargetClass(ODeleteExecutionPlan result, OCommandContext ctx, OIdentifier className,
+  private void handleTargetClass(ODeleteExecutionPlan result, OCommandContext ctx, Identifier className,
       boolean profilingEnabled) {
     if (className != null) {
       result.chain(new FetchFromClassExecutionStep(className.getStringValue(), null, ctx, null, profilingEnabled));
     }
   }
 
-  private boolean handleIndexAsTarget(ODeleteExecutionPlan result, OIndexIdentifier indexIdentifier, OWhereClause whereClause,
+  private boolean handleIndexAsTarget(ODeleteExecutionPlan result, IndexIdentifier indexIdentifier, WhereClause whereClause,
       OCommandContext ctx, boolean profilingEnabled) {
     if (indexIdentifier == null) {
       return false;
@@ -138,7 +138,7 @@ public class ODeleteEdgeExecutionPlanner {
     result.chain(new CountStep(ctx, profilingEnabled));
   }
 
-  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, OLimit limit, boolean profilingEnabled) {
+  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, Limit limit, boolean profilingEnabled) {
     if (limit != null) {
       plan.chain(new LimitExecutionStep(limit, ctx, profilingEnabled));
     }
@@ -148,16 +148,16 @@ public class ODeleteEdgeExecutionPlanner {
     plan.chain(new CastToEdgeStep(ctx, profilingEnabled));
   }
 
-  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, OFromClause target, OWhereClause whereClause,
+  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, FromClause target, WhereClause whereClause,
       boolean profilingEnabled) {
-    OSelectStatement sourceStatement = new OSelectStatement(-1);
+    SelectStatement sourceStatement = new SelectStatement(-1);
     sourceStatement.setTarget(target);
     sourceStatement.setWhereClause(whereClause);
     OSelectExecutionPlanner planner = new OSelectExecutionPlanner(sourceStatement);
     result.chain(new SubQueryStep(planner.createExecutionPlan(ctx, profilingEnabled), ctx, ctx, profilingEnabled));
   }
 
-  private void handleGlobalLet(ODeleteExecutionPlan result, OIdentifier name, OExpression expression, OCommandContext ctx,
+  private void handleGlobalLet(ODeleteExecutionPlan result, Identifier name, Expression expression, OCommandContext ctx,
       boolean profilingEnabled) {
     if (expression != null) {
       result.chain(new GlobalLetExpressionStep(name, expression, ctx, profilingEnabled));

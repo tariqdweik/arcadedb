@@ -29,10 +29,10 @@ public class SubQueryCollector {
   protected static final String GENERATED_ALIAS_PREFIX = "_$$$SUBQUERY$$_";
   protected              int    nextAliasId            = 0;
 
-  protected Map<OIdentifier, OStatement> subQueries = new HashMap<>();
+  protected Map<Identifier, Statement> subQueries = new HashMap<>();
 
-  protected OIdentifier getNextAlias() {
-    OIdentifier result = new OIdentifier(GENERATED_ALIAS_PREFIX + (nextAliasId++));
+  protected Identifier getNextAlias() {
+    Identifier result = new Identifier(GENERATED_ALIAS_PREFIX + (nextAliasId++));
     result.internalAlias = true;
     return result;
   }
@@ -44,16 +44,16 @@ public class SubQueryCollector {
     this.subQueries.clear();
   }
 
-  public OIdentifier addStatement(OIdentifier alias, OStatement stm) {
+  public Identifier addStatement(Identifier alias, Statement stm) {
     subQueries.put(alias, stm);
     return alias;
   }
-  public OIdentifier addStatement(OStatement stm) {
-    OIdentifier alias = getNextAlias();
+  public Identifier addStatement(Statement stm) {
+    Identifier alias = getNextAlias();
     return addStatement(alias, stm);
   }
 
-  public Map<OIdentifier, OStatement> getSubQueries() {
+  public Map<Identifier, Statement> getSubQueries() {
     return subQueries;
   }
 }

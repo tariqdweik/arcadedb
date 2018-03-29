@@ -6,7 +6,7 @@ import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PVertex;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -17,16 +17,16 @@ import java.util.Optional;
  * Created by luigidellaquila on 21/02/17.
  */
 public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
-  private final String      toAlias;
-  private final OIdentifier targetCluster;
-  private final OIdentifier targetClass;
+  private final String     toAlias;
+  private final Identifier targetCluster;
+  private final Identifier targetClass;
 
   private boolean inited = false;
   private Iterator       toIter;
   private PEdge          nextEdge;
   private Iterator<PEdge> currentToEdgesIter;
 
-  public FetchEdgesToVerticesStep(String toAlias, OIdentifier targetClass, OIdentifier targetCluster, OCommandContext ctx, boolean profilingEnabled) {
+  public FetchEdgesToVerticesStep(String toAlias, Identifier targetClass, Identifier targetCluster, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.toAlias = toAlias;
     this.targetClass = targetClass;

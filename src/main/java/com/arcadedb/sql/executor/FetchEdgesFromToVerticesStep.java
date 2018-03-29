@@ -7,7 +7,7 @@ import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PVertex;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.*;
 
@@ -15,10 +15,10 @@ import java.util.*;
  * Created by luigidellaquila on 21/02/17.
  */
 public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
-  private final OIdentifier targetClass;
-  private final OIdentifier targetCluster;
-  private final String      fromAlias;
-  private final String      toAlias;
+  private final Identifier targetClass;
+  private final Identifier targetCluster;
+  private final String     fromAlias;
+  private final String     toAlias;
 
   //operation stuff
 
@@ -33,7 +33,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
 
   private PEdge nextEdge = null;
 
-  public FetchEdgesFromToVerticesStep(String fromAlias, String toAlias, OIdentifier targetClass, OIdentifier targetCluster,
+  public FetchEdgesFromToVerticesStep(String fromAlias, String toAlias, Identifier targetClass, Identifier targetCluster,
       OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass;

@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -14,7 +14,7 @@ import java.util.Optional;
 public class SetDocumentClassStep extends AbstractExecutionStep {
   private final String targetClass;
 
-  public SetDocumentClassStep(OIdentifier targetClass, OCommandContext ctx, boolean profilingEnabled) {
+  public SetDocumentClassStep(Identifier targetClass, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass.getStringValue();
   }

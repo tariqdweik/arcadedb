@@ -7,8 +7,8 @@ import java.util.Map;
  */
 public class OInsertSetExpression {
 
-  protected OIdentifier left;
-  protected OExpression right;
+  protected Identifier left;
+  protected Expression right;
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     left.toString(params, builder);
@@ -24,11 +24,11 @@ public class OInsertSetExpression {
     return result;
   }
 
-  public OIdentifier getLeft() {
+  public Identifier getLeft() {
     return left;
   }
 
-  public OExpression getRight() {
+  public Expression getRight() {
     return right;
   }
 }

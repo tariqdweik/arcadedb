@@ -1,22 +1,22 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.index.PIndex;
-import com.arcadedb.sql.parser.OAndBlock;
-import com.arcadedb.sql.parser.OBinaryCompareOperator;
-import com.arcadedb.sql.parser.OBinaryCondition;
-import com.arcadedb.sql.parser.OBooleanExpression;
+import com.arcadedb.sql.parser.AndBlock;
+import com.arcadedb.sql.parser.BinaryCompareOperator;
+import com.arcadedb.sql.parser.BinaryCondition;
+import com.arcadedb.sql.parser.BooleanExpression;
 
 /**
  * Created by luigidellaquila on 26/07/16.
  */
 public class IndexSearchDescriptor {
-  protected PIndex             idx;
-  protected OAndBlock          keyCondition;
-  protected OBinaryCondition   additionalRangeCondition;
-  protected OBooleanExpression remainingCondition;
+  protected PIndex            idx;
+  protected AndBlock          keyCondition;
+  protected BinaryCondition   additionalRangeCondition;
+  protected BooleanExpression remainingCondition;
 
-  public IndexSearchDescriptor(PIndex idx, OAndBlock keyCondition, OBinaryCondition additional,
-      OBooleanExpression remainingCondition) {
+  public IndexSearchDescriptor(PIndex idx, AndBlock keyCondition, BinaryCondition additional,
+      BooleanExpression remainingCondition) {
     this.idx = idx;
     this.keyCondition = keyCondition;
     this.additionalRangeCondition = additional;
@@ -33,9 +33,9 @@ public class IndexSearchDescriptor {
     String indexName = idx.getName();
     int size = keyCondition.getSubBlocks().size();
     boolean range = false;
-    OBooleanExpression lastOp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
-    if (lastOp instanceof OBinaryCondition) {
-      OBinaryCompareOperator op = ((OBinaryCondition) lastOp).getOperator();
+    BooleanExpression lastOp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
+    if (lastOp instanceof BinaryCondition) {
+      BinaryCompareOperator op = ((BinaryCondition) lastOp).getOperator();
       range = op.isRangeOperator();
     }
 

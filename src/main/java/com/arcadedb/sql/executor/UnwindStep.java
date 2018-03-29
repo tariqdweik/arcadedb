@@ -3,7 +3,7 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OUnwind;
+import com.arcadedb.sql.parser.Unwind;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,14 +15,14 @@ import java.util.stream.Collectors;
  */
 public class UnwindStep extends AbstractExecutionStep {
 
-  private final OUnwind      unwind;
+  private final Unwind       unwind;
   private       List<String> unwindFields;
 
   OResultSet        lastResult      = null;
   Iterator<OResult> nextSubsequence = null;
   OResult           nextElement     = null;
 
-  public UnwindStep(OUnwind unwind, OCommandContext ctx, boolean profilingEnabled) {
+  public UnwindStep(Unwind unwind, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.unwind = unwind;
     unwindFields = unwind.getItems().stream().map(x -> x.getStringValue()).collect(Collectors.toList());

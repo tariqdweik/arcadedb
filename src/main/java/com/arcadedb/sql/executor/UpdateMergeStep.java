@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OJson;
+import com.arcadedb.sql.parser.Json;
 
 import java.util.Map;
 import java.util.Optional;
@@ -11,9 +11,9 @@ import java.util.Optional;
  * Created by luigidellaquila on 09/08/16.
  */
 public class UpdateMergeStep extends AbstractExecutionStep {
-  private final OJson json;
+  private final Json json;
 
-  public UpdateMergeStep(OJson json, OCommandContext ctx, boolean profilingEnabled) {
+  public UpdateMergeStep(Json json, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.json = json;
   }

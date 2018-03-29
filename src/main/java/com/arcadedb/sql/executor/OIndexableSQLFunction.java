@@ -1,23 +1,23 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PRecord;
-import com.arcadedb.sql.parser.OBinaryCompareOperator;
-import com.arcadedb.sql.parser.OExpression;
-import com.arcadedb.sql.parser.OFromClause;
+import com.arcadedb.sql.parser.BinaryCompareOperator;
+import com.arcadedb.sql.parser.Expression;
+import com.arcadedb.sql.parser.FromClause;
 
 public interface OIndexableSQLFunction {
-  boolean shouldExecuteAfterSearch(OFromClause target, OBinaryCompareOperator operator, Object right, OCommandContext context,
-      OExpression[] oExpressions);
+  boolean shouldExecuteAfterSearch(FromClause target, BinaryCompareOperator operator, Object right, OCommandContext context,
+      Expression[] oExpressions);
 
-  boolean allowsIndexedExecution(OFromClause target, OBinaryCompareOperator operator, Object right, OCommandContext context,
-      OExpression[] oExpressions);
+  boolean allowsIndexedExecution(FromClause target, BinaryCompareOperator operator, Object right, OCommandContext context,
+      Expression[] oExpressions);
 
-  boolean canExecuteInline(OFromClause target, OBinaryCompareOperator operator, Object right, OCommandContext context,
-      OExpression[] oExpressions);
+  boolean canExecuteInline(FromClause target, BinaryCompareOperator operator, Object right, OCommandContext context,
+      Expression[] oExpressions);
 
-  long estimate(OFromClause target, OBinaryCompareOperator operator, Object rightValue, OCommandContext ctx,
-      OExpression[] oExpressions);
+  long estimate(FromClause target, BinaryCompareOperator operator, Object rightValue, OCommandContext ctx,
+      Expression[] oExpressions);
 
-  Iterable<PRecord> searchFromTarget(OFromClause target, OBinaryCompareOperator operator, Object rightValue, OCommandContext ctx,
-      OExpression[] oExpressions);
+  Iterable<PRecord> searchFromTarget(FromClause target, BinaryCompareOperator operator, Object rightValue, OCommandContext ctx,
+      Expression[] oExpressions);
 }

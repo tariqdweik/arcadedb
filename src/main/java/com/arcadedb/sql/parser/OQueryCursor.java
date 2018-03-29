@@ -12,9 +12,9 @@ import java.util.NoSuchElementException;
 public class OQueryCursor implements Iterator<PIdentifiable> {
   private int                     limit;
   private int                     skip;
-  private OWhereClause            filter;
+  private WhereClause             filter;
   private Iterator<PIdentifiable> iterator;
-  private OOrderBy                orderBy;
+  private OrderBy                 orderBy;
   private OCommandContext         ctx;
 
   private PIdentifiable           next         = null;
@@ -24,7 +24,7 @@ public class OQueryCursor implements Iterator<PIdentifiable> {
 
   }
 
-  public OQueryCursor(Iterator<PIdentifiable> PIdentifiableIterator, OWhereClause filter, OOrderBy orderBy, int skip, int limit,
+  public OQueryCursor(Iterator<PIdentifiable> PIdentifiableIterator, WhereClause filter, OrderBy orderBy, int skip, int limit,
       OCommandContext ctx) {
     this.iterator = PIdentifiableIterator;
     this.filter = filter;

@@ -16,27 +16,27 @@ import java.util.Optional;
  * Created by luigidellaquila on 11/08/16.
  */
 public class DeleteFromIndexStep extends AbstractExecutionStep {
-  protected final PIndex             index;
-  private final   OBinaryCondition   additional;
-  private final   OBooleanExpression ridCondition;
-  private final   boolean            orderAsc;
+  protected final PIndex            index;
+  private final   BinaryCondition   additional;
+  private final   BooleanExpression ridCondition;
+  private final   boolean           orderAsc;
 
   PPair<Object, PIdentifiable> nextEntry = null;
 
-  OBooleanExpression condition;
+  BooleanExpression condition;
 
   private boolean inited = false;
   private PIndexCursor cursor;
 
   private long cost = 0;
 
-  public DeleteFromIndexStep(PIndex index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition,
-      OBooleanExpression ridCondition, OCommandContext ctx, boolean profilingEnabled) {
+  public DeleteFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
+      BooleanExpression ridCondition, OCommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, ridCondition, true, ctx, profilingEnabled);
   }
 
-  public DeleteFromIndexStep(PIndex index, OBooleanExpression condition, OBinaryCondition additionalRangeCondition,
-      OBooleanExpression ridCondition, boolean orderAsc, OCommandContext ctx, boolean profilingEnabled) {
+  public DeleteFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
+      BooleanExpression ridCondition, boolean orderAsc, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
     this.condition = condition;
@@ -132,14 +132,14 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     return null;
   }
 
-  private void init(OBooleanExpression condition) throws IOException {
+  private void init(BooleanExpression condition) throws IOException {
     if (condition == null) {
       processFlatIteration();
-    } else if (condition instanceof OBinaryCondition) {
+    } else if (condition instanceof BinaryCondition) {
       processBinaryCondition();
-    } else if (condition instanceof OBetweenCondition) {
+    } else if (condition instanceof BetweenCondition) {
       processBetweenCondition();
-    } else if (condition instanceof OAndBlock) {
+    } else if (condition instanceof AndBlock) {
       processAndBlock();
     } else {
       throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
@@ -150,10 +150,10 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
    * it's not key = [...] but a real condition on field names, already ordered (field names will be ignored)
    */
   private void processAndBlock() {
-    OCollection fromKey = indexKeyFrom((OAndBlock) condition, additional);
-    OCollection toKey = indexKeyTo((OAndBlock) condition, additional);
-    boolean fromKeyIncluded = indexKeyFromIncluded((OAndBlock) condition, additional);
-    boolean toKeyIncluded = indexKeyToIncluded((OAndBlock) condition, additional);
+    Collection fromKey = indexKeyFrom((AndBlock) condition, additional);
+    Collection toKey = indexKeyTo((AndBlock) condition, additional);
+    boolean fromKeyIncluded = indexKeyFromIncluded((AndBlock) condition, additional);
+    boolean toKeyIncluded = indexKeyToIncluded((AndBlock) condition, additional);
     init(fromKey, fromKeyIncluded, toKey, toKeyIncluded);
   }
 
@@ -161,7 +161,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     cursor = index.iterator(isOrderAsc());
   }
 
-  private void init(OCollection fromKey, boolean fromKeyIncluded, OCollection toKey, boolean toKeyIncluded) {
+  private void init(Collection fromKey, boolean fromKeyIncluded, Collection toKey, boolean toKeyIncluded) {
     Object secondValue = fromKey.execute((OResult) null, ctx);
     Object thirdValue = toKey.execute((OResult) null, ctx);
 //    OIndexDefinition indexDef = index.getDefinition();
@@ -178,13 +178,13 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     throw new UnsupportedOperationException();
   }
 
-  private boolean allEqualities(OAndBlock condition) {
+  private boolean allEqualities(AndBlock condition) {
     if (condition == null) {
       return false;
     }
-    for (OBooleanExpression exp : condition.getSubBlocks()) {
-      if (exp instanceof OBinaryCondition) {
-        if (((OBinaryCondition) exp).getOperator() instanceof OEqualsCompareOperator) {
+    for (BooleanExpression exp : condition.getSubBlocks()) {
+      if (exp instanceof BinaryCondition) {
+        if (((BinaryCondition) exp).getOperator() instanceof EqualsCompareOperator) {
           return true;
         }
       } else {
@@ -273,14 +273,14 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     return orderAsc;
   }
 
-  private OCollection indexKeyFrom(OAndBlock keyCondition, OBinaryCondition additional) {
-    OCollection result = new OCollection(-1);
-    for (OBooleanExpression exp : keyCondition.getSubBlocks()) {
-      if (exp instanceof OBinaryCondition) {
-        OBinaryCondition binaryCond = ((OBinaryCondition) exp);
-        OBinaryCompareOperator operator = binaryCond.getOperator();
-        if ((operator instanceof OEqualsCompareOperator) || (operator instanceof OGtOperator)
-            || (operator instanceof OGeOperator)) {
+  private Collection indexKeyFrom(AndBlock keyCondition, BinaryCondition additional) {
+    Collection result = new Collection(-1);
+    for (BooleanExpression exp : keyCondition.getSubBlocks()) {
+      if (exp instanceof BinaryCondition) {
+        BinaryCondition binaryCond = ((BinaryCondition) exp);
+        BinaryCompareOperator operator = binaryCond.getOperator();
+        if ((operator instanceof EqualsCompareOperator) || (operator instanceof GtOperator)
+            || (operator instanceof GeOperator)) {
           result.add(binaryCond.getRight());
         } else if (additional != null) {
           result.add(additional.getRight());
@@ -292,14 +292,14 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     return result;
   }
 
-  private OCollection indexKeyTo(OAndBlock keyCondition, OBinaryCondition additional) {
-    OCollection result = new OCollection(-1);
-    for (OBooleanExpression exp : keyCondition.getSubBlocks()) {
-      if (exp instanceof OBinaryCondition) {
-        OBinaryCondition binaryCond = ((OBinaryCondition) exp);
-        OBinaryCompareOperator operator = binaryCond.getOperator();
-        if ((operator instanceof OEqualsCompareOperator) || (operator instanceof OLtOperator)
-            || (operator instanceof OLeOperator)) {
+  private Collection indexKeyTo(AndBlock keyCondition, BinaryCondition additional) {
+    Collection result = new Collection(-1);
+    for (BooleanExpression exp : keyCondition.getSubBlocks()) {
+      if (exp instanceof BinaryCondition) {
+        BinaryCondition binaryCond = ((BinaryCondition) exp);
+        BinaryCompareOperator operator = binaryCond.getOperator();
+        if ((operator instanceof EqualsCompareOperator) || (operator instanceof LtOperator)
+            || (operator instanceof LeOperator)) {
           result.add(binaryCond.getRight());
         } else if (additional != null) {
           result.add(additional.getRight());
@@ -311,11 +311,11 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     return result;
   }
 
-  private boolean indexKeyFromIncluded(OAndBlock keyCondition, OBinaryCondition additional) {
-    OBooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
-    if (exp instanceof OBinaryCondition) {
-      OBinaryCompareOperator operator = ((OBinaryCondition) exp).getOperator();
-      OBinaryCompareOperator additionalOperator = additional == null ? null : ((OBinaryCondition) additional).getOperator();
+  private boolean indexKeyFromIncluded(AndBlock keyCondition, BinaryCondition additional) {
+    BooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
+    if (exp instanceof BinaryCondition) {
+      BinaryCompareOperator operator = ((BinaryCondition) exp).getOperator();
+      BinaryCompareOperator additionalOperator = additional == null ? null : ((BinaryCondition) additional).getOperator();
       if (isGreaterOperator(operator)) {
         if (isIncludeOperator(operator)) {
           return true;
@@ -332,32 +332,32 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     }
   }
 
-  private boolean isGreaterOperator(OBinaryCompareOperator operator) {
+  private boolean isGreaterOperator(BinaryCompareOperator operator) {
     if (operator == null) {
       return false;
     }
-    return operator instanceof OGeOperator || operator instanceof OGtOperator;
+    return operator instanceof GeOperator || operator instanceof GtOperator;
   }
 
-  private boolean isLessOperator(OBinaryCompareOperator operator) {
+  private boolean isLessOperator(BinaryCompareOperator operator) {
     if (operator == null) {
       return false;
     }
-    return operator instanceof OLeOperator || operator instanceof OLtOperator;
+    return operator instanceof LeOperator || operator instanceof LtOperator;
   }
 
-  private boolean isIncludeOperator(OBinaryCompareOperator operator) {
+  private boolean isIncludeOperator(BinaryCompareOperator operator) {
     if (operator == null) {
       return false;
     }
-    return operator instanceof OGeOperator || operator instanceof OLeOperator;
+    return operator instanceof GeOperator || operator instanceof LeOperator;
   }
 
-  private boolean indexKeyToIncluded(OAndBlock keyCondition, OBinaryCondition additional) {
-    OBooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
-    if (exp instanceof OBinaryCondition) {
-      OBinaryCompareOperator operator = ((OBinaryCondition) exp).getOperator();
-      OBinaryCompareOperator additionalOperator = additional == null ? null : ((OBinaryCondition) additional).getOperator();
+  private boolean indexKeyToIncluded(AndBlock keyCondition, BinaryCondition additional) {
+    BooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
+    if (exp instanceof BinaryCondition) {
+      BinaryCompareOperator operator = ((BinaryCondition) exp).getOperator();
+      BinaryCompareOperator additionalOperator = additional == null ? null : ((BinaryCondition) additional).getOperator();
       if (isLessOperator(operator)) {
         if (isIncludeOperator(operator)) {
           return true;

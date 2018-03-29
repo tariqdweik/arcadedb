@@ -929,7 +929,7 @@ FloatingPoint FloatingPoint():
     { return jjtThis; }
 }
 
-Number Number():
+PNumber PNumber():
 { Number result; }
 {
     (
@@ -2338,7 +2338,7 @@ BaseExpression BaseExpression():
 {}
 {
     (
-        jjtThis.number = Number()
+        jjtThis.number = PNumber()
         |
         (
     	    jjtThis.identifier = BaseIdentifier()
@@ -2358,7 +2358,7 @@ BaseExpression BaseExpression():
     	|
         (
             (
-                jjtThis.string = String()
+                jjtThis.string = PString()
                 |
                 token = <CHARACTER_LITERAL> { jjtThis.string = token.image; }
             )
@@ -2887,7 +2887,7 @@ BooleanExpression InstanceofCondition():
         jjtThis.left = Expression() <INSTANCEOF> (
 		   jjtThis.right = Identifier()
 		   |
-		   jjtThis.rightString = String()
+		   jjtThis.rightString = PString()
 		   |
 		   token = <CHARACTER_LITERAL> { jjtThis.rightString = token.image; }
 		)
@@ -3108,7 +3108,7 @@ BooleanExpression MatchesCondition():
     (
     	jjtThis.expression = Expression() <MATCHES>
     	(
-    	    ( jjtThis.right = String() )
+    	    ( jjtThis.right = PString() )
     	    |
     	    ( token = <CHARACTER_LITERAL> {jjtThis.right = token.image;} )
     	    |
@@ -3443,7 +3443,7 @@ Json Json():
                 |
                 token = <RECORD_ATTRIBUTE> {lastItem.leftString = token.image; }
                 |
-                ( lastItem.leftString = String() { lastItem.leftString = lastItem.leftString.substring(1, lastItem.leftString.length() - 1); } )
+                ( lastItem.leftString = PString() { lastItem.leftString = lastItem.leftString.substring(1, lastItem.leftString.length() - 1); } )
                 |
                 token = <CHARACTER_LITERAL> { lastItem.leftString = token.image.substring(1, token.image.length() - 1); }
             )
@@ -3457,7 +3457,7 @@ Json Json():
                     |
                     token = <RECORD_ATTRIBUTE> {lastItem.leftString = token.image; }
                     |
-                    ( lastItem.leftString = String() { lastItem.leftString = lastItem.leftString.substring(1, lastItem.leftString.length() - 1); } )
+                    ( lastItem.leftString = PString() { lastItem.leftString = lastItem.leftString.substring(1, lastItem.leftString.length() - 1); } )
                     |
                     token = <CHARACTER_LITERAL> { lastItem.leftString = token.image.substring(1, token.image.length() - 1); }
                 )
@@ -3992,7 +3992,7 @@ AlterClassStatement AlterClassStatement():
 		|
 		(
 			<OVERSIZE> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.OVERSIZE; }
-			jjtThis.numberValue = Number()
+			jjtThis.numberValue = PNumber()
 		)
 		|
 		(
@@ -4053,7 +4053,7 @@ AlterClassStatement AlterClassStatement():
 				|
 				"round-robin" { jjtThis.customString = "round-robin"; }
 				|
-				( jjtThis.customString = String() { jjtThis.customString = jjtThis.customString.substring(1, jjtThis.customString.length() - 1); } )
+				( jjtThis.customString = PString() { jjtThis.customString = jjtThis.customString.substring(1, jjtThis.customString.length() - 1); } )
 			)
 		)
 		|

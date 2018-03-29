@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -11,7 +11,7 @@ import java.util.Optional;
  */
 public class RemoveEmptyOptionalsStep extends AbstractExecutionStep {
 
-  public RemoveEmptyOptionalsStep(OCommandContext ctx, OIdentifier cluster, boolean profilingEnabled) {
+  public RemoveEmptyOptionalsStep(OCommandContext ctx, Identifier cluster, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
 
   }

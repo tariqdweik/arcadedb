@@ -34,29 +34,29 @@ public class AggregateProjectionSplit {
   protected static final String GENERATED_ALIAS_PREFIX = "_$$$OALIAS$$_";
   protected              int    nextAliasId            = 0;
 
-  protected List<OProjectionItem> preAggregate = new ArrayList<>();
-  protected List<OProjectionItem>   aggregate    = new ArrayList<>();
+  protected List<ProjectionItem> preAggregate = new ArrayList<>();
+  protected List<ProjectionItem> aggregate    = new ArrayList<>();
 
 
-  public OIdentifier getNextAlias() {
-    OIdentifier result = new OIdentifier(GENERATED_ALIAS_PREFIX + (nextAliasId++));
+  public Identifier getNextAlias() {
+    Identifier result = new Identifier(GENERATED_ALIAS_PREFIX + (nextAliasId++));
     result.internalAlias = true;
     return result;
   }
 
-  public List<OProjectionItem> getPreAggregate() {
+  public List<ProjectionItem> getPreAggregate() {
     return preAggregate;
   }
 
-  public void setPreAggregate(List<OProjectionItem> preAggregate) {
+  public void setPreAggregate(List<ProjectionItem> preAggregate) {
     this.preAggregate = preAggregate;
   }
 
-  public List<OProjectionItem> getAggregate() {
+  public List<ProjectionItem> getAggregate() {
     return aggregate;
   }
 
-  public void setAggregate(List<OProjectionItem> aggregate) {
+  public void setAggregate(List<ProjectionItem> aggregate) {
     this.aggregate = aggregate;
   }
 

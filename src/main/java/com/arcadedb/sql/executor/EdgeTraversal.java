@@ -1,18 +1,18 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.sql.parser.ORid;
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.Rid;
+import com.arcadedb.sql.parser.WhereClause;
 
 /**
  * Created by luigidellaquila on 20/09/16.
  */
 public class EdgeTraversal {
   boolean out = true;
-  public  PatternEdge  edge;
-  private String       leftClass;
-  private String       leftCluster;
-  private ORid         leftRid;
-  private OWhereClause leftFilter;
+  public  PatternEdge edge;
+  private String      leftClass;
+  private String      leftCluster;
+  private Rid         leftRid;
+  private WhereClause leftFilter;
 
   public EdgeTraversal(PatternEdge edge, boolean out) {
     this.edge = edge;
@@ -23,7 +23,7 @@ public class EdgeTraversal {
     this.leftClass = leftClass;
   }
 
-  public void setLeftFilter(OWhereClause leftFilter) {
+  public void setLeftFilter(WhereClause leftFilter) {
     this.leftFilter = leftFilter;
   }
 
@@ -34,7 +34,7 @@ public class EdgeTraversal {
     return leftCluster;
   }
 
-  public ORid getLeftRid() {
+  public Rid getLeftRid() {
     return leftRid;
   }
 
@@ -42,11 +42,11 @@ public class EdgeTraversal {
     this.leftCluster = leftCluster;
   }
 
-  public void setLeftRid(ORid leftRid) {
+  public void setLeftRid(Rid leftRid) {
     this.leftRid = leftRid;
   }
 
-  public OWhereClause getLeftFilter() {
+  public WhereClause getLeftFilter() {
     return leftFilter;
   }
 

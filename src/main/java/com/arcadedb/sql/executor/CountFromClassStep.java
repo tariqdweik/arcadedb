@@ -3,7 +3,7 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -15,8 +15,8 @@ import java.util.Optional;
  * @author Luigi Dell'Aquila (luigi.dellaquila - at - gmail.com)
  */
 public class CountFromClassStep extends AbstractExecutionStep {
-  private final OIdentifier target;
-  private final String      alias;
+  private final Identifier target;
+  private final String     alias;
 
   private long cost = 0;
 
@@ -28,7 +28,7 @@ public class CountFromClassStep extends AbstractExecutionStep {
    * @param ctx              the query context
    * @param profilingEnabled true to enable the profiling of the execution (for SQL PROFILE)
    */
-  public CountFromClassStep(OIdentifier targetClass, String alias, OCommandContext ctx, boolean profilingEnabled) {
+  public CountFromClassStep(Identifier targetClass, String alias, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.target = targetClass;
     this.alias = alias;

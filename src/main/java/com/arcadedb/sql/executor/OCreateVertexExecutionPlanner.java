@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.sql.parser.OCreateVertexStatement;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.CreateVertexStatement;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,12 +11,12 @@ import java.util.List;
  */
 public class OCreateVertexExecutionPlanner extends OInsertExecutionPlanner {
 
-  public OCreateVertexExecutionPlanner(OCreateVertexStatement statement) {
+  public OCreateVertexExecutionPlanner(CreateVertexStatement statement) {
     this.targetClass = statement.getTargetClass() == null ? null : statement.getTargetClass().copy();
     this.targetClusterName = statement.getTargetClusterName() == null ? null : statement.getTargetClusterName().copy();
     this.targetCluster = statement.getTargetCluster() == null ? null : statement.getTargetCluster().copy();
     if (this.targetClass == null && this.targetCluster == null && this.targetClusterName == null) {
-      this.targetClass = new OIdentifier("V");
+      this.targetClass = new Identifier("V");
     }
     this.insertBody = statement.getInsertBody() == null ? null : statement.getInsertBody().copy();
     this.returnStatement = statement.getReturnStatement() == null ? null : statement.getReturnStatement().copy();

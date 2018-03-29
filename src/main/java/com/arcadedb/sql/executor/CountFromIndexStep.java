@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIndexIdentifier;
+import com.arcadedb.sql.parser.IndexIdentifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -12,8 +12,8 @@ import java.util.Optional;
  * @author Luigi Dell'Aquila (luigi.dellaquila - at - gmail.com)
  */
 public class CountFromIndexStep extends AbstractExecutionStep {
-  private final OIndexIdentifier target;
-  private final String           alias;
+  private final IndexIdentifier target;
+  private final String          alias;
 
   private long count = 0;
 
@@ -25,7 +25,7 @@ public class CountFromIndexStep extends AbstractExecutionStep {
    * @param ctx the query context
    * @param profilingEnabled true to enable the profiling of the execution (for SQL PROFILE)
    */
-  public CountFromIndexStep(OIndexIdentifier targetIndex, String alias, OCommandContext ctx, boolean profilingEnabled) {
+  public CountFromIndexStep(IndexIdentifier targetIndex, String alias, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.target = targetIndex;
     this.alias = alias;

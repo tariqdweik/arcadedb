@@ -145,16 +145,16 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 
     long maxValue = -1;
 
-    for (OBooleanExpression ridRangeCondition : queryPlanning.ridRangeConditions.getSubBlocks()) {
-      if (ridRangeCondition instanceof OBinaryCondition) {
-        OBinaryCondition cond = (OBinaryCondition) ridRangeCondition;
-        ORid condRid = cond.getRight().getRid();
-        OBinaryCompareOperator operator = cond.getOperator();
+    for (BooleanExpression ridRangeCondition : queryPlanning.ridRangeConditions.getSubBlocks()) {
+      if (ridRangeCondition instanceof BinaryCondition) {
+        BinaryCondition cond = (BinaryCondition) ridRangeCondition;
+        Rid condRid = cond.getRight().getRid();
+        BinaryCompareOperator operator = cond.getOperator();
         if (condRid != null) {
           if (condRid.getCluster().getValue().intValue() != this.clusterId) {
             continue;
           }
-          if (operator instanceof OGtOperator || operator instanceof OGeOperator) {
+          if (operator instanceof GtOperator || operator instanceof GeOperator) {
             maxValue = Math.max(maxValue, condRid.getPosition().getValue().longValue());
           }
         }
@@ -170,25 +170,25 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
     }
     long minValue = Long.MAX_VALUE;
 
-    for (OBooleanExpression ridRangeCondition : queryPlanning.ridRangeConditions.getSubBlocks()) {
-      if (ridRangeCondition instanceof OBinaryCondition) {
-        OBinaryCondition cond = (OBinaryCondition) ridRangeCondition;
+    for (BooleanExpression ridRangeCondition : queryPlanning.ridRangeConditions.getSubBlocks()) {
+      if (ridRangeCondition instanceof BinaryCondition) {
+        BinaryCondition cond = (BinaryCondition) ridRangeCondition;
         PRID conditionRid;
 
         Object obj;
-        if (((OBinaryCondition) ridRangeCondition).getRight().getRid() != null) {
-          obj = ((OBinaryCondition) ridRangeCondition).getRight().getRid().toRecordId((OResult) null, ctx);
+        if (((BinaryCondition) ridRangeCondition).getRight().getRid() != null) {
+          obj = ((BinaryCondition) ridRangeCondition).getRight().getRid().toRecordId((OResult) null, ctx);
         } else {
-          obj = ((OBinaryCondition) ridRangeCondition).getRight().execute((OResult) null, ctx);
+          obj = ((BinaryCondition) ridRangeCondition).getRight().execute((OResult) null, ctx);
         }
 
         conditionRid = ((PIdentifiable) obj).getIdentity();
-        OBinaryCompareOperator operator = cond.getOperator();
+        BinaryCompareOperator operator = cond.getOperator();
         if (conditionRid != null) {
           if (conditionRid.getBucketId() != this.clusterId) {
             continue;
           }
-          if (operator instanceof OLtOperator || operator instanceof OLeOperator) {
+          if (operator instanceof LtOperator || operator instanceof LeOperator) {
             minValue = Math.min(minValue, conditionRid.getPosition());
           }
         }

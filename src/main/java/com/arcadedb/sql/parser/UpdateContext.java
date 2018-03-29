@@ -19,6 +19,6 @@ package com.arcadedb.sql.parser;
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
 public class UpdateContext {
-  public Iterable  docsToUpdate;
-  public OIdentifier fieldToSet;
+  public Iterable   docsToUpdate;
+  public Identifier fieldToSet;
 }

@@ -1,10 +1,10 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.parser.OExpression;
-import com.arcadedb.sql.parser.OGroupBy;
-import com.arcadedb.sql.parser.OProjection;
-import com.arcadedb.sql.parser.OProjectionItem;
+import com.arcadedb.sql.parser.Expression;
+import com.arcadedb.sql.parser.GroupBy;
+import com.arcadedb.sql.parser.Projection;
+import com.arcadedb.sql.parser.ProjectionItem;
 
 import java.util.*;
 
@@ -13,7 +13,7 @@ import java.util.*;
  */
 public class AggregateProjectionCalculationStep extends ProjectionCalculationStep {
 
-  private final OGroupBy groupBy;
+  private final GroupBy groupBy;
 
   //the key is the GROUP BY key, the value is the (partially) aggregated value
   private Map<List, OResultInternal> aggregateResults = new LinkedHashMap<>();
@@ -22,7 +22,7 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
   private int  nextItem = 0;
   private long cost     = 0;
 
-  public AggregateProjectionCalculationStep(OProjection projection, OGroupBy groupBy, OCommandContext ctx,
+  public AggregateProjectionCalculationStep(Projection projection, GroupBy groupBy, OCommandContext ctx,
       boolean profilingEnabled) {
     super(projection, ctx, profilingEnabled);
     this.groupBy = groupBy;
@@ -103,7 +103,7 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
     try {
       List<Object> key = new ArrayList<>();
       if (groupBy != null) {
-        for (OExpression item : groupBy.getItems()) {
+        for (Expression item : groupBy.getItems()) {
           Object val = item.execute(next, ctx);
           key.add(val);
         }
@@ -114,7 +114,7 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
         aggregateResults.put(key, preAggr);
       }
 
-      for (OProjectionItem proj : this.projection.getItems()) {
+      for (ProjectionItem proj : this.projection.getItems()) {
         String alias = proj.getProjectionAlias().getStringValue();
         if (proj.isAggregate()) {
           AggregationContext aggrCtx = preAggr.getProperty(alias);

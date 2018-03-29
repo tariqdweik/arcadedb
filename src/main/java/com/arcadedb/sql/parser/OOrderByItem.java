@@ -13,10 +13,10 @@ import java.util.Map;
 public class OOrderByItem {
   public static final String ASC  = "ASC";
   public static final String DESC = "DESC";
-  protected String    alias;
-  protected OModifier modifier;
-  protected String    recordAttr;
-  protected ORid      rid;
+  protected String   alias;
+  protected Modifier modifier;
+  protected String   recordAttr;
+  protected Rid      rid;
   protected String type = ASC;
 
   public String getAlias() {
@@ -43,11 +43,11 @@ public class OOrderByItem {
     this.recordAttr = recordAttr;
   }
 
-  public ORid getRid() {
+  public Rid getRid() {
     return rid;
   }
 
-  public void setRid(ORid rid) {
+  public void setRid(Rid rid) {
     this.rid = rid;
   }
 
@@ -137,7 +137,7 @@ public class OOrderByItem {
     return false;
   }
 
-  public OModifier getModifier() {
+  public Modifier getModifier() {
     return modifier;
   }
 
@@ -158,12 +158,12 @@ public class OOrderByItem {
   public void deserialize(OResult fromResult) {
     alias = fromResult.getProperty("alias");
     if (fromResult.getProperty("modifier") != null) {
-      modifier = new OModifier(-1);
+      modifier = new Modifier(-1);
       modifier.deserialize(fromResult.getProperty("modifier"));
     }
     recordAttr = fromResult.getProperty("recordAttr");
     if (fromResult.getProperty("rid") != null) {
-      rid = new ORid(-1);
+      rid = new Rid(-1);
       rid.deserialize(fromResult.getProperty("rid"));
     }
     type = DESC.equals(fromResult.getProperty("type")) ? DESC : ASC;

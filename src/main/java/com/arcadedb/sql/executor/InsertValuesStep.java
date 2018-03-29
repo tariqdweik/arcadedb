@@ -3,8 +3,8 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OExpression;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Expression;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.List;
 import java.util.Map;
@@ -14,12 +14,12 @@ import java.util.Optional;
  * Created by luigidellaquila on 11/08/16.
  */
 public class InsertValuesStep extends AbstractExecutionStep {
-  private final List<OIdentifier>       identifiers;
-  private final List<List<OExpression>> values;
+  private final List<Identifier>       identifiers;
+  private final List<List<Expression>> values;
 
   int nextValueSet = 0;
 
-  public InsertValuesStep(List<OIdentifier> identifierList, List<List<OExpression>> valueExpressions, OCommandContext ctx,
+  public InsertValuesStep(List<Identifier> identifierList, List<List<Expression>> valueExpressions, OCommandContext ctx,
       boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.identifiers = identifierList;
@@ -44,7 +44,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
           }
           result = new OUpdatableResult((PModifiableDocument) result.getElement().get());
         }
-        List<OExpression> currentValues = values.get(nextValueSet++);
+        List<Expression> currentValues = values.get(nextValueSet++);
         if (currentValues.size() != identifiers.size()) {
           throw new PCommandExecutionException(
               "Cannot execute INSERT, the number of fields is different from the number of expressions: " + identifiers + " "
@@ -52,7 +52,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
         }
         nextValueSet %= values.size();
         for (int i = 0; i < currentValues.size(); i++) {
-          OIdentifier identifier = identifiers.get(i);
+          Identifier identifier = identifiers.get(i);
           Object value = currentValues.get(i).execute(result, ctx);
           ((OResultInternal) result).setProperty(identifier.getStringValue(), value);
         }
@@ -99,7 +99,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
       if (c > 0) {
         result.append("\n");
       }
-      List<OExpression> exprs = this.values.get(c);
+      List<Expression> exprs = this.values.get(c);
       result.append(spaces);
       result.append("  (");
       for (int i = 0; i < exprs.size() && i < 3; i++) {

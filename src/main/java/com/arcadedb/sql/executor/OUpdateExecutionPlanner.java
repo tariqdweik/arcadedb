@@ -11,27 +11,27 @@ import java.util.stream.Collectors;
  * Created by luigidellaquila on 08/08/16.
  */
 public class OUpdateExecutionPlanner {
-  private final OFromClause  target;
-  public        OWhereClause whereClause;
+  private final FromClause  target;
+  public        WhereClause whereClause;
 
   protected boolean upsert = false;
 
-  protected List<OUpdateOperations> operations   = new ArrayList<OUpdateOperations>();
-  protected boolean                 returnBefore = false;
-  protected boolean                 returnAfter  = false;
-  protected boolean                 returnCount  = false;
+  protected List<UpdateOperations> operations   = new ArrayList<UpdateOperations>();
+  protected boolean                returnBefore = false;
+  protected boolean                returnAfter  = false;
+  protected boolean                returnCount  = false;
 
   protected boolean updateEdge = false;
 
-  protected OProjection returnProjection;
+  protected Projection returnProjection;
 
 //  public OStorage.LOCKING_STRATEGY lockRecord = null;
 
-  public OLimit   limit;
-  public OTimeout timeout;
+  public Limit   limit;
+  public Timeout timeout;
 
-  public OUpdateExecutionPlanner(OUpdateStatement oUpdateStatement) {
-    if (oUpdateStatement instanceof OUpdateEdgeStatement) {
+  public OUpdateExecutionPlanner(UpdateStatement oUpdateStatement) {
+    if (oUpdateStatement instanceof UpdateEdgeStatement) {
       updateEdge = true;
     }
     this.target = oUpdateStatement.getTarget().copy();
@@ -88,7 +88,7 @@ public class OUpdateExecutionPlanner {
   }
 
   private void handleResultForReturnAfter(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnAfter,
-      OProjection returnProjection, boolean profilingEnabled) {
+      Projection returnProjection, boolean profilingEnabled) {
     if (returnAfter) {
       //re-convert to normal step
       result.chain(new ConvertToResultInternalStep(ctx, profilingEnabled));
@@ -99,7 +99,7 @@ public class OUpdateExecutionPlanner {
   }
 
   private void handleResultForReturnBefore(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnBefore,
-      OProjection returnProjection, boolean profilingEnabled) {
+      Projection returnProjection, boolean profilingEnabled) {
     if (returnBefore) {
       result.chain(new UnwrapPreviousValueStep(ctx, profilingEnabled));
       if (returnProjection != null) {
@@ -112,7 +112,7 @@ public class OUpdateExecutionPlanner {
     result.chain(new SaveElementStep(ctx, profilingEnabled));
   }
 
-  private void handleTimeout(OUpdateExecutionPlan result, OCommandContext ctx, OTimeout timeout, boolean profilingEnabled) {
+  private void handleTimeout(OUpdateExecutionPlan result, OCommandContext ctx, Timeout timeout, boolean profilingEnabled) {
     if (timeout != null && timeout.getVal().longValue() > 0) {
       result.chain(new TimeoutStep(timeout, ctx, profilingEnabled));
     }
@@ -128,50 +128,50 @@ public class OUpdateExecutionPlanner {
 //
 //  }
 
-  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, OLimit limit, boolean profilingEnabled) {
+  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, Limit limit, boolean profilingEnabled) {
     if (limit != null) {
       plan.chain(new LimitExecutionStep(limit, ctx, profilingEnabled));
     }
   }
 
-  private void handleUpsert(OUpdateExecutionPlan plan, OCommandContext ctx, OFromClause target, OWhereClause where,
+  private void handleUpsert(OUpdateExecutionPlan plan, OCommandContext ctx, FromClause target, WhereClause where,
       boolean upsert, boolean profilingEnabled) {
     if (upsert) {
       plan.chain(new UpsertStep(target, where, ctx, profilingEnabled));
     }
   }
 
-  private void handleOperations(OUpdateExecutionPlan plan, OCommandContext ctx, List<OUpdateOperations> ops, boolean profilingEnabled) {
+  private void handleOperations(OUpdateExecutionPlan plan, OCommandContext ctx, List<UpdateOperations> ops, boolean profilingEnabled) {
     if (ops != null) {
-      for (OUpdateOperations op : ops) {
+      for (UpdateOperations op : ops) {
         switch (op.getType()) {
-        case OUpdateOperations.TYPE_SET:
+        case UpdateOperations.TYPE_SET:
           plan.chain(new UpdateSetStep(op.getUpdateItems(), ctx, profilingEnabled));
           if(updateEdge){
             plan.chain(new UpdateEdgePointersStep( ctx, profilingEnabled));
           }
           break;
-        case OUpdateOperations.TYPE_REMOVE:
+        case UpdateOperations.TYPE_REMOVE:
           plan.chain(new UpdateRemoveStep(op.getUpdateRemoveItems(), ctx, profilingEnabled));
           break;
-        case OUpdateOperations.TYPE_MERGE:
+        case UpdateOperations.TYPE_MERGE:
           plan.chain(new UpdateMergeStep(op.getJson(), ctx, profilingEnabled));
           break;
-        case OUpdateOperations.TYPE_CONTENT:
+        case UpdateOperations.TYPE_CONTENT:
           plan.chain(new UpdateContentStep(op.getJson(), ctx, profilingEnabled));
           break;
-        case OUpdateOperations.TYPE_PUT:
-        case OUpdateOperations.TYPE_INCREMENT:
-        case OUpdateOperations.TYPE_ADD:
+        case UpdateOperations.TYPE_PUT:
+        case UpdateOperations.TYPE_INCREMENT:
+        case UpdateOperations.TYPE_ADD:
           throw new PCommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
         }
       }
     }
   }
 
-  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, OFromClause target, OWhereClause whereClause,
-      OTimeout timeout, boolean profilingEnabled) {
-    OSelectStatement sourceStatement = new OSelectStatement(-1);
+  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, FromClause target, WhereClause whereClause,
+      Timeout timeout, boolean profilingEnabled) {
+    SelectStatement sourceStatement = new SelectStatement(-1);
     sourceStatement.setTarget(target);
     sourceStatement.setWhereClause(whereClause);
     if (timeout != null) {

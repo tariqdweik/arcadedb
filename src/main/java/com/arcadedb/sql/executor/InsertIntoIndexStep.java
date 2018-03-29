@@ -1,19 +1,19 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIndexIdentifier;
-import com.arcadedb.sql.parser.OInsertBody;
+import com.arcadedb.sql.parser.IndexIdentifier;
+import com.arcadedb.sql.parser.InsertBody;
 
 /**
  * Created by luigidellaquila on 20/03/17.
  */
 public class InsertIntoIndexStep extends AbstractExecutionStep {
-  private final OIndexIdentifier targetIndex;
-  private final OInsertBody      body;
+  private final IndexIdentifier targetIndex;
+  private final InsertBody      body;
 
   boolean executed = false;
 
-  public InsertIntoIndexStep(OIndexIdentifier targetIndex, OInsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
+  public InsertIntoIndexStep(IndexIdentifier targetIndex, InsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetIndex = targetIndex;
     this.body = insertBody;

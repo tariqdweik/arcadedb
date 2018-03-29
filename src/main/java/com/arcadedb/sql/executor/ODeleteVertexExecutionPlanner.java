@@ -8,12 +8,12 @@ import com.arcadedb.sql.parser.*;
  */
 public class ODeleteVertexExecutionPlanner {
 
-  private final OFromClause  fromClause;
-  private final OWhereClause whereClause;
-  private final boolean      returnBefore;
-  private final OLimit       limit;
+  private final FromClause  fromClause;
+  private final WhereClause whereClause;
+  private final boolean     returnBefore;
+  private final Limit       limit;
 
-  public ODeleteVertexExecutionPlanner(ODeleteVertexStatement stm) {
+  public ODeleteVertexExecutionPlanner(DeleteVertexStatement stm) {
     this.fromClause = stm.getFromClause() == null ? null : stm.getFromClause().copy();
     this.whereClause = stm.getWhereClause() == null ? null : stm.getWhereClause().copy();
     this.returnBefore = stm.isReturnBefore();
@@ -41,7 +41,7 @@ public class ODeleteVertexExecutionPlanner {
     return result;
   }
 
-  private boolean handleIndexAsTarget(ODeleteExecutionPlan result, OIndexIdentifier indexIdentifier, OWhereClause whereClause,
+  private boolean handleIndexAsTarget(ODeleteExecutionPlan result, IndexIdentifier indexIdentifier, WhereClause whereClause,
       OCommandContext ctx) {
     if (indexIdentifier == null) {
       return false;
@@ -65,7 +65,7 @@ public class ODeleteVertexExecutionPlanner {
     }
   }
 
-  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, OLimit limit, boolean profilingEnabled) {
+  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, Limit limit, boolean profilingEnabled) {
     if (limit != null) {
       plan.chain(new LimitExecutionStep(limit, ctx, profilingEnabled));
     }
@@ -75,8 +75,8 @@ public class ODeleteVertexExecutionPlanner {
     plan.chain(new CastToVertexStep(ctx, profilingEnabled));
   }
 
-  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, OFromClause target, OWhereClause whereClause, boolean profilingEnabled) {
-    OSelectStatement sourceStatement = new OSelectStatement(-1);
+  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, FromClause target, WhereClause whereClause, boolean profilingEnabled) {
+    SelectStatement sourceStatement = new SelectStatement(-1);
     sourceStatement.setTarget(target);
     sourceStatement.setWhereClause(whereClause);
     OSelectExecutionPlanner planner = new OSelectExecutionPlanner(sourceStatement);

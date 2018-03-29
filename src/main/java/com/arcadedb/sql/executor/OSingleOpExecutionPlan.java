@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.parser.OSimpleExecStatement;
+import com.arcadedb.sql.parser.SimpleExecStatement;
 
 import java.util.Collections;
 import java.util.List;
@@ -11,12 +11,12 @@ import java.util.List;
  */
 public class OSingleOpExecutionPlan implements OInternalExecutionPlan {
 
-  private final OSimpleExecStatement statement;
+  private final SimpleExecStatement statement;
   OCommandContext ctx;
 
   boolean executed = false;
 
-  public OSingleOpExecutionPlan(OCommandContext ctx, OSimpleExecStatement stm) {
+  public OSingleOpExecutionPlan(OCommandContext ctx, SimpleExecStatement stm) {
     this.ctx = ctx;
     this.statement = stm;
   }

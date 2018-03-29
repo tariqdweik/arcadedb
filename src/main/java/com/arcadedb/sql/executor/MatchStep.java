@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OMultiMatchPathItem;
+import com.arcadedb.sql.parser.MultiMatchPathItem;
 
 import java.util.Map;
 import java.util.Optional;
@@ -118,7 +118,7 @@ public class MatchStep extends AbstractExecutionStep {
   }
 
   protected MatchEdgeTraverser createTraverser(OResult lastUpstreamRecord) {
-    if (edge.edge.item instanceof OMultiMatchPathItem) {
+    if (edge.edge.item instanceof MultiMatchPathItem) {
       return new MatchMultiEdgeTraverser(lastUpstreamRecord, edge);
     } else if (edge.out) {
       return new MatchEdgeTraverser(lastUpstreamRecord, edge);

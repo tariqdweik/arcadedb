@@ -1,19 +1,19 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.sql.parser.OSkip;
+import com.arcadedb.sql.parser.Skip;
 
 /**
  * Created by luigidellaquila on 08/07/16.
  */
 public class SkipExecutionStep extends AbstractExecutionStep {
-  private final OSkip skip;
+  private final Skip skip;
 
   int skipped = 0;
 
   OResultSet lastFetch;
   private boolean finished;
 
-  public SkipExecutionStep(OSkip skip, OCommandContext ctx, boolean profilingEnabled) {
+  public SkipExecutionStep(Skip skip, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.skip = skip;
   }

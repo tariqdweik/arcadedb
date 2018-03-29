@@ -6,8 +6,8 @@ import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PVertex;
-import com.arcadedb.sql.parser.OBatch;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Batch;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.*;
 
@@ -16,13 +16,13 @@ import java.util.*;
  */
 public class CreateEdgesStep extends AbstractExecutionStep {
 
-  private final OIdentifier targetClass;
-  private final OIdentifier targetCluster;
-  private final OIdentifier fromAlias;
-  private final OIdentifier toAlias;
-  private final Number      wait;
-  private final Number      retry;
-  private final OBatch      batch;
+  private final Identifier targetClass;
+  private final Identifier targetCluster;
+  private final Identifier fromAlias;
+  private final Identifier toAlias;
+  private final Number     wait;
+  private final Number     retry;
+  private final Batch      batch;
 
   //operation stuff
   Iterator fromIter;
@@ -33,8 +33,8 @@ public class CreateEdgesStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  public CreateEdgesStep(OIdentifier targetClass, OIdentifier targetClusterName, OIdentifier fromAlias, OIdentifier toAlias,
-      Number wait, Number retry, OBatch batch, OCommandContext ctx, boolean profilingEnabled) {
+  public CreateEdgesStep(Identifier targetClass, Identifier targetClusterName, Identifier fromAlias, Identifier toAlias,
+      Number wait, Number retry, Batch batch, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass;
     this.targetCluster = targetClusterName;

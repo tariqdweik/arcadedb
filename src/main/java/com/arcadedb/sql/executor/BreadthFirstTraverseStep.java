@@ -2,9 +2,9 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
-import com.arcadedb.sql.parser.OInteger;
-import com.arcadedb.sql.parser.OTraverseProjectionItem;
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.Integer;
+import com.arcadedb.sql.parser.TraverseProjectionItem;
+import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.*;
 
@@ -13,7 +13,7 @@ import java.util.*;
  */
 public class BreadthFirstTraverseStep extends AbstractTraverseStep {
 
-  public BreadthFirstTraverseStep(List<OTraverseProjectionItem> projections, OWhereClause whileClause, OInteger maxDepth,
+  public BreadthFirstTraverseStep(List<TraverseProjectionItem> projections, WhereClause whileClause, Integer maxDepth,
       OCommandContext ctx, boolean profilingEnabled) {
     super(projections, whileClause, maxDepth, ctx, profilingEnabled);
   }
@@ -65,7 +65,7 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
     if (!this.entryPoints.isEmpty()) {
       OTraverseResult item = (OTraverseResult) this.entryPoints.remove(0);
       this.results.add(item);
-      for (OTraverseProjectionItem proj : projections) {
+      for (TraverseProjectionItem proj : projections) {
         Object nextStep = proj.execute(item, ctx);
         if (this.maxDepth == null || this.maxDepth.getValue().intValue() > item.depth) {
           addNextEntryPoints(nextStep, item.depth + 1, (List<PRID>) item.getMetadata("$path"), ctx);

@@ -14,10 +14,10 @@ public class Pattern {
   public Map<String, PatternNode> aliasToNode = new LinkedHashMap<String, PatternNode>();
   public int                      numOfEdges  = 0;
 
-  public void addExpression(OMatchExpression expression) {
+  public void addExpression(MatchExpression expression) {
     PatternNode originNode = getOrCreateNode(expression.origin);
 
-    for (OMatchPathItem item : expression.items) {
+    for (MatchPathItem item : expression.items) {
       String nextAlias = item.filter.getAlias();
       PatternNode nextNode = getOrCreateNode(item.filter);
 
@@ -26,7 +26,7 @@ public class Pattern {
     }
   }
 
-  private PatternNode getOrCreateNode(OMatchFilter origin) {
+  private PatternNode getOrCreateNode(MatchFilter origin) {
     PatternNode originNode = get(origin.getAlias());
     if (originNode == null) {
       originNode = new PatternNode();

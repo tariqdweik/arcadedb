@@ -2,8 +2,8 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OExpression;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Expression;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -12,10 +12,10 @@ import java.util.Optional;
  * Created by luigidellaquila on 03/08/16.
  */
 public class LetExpressionStep extends AbstractExecutionStep {
-  private OIdentifier varname;
-  private OExpression expression;
+  private Identifier varname;
+  private Expression expression;
 
-  public LetExpressionStep(OIdentifier varName, OExpression expression, OCommandContext ctx, boolean profilingEnabled) {
+  public LetExpressionStep(Identifier varName, Expression expression, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varname = varName;
     this.expression = expression;
@@ -82,10 +82,10 @@ public class LetExpressionStep extends AbstractExecutionStep {
     try {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
       if (fromResult.getProperty("varname") != null) {
-        varname = OIdentifier.deserialize(fromResult.getProperty("varname"));
+        varname = Identifier.deserialize(fromResult.getProperty("varname"));
       }
       if (fromResult.getProperty("expression") != null) {
-        expression = new OExpression(-1);
+        expression = new Expression(-1);
         expression.deserialize(fromResult.getProperty("expression"));
       }
       reset();

@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.sql.parser.OExpression;
+import com.arcadedb.sql.parser.Expression;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,10 +11,10 @@ import java.util.List;
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
 public class OFuncitonAggregationContext implements AggregationContext {
-  private OSQLFunction      aggregateFunction;
-  private List<OExpression> params;
+  private OSQLFunction     aggregateFunction;
+  private List<Expression> params;
 
-  public OFuncitonAggregationContext(OSQLFunction function, List<OExpression> params) {
+  public OFuncitonAggregationContext(OSQLFunction function, List<Expression> params) {
     this.aggregateFunction = function;
     this.params = params;
     if (this.params == null) {
@@ -28,7 +28,7 @@ public class OFuncitonAggregationContext implements AggregationContext {
 
   @Override public void apply(OResult next, OCommandContext ctx) {
     List<Object> paramValues = new ArrayList<>();
-    for (OExpression expr : params) {
+    for (Expression expr : params) {
       paramValues.add(expr.execute(next, ctx));
     }
     aggregateFunction.execute(next, null, null, paramValues.toArray(), ctx);

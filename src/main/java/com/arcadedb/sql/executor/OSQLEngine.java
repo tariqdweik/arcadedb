@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PDatabaseImpl;
-import com.arcadedb.sql.parser.OStatement;
+import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.sql.parser.OStatementCache;
 
 public class OSQLEngine {
@@ -17,7 +17,7 @@ public class OSQLEngine {
     return null;
   }
 
-  public static OStatement parse(String query, PDatabaseImpl pDatabase) {
+  public static Statement parse(String query, PDatabaseImpl pDatabase) {
     return OStatementCache.get(query, pDatabase);
   }
 }

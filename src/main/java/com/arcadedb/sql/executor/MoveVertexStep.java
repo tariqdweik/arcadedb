@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OCluster;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Cluster;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -14,7 +14,7 @@ public class MoveVertexStep extends AbstractExecutionStep {
   private String targetCluster;
   private String targetClass;
 
-  public MoveVertexStep(OIdentifier targetClass, OCluster targetCluster, OCommandContext ctx, boolean profilingEnabled) {
+  public MoveVertexStep(Identifier targetClass, Cluster targetCluster, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass == null ? null : targetClass.getStringValue();
     if (targetCluster != null) {

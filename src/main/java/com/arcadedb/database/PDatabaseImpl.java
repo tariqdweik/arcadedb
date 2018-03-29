@@ -14,7 +14,7 @@ import com.arcadedb.schema.PSchemaImpl;
 import com.arcadedb.serializer.PBinarySerializer;
 import com.arcadedb.sql.executor.OResultSet;
 import com.arcadedb.sql.executor.OSQLEngine;
-import com.arcadedb.sql.parser.OStatement;
+import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLockContext;
 
@@ -564,7 +564,7 @@ public class PDatabaseImpl extends PLockContext implements PDatabase, PDatabaseI
 
   @Override
   public OResultSet query(String query, Map<String, Object> args) {
-    OStatement statement = OSQLEngine.parse(query, this);
+    Statement statement = OSQLEngine.parse(query, this);
     if (!statement.isIdempotent()) {
       throw new PCommandExecutionException("Cannot execute query on non idempotent statement: " + query);
     }

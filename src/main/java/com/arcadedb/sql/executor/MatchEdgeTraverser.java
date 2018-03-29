@@ -2,9 +2,9 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
-import com.arcadedb.sql.parser.OMatchPathItem;
-import com.arcadedb.sql.parser.ORid;
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.MatchPathItem;
+import com.arcadedb.sql.parser.Rid;
+import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.*;
 
@@ -12,9 +12,9 @@ import java.util.*;
  * Created by luigidellaquila on 23/09/16.
  */
 public class MatchEdgeTraverser {
-  protected OResult        sourceRecord;
-  protected EdgeTraversal  edge;
-  protected OMatchPathItem item;
+  protected OResult       sourceRecord;
+  protected EdgeTraversal edge;
+  protected MatchPathItem item;
 
   Iterator<OResultInternal> downstream;
 
@@ -24,7 +24,7 @@ public class MatchEdgeTraverser {
     this.item = edge.edge.item;
   }
 
-  public MatchEdgeTraverser(OResult lastUpstreamRecord, OMatchPathItem item) {
+  public MatchEdgeTraverser(OResult lastUpstreamRecord, MatchPathItem item) {
     this.sourceRecord = lastUpstreamRecord;
     this.item = item;
   }
@@ -97,15 +97,15 @@ public class MatchEdgeTraverser {
     }
   }
 
-  protected Iterable<OResultInternal> executeTraversal(OCommandContext iCommandContext, OMatchPathItem item,
+  protected Iterable<OResultInternal> executeTraversal(OCommandContext iCommandContext, MatchPathItem item,
       PIdentifiable startingPoint, int depth, List<PIdentifiable> pathToHere) {
 
-    OWhereClause filter = null;
-    OWhereClause whileCondition = null;
+    WhereClause filter = null;
+    WhereClause whileCondition = null;
     Integer maxDepth = null;
     String className = null;
     Integer clusterId = null;
-    ORid targetRid = null;
+    Rid targetRid = null;
     if (item.getFilter() != null) {
       filter = getTargetFilter(item);
       whileCondition = item.getFilter().getWhileCondition();
@@ -184,19 +184,19 @@ public class MatchEdgeTraverser {
     return result;
   }
 
-  protected OWhereClause getTargetFilter(OMatchPathItem item) {
+  protected WhereClause getTargetFilter(MatchPathItem item) {
     return item.getFilter().getFilter();
   }
 
-  protected String targetClassName(OMatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClassName(MatchPathItem item, OCommandContext iCommandContext) {
     return item.getFilter().getClassName(iCommandContext);
   }
 
-  protected String targetClusterName(OMatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClusterName(MatchPathItem item, OCommandContext iCommandContext) {
     return item.getFilter().getClusterName(iCommandContext);
   }
 
-  protected ORid targetRid(OMatchPathItem item, OCommandContext iCommandContext) {
+  protected Rid targetRid(MatchPathItem item, OCommandContext iCommandContext) {
     return item.getFilter().getRid(iCommandContext);
   }
 
@@ -237,7 +237,7 @@ public class MatchEdgeTraverser {
     return clusterId.equals(origin.getIdentity().getBucketId());
   }
 
-  private boolean matchesRid(OCommandContext iCommandContext, ORid rid, PIdentifiable origin) {
+  private boolean matchesRid(OCommandContext iCommandContext, Rid rid, PIdentifiable origin) {
     if (rid == null) {
       return true;
     }
@@ -251,7 +251,7 @@ public class MatchEdgeTraverser {
     return origin.getIdentity().equals(rid.toRecordId(origin, iCommandContext));
   }
 
-  protected boolean matchesFilters(OCommandContext iCommandContext, OWhereClause filter, PIdentifiable origin) {
+  protected boolean matchesFilters(OCommandContext iCommandContext, WhereClause filter, PIdentifiable origin) {
     return filter == null || filter.matchesFilters(origin, iCommandContext);
   }
 

@@ -17,32 +17,32 @@ public class OMatchExecutionPlanner {
 
   static final String DEFAULT_ALIAS_PREFIX = "$ORIENT_DEFAULT_ALIAS_";
 
-  protected List<OMatchExpression>  matchExpressions;
-  protected List<OExpression>       returnItems;
-  protected List<OIdentifier>       returnAliases;
-  protected List<ONestedProjection> returnNestedProjections;
+  protected List<MatchExpression>  matchExpressions;
+  protected List<Expression>       returnItems;
+  protected List<Identifier>       returnAliases;
+  protected List<NestedProjection> returnNestedProjections;
   boolean returnElements     = false;
   boolean returnPaths        = false;
   boolean returnPatterns     = false;
   boolean returnPathElements = false;
   boolean returnDistinct     = false;
-  protected     OSkip    skip;
-  private final OGroupBy groupBy;
-  private final OOrderBy orderBy;
-  private final OUnwind  unwind;
-  protected     OLimit   limit;
+  protected     Skip    skip;
+  private final GroupBy groupBy;
+  private final OrderBy orderBy;
+  private final Unwind  unwind;
+  protected     Limit   limit;
 
   //post-parsing
-  private Pattern                   pattern;
-  private List<Pattern>             subPatterns;
-  private Map<String, OWhereClause> aliasFilters;
-  private Map<String, String>       aliasClasses;
-  private Map<String, String>       aliasClusters;
-  private Map<String, ORid>         aliasRids;
+  private Pattern                  pattern;
+  private List<Pattern>            subPatterns;
+  private Map<String, WhereClause> aliasFilters;
+  private Map<String, String>      aliasClasses;
+  private Map<String, String>      aliasClusters;
+  private Map<String, Rid>         aliasRids;
   boolean foundOptional = false;
   private long threshold = 100;
 
-  public OMatchExecutionPlanner(OMatchStatement stm) {
+  public OMatchExecutionPlanner(MatchStatement stm) {
     this.matchExpressions = stm.getMatchExpressions().stream().map(x -> x.copy()).collect(Collectors.toList());
     this.returnItems = stm.getReturnItems().stream().map(x -> x.copy()).collect(Collectors.toList());
     this.returnAliases = stm.getReturnAliases().stream().map(x -> x == null ? null : x.copy()).collect(Collectors.toList());
@@ -122,12 +122,12 @@ public class OMatchExecutionPlanner {
       }
     } else {
       QueryPlanningInfo info = new QueryPlanningInfo();
-      List<OProjectionItem> items = new ArrayList<>();
+      List<ProjectionItem> items = new ArrayList<>();
       for (int i = 0; i < this.returnItems.size(); i++) {
-        OProjectionItem item = new OProjectionItem(returnItems.get(i), this.returnAliases.get(i), returnNestedProjections.get(i));
+        ProjectionItem item = new ProjectionItem(returnItems.get(i), this.returnAliases.get(i), returnNestedProjections.get(i));
         items.add(item);
       }
-      info.projection = new OProjection(items, returnDistinct);
+      info.projection = new Projection(items, returnDistinct);
 
       info.projection = OSelectExecutionPlanner.translateDistinct(info.projection);
       info.distinct = info.projection == null ? false : info.projection.isDistinct();
@@ -159,10 +159,10 @@ public class OMatchExecutionPlanner {
     } else if (returnPathElements) {
       result.chain(new ReturnMatchPathElementsStep(context, profilingEnabled));
     } else {
-      OProjection projection = new OProjection(-1);
+      Projection projection = new Projection(-1);
       projection.setItems(new ArrayList<>());
       for (int i = 0; i < returnAliases.size(); i++) {
-        OProjectionItem item = new OProjectionItem(-1);
+        ProjectionItem item = new ProjectionItem(-1);
         item.setExpression(returnItems.get(i));
         item.setAlias(returnAliases.get(i));
         item.setNestedProjection(returnNestedProjections.get(i));
@@ -199,9 +199,9 @@ public class OMatchExecutionPlanner {
         //from actual execution plan
         String clazz = aliasClasses.get(node.alias);
         String cluster = aliasClusters.get(node.alias);
-        ORid rid = aliasRids.get(node.alias);
-        OWhereClause filter = aliasFilters.get(node.alias);
-        OSelectStatement select = createSelectStatement(clazz, cluster, rid, filter);
+        Rid rid = aliasRids.get(node.alias);
+        WhereClause filter = aliasFilters.get(node.alias);
+        SelectStatement select = createSelectStatement(clazz, cluster, rid, filter);
         plan.chain(new MatchFirstStep(context, node, select.createExecutionPlan(context, profilingEnabled), profilingEnabled));
       }
     }
@@ -392,7 +392,7 @@ public class OMatchExecutionPlanner {
     for (PatternNode node : pattern.aliasToNode.values()) {
       Set<String> currentDependencies = new HashSet<String>();
 
-      OWhereClause filter = aliasFilters.get(node.alias);
+      WhereClause filter = aliasFilters.get(node.alias);
       if (filter != null && filter.getBaseExpression() != null) {
         List<String> involvedAliases = filter.getBaseExpression().getMatchPatternInvolvedAliases();
         if (involvedAliases != null) {
@@ -420,15 +420,15 @@ public class OMatchExecutionPlanner {
       PatternNode patternNode = edge.out ? edge.edge.out : edge.edge.in;
       String clazz = this.aliasClasses.get(patternNode.alias);
       String cluster = this.aliasClusters.get(patternNode.alias);
-      ORid rid = this.aliasRids.get(patternNode.alias);
-      OWhereClause where = aliasFilters.get(patternNode.alias);
-      OSelectStatement select = new OSelectStatement(-1);
-      select.setTarget(new OFromClause(-1));
-      select.getTarget().setItem(new OFromItem(-1));
+      Rid rid = this.aliasRids.get(patternNode.alias);
+      WhereClause where = aliasFilters.get(patternNode.alias);
+      SelectStatement select = new SelectStatement(-1);
+      select.setTarget(new FromClause(-1));
+      select.getTarget().setItem(new FromItem(-1));
       if (clazz != null) {
-        select.getTarget().getItem().setIdentifier(new OIdentifier(clazz));
+        select.getTarget().getItem().setIdentifier(new Identifier(clazz));
       } else if (cluster != null) {
-        select.getTarget().getItem().setCluster(new OCluster(cluster));
+        select.getTarget().getItem().setCluster(new Cluster(cluster));
       } else if (rid != null) {
         select.getTarget().getItem().setRids(Collections.singletonList(rid));
       }
@@ -451,9 +451,9 @@ public class OMatchExecutionPlanner {
     for (String alias : aliasesToPrefetch) {
       String targetClass = aliasClasses.get(alias);
       String targetCluster = aliasClusters.get(alias);
-      ORid targetRid = aliasRids.get(alias);
-      OWhereClause filter = aliasFilters.get(alias);
-      OSelectStatement prefetchStm = createSelectStatement(targetClass, targetCluster, targetRid, filter);
+      Rid targetRid = aliasRids.get(alias);
+      WhereClause filter = aliasFilters.get(alias);
+      SelectStatement prefetchStm = createSelectStatement(targetClass, targetCluster, targetRid, filter);
 
       MatchPrefetchStep step = new MatchPrefetchStep(context, prefetchStm.createExecutionPlan(context, profilingEnabled), alias,
           profilingEnabled);
@@ -461,17 +461,17 @@ public class OMatchExecutionPlanner {
     }
   }
 
-  private OSelectStatement createSelectStatement(String targetClass, String targetCluster, ORid targetRid, OWhereClause filter) {
-    OSelectStatement prefetchStm = new OSelectStatement(-1);
+  private SelectStatement createSelectStatement(String targetClass, String targetCluster, Rid targetRid, WhereClause filter) {
+    SelectStatement prefetchStm = new SelectStatement(-1);
     prefetchStm.setWhereClause(filter);
-    OFromClause from = new OFromClause(-1);
-    OFromItem fromItem = new OFromItem(-1);
+    FromClause from = new FromClause(-1);
+    FromItem fromItem = new FromItem(-1);
     if (targetRid != null) {
       fromItem.setRids(Collections.singletonList(targetRid));
     } else if (targetClass != null) {
-      fromItem.setIdentifier(new OIdentifier(targetClass));
+      fromItem.setIdentifier(new Identifier(targetClass));
     } else if (targetCluster != null) {
-      fromItem.setCluster(new OCluster(targetCluster));
+      fromItem.setCluster(new Cluster(targetCluster));
     }
     from.setItem(fromItem);
     prefetchStm.setTarget(from);
@@ -553,15 +553,15 @@ public class OMatchExecutionPlanner {
     }
     assignDefaultAliases(this.matchExpressions);
     pattern = new Pattern();
-    for (OMatchExpression expr : this.matchExpressions) {
+    for (MatchExpression expr : this.matchExpressions) {
       pattern.addExpression(expr.copy());
     }
 
-    Map<String, OWhereClause> aliasFilters = new LinkedHashMap<>();
+    Map<String, WhereClause> aliasFilters = new LinkedHashMap<>();
     Map<String, String> aliasClasses = new LinkedHashMap<>();
     Map<String, String> aliasClusters = new LinkedHashMap<>();
-    Map<String, ORid> aliasRids = new LinkedHashMap<>();
-    for (OMatchExpression expr : this.matchExpressions) {
+    Map<String, Rid> aliasRids = new LinkedHashMap<>();
+    for (MatchExpression expr : this.matchExpressions) {
       addAliases(expr, aliasFilters, aliasClasses, aliasClusters, aliasRids, ctx);
     }
 
@@ -573,41 +573,41 @@ public class OMatchExecutionPlanner {
     rebindFilters(aliasFilters);
   }
 
-  private void rebindFilters(Map<String, OWhereClause> aliasFilters) {
-    for (OMatchExpression expression : matchExpressions) {
-      OWhereClause newFilter = aliasFilters.get(expression.getOrigin().getAlias());
+  private void rebindFilters(Map<String, WhereClause> aliasFilters) {
+    for (MatchExpression expression : matchExpressions) {
+      WhereClause newFilter = aliasFilters.get(expression.getOrigin().getAlias());
       expression.getOrigin().setFilter(newFilter);
 
-      for (OMatchPathItem item : expression.getItems()) {
+      for (MatchPathItem item : expression.getItems()) {
         newFilter = aliasFilters.get(item.getFilter().getAlias());
         item.getFilter().setFilter(newFilter);
       }
     }
   }
 
-  private void addAliases(OMatchExpression expr, Map<String, OWhereClause> aliasFilters, Map<String, String> aliasClasses,
-      Map<String, String> aliasClusters, Map<String, ORid> aliasRids, OCommandContext context) {
+  private void addAliases(MatchExpression expr, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
+      Map<String, String> aliasClusters, Map<String, Rid> aliasRids, OCommandContext context) {
     addAliases(expr.getOrigin(), aliasFilters, aliasClasses, aliasClusters, aliasRids, context);
-    for (OMatchPathItem item : expr.getItems()) {
+    for (MatchPathItem item : expr.getItems()) {
       if (item.getFilter() != null) {
         addAliases(item.getFilter(), aliasFilters, aliasClasses, aliasClusters, aliasRids, context);
       }
     }
   }
 
-  private void addAliases(OMatchFilter matchFilter, Map<String, OWhereClause> aliasFilters, Map<String, String> aliasClasses,
-      Map<String, String> aliasClusters, Map<String, ORid> aliasRids, OCommandContext context) {
+  private void addAliases(MatchFilter matchFilter, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
+      Map<String, String> aliasClusters, Map<String, Rid> aliasRids, OCommandContext context) {
     String alias = matchFilter.getAlias();
-    OWhereClause filter = matchFilter.getFilter();
+    WhereClause filter = matchFilter.getFilter();
     if (alias != null) {
       if (filter != null && filter.getBaseExpression() != null) {
-        OWhereClause previousFilter = aliasFilters.get(alias);
+        WhereClause previousFilter = aliasFilters.get(alias);
         if (previousFilter == null) {
-          previousFilter = new OWhereClause(-1);
-          previousFilter.setBaseExpression(new OAndBlock(-1));
+          previousFilter = new WhereClause(-1);
+          previousFilter.setBaseExpression(new AndBlock(-1));
           aliasFilters.put(alias, previousFilter);
         }
-        OAndBlock filterBlock = (OAndBlock) previousFilter.getBaseExpression();
+        AndBlock filterBlock = (AndBlock) previousFilter.getBaseExpression();
         if (filter != null && filter.getBaseExpression() != null) {
           filterBlock.getSubBlocks().add(filter.getBaseExpression());
         }
@@ -639,9 +639,9 @@ public class OMatchExecutionPlanner {
         }
       }
 
-      ORid rid = matchFilter.getRid(context);
+      Rid rid = matchFilter.getRid(context);
       if (rid != null) {
-        ORid previousRid = aliasRids.get(alias);
+        Rid previousRid = aliasRids.get(alias);
         if (previousRid == null) {
           aliasRids.put(alias, rid);
         } else if (!previousRid.equals(rid)) {
@@ -667,16 +667,16 @@ public class OMatchExecutionPlanner {
    *
    * @param matchExpressions
    */
-  private void assignDefaultAliases(List<OMatchExpression> matchExpressions) {
+  private void assignDefaultAliases(List<MatchExpression> matchExpressions) {
     int counter = 0;
-    for (OMatchExpression expression : matchExpressions) {
+    for (MatchExpression expression : matchExpressions) {
       if (expression.getOrigin().getAlias() == null) {
         expression.getOrigin().setAlias(DEFAULT_ALIAS_PREFIX + (counter++));
       }
 
-      for (OMatchPathItem item : expression.getItems()) {
+      for (MatchPathItem item : expression.getItems()) {
         if (item.getFilter() == null) {
-          item.setFilter(new OMatchFilter(-1));
+          item.setFilter(new MatchFilter(-1));
         }
         if (item.getFilter().getAlias() == null) {
           item.getFilter().setAlias(DEFAULT_ALIAS_PREFIX + (counter++));
@@ -686,7 +686,7 @@ public class OMatchExecutionPlanner {
   }
 
   private Map<String, Long> estimateRootEntries(Map<String, String> aliasClasses, Map<String, String> aliasClusters,
-      Map<String, ORid> aliasRids, Map<String, OWhereClause> aliasFilters, OCommandContext ctx) {
+      Map<String, Rid> aliasRids, Map<String, WhereClause> aliasFilters, OCommandContext ctx) {
     Set<String> allAliases = new LinkedHashSet<String>();
     allAliases.addAll(aliasClasses.keySet());
     allAliases.addAll(aliasFilters.keySet());
@@ -699,7 +699,7 @@ public class OMatchExecutionPlanner {
     for (String alias : allAliases) {
       String className = aliasClasses.get(alias);
       String clusterName = aliasClusters.get(alias);
-      ORid rid = aliasRids.get(alias);
+      Rid rid = aliasRids.get(alias);
       if (className == null && clusterName == null) {
         continue;
       }
@@ -710,7 +710,7 @@ public class OMatchExecutionPlanner {
         }
         PDocumentType oClass = schema.getType(className);
         long upperBound;
-        OWhereClause filter = aliasFilters.get(alias);
+        WhereClause filter = aliasFilters.get(alias);
         if (filter != null) {
           upperBound = filter.estimate(oClass, this.threshold, ctx);
         } else {
@@ -726,7 +726,7 @@ public class OMatchExecutionPlanner {
         PDocumentType oClass = db.getSchema().getTypeByBucketId(clusterId);
         if (oClass != null) {
           long upperBound;
-          OWhereClause filter = aliasFilters.get(alias);
+          WhereClause filter = aliasFilters.get(alias);
           if (filter != null) {
             upperBound = Math.min(db.countBucket(clusterName), filter.estimate(oClass, this.threshold, ctx));
           } else {

@@ -12,18 +12,18 @@ import java.util.List;
  */
 public class OCreateEdgeExecutionPlanner {
 
-  protected OIdentifier targetClass;
-  protected OIdentifier targetClusterName;
-  protected OExpression leftExpression;
-  protected OExpression rightExpression;
+  protected Identifier targetClass;
+  protected Identifier targetClusterName;
+  protected Expression leftExpression;
+  protected Expression rightExpression;
 
-  protected OInsertBody body;
-  protected Number      retry;
-  protected Number      wait;
-  protected OBatch      batch;
+  protected InsertBody body;
+  protected Number     retry;
+  protected Number     wait;
+  protected Batch      batch;
 
 
-  public OCreateEdgeExecutionPlanner(OCreateEdgeStatement statement) {
+  public OCreateEdgeExecutionPlanner(CreateEdgeStatement statement) {
     this.targetClass = statement.getTargetClass() == null ? null : statement.getTargetClass().copy();
     this.targetClusterName = statement.getTargetClusterName() == null ? null : statement.getTargetClusterName().copy();
     this.leftExpression = statement.getLeftExpression() == null ? null : statement.getLeftExpression().copy();
@@ -39,15 +39,15 @@ public class OCreateEdgeExecutionPlanner {
 
     if (targetClass == null) {
       if (targetClusterName == null) {
-        targetClass = new OIdentifier("E");
+        targetClass = new Identifier("E");
       } else {
         PDatabase db = ctx.getDatabase();
         PDocumentType clazz = db.getSchema()
             .getTypeByBucketId((db.getSchema().getBucketByName(targetClusterName.getStringValue()).getId()));
         if (clazz != null) {
-          targetClass = new OIdentifier(clazz.getName());
+          targetClass = new Identifier(clazz.getName());
         } else {
-          targetClass = new OIdentifier("E");
+          targetClass = new Identifier("E");
         }
       }
     }
@@ -56,11 +56,11 @@ public class OCreateEdgeExecutionPlanner {
 
     handleCheckType(result, ctx, enableProfiling);
 
-    handleGlobalLet(result, new OIdentifier("$__ORIENT_CREATE_EDGE_fromV"), leftExpression, ctx, enableProfiling);
-    handleGlobalLet(result, new OIdentifier("$__ORIENT_CREATE_EDGE_toV"), rightExpression, ctx, enableProfiling);
+    handleGlobalLet(result, new Identifier("$__ORIENT_CREATE_EDGE_fromV"), leftExpression, ctx, enableProfiling);
+    handleGlobalLet(result, new Identifier("$__ORIENT_CREATE_EDGE_toV"), rightExpression, ctx, enableProfiling);
 
-    result.chain(new CreateEdgesStep(targetClass, targetClusterName, new OIdentifier("$__ORIENT_CREATE_EDGE_fromV"),
-        new OIdentifier("$__ORIENT_CREATE_EDGE_toV"), wait, retry, batch, ctx, enableProfiling));
+    result.chain(new CreateEdgesStep(targetClass, targetClusterName, new Identifier("$__ORIENT_CREATE_EDGE_fromV"),
+        new Identifier("$__ORIENT_CREATE_EDGE_toV"), wait, retry, batch, ctx, enableProfiling));
 
     handleSetFields(result, body, ctx, enableProfiling);
     handleSave(result, targetClusterName, ctx, enableProfiling);
@@ -68,7 +68,7 @@ public class OCreateEdgeExecutionPlanner {
     return result;
   }
 
-  private void handleGlobalLet(OInsertExecutionPlan result, OIdentifier name, OExpression expression, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleGlobalLet(OInsertExecutionPlan result, Identifier name, Expression expression, OCommandContext ctx, boolean profilingEnabled) {
     result.chain(new GlobalLetExpressionStep(name, expression, ctx, profilingEnabled));
   }
 
@@ -78,11 +78,11 @@ public class OCreateEdgeExecutionPlanner {
     }
   }
 
-  private void handleSave(OInsertExecutionPlan result, OIdentifier targetClusterName, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleSave(OInsertExecutionPlan result, Identifier targetClusterName, OCommandContext ctx, boolean profilingEnabled) {
     result.chain(new SaveElementStep(ctx, targetClusterName, profilingEnabled));
   }
 
-  private void handleSetFields(OInsertExecutionPlan result, OInsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleSetFields(OInsertExecutionPlan result, InsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
     if (insertBody == null) {
       return;
     }
@@ -91,10 +91,10 @@ public class OCreateEdgeExecutionPlanner {
     } else if (insertBody.getContent() != null) {
       result.chain(new UpdateContentStep(insertBody.getContent(), ctx, profilingEnabled));
     } else if (insertBody.getSetExpressions() != null) {
-      List<OUpdateItem> items = new ArrayList<>();
+      List<UpdateItem> items = new ArrayList<>();
       for (OInsertSetExpression exp : insertBody.getSetExpressions()) {
-        OUpdateItem item = new OUpdateItem(-1);
-        item.setOperator(OUpdateItem.OPERATOR_EQ);
+        UpdateItem item = new UpdateItem(-1);
+        item.setOperator(UpdateItem.OPERATOR_EQ);
         item.setLeft(exp.getLeft().copy());
         item.setRight(exp.getRight().copy());
         items.add(item);

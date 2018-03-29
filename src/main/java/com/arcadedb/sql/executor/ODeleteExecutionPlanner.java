@@ -11,13 +11,13 @@ import java.util.List;
  */
 public class ODeleteExecutionPlanner {
 
-  private final OFromClause  fromClause;
-  private final OWhereClause whereClause;
-  private final boolean      returnBefore;
-  private final OLimit       limit;
-  private final boolean      unsafe;
+  private final FromClause  fromClause;
+  private final WhereClause whereClause;
+  private final boolean     returnBefore;
+  private final Limit       limit;
+  private final boolean     unsafe;
 
-  public ODeleteExecutionPlanner(ODeleteStatement stm) {
+  public ODeleteExecutionPlanner(DeleteStatement stm) {
     this.fromClause = stm.getFromClause() == null ? null : stm.getFromClause().copy();
     this.whereClause = stm.getWhereClause() == null ? null : stm.getWhereClause().copy();
     this.returnBefore = stm.isReturnBefore();
@@ -50,7 +50,7 @@ public class ODeleteExecutionPlanner {
     return result;
   }
 
-  private boolean handleIndexAsTarget(ODeleteExecutionPlan result, OIndexIdentifier indexIdentifier, OWhereClause whereClause,
+  private boolean handleIndexAsTarget(ODeleteExecutionPlan result, IndexIdentifier indexIdentifier, WhereClause whereClause,
       OCommandContext ctx, boolean profilingEnabled) {
     if (indexIdentifier == null) {
       return false;
@@ -60,12 +60,12 @@ public class ODeleteExecutionPlanner {
     if (index == null) {
       throw new PCommandExecutionException("Index not found: " + indexName);
     }
-    List<OAndBlock> flattenedWhereClause = whereClause == null ? null : whereClause.flatten();
+    List<AndBlock> flattenedWhereClause = whereClause == null ? null : whereClause.flatten();
 
     switch (indexIdentifier.getType()) {
     case INDEX:
-      OBooleanExpression keyCondition = null;
-      OBooleanExpression ridCondition = null;
+      BooleanExpression keyCondition = null;
+      BooleanExpression ridCondition = null;
       if (flattenedWhereClause == null || flattenedWhereClause.size() == 0) {
         //TODO
 //        if (!index.supportsOrderedIterations()) {
@@ -74,7 +74,7 @@ public class ODeleteExecutionPlanner {
       } else if (flattenedWhereClause.size() > 1) {
         throw new PCommandExecutionException("Index queries with this kind of condition are not supported yet: " + whereClause);
       } else {
-        OAndBlock andBlock = flattenedWhereClause.get(0);
+        AndBlock andBlock = flattenedWhereClause.get(0);
         if (andBlock.getSubBlocks().size() == 1) {
 
           whereClause = null;//The WHERE clause won't be used anymore, the index does all the filtering
@@ -97,7 +97,7 @@ public class ODeleteExecutionPlanner {
       }
       result.chain(new DeleteFromIndexStep(index, keyCondition, null, ridCondition, ctx, profilingEnabled));
       if (ridCondition != null) {
-        OWhereClause where = new OWhereClause(-1);
+        WhereClause where = new WhereClause(-1);
         where.setBaseExpression(ridCondition);
         result.chain(new FilterStep(where, ctx, profilingEnabled));
       }
@@ -140,22 +140,22 @@ public class ODeleteExecutionPlanner {
     }
   }
 
-  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, OLimit limit, boolean profilingEnabled) {
+  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, Limit limit, boolean profilingEnabled) {
     if (limit != null) {
       plan.chain(new LimitExecutionStep(limit, ctx, profilingEnabled));
     }
   }
 
-  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, OFromClause target, OWhereClause whereClause, boolean profilingEnabled) {
-    OSelectStatement sourceStatement = new OSelectStatement(-1);
+  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, FromClause target, WhereClause whereClause, boolean profilingEnabled) {
+    SelectStatement sourceStatement = new SelectStatement(-1);
     sourceStatement.setTarget(target);
     sourceStatement.setWhereClause(whereClause);
     OSelectExecutionPlanner planner = new OSelectExecutionPlanner(sourceStatement);
     result.chain(new SubQueryStep(planner.createExecutionPlan(ctx, profilingEnabled), ctx, ctx, profilingEnabled));
   }
 
-  private OBooleanExpression getKeyCondition(OAndBlock andBlock) {
-    for (OBooleanExpression exp : andBlock.getSubBlocks()) {
+  private BooleanExpression getKeyCondition(AndBlock andBlock) {
+    for (BooleanExpression exp : andBlock.getSubBlocks()) {
       String str = exp.toString();
       if (str.length() < 5) {
         continue;
@@ -167,8 +167,8 @@ public class ODeleteExecutionPlanner {
     return null;
   }
 
-  private OBooleanExpression getRidCondition(OAndBlock andBlock) {
-    for (OBooleanExpression exp : andBlock.getSubBlocks()) {
+  private BooleanExpression getRidCondition(AndBlock andBlock) {
+    for (BooleanExpression exp : andBlock.getSubBlocks()) {
       String str = exp.toString();
       if (str.length() < 5) {
         continue;

@@ -10,19 +10,19 @@ import java.util.List;
  */
 public class OInsertExecutionPlanner {
 
-  protected OIdentifier      targetClass;
-  protected OIdentifier      targetClusterName;
-  protected OCluster         targetCluster;
-  protected OIndexIdentifier targetIndex;
-  protected OInsertBody      insertBody;
-  protected OProjection      returnStatement;
-  protected OSelectStatement selectStatement;
+  protected Identifier      targetClass;
+  protected Identifier      targetClusterName;
+  protected Cluster         targetCluster;
+  protected IndexIdentifier targetIndex;
+  protected InsertBody      insertBody;
+  protected Projection      returnStatement;
+  protected SelectStatement selectStatement;
 
   public OInsertExecutionPlanner() {
 
   }
 
-  public OInsertExecutionPlanner(OInsertStatement statement) {
+  public OInsertExecutionPlanner(InsertStatement statement) {
     this.targetClass = statement.getTargetClass() == null ? null : statement.getTargetClass().copy();
     this.targetClusterName = statement.getTargetClusterName() == null ? null : statement.getTargetClusterName().copy();
     this.targetCluster = statement.getTargetCluster() == null ? null : statement.getTargetCluster().copy();
@@ -51,7 +51,7 @@ public class OInsertExecutionPlanner {
         if (name == null) {
           name = ctx.getDatabase().getSchema().getBucketById(targetCluster.getClusterNumber()).getName();
         }
-        handleSave(result, new OIdentifier(name), ctx, enableProfiling);
+        handleSave(result, new Identifier(name), ctx, enableProfiling);
       } else {
         handleSave(result, targetClusterName, ctx, enableProfiling);
       }
@@ -59,19 +59,19 @@ public class OInsertExecutionPlanner {
     return result;
   }
 
-  private void handleSave(OInsertExecutionPlan result, OIdentifier targetClusterName, OCommandContext ctx,
+  private void handleSave(OInsertExecutionPlan result, Identifier targetClusterName, OCommandContext ctx,
       boolean profilingEnabled) {
     result.chain(new SaveElementStep(ctx, targetClusterName, profilingEnabled));
   }
 
-  private void handleReturn(OInsertExecutionPlan result, OProjection returnStatement, OCommandContext ctx,
+  private void handleReturn(OInsertExecutionPlan result, Projection returnStatement, OCommandContext ctx,
       boolean profilingEnabled) {
     if (returnStatement != null) {
       result.chain(new ProjectionCalculationStep(returnStatement, ctx, profilingEnabled));
     }
   }
 
-  private void handleSetFields(OInsertExecutionPlan result, OInsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleSetFields(OInsertExecutionPlan result, InsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
     if (insertBody == null) {
       return;
     }
@@ -80,10 +80,10 @@ public class OInsertExecutionPlanner {
     } else if (insertBody.getContent() != null) {
       result.chain(new UpdateContentStep(insertBody.getContent(), ctx, profilingEnabled));
     } else if (insertBody.getSetExpressions() != null) {
-      List<OUpdateItem> items = new ArrayList<>();
+      List<UpdateItem> items = new ArrayList<>();
       for (OInsertSetExpression exp : insertBody.getSetExpressions()) {
-        OUpdateItem item = new OUpdateItem(-1);
-        item.setOperator(OUpdateItem.OPERATOR_EQ);
+        UpdateItem item = new UpdateItem(-1);
+        item.setOperator(UpdateItem.OPERATOR_EQ);
         item.setLeft(exp.getLeft().copy());
         item.setRight(exp.getRight().copy());
         items.add(item);
@@ -92,14 +92,14 @@ public class OInsertExecutionPlanner {
     }
   }
 
-  private void handleTargetClass(OInsertExecutionPlan result, OIdentifier targetClass, OCommandContext ctx,
+  private void handleTargetClass(OInsertExecutionPlan result, Identifier targetClass, OCommandContext ctx,
       boolean profilingEnabled) {
     if (targetClass != null) {
       result.chain(new SetDocumentClassStep(targetClass, ctx, profilingEnabled));
     }
   }
 
-  private void handleCreateRecord(OInsertExecutionPlan result, OInsertBody body, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleCreateRecord(OInsertExecutionPlan result, InsertBody body, OCommandContext ctx, boolean profilingEnabled) {
     int tot = 1;
 
     if (body != null && body.getValueExpressions() != null && body.getValueExpressions().size() > 0) {
@@ -108,7 +108,7 @@ public class OInsertExecutionPlanner {
     result.chain(new CreateRecordStep(ctx, tot, profilingEnabled));
   }
 
-  private void handleInsertSelect(OInsertExecutionPlan result, OSelectStatement selectStatement, OCommandContext ctx,
+  private void handleInsertSelect(OInsertExecutionPlan result, SelectStatement selectStatement, OCommandContext ctx,
       boolean profilingEnabled) {
     OInternalExecutionPlan subPlan = selectStatement.createExecutionPlan(ctx, profilingEnabled);
     result.chain(new SubQueryStep(subPlan, ctx, ctx, profilingEnabled));

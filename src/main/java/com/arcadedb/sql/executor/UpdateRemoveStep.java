@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OUpdateRemoveItem;
+import com.arcadedb.sql.parser.UpdateRemoveItem;
 
 import java.util.List;
 import java.util.Map;
@@ -11,9 +11,9 @@ import java.util.Optional;
  * Created by luigidellaquila on 09/08/16.
  */
 public class UpdateRemoveStep extends AbstractExecutionStep {
-  private final List<OUpdateRemoveItem> items;
+  private final List<UpdateRemoveItem> items;
 
-  public UpdateRemoveStep(List<OUpdateRemoveItem> items, OCommandContext ctx, boolean profilingEnabled) {
+  public UpdateRemoveStep(List<UpdateRemoveItem> items, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.items = items;
   }
@@ -31,7 +31,7 @@ public class UpdateRemoveStep extends AbstractExecutionStep {
       public OResult next() {
         OResult result = upstream.next();
         if (result instanceof OResultInternal) {
-          for (OUpdateRemoveItem item : items) {
+          for (UpdateRemoveItem item : items) {
             item.applyUpdate((OResultInternal) result, ctx);
           }
         }
@@ -62,7 +62,7 @@ public class UpdateRemoveStep extends AbstractExecutionStep {
     result.append(spaces);
     result.append("+ UPDATE REMOVE");
     for (int i = 0; i < items.size(); i++) {
-      OUpdateRemoveItem item = items.get(i);
+      UpdateRemoveItem item = items.get(i);
       if (i < items.size()) {
         result.append("\n");
       }

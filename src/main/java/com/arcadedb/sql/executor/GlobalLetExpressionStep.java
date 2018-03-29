@@ -1,19 +1,19 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OExpression;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Expression;
+import com.arcadedb.sql.parser.Identifier;
 
 /**
  * Created by luigidellaquila on 03/08/16.
  */
 public class GlobalLetExpressionStep extends AbstractExecutionStep {
-  private final OIdentifier varname;
-  private final OExpression expression;
+  private final Identifier varname;
+  private final Expression expression;
 
   boolean executed = false;
 
-  public GlobalLetExpressionStep(OIdentifier varName, OExpression expression, OCommandContext ctx, boolean profilingEnabled) {
+  public GlobalLetExpressionStep(Identifier varName, Expression expression, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varname = varName;
     this.expression = expression;

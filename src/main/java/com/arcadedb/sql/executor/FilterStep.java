@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.Map;
 import java.util.Optional;
@@ -11,13 +11,13 @@ import java.util.Optional;
  * Created by luigidellaquila on 12/07/16.
  */
 public class FilterStep extends AbstractExecutionStep {
-  private OWhereClause whereClause;
+  private WhereClause whereClause;
 
   OResultSet prevResult = null;
 
   private long cost;
 
-  public FilterStep(OWhereClause whereClause, OCommandContext ctx, boolean profilingEnabled) {
+  public FilterStep(WhereClause whereClause, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.whereClause = whereClause;
   }
@@ -151,7 +151,7 @@ public class FilterStep extends AbstractExecutionStep {
   public void deserialize(OResult fromResult) {
     try {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
-      whereClause = new OWhereClause(-1);
+      whereClause = new WhereClause(-1);
       whereClause.deserialize(fromResult.getProperty("whereClause"));
     } catch (Exception e) {
       throw new PCommandExecutionException(e);

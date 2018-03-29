@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,9 +12,9 @@ import java.util.List;
 public class WhileMatchStep extends AbstractUnrollStep {
 
   private final OInternalExecutionPlan body;
-  private final OWhereClause           condition;
+  private final WhereClause            condition;
 
-  public WhileMatchStep(OCommandContext ctx, OWhereClause condition, OInternalExecutionPlan body, boolean profilingEnabled) {
+  public WhileMatchStep(OCommandContext ctx, WhereClause condition, OInternalExecutionPlan body, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.body = body;
     this.condition = condition;

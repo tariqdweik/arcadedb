@@ -30,21 +30,21 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     //      }
     //    }
 
-    OMultiMatchPathItem item = (OMultiMatchPathItem) this.item;
+    MultiMatchPathItem item = (MultiMatchPathItem) this.item;
     List<OResultInternal> result = new ArrayList<>();
 
     List<Object> nextStep = new ArrayList<>();
     nextStep.add(startingPoint);
 
     Object oldCurrent = iCommandContext.getVariable("$current");
-    for (OMatchPathItem sub : item.getItems()) {
+    for (MatchPathItem sub : item.getItems()) {
       List<OResultInternal> rightSide = new ArrayList<>();
       for (Object o : nextStep) {
-        OWhereClause whileCond = sub.getFilter() == null ? null : sub.getFilter().getWhileCondition();
+        WhereClause whileCond = sub.getFilter() == null ? null : sub.getFilter().getWhileCondition();
 
-        OMethodCall method = sub.getMethod();
-        if (sub instanceof OMatchPathItemFirst) {
-          method = ((OMatchPathItemFirst) sub).getFunction().toMethod();
+        MethodCall method = sub.getMethod();
+        if (sub instanceof MatchPathItemFirst) {
+          method = ((MatchPathItemFirst) sub).getFunction().toMethod();
         }
 
         if (whileCond != null) {

@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
 import java.util.Optional;
@@ -11,7 +11,7 @@ import java.util.Optional;
  * Created by luigidellaquila on 01/03/17.
  */
 public class FilterByClassStep extends AbstractExecutionStep {
-  private OIdentifier identifier;
+  private Identifier identifier;
 
   //runtime
 
@@ -19,7 +19,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
 
   private long cost;
 
-  public FilterByClassStep(OIdentifier identifier, OCommandContext ctx, boolean profilingEnabled) {
+  public FilterByClassStep(Identifier identifier, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.identifier = identifier;
   }
@@ -154,7 +154,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
   public void deserialize(OResult fromResult) {
     try {
       OExecutionStepInternal.basicDeserialize(fromResult, this);
-      identifier = OIdentifier.deserialize(fromResult.getProperty("identifier"));
+      identifier = Identifier.deserialize(fromResult.getProperty("identifier"));
     } catch (Exception e) {
       throw new PCommandExecutionException( e);
     }

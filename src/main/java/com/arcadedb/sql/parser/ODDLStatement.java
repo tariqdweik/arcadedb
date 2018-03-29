@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Created by luigidellaquila on 12/08/16.
  */
-public abstract class ODDLStatement extends OStatement {
+public abstract class ODDLStatement extends Statement {
 
   public ODDLStatement(int id) {
     super(id);

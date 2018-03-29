@@ -19,7 +19,7 @@ public class OrientSql/*@bgen(jjtree)*/ implements OrientSqlTreeConstants, Orien
 
   }
 
-  public OStatement parse() {
+  public Statement parse() {
     return null;
   }
 }

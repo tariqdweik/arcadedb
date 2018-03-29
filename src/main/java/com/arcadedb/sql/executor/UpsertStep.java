@@ -2,10 +2,10 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OAndBlock;
-import com.arcadedb.sql.parser.OBooleanExpression;
-import com.arcadedb.sql.parser.OFromClause;
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.AndBlock;
+import com.arcadedb.sql.parser.BooleanExpression;
+import com.arcadedb.sql.parser.FromClause;
+import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.List;
 
@@ -13,12 +13,12 @@ import java.util.List;
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
 public class UpsertStep extends AbstractExecutionStep {
-  private final OFromClause  commandTarget;
-  private final OWhereClause initialFilter;
+  private final FromClause  commandTarget;
+  private final WhereClause initialFilter;
 
   boolean applied = false;
 
-  public UpsertStep(OFromClause target, OWhereClause where, OCommandContext ctx, boolean profilingEnabled) {
+  public UpsertStep(FromClause target, WhereClause where, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.commandTarget = target;
     this.initialFilter = where;
@@ -39,7 +39,7 @@ public class UpsertStep extends AbstractExecutionStep {
     return result;
   }
 
-  private OResult createNewRecord(OFromClause commandTarget, OWhereClause initialFilter) {
+  private OResult createNewRecord(FromClause commandTarget, WhereClause initialFilter) {
     throw new UnsupportedOperationException(); //TODO
 //    if (commandTarget.getItem().getIdentifier() == null) {
 //      throw new PCommandExecutionException("Cannot execute UPSERT on target '" + commandTarget + "'");
@@ -53,16 +53,16 @@ public class UpsertStep extends AbstractExecutionStep {
 //    return result;
   }
 
-  private void setContent(OResultInternal doc, OWhereClause initialFilter) {
-    List<OAndBlock> flattened = initialFilter.flatten();
+  private void setContent(OResultInternal doc, WhereClause initialFilter) {
+    List<AndBlock> flattened = initialFilter.flatten();
     if (flattened.size() == 0) {
       return;
     }
     if (flattened.size() > 1) {
       throw new PCommandExecutionException("Cannot UPSERT on OR conditions");
     }
-    OAndBlock andCond = flattened.get(0);
-    for (OBooleanExpression condition : andCond.getSubBlocks()) {
+    AndBlock andCond = flattened.get(0);
+    for (BooleanExpression condition : andCond.getSubBlocks()) {
       condition.transformToUpdateItem().ifPresent(x -> x.applyUpdate(doc, ctx));
     }
   }

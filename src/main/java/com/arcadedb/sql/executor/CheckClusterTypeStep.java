@@ -2,7 +2,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OCluster;
+import com.arcadedb.sql.parser.Cluster;
 
 /**
  * <p> This step is used just as a gate check to verify that a cluster belongs to a class. </p> <p> It accepts two values: a target
@@ -13,8 +13,8 @@ import com.arcadedb.sql.parser.OCluster;
  */
 public class CheckClusterTypeStep extends AbstractExecutionStep {
 
-  OCluster cluster;
-  String   clusterName;
+  Cluster cluster;
+  String  clusterName;
 
   String targetClass;
 
@@ -28,7 +28,7 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
     this.targetClass = clazz;
   }
 
-  public CheckClusterTypeStep(OCluster targetCluster, String clazz, OCommandContext ctx, boolean profilingEnabled) {
+  public CheckClusterTypeStep(Cluster targetCluster, String clazz, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.cluster = targetCluster;
     this.targetClass = clazz;

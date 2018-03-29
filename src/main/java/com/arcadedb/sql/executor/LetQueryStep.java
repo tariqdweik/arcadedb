@@ -2,9 +2,9 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 import com.arcadedb.sql.parser.OLocalResultSet;
-import com.arcadedb.sql.parser.OStatement;
+import com.arcadedb.sql.parser.Statement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,10 +16,10 @@ import java.util.Optional;
  */
 public class LetQueryStep extends AbstractExecutionStep {
 
-  private final OIdentifier varName;
-  private final OStatement  query;
+  private final Identifier varName;
+  private final Statement  query;
 
-  public LetQueryStep(OIdentifier varName, OStatement query, OCommandContext ctx, boolean profilingEnabled) {
+  public LetQueryStep(Identifier varName, Statement query, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varName = varName;
     this.query = query;

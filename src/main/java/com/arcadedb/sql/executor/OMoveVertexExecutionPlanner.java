@@ -7,13 +7,13 @@ import com.arcadedb.sql.parser.*;
  * Created by luigidellaquila on 08/08/16.
  */
 public class OMoveVertexExecutionPlanner {
-  private final OFromItem         source;
-  private final OIdentifier       targetClass;
-  private final OCluster          targetCluster;
-  private final OUpdateOperations updateOperations;
-  private final OBatch            batch;
+  private final FromItem         source;
+  private final Identifier       targetClass;
+  private final Cluster          targetCluster;
+  private final UpdateOperations updateOperations;
+  private final Batch            batch;
 
-  public OMoveVertexExecutionPlanner(OMoveVertexStatement oStatement) {
+  public OMoveVertexExecutionPlanner(MoveVertexStatement oStatement) {
     this.source = oStatement.getSource();
     this.targetClass = oStatement.getTargetClass();
     this.targetCluster = oStatement.getTargetCluster();
@@ -33,11 +33,11 @@ public class OMoveVertexExecutionPlanner {
     return result;
   }
 
-  private void handleTarget(OUpdateExecutionPlan result, OIdentifier targetClass, OCluster targetCluster, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleTarget(OUpdateExecutionPlan result, Identifier targetClass, Cluster targetCluster, OCommandContext ctx, boolean profilingEnabled) {
     result.chain(new MoveVertexStep(targetClass, targetCluster, ctx, profilingEnabled));
   }
 
-  private void handleBatch(OUpdateExecutionPlan result, OCommandContext ctx, OBatch batch, boolean profilingEnabled) {
+  private void handleBatch(OUpdateExecutionPlan result, OCommandContext ctx, Batch batch, boolean profilingEnabled) {
     if (batch != null) {
       result.chain(new BatchStep(batch, ctx, profilingEnabled));
     }
@@ -60,7 +60,7 @@ public class OMoveVertexExecutionPlanner {
   }
 
   private void handleResultForReturnAfter(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnAfter,
-      OProjection returnProjection, boolean profilingEnabled) {
+      Projection returnProjection, boolean profilingEnabled) {
     if (returnAfter) {
       //re-convert to normal step
       result.chain(new ConvertToResultInternalStep(ctx, profilingEnabled));
@@ -71,7 +71,7 @@ public class OMoveVertexExecutionPlanner {
   }
 
   private void handleResultForReturnBefore(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnBefore,
-      OProjection returnProjection, boolean profilingEnabled) {
+      Projection returnProjection, boolean profilingEnabled) {
     if (returnBefore) {
       result.chain(new UnwrapPreviousValueStep(ctx, profilingEnabled));
       if (returnProjection != null) {
@@ -84,7 +84,7 @@ public class OMoveVertexExecutionPlanner {
     result.chain(new SaveElementStep(ctx, profilingEnabled));
   }
 
-  private void handleTimeout(OUpdateExecutionPlan result, OCommandContext ctx, OTimeout timeout, boolean profilingEnabled) {
+  private void handleTimeout(OUpdateExecutionPlan result, OCommandContext ctx, Timeout timeout, boolean profilingEnabled) {
     if (timeout != null && timeout.getVal().longValue() > 0) {
       result.chain(new TimeoutStep(timeout, ctx, profilingEnabled));
     }
@@ -100,45 +100,45 @@ public class OMoveVertexExecutionPlanner {
 
   }
 
-  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, OLimit limit, boolean profilingEnabled) {
+  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, Limit limit, boolean profilingEnabled) {
     if (limit != null) {
       plan.chain(new LimitExecutionStep(limit, ctx, profilingEnabled));
     }
   }
 
-  private void handleUpsert(OUpdateExecutionPlan plan, OCommandContext ctx, OFromClause target, OWhereClause where,
+  private void handleUpsert(OUpdateExecutionPlan plan, OCommandContext ctx, FromClause target, WhereClause where,
       boolean upsert, boolean profilingEnabled) {
     if (upsert) {
       plan.chain(new UpsertStep(target, where, ctx, profilingEnabled));
     }
   }
 
-  private void handleOperations(OUpdateExecutionPlan plan, OCommandContext ctx, OUpdateOperations op, boolean profilingEnabled) {
+  private void handleOperations(OUpdateExecutionPlan plan, OCommandContext ctx, UpdateOperations op, boolean profilingEnabled) {
     if (op != null) {
       switch (op.getType()) {
-      case OUpdateOperations.TYPE_SET:
+      case UpdateOperations.TYPE_SET:
         plan.chain(new UpdateSetStep(op.getUpdateItems(), ctx, profilingEnabled));
         break;
-      case OUpdateOperations.TYPE_REMOVE:
+      case UpdateOperations.TYPE_REMOVE:
         plan.chain(new UpdateRemoveStep(op.getUpdateRemoveItems(), ctx, profilingEnabled));
         break;
-      case OUpdateOperations.TYPE_MERGE:
+      case UpdateOperations.TYPE_MERGE:
         plan.chain(new UpdateMergeStep(op.getJson(), ctx, profilingEnabled));
         break;
-      case OUpdateOperations.TYPE_CONTENT:
+      case UpdateOperations.TYPE_CONTENT:
         plan.chain(new UpdateContentStep(op.getJson(), ctx, profilingEnabled));
         break;
-      case OUpdateOperations.TYPE_PUT:
-      case OUpdateOperations.TYPE_INCREMENT:
-      case OUpdateOperations.TYPE_ADD:
+      case UpdateOperations.TYPE_PUT:
+      case UpdateOperations.TYPE_INCREMENT:
+      case UpdateOperations.TYPE_ADD:
         throw new PCommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
       }
     }
   }
 
-  private void handleSource(OUpdateExecutionPlan result, OCommandContext ctx, OFromItem source, boolean profilingEnabled) {
-    OSelectStatement sourceStatement = new OSelectStatement(-1);
-    sourceStatement.setTarget(new OFromClause(-1));
+  private void handleSource(OUpdateExecutionPlan result, OCommandContext ctx, FromItem source, boolean profilingEnabled) {
+    SelectStatement sourceStatement = new SelectStatement(-1);
+    sourceStatement.setTarget(new FromClause(-1));
     sourceStatement.getTarget().setItem(source);
     OSelectExecutionPlanner planner = new OSelectExecutionPlanner(sourceStatement);
     result.chain(new SubQueryStep(planner.createExecutionPlan(ctx, profilingEnabled), ctx, ctx, profilingEnabled));

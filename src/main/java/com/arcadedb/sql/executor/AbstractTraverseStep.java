@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PRID;
-import com.arcadedb.sql.parser.OInteger;
-import com.arcadedb.sql.parser.OTraverseProjectionItem;
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.Integer;
+import com.arcadedb.sql.parser.TraverseProjectionItem;
+import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -12,9 +12,9 @@ import java.util.stream.Collectors;
  * Created by luigidellaquila on 26/10/16.
  */
 public abstract class AbstractTraverseStep extends AbstractExecutionStep {
-  protected final OWhereClause                  whileClause;
-  protected final List<OTraverseProjectionItem> projections;
-  protected final OInteger                      maxDepth;
+  protected final WhereClause                  whileClause;
+  protected final List<TraverseProjectionItem> projections;
+  protected final Integer                      maxDepth;
 
   protected List<OResult> entryPoints = null;
   protected List<OResult> results     = new ArrayList<>();
@@ -22,7 +22,7 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
 
   Set<PRID> traversed = new ORidSet();
 
-  public AbstractTraverseStep(List<OTraverseProjectionItem> projections, OWhereClause whileClause, OInteger maxDepth,
+  public AbstractTraverseStep(List<TraverseProjectionItem> projections, WhereClause whileClause, Integer maxDepth,
       OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.whileClause = whileClause;

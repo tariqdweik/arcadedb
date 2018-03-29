@@ -2,9 +2,9 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
-import com.arcadedb.sql.parser.OMatchPathItem;
-import com.arcadedb.sql.parser.ORid;
-import com.arcadedb.sql.parser.OWhereClause;
+import com.arcadedb.sql.parser.MatchPathItem;
+import com.arcadedb.sql.parser.Rid;
+import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,19 +24,19 @@ public class MatchReverseEdgeTraverser extends MatchEdgeTraverser {
     this.endPointAlias = edge.edge.out.alias;
   }
 
-  protected String targetClassName(OMatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClassName(MatchPathItem item, OCommandContext iCommandContext) {
     return edge.getLeftClass();
   }
 
-  protected String targetClusterName(OMatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClusterName(MatchPathItem item, OCommandContext iCommandContext) {
     return edge.getLeftCluster();
   }
 
-  protected ORid targetRid(OMatchPathItem item, OCommandContext iCommandContext) {
+  protected Rid targetRid(MatchPathItem item, OCommandContext iCommandContext) {
     return edge.getLeftRid();
   }
 
-  protected OWhereClause getTargetFilter(OMatchPathItem item) {
+  protected WhereClause getTargetFilter(MatchPathItem item) {
     return edge.getLeftFilter();
   }
 

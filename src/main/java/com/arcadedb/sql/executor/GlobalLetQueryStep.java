@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OIdentifier;
+import com.arcadedb.sql.parser.Identifier;
 import com.arcadedb.sql.parser.OLocalResultSet;
-import com.arcadedb.sql.parser.OStatement;
+import com.arcadedb.sql.parser.Statement;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,13 +14,13 @@ import java.util.List;
  */
 public class GlobalLetQueryStep extends AbstractExecutionStep {
 
-  private final OIdentifier            varName;
+  private final Identifier             varName;
   private final OInternalExecutionPlan subExecutionPlan;
 
   boolean executed = false;
 
 
-  public GlobalLetQueryStep(OIdentifier varName, OStatement query, OCommandContext ctx, boolean profilingEnabled) {
+  public GlobalLetQueryStep(Identifier varName, Statement query, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varName = varName;
 

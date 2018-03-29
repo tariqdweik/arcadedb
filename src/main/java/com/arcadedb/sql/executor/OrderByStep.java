@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OOrderBy;
+import com.arcadedb.sql.parser.OrderBy;
 
 import java.util.*;
 
@@ -9,19 +9,19 @@ import java.util.*;
  * Created by luigidellaquila on 11/07/16.
  */
 public class OrderByStep extends AbstractExecutionStep {
-  private final OOrderBy orderBy;
-  private       Integer  maxResults;
+  private final OrderBy orderBy;
+  private       Integer maxResults;
 
   private long cost = 0;
 
   List<OResult> cachedResult = null;
   int           nextElement  = 0;
 
-  public OrderByStep(OOrderBy orderBy, OCommandContext ctx, boolean profilingEnabled) {
+  public OrderByStep(OrderBy orderBy, OCommandContext ctx, boolean profilingEnabled) {
     this(orderBy, null, ctx, profilingEnabled);
   }
 
-  public OrderByStep(OOrderBy orderBy, Integer maxResults, OCommandContext ctx, boolean profilingEnabled) {
+  public OrderByStep(OrderBy orderBy, Integer maxResults, OCommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.orderBy = orderBy;
     this.maxResults = maxResults;
