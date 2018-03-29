@@ -19,8 +19,10 @@ import java.util.concurrent.TimeUnit;
 public class PDatabaseAsyncExecutor {
   private final PDatabaseInternal database;
   private       AsyncThread[]     executorThreads;
-  private int parallelLevel = -1;
-  private int commitEvery   = 10000;
+  private int     parallelLevel     = -1;
+  private int     commitEvery       = 10000;
+  private boolean transactionUseWAL = false;
+  private boolean transactionSync   = false;
 
   // SPECIAL COMMANDS
   private final static PDatabaseAsyncCommand FORCE_COMMIT = new PDatabaseAsyncCommand();
@@ -45,6 +47,8 @@ public class PDatabaseAsyncExecutor {
       if (PTransactionTL.INSTANCE.get() == null)
         PTransactionTL.INSTANCE.set(new PTransactionContext(database));
 
+      database.getTransaction().setUseWAL(transactionUseWAL);
+      database.getTransaction().setSync(transactionSync);
       database.getTransaction().begin();
       while (!forceShutdown) {
         try {
@@ -166,7 +170,7 @@ public class PDatabaseAsyncExecutor {
 
   private class DatabaseScanAsyncThread extends Thread {
     public final ArrayBlockingQueue<Object[]> queue = new ArrayBlockingQueue<>(2048);
-    public final PDatabase database;
+    public final PDatabaseInternal database;
     public volatile boolean shutdown = false;
 
     private DatabaseScanAsyncThread(final PDatabaseInternal database, final int id) {
@@ -218,6 +222,22 @@ public class PDatabaseAsyncExecutor {
         stats.queueSize += executorThreads[i].queue.size();
 
     return stats;
+  }
+
+  public void setTransactionUseWAL(final boolean transactionUseWAL) {
+    this.transactionUseWAL = transactionUseWAL;
+  }
+
+  public boolean isTransactionUseWAL() {
+    return transactionUseWAL;
+  }
+
+  public void setTransactionSync(final boolean transactionSync) {
+    this.transactionSync = transactionSync;
+  }
+
+  public boolean isTransactionSync() {
+    return transactionSync;
   }
 
   public void waitCompletion() {

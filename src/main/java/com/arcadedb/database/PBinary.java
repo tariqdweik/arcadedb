@@ -322,6 +322,12 @@ public class PBinary implements PBinaryStructure {
   }
 
   @Override
+  public void getByteArray(final int index, final byte[] buffer, final int offset, final int length) {
+    this.buffer.position(index);
+    this.buffer.get(buffer, offset, length);
+  }
+
+  @Override
   public byte[] getBytes() {
     final byte[] result = new byte[(int) getNumber()];
     buffer.get(result);

@@ -1,7 +1,7 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.schema.PDocumentType;
 import org.junit.jupiter.api.Assertions;
 
@@ -18,7 +18,7 @@ public class PerformanceIndexTest {
 
     final int parallel = 3;
 
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
+    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -37,7 +37,7 @@ public class PerformanceIndexTest {
       database.close();
     }
 
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
+    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
     long begin = System.currentTimeMillis();
 
@@ -69,7 +69,7 @@ public class PerformanceIndexTest {
     }
 
     begin = System.currentTimeMillis();
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_ONLY).acquire();
+    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     try {
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {

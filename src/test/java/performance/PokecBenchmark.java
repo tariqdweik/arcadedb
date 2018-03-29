@@ -2,7 +2,7 @@ package performance;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.utility.PLogManager;
 
@@ -119,7 +119,7 @@ public class PokecBenchmark {
   }
 
   private PokecBenchmark() throws Exception {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
 
     try {

@@ -3,7 +3,7 @@ package performance;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.schema.PDocumentType;
@@ -44,7 +44,7 @@ public class PokecLoader {
     else
       directory.mkdirs();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     try {
       createSchema(db);
       loadProfiles(db);

@@ -2,7 +2,7 @@ package performance;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.index.PIndex;
 
 import java.io.IOException;
@@ -13,7 +13,7 @@ public class PerformanceIndexCompaction {
   }
 
   private void run() throws IOException {
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
     final long begin = System.currentTimeMillis();
     try {

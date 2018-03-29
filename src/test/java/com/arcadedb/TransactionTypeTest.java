@@ -1,7 +1,7 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
@@ -29,7 +29,7 @@ public class TransactionTypeTest {
 
   @AfterEach
   public void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
@@ -41,7 +41,7 @@ public class TransactionTypeTest {
   public void testScan() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       db.scanType(TYPE_NAME, new PDocumentCallback() {
@@ -76,7 +76,7 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByRID() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       db.scanType(TYPE_NAME, new PDocumentCallback() {
@@ -113,7 +113,7 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByKey() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       for (int i = 0; i < TOT; i++) {
@@ -150,7 +150,7 @@ public class TransactionTypeTest {
   public void testDeleteAllRecordsReuseSpace() throws IOException {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
       db.scanType(TYPE_NAME, new PDocumentCallback() {
@@ -172,7 +172,7 @@ public class TransactionTypeTest {
 
     populate();
 
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db2.begin();
     try {
       Assertions.assertEquals(TOT, db2.countType(TYPE_NAME));
@@ -186,7 +186,7 @@ public class TransactionTypeTest {
   public void testDeleteFail() {
 
     Assertions.assertThrows(PDatabaseIsReadOnlyException.class, () -> {
-      final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+      final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
       db.begin();
       try {
         db.scanType(TYPE_NAME, new PDocumentCallback() {
@@ -208,7 +208,7 @@ public class TransactionTypeTest {
   private void populate(final int total) {
     PFileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
         Assert.assertFalse(database.getSchema().existsType(TYPE_NAME));

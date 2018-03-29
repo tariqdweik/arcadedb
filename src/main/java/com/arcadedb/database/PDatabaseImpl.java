@@ -3,10 +3,7 @@ package com.arcadedb.database;
 import com.arcadedb.PProfiler;
 import com.arcadedb.database.async.PDatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
-import com.arcadedb.exception.PConcurrentModificationException;
-import com.arcadedb.exception.PDatabaseIsClosedException;
-import com.arcadedb.exception.PDatabaseIsReadOnlyException;
-import com.arcadedb.exception.PDatabaseOperationException;
+import com.arcadedb.exception.*;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PGraphEngine;
 import com.arcadedb.graph.PModifiableVertex;
@@ -21,18 +18,20 @@ import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PRWLockContext;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabaseInternal {
   private static final int DEFAULT_RETRIES = 10;
 
-  protected final String       name;
-  protected final PFile.MODE   mode;
-  protected final String       databasePath;
-  protected final PFileManager fileManager;
-  protected final PPageManager pageManager;
+  protected final String              name;
+  protected final PPaginatedFile.MODE mode;
+  protected final String              databasePath;
+  protected final PFileManager        fileManager;
+  protected final PPageManager        pageManager;
   protected final PBinarySerializer serializer    = new PBinarySerializer();
   protected final PRecordFactory    recordFactory = new PRecordFactory();
   protected final PSchemaImpl schema;
@@ -45,7 +44,10 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   protected static final Set<String> SUPPORTED_FILE_EXT = new HashSet<String>(
       Arrays.asList(PDictionary.DICT_EXT, PBucket.BUCKET_EXT, PIndexLSM.INDEX_EXT));
 
-  protected PDatabaseImpl(final String path, final PFile.MODE mode, final boolean multiThread) {
+  private PWALFile[] walFilePool;
+  private AtomicInteger walFilePoolCursor = new AtomicInteger();
+
+  protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode, final boolean multiThread) {
     super(multiThread);
 
     try {
@@ -103,7 +105,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       @Override
       public Object call() throws Exception {
         checkDatabaseIsOpen();
-        if (mode == PFile.MODE.READ_ONLY)
+        if (mode == PPaginatedFile.MODE.READ_ONLY)
           throw new PDatabaseIsReadOnlyException("Cannot drop database");
 
         close();
@@ -348,7 +350,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       public Object call() throws Exception {
 
         checkTransactionIsActive();
-        if (mode == PFile.MODE.READ_ONLY)
+        if (mode == PPaginatedFile.MODE.READ_ONLY)
           throw new PDatabaseIsReadOnlyException("Cannot create a new record");
 
         final PDocumentType type = schema.getType(record.getType());
@@ -372,7 +374,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       public Object call() throws Exception {
 
         checkTransactionIsActive();
-        if (mode == PFile.MODE.READ_ONLY)
+        if (mode == PPaginatedFile.MODE.READ_ONLY)
           throw new PDatabaseIsReadOnlyException("Cannot create a new record");
 
         final PBucket bucket = schema.getBucketByName(bucketName);
@@ -389,7 +391,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
     checkTransactionIsActive();
-    if (mode == PFile.MODE.READ_ONLY)
+    if (mode == PPaginatedFile.MODE.READ_ONLY)
       throw new PDatabaseIsReadOnlyException("Cannot create a new record");
 
     final PBucket bucket = schema.getBucketByName(bucketName);
@@ -407,7 +409,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       public Object call() throws Exception {
 
         checkTransactionIsActive();
-        if (mode == PFile.MODE.READ_ONLY)
+        if (mode == PPaginatedFile.MODE.READ_ONLY)
           throw new PDatabaseIsReadOnlyException("Cannot update a record");
 
         schema.getBucketById(record.getIdentity().getBucketId()).update(record);
@@ -422,7 +424,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       @Override
       public Object call() throws Exception {
         checkTransactionIsActive();
-        if (mode == PFile.MODE.READ_ONLY)
+        if (mode == PPaginatedFile.MODE.READ_ONLY)
           throw new PDatabaseIsReadOnlyException("Cannot delete record " + rid);
 
         schema.getBucketById(rid.getBucketId()).deleteRecord(rid);
@@ -479,6 +481,29 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public PSchema getSchema() {
     checkDatabaseIsOpen();
     return schema;
+  }
+
+  @Override
+  public PWALFile getWALFile() {
+    if (walFilePool == null) {
+      walFilePool = new PWALFile[Runtime.getRuntime().availableProcessors()];
+      for (int i = 0; i < walFilePool.length; ++i) {
+        final String fileName = databasePath + "/txlog_" + i + ".wal";
+        try {
+          walFilePool[i] = new PWALFile(fileName);
+        } catch (FileNotFoundException e) {
+          throw new PDatabaseMetadataException("Cannot create WAL file " + fileName, e);
+        }
+      }
+    }
+
+    int pos = walFilePoolCursor.getAndIncrement();
+    if (pos >= walFilePool.length) {
+      walFilePoolCursor.set(0);
+      pos = 0;
+    }
+
+    return walFilePool[pos];
   }
 
   @Override

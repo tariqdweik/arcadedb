@@ -1,18 +1,18 @@
 package com.arcadedb.database;
 
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 
 public class PDatabaseFactory {
   public interface POperation {
     void execute(PDatabase database);
   }
 
-  private final PFile.MODE mode;
-  private final String     databasePath;
+  private final PPaginatedFile.MODE mode;
+  private final String              databasePath;
   private boolean multiThread     = true;
   private boolean autoTransaction = false;
 
-  public PDatabaseFactory(final String path, final PFile.MODE mode) {
+  public PDatabaseFactory(final String path, final PPaginatedFile.MODE mode) {
     this.mode = mode;
     if (path.endsWith("/"))
       databasePath = path.substring(0, path.length() - 1);

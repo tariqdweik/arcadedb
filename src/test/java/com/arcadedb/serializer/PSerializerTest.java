@@ -2,7 +2,7 @@ package com.arcadedb.serializer;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -102,7 +102,7 @@ public class PSerializerTest {
     public void testPropertiesInDocument() {
         final PBinarySerializer serializer = new PBinarySerializer();
 
-        new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+        new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
             @Override
             public void execute(PDatabase database) {
                 final PModifiableDocument v = database.newDocument(null);

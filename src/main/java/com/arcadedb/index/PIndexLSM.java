@@ -32,7 +32,7 @@ import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
  * HEADER Nst PAGE = [numberOfEntries(int:4),offsetFreeKeyValueContent(int:4),bloomFilterSeed(int:4),
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
-public class PIndexLSM extends PPaginatedFile implements PIndex {
+public class PIndexLSM extends PPaginatedComponent implements PIndex {
   public static final String INDEX_EXT     = "pindex";
   public static final int    DEF_PAGE_SIZE = 6553600;
 
@@ -59,7 +59,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   /**
    * Called at creation time.
    */
-  public PIndexLSM(final PDatabase database, final String name, String filePath, final PFile.MODE mode, final byte[] keyTypes,
+  public PIndexLSM(final PDatabase database, final String name, String filePath, final PPaginatedFile.MODE mode, final byte[] keyTypes,
       final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), PIndexLSM.INDEX_EXT, mode, pageSize);
     this.keyTypes = keyTypes;
@@ -74,7 +74,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
    */
   public PIndexLSM(final PDatabase database, final String name, String filePath, final byte[] keyTypes, final byte valueType,
       final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndexLSM.INDEX_EXT, PFile.MODE.READ_WRITE,
+    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndexLSM.INDEX_EXT, PPaginatedFile.MODE.READ_WRITE,
         pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
@@ -86,7 +86,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   /**
    * Called at load time (1st page only).
    */
-  public PIndexLSM(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode,
+  public PIndexLSM(final PDatabase database, final String name, String filePath, final int id, final PPaginatedFile.MODE mode,
       final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), 0), pageSize);

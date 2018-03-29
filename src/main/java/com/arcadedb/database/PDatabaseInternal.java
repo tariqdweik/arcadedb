@@ -1,6 +1,7 @@
 package com.arcadedb.database;
 
 import com.arcadedb.engine.PBucket;
+import com.arcadedb.engine.PWALFile;
 import com.arcadedb.graph.PGraphEngine;
 import com.arcadedb.schema.PDocumentType;
 
@@ -17,4 +18,5 @@ public interface PDatabaseInternal extends PDatabase {
 
   void indexDocument(PModifiableDocument record, PDocumentType type, PBucket bucket);
 
+  PWALFile getWALFile();
 }

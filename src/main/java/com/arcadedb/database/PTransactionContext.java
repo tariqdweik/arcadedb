@@ -7,8 +7,10 @@ import com.arcadedb.engine.PPageId;
 import com.arcadedb.engine.PPageManager;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PTransactionException;
+import com.arcadedb.utility.PPair;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -18,12 +20,19 @@ import java.util.*;
  * At commit time, the files are locked in order (to avoid deadlocks) and to allow parallel commit on different files.
  */
 public class PTransactionContext {
-  private final PDatabase                     database;
+  private static final int  TXLOGSEGMENT_HEADER_SIZE =
+      PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE
+          + PBinary.LONG_SERIALIZED_SIZE;
+  private static final int  TXLOGSEGMENT_FOOTER_SIZE = PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE;
+  private static final long MAGIC_NUMBER             = 9371515385058702l;
+  private final PDatabaseInternal             database;
   private       Map<PPageId, PModifiablePage> modifiedPages;
   private       Map<PPageId, PModifiablePage> newPages;
   private final Map<Integer, Integer> newPageCounters = new HashMap<>();
+  private       boolean               useWAL          = true;
+  private       boolean               sync            = false;
 
-  public PTransactionContext(final PDatabase database) {
+  public PTransactionContext(final PDatabaseInternal database) {
     this.database = database;
   }
 
@@ -45,12 +54,17 @@ public class PTransactionContext {
     try {
 
       // CHECK THE VERSION FIRST
+      final List<PPair<PBasePage, PModifiablePage>> pages = new ArrayList<>();
       for (PModifiablePage p : modifiedPages.values())
-        pageManager.checkPageVersion(p, false);
+        pages.add(new PPair<>(pageManager.checkPageVersion(p, false), p));
 
       if (newPages != null)
-        for (PModifiablePage p : newPages.values())
+        for (PModifiablePage p : newPages.values()) {
           pageManager.checkPageVersion(p, true);
+          pages.add(new PPair<>(null, p));
+        }
+
+      appendWAL(pages);
 
       // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       for (PModifiablePage p : modifiedPages.values())
@@ -78,6 +92,22 @@ public class PTransactionContext {
     }
 
     reset();
+  }
+
+  public boolean isUseWAL() {
+    return useWAL;
+  }
+
+  public void setUseWAL(final boolean useWAL) {
+    this.useWAL = useWAL;
+  }
+
+  public boolean isSync() {
+    return sync;
+  }
+
+  public void setSync(final boolean sync) {
+    this.sync = sync;
   }
 
   public void rollback() {
@@ -132,6 +162,10 @@ public class PTransactionContext {
     }
 
     return page;
+  }
+
+  public void removeModifiedPage(final PPageId pageId) {
+    modifiedPages.remove(pageId);
   }
 
   public PModifiablePage addPage(final PPageId pageId, final int pageSize) {
@@ -236,5 +270,50 @@ public class PTransactionContext {
     modifiedPages = null;
     newPages = null;
     newPageCounters.clear();
+  }
+
+  private void appendWAL(final List<PPair<PBasePage, PModifiablePage>> pages) throws IOException {
+    if (!useWAL)
+      return;
+
+    for (PPair<PBasePage, PModifiablePage> entry : pages) {
+      final PBasePage prevPage = entry.getFirst();
+      final PModifiablePage newPage = entry.getSecond();
+
+      final int[] deltaRange = newPage.getModifiedRange();
+
+      assert deltaRange[0] > -1 && deltaRange[1] < newPage.getPhysicalSize();
+
+      final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
+      final int segmentSize = TXLOGSEGMENT_HEADER_SIZE + (deltaSize * (prevPage == null ? 1 : 2)) + TXLOGSEGMENT_FOOTER_SIZE;
+
+      final byte[] buffer = new byte[segmentSize];
+      final PBinary binary = new PBinary(buffer, segmentSize);
+
+      binary.position(0);
+      binary.putInt(segmentSize);
+      binary.putInt(newPage.getPageId().getFileId());
+      binary.putLong(newPage.getPageId().getPageNumber());
+      binary.putInt(deltaRange[0]);
+      binary.putInt(deltaRange[1]);
+      if (prevPage != null) {
+        final ByteBuffer prevPageBuffer = prevPage.getContent();
+        prevPageBuffer.position(deltaRange[0]);
+        prevPageBuffer.get(buffer, TXLOGSEGMENT_HEADER_SIZE, deltaSize);
+
+        final ByteBuffer newPageBuffer = newPage.getContent();
+        newPageBuffer.position(deltaRange[0]);
+        newPageBuffer.get(buffer, TXLOGSEGMENT_HEADER_SIZE + deltaSize, deltaSize);
+      } else {
+        final ByteBuffer newPageBuffer = newPage.getContent();
+        newPageBuffer.position(deltaRange[0]);
+        newPageBuffer.get(buffer, TXLOGSEGMENT_HEADER_SIZE, deltaSize);
+      }
+      binary.position(TXLOGSEGMENT_HEADER_SIZE + (deltaSize * (prevPage == null ? 1 : 2)));
+      binary.putInt(segmentSize);
+      binary.putLong(MAGIC_NUMBER);
+
+      database.getWALFile().append(binary.buffer, sync);
+    }
   }
 }

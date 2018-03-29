@@ -1,7 +1,7 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,7 +14,7 @@ public class PerformanceScan {
   }
 
   private void run() {
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
 
     database.asynch().setParallelLevel(4);
 

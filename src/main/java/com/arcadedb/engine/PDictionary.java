@@ -15,7 +15,7 @@ import java.util.Map;
  * HEADER = [itemCount(int:4),pageSize(int:4)] CONTENT-PAGES = [propertyName(string)]
  * <p>
  */
-public class PDictionary extends PPaginatedFile {
+public class PDictionary extends PPaginatedComponent {
   public static final String DICT_EXT      = "pdict";
   public static final int    DEF_PAGE_SIZE = 65536 * 5;
 
@@ -30,7 +30,7 @@ public class PDictionary extends PPaginatedFile {
   /**
    * Called at creation time.
    */
-  public PDictionary(final PDatabase database, final String name, String filePath, final PFile.MODE mode, final int pageSize)
+  public PDictionary(final PDatabase database, final String name, String filePath, final PPaginatedFile.MODE mode, final int pageSize)
       throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
@@ -44,7 +44,7 @@ public class PDictionary extends PPaginatedFile {
   /**
    * Called at load time.
    */
-  public PDictionary(final PDatabase database, final String name, String filePath, final int id, final PFile.MODE mode,
+  public PDictionary(final PDatabase database, final String name, String filePath, final int id, final PPaginatedFile.MODE mode,
       final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     if (file.getSize() == 0) {

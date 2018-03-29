@@ -132,12 +132,13 @@ public class PPageManager {
     return page;
   }
 
-  public void checkPageVersion(final PModifiablePage page, final boolean isNew) throws IOException {
+  public PBasePage checkPageVersion(final PModifiablePage page, final boolean isNew) throws IOException {
     final PBasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
     if (p != null && p.getVersion() != page.getVersion())
       throw new PConcurrentModificationException(
           "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + p
               .getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+    return p;
   }
 
   public void updatePage(final PModifiablePage page, final boolean isNew) throws IOException, InterruptedException {
@@ -207,7 +208,7 @@ public class PPageManager {
     PLogManager.instance().debug(this, "Pre-loading file %d (threadId=%d)...", fileId, Thread.currentThread().getId());
 
     try {
-      final PFile file = fileManager.getFile(fileId);
+      final PPaginatedFile file = fileManager.getFile(fileId);
       final int pageSize = file.getPageSize();
       final int pages = (int) (file.getSize() / pageSize);
 
@@ -231,7 +232,7 @@ public class PPageManager {
   }
 
   protected void flushPage(final PModifiablePage page) throws IOException {
-    final PFile file = fileManager.getFile(page.pageId.getFileId());
+    final PPaginatedFile file = fileManager.getFile(page.pageId.getFileId());
     if (!file.isOpen())
       throw new PDatabaseMetadataException("Cannot flush pages on disk because file is closed");
 
@@ -259,7 +260,7 @@ public class PPageManager {
 
     final PImmutablePage page = new PImmutablePage(this, pageId, size);
 
-    final PFile file = fileManager.getFile(pageId.getFileId());
+    final PPaginatedFile file = fileManager.getFile(pageId.getFileId());
     file.read(page);
 
     page.loadMetadata();

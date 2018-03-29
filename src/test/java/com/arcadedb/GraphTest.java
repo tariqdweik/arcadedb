@@ -3,7 +3,7 @@ package com.arcadedb;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PRID;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableEdge;
 import com.arcadedb.graph.PModifiableVertex;
@@ -33,7 +33,7 @@ public class GraphTest {
   public static void populate() {
     PFileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
         Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
@@ -47,7 +47,7 @@ public class GraphTest {
       }
     });
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
       final PModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
@@ -90,13 +90,13 @@ public class GraphTest {
 
   @AfterAll
   public static void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void checkVertices() throws IOException {
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
 
@@ -155,7 +155,7 @@ public class GraphTest {
 
   @Test
   public void checkEdges() throws IOException {
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
 

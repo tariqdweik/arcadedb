@@ -4,7 +4,7 @@ import com.arcadedb.database.PCursor;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PRID;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.schema.PDocumentType;
@@ -24,7 +24,7 @@ public class PerformanceVertexIndexTest {
 
     long begin = System.currentTimeMillis();
 
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
+    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -40,6 +40,8 @@ public class PerformanceVertexIndexTest {
         database.commit();
       }
 
+      database.asynch().setTransactionUseWAL(true);
+      database.asynch().setTransactionSync(true);
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(PARALLEL);
 

@@ -3,7 +3,7 @@ package performance;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.schema.PDocumentType;
 
 public class PerformanceInsertNoIndexTest {
@@ -18,7 +18,7 @@ public class PerformanceInsertNoIndexTest {
   private void run() {
     PerformanceTest.clean();
 
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
+    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -36,12 +36,14 @@ public class PerformanceInsertNoIndexTest {
       database.close();
     }
 
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
+    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
     long begin = System.currentTimeMillis();
 
     try {
 
+      database.asynch().setTransactionUseWAL(true);
+      database.asynch().setTransactionSync(true);
       database.asynch().setCommitEvery(30000);
       database.asynch().setParallelLevel(PARALLEL);
 

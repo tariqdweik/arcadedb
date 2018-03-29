@@ -85,6 +85,8 @@ public interface PBinaryStructure {
 
   void getByteArray(int index, byte[] buffer);
 
+  void getByteArray(int index, byte[] buffer, int offset, int length);
+
   byte[] getBytes();
 
   byte[] getBytes(int index);

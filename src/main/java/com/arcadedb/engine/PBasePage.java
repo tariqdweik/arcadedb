@@ -109,6 +109,10 @@ public abstract class PBasePage {
     this.content.getByteArray(PAGE_HEADER_SIZE + index, buffer);
   }
 
+  public void readByteArray(final int index, final byte[] buffer, final int offset, final int length) {
+    this.content.getByteArray(PAGE_HEADER_SIZE + index, buffer, offset, length);
+  }
+
   public byte[] readBytes(final int index) {
     return this.content.getBytes(PAGE_HEADER_SIZE + index);
   }
