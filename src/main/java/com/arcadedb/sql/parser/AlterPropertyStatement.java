@@ -24,7 +24,7 @@ public class AlterPropertyStatement extends ODDLStatement {
     super(id);
   }
 
-  public AlterPropertyStatement(OrientSql p, int id) {
+  public AlterPropertyStatement(SqlParser p, int id) {
     super(p, id);
   }
 

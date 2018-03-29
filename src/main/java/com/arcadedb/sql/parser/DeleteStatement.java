@@ -20,7 +20,7 @@ public class DeleteStatement extends Statement {
     super(id);
   }
 
-  public DeleteStatement(OrientSql p, int id) {
+  public DeleteStatement(SqlParser p, int id) {
     super(p, id);
   }
 

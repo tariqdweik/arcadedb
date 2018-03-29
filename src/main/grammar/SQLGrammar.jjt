@@ -6,7 +6,7 @@ options {
   	STATIC=false;
   	USER_CHAR_STREAM = true ;
   	JAVA_UNICODE_ESCAPE=true;
-  	NODE_PREFIX="O";
+  	NODE_PREFIX="";
 }
 
 PARSER_BEGIN(SqlParser)
@@ -660,7 +660,7 @@ List<Statement> parseScript() :
   { return result; }
 }
 
-java.lang.String String():
+java.lang.String PString():
 {
 Token token = null;
 }
@@ -930,7 +930,7 @@ FloatingPoint FloatingPoint():
 }
 
 PNumber PNumber():
-{ Number result; }
+{ PNumber result; }
 {
     (
         LOOKAHEAD( PInteger() )
@@ -943,7 +943,7 @@ PNumber PNumber():
 }
 
 Statement Statement():
-{OStatement result = null;}
+{Statement result = null;}
 {
     result = StatementInternal()
     [ <SEMICOLON> ]
@@ -1112,13 +1112,13 @@ SelectWithoutTargetStatement SelectWithoutTargetStatement():
     	/*
         [ <LOCK>
             (
-                <RECORD> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.EXCLUSIVE_LOCK;}
+                <RECORD> {jjtThis.lockRecord = "EXCLUSIVE_LOCK";}
                 |
-                <NONE> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.NONE;}
+                <NONE> {jjtThis.lockRecord = "NONE";}
                 |
-                <SHARED> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.SHARED_LOCK;}
+                <SHARED> {jjtThis.lockRecord = "SHARED_LOCK";}
                 |
-                <DEFAULT_> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.DEFAULT;}
+                <DEFAULT_> {jjtThis.lockRecord = "DEFAULT";}
             )
         ]
         [ <PARALLEL> { jjtThis.parallel = true; } ]
@@ -1156,13 +1156,13 @@ SelectStatement SelectStatement():
         /*
         [ <LOCK>
             (
-                <RECORD> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.EXCLUSIVE_LOCK;}
+                <RECORD> {jjtThis.lockRecord = "EXCLUSIVE_LOCK";}
                 |
-                <NONE> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.NONE;}
+                <NONE> {jjtThis.lockRecord = "NONE";}
                 |
-                <SHARED> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.SHARED_LOCK;}
+                <SHARED> {jjtThis.lockRecord = "SHARED_LOCK";}
                 |
-                <DEFAULT_> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.DEFAULT;}
+                <DEFAULT_> {jjtThis.lockRecord = "DEFAULT";}
             )
         ]
         [ <PARALLEL> { jjtThis.parallel = true; } ]
@@ -1191,9 +1191,9 @@ TraverseStatement TraverseStatement():
         [ jjtThis.limit = Limit() ]
         [ <STRATEGY>
             (
-                <DEPTH_FIRST> { jjtThis.strategy = OTraverseStatement.Strategy.DEPTH_FIRST; }
+                <DEPTH_FIRST> { jjtThis.strategy = TraverseStatement.Strategy.DEPTH_FIRST; }
                 |
-                <BREADTH_FIRST> { jjtThis.strategy = OTraverseStatement.Strategy.BREADTH_FIRST; }
+                <BREADTH_FIRST> { jjtThis.strategy = TraverseStatement.Strategy.BREADTH_FIRST; }
             )
         ]
     )
@@ -1456,13 +1456,13 @@ UpdateEdgeStatement UpdateEdgeStatement():
 	/*
 	[ <LOCK>
         (
-            <RECORD> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.EXCLUSIVE_LOCK;}
+            <RECORD> {jjtThis.lockRecord = "EXCLUSIVE_LOCK";}
             |
-            <NONE> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.NONE;}
+            <NONE> {jjtThis.lockRecord = "NONE";}
             |
-            <SHARED> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.SHARED_LOCK;}
+            <SHARED> {jjtThis.lockRecord = "SHARED_LOCK";}
             |
-            <DEFAULT_> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.DEFAULT;}
+            <DEFAULT_> {jjtThis.lockRecord = "DEFAULT";}
         )
     ]
     */
@@ -1492,13 +1492,13 @@ UpdateStatement UpdateStatement():
     	/*
     	[ <LOCK>
             (
-                <RECORD> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.EXCLUSIVE_LOCK;}
+                <RECORD> {jjtThis.lockRecord = "EXCLUSIVE_LOCK";}
                 |
-                <NONE> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.NONE;}
+                <NONE> {jjtThis.lockRecord = "NONE";}
                 |
-                <SHARED> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.SHARED_LOCK;}
+                <SHARED> {jjtThis.lockRecord = "SHARED_LOCK";}
                 |
-                <DEFAULT_> {jjtThis.lockRecord = com.orientechnologies.orient.core.storage.OStorage.LOCKING_STRATEGY.DEFAULT;}
+                <DEFAULT_> {jjtThis.lockRecord = "DEFAULT";}
             )
         ]
         */
@@ -1690,7 +1690,7 @@ InsertBody InsertBody():
                 <LPAREN>
                 lastIdentifier = Identifier()
                 {
-                    jjtThis.identifierList = new ArrayList<OIdentifier>();
+                    jjtThis.identifierList = new ArrayList<Identifier>();
                     jjtThis.identifierList.add(lastIdentifier);
                 }
                 (
@@ -1701,8 +1701,8 @@ InsertBody InsertBody():
                 <VALUES>
                 <LPAREN>
                 {
-                    jjtThis.valueExpressions = new ArrayList<List<OExpression>>();
-                    lastExpressionList = new ArrayList<OExpression>();
+                    jjtThis.valueExpressions = new ArrayList<List<Expression>>();
+                    lastExpressionList = new ArrayList<Expression>();
                     jjtThis.valueExpressions.add(lastExpressionList);
                 }
                 lastExpression = Expression() { lastExpressionList.add(lastExpression); }
@@ -1715,7 +1715,7 @@ InsertBody InsertBody():
                     <COMMA>
                     <LPAREN>
                     {
-                        lastExpressionList = new ArrayList<OExpression>();
+                        lastExpressionList = new ArrayList<Expression>();
                         jjtThis.valueExpressions.add(lastExpressionList);
                     }
                     lastExpression = Expression() { lastExpressionList.add(lastExpression); }
@@ -1731,7 +1731,7 @@ InsertBody InsertBody():
             (
                 <SET>
                 {
-                    jjtThis.setExpressions = new ArrayList<OInsertSetExpression>();
+                    jjtThis.setExpressions = new ArrayList<InsertSetExpression>();
                     InsertSetExpression lastSetExpr = new InsertSetExpression();
                     jjtThis.setExpressions.add(lastSetExpr);
                 }
@@ -1837,7 +1837,7 @@ CreateEdgeStatement CreateEdgeStatement():
 
 
 InputParameter InputParameter():
-{ OInputParameter result; }
+{ InputParameter result; }
 {
     (
 	    result = PositionalParameter()
@@ -1885,7 +1885,7 @@ Token token;
 
 Projection Projection():
 {
-    java.util.List<OProjectionItem> items = new java.util.ArrayList<OProjectionItem>();
+    java.util.List<ProjectionItem> items = new java.util.ArrayList<ProjectionItem>();
     ProjectionItem lastItem = null;
 }
 {
@@ -2119,8 +2119,8 @@ LevelZeroIdentifier LevelZeroIdentifier():
         |
         <THIS> { jjtThis.self = true; }
         |
-        LOOKAHEAD( Collection() )
-        jjtThis.collection = Collection()
+        LOOKAHEAD( PCollection() )
+        jjtThis.collection = PCollection()
     )
     { return jjtThis; }
 }
@@ -2527,7 +2527,7 @@ IndexName IndexName():
 {
     StringBuilder builder = new StringBuilder();
     Token token;
-    OIdentifier lastIdentifier;
+    Identifier lastIdentifier;
 }
 {
     (
@@ -2558,16 +2558,16 @@ IndexIdentifier IndexIdentifier():
     (
         (
             <INDEX_COLON>
-            jjtThis.indexName = IndexName() { jjtThis.type = OIndexIdentifier.Type.INDEX; }
+            jjtThis.indexName = IndexName() { jjtThis.type = IndexIdentifier.Type.INDEX; }
         )
         |
         (
             (
-                token = <INDEXVALUES_IDENTIFIER> { jjtThis.type = OIndexIdentifier.Type.VALUES; }
+                token = <INDEXVALUES_IDENTIFIER> { jjtThis.type = IndexIdentifier.Type.VALUES; }
                 |
-                token = <INDEXVALUESASC_IDENTIFIER> { jjtThis.type = OIndexIdentifier.Type.VALUESASC; }
+                token = <INDEXVALUESASC_IDENTIFIER> { jjtThis.type = IndexIdentifier.Type.VALUESASC; }
                 |
-                token = <INDEXVALUESDESC_IDENTIFIER> { jjtThis.type = OIndexIdentifier.Type.VALUESDESC; }
+                token = <INDEXVALUESDESC_IDENTIFIER> { jjtThis.type = IndexIdentifier.Type.VALUESDESC; }
             )
             {
                 jjtThis.indexNameString = token.image.split(":")[1];
@@ -2585,7 +2585,7 @@ WhereClause WhereClause():
 }
 
 OrBlock OrBlock():
-{ OAndBlock lastAnd = null; }
+{ AndBlock lastAnd = null; }
 {
     (
     	lastAnd = AndBlock() { jjtThis.getSubBlocks().add(lastAnd); }
@@ -2689,9 +2689,9 @@ BooleanExpression ConditionBlock():
     LOOKAHEAD( InstanceofCondition() )
     result = InstanceofCondition()
     |
-    <TRUE> { result = OBooleanExpression.TRUE;}
+    <TRUE> { result = BooleanExpression.TRUE;}
     |
-    <FALSE> { result = OBooleanExpression.FALSE;}
+    <FALSE> { result = BooleanExpression.FALSE;}
 ){ return result; }
 }
 
@@ -3342,7 +3342,7 @@ java.lang.Number Retry():
 
 
 
-Collection Collection():
+PCollection PCollection():
 {
     Expression lastExpression;
 }
@@ -3663,7 +3663,7 @@ MatchFilterItem MatchFilterItem():
 }
 
 MatchPathItem OutPathItem():
-{ OIdentifier edgeName = null; }
+{ Identifier edgeName = null; }
 {
 
         (
@@ -3791,7 +3791,7 @@ MatchPathItem OutPathItemOpt():
 }
 
 MatchPathItem InPathItemOpt():
-{ OIdentifier edgeName = null; }
+{ Identifier edgeName = null; }
 {
 
         <LT>
@@ -3884,7 +3884,7 @@ TruncateRecordStatement TruncateRecordStatement():
 		jjtThis.record = Rid()
 		|
 		(
-			<LBRACKET> { jjtThis.records = new ArrayList<ORid>(); }
+			<LBRACKET> { jjtThis.records = new ArrayList<Rid>(); }
 			[
 				lastRecord = Rid() { jjtThis.records.add(lastRecord); }
 				(
@@ -3910,7 +3910,7 @@ CreateClassStatement CreateClassStatement():
 		jjtThis.name = Identifier()
 		[ <IF> <NOT> <EXISTS> { jjtThis.ifNotExists = true; }]
 		[
-			<EXTENDS> lastIdentifier = Identifier() { jjtThis.superclasses = new ArrayList<OIdentifier>(); jjtThis.superclasses.add(lastIdentifier); }
+			<EXTENDS> lastIdentifier = Identifier() { jjtThis.superclasses = new ArrayList<Identifier>(); jjtThis.superclasses.add(lastIdentifier); }
 			 (
 			 	<COMMA>
 			 	lastIdentifier = Identifier() { jjtThis.superclasses.add(lastIdentifier); }
@@ -3941,12 +3941,12 @@ AlterClassStatement AlterClassStatement():
 	(
 
 		(
-			<NAME> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.NAME; }
+			<NAME> { jjtThis.property = "name"; }
 			jjtThis.identifierValue = Identifier()
 		)
 		|
 		(
-			<SHORTNAME> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.SHORTNAME; }
+			<SHORTNAME> { jjtThis.property = "shortname"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -3955,7 +3955,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<SUPERCLASS> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.SUPERCLASS; }
+			<SUPERCLASS> { jjtThis.property = "supeclass"; }
 			[
 				(
 					<PLUS> {jjtThis.add = true;}
@@ -3974,8 +3974,8 @@ AlterClassStatement AlterClassStatement():
 		|
 		(
 			<SUPERCLASSES> {
-				jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.SUPERCLASSES;
-				jjtThis.identifierListValue = new ArrayList<OIdentifier>();
+				jjtThis.property = "superclasses";
+				jjtThis.identifierListValue = new ArrayList<Identifier>();
 			}
 			(
 				(
@@ -3991,12 +3991,12 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<OVERSIZE> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.OVERSIZE; }
+			<OVERSIZE> { jjtThis.property = "oversize"; }
 			jjtThis.numberValue = PNumber()
 		)
 		|
 		(
-			<STRICTMODE> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.STRICTMODE; }
+			<STRICTMODE> { jjtThis.property = "strictmode"; }
 			(
 				(
 					<TRUE> { jjtThis.booleanValue = true; }
@@ -4009,7 +4009,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<ADDCLUSTER> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.ADDCLUSTER; }
+			<ADDCLUSTER> { jjtThis.property = "addcluster"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4018,7 +4018,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<REMOVECLUSTER> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.REMOVECLUSTER; }
+			<REMOVECLUSTER> { jjtThis.property = "removecluster"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4027,14 +4027,14 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<CUSTOM> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.CUSTOM; }
+			<CUSTOM> { jjtThis.property = "custom"; }
 			jjtThis.customKey = Identifier()
 			<EQ>
 			jjtThis.customValue = Expression()
 		)
 		|
 		(
-			<ABSTRACT> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.ABSTRACT; }
+			<ABSTRACT> { jjtThis.property = "abstract"; }
 			(
 				(
 					<TRUE> { jjtThis.booleanValue = true; }
@@ -4047,7 +4047,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<CLUSTERSELECTION> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.CLUSTERSELECTION; }
+			<CLUSTERSELECTION> { jjtThis.property = "clusterselection"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4058,7 +4058,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<DESCRIPTION> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.DESCRIPTION; }
+			<DESCRIPTION> { jjtThis.property = "description"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4067,7 +4067,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<ENCRYPTION> { jjtThis.property = com.orientechnologies.orient.core.metadata.schema.OClass.ATTRIBUTES.ENCRYPTION; }
+			<ENCRYPTION> { jjtThis.property = "encryption"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4105,7 +4105,7 @@ void IfNotExists():{}
 }
 CreatePropertyStatement CreatePropertyStatement():
 {
-	OCreatePropertyAttributeStatement lastAttribute;
+	CreatePropertyAttributeStatement lastAttribute;
 }
 {
 	<CREATE> <PROPERTY>

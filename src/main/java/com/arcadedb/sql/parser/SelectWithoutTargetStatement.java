@@ -7,7 +7,7 @@ public class SelectWithoutTargetStatement extends SelectStatement {
     super(id);
   }
 
-  public SelectWithoutTargetStatement(OrientSql p, int id) {
+  public SelectWithoutTargetStatement(SqlParser p, int id) {
     super(p, id);
   }
 

@@ -12,7 +12,7 @@ public class CommandLineOption extends SimpleNode {
     super(id);
   }
 
-  public CommandLineOption(OrientSql p, int id) {
+  public CommandLineOption(SqlParser p, int id) {
     super(p, id);
   }
 

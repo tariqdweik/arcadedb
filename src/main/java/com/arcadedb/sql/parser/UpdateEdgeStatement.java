@@ -13,7 +13,7 @@ public class UpdateEdgeStatement extends UpdateStatement {
     super(id);
   }
 
-  public UpdateEdgeStatement(OrientSql p, int id) {
+  public UpdateEdgeStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -29,7 +29,7 @@ public class UpdateEdgeStatement extends UpdateStatement {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

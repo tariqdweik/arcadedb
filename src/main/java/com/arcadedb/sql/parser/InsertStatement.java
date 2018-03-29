@@ -25,7 +25,7 @@ public class InsertStatement extends Statement {
     super(id);
   }
 
-  public InsertStatement(OrientSql p, int id) {
+  public InsertStatement(SqlParser p, int id) {
     super(p, id);
   }
 

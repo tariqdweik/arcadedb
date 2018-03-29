@@ -9,14 +9,14 @@ public class ContainsKeyOperator extends SimpleNode implements BinaryCompareOper
     super(id);
   }
 
-  public ContainsKeyOperator(OrientSql p, int id) {
+  public ContainsKeyOperator(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

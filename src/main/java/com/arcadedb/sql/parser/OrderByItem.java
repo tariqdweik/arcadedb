@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Created by luigidellaquila on 06/02/15.
  */
-public class OOrderByItem {
+public class OrderByItem {
   public static final String ASC  = "ASC";
   public static final String DESC = "DESC";
   protected String   alias;
@@ -111,8 +111,8 @@ public class OOrderByItem {
     return result;
   }
 
-  public OOrderByItem copy() {
-    OOrderByItem result = new OOrderByItem();
+  public OrderByItem copy() {
+    OrderByItem result = new OrderByItem();
     result.alias = alias;
     result.modifier = modifier == null ? null : modifier.copy();
     result.recordAttr = recordAttr;

@@ -47,7 +47,7 @@ public class SelectStatement extends Statement {
     super(id);
   }
 
-  public SelectStatement(OrientSql p, int id) {
+  public SelectStatement(SqlParser p, int id) {
     super(p, id);
   }
 

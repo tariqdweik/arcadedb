@@ -21,14 +21,14 @@ public class ContainsAllCondition extends BooleanExpression {
     super(id);
   }
 
-  public ContainsAllCondition(OrientSql p, int id) {
+  public ContainsAllCondition(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

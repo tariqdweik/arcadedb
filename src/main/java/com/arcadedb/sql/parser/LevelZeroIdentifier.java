@@ -15,20 +15,20 @@ import java.util.Set;
 public class LevelZeroIdentifier extends SimpleNode {
   protected FunctionCall functionCall;
   protected Boolean      self;
-  protected Collection   collection;
+  protected PCollection  collection;
 
   public LevelZeroIdentifier(int id) {
     super(id);
   }
 
-  public LevelZeroIdentifier(OrientSql p, int id) {
+  public LevelZeroIdentifier(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -256,7 +256,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     return result;
   }
 
-  public void setCollection(Collection collection) {
+  public void setCollection(PCollection collection) {
     this.collection = collection;
   }
 
@@ -278,7 +278,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     return self;
   }
 
-  public Collection getCollection() {
+  public PCollection getCollection() {
     return collection;
   }
 
@@ -301,7 +301,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     }
     self = fromResult.getProperty("self");
     if (fromResult.getProperty("collection") != null) {
-      collection = new Collection(-1);
+      collection = new PCollection(-1);
       collection.deserialize(fromResult.getProperty("collection"));
     }
   }

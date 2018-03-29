@@ -17,7 +17,7 @@ public class TruncateRecordStatement extends SimpleExecStatement {
     super(id);
   }
 
-  public TruncateRecordStatement(OrientSql p, int id) {
+  public TruncateRecordStatement(SqlParser p, int id) {
     super(p, id);
   }
 

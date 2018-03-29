@@ -11,13 +11,13 @@ import java.util.Map;
 
 public class CommitStatement extends SimpleExecStatement {
 
-  protected Integer retry;
+  protected PInteger retry;
 
   public CommitStatement(int id) {
     super(id);
   }
 
-  public CommitStatement(OrientSql p, int id) {
+  public CommitStatement(SqlParser p, int id) {
     super(p, id);
   }
 

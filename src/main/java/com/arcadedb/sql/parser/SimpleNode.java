@@ -12,7 +12,7 @@ public class SimpleNode implements Node {
   protected Node[]    children;
   protected int       id;
   protected Object    value;
-  protected OrientSql parser;
+  protected SqlParser parser;
   protected Token     firstToken;
   protected Token     lastToken;
 
@@ -24,7 +24,7 @@ public class SimpleNode implements Node {
     id = i;
   }
 
-  public SimpleNode(OrientSql p, int i) {
+  public SimpleNode(SqlParser p, int i) {
     this(i);
     parser = p;
   }
@@ -89,14 +89,14 @@ public class SimpleNode implements Node {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object childrenAccept(OrientSqlVisitor visitor, Object data) {
+  public Object childrenAccept(SqlParserVisitor visitor, Object data) {
     if (children != null) {
       for (int i = 0; i < children.length; ++i) {
         children[i].jjtAccept(visitor, data);

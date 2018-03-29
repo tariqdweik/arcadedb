@@ -19,7 +19,7 @@ public class AlterClusterStatement extends ODDLStatement {
     super(id);
   }
 
-  public AlterClusterStatement(OrientSql p, int id) {
+  public AlterClusterStatement(SqlParser p, int id) {
     super(p, id);
   }
 

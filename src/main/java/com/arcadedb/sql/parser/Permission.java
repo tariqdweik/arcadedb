@@ -11,7 +11,7 @@ public class Permission extends SimpleNode {
     super(id);
   }
 
-  public Permission(OrientSql p, int id) {
+  public Permission(SqlParser p, int id) {
     super(p, id);
   }
 

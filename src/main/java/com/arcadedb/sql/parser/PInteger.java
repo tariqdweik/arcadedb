@@ -7,7 +7,7 @@ import com.arcadedb.sql.executor.OResultInternal;
 
 import java.util.Map;
 
-public class PInteger extends Number {
+public class PInteger extends PNumber {
 
   protected java.lang.Number value;
 
@@ -15,7 +15,7 @@ public class PInteger extends Number {
     super(id);
   }
 
-  public PInteger(OrientSql p, int id) {
+  public PInteger(SqlParser p, int id) {
     super(p, id);
   }
 

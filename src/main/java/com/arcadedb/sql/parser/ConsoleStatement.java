@@ -20,7 +20,7 @@ public class ConsoleStatement extends SimpleExecStatement {
     super(id);
   }
 
-  public ConsoleStatement(OrientSql p, int id) {
+  public ConsoleStatement(SqlParser p, int id) {
     super(p, id);
   }
 

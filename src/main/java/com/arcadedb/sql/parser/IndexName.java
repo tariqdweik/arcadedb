@@ -15,7 +15,7 @@ public class IndexName extends SimpleNode {
     super(id);
   }
 
-  public IndexName(OrientSql p, int id) {
+  public IndexName(SqlParser p, int id) {
     super(p, id);
   }
 

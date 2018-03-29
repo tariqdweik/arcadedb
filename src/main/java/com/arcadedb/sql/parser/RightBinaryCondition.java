@@ -23,7 +23,7 @@ public class RightBinaryCondition extends SimpleNode {
     super(id);
   }
 
-  public RightBinaryCondition(OrientSql p, int id) {
+  public RightBinaryCondition(SqlParser p, int id) {
     super(p, id);
   }
 

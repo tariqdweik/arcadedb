@@ -30,13 +30,13 @@ public class TraverseStatement extends Statement {
 
   protected Strategy strategy;
 
-  protected Integer maxDepth;
+  protected PInteger maxDepth;
 
   public TraverseStatement(int id) {
     super(id);
   }
 
-  public TraverseStatement(OrientSql p, int id) {
+  public TraverseStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -229,11 +229,11 @@ public class TraverseStatement extends Statement {
     this.strategy = strategy;
   }
 
-  public Integer getMaxDepth() {
+  public PInteger getMaxDepth() {
     return maxDepth;
   }
 
-  public void setMaxDepth(Integer maxDepth) {
+  public void setMaxDepth(PInteger maxDepth) {
     this.maxDepth = maxDepth;
   }
 

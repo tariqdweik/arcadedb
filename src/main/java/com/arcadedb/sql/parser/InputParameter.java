@@ -23,14 +23,14 @@ public class InputParameter extends SimpleNode {
     super(id);
   }
 
-  public InputParameter(OrientSql p, int id) {
+  public InputParameter(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -85,7 +85,7 @@ public class InputParameter extends SimpleNode {
       return value;
     }
     if (OMultiValue.isMultiValue(value) && !(value instanceof byte[]) && !(value instanceof Byte[])) {
-      Collection coll = new Collection(-1);
+      PCollection coll = new PCollection(-1);
       coll.expressions = new ArrayList<Expression>();
       Iterator iterator = OMultiValue.getMultiValueIterator(value);
       while (iterator.hasNext()) {
@@ -98,9 +98,9 @@ public class InputParameter extends SimpleNode {
     }
     if (value instanceof Map) {
       Json json = new Json(-1);
-      json.items = new ArrayList<OJsonItem>();
+      json.items = new ArrayList<JsonItem>();
       for (Object entry : ((Map) value).entrySet()) {
-        OJsonItem item = new OJsonItem();
+        JsonItem item = new JsonItem();
         item.leftString = "" + ((Map.Entry) entry).getKey();
         Expression exp = new Expression(-1);
         exp.value = toParsedTree(((Map.Entry) entry).getValue());

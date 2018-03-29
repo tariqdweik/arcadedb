@@ -26,7 +26,7 @@ public class CreateEdgeStatement extends Statement {
     super(id);
   }
 
-  public CreateEdgeStatement(OrientSql p, int id) {
+  public CreateEdgeStatement(SqlParser p, int id) {
     super(p, id);
   }
 

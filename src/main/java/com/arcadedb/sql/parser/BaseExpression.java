@@ -14,7 +14,7 @@ import java.util.Set;
 
 public class BaseExpression extends MathExpression {
 
-  protected Number number;
+  protected PNumber number;
 
   protected BaseIdentifier identifier;
 
@@ -28,7 +28,7 @@ public class BaseExpression extends MathExpression {
     super(id);
   }
 
-  public BaseExpression(OrientSql p, int id) {
+  public BaseExpression(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -60,7 +60,7 @@ public class BaseExpression extends MathExpression {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -398,7 +398,7 @@ public class BaseExpression extends MathExpression {
     super.deserialize(fromResult);
 
     if (fromResult.getProperty("number") != null) {
-      number = new Number(-1);
+      number = new PNumber(-1);
       number.deserialize(fromResult.getProperty("number"));
     }
     if (fromResult.getProperty("identifier") != null) {

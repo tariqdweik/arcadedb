@@ -150,8 +150,8 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
    * it's not key = [...] but a real condition on field names, already ordered (field names will be ignored)
    */
   private void processAndBlock() {
-    Collection fromKey = indexKeyFrom((AndBlock) condition, additional);
-    Collection toKey = indexKeyTo((AndBlock) condition, additional);
+    PCollection fromKey = indexKeyFrom((AndBlock) condition, additional);
+    PCollection toKey = indexKeyTo((AndBlock) condition, additional);
     boolean fromKeyIncluded = indexKeyFromIncluded((AndBlock) condition, additional);
     boolean toKeyIncluded = indexKeyToIncluded((AndBlock) condition, additional);
     init(fromKey, fromKeyIncluded, toKey, toKeyIncluded);
@@ -161,7 +161,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     cursor = index.iterator(isOrderAsc());
   }
 
-  private void init(Collection fromKey, boolean fromKeyIncluded, Collection toKey, boolean toKeyIncluded) {
+  private void init(PCollection fromKey, boolean fromKeyIncluded, PCollection toKey, boolean toKeyIncluded) {
     Object secondValue = fromKey.execute((OResult) null, ctx);
     Object thirdValue = toKey.execute((OResult) null, ctx);
 //    OIndexDefinition indexDef = index.getDefinition();
@@ -273,8 +273,8 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     return orderAsc;
   }
 
-  private Collection indexKeyFrom(AndBlock keyCondition, BinaryCondition additional) {
-    Collection result = new Collection(-1);
+  private PCollection indexKeyFrom(AndBlock keyCondition, BinaryCondition additional) {
+    PCollection result = new PCollection(-1);
     for (BooleanExpression exp : keyCondition.getSubBlocks()) {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);
@@ -292,8 +292,8 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     return result;
   }
 
-  private Collection indexKeyTo(AndBlock keyCondition, BinaryCondition additional) {
-    Collection result = new Collection(-1);
+  private PCollection indexKeyTo(AndBlock keyCondition, BinaryCondition additional) {
+    PCollection result = new PCollection(-1);
     for (BooleanExpression exp : keyCondition.getSubBlocks()) {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);

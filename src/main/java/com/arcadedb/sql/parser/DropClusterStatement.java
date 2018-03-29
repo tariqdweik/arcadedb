@@ -13,14 +13,14 @@ import java.util.Map;
 
 public class DropClusterStatement extends ODDLStatement {
   protected Identifier name;
-  protected Integer    id;
+  protected PInteger    id;
   protected boolean ifExists = false;
 
   public DropClusterStatement(int id) {
     super(id);
   }
 
-  public DropClusterStatement(OrientSql p, int id) {
+  public DropClusterStatement(SqlParser p, int id) {
     super(p, id);
   }
 

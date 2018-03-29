@@ -8,7 +8,7 @@ class CreateVertexStatementNoTarget extends CreateVertexStatement {
     super(id);
   }
 
-  public CreateVertexStatementNoTarget(OrientSql p, int id) {
+  public CreateVertexStatementNoTarget(SqlParser p, int id) {
     super(p, id);
   }
 

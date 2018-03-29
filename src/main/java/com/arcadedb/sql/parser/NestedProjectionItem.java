@@ -24,7 +24,7 @@ public class NestedProjectionItem extends SimpleNode {
     super(id);
   }
 
-  public NestedProjectionItem(OrientSql p, int id) {
+  public NestedProjectionItem(SqlParser p, int id) {
     super(p, id);
   }
 

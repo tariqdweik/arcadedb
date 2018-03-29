@@ -92,7 +92,7 @@ public class OCreateEdgeExecutionPlanner {
       result.chain(new UpdateContentStep(insertBody.getContent(), ctx, profilingEnabled));
     } else if (insertBody.getSetExpressions() != null) {
       List<UpdateItem> items = new ArrayList<>();
-      for (OInsertSetExpression exp : insertBody.getSetExpressions()) {
+      for (InsertSetExpression exp : insertBody.getSetExpressions()) {
         UpdateItem item = new UpdateItem(-1);
         item.setOperator(UpdateItem.OPERATOR_EQ);
         item.setLeft(exp.getLeft().copy());

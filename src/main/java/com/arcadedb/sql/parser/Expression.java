@@ -28,7 +28,7 @@ public class Expression extends SimpleNode {
     super(id);
   }
 
-  public Expression(OrientSql p, int id) {
+  public Expression(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -48,7 +48,7 @@ public class Expression extends SimpleNode {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -71,8 +71,8 @@ public class Expression extends SimpleNode {
     if (booleanValue != null) {
       return booleanValue;
     }
-    if (value instanceof Number) {
-      return ((Number) value).getValue();//only for old executor (manually replaced params)
+    if (value instanceof PNumber) {
+      return ((PNumber) value).getValue();//only for old executor (manually replaced params)
     }
 
     //from here it's old stuff, only for the old executor
@@ -113,8 +113,8 @@ public class Expression extends SimpleNode {
     if (booleanValue != null) {
       return booleanValue;
     }
-    if (value instanceof Number) {
-      return ((Number) value).getValue();//only for old executor (manually replaced params)
+    if (value instanceof PNumber) {
+      return ((PNumber) value).getValue();//only for old executor (manually replaced params)
     }
 
     //from here it's old stuff, only for the old executor

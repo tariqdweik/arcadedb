@@ -5,7 +5,7 @@ import java.util.Map;
 /**
  * Created by luigidellaquila on 19/02/15.
  */
-public class OInsertSetExpression {
+public class InsertSetExpression {
 
   protected Identifier left;
   protected Expression right;
@@ -17,8 +17,8 @@ public class OInsertSetExpression {
 
   }
 
-  public OInsertSetExpression copy() {
-    OInsertSetExpression result = new OInsertSetExpression();
+  public InsertSetExpression copy() {
+    InsertSetExpression result = new InsertSetExpression();
     result.left = left == null ? null : left.copy();
     result.right = right == null ? null : right.copy();
     return result;

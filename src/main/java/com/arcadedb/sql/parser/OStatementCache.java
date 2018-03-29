@@ -90,17 +90,17 @@ public class OStatementCache {
         }
       }
 
-      OrientSql osql = null;
+      SqlParser osql = null;
       if (db == null) {
-        osql = new OrientSql(is);
+        osql = new SqlParser(is);
       } else {
         try {
-//          osql = new OrientSql(is, db.getStorage().getConfiguration().getCharset());
-          osql = new OrientSql(is, "UTF-8");
+//          osql = new SqlParser(is, db.getStorage().getConfiguration().getCharset());
+          osql = new SqlParser(is, "UTF-8");
         } catch (UnsupportedEncodingException e2) {
           PLogManager.instance()
               .warn(null, "Unsupported charset for database " + db );
-          osql = new OrientSql(is);
+          osql = new SqlParser(is);
         }
       }
       Statement result = osql.parse();

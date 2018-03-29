@@ -19,7 +19,7 @@ public class LetStatement extends SimpleExecStatement {
     super(id);
   }
 
-  public LetStatement(OrientSql p, int id) {
+  public LetStatement(SqlParser p, int id) {
     super(p, id);
   }
 

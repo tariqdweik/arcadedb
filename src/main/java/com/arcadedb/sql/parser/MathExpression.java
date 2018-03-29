@@ -558,7 +558,7 @@ public class MathExpression extends SimpleNode {
     super(id);
   }
 
-  public MathExpression(OrientSql p, int id) {
+  public MathExpression(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -707,7 +707,7 @@ public class MathExpression extends SimpleNode {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

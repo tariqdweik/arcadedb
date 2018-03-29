@@ -21,7 +21,7 @@ public class NotBlock extends BooleanExpression {
     super(id);
   }
 
-  public NotBlock(OrientSql p, int id) {
+  public NotBlock(SqlParser p, int id) {
     super(p, id);
   }
 

@@ -17,14 +17,14 @@ public class MatchPathItem extends SimpleNode {
     super(id);
   }
 
-  public MatchPathItem(OrientSql p, int id) {
+  public MatchPathItem(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -99,8 +99,8 @@ public class MatchPathItem extends SimpleNode {
         for (PIdentifiable origin : queryResult) {
           // TODO consider break strategies (eg. re-traverse nodes)
           Iterable<PIdentifiable> subResult = executeTraversal(matchContext, iCommandContext, origin, depth + 1);
-          if (subResult instanceof Collection) {
-            result.addAll((Collection<? extends PIdentifiable>) subResult);
+          if (subResult instanceof java.util.Collection) {
+            result.addAll((java.util.Collection<? extends PIdentifiable>) subResult);
           } else {
             for (PIdentifiable i : subResult) {
               result.add(i);

@@ -18,7 +18,7 @@ public class MatchPathItemFirst extends MatchPathItem {
     super(id);
   }
 
-  public MatchPathItemFirst(OrientSql p, int id) {
+  public MatchPathItemFirst(SqlParser p, int id) {
     super(p, id);
   }
 

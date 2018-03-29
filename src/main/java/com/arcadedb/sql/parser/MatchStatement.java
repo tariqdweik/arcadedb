@@ -100,7 +100,7 @@ public class MatchStatement extends Statement {
     super(id);
   }
 
-  public MatchStatement(OrientSql p, int id) {
+  public MatchStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -144,7 +144,7 @@ public class MatchStatement extends Statement {
   /**
    * Accept the visitor. *
    */
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

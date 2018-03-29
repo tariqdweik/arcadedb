@@ -21,7 +21,7 @@ public class TraverseProjectionItem extends SimpleNode {
     super(id);
   }
 
-  public TraverseProjectionItem(OrientSql p, int id) {
+  public TraverseProjectionItem(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -82,7 +82,7 @@ public class TraverseProjectionItem extends SimpleNode {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

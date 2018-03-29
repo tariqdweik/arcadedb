@@ -16,7 +16,7 @@ public class ExplainStatement extends Statement {
     super(id);
   }
 
-  public ExplainStatement(OrientSql p, int id) {
+  public ExplainStatement(SqlParser p, int id) {
     super(p, id);
   }
 

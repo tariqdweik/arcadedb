@@ -14,7 +14,7 @@ public class ReturnStatement extends SimpleExecStatement {
     super(id);
   }
 
-  public ReturnStatement(OrientSql p, int id) {
+  public ReturnStatement(SqlParser p, int id) {
     super(p, id);
   }
 

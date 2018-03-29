@@ -19,7 +19,7 @@ public class MoveVertexStatement extends Statement {
     super(id);
   }
 
-  public MoveVertexStatement(OrientSql p, int id) {
+  public MoveVertexStatement(SqlParser p, int id) {
     super(p, id);
   }
 

@@ -26,12 +26,12 @@ public class AlterClassStatement extends ODDLStatement {
   protected List<Identifier> identifierListValue;
   protected Boolean          add;
   protected Boolean          remove;
-  protected Number           numberValue;
+  protected PNumber           numberValue;
   protected Boolean          booleanValue;
   public    Identifier       customKey;
   public    Expression       customValue;
 
-  protected Integer    defaultClusterId;
+  protected PInteger    defaultClusterId;
   protected Identifier defaultClusterName;
 
   // only to manage 'round-robin' as a cluster selection strategy (not a valid identifier)
@@ -43,7 +43,7 @@ public class AlterClassStatement extends ODDLStatement {
     super(id);
   }
 
-  public AlterClassStatement(OrientSql p, int id) {
+  public AlterClassStatement(SqlParser p, int id) {
     super(p, id);
   }
 

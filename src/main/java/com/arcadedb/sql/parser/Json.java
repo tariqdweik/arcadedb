@@ -14,27 +14,27 @@ import java.util.stream.Collectors;
 
 public class Json extends SimpleNode {
 
-  protected List<OJsonItem> items = new ArrayList<OJsonItem>();
+  protected List<JsonItem> items = new ArrayList<JsonItem>();
 
   public Json(int id) {
     super(id);
   }
 
-  public Json(OrientSql p, int id) {
+  public Json(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor. *
    */
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("{");
     boolean first = true;
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       if (!first) {
         builder.append(", ");
       }
@@ -53,7 +53,7 @@ public class Json extends SimpleNode {
     } else {
       doc = ctx.getDatabase().newDocument(null);
     }
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       String name = item.getLeftValue();
       if (name == null) {
         continue;
@@ -72,7 +72,7 @@ public class Json extends SimpleNode {
 
   public Map<String, Object> toMap(PIdentifiable source, OCommandContext ctx) {
     Map<String, Object> doc = new HashMap<String, Object>();
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       String name = item.getLeftValue();
       if (name == null) {
         continue;
@@ -86,7 +86,7 @@ public class Json extends SimpleNode {
 
   public Map<String, Object> toMap(OResult source, OCommandContext ctx) {
     Map<String, Object> doc = new HashMap<String, Object>();
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       String name = item.getLeftValue();
       if (name == null) {
         continue;
@@ -99,7 +99,7 @@ public class Json extends SimpleNode {
   }
 
   private String getClassNameForDocument(OCommandContext ctx) {
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       String left = item.getLeftValue();
       if (left != null && left.toLowerCase(Locale.ENGLISH).equals("@class")) {
         return "" + item.right.execute((OResult) null, ctx);
@@ -109,7 +109,7 @@ public class Json extends SimpleNode {
   }
 
   public boolean needsAliases(Set<String> aliases) {
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       if (item.needsAliases(aliases)) {
         return true;
       }
@@ -118,7 +118,7 @@ public class Json extends SimpleNode {
   }
 
   public boolean isAggregate() {
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       if (item.isAggregate()) {
         return true;
       }
@@ -129,7 +129,7 @@ public class Json extends SimpleNode {
   public Json splitForAggregation(AggregateProjectionSplit aggregateSplit) {
     if (isAggregate()) {
       Json result = new Json(-1);
-      for (OJsonItem item : items) {
+      for (JsonItem item : items) {
         result.items.add(item.splitForAggregation(aggregateSplit));
       }
       return result;
@@ -165,13 +165,13 @@ public class Json extends SimpleNode {
   }
 
   public void extractSubQueries(SubQueryCollector collector) {
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       item.extractSubQueries(collector);
     }
   }
 
   public boolean refersToParent() {
-    for (OJsonItem item : items) {
+    for (JsonItem item : items) {
       if (item.refersToParent()) {
         return true;
       }
@@ -193,7 +193,7 @@ public class Json extends SimpleNode {
       List<OResult> ser = fromResult.getProperty("items");
       items = new ArrayList<>();
       for (OResult r : ser) {
-        OJsonItem exp = new OJsonItem();
+        JsonItem exp = new JsonItem();
         exp.deserialize(r);
         items.add(exp);
       }

@@ -37,14 +37,13 @@ public class QueryTest {
 
   @Test
   public void testScan() {
-    final AtomicInteger total = new AtomicInteger();
 
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       OResultSet rs = db.query("SELECT FROM V", new HashMap<>());
-//      Iterator<PRecord> iterator = db.bucketIterator("V");
 
+      final AtomicInteger total = new AtomicInteger();
       while (rs.hasNext()) {
         OResult record = rs.next();
         Assertions.assertNotNull(record);
@@ -69,22 +68,23 @@ public class QueryTest {
     } finally {
       db.close();
     }
+
   }
 
   private void populate(final int total) {
     new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
-        if (!database.getSchema().existsBucket("V"))
-          database.getSchema().createBucket("V");
+        if (!database.getSchema().existsType("V"))
+          database.getSchema().createVertexType("V");
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument(null);
+          final PModifiableDocument v = database.newDocument("V");
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");
 
-          v.save("V");
+          v.save();
         }
       }
     });

@@ -19,7 +19,7 @@ public class BaseIdentifier extends SimpleNode {
     super(id);
   }
 
-  public BaseIdentifier(OrientSql p, int id) {
+  public BaseIdentifier(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -34,7 +34,7 @@ public class BaseIdentifier extends SimpleNode {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

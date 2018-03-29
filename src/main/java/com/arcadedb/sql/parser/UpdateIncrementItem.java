@@ -13,14 +13,14 @@ public class UpdateIncrementItem extends SimpleNode {
     super(id);
   }
 
-  public UpdateIncrementItem(OrientSql p, int id) {
+  public UpdateIncrementItem(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

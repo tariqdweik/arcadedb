@@ -7,7 +7,6 @@ import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.parser.*;
-import com.arcadedb.sql.parser.Integer;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -245,39 +244,43 @@ public class OSelectExecutionPlanner {
    */
   private Map<String, Set<String>> getMinimalSetOfNodesForShardedQuery(String localNode, Map<String, Set<String>> clusterMap,
       Set<String> queryClusters) {
-    //approximate algorithm, the problem is NP-complete
-    Map<String, Set<String>> result = new LinkedHashMap<>();
-    Set<String> uncovered = new HashSet<>();
-    uncovered.addAll(queryClusters);
-
-    //try local node first
-    Set<String> nextNodeClusters = new HashSet<>();
-    Set<String> clustersForNode = clusterMap.get(localNode);
-    if (clustersForNode != null) {
-      nextNodeClusters.addAll(clustersForNode);
-    }
-    nextNodeClusters.retainAll(uncovered);
-    if (nextNodeClusters.size() > 0) {
-      result.put(localNode, nextNodeClusters);
-      uncovered.removeAll(nextNodeClusters);
-    }
-
-    while (uncovered.size() > 0) {
-      String nextNode = findItemThatCoversMore(uncovered, clusterMap);
-      nextNodeClusters = new HashSet<>();
-      nextNodeClusters.addAll(clusterMap.get(nextNode));
-      nextNodeClusters.retainAll(uncovered);
-      if (nextNodeClusters.size() == 0) {
-        throw new PCommandExecutionException(
-            "Cannot execute a sharded query: clusters [" + uncovered.stream().collect(Collectors.joining(", "))
-                + "] are not present on any node" + "\n [" + clusterMap.entrySet().stream()
-                .map(x -> "" + x.getKey() + ":(" + x.getValue().stream().collect(Collectors.joining(",")) + ")")
-                .collect(Collectors.joining(", ")) + "]");
-      }
-      result.put(nextNode, nextNodeClusters);
-      uncovered.removeAll(nextNodeClusters);
-    }
+    HashMap<String, Set<String>> result = new HashMap<String, Set<String>>();
+    result.put(LOCAL_NODE_NAME, queryClusters);
     return result;
+
+//    //approximate algorithm, the problem is NP-complete
+//    Map<String, Set<String>> result = new LinkedHashMap<>();
+//    Set<String> uncovered = new HashSet<>();
+//    uncovered.addAll(queryClusters);
+//
+//    //try local node first
+//    Set<String> nextNodeClusters = new HashSet<>();
+//    Set<String> clustersForNode = clusterMap.get(localNode);
+//    if (clustersForNode != null) {
+//      nextNodeClusters.addAll(clustersForNode);
+//    }
+//    nextNodeClusters.retainAll(uncovered);
+//    if (nextNodeClusters.size() > 0) {
+//      result.put(localNode, nextNodeClusters);
+//      uncovered.removeAll(nextNodeClusters);
+//    }
+//
+//    while (uncovered.size() > 0) {
+//      String nextNode = findItemThatCoversMore(uncovered, clusterMap);
+//      nextNodeClusters = new HashSet<>();
+//      nextNodeClusters.addAll(clusterMap.get(nextNode));
+//      nextNodeClusters.retainAll(uncovered);
+//      if (nextNodeClusters.size() == 0) {
+//        throw new PCommandExecutionException(
+//            "Cannot execute a sharded query: clusters [" + uncovered.stream().collect(Collectors.joining(", "))
+//                + "] are not present on any node" + "\n [" + clusterMap.entrySet().stream()
+//                .map(x -> "" + x.getKey() + ":(" + x.getValue().stream().collect(Collectors.joining(",")) + ")")
+//                .collect(Collectors.joining(", ")) + "]");
+//      }
+//      result.put(nextNode, nextNodeClusters);
+//      uncovered.removeAll(nextNodeClusters);
+//    }
+//    return result;
   }
 
   private String findItemThatCoversMore(Set<String> uncovered, Map<String, Set<String>> clusterMap) {
@@ -333,11 +336,11 @@ public class OSelectExecutionPlanner {
     FromItem item = info.target.getItem();
     if (item.getRids() != null && item.getRids().size() > 0) {
       if (item.getRids().size() == 1) {
-        Integer cluster = item.getRids().get(0).getCluster();
+        PInteger cluster = item.getRids().get(0).getCluster();
         result.add(db.getSchema().getBucketById(cluster.getValue().intValue()).getName());
       } else {
         for (Rid rid : item.getRids()) {
-          Integer cluster = rid.getCluster();
+          PInteger cluster = rid.getCluster();
           result.add(db.getSchema().getBucketById(cluster.getValue().intValue()).getName());
         }
       }
@@ -715,7 +718,7 @@ public class OSelectExecutionPlanner {
     List<ProjectionItem> result = new ArrayList<>();
     int nextAliasCount = 0;
     if (orderBy != null && orderBy.getItems() != null || !orderBy.getItems().isEmpty()) {
-      for (OOrderByItem item : orderBy.getItems()) {
+      for (OrderByItem item : orderBy.getItems()) {
         if (!allAliases.contains(item.getAlias())) {
           ProjectionItem newProj = new ProjectionItem(-1);
           if (item.getAlias() != null) {
@@ -1120,9 +1123,9 @@ public class OSelectExecutionPlanner {
       PRID orid = ((PIdentifiable) paramValue).getIdentity();
 
       Rid rid = new Rid(-1);
-      Integer cluster = new Integer(-1);
+      PInteger cluster = new PInteger(-1);
       cluster.setValue(orid.getBucketId());
-      Integer position = new Integer(-1);
+      PInteger position = new PInteger(-1);
       position.setValue(orid.getPosition());
       rid.setLegacy(true);
       rid.setCluster(cluster);
@@ -1144,9 +1147,9 @@ public class OSelectExecutionPlanner {
         PRID orid = ((PIdentifiable) x).getIdentity();
 
         Rid rid = new Rid(-1);
-        Integer cluster = new Integer(-1);
+        PInteger cluster = new PInteger(-1);
         cluster.setValue(orid.getBucketId());
-        Integer position = new Integer(-1);
+        PInteger position = new PInteger(-1);
         position.setValue(orid.getPosition());
         rid.setCluster(cluster);
         rid.setPosition(position);
@@ -1878,17 +1881,17 @@ public class OSelectExecutionPlanner {
       return null;
     }
     String result = null;
-    for (OOrderByItem item : info.orderBy.getItems()) {
+    for (OrderByItem item : info.orderBy.getItems()) {
       if (result == null) {
-        result = item.getType() == null ? OOrderByItem.ASC : item.getType();
+        result = item.getType() == null ? OrderByItem.ASC : item.getType();
       } else {
-        String newType = item.getType() == null ? OOrderByItem.ASC : item.getType();
+        String newType = item.getType() == null ? OrderByItem.ASC : item.getType();
         if (!newType.equals(result)) {
           return null;
         }
       }
     }
-    return result == null || result.equals(OOrderByItem.ASC) ? true : false;
+    return result == null || result.equals(OrderByItem.ASC) ? true : false;
   }
 
   private OExecutionStepInternal createParallelIndexFetch(List<IndexSearchDescriptor> indexSearchDescriptors,
@@ -2272,9 +2275,9 @@ public class OSelectExecutionPlanner {
       return false;
     }
     if (info.orderBy.getItems().size() == 1) {
-      OOrderByItem item = info.orderBy.getItems().get(0);
+      OrderByItem item = info.orderBy.getItems().get(0);
       String recordAttr = item.getRecordAttr();
-      if (recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && OOrderByItem.DESC.equals(item.getType())) {
+      if (recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && OrderByItem.DESC.equals(item.getType())) {
         return true;
       }
     }
@@ -2290,9 +2293,9 @@ public class OSelectExecutionPlanner {
       return false;
     }
     if (info.orderBy.getItems().size() == 1) {
-      OOrderByItem item = info.orderBy.getItems().get(0);
+      OrderByItem item = info.orderBy.getItems().get(0);
       String recordAttr = item.getRecordAttr();
-      if (recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && (item.getType() == null || OOrderByItem.ASC
+      if (recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && (item.getType() == null || OrderByItem.ASC
           .equals(item.getType()))) {
         return true;
       }

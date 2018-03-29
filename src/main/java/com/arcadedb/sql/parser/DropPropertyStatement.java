@@ -20,7 +20,7 @@ public class DropPropertyStatement extends ODDLStatement {
     super(id);
   }
 
-  public DropPropertyStatement(OrientSql p, int id) {
+  public DropPropertyStatement(SqlParser p, int id) {
     super(p, id);
   }
 

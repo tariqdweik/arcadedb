@@ -15,7 +15,7 @@ public abstract class ODDLStatement extends Statement {
     super(id);
   }
 
-  public ODDLStatement(OrientSql p, int id) {
+  public ODDLStatement(SqlParser p, int id) {
     super(p, id);
   }
 

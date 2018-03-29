@@ -20,7 +20,7 @@ public class CreateClusterStatement extends ODDLStatement {
 
   protected boolean ifNotExists = false;
 
-  protected Integer id;
+  protected PInteger id;
 
   protected boolean blob = false;
 
@@ -28,7 +28,7 @@ public class CreateClusterStatement extends ODDLStatement {
     super(id);
   }
 
-  public CreateClusterStatement(OrientSql p, int id) {
+  public CreateClusterStatement(SqlParser p, int id) {
     super(p, id);
   }
 

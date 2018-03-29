@@ -24,7 +24,7 @@ public class FunctionCall extends SimpleNode {
     super(id);
   }
 
-  public FunctionCall(OrientSql p, int id) {
+  public FunctionCall(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -35,7 +35,7 @@ public class FunctionCall extends SimpleNode {
   /**
    * Accept the visitor. *
    */
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

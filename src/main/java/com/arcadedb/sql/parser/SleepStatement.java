@@ -11,13 +11,13 @@ import java.util.Map;
 
 public class SleepStatement extends SimpleExecStatement {
 
-  protected Integer millis;
+  protected PInteger millis;
 
   public SleepStatement(int id) {
     super(id);
   }
 
-  public SleepStatement(OrientSql p, int id) {
+  public SleepStatement(SqlParser p, int id) {
     super(p, id);
   }
 

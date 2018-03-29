@@ -21,7 +21,7 @@ public class DeleteVertexStatement extends Statement {
     super(id);
   }
 
-  public DeleteVertexStatement(OrientSql p, int id) {
+  public DeleteVertexStatement(SqlParser p, int id) {
     super(p, id);
   }
 

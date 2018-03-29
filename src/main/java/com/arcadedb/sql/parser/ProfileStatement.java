@@ -17,7 +17,7 @@ public class ProfileStatement extends Statement {
     super(id);
   }
 
-  public ProfileStatement(OrientSql p, int id) {
+  public ProfileStatement(SqlParser p, int id) {
     super(p, id);
   }
 

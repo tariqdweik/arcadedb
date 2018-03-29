@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * Created by luigidellaquila on 18/02/15.
  */
-public class OJsonItem {
+public class JsonItem {
   protected Identifier leftIdentifier;
   protected String     leftString;
   protected Expression right;
@@ -53,9 +53,9 @@ public class OJsonItem {
     return right.isAggregate();
   }
 
-  public OJsonItem splitForAggregation(AggregateProjectionSplit aggregateSplit) {
+  public JsonItem splitForAggregation(AggregateProjectionSplit aggregateSplit) {
     if (isAggregate()) {
-      OJsonItem item = new OJsonItem();
+      JsonItem item = new JsonItem();
       item.leftIdentifier = leftIdentifier;
       item.leftString = leftString;
       item.right = right.splitForAggregation(aggregateSplit);
@@ -65,8 +65,8 @@ public class OJsonItem {
     }
   }
 
-  public OJsonItem copy() {
-    OJsonItem result = new OJsonItem();
+  public JsonItem copy() {
+    JsonItem result = new JsonItem();
     result.leftIdentifier = leftIdentifier == null ? null : leftIdentifier.copy();
     result.leftString = leftString;
     result.right = right.copy();
@@ -88,7 +88,7 @@ public class OJsonItem {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    OJsonItem oJsonItem = (OJsonItem) o;
+    JsonItem oJsonItem = (JsonItem) o;
 
     if (leftIdentifier != null ? !leftIdentifier.equals(oJsonItem.leftIdentifier) : oJsonItem.leftIdentifier != null)
       return false;

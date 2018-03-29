@@ -17,7 +17,7 @@ public class RebuildIndexStatement extends SimpleExecStatement {
     super(id);
   }
 
-  public RebuildIndexStatement(OrientSql p, int id) {
+  public RebuildIndexStatement(SqlParser p, int id) {
     super(p, id);
   }
 

@@ -3,7 +3,7 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
-import com.arcadedb.sql.parser.Integer;
+import com.arcadedb.sql.parser.PInteger;
 import com.arcadedb.sql.parser.TraverseProjectionItem;
 import com.arcadedb.sql.parser.WhereClause;
 
@@ -14,7 +14,7 @@ import java.util.*;
  */
 public class DepthFirstTraverseStep extends AbstractTraverseStep {
 
-  public DepthFirstTraverseStep(List<TraverseProjectionItem> projections, WhereClause whileClause, Integer maxDepth,
+  public DepthFirstTraverseStep(List<TraverseProjectionItem> projections, WhereClause whileClause, PInteger maxDepth,
       OCommandContext ctx, boolean profilingEnabled) {
     super(projections, whileClause, maxDepth, ctx, profilingEnabled);
   }

@@ -21,7 +21,7 @@ public class OrBlock extends BooleanExpression {
     super(id);
   }
 
-  public OrBlock(OrientSql p, int id) {
+  public OrBlock(SqlParser p, int id) {
     super(p, id);
   }
 

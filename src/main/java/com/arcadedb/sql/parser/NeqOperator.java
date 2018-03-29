@@ -9,12 +9,12 @@ public class NeqOperator extends SimpleNode implements BinaryCompareOperator {
     super(id);
   }
 
-  public NeqOperator(OrientSql p, int id) {
+  public NeqOperator(SqlParser p, int id) {
     super(p, id);
   }
 
   /** Accept the visitor. **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

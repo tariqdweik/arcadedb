@@ -16,7 +16,7 @@ public class BeginStatement extends SimpleExecStatement {
     super(id);
   }
 
-  public BeginStatement(OrientSql p, int id) {
+  public BeginStatement(SqlParser p, int id) {
     super(p, id);
   }
 

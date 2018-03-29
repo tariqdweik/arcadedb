@@ -8,9 +8,9 @@ import java.util.stream.Collectors;
 
 public class InsertBody extends SimpleNode {
 
-  protected List<Identifier>           identifierList;
-  protected List<List<Expression>>     valueExpressions;
-  protected List<OInsertSetExpression> setExpressions;
+  protected List<Identifier>          identifierList;
+  protected List<List<Expression>>    valueExpressions;
+  protected List<InsertSetExpression> setExpressions;
 
   protected Json content;
 
@@ -19,14 +19,14 @@ public class InsertBody extends SimpleNode {
     super(id);
   }
 
-  public InsertBody(OrientSql p, int id) {
+  public InsertBody(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -69,7 +69,7 @@ public class InsertBody extends SimpleNode {
     if (setExpressions != null) {
       builder.append("SET ");
       boolean first = true;
-      for (OInsertSetExpression item : setExpressions) {
+      for (InsertSetExpression item : setExpressions) {
         if (!first) {
           builder.append(", ");
         }
@@ -133,7 +133,7 @@ public class InsertBody extends SimpleNode {
     return valueExpressions;
   }
 
-  public List<OInsertSetExpression> getSetExpressions() {
+  public List<InsertSetExpression> getSetExpressions() {
     return setExpressions;
   }
 

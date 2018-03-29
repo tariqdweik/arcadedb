@@ -13,7 +13,7 @@ public class ResourcePathItem extends SimpleNode {
     super(id);
   }
 
-  public ResourcePathItem(OrientSql p, int id) {
+  public ResourcePathItem(SqlParser p, int id) {
     super(p, id);
   }
 

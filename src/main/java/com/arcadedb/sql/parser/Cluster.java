@@ -19,14 +19,14 @@ public class Cluster extends SimpleNode {
     super(id);
   }
 
-  public Cluster(OrientSql p, int id) {
+  public Cluster(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

@@ -23,7 +23,7 @@ public class ParenthesisExpression extends MathExpression {
     super(id);
   }
 
-  public ParenthesisExpression(OrientSql p, int id) {
+  public ParenthesisExpression(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -35,7 +35,7 @@ public class ParenthesisExpression extends MathExpression {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

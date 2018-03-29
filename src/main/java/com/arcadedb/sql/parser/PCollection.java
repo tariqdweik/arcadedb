@@ -14,21 +14,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Collection extends SimpleNode {
+public class PCollection extends SimpleNode {
   protected List<Expression> expressions = new ArrayList<Expression>();
 
-  public Collection(int id) {
+  public PCollection(int id) {
     super(id);
   }
 
-  public Collection(OrientSql p, int id) {
+  public PCollection(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -83,9 +83,9 @@ public class Collection extends SimpleNode {
     return false;
   }
 
-  public Collection splitForAggregation(AggregateProjectionSplit aggregateProj) {
+  public PCollection splitForAggregation(AggregateProjectionSplit aggregateProj) {
     if (isAggregate()) {
-      Collection result = new Collection(-1);
+      PCollection result = new PCollection(-1);
       for (Expression exp : this.expressions) {
         if (exp.isAggregate() || exp.isEarlyCalculated()) {
           result.expressions.add(exp.splitForAggregation(aggregateProj));
@@ -108,8 +108,8 @@ public class Collection extends SimpleNode {
     return true;
   }
 
-  public Collection copy() {
-    Collection result = new Collection(-1);
+  public PCollection copy() {
+    PCollection result = new PCollection(-1);
     result.expressions = expressions == null ? null : expressions.stream().map(x -> x.copy()).collect(Collectors.toList());
     return result;
   }
@@ -121,7 +121,7 @@ public class Collection extends SimpleNode {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    Collection that = (Collection) o;
+    PCollection that = (PCollection) o;
 
     if (expressions != null ? !expressions.equals(that.expressions) : that.expressions != null)
       return false;

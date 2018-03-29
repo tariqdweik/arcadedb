@@ -28,7 +28,7 @@ public class CreateIndexStatement extends ODDLStatement {
     super(id);
   }
 
-  public CreateIndexStatement(OrientSql p, int id) {
+  public CreateIndexStatement(SqlParser p, int id) {
     super(p, id);
   }
 

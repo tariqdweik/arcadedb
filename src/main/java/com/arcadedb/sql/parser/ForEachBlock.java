@@ -25,7 +25,7 @@ public class ForEachBlock extends Statement {
     super(id);
   }
 
-  public ForEachBlock(OrientSql p, int id) {
+  public ForEachBlock(SqlParser p, int id) {
     super(p, id);
   }
 

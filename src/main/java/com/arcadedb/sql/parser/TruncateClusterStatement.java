@@ -10,14 +10,14 @@ import java.util.Map;
 public class TruncateClusterStatement extends ODDLStatement {
 
   public Identifier clusterName;
-  public Integer    clusterNumber;
+  public PInteger    clusterNumber;
   public boolean unsafe = false;
 
   public TruncateClusterStatement(int id) {
     super(id);
   }
 
-  public TruncateClusterStatement(OrientSql p, int id) {
+  public TruncateClusterStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -72,7 +72,7 @@ public class TruncateClusterStatement extends ODDLStatement {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

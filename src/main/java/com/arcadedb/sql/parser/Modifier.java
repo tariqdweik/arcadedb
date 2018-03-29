@@ -28,14 +28,14 @@ public class Modifier extends SimpleNode {
     super(id);
   }
 
-  public Modifier(OrientSql p, int id) {
+  public Modifier(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

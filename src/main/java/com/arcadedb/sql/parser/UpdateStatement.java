@@ -34,7 +34,7 @@ public class UpdateStatement extends Statement {
     super(id);
   }
 
-  public UpdateStatement(OrientSql p, int id) {
+  public UpdateStatement(SqlParser p, int id) {
     super(p, id);
   }
 

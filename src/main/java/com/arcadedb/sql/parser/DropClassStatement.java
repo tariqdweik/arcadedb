@@ -23,7 +23,7 @@ public class DropClassStatement extends ODDLStatement {
     super(id);
   }
 
-  public DropClassStatement(OrientSql p, int id) {
+  public DropClassStatement(SqlParser p, int id) {
     super(p, id);
   }
 

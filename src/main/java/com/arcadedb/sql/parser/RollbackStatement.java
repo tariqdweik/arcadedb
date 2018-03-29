@@ -14,7 +14,7 @@ public class RollbackStatement extends SimpleExecStatement {
     super(id);
   }
 
-  public RollbackStatement(OrientSql p, int id) {
+  public RollbackStatement(SqlParser p, int id) {
     super(p, id);
   }
 

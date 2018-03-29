@@ -7,7 +7,6 @@ import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.parser.*;
-import com.arcadedb.sql.parser.Integer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +24,7 @@ public class OTraverseExecutionPlanner {
   private WhereClause whileClause;
 
   private final TraverseStatement.Strategy strategy;
-  private final Integer                    maxDepth;
+  private final PInteger                    maxDepth;
 
   private Skip  skip;
   private Limit limit;
@@ -126,9 +125,9 @@ public class OTraverseExecutionPlanner {
       PRID orid = ((PIdentifiable) paramValue).getIdentity();
 
       Rid rid = new Rid(-1);
-      Integer cluster = new Integer(-1);
+      PInteger cluster = new PInteger(-1);
       cluster.setValue(orid.getBucketId());
-      Integer position = new Integer(-1);
+      PInteger position = new PInteger(-1);
       position.setValue(orid.getPosition());
       rid.setLegacy(true);
       rid.setCluster(cluster);
@@ -145,9 +144,9 @@ public class OTraverseExecutionPlanner {
         PRID orid = ((PIdentifiable) x).getIdentity();
 
         Rid rid = new Rid(-1);
-        Integer cluster = new Integer(-1);
+        PInteger cluster = new PInteger(-1);
         cluster.setValue(orid.getBucketId());
-        Integer position = new Integer(-1);
+        PInteger position = new PInteger(-1);
         position.setValue(orid.getPosition());
         rid.setCluster(cluster);
         rid.setPosition(position);

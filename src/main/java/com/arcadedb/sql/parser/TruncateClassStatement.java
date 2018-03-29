@@ -18,7 +18,7 @@ public class TruncateClassStatement extends ODDLStatement {
     super(id);
   }
 
-  public TruncateClassStatement(OrientSql p, int id) {
+  public TruncateClassStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -109,7 +109,7 @@ public class TruncateClassStatement extends ODDLStatement {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

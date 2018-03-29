@@ -7,7 +7,7 @@ import com.arcadedb.sql.executor.OResultInternal;
 
 import java.util.Map;
 
-public class FloatingPoint extends Number {
+public class FloatingPoint extends PNumber {
 
   protected int    sign        = 1;
   protected String stringValue = null;
@@ -17,7 +17,7 @@ public class FloatingPoint extends Number {
     super(id);
   }
 
-  public FloatingPoint(OrientSql p, int id) {
+  public FloatingPoint(SqlParser p, int id) {
     super(p, id);
   }
 

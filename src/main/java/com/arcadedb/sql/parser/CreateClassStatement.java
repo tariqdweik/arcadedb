@@ -28,12 +28,12 @@ public class CreateClassStatement extends ODDLStatement {
   /**
    * Cluster IDs for this class
    */
-  protected List<Integer> clusters;
+  protected List<PInteger> clusters;
 
   /**
    * Total number clusters for this class
    */
-  protected Integer totalClusterNo;
+  protected PInteger totalClusterNo;
 
   protected boolean abstractClass = false;
 
@@ -41,7 +41,7 @@ public class CreateClassStatement extends ODDLStatement {
     super(id);
   }
 
-  public CreateClassStatement(OrientSql p, int id) {
+  public CreateClassStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -124,7 +124,7 @@ public class CreateClassStatement extends ODDLStatement {
     if (clusters != null && clusters.size() > 0) {
       builder.append(" CLUSTER ");
       boolean first = true;
-      for (Integer cluster : clusters) {
+      for (PInteger cluster : clusters) {
         if (!first) {
           builder.append(",");
         }

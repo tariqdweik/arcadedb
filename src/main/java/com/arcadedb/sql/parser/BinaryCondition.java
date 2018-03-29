@@ -23,14 +23,14 @@ public class BinaryCondition extends BooleanExpression {
     super(id);
   }
 
-  public BinaryCondition(OrientSql p, int id) {
+  public BinaryCondition(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -313,7 +313,7 @@ public class BinaryCondition extends BooleanExpression {
   private Expression fieldNamesToStrings(Expression left) {
     if (left.isBaseIdentifier()) {
       Identifier identifier = ((BaseExpression) left.mathExpression).identifier.suffix.identifier;
-      Collection newColl = new Collection(-1);
+      PCollection newColl = new PCollection(-1);
       newColl.expressions = new ArrayList<>();
       newColl.expressions.add(identifierToStringExpr(identifier));
       Expression result = new Expression(-1);
@@ -326,9 +326,9 @@ public class BinaryCondition extends BooleanExpression {
     } else if (left.mathExpression instanceof BaseExpression) {
       BaseExpression base = (BaseExpression) left.mathExpression;
       if (base.identifier != null && base.identifier.levelZero != null && base.identifier.levelZero.collection != null) {
-        Collection coll = base.identifier.levelZero.collection;
+        PCollection coll = base.identifier.levelZero.collection;
 
-        Collection newColl = new Collection(-1);
+        PCollection newColl = new PCollection(-1);
         newColl.expressions = new ArrayList<>();
 
         for (Expression exp : coll.expressions) {

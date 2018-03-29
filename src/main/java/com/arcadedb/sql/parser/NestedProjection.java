@@ -14,13 +14,13 @@ public class NestedProjection extends SimpleNode {
   protected List<NestedProjectionItem> includeItems = new ArrayList<>();
   protected List<NestedProjectionItem> excludeItems = new ArrayList<>();
   protected NestedProjectionItem starItem;
-  private   Integer              recursion; //not used for now
+  private   PInteger              recursion; //not used for now
 
   public NestedProjection(int id) {
     super(id);
   }
 
-  public NestedProjection(OrientSql p, int id) {
+  public NestedProjection(SqlParser p, int id) {
     super(p, id);
   }
 

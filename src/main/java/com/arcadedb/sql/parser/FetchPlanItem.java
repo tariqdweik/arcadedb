@@ -13,23 +13,23 @@ import java.util.stream.Collectors;
 public class FetchPlanItem extends SimpleNode {
 
   protected Boolean star;
-  protected Integer leftDepth;
+  protected PInteger leftDepth;
   protected boolean leftStar = false;
-  protected Integer rightDepth;
+  protected PInteger rightDepth;
   protected List<String> fieldChain = new ArrayList<String>();
 
   public FetchPlanItem(int id) {
     super(id);
   }
 
-  public FetchPlanItem(OrientSql p, int id) {
+  public FetchPlanItem(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -121,12 +121,12 @@ public class FetchPlanItem extends SimpleNode {
   public void deserialize(OResult fromResult) {
     star = fromResult.getProperty("star");
     if (fromResult.getProperty("leftDepth") != null) {
-      leftDepth = new Integer(-1);
+      leftDepth = new PInteger(-1);
       leftDepth.deserialize(fromResult.getProperty("leftDepth"));
     }
     leftStar = fromResult.getProperty("leftStar");
     if (fromResult.getProperty("rightDepth") != null) {
-      rightDepth = new Integer(-1);
+      rightDepth = new PInteger(-1);
       rightDepth.deserialize(fromResult.getProperty("rightDepth"));
     }
     if (fromResult.getProperty("fieldChain") != null) {

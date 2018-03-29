@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OrderBy extends SimpleNode {
-  protected List<OOrderByItem> items;
+  protected List<OrderByItem> items;
 
   public OrderBy() {
     super(-1);
@@ -22,22 +22,22 @@ public class OrderBy extends SimpleNode {
     super(id);
   }
 
-  public OrderBy(OrientSql p, int id) {
+  public OrderBy(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
-  public List<OOrderByItem> getItems() {
+  public List<OrderByItem> getItems() {
     return items;
   }
 
-  public void setItems(List<OOrderByItem> items) {
+  public void setItems(List<OrderByItem> items) {
     this.items = items;
   }
 
@@ -54,7 +54,7 @@ public class OrderBy extends SimpleNode {
   }
 
   public int compare(OResult a, OResult b, OCommandContext ctx) {
-    for (OOrderByItem item : items) {
+    for (OrderByItem item : items) {
       int result = item.compare(a, b, ctx);
       if (result != 0) {
         return result;
@@ -89,7 +89,7 @@ public class OrderBy extends SimpleNode {
 
   public void extractSubQueries(SubQueryCollector collector) {
     if(items!=null){
-      for(OOrderByItem item:items){
+      for(OrderByItem item:items){
         item.extractSubQueries(collector);
       }
     }
@@ -97,7 +97,7 @@ public class OrderBy extends SimpleNode {
 
   public boolean refersToParent() {
     if(items!=null){
-      for(OOrderByItem item:items){
+      for(OrderByItem item:items){
         if(item.refersToParent()){
           return true;
         }
@@ -120,7 +120,7 @@ public class OrderBy extends SimpleNode {
       List<OResult> ser = fromResult.getProperty("items");
       items = new ArrayList<>();
       for (OResult r : ser) {
-        OOrderByItem exp = new OOrderByItem();
+        OrderByItem exp = new OrderByItem();
         exp.deserialize(r);
         items.add(exp);
       }

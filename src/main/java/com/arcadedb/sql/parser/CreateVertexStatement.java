@@ -20,7 +20,7 @@ public class CreateVertexStatement extends Statement {
     super(id);
   }
 
-  public CreateVertexStatement(OrientSql p, int id) {
+  public CreateVertexStatement(SqlParser p, int id) {
     super(p, id);
   }
 

@@ -19,7 +19,7 @@ public class AlterDatabaseStatement extends ODDLStatement {
     super(id);
   }
 
-  public AlterDatabaseStatement(OrientSql p, int id) {
+  public AlterDatabaseStatement(SqlParser p, int id) {
     super(p, id);
   }
 

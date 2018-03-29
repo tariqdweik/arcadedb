@@ -8,13 +8,13 @@ public class MatchFilterItem extends SimpleNode {
   protected Expression         className;
   protected Expression         classNames;
   protected Identifier         clusterName;
-  protected Integer            clusterId;
+  protected PInteger            clusterId;
   protected Rid                rid;
   protected Identifier         alias;
   protected WhereClause        filter;
   protected WhereClause        whileCondition;
   protected ArrayRangeSelector depth;
-  protected Integer            maxDepth;
+  protected PInteger            maxDepth;
   protected Boolean            optional;
   protected Identifier         depthAlias;
   protected Identifier         pathAlias;
@@ -23,14 +23,14 @@ public class MatchFilterItem extends SimpleNode {
     super(id);
   }
 
-  public MatchFilterItem(OrientSql p, int id) {
+  public MatchFilterItem(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

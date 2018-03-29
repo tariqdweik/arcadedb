@@ -20,7 +20,7 @@ public class AndBlock extends BooleanExpression {
     super(id);
   }
 
-  public AndBlock(OrientSql p, int id) {
+  public AndBlock(SqlParser p, int id) {
     super(p, id);
   }
 

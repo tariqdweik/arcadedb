@@ -18,14 +18,14 @@ public class ClusterList extends SimpleNode {
     super(id);
   }
 
-  public ClusterList(OrientSql p, int id) {
+  public ClusterList(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class Skip extends SimpleNode {
 
-  protected Integer num;
+  protected PInteger num;
 
   protected InputParameter inputParam;
 
@@ -19,14 +19,14 @@ public class Skip extends SimpleNode {
     super(id);
   }
 
-  public Skip(OrientSql p, int id) {
+  public Skip(SqlParser p, int id) {
     super(p, id);
   }
 
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 
@@ -101,7 +101,7 @@ public class Skip extends SimpleNode {
 
   public void deserialize(OResult fromResult) {
     if (fromResult.getProperty("num") != null) {
-      num = new Integer(-1);
+      num = new PInteger(-1);
       num.deserialize(fromResult.getProperty("num"));
     }
     if (fromResult.getProperty("inputParam") != null) {

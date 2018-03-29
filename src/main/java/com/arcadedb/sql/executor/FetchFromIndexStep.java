@@ -7,7 +7,7 @@ import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.sql.parser.*;
-import com.arcadedb.sql.parser.Collection;
+import com.arcadedb.sql.parser.PCollection;
 import com.arcadedb.utility.PPair;
 
 import java.io.IOException;
@@ -278,8 +278,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
    * it's not key = [...] but a real condition on field names, already ordered (field names will be ignored)
    */
   private void processAndBlock() throws IOException {
-    Collection fromKey = indexKeyFrom((AndBlock) condition, additionalRangeCondition);
-    Collection toKey = indexKeyTo((AndBlock) condition, additionalRangeCondition);
+    PCollection fromKey = indexKeyFrom((AndBlock) condition, additionalRangeCondition);
+    PCollection toKey = indexKeyTo((AndBlock) condition, additionalRangeCondition);
     boolean fromKeyIncluded = indexKeyFromIncluded((AndBlock) condition, additionalRangeCondition);
     boolean toKeyIncluded = indexKeyToIncluded((AndBlock) condition, additionalRangeCondition);
     init(fromKey, fromKeyIncluded, toKey, toKeyIncluded);
@@ -311,9 +311,9 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 //    }
   }
 
-  private void init(Collection fromKey, boolean fromKeyIncluded, Collection toKey, boolean toKeyIncluded) throws IOException {
-    List<Collection> secondValueCombinations = cartesianProduct(fromKey);
-    List<Collection> thirdValueCombinations = cartesianProduct(toKey);
+  private void init(PCollection fromKey, boolean fromKeyIncluded, PCollection toKey, boolean toKeyIncluded) throws IOException {
+    List<PCollection> secondValueCombinations = cartesianProduct(fromKey);
+    List<PCollection> thirdValueCombinations = cartesianProduct(toKey);
 
     for (int i = 0; i < secondValueCombinations.size(); i++) {
 
@@ -339,36 +339,36 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     }
   }
 
-  private List<Collection> cartesianProduct(Collection key) {
-    return cartesianProduct(new Collection(-1), key);//TODO
+  private List<PCollection> cartesianProduct(PCollection key) {
+    return cartesianProduct(new PCollection(-1), key);//TODO
   }
 
-  private List<Collection> cartesianProduct(Collection head, Collection key) {
+  private List<PCollection> cartesianProduct(PCollection head, PCollection key) {
     if (key.getExpressions().size() == 0) {
       return Collections.singletonList(head);
     }
     Expression nextElementInKey = key.getExpressions().get(0);
     Object value = nextElementInKey.execute(new OResultInternal(), ctx);
     if (value instanceof Iterable && !(value instanceof PIdentifiable)) {
-      List<Collection> result = new ArrayList<>();
+      List<PCollection> result = new ArrayList<>();
       for (Object elemInKey : (java.util.Collection) value) {
-        Collection newHead = new Collection(-1);
+        PCollection newHead = new PCollection(-1);
         for (Expression exp : head.getExpressions()) {
           newHead.add(exp.copy());
         }
         newHead.add(toExpression(elemInKey, ctx));
-        Collection tail = key.copy();
+        PCollection tail = key.copy();
         tail.getExpressions().remove(0);
         result.addAll(cartesianProduct(newHead, tail));
       }
       return result;
     } else {
-      Collection newHead = new Collection(-1);
+      PCollection newHead = new PCollection(-1);
       for (Expression exp : head.getExpressions()) {
         newHead.add(exp.copy());
       }
       newHead.add(nextElementInKey);
-      Collection tail = key.copy();
+      PCollection tail = key.copy();
       tail.getExpressions().remove(0);
       return cartesianProduct(newHead, tail);
     }
@@ -510,8 +510,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     return orderAsc;
   }
 
-  private Collection indexKeyFrom(AndBlock keyCondition, BinaryCondition additional) {
-    Collection result = new Collection(-1);
+  private PCollection indexKeyFrom(AndBlock keyCondition, BinaryCondition additional) {
+    PCollection result = new PCollection(-1);
     for (BooleanExpression exp : keyCondition.getSubBlocks()) {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);
@@ -545,8 +545,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     return result;
   }
 
-  private Collection indexKeyTo(AndBlock keyCondition, BinaryCondition additional) {
-    Collection result = new Collection(-1);
+  private PCollection indexKeyTo(AndBlock keyCondition, BinaryCondition additional) {
+    PCollection result = new PCollection(-1);
     for (BooleanExpression exp : keyCondition.getSubBlocks()) {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);

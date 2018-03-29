@@ -18,7 +18,7 @@ public abstract class SimpleExecStatement extends Statement {
     super(id);
   }
 
-  public SimpleExecStatement(OrientSql p, int id) {
+  public SimpleExecStatement(SqlParser p, int id) {
     super(p, id);
   }
 

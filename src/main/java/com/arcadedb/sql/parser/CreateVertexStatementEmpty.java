@@ -8,13 +8,13 @@ class CreateVertexStatementEmpty extends CreateVertexStatement {
     super(id);
   }
 
-  public CreateVertexStatementEmpty(OrientSql p, int id) {
+  public CreateVertexStatementEmpty(SqlParser p, int id) {
     super(p, id);
   }
 
 
   /** Accept the visitor. **/
-  public Object jjtAccept(OrientSqlVisitor visitor, Object data) {
+  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
     return visitor.visit(this, data);
   }
 

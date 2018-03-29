@@ -20,7 +20,7 @@ public class IfStatement extends Statement {
     super(id);
   }
 
-  public IfStatement(OrientSql p, int id) {
+  public IfStatement(SqlParser p, int id) {
     super(p, id);
   }
 

@@ -19,7 +19,7 @@ public class DropIndexStatement extends ODDLStatement {
     super(id);
   }
 
-  public DropIndexStatement(OrientSql p, int id) {
+  public DropIndexStatement(SqlParser p, int id) {
     super(p, id);
   }
 
