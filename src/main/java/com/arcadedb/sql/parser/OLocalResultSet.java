@@ -24,7 +24,7 @@ public class OLocalResultSet implements OResultSet {
   }
 
   private boolean fetchNext() {
-    lastFetch = executionPlan.fetchNext(100);
+    lastFetch = executionPlan.fetchNext(100000);
     if (!lastFetch.hasNext()) {
       finished = true;
       return false;
