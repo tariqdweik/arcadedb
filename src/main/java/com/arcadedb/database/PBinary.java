@@ -12,9 +12,10 @@ public class PBinary implements PBinaryStructure {
 
   private final static int ALLOCATION_CHUNK = 512;
 
-  private byte[]     content;
-  private ByteBuffer buffer;
-  private int        size;
+  protected boolean autoResizable = true;
+  protected byte[]     content;
+  protected ByteBuffer buffer;
+  protected int        size;
 
   public PBinary() {
     this.content = new byte[ALLOCATION_CHUNK];
@@ -32,12 +33,14 @@ public class PBinary implements PBinaryStructure {
     this.content = buffer;
     this.buffer = ByteBuffer.wrap(content);
     this.size = contentSize;
+    this.autoResizable = false;
   }
 
   public PBinary(final ByteBuffer buffer) {
     this.content = buffer.array();
     this.buffer = buffer;
     this.size = buffer.limit();
+    this.autoResizable = false;
   }
 
   public void reset() {
@@ -48,7 +51,7 @@ public class PBinary implements PBinaryStructure {
   public void append(final PBinary toCopy) {
     final int contentSize = toCopy.size();
     if (contentSize > 0) {
-      allocate(buffer.position() + contentSize);
+      checkForAllocation(buffer.position(), contentSize);
       buffer.put(toCopy.content, 0, contentSize);
     }
   }
@@ -65,13 +68,13 @@ public class PBinary implements PBinaryStructure {
 
   @Override
   public void putByte(final int index, final byte value) {
-    allocate(index + BYTE_SERIALIZED_SIZE);
+    checkForAllocation(index, BYTE_SERIALIZED_SIZE);
     buffer.put(index, value);
   }
 
   @Override
   public void putByte(final byte value) {
-    allocate(buffer.position() + BYTE_SERIALIZED_SIZE);
+    checkForAllocation(buffer.position(), BYTE_SERIALIZED_SIZE);
     buffer.put(value);
   }
 
@@ -97,12 +100,12 @@ public class PBinary implements PBinaryStructure {
   public int putUnsignedNumber(long value) {
     int bytesUsed = 0;
     while ((value & 0xFFFFFFFFFFFFFF80L) != 0L) {
-      allocate(buffer.position() + BYTE_SERIALIZED_SIZE);
+      checkForAllocation(buffer.position(), BYTE_SERIALIZED_SIZE);
       buffer.put((byte) (value & 0x7F | 0x80));
       bytesUsed++;
       value >>>= 7;
     }
-    allocate(buffer.position() + BYTE_SERIALIZED_SIZE);
+    checkForAllocation(buffer.position(), BYTE_SERIALIZED_SIZE);
     buffer.put((byte) (value & 0x7F));
     bytesUsed++;
     return bytesUsed;
@@ -110,37 +113,37 @@ public class PBinary implements PBinaryStructure {
 
   @Override
   public void putShort(final int index, final short value) {
-    allocate(index + SHORT_SERIALIZED_SIZE);
+    checkForAllocation(index, SHORT_SERIALIZED_SIZE);
     buffer.putShort(index, value);
   }
 
   @Override
   public void putShort(final short value) {
-    allocate(buffer.position() + SHORT_SERIALIZED_SIZE);
+    checkForAllocation(buffer.position(), SHORT_SERIALIZED_SIZE);
     buffer.putShort(value);
   }
 
   @Override
   public void putInt(final int index, final int value) {
-    allocate(index + INT_SERIALIZED_SIZE);
+    checkForAllocation(index, INT_SERIALIZED_SIZE);
     buffer.putInt(index, value);
   }
 
   @Override
   public void putInt(final int value) {
-    allocate(buffer.position() + INT_SERIALIZED_SIZE);
+    checkForAllocation(buffer.position(), INT_SERIALIZED_SIZE);
     buffer.putInt(value);
   }
 
   @Override
   public void putLong(final int index, final long value) {
-    allocate(index + LONG_SERIALIZED_SIZE);
+    checkForAllocation(index, LONG_SERIALIZED_SIZE);
     buffer.putLong(index, value);
   }
 
   @Override
   public void putLong(final long value) {
-    allocate(buffer.position() + LONG_SERIALIZED_SIZE);
+    checkForAllocation(buffer.position(), LONG_SERIALIZED_SIZE);
     buffer.putLong(value);
   }
 
@@ -163,7 +166,7 @@ public class PBinary implements PBinaryStructure {
   @Override
   public int putBytes(final byte[] value) {
     int bytesUsed = putNumber(value.length);
-    allocate(buffer.position() + value.length);
+    checkForAllocation(buffer.position(), value.length);
     buffer.put(value);
     return bytesUsed + value.length;
   }
@@ -182,13 +185,13 @@ public class PBinary implements PBinaryStructure {
 
   @Override
   public void putByteArray(final byte[] value) {
-    allocate(buffer.position() + value.length);
+    checkForAllocation(buffer.position(), value.length);
     buffer.put(value);
   }
 
   @Override
   public void putByteArray(final byte[] value, final int length) {
-    allocate(buffer.position() + length);
+    checkForAllocation(buffer.position(), length);
     buffer.put(value, 0, length);
   }
 
@@ -348,13 +351,21 @@ public class PBinary implements PBinaryStructure {
     buffer.flip();
   }
 
-  public ByteBuffer slice() {
-    return buffer.slice();
+  public PBinary slice() {
+    return new PBinary(buffer.slice());
   }
 
-  public ByteBuffer slice(final int position) {
+  public PBinary slice(final int position) {
     buffer.position(position);
-    return buffer.slice();
+    return new PBinary(buffer.slice());
+  }
+
+  public PBinary slice(final int position, final int length) {
+    buffer.position(position);
+    final ByteBuffer result = buffer.slice();
+    result.position(length);
+    result.flip();
+    return new PBinary(result);
   }
 
   @Override
@@ -365,12 +376,15 @@ public class PBinary implements PBinaryStructure {
   /**
    * Allocates enough space (max 1 page) and update the size according to the bytes to write.
    */
-  private void allocate(final int bytesToWrite) {
-    if (bytesToWrite > content.length) {
+  protected void checkForAllocation(final int offset, final int bytesToWrite) {
+    if (offset + bytesToWrite > content.length) {
+
+      if (!autoResizable)
+        throw new IllegalArgumentException("Cannot resize the buffer (autoResizable=false)");
 
       final int newSize;
-      if (bytesToWrite > ALLOCATION_CHUNK) {
-        newSize = ALLOCATION_CHUNK * ((bytesToWrite / ALLOCATION_CHUNK) + 1);
+      if (offset + bytesToWrite > ALLOCATION_CHUNK) {
+        newSize = ALLOCATION_CHUNK * ((offset + bytesToWrite / ALLOCATION_CHUNK) + 1);
       } else
         newSize = ALLOCATION_CHUNK;
 
@@ -384,13 +398,13 @@ public class PBinary implements PBinaryStructure {
       this.buffer.position(oldPosition);
     }
 
-    if (bytesToWrite > size)
-      size = bytesToWrite;
+    if (offset + bytesToWrite > size)
+      size = offset + bytesToWrite;
   }
 
   public void size(int newSize) {
     if (newSize > content.length)
-      allocate(newSize);
+      checkForAllocation(0, newSize);
     else
       size = newSize;
   }

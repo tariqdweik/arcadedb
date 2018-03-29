@@ -4,6 +4,7 @@ import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PRID;
+import com.arcadedb.database.PTrackableBinary;
 import com.arcadedb.engine.PModifiablePage;
 import com.arcadedb.schema.PSchemaImpl;
 import com.arcadedb.serializer.PBinaryComparator;
@@ -67,7 +68,7 @@ public class PIndexLSMCompactor {
       final PBinaryComparator comparator = serializer.getComparator();
 
       PModifiablePage lastPage = null;
-      PBinary currentPageBuffer = null;
+      PTrackableBinary currentPageBuffer = null;
 
       boolean moreItems = true;
       for (; moreItems; ++loops) {
@@ -96,7 +97,7 @@ public class PIndexLSMCompactor {
         final PModifiablePage newPage = newIndex
             .appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, (PRID) value);
         if (newPage != lastPage) {
-          currentPageBuffer = new PBinary(newPage.slice());
+          currentPageBuffer = newPage.getTrackable();
           lastPage = newPage;
         }
 

@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class PPageManager {
   private final PFileManager fileManager;
-  private final ConcurrentMap<PPageId, PImmutablePage> readCache  = new ConcurrentHashMap<>(65536);
-  private final ConcurrentMap<PPageId, PImmutablePage> writeCache = new ConcurrentHashMap<>(65536);
+  private final ConcurrentMap<PPageId, PImmutablePage>  readCache  = new ConcurrentHashMap<>(65536);
+  private final ConcurrentMap<PPageId, PModifiablePage> writeCache = new ConcurrentHashMap<>(65536);
 
   private final PLockManager<Integer, Thread> lockManager      = new PLockManager();
   private       boolean                       flushOnlyAtClose = PGlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
@@ -73,7 +73,7 @@ public class PPageManager {
     // FLUSH REMAINING PAGES
     final boolean flushOnlyAtCloseOld = flushOnlyAtClose;
     flushOnlyAtClose = true;
-    for (PImmutablePage p : writeCache.values()) {
+    for (PModifiablePage p : writeCache.values()) {
       try {
         flushPage(p);
       } catch (Exception e) {
@@ -99,8 +99,8 @@ public class PPageManager {
       }
     }
 
-    for (Iterator<PImmutablePage> it = writeCache.values().iterator(); it.hasNext(); ) {
-      final PImmutablePage p = it.next();
+    for (Iterator<PModifiablePage> it = writeCache.values().iterator(); it.hasNext(); ) {
+      final PModifiablePage p = it.next();
       if (p.getPageId().getFileId() == fileId) {
         totalWriteCacheRAM.addAndGet(-1 * p.getPhysicalSize());
         it.remove();
@@ -152,7 +152,7 @@ public class PPageManager {
       page.incrementVersion();
       page.flushMetadata();
 
-      if (writeCache.put(page.pageId, page.createImmutableCopy()) == null)
+      if (writeCache.put(page.pageId, page) == null)
         totalWriteCacheRAM.addAndGet(page.getPhysicalSize());
 
       if (!flushOnlyAtClose)
@@ -220,7 +220,7 @@ public class PPageManager {
   }
 
   protected void flushPage(final PPageId pageId) throws IOException {
-    final PImmutablePage page = writeCache.get(pageId);
+    final PModifiablePage page = writeCache.get(pageId);
     if (page == null) {
       // ALREADY WRITTEN (UPDATE OF THE SAME PAGE MULTIPLE TIMES)
       PLogManager.instance().debug(this, "Page %s already flushed (threadId=%d)", page, Thread.currentThread().getId());
@@ -230,24 +230,24 @@ public class PPageManager {
     flushPage(page);
   }
 
-  protected void flushPage(final PImmutablePage page) throws IOException {
+  protected void flushPage(final PModifiablePage page) throws IOException {
     final PFile file = fileManager.getFile(page.pageId.getFileId());
     if (!file.isOpen())
       throw new PDatabaseMetadataException("Cannot flush pages on disk because file is closed");
 
     PLogManager.instance().debug(this, "Flushing page %s (threadId=%d)...", page, Thread.currentThread().getId());
 
-    file.write(page);
-
     if (!flushOnlyAtClose) {
-      putPageInCache(page);
+      putPageInCache(page.createImmutableCopy());
+
+      final int written = file.write(page);
 
       // DELETE ONLY CURRENT VERSION OF THE PAGE (THIS PREVENT TO REMOVE NEWER PAGES)
       if (writeCache.remove(page.pageId, page))
         totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
 
       totalPagesWritten.incrementAndGet();
-      totalPagesWrittenSize.addAndGet(page.getPhysicalSize());
+      totalPagesWrittenSize.addAndGet(written);
     }
   }
 

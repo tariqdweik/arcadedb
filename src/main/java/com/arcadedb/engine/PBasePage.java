@@ -131,21 +131,23 @@ public abstract class PBasePage {
    * @param index The starting position to copy
    */
   public PBinary getImmutableView(final int index, final int length) {
-    content.position(index + PAGE_HEADER_SIZE);
-    final ByteBuffer view = content.slice();
-    view.position(length);
-    view.flip();
-    return new PBinary(view);
+    return content.slice(index + PAGE_HEADER_SIZE, length);
   }
 
   public PPageId getPageId() {
     return pageId;
   }
 
+  /**
+   * Returns the underlying ByteBuffer. If any changes occur bypassing the page object, must be tracked by calling #updateModifiedRange() method.
+   */
   public ByteBuffer getContent() {
     return content.getByteBuffer();
   }
 
+  /**
+   * Returns the underlying ByteBuffer. If any changes occur bypassing the page object, must be tracked by calling #updateModifiedRange() method.
+   */
   public ByteBuffer slice() {
     content.getByteBuffer().position(PAGE_HEADER_SIZE);
     return content.getByteBuffer().slice();

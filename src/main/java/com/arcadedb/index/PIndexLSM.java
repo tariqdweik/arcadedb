@@ -3,6 +3,7 @@ package com.arcadedb.index;
 import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PRID;
+import com.arcadedb.database.PTrackableBinary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseOperationException;
@@ -201,7 +202,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
       PModifiablePage currentPage = database.getTransaction()
           .getPageToModify(new PPageId(file.getFileId(), pageNum), pageSize, false);
 
-      PBinary currentPageBuffer = new PBinary(currentPage.slice());
+      PTrackableBinary currentPageBuffer = currentPage.getTrackable();
 
       int count = getCount(currentPage);
 
@@ -229,9 +230,8 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
         // NO SPACE LEFT, CREATE A NEW PAGE
         newPage = true;
         try {
-          database.getTransaction().addPageToDispose(currentPage.getPageId());
           currentPage = createNewPage();
-          currentPageBuffer = new PBinary(currentPage.slice());
+          currentPageBuffer = currentPage.getTrackable();
           pageNum = currentPage.getPageId().getPageNumber();
           count = 0;
           keyIndex = 0;
@@ -275,7 +275,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
   }
 
   public PModifiablePage appendDuringCompaction(final PBinary keyValueContent, PModifiablePage currentPage,
-      PBinary currentPageBuffer, final Object[] keys, final PRID rid) {
+      PTrackableBinary currentPageBuffer, final Object[] keys, final PRID rid) {
     if (currentPage == null) {
 
       Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
@@ -284,7 +284,7 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
 
       try {
         currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize, false);
-        currentPageBuffer = new PBinary(currentPage.slice());
+        currentPageBuffer = currentPage.getTrackable();
       } catch (IOException e) {
         throw new PDatabaseOperationException(
             "Cannot append key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
@@ -309,11 +309,10 @@ public class PIndexLSM extends PPaginatedFile implements PIndex {
         .size()) {
       // NO SPACE LEFT, CREATE A NEW PAGE
       try {
-        database.getTransaction().addPageToDispose(currentPage.getPageId());
         database.getTransaction().commit();
         database.getTransaction().begin();
         currentPage = createNewPage();
-        currentPageBuffer = new PBinary(currentPage.slice());
+        currentPageBuffer = currentPage.getTrackable();
         pageNum = currentPage.getPageId().getPageNumber();
         count = 0;
         keyValueFreePosition = currentPage.getMaxContentSize();

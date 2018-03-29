@@ -1,6 +1,5 @@
 package com.arcadedb.engine;
 
-import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
@@ -12,9 +11,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class PPageManagerFlushThread extends Thread {
   private final PPageManager pageManager;
-  public final     ArrayBlockingQueue<PPageId> queue         = new ArrayBlockingQueue<>(4096);
-  private          long                        flushInterval = PGlobalConfiguration.FLUSH_INTERVAL.getValueAsLong();
-  private volatile boolean                     running       = true;
+  public final     ArrayBlockingQueue<PPageId> queue   = new ArrayBlockingQueue<>(8192);
+  private volatile boolean                     running = true;
 
   public PPageManagerFlushThread(final PPageManager pageManager) {
     super("AsynchFlush");
@@ -30,10 +28,7 @@ public class PPageManagerFlushThread extends Thread {
   public void run() {
     while (running || !queue.isEmpty()) {
       try {
-        if (flushInterval == 0)
-          flushStream();
-        else
-          flushAtIntervals();
+        flushStream();
 
       } catch (InterruptedException e) {
         running = false;
@@ -55,25 +50,6 @@ public class PPageManagerFlushThread extends Thread {
 
       pageManager.flushPage(pageId);
     }
-  }
-
-  private void flushAtIntervals() throws InterruptedException, IOException {
-    int max = queue.size();
-    if (max > 1024)
-      max = 1024;
-
-    for (int i = 0; i < max; ++i) {
-      final PPageId pageId = queue.poll();
-
-      if (pageId != null) {
-        if (PLogManager.instance().isDebugEnabled())
-          PLogManager.instance().debug(this, "Flushing page %s in bg...", pageId);
-
-        pageManager.flushPage(pageId);
-      }
-    }
-
-    Thread.sleep(flushInterval);
   }
 
   public void close() {

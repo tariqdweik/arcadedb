@@ -22,7 +22,6 @@ public class PTransactionContext {
   private       Map<PPageId, PModifiablePage> modifiedPages;
   private       Map<PPageId, PModifiablePage> newPages;
   private final Map<Integer, Integer> newPageCounters = new HashMap<>();
-  private final Set<PPageId>          pagesToDispose  = new HashSet<>();
 
   public PTransactionContext(final PDatabase database) {
     this.database = database;
@@ -88,10 +87,6 @@ public class PTransactionContext {
   public void assureIsActive() {
     if (modifiedPages == null)
       throw new PTransactionException("Transaction not begun");
-  }
-
-  public void addPageToDispose(final PPageId pageId) {
-//    pagesToDispose.add(pageId);
   }
 
   /**
@@ -241,6 +236,5 @@ public class PTransactionContext {
     modifiedPages = null;
     newPages = null;
     newPageCounters.clear();
-    pagesToDispose.clear();
   }
 }

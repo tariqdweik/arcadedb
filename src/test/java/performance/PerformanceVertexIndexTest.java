@@ -49,9 +49,7 @@ public class PerformanceVertexIndexTest {
 
         record.set("id", row);
         record.set("name", "Luca" + row);
-        record.set("surname",
-            "Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker.Skywalker"
-                + row);
+        record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
 
         database.asynch().createRecord(record);
@@ -61,6 +59,8 @@ public class PerformanceVertexIndexTest {
       }
 
       System.out.println("Inserted " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+
+      database.asynch().waitCompletion();
 
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {

@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class GraphTest {
-  private static final int    TOT               = 10000;
   private static final String VERTEX1_TYPE_NAME = "V1";
   private static final String VERTEX2_TYPE_NAME = "V2";
   private static final String EDGE1_TYPE_NAME   = "E1";
@@ -52,11 +51,11 @@ public class GraphTest {
     db.begin();
     try {
       final PModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
-      v1.set("name", "V1");
+      v1.set("name", VERTEX1_TYPE_NAME);
       v1.save();
 
       final PModifiableVertex v2 = db.newVertex(VERTEX2_TYPE_NAME);
-      v2.set("name", "V2");
+      v2.set("name", VERTEX2_TYPE_NAME);
       v2.save();
 
       // CREATION OF EDGE PASSING PARAMS AS VARARGS
@@ -109,7 +108,7 @@ public class GraphTest {
 
       // TEST CONNECTED VERTICES
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.getType());
-      Assertions.assertEquals("V1", v1.get("name"));
+      Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.get("name"));
 
       final Iterator<PVertex> vertices2level = v1.getVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
       Assertions.assertNotNull(vertices2level);
@@ -119,8 +118,7 @@ public class GraphTest {
 
       Assertions.assertNotNull(v2);
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.getType());
-
-      Assertions.assertEquals("V2", v2.get("name"));
+      Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
       final Iterator<PVertex> vertices2level2 = v1.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertTrue(vertices2level2.hasNext());
@@ -180,7 +178,7 @@ public class GraphTest {
       Assertions.assertEquals("E1", e1.get("name"));
 
       PVertex v2 = (PVertex) e1.getIn().getRecord();
-      Assertions.assertEquals("V2", v2.get("name"));
+      Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
       final Iterator<PEdge> edges2 = v2.getEdges(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertTrue(edges2.hasNext());
@@ -207,7 +205,6 @@ public class GraphTest {
       Assertions.assertEquals(v3, e3.getIn());
 
       v2.getEdges();
-
 
     } finally {
       db2.close();

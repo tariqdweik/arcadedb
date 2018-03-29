@@ -88,11 +88,8 @@ public class PBucket extends PPaginatedFile {
         createNewPage = true;
 
       if (createNewPage) {
-        if (lastPage != null)
-          database.getTransaction().addPageToDispose(lastPage.pageId);
-
         lastPage = database.getTransaction().addPage(new PPageId(file.getFileId(), txPageCounter), pageSize);
-        lastPage.blank(0, CONTENT_HEADER_SIZE);
+        //lastPage.blank(0, CONTENT_HEADER_SIZE);
         newPosition = CONTENT_HEADER_SIZE;
         recordCountInPage = 0;
       }

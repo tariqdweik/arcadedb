@@ -221,37 +221,42 @@ public class PDatabaseAsyncExecutor {
   }
 
   public void waitCompletion() {
-    while (true) {
-      if (executorThreads != null) {
-        int completed = 0;
-        for (int i = 0; i < executorThreads.length; ++i) {
-          try {
-            executorThreads[i].queue.put(FORCE_COMMIT);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return;
-          }
-        }
+    if (executorThreads == null)
+      return;
 
-        for (int i = 0; i < executorThreads.length; ++i) {
-          if (executorThreads[i].queue.isEmpty())
-            ++completed;
-          else
-            break;
-        }
-
-        if (completed < executorThreads.length) {
-          try {
-            Thread.sleep(100);
-            continue;
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return;
-          }
-        }
-
+    for (int i = 0; i < executorThreads.length; ++i) {
+      try {
+        executorThreads[i].queue.put(FORCE_COMMIT);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         return;
       }
+    }
+
+    int completed = 0;
+    while (true) {
+      for (int i = 0; i < executorThreads.length; ++i) {
+        final int messages = executorThreads[i].queue.size();
+        if (messages == 0)
+          ++completed;
+        else {
+          PLogManager.instance()
+              .debug(this, "Waiting for completion async thread %s found %d messages still to be processed", executorThreads[i],
+                  messages);
+          break;
+        }
+      }
+
+      if (completed < executorThreads.length) {
+        try {
+          Thread.sleep(100);
+          continue;
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          break;
+        }
+      }
+      break;
     }
   }
 

@@ -1,14 +1,18 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.database.PBinary;
+import com.arcadedb.database.PTrackableBinary;
 
 /**
- * Low level modifiable page implementation of 65536 bytes by default (2 exp 16 = 65Kb). The first 8 bytes (the header) are reserved
- * to store the page version (MVCC).
+ * Low level modifiable page implementation. The first 8 bytes (the header) are reserved to store the page version (MVCC).
  */
-public class PModifiablePage extends PBasePage {
+public class PModifiablePage extends PBasePage implements PTrackableContent {
+  private int modifiedRangeFrom = Integer.MAX_VALUE;
+  private int modifiedRangeTo   = -1;
+
   public PModifiablePage(final PPageManager manager, final PPageId pageId, final int size) {
     this(manager, pageId, size, new byte[size], 0, 0);
+    updateModifiedRange(0, size - 1);
   }
 
   public PModifiablePage(final PPageManager manager, final PPageId pageId, final int size, final byte[] array, final int version,
@@ -16,13 +20,19 @@ public class PModifiablePage extends PBasePage {
     super(manager, pageId, size, array, version, contentSize);
   }
 
+  public PTrackableBinary getTrackable() {
+    content.getByteBuffer().position(PAGE_HEADER_SIZE);
+    return new PTrackableBinary(this, content.getByteBuffer().slice());
+  }
+
   public void incrementVersion() {
+    updateModifiedRange(0, PBinary.LONG_SERIALIZED_SIZE);
     version++;
   }
 
   public void writeNumber(int index, final long content) {
     index += PAGE_HEADER_SIZE;
-    checkBoundariesOnWrite(index, PBinary.LONG_SERIALIZED_SIZE);
+    checkBoundariesOnWrite(index, PBinary.LONG_SERIALIZED_SIZE + 1); // WITH VARSIZE NUMBER THE WORST CASE SCENARIO IS 1 BYTE MORE
     this.content.putNumber(index, content);
   }
 
@@ -94,9 +104,24 @@ public class PModifiablePage extends PBasePage {
     return getPhysicalSize() - getContentSize();
   }
 
+  @Override
+  public int[] getModifiedRange() {
+    return new int[] { modifiedRangeFrom, modifiedRangeTo };
+  }
+
+  @Override
+  public void updateModifiedRange(final int start, final int end) {
+    if (start < modifiedRangeFrom)
+      modifiedRangeFrom = start;
+    if (end > modifiedRangeTo)
+      modifiedRangeTo = end;
+  }
+
   private void checkBoundariesOnWrite(final int start, final int length) {
     if (start < 0 || start + length > getPhysicalSize())
       throw new IllegalArgumentException(
           "Cannot write outside the page space (" + (start + length) + ">" + getPhysicalSize() + ")");
+
+    updateModifiedRange(start, start + length);
   }
 }

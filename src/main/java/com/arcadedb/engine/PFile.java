@@ -59,11 +59,34 @@ public class PFile {
     return channel.size();
   }
 
-  public void write(final PImmutablePage page) throws IOException {
+  /**
+   * Returns the byte written. Current implementation flushes always the entire page because (1) there is not a sensible increase of
+   * performance and (2) in case a page is modified multiple times before the flush now it's overwritten in the writeCache map.
+   */
+  public int write(final PModifiablePage page) throws IOException {
     assert page.getPageId().getFileId() == fileId;
     final ByteBuffer buffer = page.getContent();
+
+//    final int[] range = page.getModifiedRange();
+//
+//    assert range[0] > -1 && range[1] < pageSize;
+//
+//    if (range[0] == 0 && range[1] == pageSize - 1) {
+    // FLUSH THE ENTIRE PAGE
     buffer.rewind();
-    channel.write(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
+    channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
+    return pageSize;
+//    }
+//
+//    // FLUSH ONLY THE DELTA
+//    buffer.position(range[1] + 1);
+//    buffer.flip();
+//    buffer.position(range[0]);
+//    final ByteBuffer delta = buffer.slice();
+//
+//    channel.write(delta, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()) + range[0]);
+//
+//    return range[1] - range[0] + 1;
   }
 
   public void read(final PImmutablePage page) throws IOException {
