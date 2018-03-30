@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
@@ -30,7 +31,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
       public OResult next() {
         OResult result = upstream.next();
         if (result instanceof OResultInternal) {
-          handleUpdateEdge((PRecord) result.getElement().get().getRecord());
+          handleUpdateEdge(result.getElement().get());
         }
         return result;
       }
@@ -74,7 +75,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
    *
    * @param record the edge record
    */
-  private void handleUpdateEdge(PRecord record) {
+  private void handleUpdateEdge(PDocument record) {
     Object currentOut = record.get("out");
     Object currentIn = record.get("in");
 
@@ -144,7 +145,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
     if (!(iRecord instanceof PIdentifiable)) {
       return false;
     }
-    PRecord record = ((PIdentifiable) iRecord).getRecord();
+    PDocument record = (PDocument) ((PIdentifiable) iRecord).getRecord();
     if (iRecord == null) {
       return false;
     }

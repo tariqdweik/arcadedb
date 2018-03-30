@@ -5,7 +5,6 @@ package com.arcadedb.engine;
  * to store he page version (MVCC). The maximum content is 65528.
  */
 public class PImmutablePage extends PBasePage {
-
   public PImmutablePage(final PPageManager manager, final PPageId pageId, final int size) {
     this(manager, pageId, size, new byte[size], 0, 0);
   }

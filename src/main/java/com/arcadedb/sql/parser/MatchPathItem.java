@@ -2,6 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.schema.PDocumentType;
@@ -122,7 +123,7 @@ public class MatchPathItem extends SimpleNode {
       return false;
     }
 
-    return ((PRecord) record).getType().equals(oClass);
+    return ((PDocument) record).getType().equals(oClass);
   }
 
   protected Iterable<PIdentifiable> traversePatternEdge(MatchStatement.MatchContext matchContext, PIdentifiable startingPoint,

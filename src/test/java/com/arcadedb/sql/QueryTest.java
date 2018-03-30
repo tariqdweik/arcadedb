@@ -3,7 +3,7 @@ package com.arcadedb.sql;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultSet;
 import org.junit.jupiter.api.AfterEach;
@@ -28,14 +28,14 @@ public class QueryTest {
 
   @AfterEach
   public void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void testScan() {
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       OResultSet rs = db.query("SELECT FROM V", new HashMap<>());
@@ -71,7 +71,7 @@ public class QueryTest {
   @Test
   public void testEqualsFiltering() {
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       Map<String, Object> params = new HashMap<>();
@@ -107,7 +107,7 @@ public class QueryTest {
   }
 
   private void populate(final int total) {
-    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
         if (!database.getSchema().existsType("V"))

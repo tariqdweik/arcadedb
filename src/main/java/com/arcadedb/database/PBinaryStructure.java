@@ -43,7 +43,11 @@ public interface PBinaryStructure {
 
   void putByteArray(int index, byte[] value);
 
+  void putByteArray(int index, byte[] value, int length);
+
   void putByteArray(byte[] value);
+
+  void putByteArray(byte[] value, int length);
 
   byte getByte(int index);
 
@@ -80,6 +84,8 @@ public interface PBinaryStructure {
   void getByteArray(byte[] buffer);
 
   void getByteArray(int index, byte[] buffer);
+
+  void getByteArray(int index, byte[] buffer, int offset, int length);
 
   byte[] getBytes();
 

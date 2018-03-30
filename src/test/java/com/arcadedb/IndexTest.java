@@ -3,7 +3,7 @@ package com.arcadedb;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.schema.PDocumentType;
@@ -28,13 +28,13 @@ public class IndexTest {
 
   @AfterAll
   public static void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void testScanIndexAscending() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -67,7 +67,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexDescending() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -100,7 +100,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexAscendingPartial() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -133,7 +133,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexDescendingPartial() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -166,7 +166,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexRange() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -200,7 +200,7 @@ public class IndexTest {
   private static void populate(final int total) {
     PFileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));

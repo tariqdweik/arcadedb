@@ -2,13 +2,56 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 
-public class PModifiableVertex extends PModifiableDocument implements PVertex {
+import java.util.Iterator;
+
+public class PModifiableVertex extends PModifiableDocument implements PVertexInternal {
+  private PRID outEdges;
+  private PRID inEdges;
+
+  /**
+   * Creation constructor.
+   */
   public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid) {
     super(graph, typeName, rid);
   }
 
+  /**
+   * Copy constructor from PImmutableVertex.modify().
+   */
   public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
     super(graph, typeName, rid, buffer);
+
+    buffer.position(1); // SKIP RECORD TYPE
+    outEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
+    if (outEdges.getBucketId() == -1)
+      outEdges = null;
+    inEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
+    if (inEdges.getBucketId() == -1)
+      inEdges = null;
+
+    this.propertiesStartingPosition = propertiesStartingPosition;
+    }
+
+  public PRID getOutEdgesHeadChunk() {
+    return outEdges;
+  }
+
+  public PRID getInEdgesHeadChunk() {
+    return inEdges;
+  }
+
+  @Override
+  public void setOutEdgesHeadChunk(final PRID outEdges) {
+//    if (outEdges.getBucketId() == 7 && outEdges.getPosition() == 2060476)
+//      PLogManager.instance().info(this, "setOutEdgesHeadChunk in %s!", rid);
+    this.outEdges = outEdges;
+  }
+
+  @Override
+  public void setInEdgesHeadChunk(final PRID inEdges) {
+//    if (inEdges.getBucketId() == 7 && inEdges.getPosition() == 2060476)
+//      PLogManager.instance().info(this, "setInEdgesHeadChunk in %s!", rid);
+    this.inEdges = inEdges;
   }
 
   @Override
@@ -18,51 +61,51 @@ public class PModifiableVertex extends PModifiableDocument implements PVertex {
 
   public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional,
       final Object... properties) {
-    return PGraph.newEdge(this, edgeType, toVertex, bidirectional, properties);
+    return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 
   @Override
-  public PCursor<PEdge> getEdges() {
-    return PGraph.getEdges(this);
+  public long countEdges(DIRECTION direction, String edgeType) {
+    return database.getGraphEngine().countEdges(this, direction, edgeType);
   }
 
   @Override
-  public PCursor<PEdge> getEdges(final DIRECTION direction) {
-    return PGraph.getEdges(this, direction);
+  public Iterator<PEdge> getEdges() {
+    return database.getGraphEngine().getEdges(this);
   }
 
   @Override
-  public PCursor<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
-    return PGraph.getEdges(this, direction, edgeType);
+  public Iterator<PEdge> getEdges(final DIRECTION direction) {
+    return database.getGraphEngine().getEdges(this, direction);
   }
 
   @Override
-  public PCursor<PVertex> getVertices() {
-    return PGraph.getVertices(this);
+  public Iterator<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
+    return database.getGraphEngine().getEdges(this, direction, edgeType);
   }
 
   @Override
-  public PCursor<PVertex> getVertices(final DIRECTION direction) {
-    return PGraph.getVertices(this, direction);
+  public Iterator<PVertex> getVertices() {
+    return database.getGraphEngine().getVertices(this);
   }
 
   @Override
-  public PCursor<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
-    return PGraph.getVertices(this, direction, edgeType);
+  public Iterator<PVertex> getVertices(final DIRECTION direction) {
+    return database.getGraphEngine().getVertices(this, direction);
+  }
+
+  @Override
+  public Iterator<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
+    return database.getGraphEngine().getVertices(this, direction, edgeType);
   }
 
   @Override
   public boolean isConnectedTo(final PIdentifiable toVertex) {
-    return PGraph.isVertexConnectedTo(this, toVertex);
+    return database.getGraphEngine().isVertexConnectedTo(this, toVertex);
   }
 
   @Override
   public boolean isConnectedTo(final PIdentifiable toVertex, final DIRECTION direction) {
-    return PGraph.isVertexConnectedTo(this, toVertex, direction);
-  }
-
-  @Override
-  public boolean isConnectedTo(final PIdentifiable toVertex, final DIRECTION direction, final String edgeType) {
-    return PGraph.isVertexConnectedTo(this, toVertex, direction, edgeType);
+    return database.getGraphEngine().isVertexConnectedTo(this, toVertex, direction);
   }
 }

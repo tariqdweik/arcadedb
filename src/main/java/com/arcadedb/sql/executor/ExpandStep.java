@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
@@ -98,7 +99,7 @@ public class ExpandStep extends AbstractExecutionStep {
               continue;
             }
             nextElement = new OResultInternal();
-            ((OResultInternal) nextElement).setElement(record);
+            ((OResultInternal) nextElement).setElement((PDocument) record);
           } else {
             nextElement = new OResultInternal();
             ((OResultInternal) nextElement).setProperty("value", nextElementObj);
@@ -141,7 +142,7 @@ public class ExpandStep extends AbstractExecutionStep {
             continue;
           }
           OResultInternal res = new OResultInternal();
-          res.setElement(rec);
+          res.setElement((PDocument) rec);
 
           nextSubsequence = Collections.singleton(res).iterator();
         } else if (projValue instanceof OResult) {

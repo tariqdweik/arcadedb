@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRecord;
 
 import java.util.Optional;
 import java.util.Set;
@@ -40,12 +40,12 @@ public class OUpdatableResult extends OResultInternal {
   }
 
   @Override
-  public Optional<PRecord> getElement() {
+  public Optional<PDocument> getElement() {
     return Optional.of(element);
   }
 
   @Override
-  public PRecord toElement() {
+  public PDocument toElement() {
     return element;
   }
 

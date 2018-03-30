@@ -2,6 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRecord;
@@ -60,12 +61,12 @@ public class SuffixIdentifier extends SimpleNode {
       }
 
       if (iCurrentRecord != null) {
-        return ((PRecord) iCurrentRecord.getRecord()).get(varName);
+        return ((PDocument) iCurrentRecord.getRecord()).get(varName);
       }
       return null;
     }
     if (recordAttribute != null) {
-      return ((PRecord) iCurrentRecord.getRecord()).get(recordAttribute.name);
+      return ((PDocument) iCurrentRecord.getRecord()).get(recordAttribute.name);
     }
     return null;
   }
@@ -398,7 +399,7 @@ public class SuffixIdentifier extends SimpleNode {
 
   public boolean isDefinedFor(PRecord currentRecord) {
     if (identifier != null) {
-      return ((PRecord) currentRecord.getRecord()).getPropertyNames().contains(identifier.getStringValue());
+      return ((PDocument) currentRecord.getRecord()).getPropertyNames().contains(identifier.getStringValue());
     }
     return true;
   }

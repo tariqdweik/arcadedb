@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.Json;
@@ -33,7 +34,7 @@ public class UpdateContentStep extends AbstractExecutionStep {
         OResult result = upstream.next();
         if (result instanceof OResultInternal) {
           if (!(result.getElement().get() instanceof PRecord)) {
-            ((OResultInternal) result).setElement(result.getElement().get().getRecord());
+            ((OResultInternal) result).setElement((PDocument) result.getElement().get().getRecord());
           }
           if (!(result.getElement().get() instanceof PRecord)) {
             return result;

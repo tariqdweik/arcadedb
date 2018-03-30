@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
@@ -33,8 +33,8 @@ public class NestedProjection extends SimpleNode {
     if (input instanceof OResult) {
       return apply(expression, (OResult) input, ctx, recursion == null ? 0 : recursion.getValue().intValue());
     }
-    if (input instanceof PRecord) {
-      return apply(expression, (PRecord) input, ctx, recursion == null ? 0 : recursion.getValue().intValue());
+    if (input instanceof PDocument) {
+      return apply(expression, (PDocument) input, ctx, recursion == null ? 0 : recursion.getValue().intValue());
     }
     if (input instanceof Map) {
       return apply(expression, (Map) input, ctx, recursion == null ? 0 : recursion.getValue().intValue());
@@ -101,8 +101,8 @@ public class NestedProjection extends SimpleNode {
     return propValue;
   }
 
-  private Object apply(Expression expression, PRecord input, OCommandContext ctx, int recursion) {
-    PRecord elem = input;
+  private Object apply(Expression expression, PDocument input, OCommandContext ctx, int recursion) {
+    PDocument elem = input;
     OResultInternal result = new OResultInternal();
     if (starItem != null || includeItems.size() == 0) {
       for (String property : elem.getPropertyNames()) {

@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.parser.PInteger;
 import com.arcadedb.sql.parser.TraverseProjectionItem;
 import com.arcadedb.sql.parser.WhereClause;
@@ -54,9 +54,9 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
       res.depth = 0;
     } else if (item.getPropertyNames().size() == 1) {
       Object val = item.getProperty(item.getPropertyNames().iterator().next());
-      if (val instanceof PRecord) {
+      if (val instanceof PDocument) {
         res = new OTraverseResult();
-        res.setElement((PRecord) val);
+        res.setElement((PDocument) val);
         res.depth = 0;
         res.setMetadata("$depth", 0);
       } else if (val instanceof PRID) {
@@ -102,8 +102,8 @@ public class DepthFirstTraverseStep extends AbstractTraverseStep {
       return;
     }
     OTraverseResult res = new OTraverseResult();
-    if (nextStep instanceof PRecord) {
-      res.setElement((PRecord) nextStep);
+    if (nextStep instanceof PDocument) {
+      res.setElement((PDocument) nextStep);
     } else {
       throw new UnsupportedOperationException("TODO");
     }

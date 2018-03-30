@@ -1,7 +1,23 @@
 package com.arcadedb.database;
 
-public interface PDatabaseInternal {
-  void saveRecord(PModifiableDocument record);
+import com.arcadedb.engine.PBucket;
+import com.arcadedb.graph.PGraphEngine;
+import com.arcadedb.schema.PDocumentType;
 
-  void saveRecord(PRecord record, String bucketName);
+public interface PDatabaseInternal extends PDatabase {
+  PGraphEngine getGraphEngine();
+
+  PTransactionManager getTransactionManager();
+
+  void createRecord(PModifiableDocument record);
+
+  void createRecord(PRecord record, String bucketName);
+
+  void createRecordNoLock(PRecord record, String bucketName);
+
+  void updateRecord(PRecord record);
+
+  void updateRecordNoLock(PRecord record);
+
+  void indexDocument(PModifiableDocument record, PDocumentType type, PBucket bucket);
 }

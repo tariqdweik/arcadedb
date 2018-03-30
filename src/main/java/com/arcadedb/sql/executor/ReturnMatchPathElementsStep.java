@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ public class ReturnMatchPathElementsStep extends AbstractUnrollStep {
       Object elem = doc.getProperty(s);
       if (elem instanceof PIdentifiable) {
         OResultInternal newelem = new OResultInternal();
-        newelem.setElement(((PIdentifiable) elem).getRecord());
+        newelem.setElement((PDocument) ((PIdentifiable) elem).getRecord());
         elem = newelem;
       }
       if (elem instanceof OResult) {

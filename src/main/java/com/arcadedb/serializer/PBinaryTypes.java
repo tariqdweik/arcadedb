@@ -84,6 +84,9 @@ public class PBinaryTypes {
     case PBinaryTypes.TYPE_DOUBLE:
       return PBinary.DOUBLE_SERIALIZED_SIZE;
 
+    case PBinaryTypes.TYPE_RID:
+      return PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE;
+
     default:
       return -1;
     }

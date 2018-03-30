@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Arrays;
@@ -123,9 +123,9 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
                 continue;
               }
             }
-            if (finalVal instanceof PRecord) {
+            if (finalVal instanceof PDocument) {
               OResultInternal res = new OResultInternal();
-              res.setElement((PRecord) finalVal);
+              res.setElement((PDocument) finalVal);
               nextItem = res;
             } else if (finalVal instanceof OResult) {
               nextItem = (OResult) finalVal;

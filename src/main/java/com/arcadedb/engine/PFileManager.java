@@ -11,21 +11,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class PFileManager {
-  private final String     path;
-  private final PFile.MODE mode;
+  private final String              path;
+  private final PPaginatedFile.MODE mode;
 
-  private final List<PFile>                       files            = new ArrayList<PFile>();
-  private final ConcurrentHashMap<String, PFile>  fileNameMap      = new ConcurrentHashMap<String, PFile>();
-  private final ConcurrentHashMap<Integer, PFile> fileIdMap        = new ConcurrentHashMap<Integer, PFile>();
-  private final Set<String>                       supportedFileExt = new HashSet<String>();
-  private final AtomicLong                        maxFilesOpened   = new AtomicLong();
+  private final List<PPaginatedFile>                       files            = new ArrayList<>();
+  private final ConcurrentHashMap<String, PPaginatedFile>  fileNameMap      = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, PPaginatedFile> fileIdMap        = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, Long>           fileVirtualSize  = new ConcurrentHashMap<>();
+  private final Set<String>                                supportedFileExt = new HashSet<>();
+  private final AtomicLong                                 maxFilesOpened   = new AtomicLong();
 
   public class PFileManagerStats {
     public long maxOpenFiles;
     public long totalOpenFiles;
   }
 
-  public PFileManager(final String path, final PFile.MODE mode, final Set<String> supportedFileExt) {
+  public PFileManager(final String path, final PPaginatedFile.MODE mode, final Set<String> supportedFileExt) throws IOException {
     this.path = path;
     this.mode = mode;
 
@@ -42,7 +43,7 @@ public class PFileManager {
 
         if (supportedFileExt.contains(fileExt))
           try {
-            final PFile file = new PFile(f.getAbsolutePath(), mode);
+            final PPaginatedFile file = new PPaginatedFile(f.getAbsolutePath(), mode);
             registerFile(file);
 
           } catch (FileNotFoundException e) {
@@ -53,7 +54,7 @@ public class PFileManager {
   }
 
   public void close() {
-    for (PFile f : fileNameMap.values())
+    for (PPaginatedFile f : fileNameMap.values())
       try {
         f.close();
       } catch (IOException e) {
@@ -63,15 +64,27 @@ public class PFileManager {
     files.clear();
     fileNameMap.clear();
     fileIdMap.clear();
+    fileVirtualSize.clear();
   }
 
   public void dropFile(final int fileId) throws IOException {
-    PFile file = fileIdMap.remove(fileId);
+    PPaginatedFile file = fileIdMap.remove(fileId);
     if (file != null) {
       fileNameMap.remove(file.getFileName());
       files.set(fileId, null);
     }
     file.drop();
+  }
+
+  public long getVirtualFileSize(final Integer fileId) throws IOException {
+    Long fileSize = fileVirtualSize.get(fileId);
+    if (fileSize == null)
+      fileSize = getFile(fileId).getSize();
+    return fileSize;
+  }
+
+  public void setVirtualFileSize(final Integer fileId, final long fileSize) {
+    fileVirtualSize.put(fileId, fileSize);
   }
 
   public PFileManagerStats getStats() {
@@ -81,24 +94,24 @@ public class PFileManager {
     return stats;
   }
 
-  public Collection<PFile> getFiles() {
+  public Collection<PPaginatedFile> getFiles() {
     return fileNameMap.values();
   }
 
-  public PFile getFile(final int fileId) {
-    PFile f = fileIdMap.get(fileId);
+  public PPaginatedFile getFile(final int fileId) {
+    PPaginatedFile f = fileIdMap.get(fileId);
     if (f == null)
       throw new IllegalArgumentException("File with id " + fileId + " was not found");
 
     return f;
   }
 
-  public PFile getFile(final String fileName) throws FileNotFoundException {
-    PFile file = fileNameMap.get(fileName);
+  public PPaginatedFile getFile(final String fileName) throws IOException {
+    PPaginatedFile file = fileNameMap.get(fileName);
     if (file == null) {
       synchronized (this) {
-        file = new PFile(fileName, mode);
-        final PFile prev = fileNameMap.putIfAbsent(fileName, file);
+        file = new PPaginatedFile(fileName, mode);
+        final PPaginatedFile prev = fileNameMap.putIfAbsent(fileName, file);
         if (prev == null) {
           file.setFileId(newFileId());
           registerFile(file);
@@ -109,8 +122,8 @@ public class PFileManager {
     return file;
   }
 
-  public PFile getOrCreateFile(final String filePath, final PFile.MODE mode) throws FileNotFoundException {
-    return getOrCreateFile(PFile.getFileNameFromPath(filePath), filePath, mode);
+  public PPaginatedFile getOrCreateFile(final String filePath, final PPaginatedFile.MODE mode) throws IOException {
+    return getOrCreateFile(PPaginatedFile.getFileNameFromPath(filePath), filePath, mode);
   }
 
   public int newFileId() {
@@ -122,17 +135,17 @@ public class PFileManager {
     return files.size();
   }
 
-  public PFile getOrCreateFile(final String fileName, final String filePath, final PFile.MODE mode) throws FileNotFoundException {
-    PFile file = fileNameMap.get(fileName);
+  public PPaginatedFile getOrCreateFile(final String fileName, final String filePath, final PPaginatedFile.MODE mode) throws IOException {
+    PPaginatedFile file = fileNameMap.get(fileName);
     if (file != null)
       return file;
 
-    file = new PFile(filePath, mode);
+    file = new PPaginatedFile(filePath, mode);
     registerFile(file);
     return file;
   }
 
-  private void registerFile(final PFile file) {
+  private void registerFile(final PPaginatedFile file) {
     while (files.size() < file.getFileId() + 1)
       files.add(null);
     files.set(file.getFileId(), file);

@@ -2,7 +2,7 @@ package com.arcadedb.serializer;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -102,7 +102,7 @@ public class PSerializerTest {
     public void testPropertiesInDocument() {
         final PBinarySerializer serializer = new PBinarySerializer();
 
-        new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+        new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
             @Override
             public void execute(PDatabase database) {
                 final PModifiableDocument v = database.newDocument(null);
@@ -111,14 +111,15 @@ public class PSerializerTest {
                 v.set("name", "Jay");
                 v.set("surname", "Miner");
 
-                final PBinary buffer = serializer.serialize(database, v);
+                final PBinary buffer = serializer.serialize(database, v, -1);
 
                 final ByteBuffer buffer2 = ByteBuffer.allocate(PBucket.DEF_PAGE_SIZE);
                 buffer2.put(buffer.toByteArray());
                 buffer2.flip();
 
                 PBinary buffer3 = new PBinary(buffer2);
-                Map<String, Object> record2 = serializer.deserializeFields((PDatabaseImpl) database, buffer3);
+                buffer3.getByte(); // SKIP RECORD TYPE
+                Map<String, Object> record2 = serializer.deserializeProperties((PDatabaseImpl) database, buffer3);
 
                 Assertions.assertEquals(4, record2.size());
                 Assertions.assertEquals(0, record2.get("id"));

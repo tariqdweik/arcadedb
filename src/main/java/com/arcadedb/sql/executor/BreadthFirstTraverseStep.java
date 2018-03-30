@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.parser.PInteger;
@@ -90,7 +91,7 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
     }
   }
 
-  private void addNextEntryPoints(PRecord nextStep, int depth, List<PRID> path, OCommandContext ctx) {
+  private void addNextEntryPoints(PDocument nextStep, int depth, List<PRID> path, OCommandContext ctx) {
     if (this.traversed.contains(nextStep.getIdentity())) {
       return;
     }

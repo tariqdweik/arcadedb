@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.OLocalResultSet;
 
@@ -91,7 +91,7 @@ public class MatchFirstStep extends AbstractExecutionStep {
     };
   }
 
-  private Object toResult(PRecord nextElement) {
+  private Object toResult(PDocument nextElement) {
     OResultInternal result = new OResultInternal();
     result.setElement(nextElement);
     return result;

@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 
@@ -12,12 +13,12 @@ import java.util.stream.Collectors;
 public class OResultInternal implements OResult {
   protected Map<String, Object> content = new LinkedHashMap<>();
   protected Map<String, Object> metadata;
-  protected PRecord             element;
+  protected PDocument             element;
 
   public OResultInternal() {
   }
 
-  public OResultInternal(PRecord ident) {
+  public OResultInternal(PDocument ident) {
     this.element = ident;
   }
 
@@ -55,7 +56,7 @@ public class OResultInternal implements OResult {
     if (content.containsKey(name)) {
       result = content.get(name);
     } else if (element != null) {
-      result = ((PRecord) element).get(name);
+      result = element.get(name);
     }
 
     if (result instanceof OResult) {
@@ -175,12 +176,12 @@ public class OResultInternal implements OResult {
     return this.element != null;
   }
 
-  public Optional<PRecord> getElement() {
+  public Optional<PDocument> getElement() {
     return Optional.ofNullable(element);
   }
 
   @Override
-  public PRecord toElement() {
+  public PDocument toElement() {
     if (isElement()) {
       return getElement().get();
     }
@@ -272,7 +273,7 @@ public class OResultInternal implements OResult {
     return property;
   }
 
-  public void setElement(PRecord element) {
+  public void setElement(PDocument element) {
     this.element = element;
   }
 

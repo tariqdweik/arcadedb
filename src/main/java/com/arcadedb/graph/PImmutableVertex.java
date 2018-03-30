@@ -2,10 +2,25 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 
-public class PImmutableVertex extends PImmutableDocument implements PVertex {
+import java.util.Iterator;
+import java.util.Map;
 
-  public PImmutableVertex(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
-    super(graph, typeName, rid, buffer);
+public class PImmutableVertex extends PImmutableDocument implements PVertexInternal {
+  private PRID outEdges;
+  private PRID inEdges;
+
+  public PImmutableVertex(final PDatabase database, final String typeName, final PRID rid, final PBinary buffer) {
+    super(database, typeName, rid, buffer);
+    if (buffer != null) {
+      buffer.position(1); // SKIP RECORD TYPE
+      outEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (outEdges.getBucketId() == -1)
+        outEdges = null;
+      inEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (inEdges.getBucketId() == -1)
+        inEdges = null;
+      propertiesStartingPosition = buffer.position();
+    }
   }
 
   @Override
@@ -14,56 +29,103 @@ public class PImmutableVertex extends PImmutableDocument implements PVertex {
   }
 
   public PModifiableVertex modify() {
+    checkForLazyLoading();
     return new PModifiableVertex(database, typeName, rid, buffer);
+  }
+
+  @Override
+  public Object get(final String name) {
+    checkForLazyLoading();
+    buffer.position(propertiesStartingPosition);
+    final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, name);
+    return map.get(name);
+  }
+
+  @Override
+  public PRID getOutEdgesHeadChunk() {
+    checkForLazyLoading();
+    return outEdges;
+  }
+
+  @Override
+  public PRID getInEdgesHeadChunk() {
+    checkForLazyLoading();
+    return inEdges;
+  }
+
+  @Override
+  public void setOutEdgesHeadChunk(final PRID outEdges) {
+    throw new UnsupportedOperationException("setOutEdgesHeadChunk");
+  }
+
+  @Override
+  public void setInEdgesHeadChunk(final PRID inEdges) {
+    throw new UnsupportedOperationException("setOutEdgesHeadChunk");
   }
 
   public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional,
       final Object... properties) {
-    return PGraph.newEdge(this, edgeType, toVertex, bidirectional, properties);
+    return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 
   @Override
-  public PCursor<PEdge> getEdges() {
-    return PGraph.getEdges(this);
+  public long countEdges(DIRECTION direction, String edgeType) {
+    return database.getGraphEngine().countEdges(this, direction, edgeType);
   }
 
   @Override
-  public PCursor<PEdge> getEdges(final DIRECTION direction) {
-    return PGraph.getEdges(this, direction);
+  public Iterator<PEdge> getEdges() {
+    return database.getGraphEngine().getEdges(this);
   }
 
   @Override
-  public PCursor<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
-    return PGraph.getEdges(this, direction, edgeType);
+  public Iterator<PEdge> getEdges(final DIRECTION direction) {
+    return database.getGraphEngine().getEdges(this, direction);
   }
 
   @Override
-  public PCursor<PVertex> getVertices() {
-    return PGraph.getVertices(this);
+  public Iterator<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
+    return database.getGraphEngine().getEdges(this, direction, edgeType);
   }
 
   @Override
-  public PCursor<PVertex> getVertices(final DIRECTION direction) {
-    return PGraph.getVertices(this, direction);
+  public Iterator<PVertex> getVertices() {
+    return database.getGraphEngine().getVertices(this);
   }
 
   @Override
-  public PCursor<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
-    return PGraph.getVertices(this, direction, edgeType);
+  public Iterator<PVertex> getVertices(final DIRECTION direction) {
+    return database.getGraphEngine().getVertices(this, direction);
+  }
+
+  @Override
+  public Iterator<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
+    return database.getGraphEngine().getVertices(this, direction, edgeType);
   }
 
   @Override
   public boolean isConnectedTo(final PIdentifiable toVertex) {
-    return PGraph.isVertexConnectedTo(this, toVertex);
+    return database.getGraphEngine().isVertexConnectedTo(this, toVertex);
   }
 
   @Override
   public boolean isConnectedTo(final PIdentifiable toVertex, final DIRECTION direction) {
-    return PGraph.isVertexConnectedTo(this, toVertex, direction);
+    return database.getGraphEngine().isVertexConnectedTo(this, toVertex, direction);
   }
 
   @Override
-  public boolean isConnectedTo(final PIdentifiable toVertex, final DIRECTION direction, final String edgeType) {
-    return PGraph.isVertexConnectedTo(this, toVertex, direction, edgeType);
+  protected boolean checkForLazyLoading() {
+    if (super.checkForLazyLoading()) {
+      buffer.position(1); // SKIP RECORD TYPE
+      outEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (outEdges.getBucketId() == -1)
+        outEdges = null;
+      inEdges = new PRID(database, buffer.getInt(), buffer.getLong());
+      if (inEdges.getBucketId() == -1)
+        inEdges = null;
+      propertiesStartingPosition = buffer.position();
+      return true;
+    }
+    return false;
   }
 }

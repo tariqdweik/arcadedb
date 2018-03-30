@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.graph.PEdge;
@@ -39,9 +40,9 @@ public interface OResult {
 
   boolean isElement();
 
-  Optional<PRecord> getElement();
+  Optional<PDocument> getElement();
 
-  PRecord toElement();
+  PDocument toElement();
 
   Optional<PRecord> getRecord();
 

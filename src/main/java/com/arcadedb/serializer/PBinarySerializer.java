@@ -1,6 +1,7 @@
 package com.arcadedb.serializer;
 
 import com.arcadedb.database.*;
+import com.arcadedb.graph.*;
 import com.arcadedb.utility.PLogManager;
 
 import java.math.BigDecimal;
@@ -21,51 +22,86 @@ public class PBinarySerializer {
     return comparator;
   }
 
-  public PBinary serialize(final PDatabase database, final PRecord record) {
-    final PBinary header = new PBinary();
-    final PBinary content = new PBinary();
+  public PBinary serialize(final PDatabase database, final PRecord record, final int bucketId) {
+    switch (record.getRecordType()) {
+    case PDocument.RECORD_TYPE:
+      return serializeDocument(database, (PModifiableDocument) record);
+    case PVertex.RECORD_TYPE:
+      return serializeVertex(database, (PModifiableVertex) record, bucketId);
+    case PEdge.RECORD_TYPE:
+      return serializeEdge(database, (PModifiableEdge) record, bucketId);
+    case PEdgeChunk.RECORD_TYPE:
+      return serializeEdgeContainer(database, (PEdgeChunk) record);
+    default:
+      throw new IllegalArgumentException("Cannot serialize a record of type=" + record.getRecordType());
+    }
+  }
 
-    header.putByte(record.getRecordType()); // RECORD TYPE
-    header.putInt(0); // TEMPORARY PLACEHOLDER FOR HEADER SIZE
+  public PBinary serializeDocument(final PDatabase database, final PDocument document) {
+    final PBinary header = new PBinary(64);
+    header.putByte(document.getRecordType()); // RECORD TYPE
+    return serializeProperties(database, document, header);
+  }
 
-    final Set<String> propertyNames = record.getPropertyNames();
-    header.putNumber(propertyNames.size());
+  public PBinary serializeVertex(final PDatabase database, final PModifiableVertex vertex, final int bucketId) {
+    PBinary header = vertex.getBuffer();
 
-    for (String p : propertyNames) {
-      // WRITE PROPERTY ID FROM THE DICTIONARY
-      // TODO: USE UNSIGNED SHORT
-      header.putNumber(database.getSchema().getDictionary().getIdByName(p, true));
-
-      final Object value = record.get(p);
-
-      final int startContentPosition = content.position();
-
-      final byte type = PBinaryTypes.getTypeFromValue(value);
-      content.putByte(type);
-
-      serializeValue(content, type, value);
-
-      // WRITE PROPERTY CONTENT POSITION
-      header.putNumber(startContentPosition);
+    final boolean serializeProperties;
+    if (header == null) {
+      header = new PBinary(64);
+      header.putByte(vertex.getRecordType()); // RECORD TYPE
+      serializeProperties = true;
+    } else {
+      header.position(PBinary.BYTE_SERIALIZED_SIZE);
+      serializeProperties = false;
     }
 
-    content.flip();
+    // WRITE OUT AND IN EDGES POINTER FIRST, THEN SERIALIZE THE VERTEX PROPERTIES (AS A DOCUMENT)
+    final PRID outEdges = vertex.getOutEdgesHeadChunk();
+    if (outEdges != null) {
+      header.putInt(outEdges.getBucketId());
+      header.putLong(outEdges.getPosition());
+    } else {
+      header.putInt(-1);
+      header.putLong(-1);
+    }
 
-    final int headerSize = header.position();
+    final PRID inEdges = vertex.getInEdgesHeadChunk();
+    if (inEdges != null) {
+      header.putInt(inEdges.getBucketId());
+      header.putLong(inEdges.getPosition());
+    } else {
+      header.putInt(-1);
+      header.putLong(-1);
+    }
 
-    header.append(content);
+    if (serializeProperties)
+      return serializeProperties(database, vertex, header);
 
-    // UPDATE HEADER SIZE
-    header.putInt(PBinary.BYTE_SERIALIZED_SIZE, headerSize);
-
-    header.position(header.size());
-    header.flip();
     return header;
   }
 
+  public PBinary serializeEdge(final PDatabase database, final PModifiableEdge edge, final int bucketId) {
+    final PBinary header = new PBinary(64);
+    header.putByte(edge.getRecordType()); // RECORD TYPE
+
+    // WRITE OUT AND IN EDGES POINTER FIRST, THEN SERIALIZE THE VERTEX PROPERTIES (AS A DOCUMENT)
+    final PRID outEdges = edge.getOut();
+    header.putInt(outEdges.getBucketId());
+    header.putLong(outEdges.getPosition());
+
+    final PRID inEdges = edge.getIn();
+    header.putInt(inEdges.getBucketId());
+    header.putLong(inEdges.getPosition());
+
+    return serializeProperties(database, edge, header);
+  }
+
+  public PBinary serializeEdgeContainer(final PDatabase database, final PEdgeChunk record) {
+    return record.getContent();
+  }
+
   public Set<String> getPropertyNames(final PDatabase database, final PBinary buffer) {
-    buffer.reset();
-    final byte recordType = buffer.getByte();
     final int headerSize = buffer.getInt();
     final int properties = (int) buffer.getNumber();
     final Set<String> result = new LinkedHashSet<String>(properties);
@@ -80,9 +116,7 @@ public class PBinarySerializer {
     return result;
   }
 
-  public Map<String, Object> deserializeFields(final PDatabase database, final PBinary buffer, final String... fieldNames) {
-    buffer.reset();
-    final byte recordType = buffer.getByte();
+  public Map<String, Object> deserializeProperties(final PDatabase database, final PBinary buffer, final String... fieldNames) {
     final int headerSize = buffer.getInt();
     final int properties = (int) buffer.getNumber();
 
@@ -234,5 +268,46 @@ public class PBinarySerializer {
       value = null;
     }
     return value;
+  }
+
+  public PBinary serializeProperties(final PDatabase database, final PDocument record, final PBinary header) {
+    final int headerSizePosition = header.position();
+    header.putInt(0); // TEMPORARY PLACEHOLDER FOR HEADER SIZE
+
+    final Set<String> propertyNames = record.getPropertyNames();
+    header.putNumber(propertyNames.size());
+
+    final PBinary content = new PBinary();
+
+    for (String p : propertyNames) {
+      // WRITE PROPERTY ID FROM THE DICTIONARY
+      // TODO: USE UNSIGNED SHORT
+      header.putNumber(database.getSchema().getDictionary().getIdByName(p, true));
+
+      final Object value = record.get(p);
+
+      final int startContentPosition = content.position();
+
+      final byte type = PBinaryTypes.getTypeFromValue(value);
+      content.putByte(type);
+
+      serializeValue(content, type, value);
+
+      // WRITE PROPERTY CONTENT POSITION
+      header.putNumber(startContentPosition);
+    }
+
+    content.flip();
+
+    final int headerSize = header.position();
+
+    header.append(content);
+
+    // UPDATE HEADER SIZE
+    header.putInt(headerSizePosition, headerSize);
+
+    header.position(header.size());
+    header.flip();
+    return header;
   }
 }

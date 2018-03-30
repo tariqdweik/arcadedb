@@ -2,10 +2,11 @@ package com.arcadedb.schema;
 
 import com.arcadedb.PConstants;
 import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PDictionary;
-import com.arcadedb.engine.PFile;
 import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.engine.PPaginatedComponent;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
 import com.arcadedb.exception.PSchemaException;
@@ -19,23 +20,21 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class PSchemaImpl implements PSchema {
-  public static final String EDGES_INDEX_NAME = "edges";
-
   private static final String SCHEMA_FILE_NAME = "/schema.pcsv";
-  private final PDatabase database;
-  private final List<PPaginatedFile>       files     = new ArrayList<PPaginatedFile>();
+  private final PDatabaseInternal database;
+  private final List<PPaginatedComponent>  files     = new ArrayList<PPaginatedComponent>();
   private final Map<String, PDocumentType> types     = new HashMap<String, PDocumentType>();
   private final Map<String, PBucket>       bucketMap = new HashMap<String, PBucket>();
   private final Map<String, PIndex>        indexMap  = new HashMap<String, PIndex>();
   private final String      databasePath;
   private       PDictionary dictionary;
 
-  public PSchemaImpl(final PDatabase database, final String databasePath, final PFile.MODE mode) {
+  public PSchemaImpl(final PDatabaseInternal database, final String databasePath, final PPaginatedFile.MODE mode) {
     this.database = database;
     this.databasePath = databasePath;
   }
 
-  public void create(final PFile.MODE mode) {
+  public void create(final PPaginatedFile.MODE mode) {
     database.begin();
     try {
       dictionary = new PDictionary(database, "dictionary", databasePath + "/dictionary", mode, PDictionary.DEF_PAGE_SIZE);
@@ -50,14 +49,14 @@ public class PSchemaImpl implements PSchema {
     }
   }
 
-  public void load(final PFile.MODE mode) {
-    for (PFile file : database.getFileManager().getFiles()) {
+  public void load(final PPaginatedFile.MODE mode) {
+    for (PPaginatedFile file : database.getFileManager().getFiles()) {
       final String fileName = file.getFileName();
       final int fileId = file.getFileId();
       final String fileExt = file.getFileExtension();
       final int pageSize = file.getPageSize();
 
-      PPaginatedFile pf = null;
+      PPaginatedComponent pf = null;
 
       if (fileExt.equals(PDictionary.DICT_EXT)) {
         // DICTIONARY
@@ -98,11 +97,11 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PPaginatedFile getFileById(final int id) {
+  public PPaginatedComponent getFileById(final int id) {
     if (id >= files.size())
       throw new PSchemaException("File with id '" + id + "' was not found");
 
-    final PPaginatedFile p = files.get(id);
+    final PPaginatedComponent p = files.get(id);
     if (p == null)
       throw new PSchemaException("File with id '" + id + "' was not found");
     return p;
@@ -115,10 +114,16 @@ public class PSchemaImpl implements PSchema {
     files.set(fileId, null);
   }
 
+  @Override
+  public Collection<PBucket> getBuckets() {
+    return Collections.unmodifiableCollection(bucketMap.values());
+  }
+
   public boolean existsBucket(final String bucketName) {
     return bucketMap.containsKey(bucketName);
   }
 
+  @Override
   public PBucket getBucketByName(final String name) {
     final PBucket p = bucketMap.get(name);
     if (p == null)
@@ -126,29 +131,31 @@ public class PSchemaImpl implements PSchema {
     return p;
   }
 
+  @Override
   public PBucket getBucketById(final int id) {
     if (id < 0 || id >= files.size())
       throw new PSchemaException("Bucket with id '" + id + "' was not found");
 
-    final PPaginatedFile p = files.get(id);
+    final PPaginatedComponent p = files.get(id);
     if (p == null || !(p instanceof PBucket))
       throw new PSchemaException("Bucket with id '" + id + "' was not found");
     return (PBucket) p;
   }
 
+  @Override
   public PBucket createBucket(final String bucketName) {
     return createBucket(bucketName, PBucket.DEF_PAGE_SIZE);
   }
 
   public PBucket createBucket(final String bucketName, final int pageSize) {
-    return (PBucket) database.executeInLock(new Callable<Object>() {
+    return (PBucket) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (bucketMap.containsKey(bucketName))
           throw new PSchemaException("Cannot create bucket '" + bucketName + "' because already exists");
 
         try {
-          final PBucket bucket = new PBucket(database, bucketName, databasePath + "/" + bucketName, PFile.MODE.READ_WRITE,
+          final PBucket bucket = new PBucket(database, bucketName, databasePath + "/" + bucketName, PPaginatedFile.MODE.READ_WRITE,
               pageSize);
           registerFile(bucket);
           bucketMap.put(bucketName, bucket);
@@ -162,6 +169,7 @@ public class PSchemaImpl implements PSchema {
     });
   }
 
+  @Override
   public boolean existsIndex(final String indexName) {
     return indexMap.containsKey(indexName);
   }
@@ -175,6 +183,7 @@ public class PSchemaImpl implements PSchema {
     return indexes;
   }
 
+  @Override
   public PIndex getIndexByName(final String indexName) {
     final PIndex p = indexMap.get(indexName);
     if (p == null)
@@ -182,17 +191,19 @@ public class PSchemaImpl implements PSchema {
     return p;
   }
 
+  @Override
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames) {
     return createClassIndexes(typeName, propertyNames, PIndexLSM.DEF_PAGE_SIZE);
   }
 
+  @Override
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
     return createClassIndexes(typeName, propertyNames, pageSize, propertyNames.length);
   }
 
   public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize,
       final int bfKeyDepth) {
-    return (PIndex[]) database.executeInLock(new Callable<Object>() {
+    return (PIndex[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         try {
@@ -224,7 +235,7 @@ public class PSchemaImpl implements PSchema {
               throw new PDatabaseMetadataException(
                   "Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-            indexes[idx] = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE, keyTypes,
+            indexes[idx] = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PPaginatedFile.MODE.READ_WRITE, keyTypes,
                 PBinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
 
             registerFile(indexes[idx]);
@@ -249,14 +260,14 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
-    return (PIndexLSM) database.executeInLock(new Callable<Object>() {
+    return (PIndexLSM) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (indexMap.containsKey(indexName))
           throw new PSchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          final PIndexLSM index = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PFile.MODE.READ_WRITE,
+          final PIndexLSM index = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PPaginatedFile.MODE.READ_WRITE,
               keyTypes, PBinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
           registerFile(index);
           indexMap.put(indexName, index);
@@ -336,7 +347,7 @@ public class PSchemaImpl implements PSchema {
   }
 
   public PDocumentType createDocumentType(final String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInLock(new Callable<Object>() {
+    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -369,7 +380,7 @@ public class PSchemaImpl implements PSchema {
 
   @Override
   public PDocumentType createVertexType(String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInLock(new Callable<Object>() {
+    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -383,11 +394,7 @@ public class PSchemaImpl implements PSchema {
         for (int i = 0; i < buckets; ++i)
           c.addBucket(createBucket(typeName + "_" + i, pageSize));
 
-        if (!indexMap.containsKey(EDGES_INDEX_NAME)) {
-          createManualIndex(PSchemaImpl.EDGES_INDEX_NAME,
-              new byte[] { PBinaryTypes.TYPE_COMPRESSED_RID, PBinaryTypes.TYPE_BYTE, PBinaryTypes.TYPE_INT,
-                  PBinaryTypes.TYPE_COMPRESSED_RID }, 65536 * 10, 1);
-        }
+        database.getGraphEngine().createVertexType(database, c);
 
         saveConfiguration();
 
@@ -408,7 +415,7 @@ public class PSchemaImpl implements PSchema {
 
   @Override
   public PDocumentType createEdgeType(final String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInLock(new Callable<Object>() {
+    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -430,8 +437,6 @@ public class PSchemaImpl implements PSchema {
   }
 
   public void swapIndexes(final PIndexLSM oldIndex, final PIndexLSM newIndex) throws IOException {
-    newIndex.flush();
-
     indexMap.remove(oldIndex.getName());
 
     indexMap.put(newIndex.getName(), newIndex);
@@ -489,7 +494,7 @@ public class PSchemaImpl implements PSchema {
           // parts[1] // IGNORE STRATEGY FOR NOW
           final String[] bucketItems = parts[3].split(";");
           for (String b : bucketItems) {
-            final PPaginatedFile bucket = files.get(Integer.parseInt(b));
+            final PPaginatedComponent bucket = files.get(Integer.parseInt(b));
             if (bucket == null || !(bucket instanceof PBucket))
               PLogManager.instance().warn(this, "Cannot find bucket %s for type '%s'", b, parts[0]);
             type.addBucketInternal((PBucket) bucket);
@@ -557,7 +562,7 @@ public class PSchemaImpl implements PSchema {
     }
   }
 
-  public void registerFile(final PPaginatedFile file) {
+  public void registerFile(final PPaginatedComponent file) {
     while (files.size() < file.getId() + 1)
       files.add(null);
 

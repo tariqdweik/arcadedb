@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.sql.executor.*;
 
 import java.util.Map;
@@ -24,9 +24,9 @@ public class ReturnStatement extends SimpleExecStatement {
     Object result = expression.execute((OResult) null, ctx);
     if (result instanceof OResult) {
       rs.add((OResult) result);
-    } else if (result instanceof PRecord) {
+    } else if (result instanceof PDocument) {
       OResultInternal res = new OResultInternal();
-      res.setElement((PRecord) result);
+      res.setElement((PDocument) result);
       rs.add(res);
     } else if (result instanceof OResultSet) {
       if (!((OResultSet) result).hasNext()) {

@@ -3,19 +3,21 @@ package com.arcadedb.schema;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PDictionary;
 import com.arcadedb.index.PIndex;
-import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.engine.PPaginatedComponent;
 
 import java.util.Collection;
 
 public interface PSchema {
 
-  PPaginatedFile getFileById(int id);
+  PPaginatedComponent getFileById(int id);
 
   void removeFile(int fileId);
 
   boolean existsBucket(String bucketName);
 
   PBucket getBucketByName(String name);
+
+  Collection<PBucket> getBuckets();
 
   PBucket getBucketById(int id);
 

@@ -1,27 +1,24 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.schema.PDocumentType;
 import org.junit.jupiter.api.Assertions;
 
-import java.io.IOException;
-import java.util.List;
-
 public class PerformanceIndexTest {
-  private static final int    TOT       = 1000000;
+  private static final int    TOT       = 5000000;
   private static final String TYPE_NAME = "Person";
 
   public static void main(String[] args) throws Exception {
     new PerformanceIndexTest().run();
   }
 
-  private void run() throws IOException {
+  private void run() {
     PerformanceTest.clean();
 
     final int parallel = 3;
 
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).acquire();
+    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -40,18 +37,14 @@ public class PerformanceIndexTest {
       database.close();
     }
 
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_WRITE).useParallel(true).acquire();
+    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
     long begin = System.currentTimeMillis();
 
     try {
 
-      if (database instanceof PDatabaseParallel) {
-        ((PDatabaseParallel) database).setCommitEvery(5000);
-        ((PDatabaseParallel) database).setParallelLevel(parallel);
-      }
-
-      database.begin();
+      database.asynch().setCommitEvery(5000);
+      database.asynch().setParallelLevel(parallel);
 
       long row = 0;
       for (; row < TOT; ++row) {
@@ -62,12 +55,11 @@ public class PerformanceIndexTest {
         record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
 
-        record.save();
+        database.asynch().createRecord(record);
 
         if (row % 100000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
       }
-      database.commit();
 
       System.out.println("Inserted " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
@@ -77,16 +69,15 @@ public class PerformanceIndexTest {
     }
 
     begin = System.currentTimeMillis();
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_ONLY).acquire();
+    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     try {
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {
-        final List<PRID> records = (List<PRID>) database
-            .lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
+        final PCursor<PRID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
 
-        final PBaseRecord record = (PBaseRecord) records.get(0).getRecord();
+        final PDocument record = (PDocument) records.next().getRecord();
         Assertions.assertEquals(id, record.get("id"));
 
         if (id % 100000 == 0)

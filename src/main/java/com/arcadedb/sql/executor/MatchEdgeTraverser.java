@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.parser.MatchPathItem;
@@ -41,7 +42,7 @@ public class MatchEdgeTraverser {
     }
     String endPointAlias = getEndpointAlias();
     OResultInternal nextR = downstream.next();
-    PRecord nextElement = nextR.getElement().get();
+    PDocument nextElement = nextR.getElement().get();
     Object prevValue = sourceRecord.getProperty(endPointAlias);
     if (prevValue != null && !equals(prevValue, nextElement)) {
       return null;
@@ -70,7 +71,7 @@ public class MatchEdgeTraverser {
     return prevValue != null && prevValue.equals(nextElement);
   }
 
-  protected Object toResult(PRecord nextElement) {
+  protected Object toResult(PDocument nextElement) {
     OResultInternal result = new OResultInternal();
     result.setElement(nextElement);
     return result;
@@ -141,7 +142,7 @@ public class MatchEdgeTraverser {
 
       if (matchesFilters(iCommandContext, filter, startingPoint) && matchesClass(iCommandContext, className, startingPoint)
           && matchesCluster(iCommandContext, clusterId, startingPoint) && matchesRid(iCommandContext, targetRid, startingPoint)) {
-        OResultInternal rs = new OResultInternal(startingPoint.getRecord());
+        OResultInternal rs = new OResultInternal((PDocument) startingPoint.getRecord());
         // set traversal depth in the metadata
         rs.setMetadata("$depth", depth);
         // set traversal path in the metadata
@@ -204,13 +205,13 @@ public class MatchEdgeTraverser {
     if (className == null) {
       return true;
     }
-    PRecord element = null;
-    if (origin instanceof PRecord) {
-      element = (PRecord) origin;
+    PDocument element = null;
+    if (origin instanceof PDocument) {
+      element = (PDocument) origin;
     } else {
       Object record = origin.getRecord();
-      if (record instanceof PRecord) {
-        element = (PRecord) record;
+      if (record instanceof PDocument) {
+        element = (PDocument) record;
       }
     }
     if (element != null) {
@@ -284,15 +285,15 @@ public class MatchEdgeTraverser {
     if (qR == null) {
       return Collections.EMPTY_LIST;
     }
-    if (qR instanceof PRecord) {
-      return Collections.singleton(new OResultInternal((PRecord) qR));
+    if (qR instanceof PDocument) {
+      return Collections.singleton(new OResultInternal((PDocument) qR));
     }
     if (qR instanceof Iterable) {
       Iterable iterable = (Iterable) qR;
       List<OResultInternal> result = new ArrayList<>();
       for (Object o : iterable) {
-        if (o instanceof PRecord) {
-          result.add(new OResultInternal((PRecord) o));
+        if (o instanceof PDocument) {
+          result.add(new OResultInternal((PDocument) o));
         } else if (o instanceof OResultInternal) {
           result.add((OResultInternal) o);
         } else if (o == null) {

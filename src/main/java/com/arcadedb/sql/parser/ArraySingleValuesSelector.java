@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OMultiValue;
@@ -68,8 +68,8 @@ public class ArraySingleValuesSelector extends SimpleNode {
       } else {
         if (iResult instanceof Map) {
           result.add(((Map) iResult).get(index));
-        } else if (iResult instanceof PRecord && index instanceof String) {
-          result.add(((PRecord) iResult).get((String) index));
+        } else if (iResult instanceof PDocument && index instanceof String) {
+          result.add(((PDocument) iResult).get((String) index));
         } else {
           result.add(null);
         }

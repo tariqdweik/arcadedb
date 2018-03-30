@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
 
@@ -50,7 +50,7 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
             continue;
           }
           nextResult = new OResultInternal();
-          ((OResultInternal) nextResult).setElement((PRecord) nextDoc);
+          ((OResultInternal) nextResult).setElement((PDocument) nextDoc);
           return;
         }
         return;

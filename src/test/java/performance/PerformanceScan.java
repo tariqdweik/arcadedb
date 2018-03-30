@@ -1,9 +1,8 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PerformanceScan {
@@ -14,13 +13,10 @@ public class PerformanceScan {
     new PerformanceScan().run();
   }
 
-  private void run() throws IOException {
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PFile.MODE.READ_ONLY).useParallel(true)
-        .acquire();
+  private void run() {
+    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
 
-    if (database instanceof PDatabaseParallel) {
-      ((PDatabaseParallel) database).setParallelLevel(4);
-    }
+    database.asynch().setParallelLevel(4);
 
     try {
       for (int i = 0; i < MAX_LOOPS; ++i) {
@@ -28,15 +24,12 @@ public class PerformanceScan {
 
         final AtomicInteger row = new AtomicInteger();
 
-        database.scanType(CLASS_NAME, new PRecordCallback() {
+        database.asynch().scanType(CLASS_NAME, new PDocumentCallback() {
           @Override
-          public boolean onRecord(final PRecord record) {
+          public boolean onRecord(final PDocument record) {
             final PImmutableDocument document = ((PImmutableDocument) record);
 
             document.get("id");
-//            for (String f : document.getPropertyNames()) {
-//              Object o = document.get(f);
-//            }
 
             if (row.incrementAndGet() % 10000000 == 0)
               System.out.println("- Scanned " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms");

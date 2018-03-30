@@ -165,8 +165,8 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
             from = ((PIdentifiable) from).getRecord();
           }
           if (from instanceof PVertex) {
-            Iterable<PEdge> edges = ((PVertex) from).getEdges(PVertex.DIRECTION.OUT);
-            currentFromEdgesIter = edges.iterator();
+
+            currentFromEdgesIter = ((PVertex) from).getEdges(PVertex.DIRECTION.OUT);
           } else {
             throw new PCommandExecutionException("Invalid vertex: " + from);
           }

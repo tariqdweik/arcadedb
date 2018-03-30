@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
@@ -58,7 +59,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
             throw new IllegalStateException();
           }
           OResultInternal result = new OResultInternal();
-          result.setElement(fullResult.next().getRecord());
+          result.setElement((PDocument) fullResult.next().getRecord());
           localCount++;
           return result;
         } finally {

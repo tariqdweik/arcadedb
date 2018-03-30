@@ -64,6 +64,8 @@ public enum PGlobalConfiguration {
     }
   }),
 
+  FLUSH_ONLY_AT_CLOSE("proton.flushOnlyAtClose", "Never flushes pages on disk until the close of database", Boolean.class, false),
+
   FREE_PAGE_RAM("proton.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
   COMMIT_LOCK_TIMEOUT("proton.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),

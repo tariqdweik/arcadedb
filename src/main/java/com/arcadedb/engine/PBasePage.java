@@ -16,10 +16,10 @@ public abstract class PBasePage {
 
   protected final PPageManager manager;
 
-  protected final PPageId pageId;
-  protected final PBinary content;
-  private final   int     size;
-  protected       int     version;
+  protected final    PPageId pageId;
+  protected final    PBinary content;
+  private final      int     size;
+  protected volatile int     version;
   private long lastAccessed = System.currentTimeMillis();
 
   protected PBasePage(final PPageManager manager, final PPageId pageId, final int size, final byte[] buffer, final int version,
@@ -31,7 +31,7 @@ public abstract class PBasePage {
     this.version = version;
   }
 
-  public PModifiablePage createModifiableCopy() {
+  public PModifiablePage modify() {
     final PModifiablePage copy = new PModifiablePage(manager, pageId, size, this.content.getByteBuffer().array(), version,
         content.size());
     // COPY THE CONTENT, SO CHANGES DOES NOT AFFECT IMMUTABLE COPY
@@ -109,6 +109,10 @@ public abstract class PBasePage {
     this.content.getByteArray(PAGE_HEADER_SIZE + index, buffer);
   }
 
+  public void readByteArray(final int index, final byte[] buffer, final int offset, final int length) {
+    this.content.getByteArray(PAGE_HEADER_SIZE + index, buffer, offset, length);
+  }
+
   public byte[] readBytes(final int index) {
     return this.content.getBytes(PAGE_HEADER_SIZE + index);
   }
@@ -131,21 +135,23 @@ public abstract class PBasePage {
    * @param index The starting position to copy
    */
   public PBinary getImmutableView(final int index, final int length) {
-    content.position(index + PAGE_HEADER_SIZE);
-    final ByteBuffer view = content.slice();
-    view.position(length);
-    view.flip();
-    return new PBinary(view);
+    return content.slice(index + PAGE_HEADER_SIZE, length);
   }
 
   public PPageId getPageId() {
     return pageId;
   }
 
+  /**
+   * Returns the underlying ByteBuffer. If any changes occur bypassing the page object, must be tracked by calling #updateModifiedRange() method.
+   */
   public ByteBuffer getContent() {
     return content.getByteBuffer();
   }
 
+  /**
+   * Returns the underlying ByteBuffer. If any changes occur bypassing the page object, must be tracked by calling #updateModifiedRange() method.
+   */
   public ByteBuffer slice() {
     content.getByteBuffer().position(PAGE_HEADER_SIZE);
     return content.getByteBuffer().slice();
@@ -174,12 +180,12 @@ public abstract class PBasePage {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    final PBasePage pPage = (PBasePage) o;
+    final PBasePage other = (PBasePage) o;
 
-    if (pageId != null ? !pageId.equals(pPage.pageId) : pPage.pageId != null)
+    if (pageId != null ? !pageId.equals(other.pageId) : other.pageId != null)
       return false;
 
-    return true;
+    return version == other.version;
   }
 
   @Override

@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.PDocument;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,8 +28,8 @@ public class OIteratorResultSet implements OResultSet {
     }
 
     OResultInternal result = new OResultInternal();
-    if (val instanceof PRecord) {
-      result.setElement((PRecord) val);
+    if (val instanceof PDocument) {
+      result.setElement((PDocument) val);
     } else {
       result.setProperty("value", val);
     }

@@ -11,8 +11,8 @@ import java.util.logging.*;
  * @author Luca Garulli
  */
 public class PLogManager {
-  private static final String      DEFAULT_LOG                  = "com.proton";
-  private static final String      ENV_INSTALL_CUSTOM_FORMATTER = "proton.installCustomFormatter";
+  private static final String      DEFAULT_LOG                  = "com.arcadedb";
+  private static final String      ENV_INSTALL_CUSTOM_FORMATTER = "arcadedb.installCustomFormatter";
   private static final PLogManager instance                     = new PLogManager();
   private              boolean     debug                        = false;
   private              boolean     info                         = true;
@@ -23,6 +23,7 @@ public class PLogManager {
   private final ConcurrentMap<String, Logger> loggersCache = new ConcurrentHashMap<String, Logger>();
 
   protected PLogManager() {
+    installCustomFormatter();
   }
 
   public static PLogManager instance() {
@@ -113,33 +114,27 @@ public class PLogManager {
   }
 
   public void debug(final Object iRequester, final String iMessage, final Object... iAdditionalArgs) {
-    if (isDebugEnabled())
-      log(iRequester, Level.FINE, iMessage, null, true, iAdditionalArgs);
+    log(iRequester, Level.FINE, iMessage, null, true, iAdditionalArgs);
   }
 
   public void debug(final Object iRequester, final String iMessage, final Throwable iException, final Object... iAdditionalArgs) {
-    if (isDebugEnabled())
-      log(iRequester, Level.FINE, iMessage, iException, true, iAdditionalArgs);
+    log(iRequester, Level.FINE, iMessage, iException, true, iAdditionalArgs);
   }
 
   public void info(final Object iRequester, final String iMessage, final Object... iAdditionalArgs) {
-    if (isInfoEnabled())
-      log(iRequester, Level.INFO, iMessage, null, true, iAdditionalArgs);
+    log(iRequester, Level.INFO, iMessage, null, true, iAdditionalArgs);
   }
 
   public void info(final Object iRequester, final String iMessage, final Throwable iException, final Object... iAdditionalArgs) {
-    if (isInfoEnabled())
-      log(iRequester, Level.INFO, iMessage, iException, true, iAdditionalArgs);
+    log(iRequester, Level.INFO, iMessage, iException, true, iAdditionalArgs);
   }
 
   public void warn(final Object iRequester, final String iMessage, final Object... iAdditionalArgs) {
-    if (isWarnEnabled())
-      log(iRequester, Level.WARNING, iMessage, null, true, iAdditionalArgs);
+    log(iRequester, Level.WARNING, iMessage, null, true, iAdditionalArgs);
   }
 
   public void warn(final Object iRequester, final String iMessage, final Throwable iException, final Object... iAdditionalArgs) {
-    if (isWarnEnabled())
-      log(iRequester, Level.WARNING, iMessage, iException, true, iAdditionalArgs);
+    log(iRequester, Level.WARNING, iMessage, iException, true, iAdditionalArgs);
   }
 
   public void config(final Object iRequester, final String iMessage, final Object... iAdditionalArgs) {

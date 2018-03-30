@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
 
@@ -20,8 +20,8 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
 
   //runtime
 
-  private Iterator<PRecord> txEntries;
-  private Object            order;
+  private Iterator<PDocument> txEntries;
+  private Object              order;
 
   private long cost = 0;
 
@@ -63,7 +63,7 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
           if (!txEntries.hasNext()) {
             throw new IllegalStateException();
           }
-          PRecord record = txEntries.next();
+          PDocument record = txEntries.next();
 
           currentElement++;
           OResultInternal result = new OResultInternal();

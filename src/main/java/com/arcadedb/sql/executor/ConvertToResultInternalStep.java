@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PBaseRecord;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
 
@@ -63,9 +63,9 @@ public class ConvertToResultInternalStep extends AbstractExecutionStep {
           try {
             if (nextItem instanceof OUpdatableResult) {
               PRecord element = nextItem.getElement().get();
-              if (element != null && element instanceof PBaseRecord) {
+              if (element != null && element instanceof PDocument) {
                 nextItem = new OResultInternal();
-                ((OResultInternal) nextItem).setElement(element);
+                ((OResultInternal) nextItem).setElement((PDocument) element);
               }
               break;
             }

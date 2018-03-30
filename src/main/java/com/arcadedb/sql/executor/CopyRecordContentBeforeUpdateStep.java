@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PBaseRecord;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.exception.PTimeoutException;
@@ -42,8 +42,8 @@ public class CopyRecordContentBeforeUpdateStep extends AbstractExecutionStep {
             OResultInternal prevValue = new OResultInternal();
             PRecord rec = result.getElement().get().getRecord();
             prevValue.setProperty("@rid", rec.getIdentity());
-            if (rec instanceof PBaseRecord) {
-              prevValue.setProperty("@class", ((PBaseRecord) rec).getType());
+            if (rec instanceof PDocument) {
+              prevValue.setProperty("@class", ((PDocument) rec).getType());
             }
             for (String propName : result.getPropertyNames()) {
               prevValue.setProperty(propName, result.getProperty(propName));

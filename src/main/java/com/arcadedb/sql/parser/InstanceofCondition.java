@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PBaseRecord;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.executor.OCommandContext;
@@ -43,10 +43,10 @@ public class InstanceofCondition extends BooleanExpression {
     if (record == null) {
       return false;
     }
-    if (!(record instanceof PBaseRecord)) {
+    if (!(record instanceof PDocument)) {
       return false;
     }
-    PBaseRecord doc = (PBaseRecord)record;
+    PDocument doc = (PDocument)record;
     String clazz = doc.getType();
     if (clazz == null) {
       return false;
@@ -71,10 +71,10 @@ public class InstanceofCondition extends BooleanExpression {
     if (record == null) {
       return false;
     }
-    if (!(record instanceof PBaseRecord)) {
+    if (!(record instanceof PDocument)) {
       return false;
     }
-    PBaseRecord doc = (PBaseRecord) record;
+    PDocument doc = (PDocument) record;
     String clazz = doc.getType();
     if (clazz == null) {
       return false;

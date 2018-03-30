@@ -2,7 +2,8 @@ package com.arcadedb.engine;
 
 import com.arcadedb.utility.PLogManager;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -10,15 +11,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class PPageManagerFlushThread extends Thread {
   private final PPageManager pageManager;
-  private final    LinkedBlockingQueue<PModifiablePage> queue   = new LinkedBlockingQueue<PModifiablePage>();
-  private volatile boolean                              running = true;
+  public final     ArrayBlockingQueue<PModifiablePage> queue   = new ArrayBlockingQueue<>(8192);
+  private volatile boolean                             running = true;
 
   public PPageManagerFlushThread(final PPageManager pageManager) {
+    super("AsynchFlush");
     this.pageManager = pageManager;
   }
 
   public void asyncFlush(final PModifiablePage page) throws InterruptedException {
-    PLogManager.instance().debug(this, "Enqueuing flushing page %s in bg (size=%d)...", page.pageId, page.getPhysicalSize());
+    PLogManager.instance().debug(this, "Enqueuing flushing page %s in bg...", page);
     queue.put(page);
   }
 
@@ -26,13 +28,7 @@ public class PPageManagerFlushThread extends Thread {
   public void run() {
     while (running || !queue.isEmpty()) {
       try {
-        final PModifiablePage page = queue.poll(300l, TimeUnit.MILLISECONDS);
-
-        if (page != null) {
-          if (PLogManager.instance().isDebugEnabled())
-            PLogManager.instance().debug(this, "Flushing page %s in bg (size=%d)...", page.pageId, page.getPhysicalSize());
-          pageManager.flushPage(page);
-        }
+        flushStream();
 
       } catch (InterruptedException e) {
         running = false;
@@ -42,6 +38,17 @@ public class PPageManagerFlushThread extends Thread {
         running = false;
         return;
       }
+    }
+  }
+
+  private void flushStream() throws InterruptedException, IOException {
+    final PModifiablePage page = queue.poll(300l, TimeUnit.MILLISECONDS);
+
+    if (page != null) {
+      if (PLogManager.instance().isDebugEnabled())
+        PLogManager.instance().debug(this, "Flushing page %s in bg...", page);
+
+      pageManager.flushPage(page);
     }
   }
 

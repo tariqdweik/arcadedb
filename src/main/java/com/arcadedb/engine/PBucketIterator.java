@@ -30,7 +30,7 @@ public class PBucketIterator implements Iterator<PRecord> {
   }
 
   private void fetchNext() throws IOException {
-    database.executeInLock(() -> {
+    database.executeInReadLock(() -> {
       this.doFetchNext();
       return null;
     });

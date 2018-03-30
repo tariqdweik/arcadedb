@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
@@ -101,7 +102,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 //            }
             nFetched++;
             OResultInternal result = new OResultInternal();
-            result.element = record;
+            result.element = (PDocument) record;
             ctx.setVariable("$current", result);
             return result;
           } finally {

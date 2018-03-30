@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PCommandExecutionException;
 import com.arcadedb.sql.parser.*;
 
@@ -61,8 +61,8 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
           if (nextSteps instanceof Collection) {
             ((Collection) nextSteps).stream().map(x -> toOResultInternal(x)).filter(Objects::nonNull)
                 .forEach(i -> rightSide.add((OResultInternal) i));
-          } else if (nextSteps instanceof PRecord) {
-            rightSide.add(new OResultInternal((PRecord) nextSteps));
+          } else if (nextSteps instanceof PDocument) {
+            rightSide.add(new OResultInternal((PDocument) nextSteps));
           } else if (nextSteps instanceof OResultInternal) {
             rightSide.add((OResultInternal) nextSteps);
           } else if (nextSteps instanceof Iterable) {
@@ -96,8 +96,8 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     if (x instanceof OResultInternal) {
       return (OResultInternal) x;
     }
-    if (x instanceof PRecord) {
-      return new OResultInternal((PRecord) x);
+    if (x instanceof PDocument) {
+      return new OResultInternal((PDocument) x);
     }
     throw new PCommandExecutionException("Cannot execute traversal on " + x);
   }

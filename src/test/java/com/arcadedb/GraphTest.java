@@ -3,7 +3,7 @@ package com.arcadedb;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PRID;
-import com.arcadedb.engine.PFile;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableEdge;
 import com.arcadedb.graph.PModifiableVertex;
@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class GraphTest {
-  private static final int    TOT               = 10000;
   private static final String VERTEX1_TYPE_NAME = "V1";
   private static final String VERTEX2_TYPE_NAME = "V2";
   private static final String EDGE1_TYPE_NAME   = "E1";
@@ -34,7 +33,7 @@ public class GraphTest {
   public static void populate() {
     PFileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
         Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
@@ -48,15 +47,15 @@ public class GraphTest {
       }
     });
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
       final PModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
-      v1.set("name", "V1");
+      v1.set("name", VERTEX1_TYPE_NAME);
       v1.save();
 
       final PModifiableVertex v2 = db.newVertex(VERTEX2_TYPE_NAME);
-      v2.set("name", "V2");
+      v2.set("name", VERTEX2_TYPE_NAME);
       v2.save();
 
       // CREATION OF EDGE PASSING PARAMS AS VARARGS
@@ -80,10 +79,6 @@ public class GraphTest {
       Assertions.assertEquals(e3.getOut(), v1);
       Assertions.assertEquals(e3.getIn(), v3);
 
-      // SETTING EDGE PARAMS AFTER CREATION
-      e3.set("name", "E3");
-      e3.save();
-
       db.commit();
 
       root = v1.getIdentity();
@@ -95,13 +90,13 @@ public class GraphTest {
 
   @AfterAll
   public static void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void checkVertices() throws IOException {
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
 
@@ -113,7 +108,7 @@ public class GraphTest {
 
       // TEST CONNECTED VERTICES
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.getType());
-      Assertions.assertEquals("V1", v1.get("name"));
+      Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.get("name"));
 
       final Iterator<PVertex> vertices2level = v1.getVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
       Assertions.assertNotNull(vertices2level);
@@ -123,8 +118,7 @@ public class GraphTest {
 
       Assertions.assertNotNull(v2);
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.getType());
-
-      Assertions.assertEquals("V2", v2.get("name"));
+      Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
       final Iterator<PVertex> vertices2level2 = v1.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertTrue(vertices2level2.hasNext());
@@ -161,7 +155,7 @@ public class GraphTest {
 
   @Test
   public void checkEdges() throws IOException {
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
 
@@ -184,7 +178,7 @@ public class GraphTest {
       Assertions.assertEquals("E1", e1.get("name"));
 
       PVertex v2 = (PVertex) e1.getIn().getRecord();
-      Assertions.assertEquals("V2", v2.get("name"));
+      Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
       final Iterator<PEdge> edges2 = v2.getEdges(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
       Assertions.assertTrue(edges2.hasNext());
@@ -209,10 +203,8 @@ public class GraphTest {
       Assertions.assertEquals(EDGE2_TYPE_NAME, e3.getType());
       Assertions.assertEquals(v1, e3.getOut());
       Assertions.assertEquals(v3, e3.getIn());
-      Assertions.assertEquals("E3", e3.get("name"));
 
       v2.getEdges();
-
 
     } finally {
       db2.close();
