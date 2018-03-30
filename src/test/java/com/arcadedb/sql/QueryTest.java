@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,10 +30,6 @@ public class QueryTest {
   public void drop() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).acquire();
     db.drop();
-  }
-
-  @Test
-  public void testPopulate() {
   }
 
   @Test
@@ -71,6 +68,44 @@ public class QueryTest {
 
   }
 
+  @Test
+  public void testEqualsFiltering() {
+
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      Map<String, Object> params = new HashMap<>();
+      params.put(":surname", "Miner123");
+      OResultSet rs = db.query("SELECT FROM V WHERE surname = :surname", params);
+
+      final AtomicInteger total = new AtomicInteger();
+      while (rs.hasNext()) {
+        OResult record = rs.next();
+        Assertions.assertNotNull(record);
+
+        Set<String> prop = new HashSet<String>();
+        for (String p : record.getPropertyNames())
+          prop.add(p);
+
+        Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+        Assertions.assertTrue(prop.contains("id"));
+        Assertions.assertTrue(prop.contains("name"));
+        Assertions.assertEquals("Miner123", record.getProperty("surname"));
+
+        total.incrementAndGet();
+
+      }
+
+      Assertions.assertEquals(1, total.get());
+
+      db.commit();
+
+    } finally {
+      db.close();
+    }
+
+  }
+
   private void populate(final int total) {
     new PDatabaseFactory(DB_PATH, PFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
@@ -82,7 +117,7 @@ public class QueryTest {
           final PModifiableDocument v = database.newDocument("V");
           v.set("id", i);
           v.set("name", "Jay");
-          v.set("surname", "Miner");
+          v.set("surname", "Miner"+i);
 
           v.save();
         }

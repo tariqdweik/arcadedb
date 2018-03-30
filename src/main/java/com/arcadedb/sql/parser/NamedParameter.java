@@ -51,8 +51,8 @@ public class NamedParameter extends InputParameter {
     Object result = null;
     if (params != null) {
       String key = paramName;
-      if (params.containsKey(key)) {
-        result = params.get(key);
+      if (params.containsKey(":" + key)) {
+        result = params.get(":" + key);
       } else {
         result = params.get(paramNumber);
       }
