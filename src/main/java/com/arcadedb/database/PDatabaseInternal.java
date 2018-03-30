@@ -1,12 +1,13 @@
 package com.arcadedb.database;
 
 import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PWALFile;
 import com.arcadedb.graph.PGraphEngine;
 import com.arcadedb.schema.PDocumentType;
 
 public interface PDatabaseInternal extends PDatabase {
   PGraphEngine getGraphEngine();
+
+  PTransactionManager getTransactionManager();
 
   void createRecord(PModifiableDocument record);
 
@@ -16,7 +17,7 @@ public interface PDatabaseInternal extends PDatabase {
 
   void updateRecord(PRecord record);
 
-  void indexDocument(PModifiableDocument record, PDocumentType type, PBucket bucket);
+  void updateRecordNoLock(PRecord record);
 
-  PWALFile getWALFile();
+  void indexDocument(PModifiableDocument record, PDocumentType type, PBucket bucket);
 }

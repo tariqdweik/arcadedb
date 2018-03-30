@@ -1,6 +1,6 @@
 package com.arcadedb;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.database.async.PDatabaseAsyncExecutor;
 import com.arcadedb.engine.PFileManager;
 import com.arcadedb.engine.PPageManager;
@@ -13,25 +13,22 @@ import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class PProfiler {
   public static final PProfiler INSTANCE = new PProfiler();
 
-  private Set<PDatabase> databases = new LinkedHashSet<>();
+  private Set<PDatabaseInternal> databases = new LinkedHashSet<>();
 
   protected PProfiler() {
   }
 
-  public synchronized Set<PDatabase> getDatabases() {
-    return databases;
-  }
-
-  public synchronized void registerDatabase(final PDatabase database) {
+  public synchronized void registerDatabase(final PDatabaseInternal database) {
     databases.add(database);
   }
 
-  public void unregisterDatabase(final PDatabase database) {
+  public void unregisterDatabase(final PDatabaseInternal database) {
     databases.remove(database);
   }
 
@@ -59,11 +56,13 @@ public class PProfiler {
     int asynchQueueLength = 0;
     long pageCacheHits = 0;
     long pageCacheMiss = 0;
-
     long totalOpenFiles = 0;
     long maxOpenFiles = 0;
+    long walPagesWritten = 0;
+    long walBytesWritten = 0;
+    long walTotalFiles = 0;
 
-    for (PDatabase db : databases) {
+    for (PDatabaseInternal db : databases) {
       final PPageManager.PPageManagerStats pStats = db.getPageManager().getStats();
       readCacheUsed += pStats.readCacheRAM;
       writeCacheUsed += pStats.writeCacheRAM;
@@ -82,6 +81,11 @@ public class PProfiler {
 
       final PDatabaseAsyncExecutor.PDBAsynchStats aStats = db.asynch().getStats();
       asynchQueueLength += aStats.queueSize;
+
+      final Map<String, Object> walStats = db.getTransactionManager().getStats();
+      walPagesWritten += (Long) walStats.get("pagesWritten");
+      walBytesWritten += (Long) walStats.get("bytesWritten");
+      walTotalFiles += (Long) walStats.get("logFiles");
     }
 
     buffer.append(String.format("PROTON %s Profiler", PConstants.getVersion()));
@@ -117,12 +121,16 @@ public class PProfiler {
 
     buffer.append(String.format("\n DB databases=%d asynchQueue=%d", databases.size(), asynchQueueLength));
 
-    buffer.append(String.format("\n PageManager read=%d (%s) write=%d (%s) flushQueue=%d cacheHits=%d cacheMiss=%d", pagesRead,
+    buffer.append(String.format("\n PAGE-MANAGER read=%d (%s) write=%d (%s) flushQueue=%d cacheHits=%d cacheMiss=%d", pagesRead,
         PFileUtils.getSizeAsString(pagesReadSize), pagesWritten, PFileUtils.getSizeAsString(pagesWrittenSize), pageFlushQueueLength,
         pageCacheHits, pageCacheMiss));
 
-    buffer.append(String.format("\n FileManager FS=%s/%s openFiles=%d maxFilesOpened=%d", PFileUtils.getSizeAsString(freeSpaceInMB),
-        PFileUtils.getSizeAsString(totalSpaceInMB), totalOpenFiles, maxOpenFiles));
+    buffer.append(String.format("\n WAL totalFiles=%d pagesWritten=%d bytesWritten=%s", walTotalFiles, walPagesWritten,
+        PFileUtils.getSizeAsString(walBytesWritten)));
+
+    buffer.append(String
+        .format("\n FILE-MANAGER FS=%s/%s openFiles=%d maxFilesOpened=%d", PFileUtils.getSizeAsString(freeSpaceInMB),
+            PFileUtils.getSizeAsString(totalSpaceInMB), totalOpenFiles, maxOpenFiles));
 
     out.println(buffer.toString());
   }

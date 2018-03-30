@@ -21,7 +21,7 @@ public class PDatabaseAsyncExecutor {
   private       AsyncThread[]     executorThreads;
   private int     parallelLevel     = -1;
   private int     commitEvery       = 10000;
-  private boolean transactionUseWAL = false;
+  private boolean transactionUseWAL = true;
   private boolean transactionSync   = false;
 
   // SPECIAL COMMANDS
@@ -109,13 +109,13 @@ public class PDatabaseAsyncExecutor {
               final PVertexInternal modifiableSourceVertex;
               if (outEdgesHeadChunk == null) {
                 final PModifiableEdgeChunk outChunk = new PModifiableEdgeChunk(database, PGraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                database.createRecord(outChunk, PGraphEngine
+                database.createRecordNoLock(outChunk, PGraphEngine
                     .getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), PVertex.DIRECTION.OUT));
                 outEdgesHeadChunk = outChunk.getIdentity();
 
                 modifiableSourceVertex = (PVertexInternal) command.sourceVertex.modify();
                 modifiableSourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
-                database.updateRecord(modifiableSourceVertex);
+                database.updateRecordNoLock(modifiableSourceVertex);
               } else
                 modifiableSourceVertex = command.sourceVertex;
 
@@ -133,13 +133,13 @@ public class PDatabaseAsyncExecutor {
               final PVertexInternal modifiableDestinationVertex;
               if (inEdgesHeadChunk == null) {
                 final PModifiableEdgeChunk inChunk = new PModifiableEdgeChunk(database, PGraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                database.createRecord(inChunk, PGraphEngine
+                database.createRecordNoLock(inChunk, PGraphEngine
                     .getEdgesBucketName(database, command.destinationVertex.getIdentity().getBucketId(), PVertex.DIRECTION.IN));
                 inEdgesHeadChunk = inChunk.getIdentity();
 
                 modifiableDestinationVertex = (PVertexInternal) command.destinationVertex.modify();
                 modifiableDestinationVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
-                database.updateRecord(modifiableDestinationVertex);
+                database.updateRecordNoLock(modifiableDestinationVertex);
               } else
                 modifiableDestinationVertex = command.destinationVertex;
 

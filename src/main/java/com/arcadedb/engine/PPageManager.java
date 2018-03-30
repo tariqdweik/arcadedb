@@ -1,6 +1,7 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.PGlobalConfiguration;
+import com.arcadedb.database.PTransactionManager;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
@@ -23,8 +24,9 @@ public class PPageManager {
   private final ConcurrentMap<PPageId, PImmutablePage>  readCache  = new ConcurrentHashMap<>(65536);
   private final ConcurrentMap<PPageId, PModifiablePage> writeCache = new ConcurrentHashMap<>(65536);
 
-  private final PLockManager<Integer, Thread> lockManager      = new PLockManager();
-  private       boolean                       flushOnlyAtClose = PGlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
+  private final PLockManager<Integer, Thread> lockManager = new PLockManager();
+  private final PTransactionManager txManager;
+  private boolean flushOnlyAtClose = PGlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
 
   private long maxRAM;
   private AtomicLong totalReadCacheRAM     = new AtomicLong();
@@ -52,8 +54,10 @@ public class PPageManager {
     public long cacheMiss;
   }
 
-  public PPageManager(final PFileManager fileManager) {
+  public PPageManager(final PFileManager fileManager, final PTransactionManager txManager) {
     this.fileManager = fileManager;
+    this.txManager = txManager;
+
     maxRAM = PGlobalConfiguration.MAX_PAGE_RAM.getValueAsLong() * 1024;
     if (maxRAM < 0)
       throw new PConfigurationException(PGlobalConfiguration.MAX_PAGE_RAM.getKey() + " configuration is invalid (" + maxRAM + ")");
@@ -158,7 +162,7 @@ public class PPageManager {
 
       if (!flushOnlyAtClose)
         // ONLY IF NOT ALREADY IN THE QUEUE, ENQUEUE THE PAGE TO BE FLUSHED BY A SEPARATE THREAD
-        flushThread.asyncFlush(page.pageId);
+        flushThread.asyncFlush(page);
 
       PLogManager.instance()
           .debug(this, "Updated page %s (size=%d threadId=%d)", page, page.getPhysicalSize(), Thread.currentThread().getId());
@@ -220,17 +224,6 @@ public class PPageManager {
     }
   }
 
-  protected void flushPage(final PPageId pageId) throws IOException {
-    final PModifiablePage page = writeCache.get(pageId);
-    if (page == null) {
-      // ALREADY WRITTEN (UPDATE OF THE SAME PAGE MULTIPLE TIMES)
-      PLogManager.instance().debug(this, "Page %s already flushed (threadId=%d)", page, Thread.currentThread().getId());
-      return;
-    }
-
-    flushPage(page);
-  }
-
   protected void flushPage(final PModifiablePage page) throws IOException {
     final PPaginatedFile file = fileManager.getFile(page.pageId.getFileId());
     if (!file.isOpen())
@@ -249,6 +242,8 @@ public class PPageManager {
 
       totalPagesWritten.incrementAndGet();
       totalPagesWrittenSize.addAndGet(written);
+
+      txManager.notifyPageFlushed(page);
     }
   }
 

@@ -11,7 +11,7 @@ import com.arcadedb.schema.PDocumentType;
 import org.junit.jupiter.api.Assertions;
 
 public class PerformanceVertexIndexTest {
-  private static final int    TOT       = 10000000;
+  private static final int    TOT       = 1000000;
   private static final String TYPE_NAME = "Person";
   private static final int    PARALLEL  = 2;
 

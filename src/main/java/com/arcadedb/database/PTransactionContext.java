@@ -10,7 +10,6 @@ import com.arcadedb.exception.PTransactionException;
 import com.arcadedb.utility.PPair;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -18,13 +17,12 @@ import java.util.*;
  * to the transaction context, even if there is not active transaction by ignoring tx data. This keeps code smaller.
  * <p>
  * At commit time, the files are locked in order (to avoid deadlocks) and to allow parallel commit on different files.
+ * <p>
+ * Format of WAL:
+ * <p>
+ * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class PTransactionContext {
-  private static final int  TXLOGSEGMENT_HEADER_SIZE =
-      PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE
-          + PBinary.LONG_SERIALIZED_SIZE;
-  private static final int  TXLOGSEGMENT_FOOTER_SIZE = PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE;
-  private static final long MAGIC_NUMBER             = 9371515385058702l;
   private final PDatabaseInternal             database;
   private       Map<PPageId, PModifiablePage> modifiedPages;
   private       Map<PPageId, PModifiablePage> newPages;
@@ -47,6 +45,13 @@ public class PTransactionContext {
     if (modifiedPages == null)
       throw new PTransactionException("Transaction not begun");
 
+    final int totalImpactedPages = modifiedPages.size() + (newPages != null ? newPages.size() : 0);
+    if (totalImpactedPages == 0) {
+      // EMPTY TRANSACTION = NO CHANGES
+      modifiedPages = null;
+      return;
+    }
+
     final PPageManager pageManager = database.getPageManager();
 
     // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
@@ -64,7 +69,8 @@ public class PTransactionContext {
           pages.add(new PPair<>(null, p));
         }
 
-      appendWAL(pages);
+      if (useWAL)
+        database.getTransactionManager().writeTransactionToWAL(pages, sync);
 
       // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       for (PModifiablePage p : modifiedPages.values())
@@ -270,50 +276,5 @@ public class PTransactionContext {
     modifiedPages = null;
     newPages = null;
     newPageCounters.clear();
-  }
-
-  private void appendWAL(final List<PPair<PBasePage, PModifiablePage>> pages) throws IOException {
-    if (!useWAL)
-      return;
-
-    for (PPair<PBasePage, PModifiablePage> entry : pages) {
-      final PBasePage prevPage = entry.getFirst();
-      final PModifiablePage newPage = entry.getSecond();
-
-      final int[] deltaRange = newPage.getModifiedRange();
-
-      assert deltaRange[0] > -1 && deltaRange[1] < newPage.getPhysicalSize();
-
-      final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
-      final int segmentSize = TXLOGSEGMENT_HEADER_SIZE + (deltaSize * (prevPage == null ? 1 : 2)) + TXLOGSEGMENT_FOOTER_SIZE;
-
-      final byte[] buffer = new byte[segmentSize];
-      final PBinary binary = new PBinary(buffer, segmentSize);
-
-      binary.position(0);
-      binary.putInt(segmentSize);
-      binary.putInt(newPage.getPageId().getFileId());
-      binary.putLong(newPage.getPageId().getPageNumber());
-      binary.putInt(deltaRange[0]);
-      binary.putInt(deltaRange[1]);
-      if (prevPage != null) {
-        final ByteBuffer prevPageBuffer = prevPage.getContent();
-        prevPageBuffer.position(deltaRange[0]);
-        prevPageBuffer.get(buffer, TXLOGSEGMENT_HEADER_SIZE, deltaSize);
-
-        final ByteBuffer newPageBuffer = newPage.getContent();
-        newPageBuffer.position(deltaRange[0]);
-        newPageBuffer.get(buffer, TXLOGSEGMENT_HEADER_SIZE + deltaSize, deltaSize);
-      } else {
-        final ByteBuffer newPageBuffer = newPage.getContent();
-        newPageBuffer.position(deltaRange[0]);
-        newPageBuffer.get(buffer, TXLOGSEGMENT_HEADER_SIZE, deltaSize);
-      }
-      binary.position(TXLOGSEGMENT_HEADER_SIZE + (deltaSize * (prevPage == null ? 1 : 2)));
-      binary.putInt(segmentSize);
-      binary.putLong(MAGIC_NUMBER);
-
-      database.getWALFile().append(binary.buffer, sync);
-    }
   }
 }

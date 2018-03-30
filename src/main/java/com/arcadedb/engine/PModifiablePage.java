@@ -9,6 +9,7 @@ import com.arcadedb.database.PTrackableBinary;
 public class PModifiablePage extends PBasePage implements PTrackableContent {
   private int modifiedRangeFrom = Integer.MAX_VALUE;
   private int modifiedRangeTo   = -1;
+  private PWALFile walFile;
 
   public PModifiablePage(final PPageManager manager, final PPageId pageId, final int size) {
     this(manager, pageId, size, new byte[size], 0, 0);
@@ -115,6 +116,14 @@ public class PModifiablePage extends PBasePage implements PTrackableContent {
       modifiedRangeFrom = start;
     if (end > modifiedRangeTo)
       modifiedRangeTo = end;
+  }
+
+  public PWALFile getWALFile() {
+    return walFile;
+  }
+
+  public void setWALFile(final PWALFile WALFile) {
+    this.walFile = WALFile;
   }
 
   private void checkBoundariesOnWrite(final int start, final int length) {

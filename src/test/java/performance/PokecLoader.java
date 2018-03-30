@@ -60,6 +60,9 @@ public class PokecLoader {
     Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
+    db.asynch().setTransactionUseWAL(false);
+    db.asynch().setTransactionSync(false);
+    db.asynch().setParallelLevel(PARALLEL_LEVEL);
     db.asynch().setParallelLevel(PARALLEL_LEVEL);
 
     for (int i = 0; buffered.ready(); ++i) {

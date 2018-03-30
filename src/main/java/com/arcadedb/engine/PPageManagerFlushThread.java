@@ -11,17 +11,17 @@ import java.util.concurrent.TimeUnit;
  */
 public class PPageManagerFlushThread extends Thread {
   private final PPageManager pageManager;
-  public final     ArrayBlockingQueue<PPageId> queue   = new ArrayBlockingQueue<>(8192);
-  private volatile boolean                     running = true;
+  public final     ArrayBlockingQueue<PModifiablePage> queue   = new ArrayBlockingQueue<>(8192);
+  private volatile boolean                             running = true;
 
   public PPageManagerFlushThread(final PPageManager pageManager) {
     super("AsynchFlush");
     this.pageManager = pageManager;
   }
 
-  public void asyncFlush(final PPageId pageId) throws InterruptedException {
-    PLogManager.instance().debug(this, "Enqueuing flushing page %s in bg...", pageId);
-    queue.put(pageId);
+  public void asyncFlush(final PModifiablePage page) throws InterruptedException {
+    PLogManager.instance().debug(this, "Enqueuing flushing page %s in bg...", page);
+    queue.put(page);
   }
 
   @Override
@@ -42,13 +42,13 @@ public class PPageManagerFlushThread extends Thread {
   }
 
   private void flushStream() throws InterruptedException, IOException {
-    final PPageId pageId = queue.poll(300l, TimeUnit.MILLISECONDS);
+    final PModifiablePage page = queue.poll(300l, TimeUnit.MILLISECONDS);
 
-    if (pageId != null) {
+    if (page != null) {
       if (PLogManager.instance().isDebugEnabled())
-        PLogManager.instance().debug(this, "Flushing page %s in bg...", pageId);
+        PLogManager.instance().debug(this, "Flushing page %s in bg...", page);
 
-      pageManager.flushPage(pageId);
+      pageManager.flushPage(page);
     }
   }
 
