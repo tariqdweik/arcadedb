@@ -67,26 +67,26 @@ public class PPaginatedFile {
     assert page.getPageId().getFileId() == fileId;
     final ByteBuffer buffer = page.getContent();
 
-    final int[] range = page.getModifiedRange();
-
-    assert range[0] > -1 && range[1] < pageSize;
-
-    if (range[0] == 0 && range[1] == pageSize - 1) {
-      // FLUSH THE ENTIRE PAGE
-      buffer.rewind();
-      channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
-      return pageSize;
-    }
-
-    // FLUSH ONLY THE DELTA
-    buffer.position(range[1] + 1);
-    buffer.flip();
-    buffer.position(range[0]);
-    final ByteBuffer delta = buffer.slice();
-
-    channel.write(delta, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()) + range[0]);
-
-    return range[1] - range[0] + 1;
+//    final int[] range = page.getModifiedRange();
+//
+//    assert range[0] > -1 && range[1] < pageSize;
+//
+//    if (range[0] == 0 && range[1] == pageSize - 1) {
+    // FLUSH THE ENTIRE PAGE
+    buffer.rewind();
+    channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
+    return pageSize;
+//    }
+//
+//    // FLUSH ONLY THE DELTA
+//    buffer.position(range[1] + 1);
+//    buffer.flip();
+//    buffer.position(range[0]);
+//    final ByteBuffer delta = buffer.slice();
+//
+//    channel.write(delta, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()) + range[0]);
+//
+//    return range[1] - range[0] + 1;
   }
 
   public void read(final PImmutablePage page) throws IOException {
