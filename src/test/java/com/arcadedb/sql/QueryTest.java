@@ -35,76 +35,169 @@ public class QueryTest {
   @Test
   public void testScan() {
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
-    db.begin();
-    try {
-      OResultSet rs = db.query("SELECT FROM V", new HashMap<>());
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase db) {
+        OResultSet rs = db.query("SELECT FROM V", new HashMap<>());
 
-      final AtomicInteger total = new AtomicInteger();
-      while (rs.hasNext()) {
-        OResult record = rs.next();
-        Assertions.assertNotNull(record);
+        final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          OResult record = rs.next();
+          Assertions.assertNotNull(record);
 
-        Set<String> prop = new HashSet<String>();
-        for (String p : record.getPropertyNames())
-          prop.add(p);
+          Set<String> prop = new HashSet<>();
+          for (String p : record.getPropertyNames())
+            prop.add(p);
 
-        record.getElement().toString();
+          Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+          Assertions.assertTrue(prop.contains("id"));
+          Assertions.assertTrue(prop.contains("name"));
+          Assertions.assertTrue(prop.contains("surname"));
 
-        Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
-        Assertions.assertTrue(prop.contains("id"));
-        Assertions.assertTrue(prop.contains("name"));
-        Assertions.assertTrue(prop.contains("surname"));
+          total.incrementAndGet();
+        }
 
-        total.incrementAndGet();
+        Assertions.assertEquals(TOT, total.get());
       }
-
-      Assertions.assertEquals(TOT, total.get());
-
-      db.commit();
-
-    } finally {
-      db.close();
-    }
-
+    });
   }
 
   @Test
   public void testEqualsFiltering() {
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
-    db.begin();
-    try {
-      Map<String, Object> params = new HashMap<>();
-      params.put(":surname", "Miner123");
-      OResultSet rs = db.query("SELECT FROM V WHERE surname = :surname", params);
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase db) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(":name", "Jay");
+        params.put(":surname", "Miner123");
+        OResultSet rs = db.query("SELECT FROM V WHERE name = :name AND surname = :surname", params);
 
-      final AtomicInteger total = new AtomicInteger();
-      while (rs.hasNext()) {
-        OResult record = rs.next();
-        Assertions.assertNotNull(record);
+        final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          OResult record = rs.next();
+          Assertions.assertNotNull(record);
 
-        Set<String> prop = new HashSet<String>();
-        for (String p : record.getPropertyNames())
-          prop.add(p);
+          Set<String> prop = new HashSet<>();
+          for (String p : record.getPropertyNames())
+            prop.add(p);
 
-        Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
-        Assertions.assertTrue(prop.contains("id"));
-        Assertions.assertTrue(prop.contains("name"));
-        Assertions.assertEquals("Miner123", record.getProperty("surname"));
+          Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+          Assertions.assertEquals(123, (int) record.getProperty("id"));
+          Assertions.assertEquals("Jay", record.getProperty("name"));
+          Assertions.assertEquals("Miner123", record.getProperty("surname"));
 
-        total.incrementAndGet();
+          total.incrementAndGet();
+        }
 
+        Assertions.assertEquals(1, total.get());
       }
+    });
+  }
 
-      Assertions.assertEquals(1, total.get());
+  @Test
+  public void testMajorFiltering() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase db) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(":id", TOT - 11);
+        OResultSet rs = db.query("SELECT FROM V WHERE id > :id", params);
 
-      db.commit();
+        final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          OResult record = rs.next();
+          Assertions.assertNotNull(record);
+          Assertions.assertTrue((int) record.getProperty("id") > TOT - 11);
+          total.incrementAndGet();
+        }
+        Assertions.assertEquals(10, total.get());
+      }
+    });
+  }
 
-    } finally {
-      db.close();
-    }
+  @Test
+  public void testMajorEqualsFiltering() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase db) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(":id", TOT - 11);
+        OResultSet rs = db.query("SELECT FROM V WHERE id >= :id", params);
 
+        final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          OResult record = rs.next();
+          Assertions.assertNotNull(record);
+          Assertions.assertTrue((int) record.getProperty("id") >= TOT - 11);
+          total.incrementAndGet();
+        }
+        Assertions.assertEquals(11, total.get());
+      }
+    });
+  }
+
+  @Test
+  public void testMinorFiltering() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase db) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(":id", 10);
+        OResultSet rs = db.query("SELECT FROM V WHERE id < :id", params);
+
+        final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          OResult record = rs.next();
+          Assertions.assertNotNull(record);
+          Assertions.assertTrue((int) record.getProperty("id") < 10);
+          total.incrementAndGet();
+        }
+        Assertions.assertEquals(10, total.get());
+      }
+    });
+  }
+
+  @Test
+  public void testMinorEqualsFiltering() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase db) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(":id", 10);
+        OResultSet rs = db.query("SELECT FROM V WHERE id <= :id", params);
+
+        final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          OResult record = rs.next();
+          Assertions.assertNotNull(record);
+          Assertions.assertTrue((int) record.getProperty("id") <= 10);
+          total.incrementAndGet();
+        }
+        Assertions.assertEquals(11, total.get());
+      }
+    });
+  }
+
+  @Test
+  public void testNotFiltering() {
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase db) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(":id", 10);
+        OResultSet rs = db.query("SELECT FROM V WHERE NOT( id > :id )", params);
+
+        final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          OResult record = rs.next();
+          Assertions.assertNotNull(record);
+          Assertions.assertTrue((int) record.getProperty("id") <= 10);
+          total.incrementAndGet();
+        }
+        Assertions.assertEquals(11, total.get());
+      }
+    });
   }
 
   private static void populate(final int total) {
