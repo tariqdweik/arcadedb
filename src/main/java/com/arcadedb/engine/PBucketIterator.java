@@ -29,54 +29,44 @@ public class PBucketIterator implements Iterator<PRecord> {
     fetchNext();
   }
 
-  private void fetchNext() throws IOException {
+  private void fetchNext() {
     database.executeInReadLock(() -> {
-      this.doFetchNext();
-      return null;
-    });
-  }
-
-  private void doFetchNext() throws IOException {
-    //TODO locks!!!
-    next = null;
-    while (true) {
-      if (currentPage == null) {
-        if (nextPageNumber > totalPages) {
-          return;
+      next = null;
+      while (true) {
+        if (currentPage == null) {
+          if (nextPageNumber > totalPages) {
+            return null;
+          }
+          currentPage = database.getTransaction().getPage(new PPageId(bucket.file.getFileId(), nextPageNumber), bucket.pageSize);
+          recordCountInCurrentPage = currentPage.readShort(bucket.PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
         }
-        currentPage = database.getTransaction().getPage(new PPageId(bucket.file.getFileId(), nextPageNumber), bucket.pageSize);
-        recordCountInCurrentPage = currentPage.readShort(bucket.PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
-      }
 
-      if (recordCountInCurrentPage > 0 && currentRecordInPage < recordCountInCurrentPage) {
-        final int recordPositionInPage = currentPage
-            .readUnsignedShort(bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
+        if (recordCountInCurrentPage > 0 && currentRecordInPage < recordCountInCurrentPage) {
+          final int recordPositionInPage = currentPage
+              .readUnsignedShort(bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
 
-        final int recordSize = currentPage.readUnsignedShort(recordPositionInPage);
+          final int recordSize = currentPage.readUnsignedShort(recordPositionInPage);
 
-        if (recordSize > 0) {
-          // NOT DELETED
-          final int recordContentPositionInPage = recordPositionInPage + SHORT_SERIALIZED_SIZE;
+          if (recordSize > 0) {
+            // NOT DELETED
+            final PRID rid = new PRID(database, bucket.id, (nextPageNumber - 1) * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
 
-          final PRID rid = new PRID(database, bucket.id, (nextPageNumber - 1) * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
+            currentRecordInPage++;
 
-//          final PBinary view = currentPage.getImmutableView(recordContentPositionInPage, recordSize);
+            final PRecord record = rid.getRecord();
+            next = record;
+            return null;
+          }
 
+        } else if (currentRecordInPage == recordCountInCurrentPage) {
+          currentRecordInPage = 0;
+          currentPage = null;
+          nextPageNumber++;
+        } else {
           currentRecordInPage++;
-
-          final PRecord record = rid.getRecord();
-          next = record;
-          return;
         }
-
-      } else if (currentRecordInPage == recordCountInCurrentPage) {
-        currentRecordInPage = 0;
-        currentPage = null;
-        nextPageNumber++;
-      } else {
-        currentRecordInPage++;
       }
-    }
+    });
   }
 
   @Override

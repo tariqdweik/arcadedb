@@ -53,7 +53,7 @@ public class AsyncTest {
   }
 
   @Test
-  public void testScanFirst10() {
+  public void testScanInterrupt() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
@@ -62,14 +62,14 @@ public class AsyncTest {
       db.asynch().scanType(TYPE_NAME, new PDocumentCallback() {
         @Override
         public boolean onRecord(PDocument record) {
-          if( callbackInvoked.get() > 9  )
+          if (callbackInvoked.get() > 9)
             return false;
 
           return callbackInvoked.getAndIncrement() < 10;
         }
       });
 
-      Assertions.assertEquals(10, callbackInvoked.get());
+      Assertions.assertTrue(callbackInvoked.get() < 20);
 
     } finally {
       db.close();
