@@ -25,8 +25,8 @@ public class PDatabaseAsyncExecutor {
   private boolean transactionSync   = false;
 
   // SPECIAL COMMANDS
-  private final static PDatabaseAsyncCommand FORCE_COMMIT = new PDatabaseAsyncCommand();
-  private final static PDatabaseAsyncCommand FORCE_EXIT   = new PDatabaseAsyncCommand();
+  private final static PDatabaseAsyncCommand FORCE_COMMIT = new PDatabaseAsyncCommand(null, null);
+  private final static PDatabaseAsyncCommand FORCE_EXIT   = new PDatabaseAsyncCommand(null, null);
 
   private class AsyncThread extends Thread {
     public final ArrayBlockingQueue<PDatabaseAsyncCommand> queue = new ArrayBlockingQueue<>(1024);
@@ -63,22 +63,31 @@ public class PDatabaseAsyncExecutor {
               break;
 
             } else if (message instanceof PDatabaseAsyncCreateRecord) {
-
               final PDatabaseAsyncCreateRecord command = (PDatabaseAsyncCreateRecord) message;
 
-              database.createRecordNoLock(command.record, command.bucket.getName());
+              beginTxIfNeeded();
 
-              if (command.record instanceof PModifiableDocument) {
-                final PModifiableDocument doc = (PModifiableDocument) command.record;
-                database.indexDocument(doc, database.getSchema().getType(doc.getType()), command.bucket);
+              try {
+
+                database.createRecordNoLock(command.record, command.bucket.getName());
+
+                if (command.record instanceof PModifiableDocument) {
+                  final PModifiableDocument doc = (PModifiableDocument) command.record;
+                  database.indexDocument(doc, database.getSchema().getType(doc.getType()), command.bucket);
+                }
+
+                message.onOk(command.record.getIdentity());
+
+                count++;
+
+                if (count % commitEvery == 0) {
+                  database.getTransaction().commit();
+                  database.getTransaction().begin();
+                }
+              } catch (Exception e) {
+                message.onError(command.record.getIdentity(), e);
               }
 
-              count++;
-
-              if (count % commitEvery == 0) {
-                database.getTransaction().commit();
-                database.getTransaction().begin();
-              }
             } else if (message instanceof PDatabaseAsyncScanType) {
 
               final PDatabaseAsyncScanType command = (PDatabaseAsyncScanType) message;
@@ -104,49 +113,64 @@ public class PDatabaseAsyncExecutor {
 
               final PDatabaseAsyncCreateOutEdge command = (PDatabaseAsyncCreateOutEdge) message;
 
-              PRID outEdgesHeadChunk = command.sourceVertex.getOutEdgesHeadChunk();
+              try {
+                beginTxIfNeeded();
 
-              final PVertexInternal modifiableSourceVertex;
-              if (outEdgesHeadChunk == null) {
-                final PModifiableEdgeChunk outChunk = new PModifiableEdgeChunk(database, PGraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                database.createRecordNoLock(outChunk, PGraphEngine
-                    .getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), PVertex.DIRECTION.OUT));
-                outEdgesHeadChunk = outChunk.getIdentity();
+                PRID outEdgesHeadChunk = command.sourceVertex.getOutEdgesHeadChunk();
 
-                modifiableSourceVertex = (PVertexInternal) command.sourceVertex.modify();
-                modifiableSourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
-                database.updateRecordNoLock(modifiableSourceVertex);
-              } else
-                modifiableSourceVertex = command.sourceVertex;
+                final PVertexInternal modifiableSourceVertex;
+                if (outEdgesHeadChunk == null) {
+                  final PModifiableEdgeChunk outChunk = new PModifiableEdgeChunk(database,
+                      PGraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
+                  database.createRecordNoLock(outChunk, PGraphEngine
+                      .getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), PVertex.DIRECTION.OUT));
+                  outEdgesHeadChunk = outChunk.getIdentity();
 
-              final PEdgeLinkedList outLinkedList = new PEdgeLinkedList(modifiableSourceVertex, PVertex.DIRECTION.OUT,
-                  (PEdgeChunk) database.lookupByRID(modifiableSourceVertex.getOutEdgesHeadChunk(), true));
+                  modifiableSourceVertex = (PVertexInternal) command.sourceVertex.modify();
+                  modifiableSourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
+                  database.updateRecordNoLock(modifiableSourceVertex);
+                } else
+                  modifiableSourceVertex = command.sourceVertex;
 
-              outLinkedList.add(command.edgeRID, command.destinationVertexRID);
+                final PEdgeLinkedList outLinkedList = new PEdgeLinkedList(modifiableSourceVertex, PVertex.DIRECTION.OUT,
+                    (PEdgeChunk) database.lookupByRID(modifiableSourceVertex.getOutEdgesHeadChunk(), true));
+
+                outLinkedList.add(command.edgeRID, command.destinationVertexRID);
+
+              } catch (Exception e) {
+                message.onError(command.edgeRID, e);
+              }
 
             } else if (message instanceof PDatabaseAsyncCreateInEdge) {
 
               final PDatabaseAsyncCreateInEdge command = (PDatabaseAsyncCreateInEdge) message;
 
-              PRID inEdgesHeadChunk = command.destinationVertex.getInEdgesHeadChunk();
+              try {
+                beginTxIfNeeded();
 
-              final PVertexInternal modifiableDestinationVertex;
-              if (inEdgesHeadChunk == null) {
-                final PModifiableEdgeChunk inChunk = new PModifiableEdgeChunk(database, PGraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                database.createRecordNoLock(inChunk, PGraphEngine
-                    .getEdgesBucketName(database, command.destinationVertex.getIdentity().getBucketId(), PVertex.DIRECTION.IN));
-                inEdgesHeadChunk = inChunk.getIdentity();
+                PRID inEdgesHeadChunk = command.destinationVertex.getInEdgesHeadChunk();
 
-                modifiableDestinationVertex = (PVertexInternal) command.destinationVertex.modify();
-                modifiableDestinationVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
-                database.updateRecordNoLock(modifiableDestinationVertex);
-              } else
-                modifiableDestinationVertex = command.destinationVertex;
+                final PVertexInternal modifiableDestinationVertex;
+                if (inEdgesHeadChunk == null) {
+                  final PModifiableEdgeChunk inChunk = new PModifiableEdgeChunk(database, PGraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
+                  database.createRecordNoLock(inChunk, PGraphEngine
+                      .getEdgesBucketName(database, command.destinationVertex.getIdentity().getBucketId(), PVertex.DIRECTION.IN));
+                  inEdgesHeadChunk = inChunk.getIdentity();
 
-              final PEdgeLinkedList inLinkedList = new PEdgeLinkedList(modifiableDestinationVertex, PVertex.DIRECTION.IN,
-                  (PEdgeChunk) database.lookupByRID(modifiableDestinationVertex.getInEdgesHeadChunk(), true));
+                  modifiableDestinationVertex = (PVertexInternal) command.destinationVertex.modify();
+                  modifiableDestinationVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
+                  database.updateRecordNoLock(modifiableDestinationVertex);
+                } else
+                  modifiableDestinationVertex = command.destinationVertex;
 
-              inLinkedList.add(command.edgeRID, command.sourceVertexRID);
+                final PEdgeLinkedList inLinkedList = new PEdgeLinkedList(modifiableDestinationVertex, PVertex.DIRECTION.IN,
+                    (PEdgeChunk) database.lookupByRID(modifiableDestinationVertex.getInEdgesHeadChunk(), true));
+
+                inLinkedList.add(command.edgeRID, command.sourceVertexRID);
+
+              } catch (Exception e) {
+                message.onError(command.edgeRID, e);
+              }
 
             }
           } else if (shutdown)
@@ -166,6 +190,11 @@ public class PDatabaseAsyncExecutor {
       }
       database.getTransaction().commit();
     }
+  }
+
+  private void beginTxIfNeeded() {
+    if (!database.getTransaction().isActive())
+      database.getTransaction().begin();
   }
 
   private class DatabaseScanAsyncThread extends Thread {
@@ -287,7 +316,7 @@ public class PDatabaseAsyncExecutor {
       final List<PBucket> buckets = type.getBuckets();
       final CountDownLatch semaphore = new CountDownLatch(buckets.size());
 
-      for (PBucket b : type.getBuckets()) {
+      for (PBucket b : buckets) {
         final int slot = b.getId() % parallelLevel;
 
         try {
@@ -306,7 +335,7 @@ public class PDatabaseAsyncExecutor {
     }
   }
 
-  public void createRecord(final PModifiableDocument record) {
+  public void createRecord(final PModifiableDocument record, final POkCallback onOkCallback, final PErrorCallback onErrorCallback) {
     final PDocumentType type = database.getSchema().getType(record.getType());
 
     if (record.getIdentity() == null) {
@@ -315,7 +344,7 @@ public class PDatabaseAsyncExecutor {
       final int slot = bucket.getId() % parallelLevel;
 
       try {
-        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket));
+        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket, onOkCallback, onErrorCallback));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on executing save");
@@ -325,14 +354,15 @@ public class PDatabaseAsyncExecutor {
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
 
-  public void createRecord(final PRecord record, final String bucketName) {
+  public void createRecord(final PRecord record, final String bucketName, final POkCallback onOkCallback,
+      final PErrorCallback onErrorCallback) {
     final PBucket bucket = database.getSchema().getBucketByName(bucketName);
     final int slot = bucket.getId() % parallelLevel;
 
     if (record.getIdentity() == null)
       // NEW
       try {
-        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket));
+        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket, onOkCallback, onErrorCallback));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on executing save");
@@ -346,7 +376,8 @@ public class PDatabaseAsyncExecutor {
    */
   public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
       final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final POkCallback onOkCallback,
+      final PErrorCallback onErrorCallback, final Object... properties) {
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -387,11 +418,12 @@ public class PDatabaseAsyncExecutor {
     } else
       destinationVertex = (PVertexInternal) v2Result.next().getRecord();
 
-    newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, properties);
+    newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, onOkCallback, onErrorCallback, properties);
   }
 
   private void newEdge(PVertexInternal sourceVertex, final String edgeType, PVertexInternal destinationVertex,
-      final boolean bidirectional, final Object... properties) {
+      final boolean bidirectional, final POkCallback onOkCallback, final PErrorCallback onErrorCallback,
+      final Object... properties) {
     if (destinationVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 
@@ -404,26 +436,39 @@ public class PDatabaseAsyncExecutor {
 
     final PDatabaseInternal database = (PDatabaseInternal) sourceVertex.getDatabase();
 
-    final PModifiableEdge edge = new PModifiableEdge(database, edgeType, rid, destinationVertex.getIdentity());
-    PGraphEngine.setProperties(edge, properties);
-    edge.save();
-
     try {
-      executorThreads[rid.getBucketId() % parallelLevel].queue
-          .put(new PDatabaseAsyncCreateOutEdge(sourceVertex, edge.getIdentity(), destinationVertex.getIdentity()));
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new PDatabaseOperationException("Error on creating edge link from out to in");
-    }
+      final PModifiableEdge edge = new PModifiableEdge(database, edgeType, rid, destinationVertex.getIdentity());
+      PGraphEngine.setProperties(edge, properties);
+      edge.save();
 
-    if (bidirectional)
       try {
-        executorThreads[destinationVertex.getIdentity().getBucketId() % parallelLevel].queue
-            .put(new PDatabaseAsyncCreateInEdge(destinationVertex, edge.getIdentity(), sourceVertex.getIdentity()));
+        executorThreads[rid.getBucketId() % parallelLevel].queue.put(
+            new PDatabaseAsyncCreateOutEdge(sourceVertex, edge.getIdentity(), destinationVertex.getIdentity(), onOkCallback,
+                onErrorCallback));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on creating edge link from out to in");
       }
+
+      if (bidirectional)
+        try {
+          executorThreads[destinationVertex.getIdentity().getBucketId() % parallelLevel].queue.put(
+              new PDatabaseAsyncCreateInEdge(destinationVertex, edge.getIdentity(), sourceVertex.getIdentity(), onOkCallback,
+                  onErrorCallback));
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new PDatabaseOperationException("Error on creating edge link from out to in");
+        }
+
+      if (onOkCallback != null)
+        onOkCallback.call(edge.getIdentity());
+
+    } catch (Exception e) {
+      if (onErrorCallback != null)
+        onErrorCallback.call(null, e);
+
+      throw new PDatabaseOperationException("Error on creating edge", e);
+    }
   }
 
   public void close() {

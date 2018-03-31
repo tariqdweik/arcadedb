@@ -8,7 +8,10 @@ public class PDatabaseAsyncCreateInEdge extends PDatabaseAsyncCommand {
   public final PRID            edgeRID;
   public final PRID            sourceVertexRID;
 
-  public PDatabaseAsyncCreateInEdge(final PVertexInternal destinationVertex, final PRID edgeRID, final PRID sourceVertexRID) {
+  public PDatabaseAsyncCreateInEdge(final PVertexInternal destinationVertex, final PRID edgeRID, final PRID sourceVertexRID,
+      final POkCallback onResultCallback, final PErrorCallback onErrorCallback) {
+    super(onResultCallback, onErrorCallback);
+
     this.destinationVertex = destinationVertex;
     this.edgeRID = edgeRID;
     this.sourceVertexRID = sourceVertexRID;

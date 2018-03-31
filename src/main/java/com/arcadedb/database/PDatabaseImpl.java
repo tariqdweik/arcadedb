@@ -13,6 +13,7 @@ import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.schema.PSchemaImpl;
+import com.arcadedb.schema.PVertexType;
 import com.arcadedb.serializer.PBinarySerializer;
 import com.arcadedb.sql.executor.OResultSet;
 import com.arcadedb.sql.executor.OSQLEngine;
@@ -407,20 +408,10 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
   @Override
   public void createRecord(final PRecord record, final String bucketName) {
-    if (record.getIdentity() != null)
-      throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
-
     super.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-
-        checkTransactionIsActive();
-        if (mode == PPaginatedFile.MODE.READ_ONLY)
-          throw new PDatabaseIsReadOnlyException("Cannot create a new record");
-
-        final PBucket bucket = schema.getBucketByName(bucketName);
-
-        ((PRecordInternal) record).setIdentity(bucket.createRecord(record));
+        createRecordNoLock(record, bucketName);
         return null;
       }
     });
@@ -445,7 +436,6 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     super.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-
         updateRecordNoLock(record);
         return null;
       }
@@ -541,11 +531,25 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
   @Override
   public PModifiableDocument newDocument(final String typeName) {
+    if (typeName == null)
+      throw new IllegalArgumentException("Type is null");
+
+    final PDocumentType type = schema.getType(typeName);
+    if (!type.getClass().equals(PDocumentType.class))
+      throw new IllegalArgumentException("Cannot create a document of type '" + typeName + "' because is not a document type");
+
     return new PModifiableDocument(this, typeName, null);
   }
 
   @Override
   public PModifiableVertex newVertex(final String typeName) {
+    if (typeName == null)
+      throw new IllegalArgumentException("Type is null");
+
+    final PDocumentType type = schema.getType(typeName);
+    if (!type.getClass().equals(PVertexType.class))
+      throw new IllegalArgumentException("Cannot create a vertex of type '" + typeName + "' because is not a vertex type");
+
     return new PModifiableVertex(this, typeName, null);
   }
 

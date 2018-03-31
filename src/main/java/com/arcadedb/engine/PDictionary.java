@@ -30,8 +30,8 @@ public class PDictionary extends PPaginatedComponent {
   /**
    * Called at creation time.
    */
-  public PDictionary(final PDatabase database, final String name, String filePath, final PPaginatedFile.MODE mode, final int pageSize)
-      throws IOException {
+  public PDictionary(final PDatabase database, final String name, String filePath, final PPaginatedFile.MODE mode,
+      final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
@@ -99,7 +99,7 @@ public class PDictionary extends PPaginatedComponent {
 
   public void addItem(final String propertyName) {
     if (!database.isTransactionActive())
-      throw new PSchemaException("Error on adding new idem to the database schema dictionary because no transaction was active");
+      throw new PSchemaException("Error on adding new item to the database schema dictionary because no transaction was active");
 
     final byte[] property = propertyName.getBytes();
 
@@ -116,7 +116,7 @@ public class PDictionary extends PPaginatedComponent {
 
       updateCounters(header);
     } catch (IOException e) {
-      throw new PSchemaException("Error on adding new idem to the database schema dictionary");
+      throw new PSchemaException("Error on adding new item to the database schema dictionary");
     }
   }
 

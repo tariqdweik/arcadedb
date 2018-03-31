@@ -3,11 +3,13 @@ package com.arcadedb;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
-import org.junit.jupiter.api.AfterEach;
+import com.arcadedb.utility.PFileUtils;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,13 +20,13 @@ public class TransactionBucketTest {
   private static final int    TOT     = 10000;
   private static final String DB_PATH = "target/database/testdb";
 
-  @BeforeEach
-  public void populate() {
+  @BeforeAll
+  public static void populate() {
     populate(TOT);
   }
 
-  @AfterEach
-  public void drop() {
+  @AfterAll
+  public static void drop() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
@@ -40,7 +42,7 @@ public class TransactionBucketTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanBucket("V", new PRecordCallback() {
+      db.scanBucket("V_0", new PRecordCallback() {
         @Override
         public boolean onRecord(final PRecord record) {
           Assertions.assertNotNull(record);
@@ -75,7 +77,7 @@ public class TransactionBucketTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      Iterator<PRecord> iterator = db.bucketIterator("V");
+      Iterator<PRecord> iterator = db.bucketIterator("V_0");
 
       while (iterator.hasNext()) {
         PDocument record = (PDocument) iterator.next();
@@ -110,7 +112,7 @@ public class TransactionBucketTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanBucket("V", new PRecordCallback() {
+      db.scanBucket("V_0", new PRecordCallback() {
         @Override
         public boolean onRecord(final PRecord record) {
           final PDocument record2 = (PDocument) db.lookupByRID(record.getIdentity(), false);
@@ -147,7 +149,7 @@ public class TransactionBucketTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
-      db.scanBucket("V", new PRecordCallback() {
+      db.scanBucket("V_0", new PRecordCallback() {
         @Override
         public boolean onRecord(final PRecord record) {
           db.deleteRecord(record.getIdentity());
@@ -169,7 +171,7 @@ public class TransactionBucketTest {
     final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db2.begin();
     try {
-      Assertions.assertEquals(TOT, db2.countBucket("V"));
+      Assertions.assertEquals(TOT, db2.countBucket("V_0"));
       db2.commit();
     } finally {
       db2.close();
@@ -183,7 +185,7 @@ public class TransactionBucketTest {
       final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
       db.begin();
       try {
-        db.scanBucket("V", new PRecordCallback() {
+        db.scanBucket("V_0", new PRecordCallback() {
           @Override
           public boolean onRecord(final PRecord record) {
             db.deleteRecord(record.getIdentity());
@@ -199,20 +201,22 @@ public class TransactionBucketTest {
     });
   }
 
-  private void populate(final int total) {
+  private static void populate(final int total) {
+    PFileUtils.deleteRecursively(new File(DB_PATH));
+
     new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
-        if (!database.getSchema().existsBucket("V"))
-          database.getSchema().createBucket("V");
+        if (!database.getSchema().existsType("V"))
+          database.getSchema().createDocumentType("V");
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument(null);
+          final PModifiableDocument v = database.newDocument("V");
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");
 
-          v.save("V");
+          v.save("V_0");
         }
       }
     });

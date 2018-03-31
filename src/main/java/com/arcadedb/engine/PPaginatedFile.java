@@ -64,6 +64,9 @@ public class PPaginatedFile {
    * performance and (2) in case a page is modified multiple times before the flush now it's overwritten in the writeCache map.
    */
   public int write(final PModifiablePage page) throws IOException {
+    if (page.pageId.getPageNumber() < 0)
+      throw new IllegalArgumentException("Invalid page number to write: " + page.pageId.getPageNumber());
+
     assert page.getPageId().getFileId() == fileId;
     final ByteBuffer buffer = page.getContent();
 
@@ -90,6 +93,9 @@ public class PPaginatedFile {
   }
 
   public void read(final PImmutablePage page) throws IOException {
+    if (page.pageId.getPageNumber() < 0)
+      throw new IllegalArgumentException("Invalid page number to read: " + page.pageId.getPageNumber());
+
     assert page.getPageId().getFileId() == fileId;
     final ByteBuffer buffer = page.getContent();
     buffer.clear();

@@ -1,6 +1,7 @@
 package performance;
 
 import com.arcadedb.database.*;
+import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.schema.PDocumentType;
 import org.junit.jupiter.api.Assertions;
@@ -30,7 +31,7 @@ public class PerformanceIndexTest {
         type.createProperty("surname", String.class);
         type.createProperty("locali", Integer.class);
 
-        database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 50000000);
+        database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 5000000);
         database.commit();
       }
     } finally {
@@ -55,7 +56,13 @@ public class PerformanceIndexTest {
         record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
 
-        database.asynch().createRecord(record);
+        database.asynch().createRecord(record, null, new PErrorCallback() {
+          @Override
+          public void call(PRID record, Exception exception) {
+            System.out.println("ERROR record: " + record + " Exception: " + exception);
+            exception.printStackTrace();
+          }
+        });
 
         if (row % 100000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");

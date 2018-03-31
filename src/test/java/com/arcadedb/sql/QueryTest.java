@@ -6,9 +6,9 @@ import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultSet;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -21,13 +21,13 @@ public class QueryTest {
   private static final int    TOT     = 10000;
   private static final String DB_PATH = "target/database/testdb";
 
-  @BeforeEach
-  public void populate() {
+  @BeforeAll
+  public static void populate() {
     populate(TOT);
   }
 
-  @AfterEach
-  public void drop() {
+  @AfterAll
+  public static void drop() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
@@ -49,13 +49,14 @@ public class QueryTest {
         for (String p : record.getPropertyNames())
           prop.add(p);
 
+        record.getElement().toString();
+
         Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
         Assertions.assertTrue(prop.contains("id"));
         Assertions.assertTrue(prop.contains("name"));
         Assertions.assertTrue(prop.contains("surname"));
 
         total.incrementAndGet();
-
       }
 
       Assertions.assertEquals(TOT, total.get());
@@ -106,7 +107,7 @@ public class QueryTest {
 
   }
 
-  private void populate(final int total) {
+  private static void populate(final int total) {
     new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
@@ -114,10 +115,10 @@ public class QueryTest {
           database.getSchema().createVertexType("V");
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument("V");
+          final PModifiableDocument v = database.newVertex("V");
           v.set("id", i);
           v.set("name", "Jay");
-          v.set("surname", "Miner"+i);
+          v.set("surname", "Miner" + i);
 
           v.save();
         }

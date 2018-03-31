@@ -28,31 +28,38 @@ public class PImmutableDocument extends PBaseDocument {
 
   @Override
   public String toString() {
-    final StringBuilder buffer = new StringBuilder(256);
+    final StringBuilder output = new StringBuilder(256);
     if (rid != null)
-      buffer.append(rid);
-    buffer.append('[');
-    int i = 0;
-    if (buffer != null) {
-      for (String name : getPropertyNames()) {
-        if (i > 0)
-          buffer.append(',');
+      output.append(rid);
+    output.append('[');
+    if (output != null) {
+      final int currPosition = buffer.position();
 
-        buffer.append(name);
-        buffer.append('=');
-        buffer.append(get(name));
+      buffer.position(propertiesStartingPosition);
+      final Map<String, Object> map = this.database.getSerializer().deserializeProperties(database, buffer);
+
+      buffer.position(currPosition);
+
+      int i = 0;
+      for (Map.Entry<String, Object> entry : map.entrySet()) {
+        if (i > 0)
+          output.append(',');
+
+        output.append(entry.getKey());
+        output.append('=');
+        output.append(entry.getValue());
         i++;
       }
-      buffer.append(']');
+      output.append(']');
     }
-    return buffer.toString();
+    return output.toString();
   }
 
   @Override
   public Set<String> getPropertyNames() {
     checkForLazyLoading();
 
-    buffer.position(1); // SKIP RECORD BYTE
+    buffer.position(propertiesStartingPosition); // SKIP RECORD BYTE
 
     return database.getSerializer().getPropertyNames(database, buffer);
   }

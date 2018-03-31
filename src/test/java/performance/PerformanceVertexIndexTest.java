@@ -4,6 +4,7 @@ import com.arcadedb.database.PCursor;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PRID;
+import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.graph.PVertex;
@@ -54,7 +55,14 @@ public class PerformanceVertexIndexTest {
         record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
 
-        database.asynch().createRecord(record);
+        database.asynch().createRecord(record, null, new PErrorCallback() {
+          @Override
+          public void call(PRID record, Exception exception) {
+            System.out.println("ERROR record: " + record + " Exception: " + exception);
+            exception.printStackTrace();
+            ;
+          }
+        });
 
         if (row % 100000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");

@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -32,6 +33,7 @@ public class PTransactionManager {
   private       AtomicInteger  walFilePoolCursor   = new AtomicInteger();
 
   private final Timer task;
+  private CountDownLatch taskExecuting = new CountDownLatch(0);
 
   private final AtomicLong transactionIds = new AtomicLong();
   private final AtomicLong logFileCounter = new AtomicLong();
@@ -47,8 +49,13 @@ public class PTransactionManager {
       @Override
       public void run() {
         if (activeWALFilePool != null) {
-          checkWALFiles();
-          cleanWALFiles();
+          taskExecuting = new CountDownLatch(1);
+          try {
+            checkWALFiles();
+            cleanWALFiles();
+          } finally {
+            taskExecuting.countDown();
+          }
         }
       }
     }, 1000, 1000);
@@ -57,6 +64,13 @@ public class PTransactionManager {
   public void close() {
     if (task != null)
       task.cancel();
+
+    try {
+      taskExecuting.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      // IGNORE IT
+    }
 
     if (activeWALFilePool != null) {
       // MOVE ALL WAL FILES AS INACTIVE

@@ -66,6 +66,10 @@ public class PBucket extends PPaginatedComponent {
 
       final int txPageCounter = getTotalPages();
 
+      if (txPageCounter == 0)
+        throw new IllegalStateException(
+            "Bucket '" + name + "' has not been initialized. Be sure to commit the transaction that creates this bucket");
+
       if (txPageCounter > 1) {
         lastPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize, false);
         recordCountInPage = lastPage.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
