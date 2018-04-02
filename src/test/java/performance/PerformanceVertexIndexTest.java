@@ -45,6 +45,13 @@ public class PerformanceVertexIndexTest {
       database.asynch().setTransactionSync(true);
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(PARALLEL);
+      database.asynch().onError(new PErrorCallback() {
+        @Override
+        public void call(Exception exception) {
+          System.out.println("ERROR: " + exception);
+          exception.printStackTrace();
+        }
+      });
 
       long row = 0;
       for (; row < TOT; ++row) {
@@ -55,14 +62,7 @@ public class PerformanceVertexIndexTest {
         record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
 
-        database.asynch().createRecord(record, null, new PErrorCallback() {
-          @Override
-          public void call(PRID record, Exception exception) {
-            System.out.println("ERROR record: " + record + " Exception: " + exception);
-            exception.printStackTrace();
-            ;
-          }
-        });
+        database.asynch().createRecord(record);
 
         if (row % 100000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");

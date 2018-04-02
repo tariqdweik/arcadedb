@@ -11,8 +11,6 @@ public class PDatabaseAsyncScanType extends PDatabaseAsyncCommand {
   public final PBucket           bucket;
 
   public PDatabaseAsyncScanType(final CountDownLatch semaphore, final PDocumentCallback userCallback, final PBucket bucket) {
-    super(null, null);
-
     this.semaphore = semaphore;
     this.userCallback = userCallback;
     this.bucket = bucket;

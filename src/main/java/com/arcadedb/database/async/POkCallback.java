@@ -19,8 +19,6 @@
  */
 package com.arcadedb.database.async;
 
-import com.arcadedb.database.PRID;
-
 public interface POkCallback {
-  void call(PRID record);
+  void call();
 }

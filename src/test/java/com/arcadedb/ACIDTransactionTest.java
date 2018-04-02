@@ -1,6 +1,9 @@
 package com.arcadedb;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseFactory;
+import com.arcadedb.database.PDatabaseInternal;
+import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PTransactionException;
@@ -11,9 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -140,12 +142,82 @@ public class ACIDTransactionTest {
   }
 
   @Test
-  public void testAsyncIOExceptionAfterWALIsWritten() {
+  public void testAsyncIOExceptionAfterWALIsWrittenFewRecords() {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+
+    final AtomicInteger errors = new AtomicInteger(0);
+
+    db.asynch().setTransactionSync(true);
+    db.asynch().setTransactionUseWAL(true);
+    db.asynch().setCommitEvery(1);
+    db.asynch().onError(new PErrorCallback() {
+      @Override
+      public void call(Exception exception) {
+        errors.incrementAndGet();
+      }
+    });
+
+    final int TOT = 1000;
+
+    final AtomicInteger total = new AtomicInteger(0);
+
+    try {
+      ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
+        @Override
+        public Void call() throws IOException {
+          if (total.get() > TOT - 100)
+            throw new IOException("Test IO Exception");
+          return null;
+        }
+      });
+
+      for (; total.get() < TOT; total.incrementAndGet()) {
+        final PModifiableDocument v = db.newDocument("V");
+        v.set("id", 0);
+        v.set("name", "Crash");
+        v.set("surname", "Test");
+
+        db.asynch().createRecord(v);
+      }
+
+      db.asynch().waitCompletion();
+
+      Assertions.assertTrue(errors.get() > 0);
+
+    } catch (PTransactionException e) {
+      Assertions.assertTrue(e.getCause() instanceof IOException);
+    }
+    ((PDatabaseInternal) db).kill();
+
+    verifyWALFilesAreStillPresent();
+
+    final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
+    try {
+      Assertions.assertEquals(TOT, db2.countType("V"));
+    } finally {
+      db2.close();
+    }
+  }
+
+  @Test
+  public void testAsyncIOExceptionAfterWALIsWrittenManyRecords() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
     final int TOT = 100000;
 
     final AtomicInteger total = new AtomicInteger(0);
+
+    final AtomicInteger errors = new AtomicInteger(0);
+
+    db.asynch().setTransactionSync(true);
+    db.asynch().setTransactionUseWAL(true);
+    db.asynch().setCommitEvery(1000000);
+    db.asynch().onError(new PErrorCallback() {
+      @Override
+      public void call(Exception exception) {
+        errors.incrementAndGet();
+      }
+    });
 
     try {
       ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
@@ -157,19 +229,20 @@ public class ACIDTransactionTest {
         }
       });
 
-      final AtomicInteger errors = new AtomicInteger(0);
+      db.asynch().onError(new PErrorCallback() {
+        @Override
+        public void call(Exception exception) {
+          errors.incrementAndGet();
+        }
+      });
+
       for (; total.get() < TOT; total.incrementAndGet()) {
         final PModifiableDocument v = db.newDocument("V");
         v.set("id", 0);
         v.set("name", "Crash");
         v.set("surname", "Test");
 
-        db.asynch().createRecord(v, null, new PErrorCallback() {
-          @Override
-          public void call(PRID record, Exception exception) {
-            errors.incrementAndGet();
-          }
-        });
+        db.asynch().createRecord(v);
       }
 
       db.asynch().waitCompletion();
@@ -212,11 +285,12 @@ public class ACIDTransactionTest {
     File dbDir = new File(DB_PATH);
     Assertions.assertTrue(dbDir.exists());
     Assertions.assertTrue(dbDir.isDirectory());
-    File[] files = dbDir.listFiles();
-    Set<String> fileSet = new HashSet<>();
-    for (File f : files)
-      fileSet.add(f.getName());
-
-    Assertions.assertTrue(fileSet.contains("txlog_0.wal"));
+    File[] files = dbDir.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.endsWith("wal");
+      }
+    });
+    Assertions.assertTrue(files.length > 0);
   }
 }

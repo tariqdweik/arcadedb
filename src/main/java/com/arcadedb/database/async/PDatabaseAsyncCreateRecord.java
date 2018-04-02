@@ -7,9 +7,7 @@ public class PDatabaseAsyncCreateRecord extends PDatabaseAsyncCommand {
   public final PRecord record;
   public final PBucket bucket;
 
-  public PDatabaseAsyncCreateRecord(final PRecord record, final PBucket bucket, final POkCallback onResultCallback,
-      final PErrorCallback onErrorCallback) {
-    super(onResultCallback, onErrorCallback);
+  public PDatabaseAsyncCreateRecord(final PRecord record, final PBucket bucket) {
     this.record = record;
     this.bucket = bucket;
   }

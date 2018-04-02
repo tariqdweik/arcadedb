@@ -2,7 +2,6 @@ package performance;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PRID;
 import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PPaginatedFile;
@@ -65,6 +64,13 @@ public class PokecLoader {
 //    db.asynch().setTransactionUseWAL(false);
 //    db.asynch().setTransactionSync(false);
     db.asynch().setParallelLevel(PARALLEL_LEVEL);
+    db.asynch().onError(new PErrorCallback() {
+      @Override
+      public void call(Exception exception) {
+        PLogManager.instance().error(this, "ERROR: " + exception, exception);
+
+      }
+    });
 
     for (int i = 0; buffered.ready(); ++i) {
       final String line = buffered.readLine();
@@ -77,13 +83,7 @@ public class PokecLoader {
         v.set(COLUMNS[c], profile[c]);
       }
 
-      db.asynch().createRecord(v, null, new PErrorCallback() {
-        @Override
-        public void call(PRID record, Exception exception) {
-          PLogManager.instance().error(this, "ERROR record: " + record + " Exception: " + exception, exception);
-
-        }
-      });
+      db.asynch().createRecord(v);
 
       if (i % 20000 == 0) {
         PLogManager.instance().info(this, "Inserted %d vertices...", i);
@@ -112,8 +112,8 @@ public class PokecLoader {
           .newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false,
               "E", true, null, new PErrorCallback() {
                 @Override
-                public void call(PRID record, Exception exception) {
-                  PLogManager.instance().error(this, "ERROR record: " + record + " Exception: " + exception, exception);
+                public void call(Exception exception) {
+                  PLogManager.instance().error(this, "ERROR: " + exception, exception);
 
                 }
               });

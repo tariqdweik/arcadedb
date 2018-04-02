@@ -111,7 +111,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
     if (lockFile.exists()) {
       // RECOVERY
-      PLogManager.instance().warn(this, "Database '%s' was not closed properly last time. Checking database integrity...", name);
+      PLogManager.instance().warn(this, "Database '%s' was not closed properly last time", name);
 
       if (mode == PPaginatedFile.MODE.READ_ONLY)
         throw new PDatabaseMetadataException("Database needs recovery but has been open in read only mode");
@@ -723,14 +723,6 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     return databasePath != null ? databasePath.hashCode() : 0;
   }
 
-  protected void checkDatabaseIsOpen() {
-    if (!open)
-      throw new PDatabaseIsClosedException(name);
-
-    if (PTransactionTL.INSTANCE.get() == null)
-      PTransactionTL.INSTANCE.set(new PTransactionContext(this));
-  }
-
   @Override
   public void executeCallbacks(final CALLBACK_EVENT event) throws IOException {
     final List<Callable<Void>> callbacks = this.callbacks.get(event);
@@ -745,5 +737,18 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
         }
       }
     }
+  }
+
+  @Override
+  public String toString() {
+    return name;
+  }
+
+  protected void checkDatabaseIsOpen() {
+    if (!open)
+      throw new PDatabaseIsClosedException(name);
+
+    if (PTransactionTL.INSTANCE.get() == null)
+      PTransactionTL.INSTANCE.set(new PTransactionContext(this));
   }
 }

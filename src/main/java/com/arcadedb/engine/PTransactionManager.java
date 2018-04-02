@@ -95,70 +95,76 @@ public class PTransactionManager {
   }
 
   public void checkIntegrity() {
-    // OPEN EXISTENT WAL FILES
-    final File dir = new File(database.getDatabasePath());
-    final File[] walFiles = dir.listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        return name.endsWith(".wal");
-      }
-    });
+    PLogManager.instance().warn(this, "Started recovery of database '%s'", database);
 
-    if (walFiles.length == 0) {
-      PLogManager.instance().warn(this, "Recovery not possible because no WAL files were found");
-      return;
-    }
+    try {
+      // OPEN EXISTENT WAL FILES
+      final File dir = new File(database.getDatabasePath());
+      final File[] walFiles = dir.listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+          return name.endsWith(".wal");
+        }
+      });
 
-    activeWALFilePool = new PWALFile[walFiles.length];
-    for (int i = 0; i < walFiles.length; ++i) {
-      try {
-        activeWALFilePool[i] = new PWALFile(database.getDatabasePath() + "/" + walFiles[i].getName());
-      } catch (FileNotFoundException e) {
-        PLogManager.instance()
-            .error(this, "Error on WAL file management for file '%s'", e, database.getDatabasePath() + walFiles[i].getName());
-      }
-    }
-
-    if (activeWALFilePool != null) {
-      final PWALFile.WALTransaction[] walPositions = new PWALFile.WALTransaction[activeWALFilePool.length];
-      for (int i = 0; i < activeWALFilePool.length; ++i) {
-        final PWALFile file = activeWALFilePool[i];
-        walPositions[i] = file.getFirstTransaction();
+      if (walFiles.length == 0) {
+        PLogManager.instance().warn(this, "Recovery not possible because no WAL files were found");
+        return;
       }
 
-      while (true) {
-        int lowerTx = -1;
-        long lowerTxId = -1;
-        for (int i = 0; i < walPositions.length; ++i) {
-          final PWALFile.WALTransaction walTx = walPositions[i];
-          if (walTx != null) {
-            if (lowerTxId == -1 || walTx.txId < lowerTxId) {
-              lowerTxId = walTx.txId;
-              lowerTx = i;
+      activeWALFilePool = new PWALFile[walFiles.length];
+      for (int i = 0; i < walFiles.length; ++i) {
+        try {
+          activeWALFilePool[i] = new PWALFile(database.getDatabasePath() + "/" + walFiles[i].getName());
+        } catch (FileNotFoundException e) {
+          PLogManager.instance()
+              .error(this, "Error on WAL file management for file '%s'", e, database.getDatabasePath() + walFiles[i].getName());
+        }
+      }
+
+      if (activeWALFilePool != null) {
+        final PWALFile.WALTransaction[] walPositions = new PWALFile.WALTransaction[activeWALFilePool.length];
+        for (int i = 0; i < activeWALFilePool.length; ++i) {
+          final PWALFile file = activeWALFilePool[i];
+          walPositions[i] = file.getFirstTransaction();
+        }
+
+        while (true) {
+          int lowerTx = -1;
+          long lowerTxId = -1;
+          for (int i = 0; i < walPositions.length; ++i) {
+            final PWALFile.WALTransaction walTx = walPositions[i];
+            if (walTx != null) {
+              if (lowerTxId == -1 || walTx.txId < lowerTxId) {
+                lowerTxId = walTx.txId;
+                lowerTx = i;
+              }
             }
           }
+
+          if (lowerTxId == -1)
+            // FINISHED
+            break;
+
+          applyChanges(walPositions[lowerTx]);
+
+          walPositions[lowerTx] = activeWALFilePool[lowerTx].getTransaction(walPositions[lowerTx].endPositionInLog);
         }
 
-        if (lowerTxId == -1)
-          // FINISHED
-          break;
-
-        applyChanges(walPositions[lowerTx]);
-
-        walPositions[lowerTx] = activeWALFilePool[lowerTx].getTransaction(walPositions[lowerTx].endPositionInLog);
-      }
-
-      // REMOVE ALL WAL FILES
-      for (int i = 0; i < activeWALFilePool.length; ++i) {
-        final PWALFile file = activeWALFilePool[i];
-        try {
-          file.drop();
-          PLogManager.instance().debug(this, "Dropped WAL file '%s'", file);
-        } catch (IOException e) {
-          PLogManager.instance().error(this, "Error on dropping WAL file '%s'", e, file);
+        // REMOVE ALL WAL FILES
+        for (int i = 0; i < activeWALFilePool.length; ++i) {
+          final PWALFile file = activeWALFilePool[i];
+          try {
+            file.drop();
+            PLogManager.instance().debug(this, "Dropped WAL file '%s'", file);
+          } catch (IOException e) {
+            PLogManager.instance().error(this, "Error on dropping WAL file '%s'", e, file);
+          }
         }
+        activeWALFilePool = null;
       }
-      activeWALFilePool = null;
+    } finally {
+      PLogManager.instance().warn(this, "Recovery of database '%s' completed", database);
     }
   }
 
@@ -204,6 +210,7 @@ public class PTransactionManager {
           modifiedPage.version = txPage.currentPageVersion;
           file.write(modifiedPage);
           changed = true;
+          PLogManager.instance().info(this, "- recovered page %s v%d", pageId, modifiedPage.version);
         }
 
       } catch (IOException e) {

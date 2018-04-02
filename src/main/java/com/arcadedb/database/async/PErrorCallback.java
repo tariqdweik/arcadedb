@@ -19,8 +19,6 @@
  */
 package com.arcadedb.database.async;
 
-import com.arcadedb.database.PRID;
-
 public interface PErrorCallback {
-  void call(PRID record, Exception exception);
+  void call(Exception exception);
 }

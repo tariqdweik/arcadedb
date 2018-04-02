@@ -25,21 +25,22 @@ public class PDatabaseAsyncExecutor {
   private boolean transactionSync   = false;
 
   // SPECIAL COMMANDS
-  private final static PDatabaseAsyncCommand FORCE_COMMIT = new PDatabaseAsyncCommand(null, null);
-  private final static PDatabaseAsyncCommand FORCE_EXIT   = new PDatabaseAsyncCommand(null, null);
+  private final static PDatabaseAsyncCommand FORCE_COMMIT = new PDatabaseAsyncCommand();
+  private final static PDatabaseAsyncCommand FORCE_EXIT   = new PDatabaseAsyncCommand();
+
+  private POkCallback    onOkCallback;
+  private PErrorCallback onErrorCallback;
 
   private class AsyncThread extends Thread {
     public final ArrayBlockingQueue<PDatabaseAsyncCommand> queue = new ArrayBlockingQueue<>(1024);
     public final PDatabaseInternal database;
-    public final int               commitEvery;
     public volatile boolean shutdown      = false;
     public volatile boolean forceShutdown = false;
     public          long    count         = 0;
 
-    private AsyncThread(final PDatabaseInternal database, final int commitEvery, final int id) {
+    private AsyncThread(final PDatabaseInternal database, final int id) {
       super("AsyncCreateRecord-" + id);
       this.database = database;
-      this.commitEvery = commitEvery;
     }
 
     @Override
@@ -56,7 +57,12 @@ public class PDatabaseAsyncExecutor {
           if (message != null) {
             if (message == FORCE_COMMIT) {
               // COMMIT SPECIAL CASE
-              database.getTransaction().commit();
+              try {
+                database.getTransaction().commit();
+                onOk();
+              } catch (Exception e) {
+                onError(e);
+              }
               database.getTransaction().begin();
 
             } else if (message == FORCE_EXIT) {
@@ -76,16 +82,15 @@ public class PDatabaseAsyncExecutor {
                   database.indexDocument(doc, database.getSchema().getType(doc.getType()), command.bucket);
                 }
 
-                message.onOk(command.record.getIdentity());
-
                 count++;
 
                 if (count % commitEvery == 0) {
                   database.getTransaction().commit();
+                  onOk();
                   database.getTransaction().begin();
                 }
               } catch (Exception e) {
-                message.onError(command.record.getIdentity(), e);
+                onError(e);
                 if (!database.isTransactionActive())
                   database.begin();
               }
@@ -140,7 +145,7 @@ public class PDatabaseAsyncExecutor {
                 outLinkedList.add(command.edgeRID, command.destinationVertexRID);
 
               } catch (Exception e) {
-                message.onError(command.edgeRID, e);
+                onError(e);
                 if (!database.isTransactionActive())
                   database.begin();
               }
@@ -173,7 +178,7 @@ public class PDatabaseAsyncExecutor {
                 inLinkedList.add(command.edgeRID, command.sourceVertexRID);
 
               } catch (Exception e) {
-                message.onError(command.edgeRID, e);
+                onError(e);
                 if (!database.isTransactionActive())
                   database.begin();
               }
@@ -194,7 +199,13 @@ public class PDatabaseAsyncExecutor {
           PLogManager.instance().error(this, "Error on saving record (asyncThread=%s)", e, getName());
         }
       }
-      database.getTransaction().commit();
+
+      try {
+        database.getTransaction().commit();
+        onOk();
+      } catch (Exception e) {
+        onError(e);
+      }
     }
   }
 
@@ -275,6 +286,14 @@ public class PDatabaseAsyncExecutor {
     return transactionSync;
   }
 
+  public void onOk(final POkCallback callback) {
+    onOkCallback = callback;
+  }
+
+  public void onError(final PErrorCallback callback) {
+    onErrorCallback = callback;
+  }
+
   public void waitCompletion() {
     if (executorThreads == null)
       return;
@@ -341,7 +360,7 @@ public class PDatabaseAsyncExecutor {
     }
   }
 
-  public void createRecord(final PModifiableDocument record, final POkCallback onOkCallback, final PErrorCallback onErrorCallback) {
+  public void createRecord(final PModifiableDocument record) {
     final PDocumentType type = database.getSchema().getType(record.getType());
 
     if (record.getIdentity() == null) {
@@ -350,7 +369,7 @@ public class PDatabaseAsyncExecutor {
       final int slot = bucket.getId() % parallelLevel;
 
       try {
-        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket, onOkCallback, onErrorCallback));
+        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on executing save");
@@ -360,15 +379,14 @@ public class PDatabaseAsyncExecutor {
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
 
-  public void createRecord(final PRecord record, final String bucketName, final POkCallback onOkCallback,
-      final PErrorCallback onErrorCallback) {
+  public void createRecord(final PRecord record, final String bucketName) {
     final PBucket bucket = database.getSchema().getBucketByName(bucketName);
     final int slot = bucket.getId() % parallelLevel;
 
     if (record.getIdentity() == null)
       // NEW
       try {
-        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket, onOkCallback, onErrorCallback));
+        executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on executing save");
@@ -382,8 +400,7 @@ public class PDatabaseAsyncExecutor {
    */
   public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
       final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final POkCallback onOkCallback,
-      final PErrorCallback onErrorCallback, final Object... properties) {
+      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -424,7 +441,7 @@ public class PDatabaseAsyncExecutor {
     } else
       destinationVertex = (PVertexInternal) v2Result.next().getRecord();
 
-    newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, onOkCallback, onErrorCallback, properties);
+    newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, properties);
   }
 
   /**
@@ -466,7 +483,7 @@ public class PDatabaseAsyncExecutor {
 
     executorThreads = new AsyncThread[parallelLevel];
     for (int i = 0; i < parallelLevel; ++i) {
-      executorThreads[i] = new AsyncThread(database, this.commitEvery, i);
+      executorThreads[i] = new AsyncThread(database, i);
       executorThreads[i].start();
     }
 
@@ -490,8 +507,7 @@ public class PDatabaseAsyncExecutor {
   }
 
   private void newEdge(PVertexInternal sourceVertex, final String edgeType, PVertexInternal destinationVertex,
-      final boolean bidirectional, final POkCallback onOkCallback, final PErrorCallback onErrorCallback,
-      final Object... properties) {
+      final boolean bidirectional, final Object... properties) {
     if (destinationVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 
@@ -510,9 +526,8 @@ public class PDatabaseAsyncExecutor {
       edge.save();
 
       try {
-        executorThreads[rid.getBucketId() % parallelLevel].queue.put(
-            new PDatabaseAsyncCreateOutEdge(sourceVertex, edge.getIdentity(), destinationVertex.getIdentity(), onOkCallback,
-                onErrorCallback));
+        executorThreads[rid.getBucketId() % parallelLevel].queue
+            .put(new PDatabaseAsyncCreateOutEdge(sourceVertex, edge.getIdentity(), destinationVertex.getIdentity()));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new PDatabaseOperationException("Error on creating edge link from out to in");
@@ -520,22 +535,35 @@ public class PDatabaseAsyncExecutor {
 
       if (bidirectional)
         try {
-          executorThreads[destinationVertex.getIdentity().getBucketId() % parallelLevel].queue.put(
-              new PDatabaseAsyncCreateInEdge(destinationVertex, edge.getIdentity(), sourceVertex.getIdentity(), onOkCallback,
-                  onErrorCallback));
+          executorThreads[destinationVertex.getIdentity().getBucketId() % parallelLevel].queue
+              .put(new PDatabaseAsyncCreateInEdge(destinationVertex, edge.getIdentity(), sourceVertex.getIdentity()));
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new PDatabaseOperationException("Error on creating edge link from out to in");
         }
 
-      if (onOkCallback != null)
-        onOkCallback.call(edge.getIdentity());
-
     } catch (Exception e) {
-      if (onErrorCallback != null)
-        onErrorCallback.call(null, e);
-
       throw new PDatabaseOperationException("Error on creating edge", e);
+    }
+  }
+
+  private void onOk() {
+    if (onOkCallback != null) {
+      try {
+        onOkCallback.call();
+      } catch (Exception e) {
+        PLogManager.instance().error(this, "Error on invoking onOk() callback for asynchronous operation %s", e, this);
+      }
+    }
+  }
+
+  private void onError(final Exception e) {
+    if (onErrorCallback != null) {
+      try {
+        onErrorCallback.call(e);
+      } catch (Exception e1) {
+        PLogManager.instance().error(this, "Error on invoking onError() callback for asynchronous operation %s", e, this);
+      }
     }
   }
 

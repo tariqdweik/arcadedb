@@ -85,8 +85,23 @@ public class AsyncTest {
 
       Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
+      final AtomicLong okCallbackInvoked = new AtomicLong();
+
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(3);
+      database.asynch().onOk(new POkCallback() {
+        @Override
+        public void call() {
+          okCallbackInvoked.incrementAndGet();
+        }
+      });
+
+      database.asynch().onError(new PErrorCallback() {
+        @Override
+        public void call(Exception exception) {
+          Assertions.fail("Error on creating async record", exception);
+        }
+      });
 
       final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
       type.createProperty("id", Integer.class);
@@ -96,30 +111,19 @@ public class AsyncTest {
 
       database.commit();
 
-      final AtomicLong okCallbackInvoked = new AtomicLong();
-
       for (int i = 0; i < total; ++i) {
         final PModifiableDocument v = database.newDocument(TYPE_NAME);
         v.set("id", i);
         v.set("name", "Jay");
         v.set("surname", "Miner");
 
-        database.asynch().createRecord(v, new POkCallback() {
-          @Override
-          public void call(PRID record) {
-            okCallbackInvoked.incrementAndGet();
-          }
-        }, new PErrorCallback() {
-          @Override
-          public void call(PRID record, Exception exception) {
-            Assertions.fail("Error on creating async record", exception);
-          }
-        });
+        database.asynch().createRecord(v);
+
       }
 
       database.asynch().waitCompletion();
 
-      Assertions.assertEquals(total, okCallbackInvoked.get());
+      Assertions.assertTrue(okCallbackInvoked.get()>0);
     } finally {
       database.close();
     }

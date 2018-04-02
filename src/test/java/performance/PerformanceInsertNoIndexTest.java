@@ -1,6 +1,8 @@
 package performance;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDatabaseFactory;
+import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.schema.PDocumentType;
@@ -45,6 +47,13 @@ public class PerformanceInsertNoIndexTest {
       database.asynch().setTransactionSync(true);
       database.asynch().setCommitEvery(30000);
       database.asynch().setParallelLevel(PARALLEL);
+      database.asynch().onError(new PErrorCallback() {
+        @Override
+        public void call(Exception exception) {
+          System.out.println("ERROR: " + exception);
+
+        }
+      });
 
       long row = 0;
       for (; row < TOT; ++row) {
@@ -55,13 +64,7 @@ public class PerformanceInsertNoIndexTest {
         record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
 
-        database.asynch().createRecord(record, null, new PErrorCallback() {
-          @Override
-          public void call(PRID record, Exception exception) {
-            System.out.println("ERROR record: " + record + " Exception: " + exception);
-
-          }
-        });
+        database.asynch().createRecord(record);
 
         if (row % 100000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
