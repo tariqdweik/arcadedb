@@ -1,9 +1,7 @@
 package com.arcadedb;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PDatabaseInternal;
-import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.database.*;
+import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PTransactionException;
 import com.arcadedb.utility.PFileUtils;
@@ -18,6 +16,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ACIDTransactionTest {
   private static final int    TOT     = 10000;
@@ -135,6 +134,58 @@ public class ACIDTransactionTest {
     final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
     try {
       Assertions.assertEquals(1, db2.countType("V"));
+    } finally {
+      db2.close();
+    }
+  }
+
+  @Test
+  public void testAsyncIOExceptionAfterWALIsWritten() {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+
+    final int TOT = 100000;
+
+    final AtomicInteger total = new AtomicInteger(0);
+
+    try {
+      ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
+        @Override
+        public Void call() throws IOException {
+          if (total.get() > TOT - 10)
+            throw new IOException("Test IO Exception");
+          return null;
+        }
+      });
+
+      final AtomicInteger errors = new AtomicInteger(0);
+      for (; total.get() < TOT; total.incrementAndGet()) {
+        final PModifiableDocument v = db.newDocument("V");
+        v.set("id", 0);
+        v.set("name", "Crash");
+        v.set("surname", "Test");
+
+        db.asynch().createRecord(v, null, new PErrorCallback() {
+          @Override
+          public void call(PRID record, Exception exception) {
+            errors.incrementAndGet();
+          }
+        });
+      }
+
+      db.asynch().waitCompletion();
+
+      Assertions.assertTrue(errors.get() > 0);
+
+    } catch (PTransactionException e) {
+      Assertions.assertTrue(e.getCause() instanceof IOException);
+    }
+    ((PDatabaseInternal) db).kill();
+
+    verifyWALFilesAreStillPresent();
+
+    final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
+    try {
+      Assertions.assertEquals(TOT, db2.countType("V"));
     } finally {
       db2.close();
     }

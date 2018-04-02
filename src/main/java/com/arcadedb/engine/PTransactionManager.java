@@ -143,8 +143,7 @@ public class PTransactionManager {
           // FINISHED
           break;
 
-        if (checkIfChangesMustBeApplied(walPositions[lowerTx]))
-          applyChanges(walPositions[lowerTx]);
+        applyChanges(walPositions[lowerTx]);
 
         walPositions[lowerTx] = activeWALFilePool[lowerTx].getTransaction(walPositions[lowerTx].endPositionInLog);
       }
@@ -181,33 +180,8 @@ public class PTransactionManager {
     return map;
   }
 
-  private boolean checkIfChangesMustBeApplied(final PWALFile.WALTransaction tx) {
-    for (PWALFile.WALPage txPage : tx.pages) {
-      final PPaginatedFile file = database.getFileManager().getFile(txPage.fileId);
-
-      final PPageId pageId = new PPageId(txPage.fileId, txPage.pageNumber);
-      try {
-        final PBasePage page = database.getPageManager().getPage(pageId, file.getPageSize(), false);
-        if (txPage.currentPageVersion < page.getVersion())
-          // SKIP IT
-          return false;
-
-        if (txPage.currentPageVersion > page.getVersion() + 1)
-          throw new PWALException(
-              "Cannot apply changes to the database because version (" + txPage.currentPageVersion + ") does not match (" + page
-                  .getVersion() + ")");
-
-        if (txPage.currentPageVersion != page.getVersion())
-          return true;
-
-      } catch (IOException e) {
-        throw new PWALException("Cannot load page " + pageId, e);
-      }
-    }
-    return false;
-  }
-
-  private void applyChanges(final PWALFile.WALTransaction tx) {
+  private boolean applyChanges(final PWALFile.WALTransaction tx) {
+    boolean changed = false;
     for (PWALFile.WALPage txPage : tx.pages) {
       final PPaginatedFile file = database.getFileManager().getFile(txPage.fileId);
 
@@ -229,12 +203,14 @@ public class PTransactionManager {
           modifiedPage.writeByteArray(txPage.changesFrom - PBasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
           modifiedPage.version = txPage.currentPageVersion;
           file.write(modifiedPage);
+          changed = true;
         }
 
       } catch (IOException e) {
         throw new PWALException("Cannot load page " + pageId, e);
       }
     }
+    return changed;
   }
 
   /**

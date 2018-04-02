@@ -86,6 +86,8 @@ public class PDatabaseAsyncExecutor {
                 }
               } catch (Exception e) {
                 message.onError(command.record.getIdentity(), e);
+                if (!database.isTransactionActive())
+                  database.begin();
               }
 
             } else if (message instanceof PDatabaseAsyncScanType) {
@@ -139,6 +141,8 @@ public class PDatabaseAsyncExecutor {
 
               } catch (Exception e) {
                 message.onError(command.edgeRID, e);
+                if (!database.isTransactionActive())
+                  database.begin();
               }
 
             } else if (message instanceof PDatabaseAsyncCreateInEdge) {
@@ -170,6 +174,8 @@ public class PDatabaseAsyncExecutor {
 
               } catch (Exception e) {
                 message.onError(command.edgeRID, e);
+                if (!database.isTransactionActive())
+                  database.begin();
               }
 
             }
