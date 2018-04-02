@@ -421,53 +421,16 @@ public class PDatabaseAsyncExecutor {
     newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, onOkCallback, onErrorCallback, properties);
   }
 
-  private void newEdge(PVertexInternal sourceVertex, final String edgeType, PVertexInternal destinationVertex,
-      final boolean bidirectional, final POkCallback onOkCallback, final PErrorCallback onErrorCallback,
-      final Object... properties) {
-    if (destinationVertex == null)
-      throw new IllegalArgumentException("Destination vertex is null");
-
-    final PRID rid = sourceVertex.getIdentity();
-    if (rid == null)
-      throw new IllegalArgumentException("Current vertex is not persistent");
-
-    if (destinationVertex.getIdentity() == null)
-      throw new IllegalArgumentException("Target vertex is not persistent");
-
-    final PDatabaseInternal database = (PDatabaseInternal) sourceVertex.getDatabase();
-
-    try {
-      final PModifiableEdge edge = new PModifiableEdge(database, edgeType, rid, destinationVertex.getIdentity());
-      PGraphEngine.setProperties(edge, properties);
-      edge.save();
-
-      try {
-        executorThreads[rid.getBucketId() % parallelLevel].queue.put(
-            new PDatabaseAsyncCreateOutEdge(sourceVertex, edge.getIdentity(), destinationVertex.getIdentity(), onOkCallback,
-                onErrorCallback));
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new PDatabaseOperationException("Error on creating edge link from out to in");
+  /**
+   * Test onluy API.
+   */
+  public void kill() {
+    if (executorThreads != null) {
+      // WAIT FOR SHUTDOWN, MAX 1S EACH
+      for (int i = 0; i < executorThreads.length; ++i) {
+        executorThreads[i].forceShutdown = true;
+        executorThreads[i] = null;
       }
-
-      if (bidirectional)
-        try {
-          executorThreads[destinationVertex.getIdentity().getBucketId() % parallelLevel].queue.put(
-              new PDatabaseAsyncCreateInEdge(destinationVertex, edge.getIdentity(), sourceVertex.getIdentity(), onOkCallback,
-                  onErrorCallback));
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new PDatabaseOperationException("Error on creating edge link from out to in");
-        }
-
-      if (onOkCallback != null)
-        onOkCallback.call(edge.getIdentity());
-
-    } catch (Exception e) {
-      if (onErrorCallback != null)
-        onErrorCallback.call(null, e);
-
-      throw new PDatabaseOperationException("Error on creating edge", e);
     }
   }
 
@@ -519,4 +482,55 @@ public class PDatabaseAsyncExecutor {
       Thread.currentThread().interrupt();
     }
   }
+
+  private void newEdge(PVertexInternal sourceVertex, final String edgeType, PVertexInternal destinationVertex,
+      final boolean bidirectional, final POkCallback onOkCallback, final PErrorCallback onErrorCallback,
+      final Object... properties) {
+    if (destinationVertex == null)
+      throw new IllegalArgumentException("Destination vertex is null");
+
+    final PRID rid = sourceVertex.getIdentity();
+    if (rid == null)
+      throw new IllegalArgumentException("Current vertex is not persistent");
+
+    if (destinationVertex.getIdentity() == null)
+      throw new IllegalArgumentException("Target vertex is not persistent");
+
+    final PDatabaseInternal database = (PDatabaseInternal) sourceVertex.getDatabase();
+
+    try {
+      final PModifiableEdge edge = new PModifiableEdge(database, edgeType, rid, destinationVertex.getIdentity());
+      PGraphEngine.setProperties(edge, properties);
+      edge.save();
+
+      try {
+        executorThreads[rid.getBucketId() % parallelLevel].queue.put(
+            new PDatabaseAsyncCreateOutEdge(sourceVertex, edge.getIdentity(), destinationVertex.getIdentity(), onOkCallback,
+                onErrorCallback));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new PDatabaseOperationException("Error on creating edge link from out to in");
+      }
+
+      if (bidirectional)
+        try {
+          executorThreads[destinationVertex.getIdentity().getBucketId() % parallelLevel].queue.put(
+              new PDatabaseAsyncCreateInEdge(destinationVertex, edge.getIdentity(), sourceVertex.getIdentity(), onOkCallback,
+                  onErrorCallback));
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new PDatabaseOperationException("Error on creating edge link from out to in");
+        }
+
+      if (onOkCallback != null)
+        onOkCallback.call(edge.getIdentity());
+
+    } catch (Exception e) {
+      if (onErrorCallback != null)
+        onErrorCallback.call(null, e);
+
+      throw new PDatabaseOperationException("Error on creating edge", e);
+    }
+  }
+
 }

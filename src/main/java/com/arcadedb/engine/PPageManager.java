@@ -94,6 +94,25 @@ public class PPageManager {
     flushOnlyAtClose = flushOnlyAtCloseOld;
   }
 
+  /**
+   * Test only API.
+   */
+  public void kill() {
+    if (flushThread != null) {
+      try {
+        flushThread.close();
+        flushThread.join();
+      } catch (InterruptedException e) {
+      }
+    }
+
+    writeCache.clear();
+    readCache.clear();
+    totalReadCacheRAM.set(0);
+    totalWriteCacheRAM.set(0);
+    lockManager.close();
+  }
+
   public void deleteFile(final int fileId) {
     for (Iterator<PImmutablePage> it = readCache.values().iterator(); it.hasNext(); ) {
       final PImmutablePage p = it.next();

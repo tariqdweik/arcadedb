@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -143,7 +142,7 @@ public class TransactionBucketTest {
   }
 
   @Test
-  public void testDeleteAllRecordsReuseSpace() throws IOException {
+  public void testDeleteAllRecordsReuseSpace()  {
     final AtomicInteger total = new AtomicInteger();
 
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();

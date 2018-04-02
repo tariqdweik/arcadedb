@@ -47,13 +47,16 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
   protected static final Set<String> SUPPORTED_FILE_EXT = new HashSet<String>(
       Arrays.asList(PDictionary.DICT_EXT, PBucket.BUCKET_EXT, PIndexLSM.INDEX_EXT));
-  private File lockFile;
+  private File                                      lockFile;
+  private Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
 
-  protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode, final boolean multiThread) {
+  protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode, final boolean multiThread,
+      final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
     super(multiThread);
 
     try {
       this.mode = mode;
+      this.callbacks = callbacks;
       if (path.endsWith("/"))
         databasePath = path.substring(0, path.length() - 1);
       else
@@ -109,6 +112,9 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     if (lockFile.exists()) {
       // RECOVERY
       PLogManager.instance().warn(this, "Database '%s' was not closed properly last time. Checking database integrity...", name);
+
+      executeCallbacks(CALLBACK_EVENT.DB_NOT_CLOSED);
+
       transactionManager.checkIntegrity();
     } else
       lockFile.createNewFile();
@@ -370,6 +376,26 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
         return new PCursorCollection<PRID>(result);
       }
     });
+  }
+
+  @Override
+  public void registerCallback(final CALLBACK_EVENT event, final Callable<Void> callback) {
+    List<Callable<Void>> callbacks = this.callbacks.get(event);
+    if (callbacks == null) {
+      callbacks = new ArrayList<Callable<Void>>();
+      this.callbacks.put(event, callbacks);
+    }
+    callbacks.add(callback);
+  }
+
+  @Override
+  public void unregisterCallback(final CALLBACK_EVENT event, final Callable<Void> callback) {
+    List<Callable<Void>> callbacks = this.callbacks.get(event);
+    if (callbacks != null) {
+      callbacks.remove(callback);
+      if (callbacks.isEmpty())
+        this.callbacks.remove(event);
+    }
   }
 
   @Override
@@ -640,6 +666,30 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     }
   }
 
+  /**
+   * Test only API.
+   */
+  @Override
+  public void kill() {
+    if (asynch != null)
+      asynch.kill();
+
+    if (getTransaction().isActive())
+      // ROLLBACK ANY PENDING OPERATION
+      getTransaction().kill();
+
+    try {
+      schema.close();
+      pageManager.kill();
+      fileManager.close();
+      transactionManager.kill();
+
+    } finally {
+      open = false;
+      PProfiler.INSTANCE.unregisterDatabase(PDatabaseImpl.this);
+    }
+  }
+
   @Override
   public OResultSet query(String query, Map<String, Object> args) {
     Statement statement = OSQLEngine.parse(query, this);
@@ -676,5 +726,21 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
     if (PTransactionTL.INSTANCE.get() == null)
       PTransactionTL.INSTANCE.set(new PTransactionContext(this));
+  }
+
+  @Override
+  public void executeCallbacks(final CALLBACK_EVENT event) throws IOException {
+    final List<Callable<Void>> callbacks = this.callbacks.get(event);
+    if (callbacks != null && !callbacks.isEmpty()) {
+      for (Callable<Void> cb : callbacks) {
+        try {
+          cb.call();
+        } catch (RuntimeException | IOException e) {
+          throw e;
+        } catch (Exception e) {
+          throw new IOException("Error on executing test callback EVENT=" + event, e);
+        }
+      }
+    }
   }
 }

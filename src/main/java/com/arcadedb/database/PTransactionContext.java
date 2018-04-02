@@ -235,6 +235,16 @@ public class PTransactionContext {
     return result;
   }
 
+  /**
+   * Test only API.
+   */
+  public void kill() {
+    modifiedPages = null;
+    newPages = null;
+    newPages = null;
+    newPageCounters.clear();
+  }
+
   private List<Integer> lockFilesInOrder(final PPageManager pageManager) {
     final Set<Integer> modifiedFiles = new HashSet<>();
     for (PPageId p : modifiedPages.keySet())

@@ -2,6 +2,12 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.PPaginatedFile;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
 public class PDatabaseFactory {
   public interface POperation {
     void execute(PDatabase database);
@@ -9,8 +15,9 @@ public class PDatabaseFactory {
 
   private final PPaginatedFile.MODE mode;
   private final String              databasePath;
-  private boolean multiThread     = true;
-  private boolean autoTransaction = false;
+  private boolean                                                     multiThread     = true;
+  private boolean                                                     autoTransaction = false;
+  private Map<PDatabaseInternal.CALLBACK_EVENT, List<Callable<Void>>> callbacks       = new HashMap<>();
 
   public PDatabaseFactory(final String path, final PPaginatedFile.MODE mode) {
     this.mode = mode;
@@ -21,7 +28,7 @@ public class PDatabaseFactory {
   }
 
   public PDatabase acquire() {
-    final PDatabase db = new PDatabaseImpl(databasePath, mode, multiThread);
+    final PDatabaseInternal db = new PDatabaseImpl(databasePath, mode, multiThread, callbacks);
     db.setAutoTransaction(autoTransaction);
     return db;
   }
@@ -55,5 +62,17 @@ public class PDatabaseFactory {
   public PDatabaseFactory setAutoTransaction(final boolean enabled) {
     autoTransaction = enabled;
     return this;
+  }
+
+  /**
+   * Test only API
+   */
+  public void registerCallback(final PDatabaseInternal.CALLBACK_EVENT event, Callable<Void> callback) {
+    List<Callable<Void>> callbacks = this.callbacks.get(event);
+    if (callbacks == null) {
+      callbacks = new ArrayList<Callable<Void>>();
+      this.callbacks.put(event, callbacks);
+    }
+    callbacks.add(callback);
   }
 }

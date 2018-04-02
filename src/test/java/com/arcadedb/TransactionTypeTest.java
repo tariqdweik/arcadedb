@@ -5,7 +5,6 @@ import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PDatabaseIsReadOnlyException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PFileUtils;
-import junit.framework.Assert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -211,7 +210,7 @@ public class TransactionTypeTest {
     new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
       @Override
       public void execute(PDatabase database) {
-        Assert.assertFalse(database.getSchema().existsType(TYPE_NAME));
+        Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
         final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
