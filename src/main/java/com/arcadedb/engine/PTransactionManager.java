@@ -1,12 +1,12 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.database.PDatabaseInternal;
-import com.arcadedb.exception.PDatabaseMetadataException;
 import com.arcadedb.utility.PLogManager;
 import com.arcadedb.utility.PPair;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -96,18 +96,27 @@ public class PTransactionManager {
 
   public void checkIntegrity() {
     // OPEN EXISTENT WAL FILES
-    for (int i = 0; ; ++i) {
-      final String fileName = database.getDatabasePath() + "/txlog_" + logFileCounter.get() + ".wal";
-      final File file = new File(fileName);
-      if (!file.exists())
-        break;
+    final File dir = new File(database.getDatabasePath());
+    final File[] walFiles = dir.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".wal");
+      }
+    });
 
-      if (activeWALFilePool == null)
-        activeWALFilePool = new PWALFile[1];
-      else
-        activeWALFilePool = Arrays.copyOf(activeWALFilePool, activeWALFilePool.length + 1);
+    if (walFiles.length == 0) {
+      PLogManager.instance().warn(this, "Recovery not possible because no WAL files were found");
+      return;
+    }
 
-      activeWALFilePool[i] = newWALFile();
+    activeWALFilePool = new PWALFile[walFiles.length];
+    for (int i = 0; i < walFiles.length; ++i) {
+      try {
+        activeWALFilePool[i] = new PWALFile(database.getDatabasePath() + "/" + walFiles[i].getName());
+      } catch (FileNotFoundException e) {
+        PLogManager.instance()
+            .error(this, "Error on WAL file management for file '%s'", e, database.getDatabasePath() + walFiles[i].getName());
+      }
     }
 
     if (activeWALFilePool != null) {
@@ -246,16 +255,13 @@ public class PTransactionManager {
 
   private void createFilePool() {
     activeWALFilePool = new PWALFile[Runtime.getRuntime().availableProcessors()];
-    for (int i = 0; i < activeWALFilePool.length; ++i)
-      activeWALFilePool[i] = newWALFile();
-  }
-
-  private PWALFile newWALFile() {
-    final String fileName = database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal";
-    try {
-      return new PWALFile(fileName);
-    } catch (FileNotFoundException e) {
-      throw new PDatabaseMetadataException("Cannot create WAL file '" + fileName + "'", e);
+    for (int i = 0; i < activeWALFilePool.length; ++i) {
+      try {
+        activeWALFilePool[i] = new PWALFile(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+      } catch (FileNotFoundException e) {
+        PLogManager.instance().error(this, "Error on WAL file management for file '%s'", e,
+            database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+      }
     }
   }
 
@@ -268,7 +274,7 @@ public class PTransactionManager {
             PLogManager.instance()
                 .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file,
                     MAX_LOG_FILE_SIZE);
-            activeWALFilePool[i] = newWALFile();
+            activeWALFilePool[i] = new PWALFile(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
             inactiveWALFilePool.add(file);
           }
         } catch (IOException e) {
