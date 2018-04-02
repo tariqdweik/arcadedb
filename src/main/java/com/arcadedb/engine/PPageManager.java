@@ -1,7 +1,6 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.PGlobalConfiguration;
-import com.arcadedb.database.PTransactionManager;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
@@ -131,14 +130,14 @@ public class PPageManager {
     }
   }
 
-  public PBasePage getPage(final PPageId pageId, final int size, final boolean isNew) throws IOException {
+  public PBasePage getPage(final PPageId pageId, final int pageSize, final boolean isNew) throws IOException {
     PBasePage page = writeCache.get(pageId);
     if (page != null)
       cacheHits.incrementAndGet();
     else {
       page = readCache.get(pageId);
       if (page == null) {
-        page = loadPage(pageId, size);
+        page = loadPage(pageId, pageSize);
         if (!isNew)
           cacheMiss.incrementAndGet();
       } else {

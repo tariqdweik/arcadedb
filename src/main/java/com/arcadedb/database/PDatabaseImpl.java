@@ -113,6 +113,9 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       // RECOVERY
       PLogManager.instance().warn(this, "Database '%s' was not closed properly last time. Checking database integrity...", name);
 
+      if (mode == PPaginatedFile.MODE.READ_ONLY)
+        throw new PDatabaseMetadataException("Database needs recovery but has been open in read only mode");
+
       executeCallbacks(CALLBACK_EVENT.DB_NOT_CLOSED);
 
       transactionManager.checkIntegrity();

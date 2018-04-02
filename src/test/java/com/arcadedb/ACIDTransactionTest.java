@@ -7,9 +7,9 @@ import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PTransactionException;
 import com.arcadedb.utility.PFileUtils;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -23,13 +23,20 @@ public class ACIDTransactionTest {
   private static final int    TOT     = 10000;
   private static final String DB_PATH = "target/database/testdb";
 
-  @BeforeAll
-  public static void populate() {
-    populate(TOT);
+  @BeforeEach
+  public void populate() {
+    PFileUtils.deleteRecursively(new File(DB_PATH));
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase database) {
+        if (!database.getSchema().existsType("V"))
+          database.getSchema().createDocumentType("V");
+      }
+    });
   }
 
-  @AfterAll
-  public static void drop() {
+  @AfterEach
+  public void drop() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
@@ -127,7 +134,7 @@ public class ACIDTransactionTest {
 
     final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
     try {
-      Assertions.assertEquals(0, db2.countType("V"));
+      Assertions.assertEquals(1, db2.countType("V"));
     } finally {
       db2.close();
     }
@@ -136,7 +143,7 @@ public class ACIDTransactionTest {
   private PDatabase verifyDatabaseWasNotClosedProperly() {
     final AtomicBoolean dbNotClosedCaught = new AtomicBoolean(false);
 
-    final PDatabaseFactory factory = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY);
+    final PDatabaseFactory factory = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE);
     factory.registerCallback(PDatabaseInternal.CALLBACK_EVENT.DB_NOT_CLOSED, new Callable<Void>() {
       @Override
       public Void call() {
@@ -160,17 +167,5 @@ public class ACIDTransactionTest {
       fileSet.add(f.getName());
 
     Assertions.assertTrue(fileSet.contains("txlog_0.wal"));
-  }
-
-  private static void populate(final int total) {
-    PFileUtils.deleteRecursively(new File(DB_PATH));
-
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
-      @Override
-      public void execute(PDatabase database) {
-        if (!database.getSchema().existsType("V"))
-          database.getSchema().createDocumentType("V");
-      }
-    });
   }
 }

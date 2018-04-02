@@ -1,8 +1,6 @@
-package com.arcadedb.database;
+package com.arcadedb.engine;
 
-import com.arcadedb.engine.PBasePage;
-import com.arcadedb.engine.PModifiablePage;
-import com.arcadedb.engine.PWALFile;
+import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.exception.PDatabaseMetadataException;
 import com.arcadedb.utility.PLogManager;
 import com.arcadedb.utility.PPair;
@@ -32,7 +30,7 @@ public class PTransactionManager {
   private AtomicLong statsPagesWritten = new AtomicLong();
   private AtomicLong statsBytesWritten = new AtomicLong();
 
-  protected PTransactionManager(final PDatabaseInternal database) {
+  public PTransactionManager(final PDatabaseInternal database) {
     this.database = database;
 
     task = new Timer();
@@ -116,7 +114,30 @@ public class PTransactionManager {
       final PWALFile.WALTransaction[] walPositions = new PWALFile.WALTransaction[activeWALFilePool.length];
       for (int i = 0; i < activeWALFilePool.length; ++i) {
         final PWALFile file = activeWALFilePool[i];
-        walPositions[i] = file.getLastTransaction(database);
+        walPositions[i] = file.getFirstTransaction();
+      }
+
+      while (true) {
+        int lowerTx = -1;
+        long lowerTxId = -1;
+        for (int i = 0; i < walPositions.length; ++i) {
+          final PWALFile.WALTransaction walTx = walPositions[i];
+          if (walTx != null) {
+            if (lowerTxId == -1 || walTx.txId < lowerTxId) {
+              lowerTxId = walTx.txId;
+              lowerTx = i;
+            }
+          }
+        }
+
+        if (lowerTxId == -1)
+          // FINISHED
+          break;
+
+        if (checkIfChangesMustBeApplied(walPositions[lowerTx]))
+          applyChanges(walPositions[lowerTx]);
+
+        walPositions[lowerTx] = activeWALFilePool[lowerTx].getTransaction(walPositions[lowerTx].endPositionInLog);
       }
 
       // REMOVE ALL WAL FILES
@@ -151,6 +172,62 @@ public class PTransactionManager {
     return map;
   }
 
+  private boolean checkIfChangesMustBeApplied(final PWALFile.WALTransaction tx) {
+    for (PWALFile.WALPage txPage : tx.pages) {
+      final PPaginatedFile file = database.getFileManager().getFile(txPage.fileId);
+
+      final PPageId pageId = new PPageId(txPage.fileId, txPage.pageNumber);
+      try {
+        final PBasePage page = database.getPageManager().getPage(pageId, file.getPageSize(), false);
+        if (txPage.currentPageVersion < page.getVersion())
+          // SKIP IT
+          return false;
+
+        if (txPage.currentPageVersion > page.getVersion() + 1)
+          throw new PWALException(
+              "Cannot apply changes to the database because version (" + txPage.currentPageVersion + ") does not match (" + page
+                  .getVersion() + ")");
+
+        if (txPage.currentPageVersion != page.getVersion())
+          return true;
+
+      } catch (IOException e) {
+        throw new PWALException("Cannot load page " + pageId, e);
+      }
+    }
+    return false;
+  }
+
+  private void applyChanges(final PWALFile.WALTransaction tx) {
+    for (PWALFile.WALPage txPage : tx.pages) {
+      final PPaginatedFile file = database.getFileManager().getFile(txPage.fileId);
+
+      final PPageId pageId = new PPageId(txPage.fileId, txPage.pageNumber);
+      try {
+        final PBasePage page = database.getPageManager().getPage(pageId, file.getPageSize(), false);
+        if (txPage.currentPageVersion < page.getVersion())
+          // SKIP IT
+          continue;
+
+        if (txPage.currentPageVersion > page.getVersion() + 1)
+          throw new PWALException(
+              "Cannot apply changes to the database because version (" + txPage.currentPageVersion + ") does not match (" + page
+                  .getVersion() + ")");
+
+        if (txPage.currentPageVersion != page.getVersion()) {
+          final PModifiablePage modifiedPage = page.modify();
+          txPage.currentContent.reset();
+          modifiedPage.writeByteArray(txPage.changesFrom - PBasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
+          modifiedPage.version = txPage.currentPageVersion;
+          file.write(modifiedPage);
+        }
+
+      } catch (IOException e) {
+        throw new PWALException("Cannot load page " + pageId, e);
+      }
+    }
+  }
+
   /**
    * Returns the next file from the pool. If it's null (temporary moved to inactive) the next not-null is taken.
    */
@@ -183,20 +260,21 @@ public class PTransactionManager {
   }
 
   private void checkWALFiles() {
-    for (int i = 0; i < activeWALFilePool.length; ++i) {
-      final PWALFile file = activeWALFilePool[i];
-      try {
-        if (file.getSize() > MAX_LOG_FILE_SIZE) {
-          PLogManager.instance()
-              .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file,
-                  MAX_LOG_FILE_SIZE);
-          activeWALFilePool[i] = newWALFile();
-          inactiveWALFilePool.add(file);
+    if (activeWALFilePool != null)
+      for (int i = 0; i < activeWALFilePool.length; ++i) {
+        final PWALFile file = activeWALFilePool[i];
+        try {
+          if (file.getSize() > MAX_LOG_FILE_SIZE) {
+            PLogManager.instance()
+                .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file,
+                    MAX_LOG_FILE_SIZE);
+            activeWALFilePool[i] = newWALFile();
+            inactiveWALFilePool.add(file);
+          }
+        } catch (IOException e) {
+          PLogManager.instance().error(this, "Error on WAL file management for file '%s'", e, file);
         }
-      } catch (IOException e) {
-        PLogManager.instance().error(this, "Error on WAL file management for file '%s'", e, file);
       }
-    }
   }
 
   private boolean cleanWALFiles() {

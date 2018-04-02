@@ -2,9 +2,7 @@ package com.arcadedb.engine;
 
 import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDatabaseInternal;
-import com.arcadedb.database.PRID;
 import com.arcadedb.utility.PLockContext;
-import com.arcadedb.utility.PLogManager;
 import com.arcadedb.utility.PPair;
 
 import java.io.File;
@@ -25,9 +23,9 @@ public class PWALFile extends PLockContext {
   // SEGMENT_SIZE (int) + MAGIC_NUMBER (long)
   private static final int TX_FOOTER_SIZE = PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE;
 
-  // FILE_ID (int) + FILE_POSITION (long) + DELTA_FROM (int) + DELTA_TO (int) + EXISTS_PREVIOUS (byte) + CURR_PAGE_VERSION (int)
+  // FILE_ID (int) + PAGE_NUMBER (int) + DELTA_FROM (int) + DELTA_TO (int) + EXISTS_PREVIOUS (byte) + CURR_PAGE_VERSION (int)
   private static final int PAGE_HEADER_SIZE =
-      PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE
+      PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE
           + PBinary.BYTE_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE;
 
   private static final long MAGIC_NUMBER = 9371515385058702l;
@@ -53,7 +51,8 @@ public class PWALFile extends PLockContext {
   }
 
   public class WALPage {
-    public PRID    rid;
+    public int     fileId;
+    public int     pageNumber;
     public int     changesFrom;
     public int     changesTo;
     public PBinary previousContent;
@@ -82,116 +81,88 @@ public class PWALFile extends PLockContext {
     channel.force(false);
   }
 
-  public WALTransaction getLastTransaction(final PDatabaseInternal database) throws PWALException {
-    try {
-      final long fileSize = channel.size();
-      if (fileSize < TX_HEADER_SIZE)
-        return null;
-
-      long pos = fileSize;
-
-      long mn = readLong(pos - PBinary.LONG_SERIALIZED_SIZE);
-      if (mn != MAGIC_NUMBER) {
-        // INVALID RECORD, START FROM THE BEGINNING
-        long lastGoodTxPos = -1;
-        pos = 0;
-        while (pos < fileSize) {
-          final int segmentSize = readInt(pos += PBinary.LONG_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE);
-          pos += PBinary.INT_SERIALIZED_SIZE + segmentSize;
-          final int segmentSize2 = readInt(pos);
-          if (segmentSize2 != segmentSize)
-            // INVALID TX SEGMENT, GET PREVIOUS AS GOOD;
-            break;
-
-          pos += PBinary.INT_SERIALIZED_SIZE;
-
-          mn = readLong(pos);
-          if (mn != MAGIC_NUMBER)
-            break;
-
-          pos += PBinary.LONG_SERIALIZED_SIZE;
-        }
-
-        if (lastGoodTxPos == -1)
-          return null;
-        else
-          return getTransaction(database, lastGoodTxPos);
-
-      } else {
-        // GOOD RECORD
-        pos -= PBinary.LONG_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE;
-        final int segmentSize = readInt(pos);
-        if (segmentSize < PAGE_HEADER_SIZE || segmentSize > pos)
-          throw new PWALException("Invalid segmentSize " + segmentSize + " in WAL record (position=" + pos + ")");
-
-        pos -= segmentSize + PBinary.INT_SERIALIZED_SIZE;
-        final int segmentSize2 = readInt(pos);
-        if (segmentSize2 != segmentSize)
-          throw new PWALException(
-              "Invalid segmentSize " + segmentSize2 + " in WAL record (position=" + pos + ") because is different than "
-                  + segmentSize);
-
-        return getTransaction(database, pos - PBinary.INT_SERIALIZED_SIZE - PBinary.LONG_SERIALIZED_SIZE);
-      }
-
-    } catch (IOException e) {
-      PLogManager.instance().error(this, "Error on reading last transaction from WAL '%s'", e, filePath);
-      throw new PWALException("Error on reading last transaction from WAL '" + filePath + "'", e);
-    }
+  public WALTransaction getFirstTransaction() throws PWALException {
+    return getTransaction(0);
   }
 
-  private WALTransaction getTransaction(final PDatabaseInternal database, long pos) throws IOException {
+  public WALTransaction getTransaction(long pos) {
     final WALTransaction tx = new WALTransaction();
 
     tx.startPositionInLog = pos;
 
-    tx.txId = readLong(pos);
-    pos += PBinary.LONG_SERIALIZED_SIZE;
+    try {
+      if (pos + TX_HEADER_SIZE + TX_FOOTER_SIZE > getSize())
+        // TRUNCATED FILE
+        return null;
 
-    final int pages = readInt(pos);
-    pos += PBinary.INT_SERIALIZED_SIZE;
+      tx.txId = readLong(pos);
+      pos += PBinary.LONG_SERIALIZED_SIZE;
 
-    final int segmentSize = readInt(pos);
-    pos += PBinary.INT_SERIALIZED_SIZE;
-
-    tx.pages = new WALPage[pages];
-
-    for (int i = 0; i < pages; ++i) {
-      tx.pages[i] = new WALPage();
-      tx.pages[i].rid = new PRID(database, readInt(pos), readLong(pos + PBinary.INT_SERIALIZED_SIZE));
-
-      pos += PBinary.LONG_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE;
-
-      tx.pages[i].changesFrom = readInt(pos);
+      final int pages = readInt(pos);
       pos += PBinary.INT_SERIALIZED_SIZE;
 
-      tx.pages[i].changesTo = readInt(pos);
+      final int segmentSize = readInt(pos);
       pos += PBinary.INT_SERIALIZED_SIZE;
 
-      final int deltaSize = tx.pages[i].changesTo - tx.pages[i].changesFrom + 1;
+      if (pos + segmentSize + PBinary.LONG_SERIALIZED_SIZE > getSize())
+        // TRUNCATED FILE
+        return null;
 
-      final boolean hasPrevious = readByte(pos) == 1;
-      pos += PBinary.BYTE_SERIALIZED_SIZE;
+      tx.pages = new WALPage[pages];
 
-      tx.pages[i].currentPageVersion = readInt(pos);
-      pos += PBinary.INT_SERIALIZED_SIZE;
+      for (int i = 0; i < pages; ++i) {
+        if (pos > getSize())
+          // INVALID
+          return null;
 
-      if (hasPrevious) {
-        tx.pages[i].previousContent = new PBinary(deltaSize);
-        channel.read(tx.pages[i].previousContent.getByteBuffer(), pos);
+        tx.pages[i] = new WALPage();
+
+        tx.pages[i].fileId = readInt(pos);
+        pos += PBinary.INT_SERIALIZED_SIZE;
+
+        tx.pages[i].pageNumber = readInt(pos);
+        pos += PBinary.INT_SERIALIZED_SIZE;
+
+        tx.pages[i].changesFrom = readInt(pos);
+        pos += PBinary.INT_SERIALIZED_SIZE;
+
+        tx.pages[i].changesTo = readInt(pos);
+        pos += PBinary.INT_SERIALIZED_SIZE;
+
+        final int deltaSize = tx.pages[i].changesTo - tx.pages[i].changesFrom + 1;
+
+        final boolean hasPrevious = readByte(pos) == 1;
+        pos += PBinary.BYTE_SERIALIZED_SIZE;
+
+        tx.pages[i].currentPageVersion = readInt(pos);
+        pos += PBinary.INT_SERIALIZED_SIZE;
+
+        if (hasPrevious) {
+          tx.pages[i].previousContent = new PBinary(deltaSize);
+          channel.read(tx.pages[i].previousContent.getByteBuffer(), pos);
+
+          pos += deltaSize;
+        }
+
+        final ByteBuffer buffer = ByteBuffer.allocate(deltaSize);
+
+        tx.pages[i].currentContent = new PBinary(buffer);
+        channel.read(buffer, pos);
 
         pos += deltaSize;
       }
 
-      tx.pages[i].currentContent = new PBinary(deltaSize);
-      channel.read(tx.pages[i].currentContent.getByteBuffer(), pos);
+      final long mn = readLong(pos + PBinary.INT_SERIALIZED_SIZE);
+      if (mn != MAGIC_NUMBER)
+        // INVALID
+        return null;
 
-      pos += deltaSize;
+      tx.endPositionInLog = pos + PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE;
+
+      return tx;
+    } catch (Exception e) {
+      return null;
     }
-
-    tx.endPositionInLog = pos + PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE;
-
-    return tx;
   }
 
   public synchronized void writeTransaction(final PDatabaseInternal database, final List<PPair<PBasePage, PModifiablePage>> pages,
@@ -237,11 +208,11 @@ public class PWALFile extends PLockContext {
       pageBuffer = new PBinary(buffer, pageSize);
 
       pageBuffer.putInt(newPage.getPageId().getFileId());
-      pageBuffer.putLong(newPage.getPageId().getPageNumber());
+      pageBuffer.putInt(newPage.getPageId().getPageNumber());
       pageBuffer.putInt(deltaRange[0]);
       pageBuffer.putInt(deltaRange[1]);
       pageBuffer.putByte((byte) (prevPage != null ? 1 : 0));
-      pageBuffer.putInt(newPage.version);
+      pageBuffer.putInt(newPage.version + 1);
       if (prevPage != null) {
         final ByteBuffer prevPageBuffer = prevPage.getContent();
         prevPageBuffer.position(deltaRange[0]);

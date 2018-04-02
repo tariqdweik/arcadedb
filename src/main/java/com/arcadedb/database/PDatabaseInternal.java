@@ -1,6 +1,7 @@
 package com.arcadedb.database;
 
 import com.arcadedb.engine.PBucket;
+import com.arcadedb.engine.PTransactionManager;
 import com.arcadedb.graph.PGraphEngine;
 import com.arcadedb.schema.PDocumentType;
 
