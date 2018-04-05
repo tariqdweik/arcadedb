@@ -12,7 +12,7 @@ public class PerformanceInsertNoIndexTest {
   private static final String TYPE_NAME = "Person";
   private static final int    PARALLEL  = 2;
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     new PerformanceInsertNoIndexTest().run();
   }
 
@@ -43,10 +43,10 @@ public class PerformanceInsertNoIndexTest {
 
     try {
 
-      database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(true);
-      database.asynch().setCommitEvery(30000);
       database.asynch().setParallelLevel(PARALLEL);
+      database.asynch().setTransactionUseWAL(false);
+      database.asynch().setTransactionSync(false);
+      database.asynch().setCommitEvery(10000);
       database.asynch().onError(new PErrorCallback() {
         @Override
         public void call(Exception exception) {
@@ -66,7 +66,7 @@ public class PerformanceInsertNoIndexTest {
 
         database.asynch().createRecord(record);
 
-        if (row % 100000 == 0)
+        if (row % 1000000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
       }
 

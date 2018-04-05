@@ -288,7 +288,7 @@ public class PPageManager {
     return page;
   }
 
-  private void checkForPageDisposal() {
+  private synchronized void checkForPageDisposal() {
     final long totalRAM = totalReadCacheRAM.get();
 
     if (totalRAM < maxRAM)

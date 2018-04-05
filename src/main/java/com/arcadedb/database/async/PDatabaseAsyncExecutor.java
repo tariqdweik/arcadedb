@@ -272,6 +272,7 @@ public class PDatabaseAsyncExecutor {
 
   public void setTransactionUseWAL(final boolean transactionUseWAL) {
     this.transactionUseWAL = transactionUseWAL;
+    createThreads(parallelLevel);
   }
 
   public boolean isTransactionUseWAL() {
@@ -280,6 +281,7 @@ public class PDatabaseAsyncExecutor {
 
   public void setTransactionSync(final boolean transactionSync) {
     this.transactionSync = transactionSync;
+    createThreads(parallelLevel);
   }
 
   public boolean isTransactionSync() {
