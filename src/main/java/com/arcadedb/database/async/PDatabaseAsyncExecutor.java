@@ -19,10 +19,10 @@ import java.util.concurrent.TimeUnit;
 public class PDatabaseAsyncExecutor {
   private final PDatabaseInternal database;
   private       AsyncThread[]     executorThreads;
-  private int     parallelLevel     = -1;
-  private int     commitEvery       = 10000;
-  private boolean transactionUseWAL = true;
-  private boolean transactionSync   = false;
+  private       int               parallelLevel     = -1;
+  private       int               commitEvery       = 10000;
+  private       boolean           transactionUseWAL = true;
+  private       boolean           transactionSync   = false;
 
   // SPECIAL COMMANDS
   private final static PDatabaseAsyncCommand FORCE_COMMIT = new PDatabaseAsyncCommand();
@@ -32,11 +32,11 @@ public class PDatabaseAsyncExecutor {
   private PErrorCallback onErrorCallback;
 
   private class AsyncThread extends Thread {
-    public final ArrayBlockingQueue<PDatabaseAsyncCommand> queue = new ArrayBlockingQueue<>(1024);
-    public final PDatabaseInternal database;
-    public volatile boolean shutdown      = false;
-    public volatile boolean forceShutdown = false;
-    public          long    count         = 0;
+    public final    ArrayBlockingQueue<PDatabaseAsyncCommand> queue         = new ArrayBlockingQueue<>(1024);
+    public final    PDatabaseInternal                         database;
+    public volatile boolean                                   shutdown      = false;
+    public volatile boolean                                   forceShutdown = false;
+    public          long                                      count         = 0;
 
     private AsyncThread(final PDatabaseInternal database, final int id) {
       super("AsyncCreateRecord-" + id);
@@ -212,42 +212,6 @@ public class PDatabaseAsyncExecutor {
   private void beginTxIfNeeded() {
     if (!database.getTransaction().isActive())
       database.getTransaction().begin();
-  }
-
-  private class DatabaseScanAsyncThread extends Thread {
-    public final ArrayBlockingQueue<Object[]> queue = new ArrayBlockingQueue<>(2048);
-    public final PDatabaseInternal database;
-    public volatile boolean shutdown = false;
-
-    private DatabaseScanAsyncThread(final PDatabaseInternal database, final int id) {
-      super("AsyncScan-" + id);
-      this.database = database;
-    }
-
-    @Override
-    public void run() {
-      if (PTransactionTL.INSTANCE.get() == null)
-        PTransactionTL.INSTANCE.set(new PTransactionContext(database));
-
-      while (!shutdown) {
-        try {
-          final Object[] message = queue.poll(500, TimeUnit.MILLISECONDS);
-          if (message != null) {
-            if (message[0] == FORCE_EXIT) {
-              break;
-            } else {
-            }
-          }
-
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          queue.clear();
-          break;
-        } catch (Exception e) {
-          PLogManager.instance().error(this, "Error on parallel scan", e);
-        }
-      }
-    }
   }
 
   public class PDBAsynchStats {

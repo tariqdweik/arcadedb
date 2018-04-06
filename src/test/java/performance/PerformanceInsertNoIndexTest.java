@@ -6,6 +6,7 @@ import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.utility.PLogManager;
 
 public class PerformanceInsertNoIndexTest {
   private static final int    TOT       = 100000000;
@@ -46,12 +47,12 @@ public class PerformanceInsertNoIndexTest {
       database.asynch().setParallelLevel(PARALLEL);
       database.asynch().setTransactionUseWAL(false);
       database.asynch().setTransactionSync(false);
-      database.asynch().setCommitEvery(10000);
+      database.asynch().setCommitEvery(20000);
       database.asynch().onError(new PErrorCallback() {
         @Override
         public void call(Exception exception) {
-          System.out.println("ERROR: " + exception);
-
+          PLogManager.instance().error(this, "ERROR: " + exception, exception);
+          System.exit(1);
         }
       });
 
