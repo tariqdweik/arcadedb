@@ -61,8 +61,8 @@ public class PokecLoader {
     Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
-//    db.asynch().setTransactionUseWAL(false);
-//    db.asynch().setTransactionSync(false);
+    db.asynch().setTransactionUseWAL(false);
+    db.asynch().setTransactionSync(false);
     db.asynch().setParallelLevel(PARALLEL_LEVEL);
     db.asynch().onError(new PErrorCallback() {
       @Override
@@ -110,13 +110,7 @@ public class PokecLoader {
 
       db.asynch()
           .newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false,
-              "E", true, null, new PErrorCallback() {
-                @Override
-                public void call(Exception exception) {
-                  PLogManager.instance().error(this, "ERROR: " + exception, exception);
-
-                }
-              });
+              "E", true);
 
       if (i % 20000 == 0) {
         PLogManager.instance().info(this, "Committing %d edges...", i);
