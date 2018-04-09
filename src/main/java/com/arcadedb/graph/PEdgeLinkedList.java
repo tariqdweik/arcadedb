@@ -99,11 +99,9 @@ public class PEdgeLinkedList {
       final PModifiableEdgeChunk newChunk = new PModifiableEdgeChunk(database, computeBestSize());
 
       newChunk.add(edgeRID, vertexRID);
+      newChunk.setNext(first);
 
       database.createRecord(newChunk, database.getSchema().getBucketById(first.getIdentity().getBucketId()).getName());
-
-      newChunk.setNext(first);
-      database.updateRecord(newChunk);
 
       final PModifiableVertex modifiableV = (PModifiableVertex) vertex.modify();
 

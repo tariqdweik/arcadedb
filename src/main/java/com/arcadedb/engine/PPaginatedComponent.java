@@ -21,8 +21,8 @@ public abstract class PPaginatedComponent {
     this(database, name, filePath + "." + id + "." + pageSize + "." + ext, id, mode, pageSize);
   }
 
-  protected PPaginatedComponent(final PDatabase database, final String name, String filePath, final int id, final PPaginatedFile.MODE mode,
-      final int pageSize) throws IOException {
+  protected PPaginatedComponent(final PDatabase database, final String name, String filePath, final int id,
+      final PPaginatedFile.MODE mode, final int pageSize) throws IOException {
     this.database = (PDatabaseImpl) database;
     this.name = name;
     this.id = id;
@@ -41,7 +41,7 @@ public abstract class PPaginatedComponent {
     return pageSize;
   }
 
-  public void onAfterCommit(final int value) {
+  public void setPageCount(final int value) {
     assert value > pageCount;
     pageCount = value;
   }

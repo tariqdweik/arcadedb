@@ -160,12 +160,13 @@ public class ACIDTransactionTest {
     final int TOT = 1000;
 
     final AtomicInteger total = new AtomicInteger(0);
+    final AtomicInteger commits = new AtomicInteger(0);
 
     try {
       ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
-          if (total.get() > TOT - 100)
+          if (commits.incrementAndGet() > TOT - 100)
             throw new IOException("Test IO Exception");
           return null;
         }
@@ -223,7 +224,7 @@ public class ACIDTransactionTest {
       ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
-          if (total.get() > TOT - 10)
+          if (total.incrementAndGet() > TOT - 10)
             throw new IOException("Test IO Exception");
           return null;
         }

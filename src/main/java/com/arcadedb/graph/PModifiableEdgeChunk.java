@@ -22,11 +22,13 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
   public PModifiableEdgeChunk(final PDatabase database, final PRID rid, final PBinary buffer) {
     super(database, rid, buffer);
     this.buffer = buffer;
+    this.buffer.setAutoResizable(false);
     this.bufferSize = buffer.size();
   }
 
   public PModifiableEdgeChunk(final PDatabase database, final int bufferSize) {
     super(database, null, new PBinary(bufferSize));
+    this.buffer.setAutoResizable(false);
     this.bufferSize = bufferSize;
     buffer.putByte(0, RECORD_TYPE); // USED
     buffer.putInt(PBinary.BYTE_SERIALIZED_SIZE, CONTENT_START_POSITION); // USED
@@ -47,6 +49,8 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
   @Override
   public boolean add(final PRID edgeRID, final PRID vertexRID) {
     final PBinary ridSerialized = new PBinary(28);
+    ridSerialized.setAutoResizable(false);
+
     database.getSerializer().serializeValue(ridSerialized, PBinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
     database.getSerializer().serializeValue(ridSerialized, PBinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
 

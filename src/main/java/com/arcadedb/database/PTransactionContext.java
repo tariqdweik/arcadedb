@@ -81,7 +81,7 @@ public class PTransactionContext {
           pageManager.updatePage(p, true);
 
         for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
-          database.getSchema().getFileById(entry.getKey()).onAfterCommit(entry.getValue());
+          database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
           database.getFileManager().setVirtualFileSize(entry.getKey(),
               entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
         }

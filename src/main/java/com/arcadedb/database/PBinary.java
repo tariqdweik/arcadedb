@@ -12,7 +12,7 @@ public class PBinary implements PBinaryStructure {
 
   private final static int ALLOCATION_CHUNK = 512;
 
-  protected boolean autoResizable = true;
+  protected boolean    autoResizable = true;
   protected byte[]     content;
   protected ByteBuffer buffer;
   protected int        size;
@@ -45,6 +45,14 @@ public class PBinary implements PBinaryStructure {
 
   public void reset() {
     buffer.position(0);
+  }
+
+  public boolean isAutoResizable() {
+    return autoResizable;
+  }
+
+  public void setAutoResizable(final boolean autoResizable) {
+    this.autoResizable = autoResizable;
   }
 
   @Override
@@ -357,15 +365,25 @@ public class PBinary implements PBinaryStructure {
     buffer.flip();
   }
 
+  /**
+   * Creates a copy of this object referring to the same underlying buffer.
+   */
   public PBinary slice() {
+    buffer.position(0);
     return new PBinary(buffer.slice());
   }
 
+  /**
+   * Creates a copy of this object referring to the same underlying buffer, starting from a position.
+   */
   public PBinary slice(final int position) {
     buffer.position(position);
     return new PBinary(buffer.slice());
   }
 
+  /**
+   * Creates a copy of this object referring to the same underlying buffer, starting from a position and with a custom length.
+   */
   public PBinary slice(final int position, final int length) {
     buffer.position(position);
     final ByteBuffer result = buffer.slice();

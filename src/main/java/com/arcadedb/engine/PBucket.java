@@ -8,13 +8,12 @@ import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.exception.PRecordNotFoundException;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
 
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 
 /**
- * HEADER = [recordCount(int:4)] CONTENT-PAGES = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(2048*uint=8192)]
+ * PAGE CONTENT = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(2048*uint=8192)]
  */
 public class PBucket extends PPaginatedComponent {
   public static final String BUCKET_EXT          = "pbucket";
@@ -32,15 +31,6 @@ public class PBucket extends PPaginatedComponent {
   public PBucket(final PDatabase database, final String name, final String filePath, final PPaginatedFile.MODE mode,
       final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), BUCKET_EXT, mode, pageSize);
-
-    // NEW FILE, CREATE HEADER PAGE
-    final boolean txActive = database.isTransactionActive();
-    if (!txActive)
-      this.database.begin();
-    final PModifiablePage header = this.database.getTransaction().addPage(new PPageId(file.getFileId(), 0), pageSize);
-    header.writeInt(0, 0);
-    if (!txActive)
-      this.database.commit();
   }
 
   /**
@@ -66,11 +56,7 @@ public class PBucket extends PPaginatedComponent {
 
       final int txPageCounter = getTotalPages();
 
-      if (txPageCounter == 0)
-        throw new IllegalStateException(
-            "Bucket '" + name + "' has not been initialized. Be sure to commit the transaction that creates this bucket");
-
-      if (txPageCounter > 1) {
+      if (txPageCounter > 0) {
         lastPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize, false);
         recordCountInPage = lastPage.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
         if (recordCountInPage >= MAX_RECORDS_IN_PAGE)
@@ -104,15 +90,13 @@ public class PBucket extends PPaginatedComponent {
       }
 
       final PRID rid = new PRID(database, file.getFileId(),
-          (lastPage.getPageId().getPageNumber() - 1) * MAX_RECORDS_IN_PAGE + recordCountInPage);
+          lastPage.getPageId().getPageNumber() * MAX_RECORDS_IN_PAGE + recordCountInPage);
 
       lastPage.writeBytes(newPosition, buffer.toByteArray());
 
       lastPage.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * INT_SERIALIZED_SIZE, newPosition);
 
       lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
-
-      incrementRecordCount(1);
 
       return rid;
 
@@ -125,7 +109,7 @@ public class PBucket extends PPaginatedComponent {
     final PBinary buffer = database.getSerializer().serialize(database, record, id);
     final PRID rid = record.getIdentity();
 
-    final int pageId = (int) (rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE + 1);
+    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
     if (pageId >= pageCount) {
@@ -162,7 +146,7 @@ public class PBucket extends PPaginatedComponent {
   }
 
   public PBinary getRecord(final PRID rid) {
-    final int pageId = (int) (rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE + 1);
+    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
     if (pageId >= pageCount) {
@@ -179,6 +163,10 @@ public class PBucket extends PPaginatedComponent {
 
       final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
       final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+
+      assert recordSize[0] > -1;
+      assert recordSize[1] > -1;
+
       if (recordSize[0] == 0)
         // DELETED
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
@@ -193,7 +181,7 @@ public class PBucket extends PPaginatedComponent {
   }
 
   public void deleteRecord(final PRID rid) {
-    final int pageId = (int) (rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE + 1);
+    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
     if (pageId >= pageCount) {
@@ -230,21 +218,16 @@ public class PBucket extends PPaginatedComponent {
         page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
       }
 
-      incrementRecordCount(-1);
-
     } catch (IOException e) {
       throw new PDatabaseOperationException("Error on deletion of record " + rid);
     }
   }
 
   public void scan(final PRawRecordCallback callback) throws IOException {
-    if (count() == 0)
-      return;
-
     final int txPageCount = getTotalPages();
 
     try {
-      for (int pageId = 1; pageId < txPageCount; ++pageId) {
+      for (int pageId = 0; pageId < txPageCount; ++pageId) {
         final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
         final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
 
@@ -258,7 +241,7 @@ public class PBucket extends PPaginatedComponent {
               // NOT DELETED
               final int recordContentPositionInPage = recordPositionInPage + (int) recordSize[1];
 
-              final PRID rid = new PRID(database, id, (pageId - 1) * MAX_RECORDS_IN_PAGE + recordIdInPage);
+              final PRID rid = new PRID(database, id, pageId * MAX_RECORDS_IN_PAGE + recordIdInPage);
 
               final PBinary view = page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
 
@@ -274,12 +257,7 @@ public class PBucket extends PPaginatedComponent {
   }
 
   public Iterator<PRecord> iterator() throws IOException {
-    if (count() == 0)
-      return Collections.emptyIterator();
-
-    Iterator<PRecord> result = new PBucketIterator(this, database);
-
-    return result;
+    return new PBucketIterator(this, database);
   }
 
   public int getId() {
@@ -299,15 +277,31 @@ public class PBucket extends PPaginatedComponent {
     return ((PBucket) obj).id == this.id;
   }
 
-  public long count() throws IOException {
-    final PBasePage header = this.database.getTransaction().getPage(new PPageId(file.getFileId(), 0), pageSize);
-    return header.readInt(0);
-  }
+  public long count() {
+    long total = 0;
 
-  private void incrementRecordCount(final long delta) throws IOException {
-    final PModifiablePage header = this.database.getTransaction()
-        .getPageToModify(new PPageId(file.getFileId(), 0), pageSize, false);
-    final int recordCount = header.readInt(0);
-    header.writeInt(0, (int) (recordCount + delta));
+    final int txPageCount = getTotalPages();
+
+    try {
+      for (int pageId = 0; pageId < txPageCount; ++pageId) {
+        final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
+        final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+
+        if (recordCountInPage > 0) {
+          for (int recordIdInPage = 0; recordIdInPage < recordCountInPage; ++recordIdInPage) {
+            final int recordPositionInPage = (int) page
+                .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
+            final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+
+            if (recordSize[0] > 0)
+              total++;
+
+          }
+        }
+      }
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Cannot count bucket '" + name + "'", e);
+    }
+    return total;
   }
 }

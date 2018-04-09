@@ -59,6 +59,10 @@ public class PPaginatedFile {
     return channel.size();
   }
 
+  public void flush() throws IOException {
+    channel.force(true);
+  }
+
   /**
    * Returns the byte written. Current implementation flushes always the entire page because (1) there is not a sensible increase of
    * performance and (2) in case a page is modified multiple times before the flush now it's overwritten in the writeCache map.

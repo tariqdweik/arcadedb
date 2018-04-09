@@ -14,12 +14,12 @@ public class PBucketIterator implements Iterator<PRecord> {
 
   private final PDatabase database;
   private final PBucket   bucket;
-  int       nextPageNumber = 1;
-  PBasePage currentPage    = null;
-  short recordCountInCurrentPage;
-  int   totalPages;
-  PRecord next                = null;
-  int     currentRecordInPage = 0;
+  int       nextPageNumber      = 0;
+  PBasePage currentPage         = null;
+  short     recordCountInCurrentPage;
+  int       totalPages;
+  PRecord   next                = null;
+  int       currentRecordInPage = 0;
 
   PBucketIterator(PBucket bucket, PDatabase db) throws IOException {
     this.bucket = bucket;
@@ -49,7 +49,7 @@ public class PBucketIterator implements Iterator<PRecord> {
 
           if (recordSize > 0) {
             // NOT DELETED
-            final PRID rid = new PRID(database, bucket.id, (nextPageNumber - 1) * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
+            final PRID rid = new PRID(database, bucket.id, nextPageNumber * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
 
             currentRecordInPage++;
 

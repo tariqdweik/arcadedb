@@ -23,7 +23,8 @@ public class PImmutableDocument extends PBaseDocument {
   @Override
   public PModifiableDocument modify() {
     checkForLazyLoading();
-    return new PModifiableDocument(database, typeName, rid, buffer);
+    // CREATE A SEPARATE OBJECT THAT POINTS TO THE SAME BUFFER TO AVOID CONCURRENCY ON THE BUFFER POSITION
+    return new PModifiableDocument(database, typeName, rid, buffer.slice());
   }
 
   @Override

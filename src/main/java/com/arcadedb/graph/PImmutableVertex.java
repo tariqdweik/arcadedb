@@ -30,7 +30,8 @@ public class PImmutableVertex extends PImmutableDocument implements PVertexInter
 
   public PModifiableVertex modify() {
     checkForLazyLoading();
-    return new PModifiableVertex(database, typeName, rid, buffer);
+    // CREATE A SEPARATE OBJECT THAT POINTS TO THE SAME BUFFER TO AVOID CONCURRENCY ON THE BUFFER POSITION
+    return new PModifiableVertex(database, typeName, rid, buffer.slice());
   }
 
   @Override

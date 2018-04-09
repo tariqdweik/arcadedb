@@ -236,11 +236,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       @Override
       public Object call() throws Exception {
         checkDatabaseIsOpen();
-        try {
-          return schema.getBucketByName(bucketName).count();
-        } catch (IOException e) {
-          throw new PDatabaseOperationException("Error on counting items in bucket '" + bucketName + "'", e);
-        }
+        return schema.getBucketByName(bucketName).count();
       }
     });
   }
@@ -251,19 +247,13 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       @Override
       public Object call() throws Exception {
         checkDatabaseIsOpen();
-        try {
-          final PDocumentType type = schema.getType(typeName);
+        final PDocumentType type = schema.getType(typeName);
 
-          long total = 0;
-          for (PBucket b : type.getBuckets()) {
-            total += b.count();
-          }
-
-          return total;
-
-        } catch (IOException e) {
-          throw new PDatabaseOperationException("Error on counting items in type '" + typeName + "'", e);
+        long total = 0;
+        for (PBucket b : type.getBuckets()) {
+          total += b.count();
         }
+        return total;
       }
     });
   }

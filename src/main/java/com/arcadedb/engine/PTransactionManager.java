@@ -190,6 +190,9 @@ public class PTransactionManager {
 
   private boolean applyChanges(final PWALFile.WALTransaction tx) {
     boolean changed = false;
+
+    PLogManager.instance().info(this, "- applying changes from transaction=%d", tx.txId);
+
     for (PWALFile.WALPage txPage : tx.pages) {
       final PPaginatedFile file = database.getFileManager().getFile(txPage.fileId);
 
@@ -211,8 +214,17 @@ public class PTransactionManager {
           modifiedPage.writeByteArray(txPage.changesFrom - PBasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
           modifiedPage.version = txPage.currentPageVersion;
           file.write(modifiedPage);
+          file.flush();
+
+          final PPaginatedComponent component = database.getSchema().getFileById(txPage.fileId);
+          if (component != null) {
+            final int newPageCount = (int) (file.getSize() / file.getPageSize());
+            if (newPageCount > component.pageCount)
+              component.setPageCount(newPageCount);
+          }
+
           changed = true;
-          PLogManager.instance().info(this, "- recovered page %s v%d", pageId, modifiedPage.version);
+          PLogManager.instance().info(this, "  - updating page %s v%d", pageId, modifiedPage.version);
         }
 
       } catch (IOException e) {
@@ -226,13 +238,19 @@ public class PTransactionManager {
    * Returns the next file from the pool. If it's null (temporary moved to inactive) the next not-null is taken.
    */
   private PWALFile acquireWALFile() {
-    int pos = walFilePoolCursor.getAndIncrement();
-    if (pos >= activeWALFilePool.length) {
-      walFilePoolCursor.set(0);
-      pos = 0;
+    PWALFile selected = null;
+
+    while (selected == null || !selected.isOpen()) {
+      int pos = walFilePoolCursor.getAndIncrement();
+      if (pos >= activeWALFilePool.length) {
+        walFilePoolCursor.set(0);
+        pos = 0;
+      }
+
+      selected = activeWALFilePool[pos];
     }
 
-    return activeWALFilePool[pos];
+    return selected;
   }
 
   private void createFilePool() {
