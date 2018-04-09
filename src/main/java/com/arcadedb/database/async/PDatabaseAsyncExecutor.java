@@ -15,14 +15,16 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PDatabaseAsyncExecutor {
   private final PDatabaseInternal database;
   private       AsyncThread[]     executorThreads;
-  private       int               parallelLevel     = -1;
-  private       int               commitEvery       = 10000;
-  private       boolean           transactionUseWAL = true;
-  private       boolean           transactionSync   = false;
+  private       int               parallelLevel      = -1;
+  private       int               commitEvery        = 10000;
+  private       boolean           transactionUseWAL  = true;
+  private       boolean           transactionSync    = false;
+  private       AtomicLong        transactionCounter = new AtomicLong();
 
   // SPECIAL COMMANDS
   private final static PDatabaseAsyncCommand FORCE_COMMIT = new PDatabaseAsyncCommand();
@@ -66,7 +68,46 @@ public class PDatabaseAsyncExecutor {
               database.getTransaction().begin();
 
             } else if (message == FORCE_EXIT) {
+
               break;
+
+            } else if (message instanceof PDatabaseAsyncTransaction) {
+              final PDatabaseAsyncTransaction command = (PDatabaseAsyncTransaction) message;
+
+              PConcurrentModificationException lastException = null;
+
+              if (database.isTransactionActive())
+                database.commit();
+
+              for (int retry = 0; retry < PDatabaseImpl.DEFAULT_RETRIES; ++retry) {
+                try {
+                  database.begin();
+                  command.tx.execute(database);
+                  database.commit();
+
+                  lastException = null;
+
+                  // OK
+                  break;
+
+                } catch (PConcurrentModificationException e) {
+                  // RETRY
+                  lastException = e;
+
+//                  PLogManager.instance()
+//                      .info(this, "PConcurrentModificationException: %s (retry=%d threadId=%d)", e.toString(), retry,
+//                          Thread.currentThread().getId());
+
+                  continue;
+                } catch (Exception e) {
+                  if (database.getTransaction().isActive())
+                    database.rollback();
+                  throw e;
+                }
+              }
+
+              if (lastException != null)
+                throw lastException;
 
             } else if (message instanceof PDatabaseAsyncCreateRecord) {
               final PDatabaseAsyncCreateRecord command = (PDatabaseAsyncCreateRecord) message;
@@ -326,6 +367,16 @@ public class PDatabaseAsyncExecutor {
     }
   }
 
+  public void transaction(final PDatabase.PTransaction txBlock) {
+    try {
+      executorThreads[(int) (transactionCounter.getAndIncrement() % executorThreads.length)].queue
+          .put(new PDatabaseAsyncTransaction(txBlock));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new PDatabaseOperationException("Error on executing transaction");
+    }
+  }
+
   public void createRecord(final PModifiableDocument record) {
     final PDocumentType type = database.getSchema().getType(record.getType());
 
@@ -338,7 +389,7 @@ public class PDatabaseAsyncExecutor {
         executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new PDatabaseOperationException("Error on executing save");
+        throw new PDatabaseOperationException("Error on executing create record");
       }
 
     } else
@@ -355,7 +406,7 @@ public class PDatabaseAsyncExecutor {
         executorThreads[slot].queue.put(new PDatabaseAsyncCreateRecord(record, bucket));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new PDatabaseOperationException("Error on executing save");
+        throw new PDatabaseOperationException("Error on executing create record");
       }
     else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");

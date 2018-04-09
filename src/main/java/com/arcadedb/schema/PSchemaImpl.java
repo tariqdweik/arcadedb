@@ -5,8 +5,8 @@ import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PDictionary;
-import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.engine.PPaginatedComponent;
+import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
 import com.arcadedb.exception.PSchemaException;
@@ -20,14 +20,14 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class PSchemaImpl implements PSchema {
-  private static final String SCHEMA_FILE_NAME = "/schema.pcsv";
-  private final PDatabaseInternal database;
-  private final List<PPaginatedComponent>  files     = new ArrayList<PPaginatedComponent>();
-  private final Map<String, PDocumentType> types     = new HashMap<String, PDocumentType>();
-  private final Map<String, PBucket>       bucketMap = new HashMap<String, PBucket>();
-  private final Map<String, PIndex>        indexMap  = new HashMap<String, PIndex>();
-  private final String      databasePath;
-  private       PDictionary dictionary;
+  private static final String                     SCHEMA_FILE_NAME = "/schema.pcsv";
+  private final        PDatabaseInternal          database;
+  private final        List<PPaginatedComponent>  files            = new ArrayList<PPaginatedComponent>();
+  private final        Map<String, PDocumentType> types            = new HashMap<String, PDocumentType>();
+  private final        Map<String, PBucket>       bucketMap        = new HashMap<String, PBucket>();
+  private final        Map<String, PIndex>        indexMap         = new HashMap<String, PIndex>();
+  private final        String                     databasePath;
+  private              PDictionary                dictionary;
 
   public PSchemaImpl(final PDatabaseInternal database, final String databasePath, final PPaginatedFile.MODE mode) {
     this.database = database;
@@ -235,8 +235,8 @@ public class PSchemaImpl implements PSchema {
               throw new PDatabaseMetadataException(
                   "Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-            indexes[idx] = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PPaginatedFile.MODE.READ_WRITE, keyTypes,
-                PBinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
+            indexes[idx] = new PIndexLSM(database, indexName, databasePath + "/" + indexName, PPaginatedFile.MODE.READ_WRITE,
+                keyTypes, PBinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
 
             registerFile(indexes[idx]);
             indexMap.put(indexName, indexes[idx]);
@@ -369,18 +369,18 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PDocumentType createVertexType(final String typeName) {
+  public PVertexType createVertexType(final String typeName) {
     return createVertexType(typeName, 1);
   }
 
   @Override
-  public PDocumentType createVertexType(final String typeName, final int buckets) {
+  public PVertexType createVertexType(final String typeName, final int buckets) {
     return createVertexType(typeName, buckets, PBucket.DEF_PAGE_SIZE);
   }
 
   @Override
-  public PDocumentType createVertexType(String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
+  public PVertexType createVertexType(String typeName, final int buckets, final int pageSize) {
+    return (PVertexType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -404,18 +404,18 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PDocumentType createEdgeType(final String typeName) {
+  public PEdgeType createEdgeType(final String typeName) {
     return createEdgeType(typeName, 1);
   }
 
   @Override
-  public PDocumentType createEdgeType(final String typeName, final int buckets) {
+  public PEdgeType createEdgeType(final String typeName, final int buckets) {
     return createEdgeType(typeName, buckets, PBucket.DEF_PAGE_SIZE);
   }
 
   @Override
-  public PDocumentType createEdgeType(final String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
+  public PEdgeType createEdgeType(final String typeName, final int buckets, final int pageSize) {
+    return (PEdgeType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)

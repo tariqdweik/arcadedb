@@ -28,27 +28,27 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabaseInternal {
-  private static final int DEFAULT_RETRIES = 10;
+  public static final int DEFAULT_RETRIES = 50;
 
-  protected final String              name;
-  protected final PPaginatedFile.MODE mode;
-  protected final String              databasePath;
-  protected final PFileManager        fileManager;
-  protected final PPageManager        pageManager;
-  protected final PBinarySerializer serializer    = new PBinarySerializer();
-  protected final PRecordFactory    recordFactory = new PRecordFactory();
-  protected final PSchemaImpl schema;
-  protected final PGraphEngine           graphEngine        = new PGraphEngine();
-  protected final PTransactionManager    transactionManager = new PTransactionManager(this);
-  protected       PDatabaseAsyncExecutor asynch             = null;
+  protected final String                 name;
+  protected final PPaginatedFile.MODE    mode;
+  protected final String                 databasePath;
+  protected final PFileManager           fileManager;
+  protected final PPageManager           pageManager;
+  protected final PBinarySerializer      serializer    = new PBinarySerializer();
+  protected final PRecordFactory         recordFactory = new PRecordFactory();
+  protected final PSchemaImpl            schema;
+  protected final PGraphEngine           graphEngine   = new PGraphEngine();
+  protected final PTransactionManager    transactionManager;
+  protected       PDatabaseAsyncExecutor asynch        = null;
 
   protected          boolean autoTransaction = false;
   protected volatile boolean open            = false;
 
-  protected static final Set<String> SUPPORTED_FILE_EXT = new HashSet<String>(
+  protected static final Set<String>                               SUPPORTED_FILE_EXT = new HashSet<String>(
       Arrays.asList(PDictionary.DICT_EXT, PBucket.BUCKET_EXT, PIndexLSM.INDEX_EXT));
-  private File                                      lockFile;
-  private Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
+  private                File                                      lockFile;
+  private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
 
   protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode, final boolean multiThread,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
@@ -71,6 +71,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       PTransactionTL.INSTANCE.set(new PTransactionContext(this));
 
       fileManager = new PFileManager(path, mode, SUPPORTED_FILE_EXT);
+      transactionManager = new PTransactionManager(this);
       pageManager = new PPageManager(fileManager, transactionManager);
 
       open = true;

@@ -19,15 +19,15 @@ import java.util.concurrent.atomic.AtomicLong;
  * Manages pages from disk to RAM. Each page can have different size.
  */
 public class PPageManager {
-  private final PFileManager fileManager;
+  private final PFileManager                            fileManager;
   private final ConcurrentMap<PPageId, PImmutablePage>  readCache  = new ConcurrentHashMap<>(65536);
   private final ConcurrentMap<PPageId, PModifiablePage> writeCache = new ConcurrentHashMap<>(65536);
 
-  private final PLockManager<Integer, Thread> lockManager = new PLockManager();
-  private final PTransactionManager txManager;
-  private boolean flushOnlyAtClose = PGlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
+  private final PLockManager<Integer, Thread> lockManager      = new PLockManager();
+  private final PTransactionManager           txManager;
+  private       boolean                       flushOnlyAtClose = PGlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
 
-  private long maxRAM;
+  private long       maxRAM;
   private AtomicLong totalReadCacheRAM     = new AtomicLong();
   private AtomicLong totalWriteCacheRAM    = new AtomicLong();
   private AtomicLong totalPagesRead        = new AtomicLong();
@@ -37,7 +37,7 @@ public class PPageManager {
   private AtomicLong cacheHits             = new AtomicLong();
   private AtomicLong cacheMiss             = new AtomicLong();
 
-  private long lastCheckForRAM = 0;
+  private       long                    lastCheckForRAM = 0;
   private final PPageManagerFlushThread flushThread;
 
   public class PPageManagerStats {
@@ -132,9 +132,10 @@ public class PPageManager {
 
   public PBasePage getPage(final PPageId pageId, final int pageSize, final boolean isNew) throws IOException {
     PBasePage page = writeCache.get(pageId);
-    if (page != null)
+    if (page != null) {
+      page = ((PModifiablePage) page).createImmutableCopy();
       cacheHits.incrementAndGet();
-    else {
+    } else {
       page = readCache.get(pageId);
       if (page == null) {
         page = loadPage(pageId, pageSize);

@@ -42,15 +42,11 @@ public class PModifiableVertex extends PModifiableDocument implements PVertexInt
 
   @Override
   public void setOutEdgesHeadChunk(final PRID outEdges) {
-//    if (outEdges.getBucketId() == 7 && outEdges.getPosition() == 2060476)
-//      PLogManager.instance().info(this, "setOutEdgesHeadChunk in %s!", rid);
     this.outEdges = outEdges;
   }
 
   @Override
   public void setInEdgesHeadChunk(final PRID inEdges) {
-//    if (inEdges.getBucketId() == 7 && inEdges.getPosition() == 2060476)
-//      PLogManager.instance().info(this, "setInEdgesHeadChunk in %s!", rid);
     this.inEdges = inEdges;
   }
 

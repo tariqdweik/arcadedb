@@ -18,11 +18,11 @@ public class PTransactionManager {
 
   private final PDatabaseInternal database;
   private       PWALFile[]        activeWALFilePool;
-  private final List<PWALFile> inactiveWALFilePool = new ArrayList<>();
-  private       AtomicInteger  walFilePoolCursor   = new AtomicInteger();
+  private final List<PWALFile>    inactiveWALFilePool = new ArrayList<>();
+  private       AtomicInteger     walFilePoolCursor   = new AtomicInteger();
 
-  private final Timer task;
-  private CountDownLatch taskExecuting = new CountDownLatch(0);
+  private final Timer          task;
+  private       CountDownLatch taskExecuting = new CountDownLatch(0);
 
   private final AtomicLong transactionIds = new AtomicLong();
   private final AtomicLong logFileCounter = new AtomicLong();
@@ -32,6 +32,8 @@ public class PTransactionManager {
 
   public PTransactionManager(final PDatabaseInternal database) {
     this.database = database;
+
+    createFilePool();
 
     task = new Timer();
     task.schedule(new TimerTask() {
@@ -224,9 +226,6 @@ public class PTransactionManager {
    * Returns the next file from the pool. If it's null (temporary moved to inactive) the next not-null is taken.
    */
   private PWALFile acquireWALFile() {
-    if (activeWALFilePool == null)
-      createFilePool();
-
     int pos = walFilePoolCursor.getAndIncrement();
     if (pos >= activeWALFilePool.length) {
       walFilePoolCursor.set(0);

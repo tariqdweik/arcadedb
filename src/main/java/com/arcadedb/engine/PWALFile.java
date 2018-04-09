@@ -30,10 +30,10 @@ public class PWALFile extends PLockContext {
 
   private static final long MAGIC_NUMBER = 9371515385058702l;
 
-  private final String      filePath;
-  private       FileChannel channel;
-  private       boolean     open;
-  private AtomicInteger pagesToFlush = new AtomicInteger();
+  private final String        filePath;
+  private       FileChannel   channel;
+  private       boolean       open;
+  private       AtomicInteger pagesToFlush = new AtomicInteger();
 
   private long statsPagesWritten = 0;
   private long statsBytesWritten = 0;
@@ -67,18 +67,14 @@ public class PWALFile extends PLockContext {
     this.open = true;
   }
 
-  public void close() throws IOException {
+  public synchronized void close() throws IOException {
     channel.close();
     this.open = false;
   }
 
-  public void drop() throws IOException {
+  public synchronized void drop() throws IOException {
     close();
     new File(getFilePath()).delete();
-  }
-
-  public void flush() throws IOException {
-    channel.force(false);
   }
 
   public WALTransaction getFirstTransaction() throws PWALException {
@@ -251,7 +247,7 @@ public class PWALFile extends PLockContext {
     statsBytesWritten += TX_FOOTER_SIZE;
 
     if (sync)
-      file.flush();
+      channel.force(false);
 
     database.executeCallbacks(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE);
   }
@@ -271,11 +267,6 @@ public class PWALFile extends PLockContext {
   public void appendPage(final ByteBuffer buffer) throws IOException {
     pagesToFlush.incrementAndGet();
     append(buffer);
-  }
-
-  public void append(final ByteBuffer buffer) throws IOException {
-    buffer.rewind();
-    channel.write(buffer, channel.size());
   }
 
   public boolean isOpen() {
@@ -314,5 +305,10 @@ public class PWALFile extends PLockContext {
     bufferByte.position(0);
     channel.read(bufferByte, pos);
     return bufferByte.get(0);
+  }
+
+  private void append(final ByteBuffer buffer) throws IOException {
+    buffer.rewind();
+    channel.write(buffer, channel.size());
   }
 }
