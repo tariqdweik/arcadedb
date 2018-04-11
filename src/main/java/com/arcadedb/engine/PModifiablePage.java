@@ -7,8 +7,8 @@ import com.arcadedb.database.PTrackableBinary;
  * Low level modifiable page implementation. The first 8 bytes (the header) are reserved to store the page version (MVCC).
  */
 public class PModifiablePage extends PBasePage implements PTrackableContent {
-  private int modifiedRangeFrom = Integer.MAX_VALUE;
-  private int modifiedRangeTo   = -1;
+  private int      modifiedRangeFrom = Integer.MAX_VALUE;
+  private int      modifiedRangeTo   = -1;
   private PWALFile walFile;
 
   public PModifiablePage(final PPageManager manager, final PPageId pageId, final int size) {
@@ -87,13 +87,6 @@ public class PModifiablePage extends PBasePage implements PTrackableContent {
 
   public int writeString(final int index, final String content) {
     return writeBytes(index, content.getBytes());
-  }
-
-  /**
-   * Creates an immutable copy. The content is not copied, because after invoking this method the original page is never modified.
-   */
-  public PImmutablePage createImmutableCopy() {
-    return new PImmutablePage(manager, pageId, getPhysicalSize(), content.getByteBuffer().array(), version, content.size());
   }
 
   public void blank(final int index, final int length) {

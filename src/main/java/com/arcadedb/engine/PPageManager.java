@@ -132,10 +132,9 @@ public class PPageManager {
 
   public PBasePage getPage(final PPageId pageId, final int pageSize, final boolean isNew) throws IOException {
     PBasePage page = writeCache.get(pageId);
-    if (page != null) {
-      page = ((PModifiablePage) page).createImmutableCopy();
+    if (page != null)
       cacheHits.incrementAndGet();
-    } else {
+    else {
       page = readCache.get(pageId);
       if (page == null) {
         page = loadPage(pageId, pageSize);
@@ -151,8 +150,7 @@ public class PPageManager {
             "Page id '" + pageId + "' does not exists (threadId=" + Thread.currentThread().getId() + ")");
     }
 
-    page.content.reset();
-    return page;
+    return page.createImmutableCopy();
   }
 
   public PBasePage checkPageVersion(final PModifiablePage page, final boolean isNew) throws IOException {

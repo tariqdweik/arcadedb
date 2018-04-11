@@ -3,6 +3,7 @@ package com.arcadedb.engine;
 import com.arcadedb.database.PBinary;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.Callable;
 
 /**
  * Low level base page implementation of (default) 65536 bytes (2 exp 16 = 65Kb). The first 4 bytes (the header) are reserved to
@@ -20,7 +21,7 @@ public abstract class PBasePage {
   protected final    PBinary content;
   private final      int     size;
   protected volatile int     version;
-  private long lastAccessed = System.currentTimeMillis();
+  private            long    lastAccessed = System.currentTimeMillis();
 
   protected PBasePage(final PPageManager manager, final PPageId pageId, final int size, final byte[] buffer, final int version,
       final int contentSize) {
@@ -55,6 +56,24 @@ public abstract class PBasePage {
 
   public int getMaxContentSize() {
     return getPhysicalSize() - PAGE_HEADER_SIZE;
+  }
+
+  /**
+   * Creates an immutable copy. The content is not copied (the same byte[] is used), because after invoking this method the original page is never modified.
+   */
+  public PImmutablePage createImmutableCopy() {
+    try {
+      return (PImmutablePage) content.executeInLock(new Callable<Object>() {
+        @Override
+        public PImmutablePage call() throws Exception {
+          return new PImmutablePage(manager, pageId, getPhysicalSize(), content.getByteBuffer().array(), version, content.size());
+        }
+      });
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException("Cannot create an immutable copy of page " + toString(), e);
+    }
   }
 
   public int getAvailableContentSize() {

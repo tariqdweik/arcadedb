@@ -6,6 +6,7 @@ import com.arcadedb.database.PDatabaseInternal;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.engine.PWALException;
 import com.arcadedb.exception.PTransactionException;
 import com.arcadedb.utility.PFileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -89,7 +90,7 @@ public class ACIDTransactionTest {
       Assertions.fail("Expected commit to fail");
 
     } catch (PTransactionException e) {
-      Assertions.assertTrue(e.getCause() instanceof IOException);
+      Assertions.assertTrue(e.getCause() instanceof PWALException);
     }
     ((PDatabaseInternal) db).kill();
 
@@ -127,7 +128,7 @@ public class ACIDTransactionTest {
       Assertions.fail("Expected commit to fail");
 
     } catch (PTransactionException e) {
-      Assertions.assertTrue(e.getCause() instanceof IOException);
+      Assertions.assertTrue(e.getCause() instanceof PWALException);
     }
     ((PDatabaseInternal) db).kill();
 

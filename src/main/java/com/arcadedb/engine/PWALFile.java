@@ -14,6 +14,7 @@ import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PWALFile extends PLockContext {
@@ -30,10 +31,11 @@ public class PWALFile extends PLockContext {
 
   private static final long MAGIC_NUMBER = 9371515385058702l;
 
-  private final String        filePath;
-  private       FileChannel   channel;
-  private       boolean       open;
-  private       AtomicInteger pagesToFlush = new AtomicInteger();
+  private final    String        filePath;
+  private          FileChannel   channel;
+  private volatile boolean       active       = true;
+  private volatile boolean       open;
+  private          AtomicInteger pagesToFlush = new AtomicInteger();
 
   private long statsPagesWritten = 0;
   private long statsBytesWritten = 0;
@@ -68,8 +70,8 @@ public class PWALFile extends PLockContext {
   }
 
   public synchronized void close() throws IOException {
-    channel.close();
     this.open = false;
+    channel.close();
   }
 
   public synchronized void drop() throws IOException {
@@ -79,6 +81,34 @@ public class PWALFile extends PLockContext {
 
   public WALTransaction getFirstTransaction() throws PWALException {
     return getTransaction(0);
+  }
+
+  /**
+   * If the WAL is still active, execute the callback. This avoids to close a file where a thread is still writing to it.
+   *
+   * @return true if acquired, otherwise false
+   */
+  public synchronized boolean acquire(final Callable<Object> callable) {
+    if (!active || !open)
+      return false;
+
+    try {
+      callable.call();
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new PWALException("Error on writing to WAL file " + getFilePath(), e);
+    }
+
+    return true;
+  }
+
+  public boolean isActive() {
+    return active;
+  }
+
+  public synchronized void setActive(final boolean active) {
+    this.active = active;
   }
 
   public WALTransaction getTransaction(long pos) {
@@ -161,7 +191,7 @@ public class PWALFile extends PLockContext {
     }
   }
 
-  public synchronized void writeTransaction(final PDatabaseInternal database, final List<PPair<PBasePage, PModifiablePage>> pages,
+  public void writeTransaction(final PDatabaseInternal database, final List<PPair<PBasePage, PModifiablePage>> pages,
       final boolean sync, final PWALFile file, final long txId) throws IOException {
     // WRITE TX HEADER (TXID, PAGES)
     byte[] buffer = new byte[TX_HEADER_SIZE];

@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -81,10 +82,26 @@ public class PTransactionManager {
   }
 
   public void writeTransactionToWAL(final List<PPair<PBasePage, PModifiablePage>> pages, final boolean sync) throws IOException {
-    final PWALFile file = acquireWALFile();
+    while (true) {
+      int pos = walFilePoolCursor.getAndIncrement();
+      if (pos >= activeWALFilePool.length) {
+        walFilePoolCursor.set(0);
+        pos = 0;
+      }
 
-    final long txId = transactionIds.getAndIncrement();
-    file.writeTransaction(database, pages, sync, file, txId);
+      final PWALFile file = activeWALFilePool[pos];
+
+      if (file != null && file.acquire(new Callable<Object>() {
+        @Override
+        public Object call() throws Exception {
+          final long txId = transactionIds.getAndIncrement();
+          file.writeTransaction(database, pages, sync, file, txId);
+          return null;
+        }
+      }))
+        // OK
+        break;
+    }
   }
 
   public void notifyPageFlushed(final PModifiablePage page) {
@@ -234,25 +251,6 @@ public class PTransactionManager {
     return changed;
   }
 
-  /**
-   * Returns the next file from the pool. If it's null (temporary moved to inactive) the next not-null is taken.
-   */
-  private PWALFile acquireWALFile() {
-    PWALFile selected = null;
-
-    while (selected == null || !selected.isOpen()) {
-      int pos = walFilePoolCursor.getAndIncrement();
-      if (pos >= activeWALFilePool.length) {
-        walFilePoolCursor.set(0);
-        pos = 0;
-      }
-
-      selected = activeWALFilePool[pos];
-    }
-
-    return selected;
-  }
-
   private void createFilePool() {
     activeWALFilePool = new PWALFile[Runtime.getRuntime().availableProcessors()];
     for (int i = 0; i < activeWALFilePool.length; ++i) {
@@ -275,6 +273,7 @@ public class PTransactionManager {
                 .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file,
                     MAX_LOG_FILE_SIZE);
             activeWALFilePool[i] = new PWALFile(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+            file.setActive(false);
             inactiveWALFilePool.add(file);
           }
         } catch (IOException e) {

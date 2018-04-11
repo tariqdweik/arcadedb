@@ -1,6 +1,7 @@
 package com.arcadedb.database;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.Callable;
 
 public class PBinary implements PBinaryStructure {
   public static final int BYTE_SERIALIZED_SIZE   = 1;
@@ -397,6 +398,30 @@ public class PBinary implements PBinaryStructure {
     return size;
   }
 
+  public void size(int newSize) {
+    if (newSize > content.length)
+      checkForAllocation(0, newSize);
+    else
+      size = newSize;
+  }
+
+  public void move(final int startPosition, final int destPosition, final int length) {
+    System.arraycopy(content, buffer.arrayOffset() + startPosition, content, buffer.arrayOffset() + destPosition, length);
+  }
+
+  public byte[] getContent() {
+    return content;
+  }
+
+  public int getContentSize() {
+    return content.length;
+  }
+
+  @Override
+  public String toString() {
+    return "PBinary size=" + size + " pos=" + buffer.position();
+  }
+
   /**
    * Allocates enough space (max 1 page) and update the size according to the bytes to write.
    */
@@ -426,27 +451,7 @@ public class PBinary implements PBinaryStructure {
       size = offset + bytesToWrite;
   }
 
-  public void size(int newSize) {
-    if (newSize > content.length)
-      checkForAllocation(0, newSize);
-    else
-      size = newSize;
-  }
-
-  public void move(final int startPosition, final int destPosition, final int length) {
-    System.arraycopy(content, buffer.arrayOffset() + startPosition, content, buffer.arrayOffset() + destPosition, length);
-  }
-
-  public byte[] getContent() {
-    return content;
-  }
-
-  public int getContentSize() {
-    return content.length;
-  }
-
-  @Override
-  public String toString() {
-    return "PBinary size=" + size + " pos=" + buffer.position();
+  public Object executeInLock(final Callable<Object> callable) throws Exception {
+    return callable.call();
   }
 }
