@@ -141,6 +141,11 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
   @Override
   public void close() {
+    if (asynch != null) {
+      // EXECUTE OUTSIDE LOCK
+      asynch.waitCompletion();
+      asynch.close();
+    }
     super.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {

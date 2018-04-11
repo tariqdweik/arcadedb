@@ -75,8 +75,6 @@ public class RandomTest {
                   .currentThread().getId() + ")");
       }
 
-      database.asynch().waitCompletion();
-
     } finally {
       database.close();
       System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");

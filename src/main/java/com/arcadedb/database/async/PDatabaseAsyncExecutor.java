@@ -101,6 +101,9 @@ public class PDatabaseAsyncExecutor {
                 } catch (Exception e) {
                   if (database.getTransaction().isActive())
                     database.rollback();
+
+                  onError(e);
+
                   throw e;
                 }
               }

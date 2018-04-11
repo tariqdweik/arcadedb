@@ -26,9 +26,9 @@ public class PTransactionContext {
   private final PDatabaseInternal             database;
   private       Map<PPageId, PModifiablePage> modifiedPages;
   private       Map<PPageId, PModifiablePage> newPages;
-  private final Map<Integer, Integer> newPageCounters = new HashMap<>();
-  private       boolean               useWAL          = true;
-  private       boolean               sync            = false;
+  private final Map<Integer, Integer>         newPageCounters = new HashMap<>();
+  private       boolean                       useWAL          = true;
+  private       boolean                       sync            = false;
 
   public PTransactionContext(final PDatabaseInternal database) {
     this.database = database;
@@ -77,14 +77,14 @@ public class PTransactionContext {
         pageManager.updatePage(p, false);
 
       if (newPages != null) {
-        for (PModifiablePage p : newPages.values())
-          pageManager.updatePage(p, true);
-
         for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
           database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
           database.getFileManager().setVirtualFileSize(entry.getKey(),
               entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
         }
+
+        for (PModifiablePage p : newPages.values())
+          pageManager.updatePage(p, true);
       }
 
     } catch (PConcurrentModificationException e) {

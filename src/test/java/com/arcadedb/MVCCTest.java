@@ -31,6 +31,8 @@ public class MVCCTest {
 
     populateDatabase();
 
+    System.out.println("Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
+
     final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
     database.asynch().setParallelLevel(PARALLEL);
@@ -72,21 +74,16 @@ public class MVCCTest {
             ((PModifiableVertex) tx).newEdge("Purchased", account.next(), true, "date", new Date());
           }
         }, 0);
-
-        if (txId % 10 == 0)
-          System.out.println(
-              "- Executed " + txId + " transactions in " + (System.currentTimeMillis() - begin) + "ms (threadId=" + Thread
-                  .currentThread().getId() + " errors=" + mvccErrors.get() + ")");
       }
 
     } finally {
-      database.asynch().waitCompletion();
+      database.close();
 
       Assertions.assertTrue(mvccErrors.get() > 0);
       Assertions.assertEquals(0, otherErrors.get());
 
-      database.close();
-      System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
+      System.out.println(
+          "Insertion finished in " + (System.currentTimeMillis() - begin) + "ms, managed mvcc exceptions " + mvccErrors.get());
     }
   }
 
