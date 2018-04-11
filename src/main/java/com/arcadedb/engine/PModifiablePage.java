@@ -124,6 +124,6 @@ public class PModifiablePage extends PBasePage implements PTrackableContent {
       throw new IllegalArgumentException(
           "Cannot write outside the page space (" + (start + length) + ">" + getPhysicalSize() + ")");
 
-    updateModifiedRange(start, start + length);
+    updateModifiedRange(start, start + length - 1);
   }
 }

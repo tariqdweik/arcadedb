@@ -74,24 +74,28 @@ public class PPaginatedFile {
     assert page.getPageId().getFileId() == fileId;
     final ByteBuffer buffer = page.getContent();
 
+    buffer.rewind();
+    channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
+    return pageSize;
+//
 //    final int[] range = page.getModifiedRange();
 //
 //    assert range[0] > -1 && range[1] < pageSize;
 //
 //    if (range[0] == 0 && range[1] == pageSize - 1) {
-    // FLUSH THE ENTIRE PAGE
-    buffer.rewind();
-    channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
-    return pageSize;
+//      // FLUSH THE ENTIRE PAGE
+//      buffer.rewind();
+//      channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
+//      return pageSize;
 //    }
 //
-//    // FLUSH ONLY THE DELTA
+//    // FLUSH ONLY THE UPDATED VERSION + DELTA
 //    buffer.position(range[1] + 1);
 //    buffer.flip();
-//    buffer.position(range[0]);
+//    buffer.position(0); // ALWAYS WRITE FROM 0 TO INCLUDE PAGE VERSION
 //    final ByteBuffer delta = buffer.slice();
 //
-//    channel.write(delta, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()) + range[0]);
+//    channel.write(delta, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
 //
 //    return range[1] - range[0] + 1;
   }
