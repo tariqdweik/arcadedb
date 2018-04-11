@@ -27,15 +27,16 @@ public class PPageManager {
   private final PTransactionManager           txManager;
   private       boolean                       flushOnlyAtClose = PGlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
 
-  private long       maxRAM;
-  private AtomicLong totalReadCacheRAM     = new AtomicLong();
-  private AtomicLong totalWriteCacheRAM    = new AtomicLong();
-  private AtomicLong totalPagesRead        = new AtomicLong();
-  private AtomicLong totalPagesReadSize    = new AtomicLong();
-  private AtomicLong totalPagesWritten     = new AtomicLong();
-  private AtomicLong totalPagesWrittenSize = new AtomicLong();
-  private AtomicLong cacheHits             = new AtomicLong();
-  private AtomicLong cacheMiss             = new AtomicLong();
+  private final long       maxRAM;
+  private final AtomicLong totalReadCacheRAM                     = new AtomicLong();
+  private final AtomicLong totalWriteCacheRAM                    = new AtomicLong();
+  private final AtomicLong totalPagesRead                        = new AtomicLong();
+  private final AtomicLong totalPagesReadSize                    = new AtomicLong();
+  private final AtomicLong totalPagesWritten                     = new AtomicLong();
+  private final AtomicLong totalPagesWrittenSize                 = new AtomicLong();
+  private final AtomicLong cacheHits                             = new AtomicLong();
+  private final AtomicLong cacheMiss                             = new AtomicLong();
+  private final AtomicLong totalConcurrentModificationExceptions = new AtomicLong();
 
   private       long                    lastCheckForRAM = 0;
   private final PPageManagerFlushThread flushThread;
@@ -51,6 +52,7 @@ public class PPageManager {
     public int  pageFlushQueueLength;
     public long cacheHits;
     public long cacheMiss;
+    public long concurrentModificationExceptions;
   }
 
   public PPageManager(final PFileManager fileManager, final PTransactionManager txManager) {
@@ -155,10 +157,12 @@ public class PPageManager {
 
   public PBasePage checkPageVersion(final PModifiablePage page, final boolean isNew) throws IOException {
     final PBasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
-    if (p != null && p.getVersion() != page.getVersion())
+    if (p != null && p.getVersion() != page.getVersion()) {
+      totalConcurrentModificationExceptions.incrementAndGet();
       throw new PConcurrentModificationException(
           "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + p
               .getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+    }
     return p;
   }
 
@@ -166,10 +170,12 @@ public class PPageManager {
     final PBasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
     if (p != null) {
 
-      if (p.getVersion() != page.getVersion())
+      if (p.getVersion() != page.getVersion()) {
+        totalConcurrentModificationExceptions.incrementAndGet();
         throw new PConcurrentModificationException(
             "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + p
                 .getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+      }
 
       page.incrementVersion();
       page.flushMetadata();
@@ -198,6 +204,7 @@ public class PPageManager {
     stats.pageFlushQueueLength = flushThread.queue.size();
     stats.cacheHits = cacheHits.get();
     stats.cacheMiss = cacheMiss.get();
+    stats.concurrentModificationExceptions = totalConcurrentModificationExceptions.get();
     return stats;
   }
 

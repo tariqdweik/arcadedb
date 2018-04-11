@@ -61,6 +61,7 @@ public class PProfiler {
     long walPagesWritten = 0;
     long walBytesWritten = 0;
     long walTotalFiles = 0;
+    long concurrentModificationExceptions = 0;
 
     for (PDatabaseInternal db : databases) {
       final PPageManager.PPageManagerStats pStats = db.getPageManager().getStats();
@@ -74,6 +75,7 @@ public class PProfiler {
       pageFlushQueueLength += pStats.pageFlushQueueLength;
       pageCacheHits += pStats.cacheHits;
       pageCacheMiss += pStats.cacheMiss;
+      concurrentModificationExceptions += pStats.concurrentModificationExceptions;
 
       final PFileManager.PFileManagerStats fStats = db.getFileManager().getStats();
       totalOpenFiles += fStats.totalOpenFiles;
@@ -121,9 +123,10 @@ public class PProfiler {
 
     buffer.append(String.format("\n DB databases=%d asynchQueue=%d", databases.size(), asynchQueueLength));
 
-    buffer.append(String.format("\n PAGE-MANAGER read=%d (%s) write=%d (%s) flushQueue=%d cacheHits=%d cacheMiss=%d", pagesRead,
-        PFileUtils.getSizeAsString(pagesReadSize), pagesWritten, PFileUtils.getSizeAsString(pagesWrittenSize), pageFlushQueueLength,
-        pageCacheHits, pageCacheMiss));
+    buffer.append(String
+        .format("\n PAGE-MANAGER read=%d (%s) write=%d (%s) flushQueue=%d cacheHits=%d cacheMiss=%d concModExceptions=%d",
+            pagesRead, PFileUtils.getSizeAsString(pagesReadSize), pagesWritten, PFileUtils.getSizeAsString(pagesWrittenSize),
+            pageFlushQueueLength, pageCacheHits, pageCacheMiss, concurrentModificationExceptions));
 
     buffer.append(String.format("\n WAL totalFiles=%d pagesWritten=%d bytesWritten=%s", walTotalFiles, walPagesWritten,
         PFileUtils.getSizeAsString(walBytesWritten)));
