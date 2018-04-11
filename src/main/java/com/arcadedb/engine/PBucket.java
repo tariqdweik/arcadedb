@@ -131,10 +131,14 @@ public class PBucket extends PPaginatedComponent {
         // DELETED
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
 
-      if (buffer.size() != recordSize[0])
+      if (buffer.size() > recordSize[0])
         throw new IllegalArgumentException(
-            "Record " + rid + " cannot be updated because the size (" + buffer.size() + ") is different than the existent one ("
+            "Record " + rid + " cannot be updated because the size (" + buffer.size() + ") is major than the existent one ("
                 + recordSize[0] + ")");
+
+      if (buffer.size() < recordSize[0])
+        // UPDATE THE SIZE. THE REMAINING SPACE IS UNUSED
+        recordSize[1] = page.writeNumber(recordPositionInPage, buffer.size());
 
       final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
 

@@ -31,10 +31,10 @@ public class PModifiablePage extends PBasePage implements PTrackableContent {
     version++;
   }
 
-  public void writeNumber(int index, final long content) {
+  public int writeNumber(int index, final long content) {
     index += PAGE_HEADER_SIZE;
     checkBoundariesOnWrite(index, PBinary.LONG_SERIALIZED_SIZE + 1); // WITH VARSIZE NUMBER THE WORST CASE SCENARIO IS 1 BYTE MORE
-    this.content.putNumber(index, content);
+    return this.content.putNumber(index, content);
   }
 
   public void writeLong(int index, final long content) {

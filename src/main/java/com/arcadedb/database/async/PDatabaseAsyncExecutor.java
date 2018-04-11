@@ -1,5 +1,6 @@
 package com.arcadedb.database.async;
 
+import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PRawRecordCallback;
@@ -79,7 +80,7 @@ public class PDatabaseAsyncExecutor {
               if (database.isTransactionActive())
                 database.commit();
 
-              for (int retry = 0; retry < PDatabaseImpl.DEFAULT_RETRIES; ++retry) {
+              for (int retry = 0; retry < command.retries + 1; ++retry) {
                 try {
                   database.begin();
                   command.tx.execute(database);
@@ -94,9 +95,7 @@ public class PDatabaseAsyncExecutor {
                   // RETRY
                   lastException = e;
 
-//                  PLogManager.instance()
-//                      .info(this, "PConcurrentModificationException: %s (retry=%d threadId=%d)", e.toString(), retry,
-//                          Thread.currentThread().getId());
+                  beginTxIfNeeded();
 
                   continue;
                 } catch (Exception e) {
@@ -107,7 +106,9 @@ public class PDatabaseAsyncExecutor {
               }
 
               if (lastException != null)
-                throw lastException;
+                onError(lastException);
+
+              beginTxIfNeeded();
 
             } else if (message instanceof PDatabaseAsyncCreateRecord) {
               final PDatabaseAsyncCreateRecord command = (PDatabaseAsyncCreateRecord) message;
@@ -228,16 +229,14 @@ public class PDatabaseAsyncExecutor {
           } else if (shutdown)
             break;
 
-        } catch (PConcurrentModificationException e) {
-          PLogManager.instance().error(this, "Error on saving record (asyncThread=%s)", e, getName());
-          database.getTransaction().begin();
-
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           queue.clear();
           break;
         } catch (Exception e) {
           PLogManager.instance().error(this, "Error on saving record (asyncThread=%s)", e, getName());
+          if (!database.getTransaction().isActive())
+            database.getTransaction().begin();
         }
       }
 
@@ -368,9 +367,13 @@ public class PDatabaseAsyncExecutor {
   }
 
   public void transaction(final PDatabase.PTransaction txBlock) {
+    transaction(txBlock, PGlobalConfiguration.MVCC_RETRIES.getValueAsInteger());
+  }
+
+  public void transaction(final PDatabase.PTransaction txBlock, final int retries) {
     try {
       executorThreads[(int) (transactionCounter.getAndIncrement() % executorThreads.length)].queue
-          .put(new PDatabaseAsyncTransaction(txBlock));
+          .put(new PDatabaseAsyncTransaction(txBlock, retries));
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new PDatabaseOperationException("Error on executing transaction");

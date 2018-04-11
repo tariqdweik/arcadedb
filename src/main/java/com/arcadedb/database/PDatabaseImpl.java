@@ -1,5 +1,6 @@
 package com.arcadedb.database;
 
+import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.PProfiler;
 import com.arcadedb.database.async.PDatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
@@ -28,8 +29,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabaseInternal {
-  public static final int DEFAULT_RETRIES = 50;
-
   protected final String                 name;
   protected final PPaginatedFile.MODE    mode;
   protected final String                 databasePath;
@@ -496,7 +495,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
   @Override
   public void transaction(final PTransaction txBlock) {
-    transaction(txBlock, DEFAULT_RETRIES);
+    transaction(txBlock, PGlobalConfiguration.MVCC_RETRIES.getValueAsInteger());
   }
 
   @Override

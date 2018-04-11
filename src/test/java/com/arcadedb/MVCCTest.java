@@ -1,13 +1,16 @@
-package performance;
+package com.arcadedb;
 
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.PErrorCallback;
 import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.schema.PEdgeType;
 import com.arcadedb.schema.PVertexType;
 import com.arcadedb.utility.PLogManager;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import performance.PerformanceTest;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -15,16 +18,13 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class RandomTest {
-  private static final int TOT_ACCOUNT = 10000;
-  private static final int TOT_TX      = 100000000;
-  private static final int PARALLEL    = 2;//Runtime.getRuntime().availableProcessors();
+public class MVCCTest {
+  private static final int TOT_ACCOUNT = 100;
+  private static final int TOT_TX      = 1000;
+  private static final int PARALLEL    = Runtime.getRuntime().availableProcessors();
 
-  public static void main(String[] args) {
-    new RandomTest().run();
-  }
-
-  private void run() {
+  @Test
+  public void testMVCC() {
     PerformanceTest.clean();
 
     createSchema();
@@ -35,18 +35,22 @@ public class RandomTest {
 
     database.asynch().setParallelLevel(PARALLEL);
 
-    final AtomicLong errors = new AtomicLong();
-
+    final AtomicLong otherErrors = new AtomicLong();
+    final AtomicLong mvccErrors = new AtomicLong();
     database.asynch().onError(new PErrorCallback() {
       @Override
       public void call(Exception exception) {
-        errors.incrementAndGet();
-        PLogManager.instance().error(this, "MANAGED ERROR: " + exception, exception);
+
+        if (exception instanceof PConcurrentModificationException) {
+          mvccErrors.incrementAndGet();
+        } else {
+          otherErrors.incrementAndGet();
+          PLogManager.instance().error(this, "UNEXPECTED ERROR: " + exception, exception);
+        }
       }
     });
 
     long begin = System.currentTimeMillis();
-
 
     try {
       final Random rnd = new Random();
@@ -69,15 +73,18 @@ public class RandomTest {
           }
         }, 0);
 
-        if (txId % 1000 == 0)
+        if (txId % 10 == 0)
           System.out.println(
               "- Executed " + txId + " transactions in " + (System.currentTimeMillis() - begin) + "ms (threadId=" + Thread
-                  .currentThread().getId() + ")");
+                  .currentThread().getId() + " errors=" + mvccErrors.get() + ")");
       }
 
+    } finally {
       database.asynch().waitCompletion();
 
-    } finally {
+      Assertions.assertTrue(mvccErrors.get() > 0);
+      Assertions.assertEquals(0, otherErrors.get());
+
       database.close();
       System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }

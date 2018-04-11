@@ -21,16 +21,15 @@ public class PModifiableVertex extends PModifiableDocument implements PVertexInt
   public PModifiableVertex(final PDatabase graph, final String typeName, final PRID rid, final PBinary buffer) {
     super(graph, typeName, rid, buffer);
 
-    buffer.position(1); // SKIP RECORD TYPE
-    outEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
-    if (outEdges.getBucketId() == -1)
-      outEdges = null;
-    inEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
-    if (inEdges.getBucketId() == -1)
-      inEdges = null;
+    this.outEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
+    if (this.outEdges.getBucketId() == -1)
+      this.outEdges = null;
+    this.inEdges = new PRID(graph, buffer.getInt(), buffer.getLong());
+    if (this.inEdges.getBucketId() == -1)
+      this.inEdges = null;
 
-    this.propertiesStartingPosition = propertiesStartingPosition;
-    }
+    this.propertiesStartingPosition = buffer.position();
+  }
 
   public PRID getOutEdgesHeadChunk() {
     return outEdges;

@@ -70,6 +70,8 @@ public enum PGlobalConfiguration {
 
   COMMIT_LOCK_TIMEOUT("proton.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),
 
+  MVCC_RETRIES("proton.mvccRetries", "Number of retries in case of MVCC exception", Integer.class, 50),
+
   INDEX_COMPACTION_RAM("proton.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300);
 
   /**
