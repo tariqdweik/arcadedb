@@ -3,6 +3,7 @@ package com.arcadedb.engine;
 import com.arcadedb.database.PBinary;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 /**
@@ -33,7 +34,8 @@ public abstract class PBasePage {
   }
 
   public PModifiablePage modify() {
-    final PModifiablePage copy = new PModifiablePage(manager, pageId, size, this.content.getByteBuffer().array(), version,
+    final byte[] array = this.content.getByteBuffer().array();
+    final PModifiablePage copy = new PModifiablePage(manager, pageId, size, Arrays.copyOf(array, array.length), version,
         content.size());
     // COPY THE CONTENT, SO CHANGES DOES NOT AFFECT IMMUTABLE COPY
     copy.version = version;
@@ -82,6 +84,10 @@ public abstract class PBasePage {
 
   public int getContentSize() {
     return content.size() - PAGE_HEADER_SIZE;
+  }
+
+  public void setContentSize(final int value) {
+    content.size(value + PAGE_HEADER_SIZE);
   }
 
   public long getVersion() {

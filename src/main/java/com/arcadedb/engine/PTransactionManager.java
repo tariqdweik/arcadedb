@@ -181,6 +181,7 @@ public class PTransactionManager {
           }
         }
         activeWALFilePool = null;
+        database.getPageManager().clear();
       }
     } finally {
       PLogManager.instance().warn(this, "Recovery of database '%s' completed", database);
@@ -208,7 +209,7 @@ public class PTransactionManager {
   private boolean applyChanges(final PWALFile.WALTransaction tx) {
     boolean changed = false;
 
-    PLogManager.instance().info(this, "- applying changes from transaction=%d", tx.txId);
+    PLogManager.instance().info(this, "- applying changes from txId=%d", tx.txId);
 
     for (PWALFile.WALPage txPage : tx.pages) {
       final PPaginatedFile file = database.getFileManager().getFile(txPage.fileId);
@@ -230,13 +231,15 @@ public class PTransactionManager {
           txPage.currentContent.reset();
           modifiedPage.writeByteArray(txPage.changesFrom - PBasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
           modifiedPage.version = txPage.currentPageVersion;
+          modifiedPage.setContentSize(txPage.currentPageSize);
+          modifiedPage.flushMetadata();
           file.write(modifiedPage);
           file.flush();
 
           final PPaginatedComponent component = database.getSchema().getFileById(txPage.fileId);
           if (component != null) {
             final int newPageCount = (int) (file.getSize() / file.getPageSize());
-            if (newPageCount > component.pageCount)
+            if (newPageCount > component.pageCount.get())
               component.setPageCount(newPageCount);
           }
 

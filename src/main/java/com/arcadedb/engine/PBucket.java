@@ -105,14 +105,14 @@ public class PBucket extends PPaginatedComponent {
     }
   }
 
-  public void update(final PRecord record) {
+  public void updateRecord(final PRecord record) {
     final PBinary buffer = database.getSerializer().serialize(database, record, id);
     final PRID rid = record.getIdentity();
 
     final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
-    if (pageId >= pageCount) {
+    if (pageId >= pageCount.get()) {
       int txPageCount = getTotalPages();
       if (pageId >= txPageCount)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
@@ -153,7 +153,7 @@ public class PBucket extends PPaginatedComponent {
     final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
-    if (pageId >= pageCount) {
+    if (pageId >= pageCount.get()) {
       int txPageCount = getTotalPages();
       if (pageId >= txPageCount)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
@@ -161,6 +161,7 @@ public class PBucket extends PPaginatedComponent {
 
     try {
       final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
+
       final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
       if (positionInPage >= recordCountInPage)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);
@@ -188,7 +189,7 @@ public class PBucket extends PPaginatedComponent {
     final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
 
-    if (pageId >= pageCount) {
+    if (pageId >= pageCount.get()) {
       int txPageCount = getTotalPages();
       if (pageId >= txPageCount)
         throw new PRecordNotFoundException("Record " + rid + " not found", rid);

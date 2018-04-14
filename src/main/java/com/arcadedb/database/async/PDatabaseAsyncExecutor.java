@@ -94,7 +94,6 @@ public class PDatabaseAsyncExecutor {
                 } catch (PConcurrentModificationException e) {
                   // RETRY
                   lastException = e;
-
                   beginTxIfNeeded();
 
                   continue;

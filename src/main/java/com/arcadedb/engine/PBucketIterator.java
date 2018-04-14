@@ -24,7 +24,7 @@ public class PBucketIterator implements Iterator<PRecord> {
   PBucketIterator(PBucket bucket, PDatabase db) throws IOException {
     this.bucket = bucket;
     this.database = db;
-    this.totalPages = bucket.pageCount;
+    this.totalPages = bucket.pageCount.get();
 
     fetchNext();
   }

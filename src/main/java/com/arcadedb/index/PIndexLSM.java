@@ -194,7 +194,7 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
 
     Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
     if (txPageCounter == null)
-      txPageCounter = pageCount;
+      txPageCounter = pageCount.get();
 
     int pageNum = txPageCounter - 1;
 
@@ -280,7 +280,7 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
 
       Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
       if (txPageCounter == null)
-        txPageCounter = pageCount;
+        txPageCounter = pageCount.get();
 
       try {
         currentPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize, false);
@@ -555,7 +555,7 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
     // NEW FILE, CREATE HEADER PAGE
     Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
     if (txPageCounter == null)
-      txPageCounter = pageCount;
+      txPageCounter = pageCount.get();
 
     final PModifiablePage currentPage = database.getTransaction().addPage(new PPageId(file.getFileId(), txPageCounter), pageSize);
 
@@ -572,7 +572,7 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
     pos += INT_SERIALIZED_SIZE;
     pos += getBFSize();
 
-    if (pageCount == 0) {
+    if (pageCount.get() == 0) {
       currentPage.writeByte(pos++, (byte) keyTypes.length);
       for (int i = 0; i < keyTypes.length; ++i) {
         currentPage.writeByte(pos++, keyTypes[i]);

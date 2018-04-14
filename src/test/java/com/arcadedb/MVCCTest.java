@@ -19,71 +19,89 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MVCCTest {
+  private static final int CYCLES      = 3;
   private static final int TOT_ACCOUNT = 100;
-  private static final int TOT_TX      = 1000;
+  private static final int TOT_TX      = 100;
   private static final int PARALLEL    = Runtime.getRuntime().availableProcessors();
 
   @Test
   public void testMVCC() {
-    PerformanceTest.clean();
+    for (int i = 0; i < CYCLES; ++i) {
+      PerformanceTest.clean();
 
-    createSchema();
+      createSchema();
 
-    populateDatabase();
+      populateDatabase();
 
-    System.out.println("Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
+      PLogManager.instance().info(this, "Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
 
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+      final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
-    database.asynch().setParallelLevel(PARALLEL);
+      database.asynch().setParallelLevel(PARALLEL);
 
-    final AtomicLong otherErrors = new AtomicLong();
-    final AtomicLong mvccErrors = new AtomicLong();
-    database.asynch().onError(new PErrorCallback() {
-      @Override
-      public void call(Exception exception) {
+      final AtomicLong otherErrors = new AtomicLong();
+      final AtomicLong mvccErrors = new AtomicLong();
+      database.asynch().onError(new PErrorCallback() {
+        @Override
+        public void call(Exception exception) {
 
-        if (exception instanceof PConcurrentModificationException) {
-          mvccErrors.incrementAndGet();
-        } else {
-          otherErrors.incrementAndGet();
-          PLogManager.instance().error(this, "UNEXPECTED ERROR: " + exception, exception);
-        }
-      }
-    });
-
-    long begin = System.currentTimeMillis();
-
-    try {
-      final Random rnd = new Random();
-
-      for (long txId = 0; txId < TOT_TX; ++txId) {
-        database.asynch().transaction(new PDatabase.PTransaction() {
-          @Override
-          public void execute(PDatabase database) {
-            final PModifiableDocument tx = database.newVertex("Transaction");
-            tx.set("uuid", UUID.randomUUID().toString());
-            tx.set("date", new Date());
-            tx.set("amount", rnd.nextInt(TOT_ACCOUNT));
-            tx.save();
-
-            final PCursor<PRID> account = database.lookupByKey("Account", new String[] { "id" }, new Object[] { 0 });
-
-            Assertions.assertTrue(account.hasNext());
-
-            ((PModifiableVertex) tx).newEdge("Purchased", account.next(), true, "date", new Date());
+          if (exception instanceof PConcurrentModificationException) {
+            mvccErrors.incrementAndGet();
+          } else {
+            otherErrors.incrementAndGet();
+            PLogManager.instance().error(this, "UNEXPECTED ERROR: " + exception, exception);
           }
-        }, 0);
+        }
+      });
+
+      long begin = System.currentTimeMillis();
+
+      try {
+        final Random rnd = new Random();
+
+        for (long txId = 0; txId < TOT_TX; ++txId) {
+          database.asynch().transaction(new PDatabase.PTransaction() {
+            @Override
+            public void execute(PDatabase database) {
+              Assertions.assertTrue(database.getTransaction().getModifiedPages() == 0);
+              Assertions.assertNull(database.getTransaction().getPageCounter(1));
+
+              final PModifiableDocument tx = database.newVertex("Transaction");
+              tx.set("uuid", UUID.randomUUID().toString());
+              tx.set("date", new Date());
+              tx.set("amount", rnd.nextInt(TOT_ACCOUNT));
+              tx.save();
+
+              final PCursor<PRID> accounts = database.lookupByKey("Account", new String[] { "id" }, new Object[] { 0 });
+
+              Assertions.assertTrue(accounts.hasNext());
+
+              PRID account = accounts.next();
+
+              ((PModifiableVertex) tx).newEdge("PurchasedBy", account, true, "date", new Date());
+            }
+          }, 0);
+        }
+
+      } finally {
+        database.close();
+
+        Assertions.assertTrue(mvccErrors.get() > 0);
+        Assertions.assertEquals(0, otherErrors.get());
+
+        System.out.println(
+            "Insertion finished in " + (System.currentTimeMillis() - begin) + "ms, managed mvcc exceptions " + mvccErrors.get());
       }
 
-    } finally {
-      database.close();
+      PLogManager.instance().flush();
+      System.out.flush();
+      System.out.println("----------------");
 
-      Assertions.assertTrue(mvccErrors.get() > 0);
-      Assertions.assertEquals(0, otherErrors.get());
-
-      System.out.println(
-          "Insertion finished in " + (System.currentTimeMillis() - begin) + "ms, managed mvcc exceptions " + mvccErrors.get());
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     }
   }
 
@@ -115,7 +133,7 @@ public class MVCCTest {
 
     } finally {
       database.close();
-      System.out.println("Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
+      PLogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 
@@ -140,7 +158,7 @@ public class MVCCTest {
 
         database.getSchema().createClassIndexes("Transaction", new String[] { "uuid" }, 5000000);
 
-        final PEdgeType edgeType = database.getSchema().createEdgeType("Purchased", PARALLEL);
+        final PEdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
         edgeType.createProperty("date", Date.class);
 
         database.commit();

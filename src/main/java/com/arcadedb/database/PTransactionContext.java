@@ -72,19 +72,21 @@ public class PTransactionContext {
       if (useWAL)
         database.getTransactionManager().writeTransactionToWAL(pages, sync);
 
-      // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
-      for (PModifiablePage p : modifiedPages.values())
-        pageManager.updatePage(p, false);
-
-      if (newPages != null) {
-        for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
-          database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
-          database.getFileManager().setVirtualFileSize(entry.getKey(),
-              entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
+      try {
+        // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
+        // UPDATE PAGE COUNTER FIRST
+        if (newPages != null) {
+          for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
+            database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
+            database.getFileManager().setVirtualFileSize(entry.getKey(),
+                entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
+          }
         }
 
-        for (PModifiablePage p : newPages.values())
-          pageManager.updatePage(p, true);
+        pageManager.updatePages(newPages, modifiedPages);
+
+      } catch (Exception e) {
+        throw new PTransactionException("Unexpected transaction error. Unable to recover the transaction", e);
       }
 
     } catch (PConcurrentModificationException e) {

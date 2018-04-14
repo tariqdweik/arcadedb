@@ -335,7 +335,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public PRecord lookupByRID(final PRID rid, final boolean loadContent) {
     return (PRecord) super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
 
         checkDatabaseIsOpen();
         final PDocumentType type = schema.getTypeByBucketId(rid.getBucketId());
@@ -475,7 +475,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     if (mode == PPaginatedFile.MODE.READ_ONLY)
       throw new PDatabaseIsReadOnlyException("Cannot update a record");
 
-    schema.getBucketById(record.getIdentity().getBucketId()).update(record);
+    schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
   }
 
   @Override

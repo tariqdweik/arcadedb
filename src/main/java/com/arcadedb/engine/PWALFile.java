@@ -24,10 +24,10 @@ public class PWALFile extends PLockContext {
   // SEGMENT_SIZE (int) + MAGIC_NUMBER (long)
   private static final int TX_FOOTER_SIZE = PBinary.INT_SERIALIZED_SIZE + PBinary.LONG_SERIALIZED_SIZE;
 
-  // FILE_ID (int) + PAGE_NUMBER (int) + DELTA_FROM (int) + DELTA_TO (int) + EXISTS_PREVIOUS (byte) + CURR_PAGE_VERSION (int)
+  // FILE_ID (int) + PAGE_NUMBER (int) + DELTA_FROM (int) + DELTA_TO (int) + EXISTS_PREVIOUS (byte) + CURR_PAGE_VERSION (int)+ CURR_PAGE_SIZE (int)
   private static final int PAGE_HEADER_SIZE =
       PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE
-          + PBinary.BYTE_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE;
+          + PBinary.BYTE_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE;
 
   private static final long MAGIC_NUMBER = 9371515385058702l;
 
@@ -60,6 +60,7 @@ public class PWALFile extends PLockContext {
     public PBinary previousContent;
     public PBinary currentContent;
     public int     currentPageVersion;
+    public int     currentPageSize;
   }
 
   public PWALFile(final String filePath) throws FileNotFoundException {
@@ -163,6 +164,9 @@ public class PWALFile extends PLockContext {
         tx.pages[i].currentPageVersion = readInt(pos);
         pos += PBinary.INT_SERIALIZED_SIZE;
 
+        tx.pages[i].currentPageSize = readInt(pos);
+        pos += PBinary.INT_SERIALIZED_SIZE;
+
         if (hasPrevious) {
           tx.pages[i].previousContent = new PBinary(deltaSize);
           channel.read(tx.pages[i].previousContent.getByteBuffer(), pos);
@@ -239,6 +243,7 @@ public class PWALFile extends PLockContext {
       pageBuffer.putInt(deltaRange[1]);
       pageBuffer.putByte((byte) (prevPage != null ? 1 : 0));
       pageBuffer.putInt(newPage.version + 1);
+      pageBuffer.putInt(newPage.getContentSize());
       if (prevPage != null) {
         final ByteBuffer prevPageBuffer = prevPage.getContent();
         prevPageBuffer.position(deltaRange[0]);

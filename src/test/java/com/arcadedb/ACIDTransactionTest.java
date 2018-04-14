@@ -143,7 +143,7 @@ public class ACIDTransactionTest {
   }
 
   @Test
-  public void testAsyncIOExceptionAfterWALIsWrittenFewRecords() {
+  public void testAsyncIOExceptionAfterWALIsWrittenLastRecords() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
 
     final AtomicInteger errors = new AtomicInteger(0);
@@ -167,7 +167,7 @@ public class ACIDTransactionTest {
       ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
-          if (commits.incrementAndGet() > TOT - 100)
+          if (commits.incrementAndGet() > TOT - 1)
             throw new IOException("Test IO Exception");
           return null;
         }
@@ -184,7 +184,7 @@ public class ACIDTransactionTest {
 
       db.asynch().waitCompletion();
 
-      Assertions.assertTrue(errors.get() > 0);
+      Assertions.assertEquals(1, errors.get());
 
     } catch (PTransactionException e) {
       Assertions.assertTrue(e.getCause() instanceof IOException);

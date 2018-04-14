@@ -1,6 +1,7 @@
 package com.arcadedb.database;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 public class PBinary implements PBinaryStructure {
@@ -42,6 +43,12 @@ public class PBinary implements PBinaryStructure {
     this.buffer = buffer;
     this.size = buffer.limit();
     this.autoResizable = false;
+  }
+
+  public PBinary copy() {
+    final PBinary copy = new PBinary(Arrays.copyOfRange(content, buffer.arrayOffset(), buffer.arrayOffset() + size), size);
+    copy.setAutoResizable(autoResizable);
+    return copy;
   }
 
   public void reset() {
@@ -106,17 +113,19 @@ public class PBinary implements PBinaryStructure {
   }
 
   @Override
-  public int putUnsignedNumber(long value) {
+  public int putUnsignedNumber(final long value) {
     int bytesUsed = 0;
-    while ((value & 0xFFFFFFFFFFFFFF80L) != 0L) {
+    long v = value;
+    while ((v & 0xFFFFFFFFFFFFFF80L) != 0L) {
       checkForAllocation(buffer.position(), BYTE_SERIALIZED_SIZE);
-      buffer.put((byte) (value & 0x7F | 0x80));
+      buffer.put((byte) (v & 0x7F | 0x80));
       bytesUsed++;
-      value >>>= 7;
+      v >>>= 7;
     }
     checkForAllocation(buffer.position(), BYTE_SERIALIZED_SIZE);
-    buffer.put((byte) (value & 0x7F));
+    buffer.put((byte) (v & 0x7F));
     bytesUsed++;
+
     return bytesUsed;
   }
 

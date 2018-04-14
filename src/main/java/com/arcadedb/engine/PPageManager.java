@@ -4,13 +4,16 @@ import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
+import com.arcadedb.utility.PLockContext;
 import com.arcadedb.utility.PLockManager;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Manages pages from disk to RAM. Each page can have different size.
  */
-public class PPageManager {
+public class PPageManager extends PLockContext {
   private final PFileManager                            fileManager;
   private final ConcurrentMap<PPageId, PImmutablePage>  readCache  = new ConcurrentHashMap<>(65536);
   private final ConcurrentMap<PPageId, PModifiablePage> writeCache = new ConcurrentHashMap<>(65536);
@@ -56,6 +59,8 @@ public class PPageManager {
   }
 
   public PPageManager(final PFileManager fileManager, final PTransactionManager txManager) {
+    super(true);
+
     this.fileManager = fileManager;
     this.txManager = txManager;
 
@@ -114,6 +119,11 @@ public class PPageManager {
     lockManager.close();
   }
 
+  public void clear() {
+    readCache.clear();
+    totalReadCacheRAM.set(0);
+  }
+
   public void deleteFile(final int fileId) {
     for (Iterator<PImmutablePage> it = readCache.values().iterator(); it.hasNext(); ) {
       final PImmutablePage p = it.next();
@@ -133,26 +143,31 @@ public class PPageManager {
   }
 
   public PBasePage getPage(final PPageId pageId, final int pageSize, final boolean isNew) throws IOException {
-    PBasePage page = writeCache.get(pageId);
-    if (page != null)
-      cacheHits.incrementAndGet();
-    else {
-      page = readCache.get(pageId);
-      if (page == null) {
-        page = loadPage(pageId, pageSize);
-        if (!isNew)
-          cacheMiss.incrementAndGet();
-      } else {
-        cacheHits.incrementAndGet();
-        page.updateLastAccesses();
+    return (PBasePage) executeInLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        PBasePage page = writeCache.get(pageId);
+        if (page != null)
+          cacheHits.incrementAndGet();
+        else {
+          page = readCache.get(pageId);
+          if (page == null) {
+            page = loadPage(pageId, pageSize);
+            if (!isNew)
+              cacheMiss.incrementAndGet();
+          } else {
+            cacheHits.incrementAndGet();
+            page.updateLastAccesses();
+          }
+
+          if (page == null)
+            throw new IllegalArgumentException(
+                "Page id '" + pageId + "' does not exists (threadId=" + Thread.currentThread().getId() + ")");
+        }
+
+        return page.createImmutableCopy();
       }
-
-      if (page == null)
-        throw new IllegalArgumentException(
-            "Page id '" + pageId + "' does not exists (threadId=" + Thread.currentThread().getId() + ")");
-    }
-
-    return page.createImmutableCopy();
+    });
   }
 
   public PBasePage checkPageVersion(final PModifiablePage page, final boolean isNew) throws IOException {
@@ -164,6 +179,21 @@ public class PPageManager {
               .getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
     }
     return p;
+  }
+
+  public void updatePages(final Map<PPageId, PModifiablePage> newPages, final Map<PPageId, PModifiablePage> modifiedPages)
+      throws IOException, InterruptedException {
+    lock();
+    try {
+      if (newPages != null)
+        for (PModifiablePage p : newPages.values())
+          updatePage(p, true);
+
+      for (PModifiablePage p : modifiedPages.values())
+        updatePage(p, false);
+    } finally {
+      unlock();
+    }
   }
 
   public void updatePage(final PModifiablePage page, final boolean isNew) throws IOException, InterruptedException {

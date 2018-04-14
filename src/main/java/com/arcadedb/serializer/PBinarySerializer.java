@@ -52,6 +52,8 @@ public class PBinarySerializer {
       header.putByte(vertex.getRecordType()); // RECORD TYPE
       serializeProperties = true;
     } else {
+      // COPY THE CONTENT (THE BUFFER IS IMMUTABLE)
+      header = header.copy();
       header.position(PBinary.BYTE_SERIALIZED_SIZE);
       serializeProperties = false;
     }
@@ -82,8 +84,19 @@ public class PBinarySerializer {
   }
 
   public PBinary serializeEdge(final PDatabase database, final PModifiableEdge edge, final int bucketId) {
-    final PBinary header = new PBinary(64);
-    header.putByte(edge.getRecordType()); // RECORD TYPE
+    PBinary header = edge.getBuffer();
+
+    final boolean serializeProperties;
+    if (header == null) {
+      header = new PBinary(64);
+      header.putByte(edge.getRecordType()); // RECORD TYPE
+      serializeProperties = true;
+    } else {
+      // COPY THE CONTENT (THE BUFFER IS IMMUTABLE)
+      header = header.copy();
+      header.position(PBinary.BYTE_SERIALIZED_SIZE);
+      serializeProperties = false;
+    }
 
     // WRITE OUT AND IN EDGES POINTER FIRST, THEN SERIALIZE THE VERTEX PROPERTIES (AS A DOCUMENT)
     final PRID outEdges = edge.getOut();
@@ -94,7 +107,10 @@ public class PBinarySerializer {
     header.putInt(inEdges.getBucketId());
     header.putLong(inEdges.getPosition());
 
-    return serializeProperties(database, edge, header);
+    if (serializeProperties)
+      return serializeProperties(database, edge, header);
+
+    return header;
   }
 
   public PBinary serializeEdgeContainer(final PDatabase database, final PEdgeChunk record) {

@@ -61,7 +61,7 @@ public class PImmutableVertex extends PImmutableDocument implements PVertexInter
 
   @Override
   public void setInEdgesHeadChunk(final PRID inEdges) {
-    throw new UnsupportedOperationException("setOutEdgesHeadChunk");
+    throw new UnsupportedOperationException("setInEdgesHeadChunk");
   }
 
   public PEdge newEdge(final String edgeType, final PIdentifiable toVertex, final boolean bidirectional,

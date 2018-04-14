@@ -4,6 +4,7 @@ import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseImpl;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HEADER = [recordCount(int:4)] CONTENT-PAGES = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(512*ushort=2048)]
@@ -14,7 +15,7 @@ public abstract class PPaginatedComponent {
   protected final PPaginatedFile file;
   protected final int            id;
   protected final int            pageSize;
-  protected       int            pageCount;
+  protected final AtomicInteger  pageCount = new AtomicInteger();
 
   protected PPaginatedComponent(final PDatabase database, final String name, String filePath, final int id, final String ext,
       final PPaginatedFile.MODE mode, final int pageSize) throws IOException {
@@ -32,9 +33,9 @@ public abstract class PPaginatedComponent {
 
     if (file.getSize() == 0)
       // NEW FILE, CREATE HEADER PAGE
-      pageCount = 0;
+      pageCount.set(0);
     else
-      pageCount = (int) (file.getSize() / getPageSize());
+      pageCount.set((int) (file.getSize() / getPageSize()));
   }
 
   public int getPageSize() {
@@ -42,8 +43,8 @@ public abstract class PPaginatedComponent {
   }
 
   public void setPageCount(final int value) {
-    assert value > pageCount;
-    pageCount = value;
+    assert value > pageCount.get();
+    pageCount.set(value);
   }
 
   public String getName() {
@@ -68,6 +69,6 @@ public abstract class PPaginatedComponent {
     final Integer txPageCounter = database.getTransaction().getPageCounter(id);
     if (txPageCounter != null)
       return txPageCounter;
-    return pageCount;
+    return pageCount.get();
   }
 }
