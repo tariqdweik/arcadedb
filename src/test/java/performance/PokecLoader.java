@@ -18,10 +18,11 @@ import java.io.*;
  */
 public class PokecLoader {
 
-  private static final String DB_PATH                 = "target/database/pokec";
-  private static final String POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt";
-  private static final String POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
-  private static final int    PARALLEL_LEVEL          = 2;
+  private static final String  DB_PATH                 = "target/database/pokec";
+  private static final String  POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt";
+  private static final String  POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
+  private static final int     PARALLEL_LEVEL          = 3;
+  private static final boolean IMPORT_PROPERTIES       = true;
 
   private static String[] COLUMNS = new String[] { "id", "public", "completion_percentage", "gender", "region", "last_login",
       "registration", "age", "body", "I_am_working_in_field", "spoken_languages", "hobbies", "I_most_enjoy_good_food", "pets",
@@ -63,6 +64,7 @@ public class PokecLoader {
 
     db.asynch().setTransactionUseWAL(false);
     db.asynch().setTransactionSync(false);
+    db.asynch().setCommitEvery(20000);
     db.asynch().setParallelLevel(PARALLEL_LEVEL);
     db.asynch().onError(new PErrorCallback() {
       @Override
@@ -79,9 +81,10 @@ public class PokecLoader {
       final PModifiableVertex v = db.newVertex("V");
       final int id = Integer.parseInt(profile[0]);
       v.set(COLUMNS[0], id);
-      for (int c = 1; c < COLUMNS.length; ++c) {
-        v.set(COLUMNS[c], profile[c]);
-      }
+      if (IMPORT_PROPERTIES)
+        for (int c = 1; c < COLUMNS.length; ++c) {
+          v.set(COLUMNS[c], profile[c]);
+        }
 
       db.asynch().createRecord(v);
 

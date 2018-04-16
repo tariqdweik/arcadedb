@@ -6,6 +6,7 @@ import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.exception.PRecordNotFoundException;
+import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -80,9 +81,6 @@ public class PBucket extends PPaginatedComponent {
         createNewPage = true;
 
       if (createNewPage) {
-        if (lastPage != null)
-          database.getTransaction().removeModifiedPage(lastPage.pageId);
-
         lastPage = database.getTransaction().addPage(new PPageId(file.getFileId(), txPageCounter), pageSize);
         //lastPage.blank(0, CONTENT_HEADER_SIZE);
         newPosition = CONTENT_HEADER_SIZE;
@@ -97,6 +95,9 @@ public class PBucket extends PPaginatedComponent {
       lastPage.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * INT_SERIALIZED_SIZE, newPosition);
 
       lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
+
+      PLogManager.instance().debug(this, "Created record %s (page=%s records=%d threadId=%d)", rid, lastPage, recordCountInPage,
+          Thread.currentThread().getId());
 
       return rid;
 
@@ -143,6 +144,8 @@ public class PBucket extends PPaginatedComponent {
       final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
 
       page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
+
+      PLogManager.instance().debug(this, "Updated record %s (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
 
     } catch (IOException e) {
       throw new PDatabaseOperationException("Error on update record " + rid);
@@ -222,6 +225,8 @@ public class PBucket extends PPaginatedComponent {
         // OVERWRITE POS TABLE WITH NEW POSITION
         page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
       }
+
+      PLogManager.instance().debug(this, "Deleted record %s (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
 
     } catch (IOException e) {
       throw new PDatabaseOperationException("Error on deletion of record " + rid);

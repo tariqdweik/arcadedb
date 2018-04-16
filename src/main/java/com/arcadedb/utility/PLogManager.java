@@ -7,6 +7,8 @@ import java.util.logging.*;
 
 /**
  * Centralized Log Manager.
+ * <p>
+ * Set the property `java.util.logging.config.file` to the configuration file to use.
  *
  * @author Luca Garulli
  */

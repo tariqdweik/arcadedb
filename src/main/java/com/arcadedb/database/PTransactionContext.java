@@ -7,6 +7,7 @@ import com.arcadedb.engine.PPageId;
 import com.arcadedb.engine.PPageManager;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PTransactionException;
+import com.arcadedb.utility.PLogManager;
 import com.arcadedb.utility.PPair;
 
 import java.io.IOException;
@@ -83,6 +84,9 @@ public class PTransactionContext {
           }
         }
 
+        PLogManager.instance()
+            .debug(this, "Committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
+
         pageManager.updatePages(newPages, modifiedPages);
 
       } catch (Exception e) {
@@ -119,6 +123,9 @@ public class PTransactionContext {
   }
 
   public void rollback() {
+    PLogManager.instance().debug(this, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages,
+        Thread.currentThread().getId());
+
     reset();
   }
 
