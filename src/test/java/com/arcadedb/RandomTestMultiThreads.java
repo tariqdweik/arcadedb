@@ -133,7 +133,7 @@ public class RandomTestMultiThreads {
     }
   }
 
-  private void createTransactions(PDatabase database, final int txOps) {
+  private void createTransactions(final PDatabase database, final int txOps) {
     for (long txId = 0; txId < txOps; ++txId) {
       final PModifiableDocument tx = database.newVertex("Transaction");
       tx.set("uuid", UUID.randomUUID().toString());
@@ -143,7 +143,7 @@ public class RandomTestMultiThreads {
     }
   }
 
-  private void deleteRecords(PDatabase database, final int threadId) {
+  private void deleteRecords(final PDatabase database, final int threadId) {
     final Iterator<PRecord> iter = database.iterateType("Account");
 
     while (iter.hasNext() && rnd.nextInt(10) != 0) {
