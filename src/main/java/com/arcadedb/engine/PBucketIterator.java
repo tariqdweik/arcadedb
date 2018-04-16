@@ -53,6 +53,9 @@ public class PBucketIterator implements Iterator<PRecord> {
 
             currentRecordInPage++;
 
+            if (!bucket.existsRecord(rid))
+              continue;
+
             final PRecord record = rid.getRecord();
             next = record;
             return null;

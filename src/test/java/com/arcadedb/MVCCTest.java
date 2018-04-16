@@ -96,12 +96,6 @@ public class MVCCTest {
       PLogManager.instance().flush();
       System.out.flush();
       System.out.println("----------------");
-
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
     }
   }
 

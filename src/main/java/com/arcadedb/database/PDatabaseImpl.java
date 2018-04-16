@@ -21,6 +21,7 @@ import com.arcadedb.sql.executor.OSQLEngine;
 import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
+import com.arcadedb.utility.PMultiIterator;
 import com.arcadedb.utility.PRWLockContext;
 
 import java.io.File;
@@ -180,7 +181,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     if (asynch == null) {
       super.executeInWriteLock(new Callable<Object>() {
         @Override
-        public Object call() throws Exception {
+        public Object call() {
           asynch = new PDatabaseAsyncExecutor(PDatabaseImpl.this);
           return null;
         }
@@ -202,7 +203,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public void begin() {
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         checkDatabaseIsOpen();
         getTransaction().begin();
         return null;
@@ -214,7 +215,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public void commit() {
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         checkTransactionIsActive();
         getTransaction().commit();
         return null;
@@ -226,7 +227,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public void rollback() {
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         checkTransactionIsActive();
         getTransaction().rollback();
         return null;
@@ -249,7 +250,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public long countType(final String typeName) {
     return (Long) super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         checkDatabaseIsOpen();
         final PDocumentType type = schema.getType(typeName);
 
@@ -266,7 +267,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public void scanType(final String typeName, final PDocumentCallback callback) {
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
 
         checkDatabaseIsOpen();
         try {
@@ -293,7 +294,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   public void scanBucket(final String bucketName, final PRecordCallback callback) {
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
 
         checkDatabaseIsOpen();
         try {
@@ -314,13 +315,37 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   }
 
   @Override
-  public Iterator<PRecord> bucketIterator(final String bucketName) {
+  public Iterator<PRecord> iterateType(final String typeName) {
+    return (Iterator<PRecord>) super.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+
+        checkDatabaseIsOpen();
+        try {
+          final PDocumentType type = schema.getType(typeName);
+
+          final PMultiIterator iter = new PMultiIterator();
+
+          for (PBucket b : type.getBuckets())
+            iter.add(b.iterator());
+
+          return iter;
+
+        } catch (IOException e) {
+          throw new PDatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
+        }
+      }
+    });
+  }
+
+  @Override
+  public Iterator<PRecord> iterateBucket(final String bucketName) {
     readLock();
     try {
 
       checkDatabaseIsOpen();
       try {
-        PBucket bucket = schema.getBucketByName(bucketName);
+        final PBucket bucket = schema.getBucketByName(bucketName);
         return bucket.iterator();
       } catch (Exception e) {
         throw new PDatabaseOperationException("Error on executing scan of bucket '" + bucketName + "'", e);

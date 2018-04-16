@@ -48,7 +48,9 @@ public interface PDatabase {
 
   PRecord lookupByRID(PRID rid, boolean loadContent);
 
-  Iterator<PRecord> bucketIterator(String bucketName);
+  Iterator<PRecord> iterateType(String typeName);
+
+  Iterator<PRecord> iterateBucket(String bucketName);
 
   PCursor<PRID> lookupByKey(String type, String[] properties, Object[] keys);
 

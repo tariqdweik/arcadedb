@@ -188,6 +188,36 @@ public class PBucket extends PPaginatedComponent {
     }
   }
 
+  public boolean existsRecord(final PRID rid) {
+    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
+    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
+
+    if (pageId >= pageCount.get()) {
+      int txPageCount = getTotalPages();
+      if (pageId >= txPageCount)
+        return false;
+    }
+
+    try {
+      final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
+
+      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+      if (positionInPage >= recordCountInPage)
+        return false;
+
+      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+
+      assert recordSize[0] > -1;
+      assert recordSize[1] > -1;
+
+      return recordSize[0] > 0;
+
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Error on checking record existence for " + rid);
+    }
+  }
+
   public void deleteRecord(final PRID rid) {
     final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);

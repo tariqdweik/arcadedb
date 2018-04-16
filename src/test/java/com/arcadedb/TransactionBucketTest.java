@@ -76,7 +76,7 @@ public class TransactionBucketTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      Iterator<PRecord> iterator = db.bucketIterator("V_0");
+      Iterator<PRecord> iterator = db.iterateBucket("V_0");
 
       while (iterator.hasNext()) {
         PDocument record = (PDocument) iterator.next();
