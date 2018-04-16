@@ -61,13 +61,19 @@ public class PTransactionContext {
 
       // CHECK THE VERSION FIRST
       final List<PPair<PBasePage, PModifiablePage>> pages = new ArrayList<>();
-      for (PModifiablePage p : modifiedPages.values())
-        pages.add(new PPair<>(pageManager.checkPageVersion(p, false), p));
+      for (PModifiablePage p : modifiedPages.values()) {
+        final int[] range = p.getModifiedRange();
+        if (range[1] > 0)
+          pages.add(new PPair<>(pageManager.checkPageVersion(p, false), p));
+      }
 
       if (newPages != null)
         for (PModifiablePage p : newPages.values()) {
-          pageManager.checkPageVersion(p, true);
-          pages.add(new PPair<>(null, p));
+          final int[] range = p.getModifiedRange();
+          if (range[1] > 0) {
+            pageManager.checkPageVersion(p, true);
+            pages.add(new PPair<>(null, p));
+          }
         }
 
       if (useWAL)
@@ -84,8 +90,8 @@ public class PTransactionContext {
           }
         }
 
-        PLogManager.instance()
-            .debug(this, "Committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
+        PLogManager.instance().debug(this, "Committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages,
+            Thread.currentThread().getId());
 
         pageManager.updatePages(newPages, modifiedPages);
 
