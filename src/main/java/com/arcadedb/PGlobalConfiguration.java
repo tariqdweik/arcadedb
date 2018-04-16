@@ -68,6 +68,14 @@ public enum PGlobalConfiguration {
 
   FREE_PAGE_RAM("proton.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
+  ASYNC_OPERATIONS_QUEUE("proton.asyncOperationsQueue",
+      "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)",
+      Integer.class, 1024),
+
+  ASYNC_TX_BATCH_SIZE("proton.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class, 1024 * 10),
+
+  PAGE_FLUSH_QUEUE("proton.pageFlushQueue", "Size of the asynchronous page flush queue", Integer.class, 4096),
+
   COMMIT_LOCK_TIMEOUT("proton.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),
 
   MVCC_RETRIES("proton.mvccRetries", "Number of retries in case of MVCC exception", Integer.class, 50),
@@ -79,15 +87,15 @@ public enum PGlobalConfiguration {
    */
   private final Object nullValue = new Object();
 
-  private final String                    key;
-  private final Object                    defValue;
-  private final Class<?>                  type;
-  private final PCallable<Object, Object> callback;
-  private final PCallable<Object, Object> callbackIfNoSet;
-  private volatile Object value = nullValue;
-  private final String  description;
-  private final Boolean canChangeAtRuntime;
-  private final boolean hidden;
+  private final    String                    key;
+  private final    Object                    defValue;
+  private final    Class<?>                  type;
+  private final    PCallable<Object, Object> callback;
+  private final    PCallable<Object, Object> callbackIfNoSet;
+  private volatile Object                    value = nullValue;
+  private final    String                    description;
+  private final    Boolean                   canChangeAtRuntime;
+  private final    boolean                   hidden;
 
   private static final Timer TIMER;
 

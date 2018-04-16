@@ -1,5 +1,6 @@
 package com.arcadedb.engine;
 
+import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
@@ -10,8 +11,9 @@ import java.util.concurrent.TimeUnit;
  * Flushes pages to disk asynchronously.
  */
 public class PPageManagerFlushThread extends Thread {
-  private final PPageManager pageManager;
-  public final     ArrayBlockingQueue<PModifiablePage> queue   = new ArrayBlockingQueue<>(8192);
+  private final    PPageManager                        pageManager;
+  public final     ArrayBlockingQueue<PModifiablePage> queue   = new ArrayBlockingQueue<>(
+      PGlobalConfiguration.PAGE_FLUSH_QUEUE.getValueAsInteger());
   private volatile boolean                             running = true;
 
   public PPageManagerFlushThread(final PPageManager pageManager) {

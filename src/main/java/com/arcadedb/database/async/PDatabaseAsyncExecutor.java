@@ -21,8 +21,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PDatabaseAsyncExecutor {
   private final PDatabaseInternal database;
   private       AsyncThread[]     executorThreads;
-  private       int               parallelLevel      = -1;
-  private       int               commitEvery        = 10000;
+  private       int               parallelLevel      = 1;
+  private       int               commitEvery        = PGlobalConfiguration.ASYNC_TX_BATCH_SIZE.getValueAsInteger();
   private       boolean           transactionUseWAL  = true;
   private       boolean           transactionSync    = false;
   private       AtomicLong        transactionCounter = new AtomicLong();
@@ -35,7 +35,8 @@ public class PDatabaseAsyncExecutor {
   private PErrorCallback onErrorCallback;
 
   private class AsyncThread extends Thread {
-    public final    ArrayBlockingQueue<PDatabaseAsyncCommand> queue         = new ArrayBlockingQueue<>(1024);
+    public final    ArrayBlockingQueue<PDatabaseAsyncCommand> queue         = new ArrayBlockingQueue<>(
+        PGlobalConfiguration.ASYNC_OPERATIONS_QUEUE.getValueAsInteger() / parallelLevel);
     public final    PDatabaseInternal                         database;
     public volatile boolean                                   shutdown      = false;
     public volatile boolean                                   forceShutdown = false;

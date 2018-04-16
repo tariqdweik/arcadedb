@@ -23,6 +23,9 @@ public class PokecLoader {
   private static final String  POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
   private static final int     PARALLEL_LEVEL          = 3;
   private static final boolean IMPORT_PROPERTIES       = true;
+  private static final boolean USE_WAL                 = false;
+  private static final boolean USE_WAL_SYNC            = false;
+  private static final int     COMMIT_EVERY            = 20000;
 
   private static String[] COLUMNS = new String[] { "id", "public", "completion_percentage", "gender", "region", "last_login",
       "registration", "age", "body", "I_am_working_in_field", "spoken_languages", "hobbies", "I_most_enjoy_good_food", "pets",
@@ -62,9 +65,9 @@ public class PokecLoader {
     Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
-    db.asynch().setTransactionUseWAL(false);
-    db.asynch().setTransactionSync(false);
-    db.asynch().setCommitEvery(20000);
+    db.asynch().setTransactionUseWAL(USE_WAL);
+    db.asynch().setTransactionSync(USE_WAL_SYNC);
+    db.asynch().setCommitEvery(COMMIT_EVERY);
     db.asynch().setParallelLevel(PARALLEL_LEVEL);
     db.asynch().onError(new PErrorCallback() {
       @Override
@@ -103,6 +106,8 @@ public class PokecLoader {
     db.asynch().waitCompletion();
 
     db.begin();
+    db.getTransaction().setUseWAL(USE_WAL);
+    db.getTransaction().setSync(USE_WAL_SYNC);
 
     for (int i = 0; buffered.ready(); ++i) {
       final String line = buffered.readLine();
@@ -119,6 +124,8 @@ public class PokecLoader {
         PLogManager.instance().info(this, "Committing %d edges...", i);
         db.commit();
         db.begin();
+        db.getTransaction().setUseWAL(USE_WAL);
+        db.getTransaction().setSync(USE_WAL_SYNC);
       }
     }
     db.commit();
