@@ -18,10 +18,10 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RandomTestMultiThreads {
-  private static final int CYCLES           = 100000;
+  private static final int CYCLES           = 1000000;
   private static final int STARTING_ACCOUNT = 100;
   private static final int PARALLEL         = Runtime.getRuntime().availableProcessors();
-  private static final int WORKERS          = Runtime.getRuntime().availableProcessors() * 4;
+  private static final int WORKERS          = Runtime.getRuntime().availableProcessors() * 8;
 
   private final AtomicLong                      total       = new AtomicLong();
   private final AtomicLong                      mvccErrors  = new AtomicLong();
