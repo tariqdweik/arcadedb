@@ -2,7 +2,7 @@ package com.arcadedb.schema;
 
 import com.arcadedb.database.PBucketSelectionStrategy;
 import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRoundRobinBucketSelectionStrategy;
+import com.arcadedb.database.PThreadAffinityBucketSelectionStrategy;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.exception.PSchemaException;
 import com.arcadedb.index.PIndex;
@@ -13,7 +13,7 @@ public class PDocumentType {
   private final PSchemaImpl schema;
   private final String      name;
   private final List<PBucket>                          buckets             = new ArrayList<PBucket>();
-  private       PBucketSelectionStrategy               selectionStrategy   = new PRoundRobinBucketSelectionStrategy();
+  private       PBucketSelectionStrategy               selectionStrategy   = new PThreadAffinityBucketSelectionStrategy();
   private final Map<String, PProperty>                 properties          = new HashMap<>();
   private       Map<Integer, List<IndexMetadata>>      indexesByBucket     = new HashMap<>();
   private       Map<List<String>, List<IndexMetadata>> indexesByProperties = new HashMap<>();

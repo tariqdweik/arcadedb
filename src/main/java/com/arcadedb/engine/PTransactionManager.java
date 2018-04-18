@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class PTransactionManager {
@@ -20,7 +19,6 @@ public class PTransactionManager {
   private final PDatabaseInternal database;
   private       PWALFile[]        activeWALFilePool;
   private final List<PWALFile>    inactiveWALFilePool = new ArrayList<>();
-  private       AtomicInteger     walFilePoolCursor   = new AtomicInteger();
 
   private final Timer          task;
   private       CountDownLatch taskExecuting = new CountDownLatch(0);
@@ -83,13 +81,7 @@ public class PTransactionManager {
 
   public void writeTransactionToWAL(final List<PPair<PBasePage, PModifiablePage>> pages, final boolean sync) throws IOException {
     while (true) {
-      int pos = walFilePoolCursor.getAndIncrement();
-      if (pos >= activeWALFilePool.length) {
-        walFilePoolCursor.set(0);
-        pos = 0;
-      }
-
-      final PWALFile file = activeWALFilePool[pos];
+      final PWALFile file = activeWALFilePool[(int) (Thread.currentThread().getId() % activeWALFilePool.length)];
 
       if (file != null && file.acquire(new Callable<Object>() {
         @Override
@@ -99,8 +91,14 @@ public class PTransactionManager {
           return null;
         }
       }))
-        // OK
-        break;
+        return;
+
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
+      }
     }
   }
 

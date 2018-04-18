@@ -26,6 +26,7 @@ public class RandomTestMultiThreads {
   private final AtomicLong                      total       = new AtomicLong();
   private final AtomicLong                      mvccErrors  = new AtomicLong();
   private final Random                          rnd         = new Random();
+  private final AtomicLong                      uuid        = new AtomicLong();
   private final List<PPair<Integer, Exception>> otherErrors = Collections.synchronizedList(new ArrayList<>());
 
   @Test
@@ -49,36 +50,35 @@ public class RandomTestMultiThreads {
           public void run() {
             database.begin();
 
-            long i;
-            while ((i = total.getAndIncrement()) < CYCLES) {
+            while (true) {
+              final long i = total.incrementAndGet();
+              if (i >= CYCLES)
+                break;
+
               try {
                 final int op = rnd.nextInt(6);
+                if (i % 10000 == 0)
+                  PLogManager.instance().info(this, "Operations %d/%d (thread=%d)", i, CYCLES, threadId);
 
-                PLogManager.instance().info(this, "Operation %d %d/%d (thread=%d)", op, i, CYCLES, threadId);
+                PLogManager.instance().debug(this, "Operation %d %d/%d (thread=%d)", op, i, CYCLES, threadId);
 
                 switch (op) {
                 case 0:
                 case 1:
                 case 2:
+                case 3:
                   final int txOps = rnd.nextInt(10);
-                  PLogManager.instance().info(this, "Creating %d transactions (thread=%d)...", txOps, threadId);
+                  PLogManager.instance().debug(this, "Creating %d transactions (thread=%d)...", txOps, threadId);
                   createTransactions(database, txOps);
                   break;
 
-                case 3:
-                  PLogManager.instance().info(this, "Deleting records (thread=%d)...", threadId);
+                case 4:
+                  PLogManager.instance().debug(this, "Deleting records (thread=%d)...", threadId);
                   deleteRecords(database, threadId);
                   break;
 
-                case 4:
-                  // RANDOM PAUSE
-                  final int delay = rnd.nextInt(100);
-                  Thread.sleep(delay);
-                  PLogManager.instance().info(this, "Delaying %s ms (thread=%d)...", delay, threadId);
-                  break;
-
                 case 5:
-                  PLogManager.instance().info(this, "Committing (thread=%d)...", threadId);
+                  PLogManager.instance().debug(this, "Committing (thread=%d)...", threadId);
                   database.commit();
                   database.begin();
                   break;
@@ -136,7 +136,7 @@ public class RandomTestMultiThreads {
   private void createTransactions(final PDatabase database, final int txOps) {
     for (long txId = 0; txId < txOps; ++txId) {
       final PModifiableDocument tx = database.newVertex("Transaction");
-      tx.set("uuid", UUID.randomUUID().toString());
+      tx.set("uuid", "" + uuid.getAndIncrement());
       tx.set("date", new Date());
       tx.set("amount", rnd.nextInt(STARTING_ACCOUNT));
       tx.save();
@@ -151,7 +151,7 @@ public class RandomTestMultiThreads {
 
       if (rnd.nextInt(2) == 0) {
         database.deleteRecord(next.getIdentity());
-        PLogManager.instance().info(this, "Deleted record %s (threadId=%d)", next.getIdentity(), threadId);
+        PLogManager.instance().debug(this, "Deleted record %s (threadId=%d)", next.getIdentity(), threadId);
       }
     }
   }
@@ -193,14 +193,14 @@ public class RandomTestMultiThreads {
         accountType.createProperty("surname", String.class);
         accountType.createProperty("registered", Date.class);
 
-        database.getSchema().createClassIndexes("Account", new String[] { "id" });
+        database.getSchema().createClassIndexes("Account", new String[] { "id" }, 500000);
 
         final PVertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
         txType.createProperty("uuid", String.class);
         txType.createProperty("date", Date.class);
         txType.createProperty("amount", BigDecimal.class);
 
-        database.getSchema().createClassIndexes("Transaction", new String[] { "uuid" });
+        database.getSchema().createClassIndexes("Transaction", new String[] { "uuid" }, 500000);
 
         final PEdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
         edgeType.createProperty("date", Date.class);
@@ -212,3 +212,5 @@ public class RandomTestMultiThreads {
     }
   }
 }
+
+

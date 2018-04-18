@@ -61,6 +61,8 @@ public class PBucketIterator implements Iterator<PRecord> {
             return null;
           }
 
+          currentRecordInPage++;
+
         } else if (currentRecordInPage == recordCountInCurrentPage) {
           currentRecordInPage = 0;
           currentPage = null;

@@ -28,8 +28,8 @@ public class PTransactionContext {
   private       Map<PPageId, PModifiablePage> modifiedPages;
   private       Map<PPageId, PModifiablePage> newPages;
   private final Map<Integer, Integer>         newPageCounters = new HashMap<>();
-  private       boolean                       useWAL          = true;
-  private       boolean                       sync            = false;
+  private       boolean                       useWAL          = PGlobalConfiguration.TX_WAL.getValueAsBoolean();
+  private       boolean                       sync            = PGlobalConfiguration.TX_FLUSH.getValueAsBoolean();
 
   public PTransactionContext(final PDatabaseInternal database) {
     this.database = database;
@@ -285,6 +285,7 @@ public class PTransactionContext {
     if (lockedFiles.size() == orderedModifiedFiles.size())
       // OK: ALL LOCKED
       return lockedFiles;
+
 
     // ERROR: UNLOCK LOCKED FILES
     unlockFilesInOrder(pageManager, lockedFiles);

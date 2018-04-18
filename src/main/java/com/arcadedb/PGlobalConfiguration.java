@@ -64,7 +64,11 @@ public enum PGlobalConfiguration {
     }
   }),
 
-  FLUSH_ONLY_AT_CLOSE("proton.flushOnlyAtClose", "Never flushes pages on disk until the close of database", Boolean.class, false),
+  FLUSH_ONLY_AT_CLOSE("proton.flushOnlyAtClose", "Never flushes pages on disk until the database closing", Boolean.class, false),
+
+  TX_FLUSH("proton.txFlush", "Flushes the pages on disk at commit time", Boolean.class, false),
+
+  TX_WAL("proton.txWAL", "Uses the WAL", Boolean.class, true),
 
   FREE_PAGE_RAM("proton.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
@@ -72,7 +76,8 @@ public enum PGlobalConfiguration {
       "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)",
       Integer.class, 1024),
 
-  ASYNC_TX_BATCH_SIZE("proton.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class, 1024 * 10),
+  ASYNC_TX_BATCH_SIZE("proton.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class,
+      1024 * 10),
 
   PAGE_FLUSH_QUEUE("proton.pageFlushQueue", "Size of the asynchronous page flush queue", Integer.class, 4096),
 
