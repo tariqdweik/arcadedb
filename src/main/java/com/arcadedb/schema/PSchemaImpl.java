@@ -539,7 +539,7 @@ public class PSchemaImpl implements PSchema {
           kind = "d";
 
         file.append(
-            String.format("%s,%s,%s,%s\n", t.getName(), kind, t.getSelectionStrategy().getName(), bucketList2String.toString()));
+            String.format("%s,%s,%s,%s\n", t.getName(), kind, t.getSyncSelectionStrategy().getName(), bucketList2String.toString()));
 
         for (List<PDocumentType.IndexMetadata> list : t.getAllIndexesMetadata()) {
           for (PDocumentType.IndexMetadata entry : list) {

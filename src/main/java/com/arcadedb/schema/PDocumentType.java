@@ -83,12 +83,20 @@ public class PDocumentType {
     return buckets.get(async ? asyncSelectionStrategy.getBucketToSave() : syncSelectionStrategy.getBucketToSave());
   }
 
-  public PBucketSelectionStrategy getSelectionStrategy() {
+  public PBucketSelectionStrategy getSyncSelectionStrategy() {
     return syncSelectionStrategy;
   }
 
-  public void setSelectionStrategy(final PBucketSelectionStrategy selectionStrategy) {
+  public void setSyncSelectionStrategy(final PBucketSelectionStrategy selectionStrategy) {
     this.syncSelectionStrategy = selectionStrategy;
+  }
+
+  public PBucketSelectionStrategy getAsyncSelectionStrategy() {
+    return asyncSelectionStrategy;
+  }
+
+  public void setAsyncSelectionStrategy(final PBucketSelectionStrategy selectionStrategy) {
+    this.asyncSelectionStrategy = selectionStrategy;
   }
 
   public boolean existsProperty(final String propertyName) {
