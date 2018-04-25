@@ -2,6 +2,7 @@ package com.arcadedb.schema;
 
 import com.arcadedb.database.PBucketSelectionStrategy;
 import com.arcadedb.database.PDocument;
+import com.arcadedb.database.PRoundRobinBucketSelectionStrategy;
 import com.arcadedb.database.PThreadAffinityBucketSelectionStrategy;
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.exception.PSchemaException;
@@ -10,13 +11,14 @@ import com.arcadedb.index.PIndex;
 import java.util.*;
 
 public class PDocumentType {
-  private final PSchemaImpl schema;
-  private final String      name;
-  private final List<PBucket>                          buckets             = new ArrayList<PBucket>();
-  private       PBucketSelectionStrategy               selectionStrategy   = new PThreadAffinityBucketSelectionStrategy();
-  private final Map<String, PProperty>                 properties          = new HashMap<>();
-  private       Map<Integer, List<IndexMetadata>>      indexesByBucket     = new HashMap<>();
-  private       Map<List<String>, List<IndexMetadata>> indexesByProperties = new HashMap<>();
+  private final PSchemaImpl                            schema;
+  private final String                                 name;
+  private final List<PBucket>                          buckets                = new ArrayList<PBucket>();
+  private       PBucketSelectionStrategy               syncSelectionStrategy  = new PThreadAffinityBucketSelectionStrategy();
+  private       PBucketSelectionStrategy               asyncSelectionStrategy = new PRoundRobinBucketSelectionStrategy();
+  private final Map<String, PProperty>                 properties             = new HashMap<>();
+  private       Map<Integer, List<IndexMetadata>>      indexesByBucket        = new HashMap<>();
+  private       Map<List<String>, List<IndexMetadata>> indexesByProperties    = new HashMap<>();
 
   public class IndexMetadata {
     public String[] propertyNames;
@@ -75,18 +77,18 @@ public class PDocumentType {
     schema.saveConfiguration();
   }
 
-  public PBucket getBucketToSave() {
+  public PBucket getBucketToSave(final boolean async) {
     if (buckets.isEmpty())
       throw new PSchemaException("Cannot save on a bucket for type '" + name + "' because there are no buckets associated");
-    return buckets.get(selectionStrategy.getBucketToSave());
+    return buckets.get(async ? asyncSelectionStrategy.getBucketToSave() : syncSelectionStrategy.getBucketToSave());
   }
 
   public PBucketSelectionStrategy getSelectionStrategy() {
-    return selectionStrategy;
+    return syncSelectionStrategy;
   }
 
   public void setSelectionStrategy(final PBucketSelectionStrategy selectionStrategy) {
-    this.selectionStrategy = selectionStrategy;
+    this.syncSelectionStrategy = selectionStrategy;
   }
 
   public boolean existsProperty(final String propertyName) {
@@ -149,6 +151,7 @@ public class PDocumentType {
     }
 
     buckets.add(bucket);
-    selectionStrategy.setTotalBuckets(buckets.size());
+    syncSelectionStrategy.setTotalBuckets(buckets.size());
+    asyncSelectionStrategy.setTotalBuckets(buckets.size());
   }
 }

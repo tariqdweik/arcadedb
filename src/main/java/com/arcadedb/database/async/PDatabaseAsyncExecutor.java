@@ -388,7 +388,8 @@ public class PDatabaseAsyncExecutor {
 
     if (record.getIdentity() == null) {
       // NEW
-      final PBucket bucket = type.getBucketToSave();
+
+      final PBucket bucket = type.getBucketToSave(true);
       final int slot = bucket.getId() % parallelLevel;
 
       try {

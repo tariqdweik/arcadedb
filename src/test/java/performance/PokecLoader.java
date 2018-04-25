@@ -21,11 +21,11 @@ public class PokecLoader {
   private static final String  DB_PATH                 = "target/database/pokec";
   private static final String  POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt";
   private static final String  POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
-  private static final int     PARALLEL_LEVEL          = 3;
+  private static final int     PARALLEL_LEVEL          = 2;
   private static final boolean IMPORT_PROPERTIES       = true;
   private static final boolean USE_WAL                 = false;
   private static final boolean USE_WAL_SYNC            = false;
-  private static final int     COMMIT_EVERY            = 20000;
+  private static final int     COMMIT_EVERY            = 100;
 
   private static String[] COLUMNS = new String[] { "id", "public", "completion_percentage", "gender", "region", "last_login",
       "registration", "age", "body", "I_am_working_in_field", "spoken_languages", "hobbies", "I_most_enjoy_good_food", "pets",
@@ -145,7 +145,7 @@ public class PokecLoader {
 
     db.getSchema().createEdgeType("E");
 
-    db.getSchema().createClassIndexes("V", new String[] { "id" }, PIndexLSM.DEF_PAGE_SIZE * 20);
+    db.getSchema().createClassIndexes("V", new String[] { "id" }, PIndexLSM.DEF_PAGE_SIZE * 10);
     db.commit();
   }
 }

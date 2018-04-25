@@ -79,7 +79,7 @@ public enum PGlobalConfiguration {
   ASYNC_TX_BATCH_SIZE("proton.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class,
       1024 * 10),
 
-  PAGE_FLUSH_QUEUE("proton.pageFlushQueue", "Size of the asynchronous page flush queue", Integer.class, 4096),
+  PAGE_FLUSH_QUEUE("proton.pageFlushQueue", "Size of the asynchronous page flush queue", Integer.class, 128),
 
   COMMIT_LOCK_TIMEOUT("proton.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),
 
