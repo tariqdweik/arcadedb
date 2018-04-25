@@ -116,6 +116,22 @@ public class PEdgeLinkedList {
     }
   }
 
+  public void removeEdge(final PRID edgeRID) {
+    PEdgeChunk current = first;
+    while (current != null) {
+      current.removeEdge(edgeRID);
+      current = current.getNext();
+    }
+  }
+
+  public void removeVertex(final PRID vertexRID) {
+    PEdgeChunk current = first;
+    while (current != null) {
+      current.removeVertex(vertexRID);
+      current = current.getNext();
+    }
+  }
+
   private int computeBestSize() {
     int currentSize = first.getRecordSize();
     if (currentSize < 8192)

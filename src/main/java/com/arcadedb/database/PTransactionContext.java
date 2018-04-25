@@ -61,10 +61,16 @@ public class PTransactionContext {
 
       // CHECK THE VERSION FIRST
       final List<PPair<PBasePage, PModifiablePage>> pages = new ArrayList<>();
-      for (PModifiablePage p : modifiedPages.values()) {
+
+      for (final Iterator<PModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
+        final PModifiablePage p = it.next();
+
         final int[] range = p.getModifiedRange();
         if (range[1] > 0)
           pages.add(new PPair<>(pageManager.checkPageVersion(p, false), p));
+        else
+          // PAGE NOT MODIFIED, REMOVE IT
+          it.remove();
       }
 
       if (newPages != null)
@@ -106,7 +112,7 @@ public class PTransactionContext {
       rollback();
       throw new PTransactionException("Transaction error on commit", e);
     } finally {
-      unlockFilesInOrder(pageManager, lockedFiles);
+      pageManager.unlockFilesInOrder(lockedFiles);
     }
 
     reset();
@@ -273,29 +279,7 @@ public class PTransactionContext {
 
     final long timeout = PGlobalConfiguration.COMMIT_LOCK_TIMEOUT.getValueAsLong();
 
-    final List<Integer> lockedFiles = new ArrayList<>(orderedModifiedFiles.size());
-
-    for (Integer fileId : orderedModifiedFiles) {
-      if (pageManager.tryLockFile(fileId, timeout))
-        lockedFiles.add(fileId);
-      else
-        break;
-    }
-
-    if (lockedFiles.size() == orderedModifiedFiles.size())
-      // OK: ALL LOCKED
-      return lockedFiles;
-
-
-    // ERROR: UNLOCK LOCKED FILES
-    unlockFilesInOrder(pageManager, lockedFiles);
-
-    throw new PTransactionException("Timeout on locking resource during commit");
-  }
-
-  private void unlockFilesInOrder(final PPageManager pageManager, final List<Integer> lockedFiles) {
-    for (Integer fileId : lockedFiles)
-      pageManager.unlockFile(fileId);
+    return pageManager.tryLockFiles(orderedModifiedFiles, timeout);
   }
 
   private void reset() {

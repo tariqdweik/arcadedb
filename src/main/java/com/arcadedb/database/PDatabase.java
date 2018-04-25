@@ -54,7 +54,7 @@ public interface PDatabase {
 
   PCursor<PRID> lookupByKey(String type, String[] properties, Object[] keys);
 
-  void deleteRecord(PRID rid);
+  void deleteRecord(PRecord record);
 
   long countType(String typeName);
 

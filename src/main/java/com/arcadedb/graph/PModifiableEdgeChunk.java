@@ -30,8 +30,8 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
     super(database, null, new PBinary(bufferSize));
     this.buffer.setAutoResizable(false);
     this.bufferSize = bufferSize;
-    buffer.putByte(0, RECORD_TYPE); // USED
-    buffer.putInt(PBinary.BYTE_SERIALIZED_SIZE, CONTENT_START_POSITION); // USED
+    buffer.putByte(0, RECORD_TYPE);
+    buffer.putInt(PBinary.BYTE_SERIALIZED_SIZE, CONTENT_START_POSITION);
     buffer.position(PBinary.BYTE_SERIALIZED_SIZE + PBinary.INT_SERIALIZED_SIZE);
     database.getSerializer().serializeValue(buffer, PBinaryTypes.TYPE_RID, NULL_RID); // NEXT
   }
@@ -122,6 +122,78 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
   }
 
   @Override
+  public int removeEdge(final PRID rid) {
+    int used = getUsed();
+    if (used == 0)
+      return 0;
+
+    final int bucketId = rid.getBucketId();
+    final long position = rid.getPosition();
+
+    buffer.position(CONTENT_START_POSITION);
+
+    int found = 0;
+    while (buffer.position() < used) {
+      final int lastPos = buffer.position();
+
+      final int currEdgeBucketId = (int) buffer.getNumber();
+      final long currEdgePosition = buffer.getNumber();
+
+      buffer.getNumber();
+      buffer.getNumber();
+
+      if (currEdgeBucketId == bucketId && currEdgePosition == position) {
+        // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
+        buffer.move(buffer.position(), lastPos, used - lastPos);
+
+        used -= (buffer.position()-lastPos);
+        setUsed(used);
+
+        buffer.position(lastPos);
+        ++found;
+      }
+    }
+
+    return found;
+  }
+
+  @Override
+  public int removeVertex(final PRID rid) {
+    int used = getUsed();
+    if (used == 0)
+      return 0;
+
+    final int bucketId = rid.getBucketId();
+    final long position = rid.getPosition();
+
+    buffer.position(CONTENT_START_POSITION);
+
+    int found = 0;
+    while (buffer.position() < used) {
+      final int lastPos = buffer.position();
+
+      buffer.getNumber();
+      buffer.getNumber();
+
+      final int currVertexBucketId = (int) buffer.getNumber();
+      final long currVertexPosition = buffer.getNumber();
+
+      if (currVertexBucketId == bucketId && currVertexPosition == position) {
+        // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
+        buffer.move(buffer.position(), lastPos, used - lastPos);
+
+        used -= (buffer.position()-lastPos);
+        setUsed(used);
+
+        buffer.position(lastPos);
+        ++found;
+      }
+    }
+
+    return found;
+  }
+
+  @Override
   public long count(final Set<Integer> fileIds) {
     long total = 0;
 
@@ -178,6 +250,10 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
   @Override
   public int getUsed() {
     return buffer.getInt(PBinary.BYTE_SERIALIZED_SIZE);
+  }
+
+  private void setUsed(final int size) {
+    buffer.putInt(PBinary.BYTE_SERIALIZED_SIZE, size);
   }
 
   @Override

@@ -33,7 +33,9 @@ public class PImmutableDocument extends PBaseDocument {
     if (rid != null)
       output.append(rid);
     output.append('[');
-    if (output != null) {
+    if (buffer == null)
+      output.append('?');
+    else {
       final int currPosition = buffer.position();
 
       buffer.position(propertiesStartingPosition);
@@ -51,8 +53,8 @@ public class PImmutableDocument extends PBaseDocument {
         output.append(entry.getValue());
         i++;
       }
-      output.append(']');
     }
+    output.append(']');
     return output.toString();
   }
 

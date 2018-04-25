@@ -23,7 +23,9 @@ public interface PIndex {
 
   void put(Object[] keys, PRID rid);
 
-  Map<String,Long> getStats();
+  void remove(Object[] keys);
+
+  Map<String, Long> getStats();
 
   int getFileId();
 }

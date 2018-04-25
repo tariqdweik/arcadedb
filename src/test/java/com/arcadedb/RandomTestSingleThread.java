@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RandomTestSingleThread {
-  private static final int CYCLES           = 1000000;
+  private static final int CYCLES           = 1500;
   private static final int STARTING_ACCOUNT = 100;
   private static final int PARALLEL         = Runtime.getRuntime().availableProcessors();
 
@@ -116,7 +116,7 @@ public class RandomTestSingleThread {
       final PRecord next = iter.next();
 
       if (rnd.nextInt(2) == 0) {
-        database.deleteRecord(next.getIdentity());
+        database.deleteRecord(next);
         PLogManager.instance().info(this, "Deleted record %s", next.getIdentity());
       }
     }

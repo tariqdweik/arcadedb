@@ -12,9 +12,13 @@ public interface PEdgeChunk extends PRecord {
 
   boolean add(PRID edgeRID, PRID vertexRID);
 
-  boolean containsEdge(PRID rid);
+  boolean containsEdge(PRID edgeRID);
 
-  boolean containsVertex(PRID rid);
+  boolean containsVertex(PRID vertexRID);
+
+  int removeEdge(PRID edgeRID);
+
+  int removeVertex(PRID vertexRID);
 
   PEdgeChunk getNext();
 

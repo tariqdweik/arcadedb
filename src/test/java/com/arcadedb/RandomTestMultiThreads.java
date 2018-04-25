@@ -6,8 +6,11 @@ import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PConcurrentModificationException;
+import com.arcadedb.exception.PRecordNotFoundException;
 import com.arcadedb.schema.PEdgeType;
 import com.arcadedb.schema.PVertexType;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.OResultSet;
 import com.arcadedb.utility.PLogManager;
 import com.arcadedb.utility.PPair;
 import org.junit.jupiter.api.Test;
@@ -18,16 +21,17 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RandomTestMultiThreads {
-  private static final int CYCLES           = 1000000;
+  private static final int CYCLES           = 50000;
   private static final int STARTING_ACCOUNT = 100;
   private static final int PARALLEL         = Runtime.getRuntime().availableProcessors();
   private static final int WORKERS          = Runtime.getRuntime().availableProcessors() * 8;
 
-  private final AtomicLong                      total       = new AtomicLong();
-  private final AtomicLong                      mvccErrors  = new AtomicLong();
-  private final Random                          rnd         = new Random();
-  private final AtomicLong                      uuid        = new AtomicLong();
-  private final List<PPair<Integer, Exception>> otherErrors = Collections.synchronizedList(new ArrayList<>());
+  private final AtomicLong                      total             = new AtomicLong();
+  private final AtomicLong                      totalTransactions = new AtomicLong();
+  private final AtomicLong                      mvccErrors        = new AtomicLong();
+  private final Random                          rnd               = new Random();
+  private final AtomicLong                      uuid              = new AtomicLong();
+  private final List<PPair<Integer, Exception>> otherErrors       = Collections.synchronizedList(new ArrayList<>());
 
   @Test
   public void testRandom() {
@@ -50,44 +54,96 @@ public class RandomTestMultiThreads {
           public void run() {
             database.begin();
 
+            long totalTransactionInCurrentTx = 0;
+
             while (true) {
               final long i = total.incrementAndGet();
               if (i >= CYCLES)
                 break;
 
               try {
-                final int op = rnd.nextInt(6);
-                if (i % 10000 == 0)
-                  PLogManager.instance().info(this, "Operations %d/%d (thread=%d)", i, CYCLES, threadId);
+                final int op = rnd.nextInt(20);
+                if (i % 5000 == 0)
+                  PLogManager.instance()
+                      .info(this, "Operations %d/%d totalTransactionInCurrentTx=%d totalTransactions=%d (thread=%d)", i, CYCLES,
+                          totalTransactionInCurrentTx, totalTransactions.get(), threadId);
 
                 PLogManager.instance().debug(this, "Operation %d %d/%d (thread=%d)", op, i, CYCLES, threadId);
 
-                switch (op) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
+                if (op >= 0 && op <= 5) {
                   final int txOps = rnd.nextInt(10);
                   PLogManager.instance().debug(this, "Creating %d transactions (thread=%d)...", txOps, threadId);
+
                   createTransactions(database, txOps);
-                  break;
+                  totalTransactionInCurrentTx += txOps;
 
-                case 4:
+                } else if (op >= 6 && op <= 10) {
+                  PLogManager.instance().debug(this, "Querying Account by index records (thread=%d)...", threadId);
+
+                  final Map<String, Object> map = new HashMap<>();
+                  map.put(":id", rnd.nextInt(10000) + 1);
+
+                  final OResultSet result = database.query("select from Account where id = :id", map);
+                  while (result.hasNext()) {
+                    final OResult record = result.next();
+                    record.toString();
+                  }
+
+                } else if (op >= 11 && op <= 14) {
+                  PLogManager.instance().debug(this, "Querying Transaction by index records (thread=%d)...", threadId);
+
+                  final Map<String, Object> map = new HashMap<>();
+                  map.put(":uuid", rnd.nextInt((int) (totalTransactions.get() + 1)) + 1);
+
+                  final OResultSet result = database.query("select from Transaction where uuid = :uuid", map);
+                  while (result.hasNext()) {
+                    final OResult record = result.next();
+                    record.toString();
+                  }
+                } else if (op == 15) {
+                  PLogManager.instance().debug(this, "Scanning Account records (thread=%d)...", threadId);
+
+                  final Map<String, Object> map = new HashMap<>();
+                  map.put(":limit", rnd.nextInt(100) + 1);
+
+                  final OResultSet result = database.query("select from Account limit :limit", map);
+                  while (result.hasNext()) {
+                    final OResult record = result.next();
+                    record.toString();
+                  }
+
+                } else if (op == 16) {
+                  PLogManager.instance().debug(this, "Scanning Transaction records (thread=%d)...", threadId);
+
+                  final Map<String, Object> map = new HashMap<>();
+                  map.put(":limit", rnd.nextInt((int) totalTransactions.get() + 1) + 1);
+
+                  final OResultSet result = database.query("select from Transaction limit :limit", map);
+                  while (result.hasNext()) {
+                    final OResult record = result.next();
+                    record.toString();
+                  }
+
+                } else if (op == 17) {
                   PLogManager.instance().debug(this, "Deleting records (thread=%d)...", threadId);
-                  deleteRecords(database, threadId);
-                  break;
 
-                case 5:
+                  totalTransactionInCurrentTx -= deleteRecords(database, threadId);
+                } else if (op >= 18 && op <= 19) {
+
                   PLogManager.instance().debug(this, "Committing (thread=%d)...", threadId);
                   database.commit();
+
+                  totalTransactions.addAndGet(totalTransactionInCurrentTx);
+                  totalTransactionInCurrentTx = 0;
+
                   database.begin();
-                  break;
                 }
 
               } catch (Exception e) {
                 if (e instanceof PConcurrentModificationException) {
                   mvccErrors.incrementAndGet();
                   total.decrementAndGet();
+                  totalTransactionInCurrentTx = 0;
                 } else {
                   otherErrors.add(new PPair<>(threadId, e));
                   PLogManager.instance().error(this, "UNEXPECTED ERROR: " + e, e);
@@ -143,17 +199,34 @@ public class RandomTestMultiThreads {
     }
   }
 
-  private void deleteRecords(final PDatabase database, final int threadId) {
-    final Iterator<PRecord> iter = database.iterateType("Account");
+  private int deleteRecords(final PDatabase database, final int threadId) {
+    if (totalTransactions.get() == 0)
+      return 0;
+
+    final Iterator<PRecord> iter = database.iterateType("Transaction");
+
+    // JUMP A RANDOM NUMBER OF RECORD
+    final int jump = rnd.nextInt((int) totalTransactions.get() + 1 / 2);
+    for (int i = 0; i < jump && iter.hasNext(); ++i)
+      iter.next();
+
+    int deleted = 0;
 
     while (iter.hasNext() && rnd.nextInt(10) != 0) {
       final PRecord next = iter.next();
 
       if (rnd.nextInt(2) == 0) {
-        database.deleteRecord(next.getIdentity());
+        try {
+          database.deleteRecord(next);
+          deleted++;
+        } catch (PRecordNotFoundException e) {
+          // OK
+        }
         PLogManager.instance().debug(this, "Deleted record %s (threadId=%d)", next.getIdentity(), threadId);
       }
     }
+
+    return deleted;
   }
 
   private void populateDatabase() {

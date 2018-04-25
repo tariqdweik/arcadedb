@@ -4,15 +4,13 @@ import com.arcadedb.PGlobalConfiguration;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseMetadataException;
+import com.arcadedb.exception.PTransactionException;
 import com.arcadedb.utility.PLockContext;
 import com.arcadedb.utility.PLockManager;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -155,6 +153,7 @@ public class PPageManager extends PLockContext {
             page = loadPage(pageId, pageSize);
             if (!isNew)
               cacheMiss.incrementAndGet();
+
           } else {
             cacheHits.incrementAndGet();
             page.updateLastAccesses();
@@ -172,8 +171,10 @@ public class PPageManager extends PLockContext {
 
   public PBasePage checkPageVersion(final PModifiablePage page, final boolean isNew) throws IOException {
     final PBasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
+
     if (p != null && p.getVersion() != page.getVersion()) {
       totalConcurrentModificationExceptions.incrementAndGet();
+
       throw new PConcurrentModificationException(
           "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + p
               .getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
@@ -220,6 +221,34 @@ public class PPageManager extends PLockContext {
       PLogManager.instance()
           .debug(this, "Updated page %s (size=%d threadId=%d)", page, page.getPhysicalSize(), Thread.currentThread().getId());
     }
+  }
+
+  public List<Integer> tryLockFiles(final List<Integer> orderedModifiedFiles, final long timeout) {
+    final List<Integer> lockedFiles = new ArrayList<>(orderedModifiedFiles.size());
+    for (Integer fileId : orderedModifiedFiles) {
+      if (tryLockFile(fileId, timeout))
+        lockedFiles.add(fileId);
+      else
+        break;
+    }
+
+    if (lockedFiles.size() == orderedModifiedFiles.size()) {
+      // OK: ALL LOCKED
+      PLogManager.instance().debug(this, "Locked files %s (threadId=%d)", orderedModifiedFiles, Thread.currentThread().getId());
+      return lockedFiles;
+    }
+
+    // ERROR: UNLOCK LOCKED FILES
+    unlockFilesInOrder(lockedFiles);
+
+    throw new PTransactionException("Timeout on locking resource during commit");
+  }
+
+  public void unlockFilesInOrder(final List<Integer> lockedFiles) {
+    for (Integer fileId : lockedFiles)
+      unlockFile(fileId);
+
+    PLogManager.instance().debug(this, "Unlocked files %s (threadId=%d)", lockedFiles, Thread.currentThread().getId());
   }
 
   public PPageManagerStats getStats() {

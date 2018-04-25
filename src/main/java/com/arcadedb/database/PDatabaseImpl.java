@@ -5,10 +5,7 @@ import com.arcadedb.PProfiler;
 import com.arcadedb.database.async.PDatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.*;
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PGraphEngine;
-import com.arcadedb.graph.PModifiableVertex;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.graph.*;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.schema.PDocumentType;
@@ -504,15 +501,26 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   }
 
   @Override
-  public void deleteRecord(final PRID rid) {
+  public void deleteRecord(final PRecord record) {
+    if (record.getIdentity() == null)
+      throw new IllegalArgumentException("Cannot delete a non persistent record");
+
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         checkTransactionIsActive();
         if (mode == PPaginatedFile.MODE.READ_ONLY)
-          throw new PDatabaseIsReadOnlyException("Cannot delete record " + rid);
+          throw new PDatabaseIsReadOnlyException("Cannot delete record " + record.getIdentity());
 
-        schema.getBucketById(rid.getBucketId()).deleteRecord(rid);
+        final PBucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
+
+        if (record instanceof PEdge) {
+          graphEngine.deleteEdge((PEdge) record);
+        } else if (record instanceof PVertex) {
+          graphEngine.deleteVertex((PVertexInternal) record);
+        } else
+          bucket.deleteRecord(record.getIdentity());
+
         return null;
       }
     });

@@ -155,7 +155,7 @@ public class TransactionTypeTest {
       db.scanType(TYPE_NAME, new PDocumentCallback() {
         @Override
         public boolean onRecord(final PDocument record) {
-          db.deleteRecord(record.getIdentity());
+          db.deleteRecord(record);
           total.incrementAndGet();
           return true;
         }
@@ -191,7 +191,7 @@ public class TransactionTypeTest {
         db.scanType(TYPE_NAME, new PDocumentCallback() {
           @Override
           public boolean onRecord(final PDocument record) {
-            db.deleteRecord(record.getIdentity());
+            db.deleteRecord(record);
             return true;
           }
         });

@@ -36,9 +36,9 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
   public static final String INDEX_EXT     = "pindex";
   public static final int    DEF_PAGE_SIZE = 6553600;
 
-  private byte[] keyTypes;
-  private byte   valueType;
-  private int    bfKeyDepth;
+  private          byte[]  keyTypes;
+  private          byte    valueType;
+  private          int     bfKeyDepth;
   private volatile boolean compacting = false;
 
   private AtomicLong statsBFFalsePositive = new AtomicLong();
@@ -59,8 +59,8 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
   /**
    * Called at creation time.
    */
-  public PIndexLSM(final PDatabase database, final String name, String filePath, final PPaginatedFile.MODE mode, final byte[] keyTypes,
-      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
+  public PIndexLSM(final PDatabase database, final String name, String filePath, final PPaginatedFile.MODE mode,
+      final byte[] keyTypes, final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), PIndexLSM.INDEX_EXT, mode, pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
@@ -74,8 +74,8 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
    */
   public PIndexLSM(final PDatabase database, final String name, String filePath, final byte[] keyTypes, final byte valueType,
       final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndexLSM.INDEX_EXT, PPaginatedFile.MODE.READ_WRITE,
-        pageSize);
+    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + PIndexLSM.INDEX_EXT,
+        PPaginatedFile.MODE.READ_WRITE, pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
     this.bfKeyDepth = bfKeyDepth;
@@ -271,6 +271,50 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
     } catch (IOException e) {
       throw new PDatabaseOperationException(
           "Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
+    }
+  }
+
+  /**
+   * DON'T CALL THIS
+   * @param keys
+   */
+  @Override
+  public void remove(final Object[] keys) {
+    if (keys == null)
+      throw new IllegalArgumentException("keys is null");
+
+    if (keys.length != keyTypes.length)
+      throw new IllegalArgumentException("Cannot remove an entry in the index with a partial key");
+
+    try {
+      final int totalPages = getTotalPages();
+
+      for (int p = 0; p < totalPages; ++p) {
+        final PBasePage currentPage = this.database.getTransaction().getPage(new PPageId(file.getFileId(), p), pageSize);
+        final PBinary currentPageBuffer = new PBinary(currentPage.slice());
+        int count = getCount(currentPage);
+
+        // SEARCH IN THE BF FIRST
+        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 0);
+        if (result != null && result.found) {
+          final PModifiablePage modifiablePage = this.database.getTransaction()
+              .getPageToModify(new PPageId(file.getFileId(), p), pageSize, false);
+
+          count--;
+
+          // SHIFT POINTERS TO THE LEFT
+          int keyIndex = result.keyIndex;
+          final int startPos = getHeaderSize(currentPage.getPageId().getPageNumber()) + (keyIndex * INT_SERIALIZED_SIZE);
+          currentPageBuffer.move(startPos, startPos - INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
+
+          setCount(modifiablePage, count);
+
+          PLogManager.instance().debug(this, "Removed entry by key %s from index '%s'", Arrays.toString(keys), name);
+        }
+      }
+
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Cannot remove key '" + Arrays.toString(keys) + "' in index '" + name + "'", e);
     }
   }
 

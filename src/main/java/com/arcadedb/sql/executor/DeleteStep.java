@@ -32,7 +32,7 @@ public class DeleteStep extends AbstractExecutionStep {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           if (result.isElement()) {
-            ctx.getDatabase().deleteRecord(result.getElement().get().getIdentity());
+            ctx.getDatabase().deleteRecord(result.getElement().get());
           }
           return result;
         } finally {

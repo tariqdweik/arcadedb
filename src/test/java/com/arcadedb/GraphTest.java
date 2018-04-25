@@ -4,18 +4,18 @@ import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PRID;
 import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.exception.PRecordNotFoundException;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PModifiableEdge;
 import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.utility.PFileUtils;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -29,8 +29,8 @@ public class GraphTest {
 
   private static PRID root;
 
-  @BeforeAll
-  public static void populate() {
+  @BeforeEach
+  public void populate() {
     PFileUtils.deleteRecursively(new File(DB_PATH));
 
     new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
@@ -88,14 +88,14 @@ public class GraphTest {
     }
   }
 
-  @AfterAll
-  public static void drop() {
+  @AfterEach
+  public void drop() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
-  public void checkVertices() throws IOException {
+  public void checkVertices() {
     final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
@@ -154,7 +154,7 @@ public class GraphTest {
   }
 
   @Test
-  public void checkEdges() throws IOException {
+  public void checkEdges() {
     final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
@@ -208,6 +208,54 @@ public class GraphTest {
 
     } finally {
       db2.close();
+    }
+  }
+
+  @Test
+  public void deleteVertices() {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    db.begin();
+    try {
+
+      PVertex v1 = (PVertex) db.lookupByRID(root, false);
+      Assertions.assertNotNull(v1);
+
+      Iterator<PVertex> outV = v1.getVertices(PVertex.DIRECTION.OUT);
+      Assertions.assertTrue(outV.hasNext());
+      PVertex v2 = outV.next();
+      Assertions.assertNotNull(v2);
+
+      Assertions.assertTrue(outV.hasNext());
+      PVertex v3 = outV.next();
+      Assertions.assertNotNull(v3);
+
+      db.deleteRecord(v1);
+
+      // -----------------------
+      v2 = (PVertex) db.lookupByRID(v2.getIdentity(), true);
+
+      outV = v2.getVertices(PVertex.DIRECTION.IN);
+      Assertions.assertFalse(outV.hasNext());
+
+      outV = v2.getVertices(PVertex.DIRECTION.OUT);
+      Assertions.assertTrue(outV.hasNext());
+
+      v3 = (PVertex) db.lookupByRID(v3.getIdentity(), true);
+
+      // Expecting 1 edge only: V2 is still connected to V3
+      outV = v3.getVertices(PVertex.DIRECTION.IN);
+      Assertions.assertTrue(outV.hasNext());
+      outV.next();
+      Assertions.assertFalse(outV.hasNext());
+
+      try {
+        db.lookupByRID(root, true);
+        Assertions.fail("Expected deleted record");
+      } catch (PRecordNotFoundException e) {
+      }
+
+    } finally {
+      db.close();
     }
   }
 }

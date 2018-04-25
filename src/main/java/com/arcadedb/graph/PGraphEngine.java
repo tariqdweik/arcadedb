@@ -113,6 +113,65 @@ public class PGraphEngine {
     return total;
   }
 
+  public void deleteEdge(final PEdge edge) {
+    final PDatabase database = edge.getDatabase();
+
+    PVertexInternal vOut = (PVertexInternal) edge.getOut().getRecord();
+
+    if (vOut != null) {
+      if (vOut.getOutEdgesHeadChunk() != null)
+        new PEdgeLinkedList(vOut, PVertex.DIRECTION.OUT, (PEdgeChunk) database.lookupByRID(vOut.getOutEdgesHeadChunk(), true))
+            .removeEdge(edge.getIdentity());
+    }
+
+    PVertexInternal vIn = (PVertexInternal) edge.getIn().getRecord();
+    if (vIn != null) {
+      if (vIn.getInEdgesHeadChunk() != null)
+        new PEdgeLinkedList(vIn, PVertex.DIRECTION.IN, (PEdgeChunk) database.lookupByRID(vIn.getInEdgesHeadChunk(), true))
+            .removeEdge(edge.getIdentity());
+    }
+
+    // DELETE EDGE RECORD
+    database.getSchema().getBucketById(edge.getIdentity().getBucketId()).deleteRecord(edge.getIdentity());
+  }
+
+  public void deleteVertex(final PVertexInternal vertex) {
+    final PDatabase database = vertex.getDatabase();
+
+    if (vertex.getOutEdgesHeadChunk() != null) {
+      final PEdgeIterator outIterator = new PEdgeLinkedList(vertex, PVertex.DIRECTION.OUT,
+          (PEdgeChunk) database.lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator();
+
+      while (outIterator.hasNext()) {
+        final PEdge nextEdge = outIterator.next();
+        PVertexInternal nextVertex = (PVertexInternal) nextEdge.getIn().getRecord();
+        if (nextVertex.getInEdgesHeadChunk() != null) {
+          new PEdgeLinkedList(nextVertex, PVertex.DIRECTION.IN,
+              (PEdgeChunk) database.lookupByRID(nextVertex.getInEdgesHeadChunk(), true)).removeEdge(nextEdge.getIdentity());
+          database.getSchema().getBucketById(nextEdge.getIdentity().getBucketId()).deleteRecord(nextEdge.getIdentity());
+        }
+      }
+    }
+
+    if (vertex.getInEdgesHeadChunk() != null) {
+      final PEdgeIterator inIterator = new PEdgeLinkedList(vertex, PVertex.DIRECTION.IN,
+          (PEdgeChunk) database.lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator();
+
+      while (inIterator.hasNext()) {
+        final PEdge nextEdge = inIterator.next();
+        PVertexInternal nextVertex = (PVertexInternal) nextEdge.getIn().getRecord();
+        if (nextVertex.getOutEdgesHeadChunk() != null) {
+          new PEdgeLinkedList(nextVertex, PVertex.DIRECTION.OUT,
+              (PEdgeChunk) database.lookupByRID(nextVertex.getOutEdgesHeadChunk(), true)).removeEdge(nextEdge.getIdentity());
+          database.getSchema().getBucketById(nextEdge.getIdentity().getBucketId()).deleteRecord(nextEdge.getIdentity());
+        }
+      }
+    }
+
+    // DELETE VERTEX RECORD
+    vertex.getDatabase().getSchema().getBucketById(vertex.getIdentity().getBucketId()).deleteRecord(vertex.getIdentity());
+  }
+
   public Iterator<PEdge> getEdges(final PVertexInternal vertex) {
     final PMultiIterator<PEdge> result = new PMultiIterator<>();
 

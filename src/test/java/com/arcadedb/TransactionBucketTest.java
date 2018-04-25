@@ -151,7 +151,7 @@ public class TransactionBucketTest {
       db.scanBucket("V_0", new PRecordCallback() {
         @Override
         public boolean onRecord(final PRecord record) {
-          db.deleteRecord(record.getIdentity());
+          db.deleteRecord(record);
           total.incrementAndGet();
           return true;
         }
@@ -187,7 +187,7 @@ public class TransactionBucketTest {
         db.scanBucket("V_0", new PRecordCallback() {
           @Override
           public boolean onRecord(final PRecord record) {
-            db.deleteRecord(record.getIdentity());
+            db.deleteRecord(record);
             return true;
           }
         });
