@@ -44,6 +44,7 @@ public class PerformanceInsertNoIndexTest {
 
     try {
 
+      database.setReadYourWrites(false);
       database.asynch().setParallelLevel(PARALLEL);
       database.asynch().setTransactionUseWAL(false);
       database.asynch().setTransactionSync(false);

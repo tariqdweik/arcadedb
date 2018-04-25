@@ -28,6 +28,7 @@ public class PTransactionContext {
   private       Map<PPageId, PModifiablePage> modifiedPages;
   private       Map<PPageId, PModifiablePage> newPages;
   private final Map<Integer, Integer>         newPageCounters = new HashMap<>();
+  private final Map<PRID, PRecord>            cache           = new HashMap<>(1024);
   private       boolean                       useWAL          = PGlobalConfiguration.TX_WAL.getValueAsBoolean();
   private       boolean                       sync            = PGlobalConfiguration.TX_FLUSH.getValueAsBoolean();
 
@@ -116,6 +117,30 @@ public class PTransactionContext {
     }
 
     reset();
+  }
+
+  public PRecord getRecordFromCache(final PRID rid) {
+    if (database.isReadYourWrites())
+      return cache.get(rid);
+    return null;
+  }
+
+  public void updateRecordInCache(final PRecord record) {
+    if (database.isReadYourWrites()) {
+      final PRID rid = record.getIdentity();
+      if (rid == null)
+        throw new IllegalArgumentException("Cannot update record in TX cache because it is not persistent: " + record);
+      cache.put(rid, record);
+    }
+  }
+
+  public void removeRecordFromCache(final PRecord record) {
+    if (database.isReadYourWrites()) {
+      final PRID rid = record.getIdentity();
+      if (rid == null)
+        throw new IllegalArgumentException("Cannot remove record in TX cache because it is not persistent: " + record);
+      cache.remove(rid);
+    }
   }
 
   public boolean isUseWAL() {
@@ -286,5 +311,6 @@ public class PTransactionContext {
     modifiedPages = null;
     newPages = null;
     newPageCounters.clear();
+    cache.clear();
   }
 }

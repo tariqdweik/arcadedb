@@ -32,12 +32,13 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   protected final String                 databasePath;
   protected final PFileManager           fileManager;
   protected final PPageManager           pageManager;
-  protected final PBinarySerializer      serializer    = new PBinarySerializer();
-  protected final PRecordFactory         recordFactory = new PRecordFactory();
+  protected final PBinarySerializer      serializer     = new PBinarySerializer();
+  protected final PRecordFactory         recordFactory  = new PRecordFactory();
   protected final PSchemaImpl            schema;
-  protected final PGraphEngine           graphEngine   = new PGraphEngine();
+  protected final PGraphEngine           graphEngine    = new PGraphEngine();
   protected final PTransactionManager    transactionManager;
-  protected       PDatabaseAsyncExecutor asynch        = null;
+  protected       PDatabaseAsyncExecutor asynch         = null;
+  private         boolean                readYourWrites = true;
 
   protected          boolean autoTransaction = false;
   protected volatile boolean open            = false;
@@ -360,17 +361,30 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       public Object call() {
 
         checkDatabaseIsOpen();
+
+        // CHECK IN TX CACHE FIRST
+        final PTransactionContext tx = getTransaction();
+        PRecord record = tx.getRecordFromCache(rid);
+        if (record != null)
+          return record;
+
         final PDocumentType type = schema.getTypeByBucketId(rid.getBucketId());
 
         if (loadContent) {
           final PBinary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-          return recordFactory.newImmutableRecord(PDatabaseImpl.this, type != null ? type.getName() : null, rid, buffer);
+          record = recordFactory.newImmutableRecord(PDatabaseImpl.this, type != null ? type.getName() : null, rid, buffer);
+          tx.updateRecordInCache(record);
+          return record;
         }
 
         if (type != null)
-          return recordFactory.newImmutableRecord(PDatabaseImpl.this, type.getName(), rid, type.getType());
+          record = recordFactory.newImmutableRecord(PDatabaseImpl.this, type.getName(), rid, type.getType());
+        else
+          record = recordFactory.newImmutableRecord(PDatabaseImpl.this, null, rid, PDocument.RECORD_TYPE);
 
-        return recordFactory.newImmutableRecord(PDatabaseImpl.this, null, rid, PDocument.RECORD_TYPE);
+        tx.updateRecordInCache(record);
+
+        return record;
       }
     });
   }
@@ -429,6 +443,16 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   }
 
   @Override
+  public boolean isReadYourWrites() {
+    return readYourWrites;
+  }
+
+  @Override
+  public void setReadYourWrites(boolean readYourWrites) {
+    this.readYourWrites = readYourWrites;
+  }
+
+  @Override
   public void createRecord(final PModifiableDocument record) {
     if (record.getIdentity() != null)
       throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
@@ -444,9 +468,12 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
         final PDocumentType type = schema.getType(record.getType());
 
         // NEW
-        final PBucket bucket = type.getBucketToSave();
+        final PBucket bucket = type.getBucketToSave(false);
         record.setIdentity(bucket.createRecord(record));
         indexDocument(record, type, bucket);
+
+        getTransaction().updateRecordInCache(record);
+
         return null;
       }
     });
@@ -475,6 +502,8 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     final PBucket bucket = schema.getBucketByName(bucketName);
 
     ((PRecordInternal) record).setIdentity(bucket.createRecord(record));
+
+    getTransaction().updateRecordInCache(record);
   }
 
   @Override
@@ -498,6 +527,8 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       throw new PDatabaseIsReadOnlyException("Cannot update a record");
 
     schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+
+    getTransaction().updateRecordInCache(record);
   }
 
   @Override
@@ -520,6 +551,8 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
           graphEngine.deleteVertex((PVertexInternal) record);
         } else
           bucket.deleteRecord(record.getIdentity());
+
+        getTransaction().removeRecordFromCache(record);
 
         return null;
       }

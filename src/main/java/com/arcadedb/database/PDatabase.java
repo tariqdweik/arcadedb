@@ -86,4 +86,7 @@ public interface PDatabase {
 
   Object executeInWriteLock(Callable<Object> callable);
 
+  boolean isReadYourWrites();
+
+  void setReadYourWrites(boolean value);
 }
