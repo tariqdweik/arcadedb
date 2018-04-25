@@ -8,5 +8,9 @@ public interface PEdge extends PDocument {
 
   PRID getOut();
 
+  PVertex getOutVertex();
+
   PRID getIn();
+
+  PVertex getInVertex();
 }

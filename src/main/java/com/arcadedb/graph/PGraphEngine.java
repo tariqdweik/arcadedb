@@ -116,7 +116,7 @@ public class PGraphEngine {
   public void deleteEdge(final PEdge edge) {
     final PDatabase database = edge.getDatabase();
 
-    PVertexInternal vOut = (PVertexInternal) edge.getOut().getRecord();
+    final PVertexInternal vOut = (PVertexInternal) edge.getOutVertex();
 
     if (vOut != null) {
       if (vOut.getOutEdgesHeadChunk() != null)
@@ -124,7 +124,7 @@ public class PGraphEngine {
             .removeEdge(edge.getIdentity());
     }
 
-    PVertexInternal vIn = (PVertexInternal) edge.getIn().getRecord();
+    final PVertexInternal vIn = (PVertexInternal) edge.getInVertex();
     if (vIn != null) {
       if (vIn.getInEdgesHeadChunk() != null)
         new PEdgeLinkedList(vIn, PVertex.DIRECTION.IN, (PEdgeChunk) database.lookupByRID(vIn.getInEdgesHeadChunk(), true))
@@ -144,7 +144,7 @@ public class PGraphEngine {
 
       while (outIterator.hasNext()) {
         final PEdge nextEdge = outIterator.next();
-        PVertexInternal nextVertex = (PVertexInternal) nextEdge.getIn().getRecord();
+        PVertexInternal nextVertex = (PVertexInternal) nextEdge.getInVertex();
         if (nextVertex.getInEdgesHeadChunk() != null) {
           new PEdgeLinkedList(nextVertex, PVertex.DIRECTION.IN,
               (PEdgeChunk) database.lookupByRID(nextVertex.getInEdgesHeadChunk(), true)).removeEdge(nextEdge.getIdentity());
@@ -159,7 +159,7 @@ public class PGraphEngine {
 
       while (inIterator.hasNext()) {
         final PEdge nextEdge = inIterator.next();
-        PVertexInternal nextVertex = (PVertexInternal) nextEdge.getIn().getRecord();
+        PVertexInternal nextVertex = (PVertexInternal) nextEdge.getInVertex();
         if (nextVertex.getOutEdgesHeadChunk() != null) {
           new PEdgeLinkedList(nextVertex, PVertex.DIRECTION.OUT,
               (PEdgeChunk) database.lookupByRID(nextVertex.getOutEdgesHeadChunk(), true)).removeEdge(nextEdge.getIdentity());

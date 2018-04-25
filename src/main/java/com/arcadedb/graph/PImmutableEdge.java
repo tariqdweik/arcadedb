@@ -37,9 +37,21 @@ public class PImmutableEdge extends PImmutableDocument implements PEdge {
   }
 
   @Override
+  public PVertex getOutVertex() {
+    checkForLazyLoading();
+    return (PVertex) out.getRecord();
+  }
+
+  @Override
   public PRID getIn() {
     checkForLazyLoading();
     return in;
+  }
+
+  @Override
+  public PVertex getInVertex() {
+    checkForLazyLoading();
+    return (PVertex) in.getRecord();
   }
 
   @Override

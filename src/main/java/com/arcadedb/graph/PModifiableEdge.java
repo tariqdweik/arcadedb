@@ -32,8 +32,18 @@ public class PModifiableEdge extends PModifiableDocument implements PEdge {
   }
 
   @Override
+  public PVertex getOutVertex() {
+    return (PVertex) out.getRecord();
+  }
+
+  @Override
   public PRID getIn() {
     return in;
+  }
+
+  @Override
+  public PVertex getInVertex() {
+    return (PVertex) in.getRecord();
   }
 
   @Override
