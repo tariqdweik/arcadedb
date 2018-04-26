@@ -229,8 +229,24 @@ public class GraphTest {
       PVertex v3 = vertices.next();
       Assertions.assertNotNull(v3);
 
+      // DELETE THE VERTEX
+      // -----------------------
       db.deleteRecord(v1);
 
+      vertices = v2.getVertices(PVertex.DIRECTION.IN);
+      Assertions.assertFalse(vertices.hasNext());
+
+      vertices = v2.getVertices(PVertex.DIRECTION.OUT);
+      Assertions.assertTrue(vertices.hasNext());
+
+      // Expecting 1 edge only: V2 is still connected to V3
+      vertices = v3.getVertices(PVertex.DIRECTION.IN);
+      Assertions.assertTrue(vertices.hasNext());
+      vertices.next();
+      Assertions.assertFalse(vertices.hasNext());
+
+
+      // RELOAD AND CHECK AGAIN
       // -----------------------
       v2 = (PVertex) db.lookupByRID(v2.getIdentity(), true);
 
@@ -277,14 +293,9 @@ public class GraphTest {
       PEdge e3 = edges.next();
       Assertions.assertNotNull(e3);
 
-      db.deleteRecord(e2);
+      // DELETE THE EDGE
       // -----------------------
-
-      try {
-        db.lookupByRID(e2.getIdentity(), true);
-        Assertions.fail("Expected deleted record");
-      } catch (PRecordNotFoundException e) {
-      }
+      db.deleteRecord(e2);
 
       PVertex vOut = e2.getOutVertex();
       edges = vOut.getEdges(PVertex.DIRECTION.OUT);
@@ -294,6 +305,25 @@ public class GraphTest {
       Assertions.assertFalse(edges.hasNext());
 
       PVertex vIn = e2.getInVertex();
+      edges = vIn.getEdges(PVertex.DIRECTION.IN);
+      Assertions.assertFalse(edges.hasNext());
+
+      // RELOAD AND CHECK AGAIN
+      // -----------------------
+      try {
+        db.lookupByRID(e2.getIdentity(), true);
+        Assertions.fail("Expected deleted record");
+      } catch (PRecordNotFoundException e) {
+      }
+
+      vOut = e2.getOutVertex();
+      edges = vOut.getEdges(PVertex.DIRECTION.OUT);
+      Assertions.assertTrue(edges.hasNext());
+
+      edges.next();
+      Assertions.assertFalse(edges.hasNext());
+
+      vIn = e2.getInVertex();
       edges = vIn.getEdges(PVertex.DIRECTION.IN);
       Assertions.assertFalse(edges.hasNext());
 
