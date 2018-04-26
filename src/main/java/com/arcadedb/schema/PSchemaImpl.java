@@ -218,7 +218,7 @@ public class PSchemaImpl implements PSchema {
           int i = 0;
 
           for (String propertyName : propertyNames) {
-            final PProperty property = type.getProperty(propertyName);
+            final PProperty property = type.getPolymorphicProperty(propertyName);
             if (property == null)
               throw new PSchemaException(
                   "Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
@@ -226,9 +226,11 @@ public class PSchemaImpl implements PSchema {
             keyTypes[i++] = PBinaryTypes.getTypeFromClass(property.getType());
           }
 
-          final PIndexLSM[] indexes = new PIndexLSM[type.getBuckets().size()];
-          for (int idx = 0; idx < type.getBuckets().size(); ++idx) {
-            final PBucket b = type.getBuckets().get(idx);
+          final List<PBucket> buckets = type.getBuckets(false);
+
+          final PIndexLSM[] indexes = new PIndexLSM[buckets.size()];
+          for (int idx = 0; idx < buckets.size(); ++idx) {
+            final PBucket b = buckets.get(idx);
             final String indexName = b.getName() + "_" + System.currentTimeMillis();
 
             if (indexMap.containsKey(indexName))
@@ -311,7 +313,7 @@ public class PSchemaImpl implements PSchema {
   @Override
   public String getTypeNameByBucketId(final int bucketId) {
     for (PDocumentType t : types.values()) {
-      for (PBucket b : t.getBuckets()) {
+      for (PBucket b : t.getBuckets(false)) {
         if (b.getId() == bucketId)
           return t.getName();
       }
@@ -324,7 +326,7 @@ public class PSchemaImpl implements PSchema {
   @Override
   public PDocumentType getTypeByBucketId(final int bucketId) {
     for (PDocumentType t : types.values()) {
-      for (PBucket b : t.getBuckets()) {
+      for (PBucket b : t.getBuckets(false)) {
         if (b.getId() == bucketId)
           return t;
       }
@@ -471,9 +473,11 @@ public class PSchemaImpl implements PSchema {
 
       PDocumentType lastType = null;
 
+      final Map<String, String[]> parentTypes = new HashMap<>();
+
       while ((line = br.readLine()) != null) {
         if (lineNum == 0) {
-          if (!line.startsWith("#PROTON,"))
+          if (!line.startsWith("#ARCADEDB,"))
             throw new PConfigurationException("Format exception while parsing schema file: " + (databasePath + SCHEMA_FILE_NAME));
         } else if (!line.startsWith("+")) {
           // TYPE
@@ -492,7 +496,13 @@ public class PSchemaImpl implements PSchema {
           }
 
           // parts[1] // IGNORE STRATEGY FOR NOW
-          final String[] bucketItems = parts[3].split(";");
+          final String[] parentItems = parts[3].isEmpty() ? null : parts[3].split(";");
+
+          if (parentItems != null)
+            // SAVE THE PARENT HIERARCHY FOR LATER
+            parentTypes.put(typeName, parentItems);
+
+          final String[] bucketItems = parts[4].split(";");
           for (String b : bucketItems) {
             final PPaginatedComponent bucket = files.get(Integer.parseInt(b));
             if (bucket == null || !(bucket instanceof PBucket))
@@ -512,6 +522,13 @@ public class PSchemaImpl implements PSchema {
         lineNum++;
       }
 
+      // RESTORE THE INHERITANCE
+      for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
+        final PDocumentType type = getType(entry.getKey());
+        for (String p : entry.getValue())
+          type.addParent(getType(p));
+      }
+
     } catch (IOException e) {
       PLogManager.instance().error(this, "Error on loading schema configuration from file: %s", e, databasePath + SCHEMA_FILE_NAME);
     }
@@ -521,10 +538,18 @@ public class PSchemaImpl implements PSchema {
     try {
       final FileWriter file = new FileWriter(databasePath + SCHEMA_FILE_NAME);
 
-      file.append(String.format("#PROTON,%s\n", PConstants.VERSION));
+      file.append(String.format("#ARCADEDB,%s\n", PConstants.VERSION));
       for (PDocumentType t : types.values()) {
+
+        final StringBuilder parentList2String = new StringBuilder();
+        for (PDocumentType p : t.getParentTypes()) {
+          if (parentList2String.length() > 0)
+            parentList2String.append(';');
+          parentList2String.append(p.getName());
+        }
+
         final StringBuilder bucketList2String = new StringBuilder();
-        for (PBucket b : t.getBuckets()) {
+        for (PBucket b : t.getBuckets(false)) {
           if (bucketList2String.length() > 0)
             bucketList2String.append(';');
           bucketList2String.append(b.getId());
@@ -538,8 +563,9 @@ public class PSchemaImpl implements PSchema {
         else
           kind = "d";
 
-        file.append(
-            String.format("%s,%s,%s,%s\n", t.getName(), kind, t.getSyncSelectionStrategy().getName(), bucketList2String.toString()));
+        file.append(String
+            .format("%s,%s,%s,%s,%s\n", t.getName(), kind, t.getSyncSelectionStrategy().getName(), parentList2String.toString(),
+                bucketList2String.toString()));
 
         for (List<PDocumentType.IndexMetadata> list : t.getAllIndexesMetadata()) {
           for (PDocumentType.IndexMetadata entry : list) {

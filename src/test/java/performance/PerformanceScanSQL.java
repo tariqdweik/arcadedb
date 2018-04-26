@@ -37,7 +37,7 @@ public class PerformanceScanSQL {
         }
 
         System.out.println("Found " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database
-            .countType(TYPE_NAME) + ")");
+            .countType(TYPE_NAME, true) + ")");
       }
     } finally {
       database.close();

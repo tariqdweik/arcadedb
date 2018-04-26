@@ -52,7 +52,7 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
     if (clazz == null) {
       throw new PCommandExecutionException("Class " + className + " not found");
     }
-    int[] classClusters = clazz.getBuckets().stream().mapToInt(x -> x.getId()).toArray();
+    int[] classClusters = clazz.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
     List<Integer> filteredClassClusters = new ArrayList<>();
     for (int clusterId : classClusters) {
       String clusterName = ctx.getDatabase().getSchema().getBucketById(clusterId).getName();

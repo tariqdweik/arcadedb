@@ -73,7 +73,7 @@ public class PEdgeLinkedList {
     final Set<Integer> fileIdToFilter;
     if (edgeType != null) {
       final PDocumentType type = vertex.getDatabase().getSchema().getType(edgeType);
-      final List<PBucket> buckets = type.getBuckets();
+      final List<PBucket> buckets = type.getBuckets(true);
       fileIdToFilter = new HashSet<Integer>(buckets.size());
       for (PBucket b : buckets)
         fileIdToFilter.add(b.getId());

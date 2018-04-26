@@ -16,8 +16,8 @@ import java.util.Map;
 public class DropClassStatement extends ODDLStatement {
 
   public Identifier name;
-  public boolean ifExists = false;
-  public boolean unsafe   = false;
+  public boolean    ifExists = false;
+  public boolean    unsafe   = false;
 
   public DropClassStatement(int id) {
     super(id);
@@ -27,7 +27,8 @@ public class DropClassStatement extends ODDLStatement {
     super(p, id);
   }
 
-  @Override public OResultSet executeDDL(OCommandContext ctx) {
+  @Override
+  public OResultSet executeDDL(OCommandContext ctx) {
     PSchema schema = ctx.getDatabase().getSchema();
     PDocumentType clazz = schema.getType(name.getStringValue());
     if (clazz == null) {
@@ -37,7 +38,7 @@ public class DropClassStatement extends ODDLStatement {
       throw new PCommandExecutionException("Class " + name.getStringValue() + " does not exist");
     }
 
-    if (!unsafe && ctx.getDatabase().countType(clazz.getName()) > 0) {
+    if (!unsafe && ctx.getDatabase().countType(clazz.getName(), false) > 0) {
       //check vertex or edge
       if (clazz.getType() == PVertex.RECORD_TYPE) {
         throw new PCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
@@ -60,7 +61,8 @@ public class DropClassStatement extends ODDLStatement {
 //    return rs;
   }
 
-  @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
+  @Override
+  public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("DROP CLASS ");
     name.toString(params, builder);
     if (ifExists) {
@@ -71,7 +73,8 @@ public class DropClassStatement extends ODDLStatement {
     }
   }
 
-  @Override public DropClassStatement copy() {
+  @Override
+  public DropClassStatement copy() {
     DropClassStatement result = new DropClassStatement(-1);
     result.name = name == null ? null : name.copy();
     result.ifExists = ifExists;
@@ -79,7 +82,8 @@ public class DropClassStatement extends ODDLStatement {
     return result;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -89,7 +93,7 @@ public class DropClassStatement extends ODDLStatement {
 
     if (unsafe != that.unsafe)
       return false;
-    if(ifExists != that.ifExists)
+    if (ifExists != that.ifExists)
       return false;
     if (name != null ? !name.equals(that.name) : that.name != null)
       return false;
@@ -97,7 +101,8 @@ public class DropClassStatement extends ODDLStatement {
     return true;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     int result = name != null ? name.hashCode() : 0;
     result = 31 * result + (unsafe ? 1 : 0);
     return result;

@@ -37,7 +37,7 @@ public class AsyncTest {
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
 
-      db.asynch().scanType(TYPE_NAME, new PDocumentCallback() {
+      db.asynch().scanType(TYPE_NAME,true, new PDocumentCallback() {
         @Override
         public boolean onRecord(PDocument record) {
           callbackInvoked.incrementAndGet();
@@ -59,7 +59,7 @@ public class AsyncTest {
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
 
-      db.asynch().scanType(TYPE_NAME, new PDocumentCallback() {
+      db.asynch().scanType(TYPE_NAME,true, new PDocumentCallback() {
         @Override
         public boolean onRecord(PDocument record) {
           if (callbackInvoked.get() > 9)

@@ -1,0 +1,196 @@
+package com.arcadedb;
+
+import com.arcadedb.database.*;
+import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.exception.PSchemaException;
+import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.schema.PVertexType;
+import com.arcadedb.utility.PFileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class PolymorphicTest {
+  private static final String DB_PATH = "target/database/graph";
+
+  private static PRID root;
+
+  @BeforeEach
+  public void populate() {
+    PFileUtils.deleteRecursively(new File(DB_PATH));
+
+    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+      @Override
+      public void execute(PDatabase database) {
+        //------------
+        // VEHICLES VERTICES
+        //------------
+        PVertexType vehicle = database.getSchema().createVertexType("Vehicle", 3);
+        vehicle.createProperty("brand", String.class);
+
+        PVertexType motorcycle = database.getSchema().createVertexType("Motorcycle", 3);
+        motorcycle.addParent("Vehicle");
+
+        try {
+          motorcycle.createProperty("brand", String.class);
+          Assertions.fail("Expected to fail by creating the same property name as the parent type");
+        } catch (PSchemaException e) {
+        }
+
+        Assertions.assertTrue(database.getSchema().getType("Motorcycle").instanceOf("Vehicle"));
+        database.getSchema().createVertexType("Car", 3).addParent("Vehicle");
+        Assertions.assertTrue(database.getSchema().getType("Car").instanceOf("Vehicle"));
+
+        database.getSchema().createVertexType("Supercar", 3).addParent("Car");
+        Assertions.assertTrue(database.getSchema().getType("Supercar").instanceOf("Car"));
+        Assertions.assertTrue(database.getSchema().getType("Supercar").instanceOf("Vehicle"));
+
+        //------------
+        // PEOPLE VERTICES
+        //------------
+        PVertexType person = database.getSchema().createVertexType("Person");
+        database.getSchema().createVertexType("Client").addParent(person);
+        Assertions.assertTrue(database.getSchema().getType("Client").instanceOf("Person"));
+        Assertions.assertFalse(database.getSchema().getType("Client").instanceOf("Vehicle"));
+
+        //------------
+        // EDGES
+        //------------
+        database.getSchema().createEdgeType("Drives");
+        database.getSchema().createEdgeType("Owns").addParent("Drives");
+
+        Assertions.assertTrue(database.getSchema().getType("Owns").instanceOf("Drives"));
+        Assertions.assertFalse(database.getSchema().getType("Owns").instanceOf("Vehicle"));
+      }
+    });
+
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    db.begin();
+    try {
+      final PModifiableVertex maserati = db.newVertex("Car");
+      maserati.set("brand", "Maserati");
+      maserati.set("type", "Ghibli");
+      maserati.set("year", 2017);
+      maserati.save();
+
+      final PModifiableVertex ducati = db.newVertex("Motorcycle");
+      ducati.set("brand", "Ducati");
+      ducati.set("type", "Monster");
+      ducati.set("year", 2015);
+      ducati.save();
+
+      final PModifiableVertex ferrari = db.newVertex("Supercar");
+      ferrari.set("brand", "Ferrari");
+      ferrari.set("type", "458 Italia");
+      ferrari.set("year", 2014);
+      ferrari.save();
+
+      final PModifiableVertex luca = db.newVertex("Client");
+      luca.set("firstName", "Luca");
+      luca.set("lastName", "Skywalker");
+      luca.save();
+
+      luca.newEdge("Owns", maserati, true, "since", "2018");
+      luca.newEdge("Owns", ducati, true, "since", "2016");
+      luca.newEdge("Drives", ferrari, true, "since", "2018");
+
+      db.commit();
+
+      root = luca.getIdentity();
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @AfterEach
+  public void drop() {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    db.drop();
+  }
+
+  @Test
+  public void count() {
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    db2.begin();
+    try {
+      // NON POLYMORPHIC COUNTING
+      Assertions.assertEquals(0, db2.countType("Vehicle", false));
+      Assertions.assertEquals(1, db2.countType("Car", false));
+      Assertions.assertEquals(1, db2.countType("Supercar", false));
+      Assertions.assertEquals(1, db2.countType("Motorcycle", false));
+
+      Assertions.assertEquals(0, db2.countType("Person", false));
+      Assertions.assertEquals(1, db2.countType("Client", false));
+
+      Assertions.assertEquals(1, db2.countType("Drives", false));
+      Assertions.assertEquals(2, db2.countType("Owns", false));
+
+      // POLYMORPHIC COUNTING
+      Assertions.assertEquals(3, db2.countType("Vehicle", true));
+      Assertions.assertEquals(2, db2.countType("Car", true));
+      Assertions.assertEquals(1, db2.countType("Supercar", true));
+      Assertions.assertEquals(1, db2.countType("Motorcycle", true));
+
+      Assertions.assertEquals(1, db2.countType("Person", true));
+      Assertions.assertEquals(1, db2.countType("Client", true));
+
+      Assertions.assertEquals(3, db2.countType("Drives", true));
+      Assertions.assertEquals(2, db2.countType("Owns", true));
+
+    } finally {
+      db2.close();
+    }
+  }
+
+  @Test
+  public void scan() {
+    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    db2.begin();
+    try {
+      Assertions.assertEquals(0, scanAndCountType(db2, "Vehicle", false));
+      Assertions.assertEquals(1, scanAndCountType(db2, "Car", false));
+      Assertions.assertEquals(1, scanAndCountType(db2, "Supercar", false));
+      Assertions.assertEquals(1, scanAndCountType(db2, "Motorcycle", false));
+
+      Assertions.assertEquals(0, scanAndCountType(db2, "Person", false));
+      Assertions.assertEquals(1, scanAndCountType(db2, "Client", false));
+
+      Assertions.assertEquals(1, scanAndCountType(db2, "Drives", false));
+      Assertions.assertEquals(2, scanAndCountType(db2, "Owns", false));
+
+      // POLYMORPHIC COUNTING
+      Assertions.assertEquals(3, scanAndCountType(db2, "Vehicle", true));
+      Assertions.assertEquals(2, scanAndCountType(db2, "Car", true));
+      Assertions.assertEquals(1, scanAndCountType(db2, "Supercar", true));
+      Assertions.assertEquals(1, scanAndCountType(db2, "Motorcycle", true));
+
+      Assertions.assertEquals(1, scanAndCountType(db2, "Person", true));
+      Assertions.assertEquals(1, scanAndCountType(db2, "Client", true));
+
+      Assertions.assertEquals(3, scanAndCountType(db2, "Drives", true));
+      Assertions.assertEquals(2, scanAndCountType(db2, "Owns", true));
+
+    } finally {
+      db2.close();
+    }
+  }
+
+  private int scanAndCountType(final PDatabase db, final String type, final boolean polymorphic) {
+    // NON POLYMORPHIC COUNTING
+    final AtomicInteger counter = new AtomicInteger();
+    db.scanType(type, polymorphic, new PDocumentCallback() {
+      @Override
+      public boolean onRecord(PDocument record) {
+        Assertions.assertTrue(db.getSchema().getType(record.getType()).instanceOf(type));
+        counter.incrementAndGet();
+        return true;
+      }
+    });
+    return counter.get();
+  }
+}

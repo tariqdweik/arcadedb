@@ -203,7 +203,7 @@ public class RandomTestMultiThreads {
     if (totalTransactions.get() == 0)
       return 0;
 
-    final Iterator<PRecord> iter = database.iterateType("Transaction");
+    final Iterator<PRecord> iter = database.iterateType("Transaction", true);
 
     // JUMP A RANDOM NUMBER OF RECORD
     final int jump = rnd.nextInt((int) totalTransactions.get() + 1 / 2);

@@ -22,7 +22,7 @@ public abstract class PIteratorFilterBase<T> implements Iterator<T> {
 
     final PEdgeType type = (PEdgeType) database.getSchema().getType(edgeType);
 
-    final List<PBucket> buckets = type.getBuckets();
+    final List<PBucket> buckets = type.getBuckets(true);
     validBuckets = new HashSet<>(buckets.size());
     for (PBucket b : buckets)
       validBuckets.add(b.getId());

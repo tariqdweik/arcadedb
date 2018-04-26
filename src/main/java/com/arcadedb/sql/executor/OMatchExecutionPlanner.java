@@ -714,7 +714,7 @@ public class OMatchExecutionPlanner {
         if (filter != null) {
           upperBound = filter.estimate(oClass, this.threshold, ctx);
         } else {
-          upperBound = ctx.getDatabase().countType(oClass.getName());
+          upperBound = ctx.getDatabase().countType(oClass.getName(), true);
         }
         result.put(alias, upperBound);
       } else if (clusterName != null) {

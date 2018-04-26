@@ -13,7 +13,7 @@ public class PGraphEngine {
   public static final int EDGES_LINKEDLIST_CHUNK_SIZE = 30;
 
   public void createVertexType(PDatabaseInternal database, final PDocumentType type) {
-    for (PBucket b : type.getBuckets()) {
+    for (PBucket b : type.getBuckets(false)) {
       if (!database.getSchema().existsBucket(b.getName() + "_out_edges"))
         database.getSchema().createBucket(b.getName() + "_out_edges");
       if (!database.getSchema().existsBucket(b.getName() + "_in_edges"))

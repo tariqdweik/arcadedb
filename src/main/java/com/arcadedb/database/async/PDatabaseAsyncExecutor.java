@@ -343,11 +343,11 @@ public class PDatabaseAsyncExecutor {
     }
   }
 
-  public void scanType(final String typeName, final PDocumentCallback callback) {
+  public void scanType(final String typeName, final boolean polymorphic, final PDocumentCallback callback) {
     try {
       final PDocumentType type = database.getSchema().getType(typeName);
 
-      final List<PBucket> buckets = type.getBuckets();
+      final List<PBucket> buckets = type.getBuckets(polymorphic);
       final CountDownLatch semaphore = new CountDownLatch(buckets.size());
 
       for (PBucket b : buckets) {

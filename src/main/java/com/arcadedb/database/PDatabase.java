@@ -42,13 +42,13 @@ public interface PDatabase {
 
   void rollback();
 
-  void scanType(String className, PDocumentCallback callback);
+  void scanType(String className, boolean polymorphic, PDocumentCallback callback);
 
   void scanBucket(String bucketName, PRecordCallback callback);
 
   PRecord lookupByRID(PRID rid, boolean loadContent);
 
-  Iterator<PRecord> iterateType(String typeName);
+  Iterator<PRecord> iterateType(String typeName, boolean polymorphic);
 
   Iterator<PRecord> iterateBucket(String bucketName);
 
@@ -56,7 +56,7 @@ public interface PDatabase {
 
   void deleteRecord(PRecord record);
 
-  long countType(String typeName);
+  long countType(String typeName, boolean polymorphic);
 
   long countBucket(String bucketName);
 

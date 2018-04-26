@@ -24,7 +24,7 @@ public class PerformanceScan {
 
         final AtomicInteger row = new AtomicInteger();
 
-        database.asynch().scanType(CLASS_NAME, new PDocumentCallback() {
+        database.asynch().scanType(CLASS_NAME, true, new PDocumentCallback() {
           @Override
           public boolean onRecord(final PDocument record) {
             final PImmutableDocument document = ((PImmutableDocument) record);

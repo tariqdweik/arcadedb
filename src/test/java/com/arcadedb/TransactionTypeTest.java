@@ -43,7 +43,7 @@ public class TransactionTypeTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME, new PDocumentCallback() {
+      db.scanType(TYPE_NAME, true, new PDocumentCallback() {
         @Override
         public boolean onRecord(final PDocument record) {
           Assertions.assertNotNull(record);
@@ -78,7 +78,7 @@ public class TransactionTypeTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME, new PDocumentCallback() {
+      db.scanType(TYPE_NAME,true,  new PDocumentCallback() {
         @Override
         public boolean onRecord(final PDocument record) {
           final PDocument record2 = (PDocument) db.lookupByRID(record.getIdentity(), false);
@@ -152,7 +152,7 @@ public class TransactionTypeTest {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME, new PDocumentCallback() {
+      db.scanType(TYPE_NAME,true,  new PDocumentCallback() {
         @Override
         public boolean onRecord(final PDocument record) {
           db.deleteRecord(record);
@@ -174,7 +174,7 @@ public class TransactionTypeTest {
     final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db2.begin();
     try {
-      Assertions.assertEquals(TOT, db2.countType(TYPE_NAME));
+      Assertions.assertEquals(TOT, db2.countType(TYPE_NAME, true));
       db2.commit();
     } finally {
       db2.close();
@@ -188,7 +188,7 @@ public class TransactionTypeTest {
       final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
       db.begin();
       try {
-        db.scanType(TYPE_NAME, new PDocumentCallback() {
+        db.scanType(TYPE_NAME,true,  new PDocumentCallback() {
           @Override
           public boolean onRecord(final PDocument record) {
             db.deleteRecord(record);

@@ -100,8 +100,8 @@ public class GraphTest {
     db2.begin();
     try {
 
-      Assertions.assertEquals(1, db2.countType(VERTEX1_TYPE_NAME));
-      Assertions.assertEquals(2, db2.countType(VERTEX2_TYPE_NAME));
+      Assertions.assertEquals(1, db2.countType(VERTEX1_TYPE_NAME, false));
+      Assertions.assertEquals(2, db2.countType(VERTEX2_TYPE_NAME, false));
 
       final PVertex v1 = (PVertex) db2.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
@@ -159,8 +159,8 @@ public class GraphTest {
     db2.begin();
     try {
 
-      Assertions.assertEquals(1, db2.countType(EDGE1_TYPE_NAME));
-      Assertions.assertEquals(2, db2.countType(EDGE2_TYPE_NAME));
+      Assertions.assertEquals(1, db2.countType(EDGE1_TYPE_NAME, false));
+      Assertions.assertEquals(2, db2.countType(EDGE2_TYPE_NAME, false));
 
       final PVertex v1 = (PVertex) db2.lookupByRID(root, false);
       Assertions.assertNotNull(v1);

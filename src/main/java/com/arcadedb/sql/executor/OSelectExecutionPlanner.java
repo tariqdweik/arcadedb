@@ -389,7 +389,7 @@ public class OSelectExecutionPlanner {
       if (clazz == null) {
         return null;
       }
-      int[] clusterIds = clazz.getBuckets().stream().mapToInt(x -> x.getId()).toArray();
+      int[] clusterIds = clazz.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
       for (int clusterId : clusterIds) {
         String clusterName = db.getSchema().getBucketById(clusterId).getName();
         if (clusterName != null) {

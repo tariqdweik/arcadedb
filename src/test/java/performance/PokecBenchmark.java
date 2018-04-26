@@ -180,7 +180,7 @@ public class PokecBenchmark {
       final long begin = System.currentTimeMillis();
 
       final Map<String, AtomicInteger> aggregate = new HashMap<>();
-      db.scanType("V", new PDocumentCallback() {
+      db.scanType("V", true, new PDocumentCallback() {
         @Override
         public boolean onRecord(final PDocument record) {
           String age = (String) record.get("age");
@@ -206,7 +206,7 @@ public class PokecBenchmark {
     final long begin = System.currentTimeMillis();
 
     final Map<String, AtomicInteger> aggregate = new HashMap<>();
-    db.scanType("V", new PDocumentCallback() {
+    db.scanType("V", true, new PDocumentCallback() {
       @Override
       public boolean onRecord(final PDocument record) {
         final PVertex v = (PVertex) record;

@@ -110,7 +110,7 @@ public class RandomTestSingleThread {
   private void deleteRecords(PDatabase database) {
     PLogManager.instance().info(this, "Deleting records...");
 
-    final Iterator<PRecord> iter = database.iterateType("Account");
+    final Iterator<PRecord> iter = database.iterateType("Account", true);
 
     while (iter.hasNext() && rnd.nextInt(10) != 0) {
       final PRecord next = iter.next();

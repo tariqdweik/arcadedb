@@ -60,7 +60,7 @@ public class ACIDTransactionTest {
 
     final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
     try {
-      Assertions.assertEquals(0, db2.countType("V"));
+      Assertions.assertEquals(0, db2.countType("V", true));
     } finally {
       db.close();
     }
@@ -98,7 +98,7 @@ public class ACIDTransactionTest {
 
     final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
     try {
-      Assertions.assertEquals(0, db2.countType("V"));
+      Assertions.assertEquals(0, db2.countType("V", true));
     } finally {
       db2.close();
     }
@@ -136,7 +136,7 @@ public class ACIDTransactionTest {
 
     final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
     try {
-      Assertions.assertEquals(1, db2.countType("V"));
+      Assertions.assertEquals(1, db2.countType("V", true));
     } finally {
       db2.close();
     }
@@ -195,7 +195,7 @@ public class ACIDTransactionTest {
 
     final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
     try {
-      Assertions.assertEquals(TOT, db2.countType("V"));
+      Assertions.assertEquals(TOT, db2.countType("V", true));
     } finally {
       db2.close();
     }
@@ -260,7 +260,7 @@ public class ACIDTransactionTest {
 
     final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
     try {
-      Assertions.assertEquals(TOT, db2.countType("V"));
+      Assertions.assertEquals(TOT, db2.countType("V", true));
     } finally {
       db2.close();
     }

@@ -245,7 +245,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   }
 
   @Override
-  public long countType(final String typeName) {
+  public long countType(final String typeName, final boolean polymorphic) {
     return (Long) super.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -253,16 +253,16 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
         final PDocumentType type = schema.getType(typeName);
 
         long total = 0;
-        for (PBucket b : type.getBuckets()) {
+        for (PBucket b : type.getBuckets(polymorphic))
           total += b.count();
-        }
+
         return total;
       }
     });
   }
 
   @Override
-  public void scanType(final String typeName, final PDocumentCallback callback) {
+  public void scanType(final String typeName, final boolean polymorphic, final PDocumentCallback callback) {
     super.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -271,7 +271,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
         try {
           final PDocumentType type = schema.getType(typeName);
 
-          for (PBucket b : type.getBuckets()) {
+          for (PBucket b : type.getBuckets(polymorphic)) {
             b.scan(new PRawRecordCallback() {
               @Override
               public boolean onRecord(final PRID rid, final PBinary view) {
@@ -313,7 +313,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   }
 
   @Override
-  public Iterator<PRecord> iterateType(final String typeName) {
+  public Iterator<PRecord> iterateType(final String typeName, final boolean polymorphic) {
     return (Iterator<PRecord>) super.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -324,7 +324,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
           final PMultiIterator iter = new PMultiIterator();
 
-          for (PBucket b : type.getBuckets())
+          for (PBucket b : type.getBuckets(polymorphic))
             iter.add(b.iterator());
 
           return iter;
