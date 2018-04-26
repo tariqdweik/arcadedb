@@ -1,11 +1,11 @@
-package com.arcadedb.server;
+package com.arcadedb.server.handler;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PRID;
 import com.arcadedb.exception.PRecordNotFoundException;
+import com.arcadedb.server.PHttpServer;
 import io.undertow.server.HttpServerExchange;
-import io.undertow.util.Headers;
 
 import java.util.Deque;
 
@@ -15,30 +15,19 @@ public class PRecordHandler extends PBasicHandler {
   }
 
   @Override
-  public void handleRequest(final HttpServerExchange exchange) throws Exception {
+  public void execute(final HttpServerExchange exchange, final PDatabase database) {
     try {
-      exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
-
-      final Deque<String> databaseName = exchange.getQueryParameters().get("database");
-      if (databaseName.isEmpty()) {
-        exchange.setStatusCode(500);
-        exchange.getResponseSender().send("{ \"error\" : \"database is null\"}");
-        return;
-      }
-
       final Deque<String> rid = exchange.getQueryParameters().get("rid");
       if (rid.isEmpty()) {
-        exchange.setStatusCode(500);
+        exchange.setStatusCode(400);
         exchange.getResponseSender().send("{ \"error\" : \"Record id is null\"}");
         return;
       }
 
-      final PDatabase db = httpServer.getDatabase(databaseName.getFirst());
-
       final String[] ridParts = rid.getFirst().split(":");
 
-      final PDocument record = (PDocument) db
-          .lookupByRID(new PRID(db, Integer.parseInt(ridParts[0]), Long.parseLong(ridParts[1])), true);
+      final PDocument record = (PDocument) database
+          .lookupByRID(new PRID(database, Integer.parseInt(ridParts[0]), Long.parseLong(ridParts[1])), true);
 
       exchange.setStatusCode(200);
       exchange.getResponseSender()
@@ -47,9 +36,6 @@ public class PRecordHandler extends PBasicHandler {
     } catch (PRecordNotFoundException e) {
       exchange.setStatusCode(404);
       exchange.getResponseSender().send("{ \"error\" : \"Record id is null\"}");
-    } catch (Exception e) {
-      exchange.setStatusCode(500);
-      exchange.getResponseSender().send("{ \"error\" : \"Internal error\", \"detail\":\"" + e.toString() + "\"}");
     }
   }
 }
