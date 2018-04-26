@@ -16,4 +16,4 @@ Super Fast Multi-Model DBMS
 - ArcadeDB uses much less RAM
 - ArcadeDB allows to execute operation in asynchronously way (by using `.async()`).
 - ArcadeDB has no dependencies
-- Arcade is only a few KBs
+- ArcadeDB is only a few KBs
