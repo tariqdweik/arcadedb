@@ -3,10 +3,10 @@ Super Fast Multi-Model DBMS
 
 ## Differences between OrientDB and ArcadeDB
 
-- ArcadeDB shares the same database instance across threads. Much easier developing code with ArcadeDb than OrientDB with multi-threads applications
+- ArcadeDB shares the same database instance across threads. Much easier developing code with ArcadeDB than OrientDB with multi-threads applications
 - ArcadeDB uses thread locals only to manage transactions, while OrientDB makes a strong usage of TL internally
 - The OrientDB classes are Types in ArcadeDB
-- There is no base V and E classes in ArcadeDB, but vertex and edge are a type of record
+- There is no base V and E classes in ArcadeDB, but vertex and edge are types of records
 - ArcadeDB saves every type and property name in the dictionary to compress the record by storing only the names ids
 - ArcadeDB keeps the MVCC counter on the page rather than on the record
 - ArcadeDB manage everything as files and pages
@@ -22,6 +22,7 @@ Super Fast Multi-Model DBMS
 ## What Arcade has more than OrientDB
 
 - ArcadeDB saves every type and property name in the dictionary to compress the record by storing only the names ids
+- ArcadeDB asynchronous API automatically balance the load on the available cores
 - ArcadeDB is much Faster
 - ArcadeDB uses much less RAM
 - ArcadeDB allows to execute operation in asynchronously way (by using `.async()`).
