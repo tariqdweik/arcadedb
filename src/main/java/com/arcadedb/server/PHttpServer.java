@@ -6,6 +6,7 @@ import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.serializer.PJsonSerializer;
 import com.arcadedb.server.handler.PQueryHandler;
 import com.arcadedb.server.handler.PRecordHandler;
+import com.arcadedb.utility.PLogManager;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.RoutingHandler;
@@ -28,9 +29,11 @@ public class PHttpServer {
   }
 
   public void close() {
+    PLogManager.instance().info(this, "Shutting down server...");
     server.stop();
     for (PDatabase db : databases.values())
       db.close();
+    PLogManager.instance().info(this, "The server is down");
   }
 
   public PJsonSerializer getJsonSerializer() {
@@ -51,7 +54,9 @@ public class PHttpServer {
     return db;
   }
 
-  private void run() {
+  public void run() {
+    PLogManager.instance()
+        .info(this, "Starting ArcadeDB server (server=%s port=%d)...", configuration.bindServer, configuration.bindPort);
     server.start();
   }
 
