@@ -9,11 +9,11 @@ import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.graph.*;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PLogManager;
+import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,12 +35,12 @@ public class PDatabaseAsyncExecutor {
   private PErrorCallback onErrorCallback;
 
   private class AsyncThread extends Thread {
-    public final    ArrayBlockingQueue<PDatabaseAsyncCommand> queue         = new ArrayBlockingQueue<>(
+    public final    PushPullBlockingQueue<PDatabaseAsyncCommand> queue         = new PushPullBlockingQueue<>(
         PGlobalConfiguration.ASYNC_OPERATIONS_QUEUE.getValueAsInteger() / parallelLevel);
-    public final    PDatabaseInternal                         database;
-    public volatile boolean                                   shutdown      = false;
-    public volatile boolean                                   forceShutdown = false;
-    public          long                                      count         = 0;
+    public final    PDatabaseInternal                            database;
+    public volatile boolean                                      shutdown      = false;
+    public volatile boolean                                      forceShutdown = false;
+    public          long                                         count         = 0;
 
     private AsyncThread(final PDatabaseInternal database, final int id) {
       super("AsyncCreateRecord-" + id);
