@@ -49,8 +49,8 @@ public class PDatabaseAsyncExecutor {
 
     @Override
     public void run() {
-      if (PTransactionTL.INSTANCE.get() == null)
-        PTransactionTL.INSTANCE.set(new PTransactionContext(database));
+      if (PDatabaseContext.INSTANCE.get() == null)
+        PDatabaseContext.INSTANCE.init(database);
 
       database.getTransaction().setUseWAL(transactionUseWAL);
       database.getTransaction().setSync(transactionSync);

@@ -257,7 +257,7 @@ public class PWALFile extends PLockContext {
         newPageBuffer.position(deltaRange[0]);
         newPageBuffer.get(buffer, PAGE_HEADER_SIZE, deltaSize);
       }
-      pageBuffer.reset();
+      pageBuffer.position(0);
 
       file.appendPage(pageBuffer.getByteBuffer());
 

@@ -1,6 +1,7 @@
 package com.arcadedb.serializer;
 
 import com.arcadedb.database.*;
+import com.arcadedb.engine.PDictionary;
 import com.arcadedb.graph.*;
 import com.arcadedb.utility.PLogManager;
 
@@ -38,7 +39,8 @@ public class PBinarySerializer {
   }
 
   public PBinary serializeDocument(final PDatabase database, final PDocument document) {
-    final PBinary header = new PBinary(64);
+    final PBinary header = ((PDatabaseImpl) database).getContext().temporaryBuffer1;
+    header.reset();
     header.putByte(document.getRecordType()); // RECORD TYPE
     return serializeProperties(database, document, header);
   }
@@ -48,7 +50,8 @@ public class PBinarySerializer {
 
     final boolean serializeProperties;
     if (header == null) {
-      header = new PBinary(64);
+      header = ((PDatabaseImpl) database).getContext().temporaryBuffer1;
+      header.reset();
       header.putByte(vertex.getRecordType()); // RECORD TYPE
       serializeProperties = true;
     } else {
@@ -88,7 +91,8 @@ public class PBinarySerializer {
 
     final boolean serializeProperties;
     if (header == null) {
-      header = new PBinary(64);
+      header = ((PDatabaseImpl) database).getContext().temporaryBuffer1;
+      header.reset();
       header.putByte(edge.getRecordType()); // RECORD TYPE
       serializeProperties = true;
     } else {
@@ -293,12 +297,15 @@ public class PBinarySerializer {
     final Set<String> propertyNames = record.getPropertyNames();
     header.putNumber(propertyNames.size());
 
-    final PBinary content = new PBinary();
+    final PBinary content = ((PDatabaseImpl) database).getContext().temporaryBuffer2;
+    content.reset();
+
+    final PDictionary dictionary = database.getSchema().getDictionary();
 
     for (String p : propertyNames) {
       // WRITE PROPERTY ID FROM THE DICTIONARY
       // TODO: USE UNSIGNED SHORT
-      header.putNumber(database.getSchema().getDictionary().getIdByName(p, true));
+      header.putNumber(dictionary.getIdByName(p, true));
 
       final Object value = record.get(p);
 

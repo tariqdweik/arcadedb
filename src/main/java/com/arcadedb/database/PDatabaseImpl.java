@@ -50,8 +50,6 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
   protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode, final boolean multiThread,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
-    super(multiThread);
-
     try {
       this.mode = mode;
       this.callbacks = callbacks;
@@ -66,7 +64,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       else
         name = path;
 
-      PTransactionTL.INSTANCE.set(new PTransactionContext(this));
+      PDatabaseContext.INSTANCE.init(this);
 
       fileManager = new PFileManager(path, mode, SUPPORTED_FILE_EXT);
       transactionManager = new PTransactionManager(this);
@@ -145,6 +143,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       asynch.waitCompletion();
       asynch.close();
     }
+
     super.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -165,6 +164,8 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
           transactionManager.close();
 
           lockFile.delete();
+
+          PDatabaseContext.INSTANCE.init(PDatabaseImpl.this);
 
         } finally {
           open = false;
@@ -194,7 +195,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   }
 
   public PTransactionContext getTransaction() {
-    return PTransactionTL.INSTANCE.get();
+    return PDatabaseContext.INSTANCE.get().transaction;
   }
 
   @Override
@@ -779,6 +780,10 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     return databasePath != null ? databasePath.equals(pDatabase.databasePath) : pDatabase.databasePath == null;
   }
 
+  public PDatabaseContext.PDatabaseContextTL getContext() {
+    return PDatabaseContext.INSTANCE.get();
+  }
+
   @Override
   public int hashCode() {
     return databasePath != null ? databasePath.hashCode() : 0;
@@ -809,7 +814,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     if (!open)
       throw new PDatabaseIsClosedException(name);
 
-    if (PTransactionTL.INSTANCE.get() == null)
-      PTransactionTL.INSTANCE.set(new PTransactionContext(this));
+    if (PDatabaseContext.INSTANCE.get() == null)
+      PDatabaseContext.INSTANCE.init(this);
   }
 }

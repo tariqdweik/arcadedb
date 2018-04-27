@@ -3,23 +3,31 @@ package com.arcadedb.utility;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class PRWLockContext {
-  private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+public class PRWDynamicLockContext {
+  private final ReentrantReadWriteLock lock;
+
+  public PRWDynamicLockContext(final boolean multiThread) {
+    lock = multiThread ? new ReentrantReadWriteLock() : null;
+  }
 
   protected void readLock() {
-    lock.readLock().lock();
+    if (lock != null)
+      lock.readLock().lock();
   }
 
   protected void readUnlock() {
-    lock.readLock().unlock();
+    if (lock != null)
+      lock.readLock().unlock();
   }
 
   protected void writeLock() {
-    lock.writeLock().lock();
+    if (lock != null)
+      lock.writeLock().lock();
   }
 
   protected void writeUnlock() {
-    lock.writeLock().unlock();
+    if (lock != null)
+      lock.writeLock().unlock();
   }
 
   public Object executeInReadLock(Callable<Object> callable) {

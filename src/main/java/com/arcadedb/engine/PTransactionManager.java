@@ -226,7 +226,7 @@ public class PTransactionManager {
 
         if (txPage.currentPageVersion != page.getVersion()) {
           final PModifiablePage modifiedPage = page.modify();
-          txPage.currentContent.reset();
+          txPage.currentContent.position(0);
           modifiedPage.writeByteArray(txPage.changesFrom - PBasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
           modifiedPage.version = txPage.currentPageVersion;
           modifiedPage.setContentSize(txPage.currentPageSize);

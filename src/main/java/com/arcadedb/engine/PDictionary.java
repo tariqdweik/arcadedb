@@ -4,12 +4,14 @@ import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.exception.PDatabaseMetadataException;
 import com.arcadedb.exception.PSchemaException;
+import com.arcadedb.utility.PRWLockContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 /**
  * HEADER = [itemCount(int:4),pageSize(int:4)] CONTENT-PAGES = [propertyName(string)]
@@ -23,6 +25,7 @@ public class PDictionary extends PPaginatedComponent {
 
   private final List<String>         dictionary    = new ArrayList<String>();
   private final Map<String, Integer> dictionaryMap = new HashMap<String, Integer>();
+  private final PRWLockContext       lock          = new PRWLockContext();
 
   private static final int DICTIONARY_ITEM_COUNT  = 0;
   private static final int DICTIONARY_HEADER_SIZE = PBinary.INT_SERIALIZED_SIZE;
@@ -75,11 +78,19 @@ public class PDictionary extends PPaginatedComponent {
 
     Integer pos = dictionaryMap.get(name);
     if (pos == null && create) {
-      dictionary.add(name);
-      pos = dictionaryMap.size();
-      dictionaryMap.put(name, pos);
-      addItem(name);
+      pos = (Integer) lock.executeInWriteLock(new Callable<Object>() {
+        @Override
+        public Object call() throws Exception {
+          addItemToPage(name);
+
+          dictionary.add(name);
+          dictionaryMap.put(name, itemCount - 1);
+
+          return itemCount - 1;
+        }
+      });
     }
+
     if (pos == null)
       return -1;
 
@@ -87,17 +98,17 @@ public class PDictionary extends PPaginatedComponent {
   }
 
   public String getNameById(final int nameId) {
-    if (nameId < 0)
+    if (nameId < 0 || nameId >= dictionary.size())
       throw new IllegalArgumentException("Dictionary item with id " + nameId + " is not valid");
 
     final String itemName = dictionary.get(nameId);
-    if (nameId < 0)
+    if (itemName == null)
       throw new IllegalArgumentException("Dictionary item with id " + nameId + " was not found");
 
     return itemName;
   }
 
-  public void addItem(final String propertyName) {
+  private void addItemToPage(final String propertyName) {
     if (!database.isTransactionActive())
       throw new PSchemaException("Error on adding new item to the database schema dictionary because no transaction was active");
 

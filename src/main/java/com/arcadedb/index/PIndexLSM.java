@@ -1,9 +1,6 @@
 package com.arcadedb.index;
 
-import com.arcadedb.database.PBinary;
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PRID;
-import com.arcadedb.database.PTrackableBinary;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.PConfigurationException;
 import com.arcadedb.exception.PDatabaseOperationException;
@@ -209,14 +206,17 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
       if (result.found) {
         // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE VALUE
-        final PBinary valueContent = new PBinary();
+        final PBinary valueContent = database.getContext().temporaryBuffer1;
+        valueContent.reset();
         database.getSerializer().serializeValue(valueContent, valueType, rid);
         currentPageBuffer.putByteArray(result.valueBeginPosition, valueContent.toByteArray());
         return;
       }
 
       // WRITE KEY/VALUE PAIRS FIRST
-      final PBinary keyValueContent = new PBinary();
+      final PBinary keyValueContent = database.getContext().temporaryBuffer1;
+      keyValueContent.reset();
+
       for (int i = 0; i < keyTypes.length; ++i)
         database.getSerializer().serializeValue(keyValueContent, keyTypes[i], keys[i]);
       database.getSerializer().serializeValue(keyValueContent, valueType, rid);
@@ -339,7 +339,7 @@ public class PIndexLSM extends PPaginatedComponent implements PIndex {
 
     int pageNum = currentPage.getPageId().getPageNumber();
 
-    keyValueContent.reset();
+    keyValueContent.position(0);
 
     // MULTI KEYS
     for (int i = 0; i < keyTypes.length; ++i)

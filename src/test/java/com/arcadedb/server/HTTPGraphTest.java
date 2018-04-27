@@ -65,7 +65,6 @@ public class HTTPGraphTest extends BaseGraphTest {
 
       Assertions.assertEquals("OK", connection.getResponseMessage());
 
-
       Assertions.assertTrue(response.contains("V1"));
 
     } finally {
@@ -96,4 +95,28 @@ public class HTTPGraphTest extends BaseGraphTest {
       connection.disconnect();
     }
   }
+//
+//  @Test
+//  public void checkRecordCreate() throws IOException {
+//    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/record/graph/{\"name\":\"Luca\"}")
+//        .openConnection();
+//
+//    connection.setRequestMethod("POST");
+//    connection.connect();
+//
+//    try {
+//      final String response = readResponse(connection);
+//
+//      PLogManager.instance().info(this, "Response: ", response);
+//
+//      Assertions.assertEquals(200, connection.getResponseCode());
+//
+//      Assertions.assertEquals("OK", connection.getResponseMessage());
+//
+//      Assertions.assertTrue(response.contains("V1"));
+//
+//    } finally {
+//      connection.disconnect();
+//    }
+//  }
 }

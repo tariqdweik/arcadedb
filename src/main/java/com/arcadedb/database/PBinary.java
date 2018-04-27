@@ -52,6 +52,8 @@ public class PBinary implements PBinaryStructure {
   }
 
   public void reset() {
+    size = 0;
+    buffer.clear();
     buffer.position(0);
   }
 
