@@ -244,17 +244,19 @@ public class PBucket extends PPaginatedComponent {
       // CONTENT SIZE = 0 MEANS DELETED
       page.writeNumber(recordPositionInPage, 0);
 
-      // COMPACT PAGE BY SHIFTING THE RECORDS TO THE LEFT
-      for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
-        final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
-        final byte[] record = page.readBytes(nextRecordPosInPage);
-
-        final int newPosition = nextRecordPosInPage - (int) removedRecordSize[0];
-        page.writeBytes(newPosition, record);
-
-        // OVERWRITE POS TABLE WITH NEW POSITION
-        page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
-      }
+// COMMENTED BECAUSE CAUSED CORRUPTION
+//
+//      // COMPACT PAGE BY SHIFTING THE RECORDS TO THE LEFT
+//      for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
+//        final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
+//        final byte[] record = page.readBytes(nextRecordPosInPage);
+//
+//        final int newPosition = nextRecordPosInPage - (int) removedRecordSize[0];
+//        page.writeBytes(newPosition, record);
+//
+//        // OVERWRITE POS TABLE WITH NEW POSITION
+//        page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
+//      }
 
       PLogManager.instance().debug(this, "Deleted record %s (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
 

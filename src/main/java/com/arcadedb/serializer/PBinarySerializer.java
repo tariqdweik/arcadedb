@@ -2,6 +2,7 @@ package com.arcadedb.serializer;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PDictionary;
+import com.arcadedb.exception.PSerializationException;
 import com.arcadedb.graph.*;
 import com.arcadedb.utility.PLogManager;
 
@@ -139,6 +140,9 @@ public class PBinarySerializer {
   public Map<String, Object> deserializeProperties(final PDatabase database, final PBinary buffer, final String... fieldNames) {
     final int headerSize = buffer.getInt();
     final int properties = (int) buffer.getNumber();
+
+    if (properties < 0)
+      throw new PSerializationException("Error on deserialize record. It may be corrupted (properties=" + properties + "");
 
     final Map<String, Object> values = new LinkedHashMap<String, Object>(properties);
 
