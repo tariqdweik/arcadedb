@@ -48,7 +48,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   private                File                                      lockFile;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
 
-  protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode, final boolean multiThread,
+  protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
     try {
       this.mode = mode;

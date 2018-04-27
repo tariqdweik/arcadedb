@@ -13,11 +13,10 @@ public class PDatabaseFactory {
     void execute(PDatabase database);
   }
 
-  private final PPaginatedFile.MODE mode;
-  private final String              databasePath;
-  private boolean                                                     multiThread     = true;
-  private boolean                                                     autoTransaction = false;
-  private Map<PDatabaseInternal.CALLBACK_EVENT, List<Callable<Void>>> callbacks       = new HashMap<>();
+  private final PPaginatedFile.MODE                                         mode;
+  private final String                                                      databasePath;
+  private       boolean                                                     autoTransaction = false;
+  private       Map<PDatabaseInternal.CALLBACK_EVENT, List<Callable<Void>>> callbacks       = new HashMap<>();
 
   public PDatabaseFactory(final String path, final PPaginatedFile.MODE mode) {
     this.mode = mode;
@@ -28,7 +27,7 @@ public class PDatabaseFactory {
   }
 
   public PDatabase acquire() {
-    final PDatabaseInternal db = new PDatabaseImpl(databasePath, mode, multiThread, callbacks);
+    final PDatabaseInternal db = new PDatabaseImpl(databasePath, mode, callbacks);
     db.setAutoTransaction(autoTransaction);
     return db;
   }
@@ -48,15 +47,6 @@ public class PDatabaseFactory {
     } finally {
       db.close();
     }
-  }
-
-  public boolean isMultiThread() {
-    return multiThread;
-  }
-
-  public PDatabaseFactory setMultiThread(final boolean multiThread) {
-    this.multiThread = multiThread;
-    return this;
   }
 
   public PDatabaseFactory setAutoTransaction(final boolean enabled) {
