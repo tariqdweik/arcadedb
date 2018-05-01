@@ -12,9 +12,12 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
+import static com.arcadedb.database.PBinary.LONG_SERIALIZED_SIZE;
 
 /**
  * PAGE CONTENT = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(2048*uint=8192)]
+ * <p>
+ * Record size is the lenght of the record or -1 if a placeholder is stored and -2 for the placeholder itself.
  */
 public class PBucket extends PPaginatedComponent {
   public static final String BUCKET_EXT          = "pbucket";
@@ -43,149 +46,15 @@ public class PBucket extends PPaginatedComponent {
   }
 
   public PRID createRecord(final PRecord record) {
-    final PBinary buffer = database.getSerializer().serialize(database, record, id);
-
-    if (buffer.size() > pageSize - CONTENT_HEADER_SIZE)
-      // TODO: SUPPORT MULTI-PAGE CONTENT
-      throw new PDatabaseOperationException("Record too big to be stored, size=" + buffer.size());
-
-    try {
-      int newPosition = -1;
-      PModifiablePage lastPage = null;
-      int recordCountInPage = -1;
-      boolean createNewPage = false;
-
-      final int txPageCounter = getTotalPages();
-
-      if (txPageCounter > 0) {
-        lastPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize, false);
-        recordCountInPage = lastPage.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
-        if (recordCountInPage >= MAX_RECORDS_IN_PAGE)
-          // RECORD TOO BIG FOR THIS PAGE, USE A NEW PAGE
-          createNewPage = true;
-        else if (recordCountInPage > 0) {
-          // GET FIRST EMPTY POSITION
-          final int lastRecordPositionInPage = (int) lastPage
-              .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
-          final long[] lastRecordSize = lastPage.readNumberAndSize(lastRecordPositionInPage);
-          newPosition = lastRecordPositionInPage + (int) lastRecordSize[0] + (int) lastRecordSize[1];
-
-          if (newPosition + INT_SERIALIZED_SIZE + buffer.size() > lastPage.getMaxContentSize())
-            // RECORD TOO BIG FOR THIS PAGE, USE A NEW PAGE
-            createNewPage = true;
-
-        } else
-          // FIRST RECORD, START RIGHT AFTER THE HEADER
-          newPosition = CONTENT_HEADER_SIZE;
-      } else
-        createNewPage = true;
-
-      if (createNewPage) {
-        lastPage = database.getTransaction().addPage(new PPageId(file.getFileId(), txPageCounter), pageSize);
-        //lastPage.blank(0, CONTENT_HEADER_SIZE);
-        newPosition = CONTENT_HEADER_SIZE;
-        recordCountInPage = 0;
-      }
-
-      final PRID rid = new PRID(database, file.getFileId(),
-          lastPage.getPageId().getPageNumber() * MAX_RECORDS_IN_PAGE + recordCountInPage);
-
-      lastPage.writeBytes(newPosition, buffer.toByteArray());
-
-      lastPage.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * INT_SERIALIZED_SIZE, newPosition);
-
-      lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
-
-      PLogManager.instance().debug(this, "Created record %s (page=%s records=%d threadId=%d)", rid, lastPage, recordCountInPage,
-          Thread.currentThread().getId());
-
-      return rid;
-
-    } catch (IOException e) {
-      throw new PDatabaseOperationException("Cannot add a new record to the bucket '" + name + "'", e);
-    }
+    return createRecordInternal(record, false);
   }
 
   public void updateRecord(final PRecord record) {
-    final PBinary buffer = database.getSerializer().serialize(database, record, id);
-    final PRID rid = record.getIdentity();
-
-    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
-    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
-
-    if (pageId >= pageCount.get()) {
-      int txPageCount = getTotalPages();
-      if (pageId >= txPageCount)
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-    }
-
-    try {
-      final PModifiablePage page = database.getTransaction()
-          .getPageToModify(new PPageId(file.getFileId(), pageId), pageSize, false);
-      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
-      if (positionInPage >= recordCountInPage)
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-
-      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
-      final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
-      if (recordSize[0] == 0)
-        // DELETED
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-
-      if (buffer.size() > recordSize[0])
-        throw new IllegalArgumentException(
-            "Record " + rid + " cannot be updated because the size (" + buffer.size() + ") is major than the existent one ("
-                + recordSize[0] + ")");
-
-      if (buffer.size() < recordSize[0])
-        // UPDATE THE SIZE. THE REMAINING SPACE IS UNUSED
-        recordSize[1] = page.writeNumber(recordPositionInPage, buffer.size());
-
-      final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
-
-      page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
-
-      PLogManager.instance().debug(this, "Updated record %s (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
-
-    } catch (IOException e) {
-      throw new PDatabaseOperationException("Error on update record " + rid);
-    }
+    updateRecordInternal(record, record.getIdentity(), false);
   }
 
   public PBinary getRecord(final PRID rid) {
-    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
-    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
-
-    if (pageId >= pageCount.get()) {
-      int txPageCount = getTotalPages();
-      if (pageId >= txPageCount)
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-    }
-
-    try {
-      final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
-
-      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
-      if (positionInPage >= recordCountInPage)
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-
-      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
-      final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
-
-      assert recordSize[0] > -1;
-      assert recordSize[1] > -1;
-
-      if (recordSize[0] == 0)
-        // DELETED
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-
-      final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
-
-      return page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
-
-    } catch (IOException e) {
-      throw new PDatabaseOperationException("Error on lookup of record " + rid);
-    }
+    return getRecordInternal(rid, false);
   }
 
   public boolean existsRecord(final PRID rid) {
@@ -208,10 +77,7 @@ public class PBucket extends PPaginatedComponent {
       final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
       final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
 
-      assert recordSize[0] > -1;
-      assert recordSize[1] > -1;
-
-      return recordSize[0] > 0;
+      return recordSize[0] > 0 || recordSize[0] == -1;
 
     } catch (IOException e) {
       throw new PDatabaseOperationException("Error on checking record existence for " + rid);
@@ -219,50 +85,7 @@ public class PBucket extends PPaginatedComponent {
   }
 
   public void deleteRecord(final PRID rid) {
-    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
-    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
-
-    if (pageId >= pageCount.get()) {
-      int txPageCount = getTotalPages();
-      if (pageId >= txPageCount)
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-    }
-
-    try {
-      final PModifiablePage page = database.getTransaction()
-          .getPageToModify(new PPageId(file.getFileId(), pageId), pageSize, false);
-      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
-      if (positionInPage >= recordCountInPage)
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-
-      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
-      final long[] removedRecordSize = page.readNumberAndSize(recordPositionInPage);
-      if (removedRecordSize[0] == 0)
-        // ALREADY DELETED
-        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
-
-      // CONTENT SIZE = 0 MEANS DELETED
-      page.writeNumber(recordPositionInPage, 0);
-
-// COMMENTED BECAUSE CAUSED CORRUPTION
-//
-//      // COMPACT PAGE BY SHIFTING THE RECORDS TO THE LEFT
-//      for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
-//        final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
-//        final byte[] record = page.readBytes(nextRecordPosInPage);
-//
-//        final int newPosition = nextRecordPosInPage - (int) removedRecordSize[0];
-//        page.writeBytes(newPosition, record);
-//
-//        // OVERWRITE POS TABLE WITH NEW POSITION
-//        page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, newPosition);
-//      }
-
-      PLogManager.instance().debug(this, "Deleted record %s (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
-
-    } catch (IOException e) {
-      throw new PDatabaseOperationException("Error on deletion of record " + rid);
-    }
+    deleteRecordInternal(rid, false);
   }
 
   public void scan(final PRawRecordCallback callback) throws IOException {
@@ -286,6 +109,16 @@ public class PBucket extends PPaginatedComponent {
               final PRID rid = new PRID(database, id, pageId * MAX_RECORDS_IN_PAGE + recordIdInPage);
 
               final PBinary view = page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
+
+              if (!callback.onRecord(rid, view))
+                return;
+
+            } else if (recordSize[0] == -1) {
+              // PLACEHOLDER
+              final PRID rid = new PRID(database, id, pageId * MAX_RECORDS_IN_PAGE + recordIdInPage);
+
+              final PBinary view = getRecordInternal(
+                  new PRID(database, id, page.readLong((int) (recordPositionInPage + recordSize[1]))), true);
 
               if (!callback.onRecord(rid, view))
                 return;
@@ -335,7 +168,7 @@ public class PBucket extends PPaginatedComponent {
                 .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
             final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
 
-            if (recordSize[0] > 0)
+            if (recordSize[0] > 0 || recordSize[0] == -1)
               total++;
 
           }
@@ -345,5 +178,310 @@ public class PBucket extends PPaginatedComponent {
       throw new PDatabaseOperationException("Cannot count bucket '" + name + "'", e);
     }
     return total;
+  }
+
+  private PBinary getRecordInternal(final PRID rid, final boolean readPlaceHolder) {
+    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
+    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
+
+    if (pageId >= pageCount.get()) {
+      int txPageCount = getTotalPages();
+      if (pageId >= txPageCount)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    }
+
+    try {
+      final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
+
+      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+      if (positionInPage >= recordCountInPage)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+
+      if (recordSize[0] == 0)
+        // DELETED
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      if (recordSize[0] < -1) {
+        if (!readPlaceHolder)
+          // PLACEHOLDER
+          throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+        recordSize[0] *= -1;
+      }
+
+      if (recordSize[0] == -1) {
+        // FOUND PLACEHOLDER, LOAD THE REAL RECORD
+        return getRecord(new PRID(database, rid.getBucketId(), page.readLong((int) (recordPositionInPage + recordSize[1]))));
+      }
+
+      final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
+
+      return page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
+
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Error on lookup of record " + rid);
+    }
+  }
+
+  private PRID createRecordInternal(final PRecord record, final boolean isPlaceHolder) {
+    final PBinary buffer = database.getSerializer().serialize(database, record, id);
+
+    if (buffer.size() > pageSize - CONTENT_HEADER_SIZE)
+      // TODO: SUPPORT MULTI-PAGE CONTENT
+      throw new PDatabaseOperationException("Record too big to be stored, size=" + buffer.size());
+
+    // RECORD SIZE CANNOT BE < 5 BYTES IN CASE OF UPDATE AND PLACEHOLDER, 5 BYTES IS THE SPACE REQUIRED TO HOST THE PLACEHOLDER
+    while (buffer.size() < 5)
+      buffer.putByte(buffer.size() - 1, (byte) 0);
+
+    try {
+      int newPosition = -1;
+      PModifiablePage lastPage = null;
+      int recordCountInPage = -1;
+      boolean createNewPage = false;
+
+      final int txPageCounter = getTotalPages();
+
+      if (txPageCounter > 0) {
+        lastPage = database.getTransaction().getPageToModify(new PPageId(file.getFileId(), txPageCounter - 1), pageSize, false);
+        recordCountInPage = lastPage.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+        if (recordCountInPage >= MAX_RECORDS_IN_PAGE)
+          // RECORD TOO BIG FOR THIS PAGE, USE A NEW PAGE
+          createNewPage = true;
+        else if (recordCountInPage > 0) {
+          // GET FIRST EMPTY POSITION
+          final int lastRecordPositionInPage = (int) lastPage
+              .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
+          final long[] lastRecordSize = lastPage.readNumberAndSize(lastRecordPositionInPage);
+
+          if (lastRecordSize[0] > 0)
+            newPosition = lastRecordPositionInPage + (int) lastRecordSize[0] + (int) lastRecordSize[1];
+          else if (lastRecordSize[0] == -1)
+            newPosition = lastRecordPositionInPage + LONG_SERIALIZED_SIZE + 1;
+          else
+            newPosition = lastRecordPositionInPage + (int) (-1 * lastRecordSize[0]) + (int) lastRecordSize[1];
+
+          if (newPosition + INT_SERIALIZED_SIZE + buffer.size() > lastPage.getMaxContentSize())
+            // RECORD TOO BIG FOR THIS PAGE, USE A NEW PAGE
+            createNewPage = true;
+
+        } else
+          // FIRST RECORD, START RIGHT AFTER THE HEADER
+          newPosition = CONTENT_HEADER_SIZE;
+      } else
+        createNewPage = true;
+
+      if (createNewPage) {
+        lastPage = database.getTransaction().addPage(new PPageId(file.getFileId(), txPageCounter), pageSize);
+        //lastPage.blank(0, CONTENT_HEADER_SIZE);
+        newPosition = CONTENT_HEADER_SIZE;
+        recordCountInPage = 0;
+      }
+
+      final PRID rid = new PRID(database, file.getFileId(),
+          lastPage.getPageId().getPageNumber() * MAX_RECORDS_IN_PAGE + recordCountInPage);
+
+      final byte[] array = buffer.toByteArray();
+
+      final int byteWritten = lastPage.writeNumber(newPosition, isPlaceHolder ? (-1 * array.length) : array.length);
+      lastPage.writeByteArray(newPosition + byteWritten, array);
+
+      lastPage.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordCountInPage * INT_SERIALIZED_SIZE, newPosition);
+
+      lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
+
+      PLogManager.instance().debug(this, "Created record %s (page=%s records=%d threadId=%d)", rid, lastPage, recordCountInPage,
+          Thread.currentThread().getId());
+
+      return rid;
+
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Cannot add a new record to the bucket '" + name + "'", e);
+    }
+  }
+
+  private boolean updateRecordInternal(final PRecord record, final PRID rid, final boolean updatePlaceholder) {
+    final PBinary buffer = database.getSerializer().serialize(database, record, id);
+
+    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
+    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
+
+    if (pageId >= pageCount.get()) {
+      int txPageCount = getTotalPages();
+      if (pageId >= txPageCount)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    }
+
+    try {
+      final PModifiablePage page = database.getTransaction()
+          .getPageToModify(new PPageId(file.getFileId(), pageId), pageSize, false);
+      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+      if (positionInPage >= recordCountInPage)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+      if (recordSize[0] == 0)
+        // DELETED
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      boolean isPlaceHolder = false;
+      if (recordSize[0] < -1) {
+        if (!updatePlaceholder)
+          throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+        isPlaceHolder = true;
+        recordSize[0] *= -1;
+
+      } else if (recordSize[0] == -1) {
+
+        // FOUND A PLACEHOLDER
+        final PRID placeHolderRID = new PRID(database, id, page.readLong((int) (recordPositionInPage + recordSize[1])));
+        if (updateRecordInternal(record, placeHolderRID, true))
+          return true;
+
+        // DELETE OLD PLACEHOLDER
+        deleteRecordInternal(placeHolderRID, true);
+
+        recordSize[0] = LONG_SERIALIZED_SIZE;
+        recordSize[1] = 1;
+      }
+
+      if (buffer.size() > recordSize[0]) {
+        // MAKE ROOM IN THE PAGE IF POSSIBLE
+
+        final int lastRecordPositionInPage = (int) page
+            .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
+        final long lastRecordSize[] = page.readNumberAndSize(lastRecordPositionInPage);
+
+        if (lastRecordSize[0] == -1) {
+          lastRecordSize[0] = LONG_SERIALIZED_SIZE;
+          lastRecordSize[1] = 1;
+        } else if (lastRecordSize[0] < -1) {
+          lastRecordSize[0] *= -1;
+        }
+
+        final int pageOccupied = (int) (lastRecordPositionInPage + lastRecordSize[0] + lastRecordSize[1]);
+
+        final int bufferSizeLength = PBinary.getNumberSpace(isPlaceHolder ? -1 * buffer.size() : buffer.size());
+
+        final int delta = (int) (buffer.size() + bufferSizeLength - recordSize[0] - recordSize[1]);
+
+        if (page.getMaxContentSize() - pageOccupied >= delta) {
+          // THERE IS SPACE LEFT IN THE PAGE, SHIFT ON THE RIGHT THE EXISTENT RECORDS
+
+          final int shiftOffset = (int) (recordPositionInPage + recordSize[0] + recordSize[1]);
+          final int newPos = recordPositionInPage + buffer.size() + bufferSizeLength;
+
+          page.getBinaryBuffer().move(shiftOffset, newPos, pageSize - newPos);
+
+          for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
+            final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
+            page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, nextRecordPosInPage + delta);
+
+            assert nextRecordPosInPage + delta < page.getMaxContentSize();
+          }
+
+          recordSize[1] = page.writeNumber(recordPositionInPage, isPlaceHolder ? -1 * buffer.size() : buffer.size());
+          final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
+          page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
+
+          PLogManager.instance()
+              .debug(this, "Updated record %s by allocating new space on the same page (page=%s threadId=%d)", rid, page,
+                  Thread.currentThread().getId());
+
+        } else {
+          if (isPlaceHolder)
+            // CANNOT CREATE A PLACEHOLDER OF PLACEHOLDER
+            return false;
+
+          // STORE THE RECORD SOMEWHERE ELSE AND CREATE HERE A PLACEHOLDER THAT POINTS TO THE NEW POSITION. IN THIS WAY THE RID IS PRESERVED
+          final PRID realRID = createRecordInternal(record, true);
+
+          final int bytesWritten = page.writeNumber(recordPositionInPage, -1);
+          page.writeLong(recordPositionInPage + bytesWritten, realRID.getPosition());
+          PLogManager.instance()
+              .debug(this, "Updated record %s by allocating new space with a placeholder (page=%s threadId=%d)", rid, page,
+                  Thread.currentThread().getId());
+        }
+      } else {
+
+        recordSize[1] = page.writeNumber(recordPositionInPage, isPlaceHolder ? -1 * buffer.size() : buffer.size());
+        final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
+        page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
+
+        PLogManager.instance()
+            .debug(this, "Updated record %s with the same size or less as before (page=%s threadId=%d)", rid, page,
+                Thread.currentThread().getId());
+
+      }
+
+      return true;
+
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Error on update record " + rid);
+    }
+  }
+
+  private void deleteRecordInternal(final PRID rid, final boolean deletePlaceholder) {
+
+    final int pageId = (int) rid.getPosition() / PBucket.MAX_RECORDS_IN_PAGE;
+    final int positionInPage = (int) (rid.getPosition() % PBucket.MAX_RECORDS_IN_PAGE);
+
+    if (pageId >= pageCount.get()) {
+      int txPageCount = getTotalPages();
+      if (pageId >= txPageCount)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+    }
+
+    try {
+      final PModifiablePage page = database.getTransaction()
+          .getPageToModify(new PPageId(file.getFileId(), pageId), pageSize, false);
+      final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+      if (positionInPage >= recordCountInPage)
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+      final long[] removedRecordSize = page.readNumberAndSize(recordPositionInPage);
+      if (removedRecordSize[0] == 0)
+        // ALREADY DELETED
+        throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+
+      if (removedRecordSize[0] < -1) {
+        if (!deletePlaceholder)
+          // CANNOT DELETE A PLACEHOLDER DIRECTLY
+          throw new PRecordNotFoundException("Record " + rid + " not found", rid);
+        removedRecordSize[0] *= -1;
+      }
+
+      // CONTENT SIZE = 0 MEANS DELETED
+      page.writeNumber(recordPositionInPage, 0);
+
+//      recordPositionInPage++;
+//
+//      AVOID COMPACTION DURING DELETE
+//      // COMPACT PAGE BY SHIFTING THE RECORDS TO THE LEFT
+//      for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
+//        final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
+//        final byte[] record = page.readBytes(nextRecordPosInPage);
+//
+//        final int bytesWritten = page.writeBytes(recordPositionInPage, record);
+//
+//        // OVERWRITE POS TABLE WITH NEW POSITION
+//        page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, recordPositionInPage);
+//
+//        recordPositionInPage += bytesWritten;
+//      }
+//
+//      page.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) (recordCountInPage - 1));
+
+      PLogManager.instance().debug(this, "Deleted record %s (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
+
+    } catch (IOException e) {
+      throw new PDatabaseOperationException("Error on deletion of record " + rid);
+    }
   }
 }

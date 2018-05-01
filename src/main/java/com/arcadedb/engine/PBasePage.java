@@ -174,6 +174,10 @@ public abstract class PBasePage {
     return content.getByteBuffer();
   }
 
+  public PBinary getBinaryBuffer() {
+    return content;
+  }
+
   /**
    * Returns the underlying ByteBuffer. If any changes occur bypassing the page object, must be tracked by calling #updateModifiedRange() method.
    */

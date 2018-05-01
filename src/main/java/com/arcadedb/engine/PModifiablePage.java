@@ -120,7 +120,10 @@ public class PModifiablePage extends PBasePage implements PTrackableContent {
   }
 
   private void checkBoundariesOnWrite(final int start, final int length) {
-    if (start < 0 || start + length > getPhysicalSize())
+    if (start < 0)
+      throw new IllegalArgumentException("Invalid position " + start);
+
+    if (start + length > getPhysicalSize())
       throw new IllegalArgumentException(
           "Cannot write outside the page space (" + (start + length) + ">" + getPhysicalSize() + ")");
 

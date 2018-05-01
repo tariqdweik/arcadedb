@@ -160,6 +160,8 @@ public class TransactionBucketTest {
       db.commit();
 
     } finally {
+      Assertions.assertEquals(0, db.countBucket("V_0"));
+
       db.close();
     }
 

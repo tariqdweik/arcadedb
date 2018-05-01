@@ -350,7 +350,8 @@ public class PBinary implements PBinaryStructure {
   @Override
   public byte[] getBytes() {
     final byte[] result = new byte[(int) getNumber()];
-    buffer.get(result);
+    if (result.length > 0)
+      buffer.get(result);
     return result;
   }
 
@@ -426,6 +427,20 @@ public class PBinary implements PBinaryStructure {
 
   public int getContentSize() {
     return content.length;
+  }
+
+  public static int getNumberSpace(long value) {
+    value = (value << 1) ^ (value >> 63);
+
+    int bytesUsed = 0;
+    long v = value;
+    while ((v & 0xFFFFFFFFFFFFFF80L) != 0L) {
+      bytesUsed++;
+      v >>>= 7;
+    }
+    bytesUsed++;
+
+    return bytesUsed;
   }
 
   @Override

@@ -5,6 +5,8 @@ import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PRecordNotFoundException;
 import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.PModifiableEdge;
+import com.arcadedb.graph.PModifiableVertex;
 import com.arcadedb.graph.PVertex;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -131,6 +133,47 @@ public class GraphTest extends BaseGraphTest {
   }
 
   @Test
+  public void updateVerticesAndEdges() {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    db.begin();
+    try {
+
+      Assertions.assertEquals(1, db.countType(EDGE1_TYPE_NAME, false));
+      Assertions.assertEquals(2, db.countType(EDGE2_TYPE_NAME, false));
+
+      final PVertex v1 = (PVertex) db.lookupByRID(root, false);
+      Assertions.assertNotNull(v1);
+
+      final PModifiableVertex v1Copy = (PModifiableVertex) v1.modify();
+      v1Copy.set("newProperty1", "TestUpdate1");
+      v1Copy.save();
+
+      // TEST CONNECTED EDGES
+      final Iterator<PEdge> edges1 = v1.getEdges(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
+      Assertions.assertNotNull(edges1);
+      Assertions.assertTrue(edges1.hasNext());
+
+      final PEdge e1 = edges1.next();
+
+      Assertions.assertNotNull(e1);
+
+      final PModifiableEdge e1Copy = (PModifiableEdge) e1.modify();
+      e1Copy.set("newProperty2", "TestUpdate2");
+      e1Copy.save();
+
+      db.commit();
+
+      final PVertex v1CopyReloaded = (PVertex) db.lookupByRID(v1Copy.getIdentity(), true);
+      Assertions.assertEquals("TestUpdate1", v1CopyReloaded.get("newProperty1"));
+      final PEdge e1CopyReloaded = (PEdge) db.lookupByRID(e1Copy.getIdentity(), true);
+      Assertions.assertEquals("TestUpdate2", e1CopyReloaded.get("newProperty2"));
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
   public void deleteVertices() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
@@ -148,9 +191,13 @@ public class GraphTest extends BaseGraphTest {
       PVertex v3 = vertices.next();
       Assertions.assertNotNull(v3);
 
+      final long totalVertices = db.countType(v1.getType(), true);
+
       // DELETE THE VERTEX
       // -----------------------
       db.deleteRecord(v1);
+
+      Assertions.assertEquals(totalVertices - 1, db.countType(v1.getType(), true));
 
       vertices = v2.getVertices(PVertex.DIRECTION.IN);
       Assertions.assertFalse(vertices.hasNext());

@@ -26,6 +26,7 @@ public class PImmutableEdge extends PImmutableDocument implements PEdge {
   }
 
   public PModifiableEdge modify() {
+    checkForLazyLoading();
     // CREATE A SEPARATE OBJECT THAT POINTS TO THE SAME BUFFER TO AVOID CONCURRENCY ON THE BUFFER POSITION
     return new PModifiableEdge(database, typeName, rid, buffer.slice());
   }

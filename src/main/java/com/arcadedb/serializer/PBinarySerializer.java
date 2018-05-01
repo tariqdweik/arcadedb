@@ -199,6 +199,9 @@ public class PBinarySerializer {
     case PBinaryTypes.TYPE_BYTE:
       content.putByte((Byte) value);
       break;
+    case PBinaryTypes.TYPE_BOOLEAN:
+      content.putByte((byte) ((Boolean) value ? 1 : 0));
+      break;
     case PBinaryTypes.TYPE_SHORT:
       content.putNumber((Short) value);
       break;
@@ -254,6 +257,9 @@ public class PBinarySerializer {
       break;
     case PBinaryTypes.TYPE_BYTE:
       value = content.getByte();
+      break;
+    case PBinaryTypes.TYPE_BOOLEAN:
+      value = content.getByte() == 1 ? true : false;
       break;
     case PBinaryTypes.TYPE_SHORT:
       value = (short) content.getNumber();

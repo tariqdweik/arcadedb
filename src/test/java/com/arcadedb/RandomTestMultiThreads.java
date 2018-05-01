@@ -62,7 +62,7 @@ public class RandomTestMultiThreads {
                 break;
 
               try {
-                final int op = rnd.nextInt(20);
+                final int op = rnd.nextInt(25);
                 if (i % 5000 == 0)
                   PLogManager.instance()
                       .info(this, "Operations %d/%d totalTransactionInCurrentTx=%d totalTransactions=%d (thread=%d)", i, CYCLES,
@@ -137,6 +137,12 @@ public class RandomTestMultiThreads {
                   totalTransactionInCurrentTx = 0;
 
                   database.begin();
+                } else if (op >= 20 && op <= 24) {
+
+                  PLogManager.instance().debug(this, "Updating records (thread=%d)...", threadId);
+
+                  updateRecords(database, threadId);
+
                 }
 
               } catch (Exception e) {
@@ -197,6 +203,46 @@ public class RandomTestMultiThreads {
       tx.set("amount", rnd.nextInt(STARTING_ACCOUNT));
       tx.save();
     }
+  }
+
+  private int updateRecords(final PDatabase database, final int threadId) {
+    if (totalTransactions.get() == 0)
+      return 0;
+
+    final Iterator<PRecord> iter = database.iterateType("Transaction", true);
+
+    // JUMP A RANDOM NUMBER OF RECORD
+    final int jump = rnd.nextInt((int) totalTransactions.get() + 1 / 2);
+    for (int i = 0; i < jump && iter.hasNext(); ++i)
+      iter.next();
+
+    int updated = 0;
+
+    while (iter.hasNext() && rnd.nextInt(10) != 0) {
+      final PRecord next = iter.next();
+
+      if (rnd.nextInt(2) == 0) {
+        try {
+          final PModifiableDocument doc = (PModifiableDocument) next.modify();
+
+          Integer val = (Integer) doc.get("updated");
+          if (val == null)
+            val = 0;
+          doc.set("updated", val + 1);
+
+          if (rnd.nextInt(2) == 1)
+            doc.set("longFieldUpdated", "This is a long field to test the break of pages");
+
+          updated++;
+
+        } catch (PRecordNotFoundException e) {
+          // OK
+        }
+        PLogManager.instance().debug(this, "Updated record %s (threadId=%d)", next.getIdentity(), threadId);
+      }
+    }
+
+    return updated;
   }
 
   private int deleteRecords(final PDatabase database, final int threadId) {
