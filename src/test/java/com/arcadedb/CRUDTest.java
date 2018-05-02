@@ -19,20 +19,9 @@ public class CRUDTest {
   @BeforeEach
   public void populate() {
     PFileUtils.deleteRecursively(new File(DB_PATH));
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
-      @Override
-      public void execute(PDatabase database) {
-        if (!database.getSchema().existsType("V"))
-          database.getSchema().createDocumentType("V");
-
-        for (int i = 0; i < TOT; ++i) {
-          final PModifiableDocument v = database.newDocument("V");
-          v.set("id", i);
-          v.set("name", "V" + i);
-          v.save();
-        }
-      }
-    });
+    PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    createAll(db);
+    db.close();
   }
 
   @AfterEach
@@ -77,14 +66,21 @@ public class CRUDTest {
   }
 
   @Test
-  public void testMultiUpdateOverlap() {
+  public void testMultiUpdatesOverlap() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
-    db.begin();
+
     try {
 
       for (int i = 0; i < 10; ++i) {
+        db.begin();
         updateAll(db, "largeField" + i);
+
         Assertions.assertEquals(TOT, db.countType("V", true));
+
+        db.commit();
+
+        Assertions.assertEquals(TOT, db.countType("V", true));
+
         PLogManager.instance().info(this, "Completed %d cycle of updates", i);
       }
 
@@ -105,6 +101,72 @@ public class CRUDTest {
     }
   }
 
+  @Test
+  public void testMultiUpdatesAndDeleteOverlap() {
+    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    try {
+
+      for (int i = 0; i < 10; ++i) {
+        final int counter = i;
+
+        db.begin();
+
+        updateAll(db, "largeField" + i);
+        Assertions.assertEquals(TOT, db.countType("V", true));
+
+        db.commit();
+        db.begin();
+
+        Assertions.assertEquals(TOT, db.countType("V", true));
+
+        db.scanType("V", true, new PDocumentCallback() {
+          @Override
+          public boolean onRecord(PDocument record) {
+            Assertions.assertEquals(true, record.get("update"));
+
+            Assertions.assertEquals("This is a large field to force the page overlap at some point", record.get("largeField" + counter));
+
+            return true;
+          }
+        });
+
+        deleteAll(db);
+
+        Assertions.assertEquals(0, db.countType("V", true));
+
+        db.commit();
+
+        Assertions.assertEquals(0, db.countType("V", true));
+
+        PLogManager.instance().info(this, "Completed %d cycle of updates+delete", i);
+
+        createAll(db);
+
+        Assertions.assertEquals(TOT, db.countType("V", true));
+      }
+
+    } finally {
+      db.close();
+    }
+  }
+
+  private void createAll(PDatabase db) {
+    db.transaction(new PDatabase.PTransaction() {
+      @Override
+      public void execute(PDatabase database) {
+        if (!database.getSchema().existsType("V"))
+          database.getSchema().createDocumentType("V");
+
+        for (int i = 0; i < TOT; ++i) {
+          final PModifiableDocument v = database.newDocument("V");
+          v.set("id", i);
+          v.set("name", "V" + i);
+          v.save();
+        }
+      }
+    });
+  }
+
   private void updateAll(PDatabase db, String largeField) {
     db.scanType("V", true, new PDocumentCallback() {
       @Override
@@ -116,9 +178,16 @@ public class CRUDTest {
         return true;
       }
     });
+  }
 
-    db.commit();
-    db.begin();
+  private void deleteAll(PDatabase db) {
+    db.scanType("V", true, new PDocumentCallback() {
+      @Override
+      public boolean onRecord(PDocument record) {
+        db.deleteRecord(record);
+        return true;
+      }
+    });
   }
 
 }
