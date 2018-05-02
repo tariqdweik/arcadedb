@@ -6,10 +6,13 @@ import com.arcadedb.database.PRID;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PDatabaseOperationException;
 import com.arcadedb.exception.PRecordNotFoundException;
+import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
 import static com.arcadedb.database.PBinary.LONG_SERIALIZED_SIZE;
@@ -178,6 +181,89 @@ public class PBucket extends PPaginatedComponent {
       throw new PDatabaseOperationException("Cannot count bucket '" + name + "'", e);
     }
     return total;
+  }
+
+  protected Map<String, Long> check() {
+    final Map<String, Long> stats = new HashMap<>();
+
+    final int totalPages = getTotalPages();
+
+    PLogManager.instance().info(this, "- Checking bucket '%s' (totalPages=%d spaceOnDisk=%s pageSize=%s)...", name, totalPages,
+        PFileUtils.getSizeAsString(totalPages * pageSize), PFileUtils.getSizeAsString(pageSize));
+
+    long totalRecords = 0;
+    long totalActiveRecords = 0;
+    long totalPlaceholderRecords = 0;
+    long totalSurrogateRecords = 0;
+    long totalDeletedRecords = 0;
+    long totalMaxOffset = 0;
+
+    for (int pageId = 0; pageId < totalPages; ++pageId) {
+      try {
+        final PBasePage page = database.getTransaction().getPage(new PPageId(file.getFileId(), pageId), pageSize);
+        final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+
+        int pageActiveRecords = 0;
+        int pagePlaceholderRecords = 0;
+        int pageSurrogateRecords = 0;
+        int pageDeletedRecords = 0;
+        int pageMaxOffset = 0;
+
+        for (int positionInPage = 0; positionInPage < recordCountInPage; ++positionInPage) {
+          final int recordPositionInPage = (int) page
+              .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+          final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
+
+          totalRecords++;
+
+          if (recordSize[0] == 0) {
+            pageDeletedRecords++;
+            totalDeletedRecords++;
+          } else if (recordSize[0] < -1) {
+            pageSurrogateRecords++;
+            totalSurrogateRecords++;
+            recordSize[0] *= -1;
+          } else if (recordSize[0] == -1) {
+            pagePlaceholderRecords++;
+            totalPlaceholderRecords++;
+            recordSize[0] = 5;
+          } else {
+            pageActiveRecords++;
+            totalActiveRecords++;
+          }
+
+          if (recordPositionInPage + recordSize[1] + recordSize[0] > pageMaxOffset)
+            pageMaxOffset = (int) (recordPositionInPage + recordSize[1] + recordSize[0]);
+        }
+
+        totalMaxOffset += pageMaxOffset;
+
+        PLogManager.instance()
+            .debug(this, "-- Page %d records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) maxOffset=%d", pageId,
+                recordCountInPage, pageActiveRecords, pageDeletedRecords, pagePlaceholderRecords, pageSurrogateRecords,
+                pageMaxOffset);
+
+      } catch (IOException e) {
+        PLogManager.instance().info(this, "- Unknown error on checking page %d: %s", pageId, e.toString());
+      }
+    }
+
+    final float avgPageUsed = totalPages > 0 ? (float) (totalMaxOffset / totalPages) * 100f / pageSize : 0;
+
+    PLogManager.instance()
+        .info(this, "-- Total records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) avgPageUsed=%.2f%%", totalRecords,
+            totalActiveRecords, totalDeletedRecords, totalPlaceholderRecords, totalSurrogateRecords, avgPageUsed);
+
+    stats.put("pageSize", (long) pageSize);
+    stats.put("totalRecords", totalRecords);
+    stats.put("totalPages", (long) totalPages);
+    stats.put("totalActiveRecords", totalActiveRecords);
+    stats.put("totalPlaceholderRecords", totalPlaceholderRecords);
+    stats.put("totalSurrogateRecords", totalSurrogateRecords);
+    stats.put("totalDeletedRecords", totalDeletedRecords);
+    stats.put("totalMaxOffset", totalMaxOffset);
+
+    return stats;
   }
 
   private PBinary getRecordInternal(final PRID rid, final boolean readPlaceHolder) {

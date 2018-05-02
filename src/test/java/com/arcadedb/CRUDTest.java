@@ -2,6 +2,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PBucket;
+import com.arcadedb.engine.PDatabaseChecker;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
@@ -61,6 +62,7 @@ public class CRUDTest {
       });
 
     } finally {
+      new PDatabaseChecker().check(db);
       db.close();
     }
   }
@@ -97,6 +99,7 @@ public class CRUDTest {
       });
 
     } finally {
+      new PDatabaseChecker().check(db);
       db.close();
     }
   }
@@ -146,6 +149,7 @@ public class CRUDTest {
       }
 
     } finally {
+      new PDatabaseChecker().check(db);
       db.close();
     }
   }

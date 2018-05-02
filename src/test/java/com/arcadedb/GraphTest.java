@@ -2,6 +2,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
+import com.arcadedb.engine.PDatabaseChecker;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PRecordNotFoundException;
 import com.arcadedb.graph.PEdge;
@@ -169,6 +170,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals("TestUpdate2", e1CopyReloaded.get("newProperty2"));
 
     } finally {
+      new PDatabaseChecker().check(db);
       db.close();
     }
   }
@@ -236,6 +238,7 @@ public class GraphTest extends BaseGraphTest {
       }
 
     } finally {
+      new PDatabaseChecker().check(db);
       db.close();
     }
   }
@@ -293,6 +296,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertFalse(edges.hasNext());
 
     } finally {
+      new PDatabaseChecker().check(db);
       db.close();
     }
   }

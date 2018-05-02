@@ -700,6 +700,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     return fileManager;
   }
 
+  @Override
   public String getName() {
     return name;
   }

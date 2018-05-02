@@ -2,6 +2,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.PErrorCallback;
+import com.arcadedb.engine.PDatabaseChecker;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.graph.PModifiableVertex;
@@ -84,6 +85,8 @@ public class MVCCTest {
         }
 
       } finally {
+        new PDatabaseChecker().check(database);
+
         database.close();
 
         Assertions.assertTrue(mvccErrors.get() > 0);

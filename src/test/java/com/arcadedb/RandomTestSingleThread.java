@@ -4,6 +4,7 @@ import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRecord;
+import com.arcadedb.engine.PDatabaseChecker;
 import com.arcadedb.engine.PPaginatedFile;
 import com.arcadedb.exception.PConcurrentModificationException;
 import com.arcadedb.schema.PEdgeType;
@@ -82,6 +83,8 @@ public class RandomTestSingleThread {
       database.commit();
 
     } finally {
+      new PDatabaseChecker().check(database);
+
       database.close();
 
       System.out.println("Test finished in " + (System.currentTimeMillis() - begin) + "ms, mvccExceptions=" + mvccErrors.get()

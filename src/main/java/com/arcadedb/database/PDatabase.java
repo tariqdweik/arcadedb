@@ -18,6 +18,8 @@ public interface PDatabase {
     void execute(PDatabase database);
   }
 
+  String getName();
+
   void drop();
 
   void close();
