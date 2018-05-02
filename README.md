@@ -12,10 +12,10 @@ Super Fast Multi-Model DBMS
 - ArcadeDB keeps the MVCC counter on the page rather than on the record
 - ArcadeDB manage everything as files and pages
 - ArcadeDB allows custom page size per bucket/index
+- ArcadeDB doesn't break record across pages, but rather create a placeholder pointing to the page that has the record. This allows the RID to be immutable without the complexity of managing splitted records
 
 ## What Arcade does not support
 
-- ArcadeDB doesn't support update when the record get larger than the stored version (but it's in the roadmap)
 - ArcadeDB doesn't support storing records with a size major than the page size. You can always create a bucket with a larger page size, but this can be done only at creation time
 - ArcadeDB cannot be replicated in a distributed system (yet, it's in the roadmap)
 - ArcadeDB remote server supports only HTTP/JSON, no binary protocol is available
