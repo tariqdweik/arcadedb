@@ -17,7 +17,7 @@ public class PerformanceIndexTest {
   private void run() {
     PerformanceTest.clean();
 
-    final int parallel = 3;
+    final int parallel = 2;
 
     PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     try {
@@ -30,6 +30,8 @@ public class PerformanceIndexTest {
         type.createProperty("name", String.class);
         type.createProperty("surname", String.class);
         type.createProperty("locali", Integer.class);
+        type.createProperty("notes1", String.class);
+        type.createProperty("notes2", String.class);
 
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 5000000);
         database.commit();
@@ -46,6 +48,7 @@ public class PerformanceIndexTest {
 
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(parallel);
+      database.asynch().setTransactionUseWAL(true);
 
       database.asynch().onError(new PErrorCallback() {
         @Override
@@ -63,6 +66,10 @@ public class PerformanceIndexTest {
         record.set("name", "Luca" + row);
         record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
+        record.set("notes1",
+            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
+        record.set("notes2",
+            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
 
         database.asynch().createRecord(record);
 
