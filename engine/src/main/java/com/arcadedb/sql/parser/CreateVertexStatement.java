@@ -32,7 +32,7 @@ public class CreateVertexStatement extends Statement {
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
     OInsertExecutionPlan executionPlan = (OInsertExecutionPlan) createExecutionPlan(ctx, false);
-    executionPlan.executeInternal();
+    executionPlan.executeInternal(targetClass.getStringValue());
     return new OLocalResultSet(executionPlan);
   }
 
@@ -50,7 +50,7 @@ public class CreateVertexStatement extends Statement {
     }
     ctx.setInputParameters(params);
     OInsertExecutionPlan executionPlan = (OInsertExecutionPlan) createExecutionPlan(ctx, false);
-    executionPlan.executeInternal();
+    executionPlan.executeInternal(targetClass.getStringValue());
     return new OLocalResultSet(executionPlan);
   }
 

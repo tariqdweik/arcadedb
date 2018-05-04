@@ -11,7 +11,7 @@
         <relativePath>../</relativePath>
     </parent>
 
-    <artifactId>arcadedb-console</artifactId>
+    <artifactId>arcadedb-remote</artifactId>
     <packaging>jar</packaging>
 
     <build>
@@ -38,17 +38,6 @@
         </plugins>
     </build>
     <dependencies>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal</artifactId>
-            <version>3.7.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-reader</artifactId>
-            <version>3.7.0</version>
-        </dependency>
-
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-engine</artifactId>

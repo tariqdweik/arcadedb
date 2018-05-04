@@ -17,12 +17,9 @@ public class PModifiableDocument extends PBaseDocument implements PRecordInterna
     buffer.position(buffer.position() + 1); // SKIP RECORD TYPE
   }
 
-  protected void checkForLazyLoadingProperties() {
-    if (this.map == null && buffer != null) {
-      buffer.position(propertiesStartingPosition);
-      this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
-      buffer = null;
-    }
+  public void merge(final PDocument other) {
+    for (String p : other.getPropertyNames())
+      set(p, other.get(p));
   }
 
   public void set(final String name, final Object value) {
@@ -88,5 +85,13 @@ public class PModifiableDocument extends PBaseDocument implements PRecordInterna
   @Override
   public PRecord modify() {
     return this;
+  }
+
+  protected void checkForLazyLoadingProperties() {
+    if (this.map == null && buffer != null) {
+      buffer.position(propertiesStartingPosition);
+      this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
+      buffer = null;
+    }
   }
 }

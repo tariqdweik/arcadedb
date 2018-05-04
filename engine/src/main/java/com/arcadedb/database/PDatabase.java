@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface PDatabase {
+  OResultSet command(String query, Map<String, Object> args);
+
   interface PTransaction {
     void execute(PDatabase database);
   }

@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -35,13 +36,12 @@ public class SaveElementStep extends AbstractExecutionStep {
       public OResult next() {
         OResult result = upstream.next();
         if (result.isElement()) {
-          if (cluster == null) {
-            throw new UnsupportedOperationException();
-//            ctx.getDatabase().saveRecord((PModifiableDocument) result.getElement().orElse(null));
-          } else {
-            throw new UnsupportedOperationException();
-//            ctx.getDatabase().saveRecord(result.getElement().orElse(null), cluster.getStringValue());
-          }
+          final PModifiableDocument doc = ((PModifiableDocument) result.getElement().orElse(null));
+
+          if (cluster == null)
+            doc.save();
+          else
+            doc.save(cluster.getStringValue());
         }
         return result;
       }

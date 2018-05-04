@@ -2,15 +2,17 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRID;
+import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.PProperty;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UpdateItem extends SimpleNode {
@@ -139,29 +141,32 @@ public class UpdateItem extends SimpleNode {
   }
 
   private Object convertToPropertyType(OResultInternal res, Identifier attrName, Object newValue) {
-//    PRecord doc = res.toElement();
-//    Optional<PDocumentType> optSchema = doc.getType();
-//    if (!optSchema.isPresent()) {
-//      return newValue;
-//    }
-//    OProperty prop = optSchema.get().getProperty(attrName.getStringValue());
-//    if (prop == null) {
-//      return newValue;
-//    }
-//
-//    if (newValue instanceof Collection) {
-//      if (prop.getType() == OType.LINK) {
-//        if (((Collection) newValue).size() == 0) {
-//          newValue = null;
-//        } else if (((Collection) newValue).size() == 1) {
-//          newValue = ((Collection) newValue).iterator().next();
-//        } else {
-//          throw new PCommandExecutionException("Cannot assign a collection to a LINK property");
-//        }
-//      }
-//    }
-//    return newValue;
-    throw new UnsupportedOperationException();//TODO
+    PDocument doc = res.toElement();
+    Optional<PDocumentType> optSchema = Optional.ofNullable(doc.getDatabase().getSchema().getType(doc.getType()));
+    if (!optSchema.isPresent()) {
+      return newValue;
+    }
+
+    if (!optSchema.get().existsProperty(attrName.getStringValue()))
+      return newValue;
+
+    final PProperty prop = optSchema.get().getProperty(attrName.getStringValue());
+    if (prop == null) {
+      return newValue;
+    }
+
+    if (newValue instanceof Collection) {
+      if (prop.getType() == PRID.class) {
+        if (((Collection) newValue).size() == 0) {
+          newValue = null;
+        } else if (((Collection) newValue).size() == 1) {
+          newValue = ((Collection) newValue).iterator().next();
+        } else {
+          throw new PCommandExecutionException("Cannot assign a collection to a LINK property");
+        }
+      }
+    }
+    return newValue;
   }
 
   private Object convertResultToDocument(Object value) {

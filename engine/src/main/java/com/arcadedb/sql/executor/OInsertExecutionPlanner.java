@@ -105,7 +105,7 @@ public class OInsertExecutionPlanner {
     if (body != null && body.getValueExpressions() != null && body.getValueExpressions().size() > 0) {
       tot = body.getValueExpressions().size();
     }
-    result.chain(new CreateRecordStep(ctx, tot, profilingEnabled));
+    result.chain(new CreateRecordStep(targetClass.getStringValue(), ctx, tot, profilingEnabled));
   }
 
   private void handleInsertSelect(OInsertExecutionPlan result, SelectStatement selectStatement, OCommandContext ctx,

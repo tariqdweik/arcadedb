@@ -44,7 +44,7 @@ public class CreateEdgeStatement extends Statement {
     }
     ctx.setInputParameters(params);
     OInsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal();
+    executionPlan.executeInternal(targetClass.getStringValue());
     return new OLocalResultSet(executionPlan);
   }
 
@@ -56,7 +56,7 @@ public class CreateEdgeStatement extends Statement {
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
     OInsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal();
+    executionPlan.executeInternal(targetClass.getStringValue());
     return new OLocalResultSet(executionPlan);
   }
 

@@ -1,5 +1,6 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.exception.PTimeoutException;
 
 import java.util.Map;
@@ -17,8 +18,9 @@ public class CreateRecordStep extends AbstractExecutionStep {
 
   String typeName = null;
 
-  public CreateRecordStep(OCommandContext ctx, int total, boolean profilingEnabled) {
+  public CreateRecordStep(final String typeName, OCommandContext ctx, int total, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
+    this.typeName = typeName;
     this.total = total;
   }
 
@@ -45,8 +47,7 @@ public class CreateRecordStep extends AbstractExecutionStep {
           }
           created++;
           locallyCreated++;
-          throw new UnsupportedOperationException("Pass type name here!!");
-//          return new OUpdatableResult((PModifiableDocument) ctx.getDatabase().newDocument(typeName));
+          return new OUpdatableResult((PModifiableDocument) ctx.getDatabase().newDocument(typeName));
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);

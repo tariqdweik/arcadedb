@@ -4,7 +4,7 @@ package com.arcadedb.sql.parser;
 import java.io.InputStream;
 import java.util.List;
 import java.util.ArrayList;
-import com.arcadedb.exception.PCommandSQLParsingException;
+
 import com.arcadedb.exception.PQueryParsingException;
 
 /** Database Sql grammar. */
@@ -13851,7 +13851,7 @@ Token token;
       case CLUSTER:
         jj_consume_token(CLUSTER);
         lastInteger = PInteger();
-                                                             jjtn000.clusters = new ArrayList<PInteger>(); jjtn000.clusters.add(lastInteger);
+                                                             jjtn000.buckets = new ArrayList<PInteger>(); jjtn000.buckets.add(lastInteger);
         label_48:
         while (true) {
           switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -13864,7 +13864,7 @@ Token token;
           }
           jj_consume_token(COMMA);
           lastInteger = PInteger();
-                                                           jjtn000.clusters.add(lastInteger);
+                                                           jjtn000.buckets.add(lastInteger);
         }
         break;
       default:

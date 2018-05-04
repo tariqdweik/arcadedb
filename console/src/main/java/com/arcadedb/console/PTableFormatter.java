@@ -19,11 +19,9 @@
  */
 package com.arcadedb.console;
 
-import com.arcadedb.database.PBinary;
 import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRecord;
-import com.arcadedb.utility.PCallable;
 import com.arcadedb.utility.PMultiIterator;
 import com.arcadedb.utility.PPair;
 
@@ -32,6 +30,10 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class PTableFormatter {
+
+  private static final String TYPE = "@TYPE";
+  private static final String RID  = "@RID";
+
   public enum ALIGNMENT {
     LEFT, CENTER, RIGHT
   }
@@ -43,23 +45,62 @@ public class PTableFormatter {
   protected final Map<String, ALIGNMENT>           columnAlignment      = new HashMap<String, ALIGNMENT>();
   protected final Map<String, Map<String, String>> columnMetadata       = new HashMap<String, Map<String, String>>();
   protected final Set<String>                      columnHidden         = new HashSet<String>();
-  protected final Set<String>                      prefixedColumns      = new LinkedHashSet<String>(
-      Arrays.asList(new String[] { "#", "@RID", "@CLASS" }));
+  protected       Set<String>                      prefixedColumns      = new LinkedHashSet<String>(Arrays.asList(new String[] {}));
   protected final OTableOutput                     out;
   protected       int                              maxMultiValueEntries = 10;
   protected       int                              minColumnSize        = 4;
   protected       int                              maxWidthSize         = 150;
   protected       String                           nullValue            = "";
-  private         boolean                          leftBorder           = true;
-  private         boolean                          rightBorder          = true;
-  private         PDocument                        footer;
+  protected       boolean                          leftBorder           = true;
+  protected       boolean                          rightBorder          = true;
+  protected       PTableRow                        footer;
 
   public interface OTableOutput {
     void onMessage(String text, Object... args);
   }
 
+  public interface PTableRow {
+    Object getField(String field);
+
+    Set<String> getFields();
+  }
+
+  public static class PTableMapRow implements PTableRow {
+    private final Map<String, Object> map;
+
+    public PTableMapRow(final Map<String, Object> map) {
+      this.map = map;
+    }
+
+    public PTableMapRow() {
+      map = new LinkedHashMap<>();
+    }
+
+    @Override
+    public Object getField(final String field) {
+      return map.get(field);
+    }
+
+    @Override
+    public Set<String> getFields() {
+      return map.keySet();
+    }
+
+    public void setField(final String name, final Object value) {
+      map.put(name, value);
+    }
+  }
+
   public PTableFormatter(final OTableOutput iConsole) {
     this.out = iConsole;
+  }
+
+  public Set<String> getPrefixedColumns() {
+    return prefixedColumns;
+  }
+
+  public void setPrefixedColumns(final String... prefixedColumns) {
+    this.prefixedColumns = new LinkedHashSet<String>(Arrays.asList(prefixedColumns));
   }
 
   public void setColumnSorting(final String column, final boolean ascending) {
@@ -70,16 +111,11 @@ public class PTableFormatter {
     columnHidden.add(column);
   }
 
-  public void writeRecords(final List<? extends PIdentifiable> resultSet, final int limit) {
-    writeRecords(resultSet, limit, null);
-  }
-
-  public void writeRecords(final List<? extends PIdentifiable> resultSet, final int limit,
-      final PCallable<Object, PIdentifiable> iAfterDump) {
-    final Map<String, Integer> columns = parseColumns(resultSet, limit);
+  public void writeRows(final List<? extends PTableRow> rows, final int limit) {
+    final Map<String, Integer> columns = parseColumns(rows, limit);
 
     if (columnSorting != null) {
-      Collections.sort(resultSet, new Comparator<Object>() {
+      Collections.sort(rows, new Comparator<Object>() {
         @Override
         public int compare(final Object o1, final Object o2) {
           final PDocument doc1 = (PDocument) ((PIdentifiable) o1).getRecord();
@@ -104,10 +140,8 @@ public class PTableFormatter {
     }
 
     int fetched = 0;
-    for (PIdentifiable record : resultSet) {
+    for (PTableRow record : rows) {
       dumpRecordInTable(fetched++, record, columns);
-      if (iAfterDump != null)
-        iAfterDump.call(record);
 
       if (limit > -1 && fetched >= limit) {
         printHeaderLine(columns);
@@ -156,7 +190,7 @@ public class PTableFormatter {
     return this;
   }
 
-  public void dumpRecordInTable(final int iIndex, final PIdentifiable iRecord, final Map<String, Integer> iColumns) {
+  public void dumpRecordInTable(final int iIndex, final PTableRow iRecord, final Map<String, Integer> iColumns) {
     if (iIndex == 0)
       printHeader(iColumns);
 
@@ -200,7 +234,7 @@ public class PTableFormatter {
       out.onMessage("\n" + format.toString(), vargs.toArray());
 
     } catch (Exception t) {
-      out.onMessage("%3d|%9s|%s\n", iIndex, iRecord.getIdentity(), "Error on loading record due to: " + t);
+      out.onMessage("%3d|%9s|%s\n", iIndex, iRecord, "Error on loading record due to: " + t);
     }
   }
 
@@ -234,26 +268,14 @@ public class PTableFormatter {
     return valueAsString;
   }
 
-  private Object getFieldValue(final int iIndex, final PIdentifiable iRecord, final String iColumnName) {
+  protected Object getFieldValue(final int iIndex, final PTableRow row, final String iColumnName) {
     Object value = null;
 
     if (iColumnName.equals("#"))
       // RECORD NUMBER
       value = iIndex > -1 ? iIndex : "";
-    else if (iColumnName.equals("@RID"))
-      // RID
-      value = iRecord.getIdentity().toString();
-    else if (iRecord instanceof PDocument)
-      value = ((PDocument) iRecord).get(iColumnName);
-    else if (iRecord instanceof PBinary)
-      value = "<binary> (size=" + ((PBinary) iRecord).size() + " bytes)";
-    else if (iRecord instanceof PIdentifiable) {
-      final PRecord rec = iRecord.getRecord();
-      if (rec instanceof PDocument)
-        value = ((PDocument) rec).get(iColumnName);
-      else if (rec instanceof PBinary)
-        value = "<binary> (size=" + ((PBinary) rec).size() + " bytes)";
-    }
+    else
+      value = row.getField(iColumnName);
 
     return getPrettyFieldValue(value, maxMultiValueEntries);
   }
@@ -289,7 +311,7 @@ public class PTableFormatter {
     return value.toString();
   }
 
-  public void setFooter(final PDocument footer) {
+  public void setFooter(final PTableRow footer) {
     this.footer = footer;
   }
 
@@ -433,12 +455,12 @@ public class PTableFormatter {
   /**
    * Fill the column map computing the maximum size for a field.
    *
-   * @param resultSet
+   * @param rows
    * @param limit
    *
    * @return
    */
-  private Map<String, Integer> parseColumns(final Collection<? extends PIdentifiable> resultSet, final int limit) {
+  private Map<String, Integer> parseColumns(final List<? extends PTableRow> rows, final int limit) {
     final Map<String, Integer> columns = new LinkedHashMap<String, Integer>();
 
     for (String c : prefixedColumns)
@@ -448,29 +470,19 @@ public class PTableFormatter {
     boolean hasClass = false;
 
     int fetched = 0;
-    for (PIdentifiable id : resultSet) {
-      PRecord rec = id.getRecord();
-
+    for (PTableRow row : rows) {
       for (String c : prefixedColumns)
-        columns.put(c, getColumnSize(fetched, rec, c, columns.get(c)));
+        columns.put(c, getColumnSize(fetched, row, c, columns.get(c)));
 
-      if (rec instanceof PDocument) {
-        // PARSE ALL THE DOCUMENT'S FIELDS
-        final PDocument doc = (PDocument) rec;
-        for (String fieldName : doc.getPropertyNames()) {
-          columns.put(fieldName, getColumnSize(fetched, doc, fieldName, columns.get(fieldName)));
-        }
-
-        if (!hasClass && doc.getType() != null)
-          hasClass = true;
-
-      } else if (rec instanceof PBinary) {
-        // UNIQUE BINARY FIELD
-        columns.put("value", maxWidthSize - 15);
-
+      // PARSE ALL THE DOCUMENT'S FIELDS
+      for (String fieldName : row.getFields()) {
+        columns.put(fieldName, getColumnSize(fetched, row, fieldName, columns.get(fieldName)));
       }
 
-      if (!tempRids && rec.getIdentity() == null)
+      if (!hasClass && row.getField("@TYPE") != null)
+        hasClass = true;
+
+      if (!tempRids && row.getField("@RID") == null)
         tempRids = true;
 
       if (limit > -1 && fetched++ >= limit)
@@ -481,11 +493,11 @@ public class PTableFormatter {
       columns.remove("@RID");
 
     if (!hasClass)
-      columns.remove("@CLASS");
+      columns.remove("@TYPE");
 
     if (footer != null) {
       // PARSE ALL THE DOCUMENT'S FIELDS
-      for (String fieldName : footer.getPropertyNames()) {
+      for (String fieldName : footer.getFields()) {
         columns.put(fieldName, getColumnSize(fetched, footer, fieldName, columns.get(fieldName)));
       }
     }
@@ -542,9 +554,9 @@ public class PTableFormatter {
     }
 
     if (tempRids)
-      columns.remove("@RID");
+      columns.remove(RID);
     if (!hasClass)
-      columns.remove("@CLASS");
+      columns.remove(TYPE);
 
     for (String c : columnHidden)
       columns.remove(c);
@@ -552,7 +564,7 @@ public class PTableFormatter {
     return columns;
   }
 
-  private Integer getColumnSize(final Integer iIndex, final PRecord iRecord, final String fieldName, final Integer origSize) {
+  private Integer getColumnSize(final Integer iIndex, final PTableRow row, final String fieldName, final Integer origSize) {
     Integer newColumnSize;
     if (origSize == null)
       // START FROM THE FIELD NAME SIZE
@@ -571,7 +583,7 @@ public class PTableFormatter {
       }
     }
 
-    final Object fieldValue = getFieldValue(iIndex, iRecord, fieldName);
+    final Object fieldValue = getFieldValue(iIndex, row, fieldName);
 
     if (fieldValue != null) {
       final String fieldValueAsString = fieldValue.toString();

@@ -138,8 +138,8 @@ public enum PGlobalConfiguration {
   }
 
   public static void dumpConfiguration(final PrintStream out) {
-    out.print("PROTON ");
-    out.print(PConstants.getVersion());
+    out.print("ARCADEDB ");
+    out.print(PConstants.VERSION);
     out.println(" configuration:");
 
     String lastSection = "";

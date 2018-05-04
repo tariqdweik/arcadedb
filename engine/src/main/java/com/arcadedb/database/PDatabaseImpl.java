@@ -758,16 +758,19 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
   @Override
   public OResultSet query(String query, Map<String, Object> args) {
-    Statement statement = OSQLEngine.parse(query, this);
+    final Statement statement = OSQLEngine.parse(query, this);
     if (!statement.isIdempotent()) {
       throw new PCommandExecutionException("Cannot execute query on non idempotent statement: " + query);
     }
-    OResultSet original = statement.execute(this, args);
+    final OResultSet original = statement.execute(this, args);
     return original;
-//    OLocalResultSetLifecycleDecorator result = new OLocalResultSetLifecycleDecorator(original);
-//    this.queryStarted(result.getQueryId(), result);
-//    result.addLifecycleListener(this);
-//    return result;
+  }
+
+  @Override
+  public OResultSet command(String query, Map<String, Object> args) {
+    final Statement statement = OSQLEngine.parse(query, this);
+    final OResultSet original = statement.execute(this, args);
+    return original;
   }
 
   public boolean equals(final Object o) {

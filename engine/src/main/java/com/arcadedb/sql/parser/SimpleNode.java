@@ -2,12 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-
 import java.util.Map;
 
 public class SimpleNode implements Node {
-
   protected Node      parent;
   protected Node[]    children;
   protected int       id;
@@ -137,10 +134,6 @@ public class SimpleNode implements Node {
     }
   }
 
-  public static PDatabase getDatabase() {
-    throw new UnsupportedOperationException();
-  }
-
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     throw new UnsupportedOperationException("not implemented in " + getClass().getSimpleName());
   }
@@ -149,7 +142,7 @@ public class SimpleNode implements Node {
     return value;
   }
 
-  public SimpleNode copy(){
+  public SimpleNode copy() {
     throw new UnsupportedOperationException();
   }
 }

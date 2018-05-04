@@ -17,4 +17,9 @@ public class PThreadAffinityBucketSelectionStrategy implements PBucketSelectionS
   public String getName() {
     return "thread-affinity";
   }
+
+  @Override
+  public String toString() {
+    return getName();
+  }
 }

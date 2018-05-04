@@ -100,7 +100,7 @@ public class InsertStatement extends Statement {
     }
     ctx.setInputParameters(params);
     OInsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal();
+    executionPlan.executeInternal(targetClass.getStringValue());
     return new OLocalResultSet(executionPlan);
   }
 
@@ -112,7 +112,7 @@ public class InsertStatement extends Statement {
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
     OInsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal();
+    executionPlan.executeInternal(targetClass.getStringValue());
     return new OLocalResultSet(executionPlan);
   }
 

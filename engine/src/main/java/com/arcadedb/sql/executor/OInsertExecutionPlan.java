@@ -35,10 +35,10 @@ public class OInsertExecutionPlan extends OSelectExecutionPlan {
     result.clear();
     next = 0;
     super.reset(ctx);
-    executeInternal();
+    executeInternal(null);
   }
 
-  public void executeInternal() throws PCommandExecutionException {
+  public void executeInternal(final String typeName) throws PCommandExecutionException {
     while (true) {
       OResultSet nextBlock = super.fetchNext(100);
       if (!nextBlock.hasNext()) {

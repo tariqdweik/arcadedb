@@ -23,4 +23,9 @@ public class PRoundRobinBucketSelectionStrategy implements PBucketSelectionStrat
   public String getName() {
     return "round-robin";
   }
+
+  @Override
+  public String toString() {
+    return getName();
+  }
 }

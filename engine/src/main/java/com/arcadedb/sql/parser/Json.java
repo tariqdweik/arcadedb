@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRecord;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.executor.OResultInternal;
@@ -45,9 +45,9 @@ public class Json extends SimpleNode {
     builder.append("}");
   }
 
-  public PRecord toDocument(PIdentifiable source, OCommandContext ctx) {
-    String className = getClassNameForDocument(ctx);
-    PModifiableDocument doc;
+  public PDocument toDocument(final PIdentifiable source, final OCommandContext ctx) {
+    final String className = getClassNameForDocument(ctx, source);
+    final PModifiableDocument doc;
     if (className != null) {
       doc = ctx.getDatabase().newDocument(className);
     } else {
@@ -70,45 +70,52 @@ public class Json extends SimpleNode {
     return doc;
   }
 
-  public Map<String, Object> toMap(PIdentifiable source, OCommandContext ctx) {
-    Map<String, Object> doc = new HashMap<String, Object>();
+  public Map<String, Object> toMap(final PIdentifiable source, final OCommandContext ctx) {
+    final Map<String, Object> doc = new HashMap<String, Object>();
     for (JsonItem item : items) {
-      String name = item.getLeftValue();
+      final String name = item.getLeftValue();
       if (name == null) {
         continue;
       }
-      Object value = item.right.execute(source, ctx);
+      final Object value = item.right.execute(source, ctx);
       doc.put(name, value);
     }
 
     return doc;
   }
 
-  public Map<String, Object> toMap(OResult source, OCommandContext ctx) {
-    Map<String, Object> doc = new HashMap<String, Object>();
+  public Map<String, Object> toMap(final OResult source, final OCommandContext ctx) {
+    final Map<String, Object> doc = new HashMap<String, Object>();
     for (JsonItem item : items) {
-      String name = item.getLeftValue();
+      final String name = item.getLeftValue();
       if (name == null) {
         continue;
       }
-      Object value = item.right.execute(source, ctx);
+      final Object value = item.right.execute(source, ctx);
       doc.put(name, value);
     }
 
     return doc;
   }
 
-  private String getClassNameForDocument(OCommandContext ctx) {
+  private String getClassNameForDocument(final OCommandContext ctx, final PIdentifiable record) {
+    if (record != null) {
+      final PDocument doc = (PDocument) record.getRecord();
+      if (doc != null)
+        return doc.getType();
+    }
+
     for (JsonItem item : items) {
-      String left = item.getLeftValue();
-      if (left != null && left.toLowerCase(Locale.ENGLISH).equals("@class")) {
+      final String left = item.getLeftValue();
+      if (left != null && left.toLowerCase(Locale.ENGLISH).equals("@type")) {
         return "" + item.right.execute((OResult) null, ctx);
       }
     }
+
     return null;
   }
 
-  public boolean needsAliases(Set<String> aliases) {
+  public boolean needsAliases(final Set<String> aliases) {
     for (JsonItem item : items) {
       if (item.needsAliases(aliases)) {
         return true;

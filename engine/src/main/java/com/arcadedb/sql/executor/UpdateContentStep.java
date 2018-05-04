@@ -1,6 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.PDocument;
+import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.Json;
@@ -64,39 +65,13 @@ public class UpdateContentStep extends AbstractExecutionStep {
   private boolean handleContent(PRecord record, OCommandContext ctx) {
     boolean updated = false;
 
-//    // REPLACE ALL THE CONTENT
-//    final ODocument fieldsToPreserve = new ODocument();
-//
-//    final OClass restricted = ctx.getDatabase().getMetadata().getSchema().getClass(OSecurity.RESTRICTED_CLASSNAME);
-//
-//    if (restricted != null && restricted.isSuperClassOf(record.getSchemaType().orElse(null))) {
-//      for (OProperty prop : restricted.properties()) {
-//        fieldsToPreserve.field(prop.getName(), record.<Object>getProperty(prop.getName()));
-//      }
-//    }
-//
-//    OClass recordClass = ODocumentInternal.getImmutableSchemaClass(record.getRecord());
-//    if (recordClass != null && recordClass.isSubClassOf("V")) {
-//      for (String fieldName : record.getPropertyNames()) {
-//        if (fieldName.startsWith("in_") || fieldName.startsWith("out_")) {
-//          fieldsToPreserve.field(fieldName, record.<Object>getProperty(fieldName));
-//        }
-//      }
-//    } else if (recordClass != null && recordClass.isSubClassOf("E")) {
-//      for (String fieldName : record.getPropertyNames()) {
-//        if (fieldName.equals("in") || fieldName.equals("out")) {
-//          fieldsToPreserve.field(fieldName, record.<Object>getProperty(fieldName));
-//        }
-//      }
-//    }
-//    ODocument doc = record.getRecord();
-//    doc.merge(json.toDocument(record, ctx), false, false);
-//    doc.merge(fieldsToPreserve, true, false);
-//
-//    updated = true;
-//
-//    return updated;
-    throw new UnsupportedOperationException();
+    final PModifiableDocument doc = (PModifiableDocument) record.getRecord().modify();
+
+    doc.merge(json.toDocument(record, ctx));
+
+    updated = true;
+
+    return updated;
   }
 
   @Override

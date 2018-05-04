@@ -90,7 +90,7 @@ public class PProfiler {
       walTotalFiles += (Long) walStats.get("logFiles");
     }
 
-    buffer.append(String.format("PROTON %s Profiler", PConstants.getVersion()));
+    buffer.append(String.format("PROTON %s Profiler", PConstants.VERSION));
 
     final Runtime runtime = Runtime.getRuntime();
 

@@ -1,5 +1,9 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PModifiableDocument;
+import com.arcadedb.database.PRecord;
 import com.arcadedb.exception.PTimeoutException;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -31,20 +35,19 @@ public class SetDocumentClassStep extends AbstractExecutionStep {
       @Override
       public OResult next() {
         OResult result = upstream.next();
-        throw new UnsupportedOperationException();
-//        if (result.isElement()) {
-//          PIdentifiable element = result.getElement().get().getRecord();
-//          if (element instanceof PRecord) {
-//            PRecord doc = (PRecord) element;
-//            doc.setClassName(targetClass);
-//            if (!(result instanceof OResultInternal)) {
-//              result = new OUpdatableResult(doc);
-//            } else {
-//              ((OResultInternal) result).setElement(doc);
-//            }
-//          }
-//        }
-//        return result;
+
+        if (result.isElement()) {
+          PIdentifiable element = result.getElement().get().getRecord();
+          if (element instanceof PRecord) {
+            PRecord doc = (PRecord) element;
+            if (!(result instanceof OResultInternal)) {
+              result = new OUpdatableResult((PModifiableDocument) doc);
+            } else {
+              ((OResultInternal) result).setElement((PDocument) doc);
+            }
+          }
+        }
+        return result;
       }
 
       @Override
