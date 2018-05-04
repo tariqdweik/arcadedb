@@ -19,7 +19,7 @@ node {
             } catch (err) {
                 throw err
             } finally {
-                junit 'target/surefire-reports/**/*.xml'
+                junit '**/surefire-reports/**/*.xml'
             }
         }
 
