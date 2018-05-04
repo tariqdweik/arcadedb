@@ -23,7 +23,7 @@ public class PHttpServer {
   public PHttpServer(final PHttpServerConfiguration configuration) {
     this.configuration = configuration;
 
-    final HttpHandler routes = new RoutingHandler().get("/command/{database}/{text}", new PCommandHandler(this))
+    final HttpHandler routes = new RoutingHandler().post("/command/{database}/{command}", new PCommandHandler(this))
         .get("/record/{database}/{rid}", new PRecordHandler(this));
     server = Undertow.builder().addHttpListener(configuration.bindPort, configuration.bindServer).setHandler(routes).build();
   }

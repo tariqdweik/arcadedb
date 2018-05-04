@@ -15,7 +15,7 @@ public abstract class PBasicHandler implements HttpHandler {
     this.httpServer = pHttpServer;
   }
 
-  protected abstract void execute(HttpServerExchange exchange, PDatabase database);
+  protected abstract void execute(HttpServerExchange exchange, PDatabase database) throws Exception;
 
   @Override
   public final void handleRequest(HttpServerExchange exchange) throws Exception {

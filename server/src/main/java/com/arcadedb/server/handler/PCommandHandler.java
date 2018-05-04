@@ -5,6 +5,8 @@ import com.arcadedb.server.PHttpServer;
 import com.arcadedb.sql.executor.OResultSet;
 import io.undertow.server.HttpServerExchange;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.Deque;
 
 public class PCommandHandler extends PBasicHandler {
@@ -13,15 +15,17 @@ public class PCommandHandler extends PBasicHandler {
   }
 
   @Override
-  public void execute(final HttpServerExchange exchange, final PDatabase database) {
-    final Deque<String> text = exchange.getQueryParameters().get("text");
+  public void execute(final HttpServerExchange exchange, final PDatabase database) throws UnsupportedEncodingException {
+    final Deque<String> text = exchange.getQueryParameters().get("command");
     if (text.isEmpty()) {
       exchange.setStatusCode(400);
       exchange.getResponseSender().send("{ \"error\" : \"Query text id is null\"}");
       return;
     }
 
-    final OResultSet qResult = database.query(text.getFirst(), null);
+    final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
+
+    final OResultSet qResult = database.query(command, null);
 
     final StringBuilder result = new StringBuilder();
     while (qResult.hasNext()) {

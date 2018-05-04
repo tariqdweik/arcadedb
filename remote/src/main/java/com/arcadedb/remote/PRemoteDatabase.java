@@ -11,9 +11,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Scanner;
 
 public class PRemoteDatabase extends PRWLockContext {
@@ -37,10 +37,7 @@ public class PRemoteDatabase extends PRWLockContext {
   }
 
   public OResultSet command(final String command) {
-    final JSONObject payload = new JSONObject();
-    payload.put("command", command);
-
-    return (OResultSet) connect("command", payload, new Callback() {
+    return (OResultSet) connect("command", command, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) throws Exception {
         final OResultSet resultSet = new OInternalResultSet();
@@ -63,21 +60,23 @@ public class PRemoteDatabase extends PRWLockContext {
     return name;
   }
 
-  private Object connect(final String operation, final JSONObject payload, final Callback callback) {
+  private Object connect(final String operation, final String command, final Callback callback) {
     final HttpURLConnection connection;
     try {
-      final String url = protocol + "://" + server + ":" + port + "/" + operation + "/" + name;
+      final String url =
+          protocol + "://" + server + ":" + port + "/" + operation + "/" + name + "/" + URLEncoder.encode(command, charset);
 
       connection = (HttpURLConnection) new URL(url).openConnection();
       try {
-        connection.setDoInput(true);
-        connection.setDoOutput(true);
         connection.setRequestMethod("POST");
-        connection.setRequestProperty("Content-Type", "application/json; charset=" + charset);
+//        connection.setRequestProperty("Content-Type", "application/json; charset=" + charset);
+//        connection.setDoInput(true);
+//        connection.setDoOutput(true);
+//        OutputStream os = connection.getOutputStream();
+//        os.write(payload.toString().getBytes("UTF-8"));
+//        os.close();
 
-        OutputStream os = connection.getOutputStream();
-        os.write(payload.toString().getBytes("UTF-8"));
-        os.close();
+        connection.connect();
 
         if (connection.getResponseCode() != 200)
           throw new PRemoteException("Error executing remote command (httpError=" + connection.getResponseCode() + ")");
