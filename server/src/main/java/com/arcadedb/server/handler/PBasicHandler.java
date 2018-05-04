@@ -2,41 +2,38 @@ package com.arcadedb.server.handler;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.server.PHttpServer;
-import com.arcadedb.utility.PLogManager;
-import org.eclipse.jetty.server.Request;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.Headers;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import java.util.Deque;
 
-public abstract class PBasicHandler {
-  protected static final String CONTENT_TYPE_JSON = "application/json";
-
+public abstract class PBasicHandler implements HttpHandler {
   protected final PHttpServer httpServer;
 
   public PBasicHandler(final PHttpServer pHttpServer) {
     this.httpServer = pHttpServer;
   }
 
-  public abstract String getURL();
+  protected abstract void execute(HttpServerExchange exchange, PDatabase database);
 
-  protected abstract void execute(HttpServletRequest request, HttpServletResponse response, PDatabase database);
-
-  public void handle(final String url, final Request r, final HttpServletRequest request, final HttpServletResponse response,
-      final PDatabase database) {
+  @Override
+  public final void handleRequest(HttpServerExchange exchange) throws Exception {
     try {
+      exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
 
-      execute(request, response, database);
+      final Deque<String> databaseName = exchange.getQueryParameters().get("database");
+      if (databaseName.isEmpty()) {
+        exchange.setStatusCode(400);
+        exchange.getResponseSender().send("{ \"error\" : \"database is null\"}");
+        return;
+      }
 
-      response.setContentType(CONTENT_TYPE_JSON);
+      execute(exchange, httpServer.getDatabase(databaseName.getFirst()));
 
     } catch (Exception e) {
-      try {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-            "{ \"error\" : \"Internal error\", \"detail\":\"" + e.toString() + "\"}");
-      } catch (IOException e1) {
-        PLogManager.instance().error(this, "Error on sending error back to the client", e);
-      }
+      exchange.setStatusCode(500);
+      exchange.getResponseSender().send("{ \"error\" : \"Internal error\", \"detail\":\"" + e.toString() + "\"}");
     }
   }
 }
