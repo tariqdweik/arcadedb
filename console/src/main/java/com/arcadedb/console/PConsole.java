@@ -28,17 +28,22 @@ public class PConsole {
   private final        LineReader      lineReader;
   private final        PTerminalParser parser = new PTerminalParser();
   private              PDatabase       database;
+  private              PConsoleOutput  output;
 
   private String getPrompt() {
     return String.format(PROMPT, database != null ? "{" + database.getName() + "}" : "");
   }
 
-  public PConsole() throws IOException {
+  public PConsole(final boolean interactive) throws IOException {
     terminal = TerminalBuilder.builder().system(system).streams(System.in, System.out).jansi(true).build();
     lineReader = LineReaderBuilder.builder().terminal(terminal).parser(parser).build();
 
+    output("ArcadeDB Console v.%s - %s (%s)\n", PConstants.VERSION, PConstants.COPYRIGHT, PConstants.URL);
+
+    if (!interactive)
+      return;
+
     try {
-      terminal.writer().printf("ArcadeDB Console v.%s - %s (%s)\n", PConstants.VERSION, PConstants.COPYRIGHT, PConstants.URL);
       while (true) {
 
         try {
@@ -46,12 +51,8 @@ public class PConsole {
           if (line == null)
             continue;
 
-          final ParsedLine parsed = lineReader.getParsedLine();
-
-          for (String w : parsed.words()) {
-            if (!execute(w))
-              return;
-          }
+          if (!parse(line))
+            return;
 
         } catch (UserInterruptException e) {
           return;
@@ -62,11 +63,22 @@ public class PConsole {
         }
       }
     } finally {
-      terminal.close();
-
-      if (database != null)
-        database.close();
+      close();
     }
+  }
+
+  public static void main(String[] args) throws IOException {
+    new PConsole(true);
+  }
+
+  public void close() {
+    //terminal.close();
+    if (database != null)
+      database.close();
+  }
+
+  public void setOutput(final PConsoleOutput output) {
+    this.output = output;
   }
 
   private boolean execute(final String line) throws IOException {
@@ -138,7 +150,7 @@ public class PConsole {
     final PTableFormatter table = new PTableFormatter(new PTableFormatter.OTableOutput() {
       @Override
       public void onMessage(String text, Object... args) {
-        terminal.writer().printf(text, args);
+        output(text, args);
       }
     });
     table.setPrefixedColumns("@RID", "@TYPE");
@@ -165,27 +177,38 @@ public class PConsole {
     final FileReader fr = new FileReader(file);
     BufferedReader bufferedReader = new BufferedReader(fr);
 
-    while (bufferedReader.ready()) {
-      final ParsedLine parsed = parser.parse(bufferedReader.readLine(), 0);
+    while (bufferedReader.ready())
+      parse(bufferedReader.readLine());
+  }
 
-      for (String w : parsed.words()) {
-        terminal.writer().println(getPrompt() + w);
-        if (!execute(w))
-          break;
-      }
+  public boolean parse(final String line) throws IOException {
+    final ParsedLine parsed = parser.parse(line, 0);
+
+    for (String w : parsed.words()) {
+      terminal.writer().printf(getPrompt() + w);
+      if (!execute(w))
+        return false;
     }
+    return true;
+  }
+
+  private void output(final String text, final Object... args) {
+    if (output != null)
+      output.onOutput(String.format(text, args));
+    else
+      terminal.writer().printf(text, args);
   }
 
   private void executeInfo(final String subject) {
     checkDatabaseIsOpen();
 
     if (subject.equalsIgnoreCase("types")) {
-      terminal.writer().println("\nAVAILABLE TYPES");
+      output("\nAVAILABLE TYPES");
 
       final PTableFormatter table = new PTableFormatter(new PTableFormatter.OTableOutput() {
         @Override
         public void onMessage(String text, Object... args) {
-          terminal.writer().printf(text, args);
+          output(text, args);
         }
       });
 
@@ -216,20 +239,15 @@ public class PConsole {
   }
 
   private void executeHelp() {
-    terminal.writer().println("HELP");
-    terminal.writer().println();
-    terminal.writer().println("connect <path> -> connect to a database stored on <path>");
-    terminal.writer().println("close          -> close the database");
-    terminal.writer().println("begin          -> begins a new transaction");
-    terminal.writer().println("commit         -> commits current transaction");
-    terminal.writer().println("rollback       -> rollbacks current transaction");
-    terminal.writer().println("quit or exit   -> exit from the console");
-    terminal.writer().println("info           -> help");
-    terminal.writer().println();
-  }
-
-  public static void main(String[] args) throws IOException {
-    new PConsole();
+    output("HELP\n");
+    output("connect <path> -> connect to a database stored on <path>");
+    output("close          -> close the database");
+    output("begin          -> begins a new transaction");
+    output("commit         -> commits current transaction");
+    output("rollback       -> rollbacks current transaction");
+    output("quit or exit   -> exit from the console");
+    output("info           -> help");
+    output("");
   }
 
   private void checkDatabaseIsOpen() {
