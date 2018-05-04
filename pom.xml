@@ -120,6 +120,7 @@
     </build>
     <modules>
         <module>console</module>
+        <module>server</module>
         <module>remote</module>
         <module>engine</module>
         <module>package</module>

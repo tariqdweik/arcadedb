@@ -1,9 +1,6 @@
 package com.arcadedb.utility;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -12,10 +9,11 @@ import java.nio.file.Path;
 import java.util.Locale;
 
 public class PFileUtils {
-  public static final int  KILOBYTE = 1024;
-  public static final int  MEGABYTE = 1048576;
-  public static final int  GIGABYTE = 1073741824;
-  public static final long TERABYTE = 1099511627776L;
+  public static final int    KILOBYTE = 1024;
+  public static final int    MEGABYTE = 1048576;
+  public static final int    GIGABYTE = 1073741824;
+  public static final long   TERABYTE = 1099511627776L;
+  public static final String UTF8_BOM = "\uFEFF";
 
   private static final boolean useOldFileAPI;
 
@@ -208,6 +206,27 @@ public class PFileUtils {
     }
     return false;
   }
+
+  public static String readStreamAsString(final InputStream iStream, final String iCharset) throws IOException {
+    final StringBuffer fileData = new StringBuffer(1000);
+    final BufferedReader reader = new BufferedReader(new InputStreamReader(iStream, iCharset));
+    try {
+      final char[] buf = new char[1024];
+      int numRead = 0;
+
+      while ((numRead = reader.read(buf)) != -1) {
+        String readData = String.valueOf(buf, 0, numRead);
+
+        if (fileData.length() == 0 && readData.startsWith(UTF8_BOM))
+          // SKIP UTF-8 BOM IF ANY
+          readData = readData.substring(1);
+
+        fileData.append(readData);
+      }
+    } finally {
+      reader.close();
+    }
+    return fileData.toString();
+
+  }
 }
-
-

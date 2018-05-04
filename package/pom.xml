@@ -73,6 +73,16 @@
             <artifactId>arcadedb-engine</artifactId>
             <version>${parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.arcadeanalytics</groupId>
+            <artifactId>arcadedb-server</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.arcadeanalytics</groupId>
+            <artifactId>arcadedb-remote</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

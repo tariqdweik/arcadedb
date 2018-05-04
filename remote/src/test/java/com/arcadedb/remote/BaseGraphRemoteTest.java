@@ -1,4 +1,4 @@
-package com.arcadedb;
+package com.arcadedb.remote;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
@@ -15,7 +15,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class BaseGraphTest {
+public abstract class BaseGraphRemoteTest {
   protected static final String VERTEX1_TYPE_NAME = "V1";
   protected static final String VERTEX2_TYPE_NAME = "V2";
   protected static final String EDGE1_TYPE_NAME   = "E1";

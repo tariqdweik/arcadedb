@@ -40,7 +40,7 @@ public class PBinarySerializer {
   }
 
   public PBinary serializeDocument(final PDatabase database, final PDocument document) {
-    final PBinary header = ((PDatabaseImpl) database).getContext().temporaryBuffer1;
+    final PBinary header = ((PEmbeddedDatabase) database).getContext().temporaryBuffer1;
     header.reset();
     header.putByte(document.getRecordType()); // RECORD TYPE
     return serializeProperties(database, document, header);
@@ -51,7 +51,7 @@ public class PBinarySerializer {
 
     final boolean serializeProperties;
     if (header == null) {
-      header = ((PDatabaseImpl) database).getContext().temporaryBuffer1;
+      header = ((PEmbeddedDatabase) database).getContext().temporaryBuffer1;
       header.reset();
       header.putByte(vertex.getRecordType()); // RECORD TYPE
       serializeProperties = true;
@@ -92,7 +92,7 @@ public class PBinarySerializer {
 
     final boolean serializeProperties;
     if (header == null) {
-      header = ((PDatabaseImpl) database).getContext().temporaryBuffer1;
+      header = ((PEmbeddedDatabase) database).getContext().temporaryBuffer1;
       header.reset();
       header.putByte(edge.getRecordType()); // RECORD TYPE
       serializeProperties = true;
@@ -307,7 +307,7 @@ public class PBinarySerializer {
     final Set<String> propertyNames = record.getPropertyNames();
     header.putNumber(propertyNames.size());
 
-    final PBinary content = ((PDatabaseImpl) database).getContext().temporaryBuffer2;
+    final PBinary content = ((PEmbeddedDatabase) database).getContext().temporaryBuffer2;
     content.reset();
 
     final PDictionary dictionary = database.getSchema().getDictionary();

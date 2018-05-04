@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabaseInternal {
+public class PEmbeddedDatabase extends PRWLockContext implements PDatabase, PDatabaseInternal {
   protected final String                 name;
   protected final PPaginatedFile.MODE    mode;
   protected final String                 databasePath;
@@ -48,7 +48,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
   private                File                                      lockFile;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
 
-  protected PDatabaseImpl(final String path, final PPaginatedFile.MODE mode,
+  protected PEmbeddedDatabase(final String path, final PPaginatedFile.MODE mode,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
     try {
       this.mode = mode;
@@ -165,11 +165,11 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
           lockFile.delete();
 
-          PDatabaseContext.INSTANCE.init(PDatabaseImpl.this);
+          PDatabaseContext.INSTANCE.init(PEmbeddedDatabase.this);
 
         } finally {
           open = false;
-          PProfiler.INSTANCE.unregisterDatabase(PDatabaseImpl.this);
+          PProfiler.INSTANCE.unregisterDatabase(PEmbeddedDatabase.this);
         }
         return null;
       }
@@ -181,7 +181,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
       super.executeInWriteLock(new Callable<Object>() {
         @Override
         public Object call() {
-          asynch = new PDatabaseAsyncExecutor(PDatabaseImpl.this);
+          asynch = new PDatabaseAsyncExecutor(PEmbeddedDatabase.this);
           return null;
         }
       });
@@ -276,7 +276,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
             b.scan(new PRawRecordCallback() {
               @Override
               public boolean onRecord(final PRID rid, final PBinary view) {
-                final PDocument record = (PDocument) recordFactory.newImmutableRecord(PDatabaseImpl.this, typeName, rid, view);
+                final PDocument record = (PDocument) recordFactory.newImmutableRecord(PEmbeddedDatabase.this, typeName, rid, view);
                 return callback.onRecord(record);
               }
             });
@@ -301,7 +301,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
           schema.getBucketByName(bucketName).scan(new PRawRecordCallback() {
             @Override
             public boolean onRecord(final PRID rid, final PBinary view) {
-              final PRecord record = recordFactory.newImmutableRecord(PDatabaseImpl.this, type, rid, view);
+              final PRecord record = recordFactory.newImmutableRecord(PEmbeddedDatabase.this, type, rid, view);
               return callback.onRecord(record);
             }
           });
@@ -373,15 +373,15 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
         if (loadContent) {
           final PBinary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-          record = recordFactory.newImmutableRecord(PDatabaseImpl.this, type != null ? type.getName() : null, rid, buffer);
+          record = recordFactory.newImmutableRecord(PEmbeddedDatabase.this, type != null ? type.getName() : null, rid, buffer);
           tx.updateRecordInCache(record);
           return record;
         }
 
         if (type != null)
-          record = recordFactory.newImmutableRecord(PDatabaseImpl.this, type.getName(), rid, type.getType());
+          record = recordFactory.newImmutableRecord(PEmbeddedDatabase.this, type.getName(), rid, type.getType());
         else
-          record = recordFactory.newImmutableRecord(PDatabaseImpl.this, null, rid, PDocument.RECORD_TYPE);
+          record = recordFactory.newImmutableRecord(PEmbeddedDatabase.this, null, rid, PDocument.RECORD_TYPE);
 
         tx.updateRecordInCache(record);
 
@@ -752,7 +752,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
 
     } finally {
       open = false;
-      PProfiler.INSTANCE.unregisterDatabase(PDatabaseImpl.this);
+      PProfiler.INSTANCE.unregisterDatabase(PEmbeddedDatabase.this);
     }
   }
 
@@ -779,7 +779,7 @@ public class PDatabaseImpl extends PRWLockContext implements PDatabase, PDatabas
     if (o == null || getClass() != o.getClass())
       return false;
 
-    final PDatabaseImpl pDatabase = (PDatabaseImpl) o;
+    final PEmbeddedDatabase pDatabase = (PEmbeddedDatabase) o;
 
     return databasePath != null ? databasePath.equals(pDatabase.databasePath) : pDatabase.databasePath == null;
   }

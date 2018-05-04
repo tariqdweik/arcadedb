@@ -44,6 +44,12 @@
             <version>${parent.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.arcadeanalytics</groupId>
+            <artifactId>arcadedb-server</artifactId>
+            <version>${parent.version}</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 

@@ -1,4 +1,4 @@
-package com.arcadedb;
+package com.arcadedb.server;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
@@ -12,10 +12,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
-public abstract class BaseGraphTest {
+public abstract class BaseGraphServerTest {
   protected static final String VERTEX1_TYPE_NAME = "V1";
   protected static final String VERTEX2_TYPE_NAME = "V2";
   protected static final String EDGE1_TYPE_NAME   = "E1";
@@ -87,5 +91,18 @@ public abstract class BaseGraphTest {
   public void drop() {
     final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
+  }
+
+  protected String readResponse(final HttpURLConnection connection) throws IOException {
+    InputStream in = connection.getInputStream();
+    Scanner scanner = new Scanner(in);
+
+    final StringBuilder buffer = new StringBuilder();
+
+    while (scanner.hasNext()) {
+      buffer.append(scanner.next().replace('\n', ' '));
+    }
+
+    return buffer.toString();
   }
 }

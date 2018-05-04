@@ -48,7 +48,7 @@ public class PModifiableEdgeChunk extends PBaseRecord implements PEdgeChunk, PRe
 
   @Override
   public boolean add(final PRID edgeRID, final PRID vertexRID) {
-    final PBinary ridSerialized = ((PDatabaseImpl) database).getContext().temporaryBuffer1;
+    final PBinary ridSerialized = ((PEmbeddedDatabase) database).getContext().temporaryBuffer1;
     ridSerialized.reset();
 
     database.getSerializer().serializeValue(ridSerialized, PBinaryTypes.TYPE_COMPRESSED_RID, edgeRID);

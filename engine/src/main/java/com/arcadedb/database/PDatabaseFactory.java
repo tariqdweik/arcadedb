@@ -27,7 +27,7 @@ public class PDatabaseFactory {
   }
 
   public PDatabase acquire() {
-    final PDatabaseInternal db = new PDatabaseImpl(databasePath, mode, callbacks);
+    final PDatabaseInternal db = new PEmbeddedDatabase(databasePath, mode, callbacks);
     db.setAutoTransaction(autoTransaction);
     return db;
   }

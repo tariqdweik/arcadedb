@@ -1,6 +1,5 @@
 package com.arcadedb.server;
 
-import com.arcadedb.BaseGraphTest;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDatabaseFactory;
 import com.arcadedb.engine.PPaginatedFile;
@@ -14,7 +13,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class HTTPGraphTest extends BaseGraphTest {
+public class HTTPGraphTest extends BaseGraphServerTest {
   private PHttpServer server;
 
   @BeforeEach
@@ -28,7 +27,7 @@ public class HTTPGraphTest extends BaseGraphTest {
     new Thread(new Runnable() {
       @Override
       public void run() {
-        server.run();
+        server.start();
         PLogManager.instance().info(this, "Test Server is down");
       }
     }).start();
@@ -44,16 +43,15 @@ public class HTTPGraphTest extends BaseGraphTest {
   public void drop() {
     server.close();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final PDatabase db = new PDatabaseFactory(BaseGraphServerTest.DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void checkQuery() throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph/select%20from%20V1%20limit%201")
-        .openConnection();
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/command/graph").openConnection();
 
-    connection.setRequestMethod("GET");
+    connection.setRequestMethod("POST");
     connection.connect();
 
     try {
@@ -75,7 +73,7 @@ public class HTTPGraphTest extends BaseGraphTest {
   @Test
   public void checkRecordLoading() throws IOException {
     HttpURLConnection connection = (HttpURLConnection) new URL(
-        "http://127.0.0.1:2480/record/graph/" + root.getIdentity().toString().substring(1)).openConnection();
+        "http://127.0.0.1:2480/record/graph/" + BaseGraphServerTest.root.getIdentity().toString().substring(1)).openConnection();
 
     connection.setRequestMethod("GET");
     connection.connect();

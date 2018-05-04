@@ -1,7 +1,7 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseImpl;
+import com.arcadedb.database.PEmbeddedDatabase;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,12 +10,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * HEADER = [recordCount(int:4)] CONTENT-PAGES = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(512*ushort=2048)]
  */
 public abstract class PPaginatedComponent {
-  protected final PDatabaseImpl  database;
-  protected final String         name;
-  protected final PPaginatedFile file;
-  protected final int            id;
-  protected final int            pageSize;
-  protected final AtomicInteger  pageCount = new AtomicInteger();
+  protected final PEmbeddedDatabase database;
+  protected final String            name;
+  protected final PPaginatedFile    file;
+  protected final int               id;
+  protected final int               pageSize;
+  protected final AtomicInteger     pageCount = new AtomicInteger();
 
   protected PPaginatedComponent(final PDatabase database, final String name, String filePath, final int id, final String ext,
       final PPaginatedFile.MODE mode, final int pageSize) throws IOException {
@@ -24,7 +24,7 @@ public abstract class PPaginatedComponent {
 
   protected PPaginatedComponent(final PDatabase database, final String name, String filePath, final int id,
       final PPaginatedFile.MODE mode, final int pageSize) throws IOException {
-    this.database = (PDatabaseImpl) database;
+    this.database = (PEmbeddedDatabase) database;
     this.name = name;
     this.id = id;
     this.pageSize = pageSize;
@@ -55,7 +55,7 @@ public abstract class PPaginatedComponent {
     return id;
   }
 
-  public PDatabaseImpl getDatabase() {
+  public PEmbeddedDatabase getDatabase() {
     return database;
   }
 

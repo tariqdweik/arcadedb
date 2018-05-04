@@ -128,7 +128,7 @@ public class PSerializerTest {
 
         PBinary buffer3 = new PBinary(buffer2);
         buffer3.getByte(); // SKIP RECORD TYPE
-        Map<String, Object> record2 = serializer.deserializeProperties((PDatabaseImpl) database, buffer3);
+        Map<String, Object> record2 = serializer.deserializeProperties((PEmbeddedDatabase) database, buffer3);
 
         Assertions.assertEquals(4, record2.size());
         Assertions.assertEquals(0, record2.get("id"));

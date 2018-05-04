@@ -11,14 +11,19 @@ import java.util.stream.Collectors;
  * Created by luigidellaquila on 06/07/16.
  */
 public class OResultInternal implements OResult {
-  protected Map<String, Object> content = new LinkedHashMap<>();
+  protected Map<String, Object> content;
   protected Map<String, Object> metadata;
-  protected PDocument             element;
+  protected PDocument           element;
 
   public OResultInternal() {
+    content = new LinkedHashMap<>();
   }
 
-  public OResultInternal(PDocument ident) {
+  public OResultInternal(final Map<String, Object> map) {
+    this.content = map;
+  }
+
+  public OResultInternal(final PDocument ident) {
     this.element = ident;
   }
 
