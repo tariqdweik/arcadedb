@@ -344,7 +344,7 @@ public class FunctionCall extends SimpleNode {
     OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
     function.config(this.params.toArray());
 
-    OFuncitonAggregationContext result = new OFuncitonAggregationContext(function, this.params);
+    OFunctionAggregationContext result = new OFunctionAggregationContext(function, this.params);
     return result;
   }
 

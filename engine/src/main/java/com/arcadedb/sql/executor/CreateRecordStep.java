@@ -1,7 +1,11 @@
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PModifiableDocument;
 import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.PEdgeType;
+import com.arcadedb.schema.PVertexType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -47,7 +51,18 @@ public class CreateRecordStep extends AbstractExecutionStep {
           }
           created++;
           locallyCreated++;
-          return new OUpdatableResult((PModifiableDocument) ctx.getDatabase().newDocument(typeName));
+
+          final PDocumentType type = ctx.getDatabase().getSchema().getType(typeName);
+
+          final PDocument instance;
+          if (type instanceof PVertexType)
+            instance = ctx.getDatabase().newVertex(typeName);
+          else if (type instanceof PEdgeType)
+            throw new IllegalArgumentException("Cannot instantiate an edge");
+          else
+            instance = ctx.getDatabase().newDocument(typeName);
+
+          return new OUpdatableResult((PModifiableDocument) instance);
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);

@@ -25,7 +25,7 @@ public class PCommandHandler extends PBasicHandler {
 
     final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
 
-    final OResultSet qResult = database.query(command, null);
+    final OResultSet qResult = database.command(command, null);
 
     final StringBuilder result = new StringBuilder();
     while (qResult.hasNext()) {

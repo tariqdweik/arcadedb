@@ -14,6 +14,7 @@ import com.arcadedb.schema.PSchema;
  * It accepts two values: a target class and a parent class. If the two classes are the same or if the parent class is indeed
  * a parent class of the target class, then the syncPool() returns an empty result set, otherwise it throws an PCommandExecutionException
  * </p>
+ *
  * @author Luigi Dell'Aquila (luigi.dellaquila - at - orientdb.com)
  */
 public class CheckClassTypeStep extends AbstractExecutionStep {
@@ -26,10 +27,9 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
   boolean found = false;
 
   /**
-   *
-   * @param targetClass a class to be checked
-   * @param parentClass a class that is supposed to be the same or a parent class of the target class
-   * @param ctx execuiton context
+   * @param targetClass      a class to be checked
+   * @param parentClass      a class that is supposed to be the same or a parent class of the target class
+   * @param ctx              execuiton context
    * @param profilingEnabled true to collect execution stats
    */
   public CheckClassTypeStep(String targetClass, String parentClass, OCommandContext ctx, boolean profilingEnabled) {
@@ -49,30 +49,33 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
       if (this.targetClass.equals(this.parentClass)) {
         return new OInternalResultSet();
       }
-      PDatabase db = ctx.getDatabase();
 
-      PSchema schema = db.getSchema();
-      PDocumentType parentClazz = schema.getType(this.parentClass);
-      if (parentClazz == null) {
-        throw new PCommandExecutionException("Class not found: " + this.parentClass);
-      }
-      PDocumentType targetClazz = schema.getType(this.targetClass);
-      if (targetClazz == null) {
-        throw new PCommandExecutionException("Class not found: " + this.targetClass);
-      }
+      if (this.parentClass != null) {
+        if (!this.parentClass.equals("V") && this.parentClass.equals("E")) {
+          PDatabase db = ctx.getDatabase();
 
-      if (parentClazz.equals(targetClazz)) {
-        found = true;
-      } else {
-//        for (PType sublcass : parentClazz.getAllSubclasses()) {
-//          if (sublcass.equals(targetClazz)) {
-//            this.found = true;
-//            break;
-//          }
-//        }
-      }
-      if (!found) {
-        throw new PCommandExecutionException("Class  " + this.targetClass + " is not a subclass of " + this.parentClass);
+          PSchema schema = db.getSchema();
+          PDocumentType parentClazz = schema.getType(this.parentClass);
+
+          PDocumentType targetClazz = schema.getType(this.targetClass);
+          if (targetClazz == null) {
+            throw new PCommandExecutionException("Class not found: " + this.targetClass);
+          }
+
+          if (parentClazz.equals(targetClazz)) {
+            found = true;
+          } else {
+            for (PDocumentType sublcass : parentClazz.getSubTypes()) {
+              if (sublcass.equals(targetClazz)) {
+                this.found = true;
+                break;
+              }
+            }
+          }
+          if (!found) {
+            throw new PCommandExecutionException("Class  " + this.targetClass + " is not a subclass of " + this.parentClass);
+          }
+        }
       }
       return new OInternalResultSet();
     } finally {

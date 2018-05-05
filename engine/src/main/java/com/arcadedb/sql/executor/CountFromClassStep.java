@@ -54,13 +54,13 @@ public class CountFromClassStep extends AbstractExecutionStep {
           if (clazz == null) {
             throw new PCommandExecutionException("Class " + target.getStringValue() + " does not exist in the database schema");
           }
-          //TODO
-          throw new UnsupportedOperationException("TODO");
-//          long size = clazz.count();
-//          executed = true;
-//          OResultInternal result = new OResultInternal();
-//          result.setProperty(alias, size);
-//          return result;
+
+          long size = ctx.getDatabase().countType(target.getStringValue(), true);
+          executed = true;
+          OResultInternal result = new OResultInternal();
+          result.setProperty(alias, size);
+          return result;
+
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);

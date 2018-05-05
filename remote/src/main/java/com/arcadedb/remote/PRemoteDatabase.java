@@ -4,7 +4,6 @@ import com.arcadedb.sql.executor.OInternalResultSet;
 import com.arcadedb.sql.executor.OResultInternal;
 import com.arcadedb.sql.executor.OResultSet;
 import com.arcadedb.utility.PFileUtils;
-import com.arcadedb.utility.PLogManager;
 import com.arcadedb.utility.PRWLockContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -42,8 +41,6 @@ public class PRemoteDatabase extends PRWLockContext {
       public Object call(final HttpURLConnection connection, final JSONObject response) throws Exception {
         final OResultSet resultSet = new OInternalResultSet();
 
-        PLogManager.instance().info(this, "Response: ", response);
-
         final JSONArray resultArray = response.getJSONArray("result");
         for (int i = 0; i < resultArray.length(); ++i) {
           final JSONObject result = resultArray.getJSONObject(i);
@@ -78,8 +75,11 @@ public class PRemoteDatabase extends PRWLockContext {
 
         connection.connect();
 
-        if (connection.getResponseCode() != 200)
-          throw new PRemoteException("Error executing remote command (httpError=" + connection.getResponseCode() + ")");
+        if (connection.getResponseCode() != 200) {
+          throw new PRemoteException(
+              "Error executing remote command (httpError=" + connection.getResponseCode() + " cause=" + connection
+                  .getResponseMessage() + ")");
+        }
 
         final JSONObject response = new JSONObject(PFileUtils.readStreamAsString(connection.getInputStream(), charset));
 

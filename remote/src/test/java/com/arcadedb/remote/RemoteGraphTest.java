@@ -42,7 +42,27 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
       Assertions.assertTrue(resultset.hasNext());
 
       final OResult record = resultset.next();
-      Assertions.assertEquals(record.getProperty("name"), "V1");
+      Assertions.assertEquals("V1", record.getProperty("name"));
+
+    } finally {
+      database.close();
+    }
+  }
+
+  @Test
+  public void checkInsert() {
+    final PRemoteDatabase database = new PRemoteDatabase("localhost", 2480, "graph");
+    try {
+
+      for (int i = 0; i < 10000; ++i) {
+        database.command("create vertex V1 set id = " + i + ", name = 'Jay', surname='Miner'");
+      }
+
+      OResultSet resultset = database.command("select count(*) as count from V1");
+      Assertions.assertTrue(resultset.hasNext());
+
+      final OResult item = resultset.next();
+      Assertions.assertEquals(10001, (int) item.getProperty("count"));
 
     } finally {
       database.close();

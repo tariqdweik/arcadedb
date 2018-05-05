@@ -47,7 +47,8 @@ public class PHttpServer {
   public synchronized PDatabase getDatabase(final String databaseName) {
     PDatabase db = databases.get(databaseName);
     if (db == null) {
-      db = new PDatabaseFactory(configuration.databaseDirectory + "/" + databaseName, PPaginatedFile.MODE.READ_WRITE).acquire();
+      db = new PDatabaseFactory(configuration.databaseDirectory + "/" + databaseName, PPaginatedFile.MODE.READ_WRITE)
+          .setAutoTransaction(true).acquire();
 
       final PDatabase oldDb = databases.putIfAbsent(databaseName, db);
 
