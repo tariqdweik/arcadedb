@@ -17,51 +17,37 @@
  *  * For more information: http://orientdb.com
  *
  */
-package com.arcadedb.sql.function;
+package com.arcadedb.sql.function.coll;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.function.math.OSQLFunctionMathAbstract;
+import com.arcadedb.sql.executor.OMultiValue;
+import com.arcadedb.sql.function.OSQLFunctionConfigurableAbstract;
 
 /**
- * Count the record that contains a field. Use * to indicate the record instead of the field. Uses the context to save the counter
- * number. When different Number class are used, take the class with most precision.
+ * Extract the first item of multi values (arrays, collections and maps) or return the same value for non multi-value types.
  *
  * @author Luca Garulli (l.garulli--(at)--orientdb.com)
  */
-public class OSQLFunctionCount extends OSQLFunctionMathAbstract {
-  public static final String NAME = "count";
+public class OSQLFunctionFirst extends OSQLFunctionConfigurableAbstract {
+  public static final String NAME = "first";
 
-  private long total = 0;
-
-  public OSQLFunctionCount() {
+  public OSQLFunctionFirst() {
     super(NAME, 1, 1);
   }
 
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
-      final Object[] iParams, OCommandContext iContext) {
-    if (iParams.length == 0 || iParams[0] != null)
-      total++;
+  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
+      final OCommandContext iContext) {
+    final Object value = iParams[0];
 
-    return total;
-  }
+    if (OMultiValue.isMultiValue(value))
+      return OMultiValue.getFirstValue(value);
 
-  public boolean aggregateResults() {
-    return true;
+    return null;
   }
 
   public String getSyntax() {
-    return "count(<field>|*)";
-  }
-
-  @Override
-  public Object getResult() {
-    return total;
-  }
-
-  @Override
-  public void setResult(final Object iResult) {
-    total = ((Number) iResult).longValue();
+    return "first(<field>)";
   }
 }

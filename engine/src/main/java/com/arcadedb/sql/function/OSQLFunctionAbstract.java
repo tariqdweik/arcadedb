@@ -21,8 +21,6 @@ package com.arcadedb.sql.function;
 
 import com.arcadedb.sql.executor.OSQLFunction;
 
-import java.util.List;
-
 /**
  * Abstract class to extend to build Custom SQL Functions. Extend it and register it with:
  * <code>OSQLParser.getInstance().registerStatelessFunction()</code> or
@@ -82,15 +80,5 @@ public abstract class OSQLFunctionAbstract implements OSQLFunction {
 
   @Override
   public void setResult(final Object iResult) {
-  }
-
-  @Override
-  public boolean shouldMergeDistributedResult() {
-    return false;
-  }
-
-  @Override
-  public Object mergeDistributedResult(List<Object> resultsToMerge) {
-    throw new IllegalStateException("By default SQL function execution result cannot be merged");
   }
 }

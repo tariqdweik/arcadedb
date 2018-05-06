@@ -15,53 +15,48 @@
  *  *  limitations under the License.
  *  *
  *  * For more information: http://orientdb.com
- *
+ *  
  */
-package com.arcadedb.sql.function;
+package com.arcadedb.sql.function.misc;
 
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.function.math.OSQLFunctionMathAbstract;
+import com.arcadedb.sql.function.OSQLFunctionAbstract;
+
+import java.util.UUID;
 
 /**
- * Count the record that contains a field. Use * to indicate the record instead of the field. Uses the context to save the counter
- * number. When different Number class are used, take the class with most precision.
+ * Generates a UUID as a 128-bits value using the Leach-Salz variant. For more information look at:
+ * http://docs.oracle.com/javase/6/docs/api/java/util/UUID.html.
  *
  * @author Luca Garulli (l.garulli--(at)--orientdb.com)
  */
-public class OSQLFunctionCount extends OSQLFunctionMathAbstract {
-  public static final String NAME = "count";
+public class OSQLFunctionUUID extends OSQLFunctionAbstract {
+  public static final String NAME = "uuid";
 
-  private long total = 0;
-
-  public OSQLFunctionCount() {
-    super(NAME, 1, 1);
+  /**
+   * Get the date at construction to have the same date for all the iteration.
+   */
+  public OSQLFunctionUUID() {
+    super(NAME, 0, 0);
   }
 
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
-      final Object[] iParams, OCommandContext iContext) {
-    if (iParams.length == 0 || iParams[0] != null)
-      total++;
-
-    return total;
+  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
+      OCommandContext iContext) {
+    return UUID.randomUUID().toString();
   }
 
-  public boolean aggregateResults() {
-    return true;
+  public boolean aggregateResults(final Object[] configuredParameters) {
+    return false;
   }
 
   public String getSyntax() {
-    return "count(<field>|*)";
+    return "uuid()";
   }
 
   @Override
   public Object getResult() {
-    return total;
-  }
-
-  @Override
-  public void setResult(final Object iResult) {
-    total = ((Number) iResult).longValue();
+    return null;
   }
 }

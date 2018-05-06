@@ -1,0 +1,111 @@
+/*
+ *
+ *  *  Copyright 2010-2016 OrientDB LTD (http://orientdb.com)
+ *  *
+ *  *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  *  you may not use this file except in compliance with the License.
+ *  *  You may obtain a copy of the License at
+ *  *
+ *  *       http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  *  Unless required by applicable law or agreed to in writing, software
+ *  *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  *  See the License for the specific language governing permissions and
+ *  *  limitations under the License.
+ *  *
+ *  * For more information: http://orientdb.com
+ *
+ */
+package com.arcadedb.sql.function.stat;
+
+import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OMultiValue;
+import com.arcadedb.sql.function.OSQLFunctionAbstract;
+
+/**
+ * Compute the variance estimation for a given field.
+ * <p>
+ * This class uses the Weldford's algorithm (presented in Donald Knuth's Art of Computer Programming) to avoid multiple distribution
+ * values' passes. When executed in distributed mode it uses the Chan at al. pairwise variance algorithm to merge the results.
+ * <p>
+ * <p>
+ * <b>References</b>
+ * </p>
+ *
+ * <ul>
+ *
+ * <li>Cook, John D. <a href="http://www.johndcook.com/standard_deviation.html">Accurately computing running variance</a>.</li>
+ *
+ * <li>Knuth, Donald E. (1998) <i>The Art of Computer Programming, Volume 2: Seminumerical Algorithms, 3rd Edition.</i></li>
+ *
+ * <li>Welford, B. P. (1962) Note on a method for calculating corrected sums of squares and products. <i>Technometrics</i></li>
+ *
+ * <li>Chan, Tony F.; Golub, Gene H.; LeVeque, Randall J. (1979), <a
+ * href="http://cpsc.yale.edu/sites/default/files/files/tr222.pdf">Parallel Algorithm</a>.</li>
+ *
+ * </ul>
+ *
+ * @author Fabrizio Fortino
+ */
+public class OSQLFunctionVariance extends OSQLFunctionAbstract {
+
+  public static final String NAME = "variance";
+
+  private long   n;
+  private double mean;
+  private double m2;
+
+  public OSQLFunctionVariance() {
+    super(NAME, 1, 1);
+  }
+
+  public OSQLFunctionVariance(final String iName, final int iMinParams, final int iMaxParams) {
+    super(iName, iMaxParams, iMaxParams);
+  }
+
+  @Override
+  public Object execute(final PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+      Object[] iParams, OCommandContext iContext) {
+    if (iParams[0] instanceof Number) {
+      addValue((Number) iParams[0]);
+    } else if (OMultiValue.isMultiValue(iParams[0])) {
+      for (Object n : OMultiValue.getMultiValueIterable(iParams[0])) {
+        addValue((Number) n);
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public boolean aggregateResults() {
+    return true;
+  }
+
+  @Override
+  public Object getResult() {
+    return this.evaluate();
+  }
+
+  @Override
+  public String getSyntax() {
+    return NAME + "(<field>)";
+  }
+
+  private void addValue(Number value) {
+    if (value != null) {
+      ++n;
+      double doubleValue = value.doubleValue();
+      double nextM = mean + (doubleValue - mean) / n;
+      m2 += (doubleValue - mean) * (doubleValue - nextM);
+      mean = nextM;
+    }
+  }
+
+  private Double evaluate() {
+    return n > 1 ? m2 / n : null;
+  }
+
+}
