@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class PEdgeIterator implements Iterator<PEdge> {
+public class PEdgeIterator implements Iterator<PEdge>, Iterable<PEdge> {
   private       PEdgeChunk    currentContainer;
   private final AtomicInteger currentPosition = new AtomicInteger(PModifiableEdgeChunk.CONTENT_START_POSITION);
 
@@ -36,5 +36,10 @@ public class PEdgeIterator implements Iterator<PEdge> {
     currentContainer.getVertex(currentPosition); // SKIP VERTEX
 
     return (PEdge) rid.getRecord();
+  }
+
+  @Override
+  public Iterator<PEdge> iterator() {
+    return this;
   }
 }

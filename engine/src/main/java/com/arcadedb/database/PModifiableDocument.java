@@ -1,5 +1,8 @@
 package com.arcadedb.database;
 
+import org.json.JSONObject;
+
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +23,20 @@ public class PModifiableDocument extends PBaseDocument implements PRecordInterna
   public void merge(final PDocument other) {
     for (String p : other.getPropertyNames())
       set(p, other.get(p));
+  }
+
+  public void fromMap(final Map<String, Object> map) {
+    this.map = new HashMap<>(map);
+  }
+
+  @Override
+  public Map<String, Object> toMap() {
+    return new HashMap<>(map);
+  }
+
+  @Override
+  public JSONObject toJSON() {
+    return new JSONObject(map);
   }
 
   public void set(final String name, final Object value) {

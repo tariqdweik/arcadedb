@@ -3,8 +3,6 @@ package com.arcadedb.graph;
 import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 
-import java.util.Iterator;
-
 public interface PVertex extends PDocument {
   byte RECORD_TYPE = 1;
 
@@ -16,18 +14,18 @@ public interface PVertex extends PDocument {
 
   long countEdges(DIRECTION direction, String edgeType);
 
-  Iterator<PEdge> getEdges();
+  Iterable<PEdge> getEdges();
 
-  Iterator<PEdge> getEdges(DIRECTION direction);
+  Iterable<PEdge> getEdges(DIRECTION direction);
 
-  Iterator<PEdge> getEdges(DIRECTION direction, String edgeType);
+  Iterable<PEdge> getEdges(DIRECTION direction, String edgeType);
 
   /**
    * Returns all the connected vertices, both directions, any edge type.
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  Iterator<PVertex> getVertices();
+  Iterable<PVertex> getVertices();
 
   /**
    * Returns the connected vertices.
@@ -36,9 +34,9 @@ public interface PVertex extends PDocument {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  Iterator<PVertex> getVertices(DIRECTION direction);
+  Iterable<PVertex> getVertices(DIRECTION direction);
 
-  Iterator<PVertex> getVertices(DIRECTION direction, String edgeType);
+  Iterable<PVertex> getVertices(DIRECTION direction, String edgeType);
 
   boolean isConnectedTo(PIdentifiable toVertex);
 

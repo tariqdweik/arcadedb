@@ -6,7 +6,6 @@ import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.utility.PMultiIterator;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Map;
 
 public class PGraphEngine {
@@ -172,7 +171,7 @@ public class PGraphEngine {
     vertex.getDatabase().getSchema().getBucketById(vertex.getIdentity().getBucketId()).deleteRecord(vertex.getIdentity());
   }
 
-  public Iterator<PEdge> getEdges(final PVertexInternal vertex) {
+  public Iterable<PEdge> getEdges(final PVertexInternal vertex) {
     final PMultiIterator<PEdge> result = new PMultiIterator<>();
 
     if (vertex.getOutEdgesHeadChunk() != null)
@@ -186,7 +185,7 @@ public class PGraphEngine {
     return result;
   }
 
-  public Iterator<PEdge> getEdges(final PVertexInternal vertex, final PVertex.DIRECTION direction) {
+  public Iterable<PEdge> getEdges(final PVertexInternal vertex, final PVertex.DIRECTION direction) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
@@ -218,10 +217,10 @@ public class PGraphEngine {
       throw new IllegalArgumentException("Invalid direction " + direction);
     }
 
-    return Collections.EMPTY_LIST.iterator();
+    return Collections.EMPTY_LIST;
   }
 
-  public Iterator<PEdge> getEdges(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String edgeType) {
+  public Iterable<PEdge> getEdges(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String edgeType) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
@@ -255,7 +254,7 @@ public class PGraphEngine {
     default:
       throw new IllegalArgumentException("Invalid direction " + direction);
     }
-    return Collections.EMPTY_LIST.iterator();
+    return Collections.EMPTY_LIST;
   }
 
   /**
@@ -263,7 +262,7 @@ public class PGraphEngine {
    *
    * @return An iterator of PVertex instances
    */
-  public Iterator<PVertex> getVertices(final PVertexInternal vertex) {
+  public Iterable<PVertex> getVertices(final PVertexInternal vertex) {
     final PMultiIterator<PVertex> result = new PMultiIterator<>();
 
     if (vertex.getOutEdgesHeadChunk() != null)
@@ -284,7 +283,7 @@ public class PGraphEngine {
    *
    * @return An iterator of PVertex instances
    */
-  public Iterator<PVertex> getVertices(final PVertexInternal vertex, final PVertex.DIRECTION direction) {
+  public Iterable<PVertex> getVertices(final PVertexInternal vertex, final PVertex.DIRECTION direction) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
@@ -315,7 +314,8 @@ public class PGraphEngine {
     default:
       throw new IllegalArgumentException("Invalid direction " + direction);
     }
-    return Collections.EMPTY_LIST.iterator();
+
+    return Collections.EMPTY_LIST;
   }
 
   /**
@@ -326,7 +326,7 @@ public class PGraphEngine {
    *
    * @return An iterator of PVertex instances
    */
-  public Iterator<PVertex> getVertices(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String edgeType) {
+  public Iterable<PVertex> getVertices(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String edgeType) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
@@ -360,7 +360,7 @@ public class PGraphEngine {
     default:
       throw new IllegalArgumentException("Invalid direction " + direction);
     }
-    return Collections.EMPTY_LIST.iterator();
+    return Collections.EMPTY_LIST;
   }
 
   public boolean isVertexConnectedTo(final PVertexInternal vertex, final PIdentifiable toVertex) {

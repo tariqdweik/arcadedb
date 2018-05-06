@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class PIteratorFilterBase<T> implements Iterator<T> {
+public abstract class PIteratorFilterBase<T> implements Iterator<T>, Iterable<T> {
   protected PEdgeChunk currentContainer;
   protected final AtomicInteger currentPosition = new AtomicInteger(PModifiableEdgeChunk.CONTENT_START_POSITION);
 
@@ -57,5 +57,10 @@ public abstract class PIteratorFilterBase<T> implements Iterator<T> {
     }
 
     return false;
+  }
+
+  @Override
+  public Iterator<T> iterator() {
+    return this;
   }
 }

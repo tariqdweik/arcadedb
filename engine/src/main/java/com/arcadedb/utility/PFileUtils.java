@@ -29,6 +29,35 @@ public class PFileUtils {
     useOldFileAPI = oldAPI;
   }
 
+  public static String getStringContent(final Object iValue) {
+    if (iValue == null)
+      return null;
+
+    final String s = iValue.toString();
+
+    if (s == null)
+      return null;
+
+    if (s.length() > 1 && (s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\''
+        || s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"'))
+      return s.substring(1, s.length() - 1);
+
+    if (s.length() > 1 && (s.charAt(0) == '`' && s.charAt(s.length() - 1) == '`'))
+      return s.substring(1, s.length() - 1);
+
+    return s;
+  }
+
+  public static boolean isLong(final String iText) {
+    boolean isLong = true;
+    final int size = iText.length();
+    for (int i = 0; i < size && isLong; i++) {
+      final char c = iText.charAt(i);
+      isLong = isLong & ((c >= '0' && c <= '9'));
+    }
+    return isLong;
+  }
+
   public static long getSizeAsNumber(final Object iSize) {
     if (iSize == null)
       throw new IllegalArgumentException("Size is null");

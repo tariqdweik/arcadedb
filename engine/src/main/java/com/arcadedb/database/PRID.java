@@ -14,6 +14,16 @@ public class PRID implements PIdentifiable, Comparable<PIdentifiable> {
     this.offset = offset;
   }
 
+  public PRID(final PDatabase database, final String value) {
+    this.database = database;
+    if (!value.startsWith("#"))
+      throw new IllegalArgumentException("RID as string is not valid");
+
+    final String[] parts = value.split(":");
+    this.bucketId = Integer.parseInt(parts[0]);
+    this.offset = Long.parseLong(parts[1]);
+  }
+
   public int getBucketId() {
     return bucketId;
   }

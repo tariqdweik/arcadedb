@@ -1,5 +1,7 @@
 package com.arcadedb.database;
 
+import org.json.JSONObject;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -25,6 +27,16 @@ public class PImmutableDocument extends PBaseDocument {
     checkForLazyLoading();
     // CREATE A SEPARATE OBJECT THAT POINTS TO THE SAME BUFFER TO AVOID CONCURRENCY ON THE BUFFER POSITION
     return new PModifiableDocument(database, typeName, rid, buffer.slice());
+  }
+
+  @Override
+  public JSONObject toJSON() {
+    return new JSONObject(database.getSerializer().deserializeProperties(database, buffer));
+  }
+
+  @Override
+  public Map<String, Object> toMap() {
+    return database.getSerializer().deserializeProperties(database, buffer);
   }
 
   @Override

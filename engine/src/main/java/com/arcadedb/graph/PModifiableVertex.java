@@ -2,8 +2,6 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 
-import java.util.Iterator;
-
 public class PModifiableVertex extends PModifiableDocument implements PVertexInternal {
   private PRID outEdges;
   private PRID inEdges;
@@ -65,32 +63,32 @@ public class PModifiableVertex extends PModifiableDocument implements PVertexInt
   }
 
   @Override
-  public Iterator<PEdge> getEdges() {
+  public Iterable<PEdge> getEdges() {
     return database.getGraphEngine().getEdges(this);
   }
 
   @Override
-  public Iterator<PEdge> getEdges(final DIRECTION direction) {
+  public Iterable<PEdge> getEdges(final DIRECTION direction) {
     return database.getGraphEngine().getEdges(this, direction);
   }
 
   @Override
-  public Iterator<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
+  public Iterable<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
     return database.getGraphEngine().getEdges(this, direction, edgeType);
   }
 
   @Override
-  public Iterator<PVertex> getVertices() {
+  public Iterable<PVertex> getVertices() {
     return database.getGraphEngine().getVertices(this);
   }
 
   @Override
-  public Iterator<PVertex> getVertices(final DIRECTION direction) {
+  public Iterable<PVertex> getVertices(final DIRECTION direction) {
     return database.getGraphEngine().getVertices(this, direction);
   }
 
   @Override
-  public Iterator<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
+  public Iterable<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
     return database.getGraphEngine().getVertices(this, direction, edgeType);
   }
 
