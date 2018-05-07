@@ -14,7 +14,7 @@ public class OSQLFunctionConcat extends OSQLFunctionConfigurableAbstract {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       Object[] iParams, OCommandContext iContext) {
     if (sb == null) {
       sb = new StringBuilder();

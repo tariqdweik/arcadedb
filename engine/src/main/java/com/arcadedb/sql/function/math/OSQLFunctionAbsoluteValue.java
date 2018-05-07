@@ -43,7 +43,7 @@ public class OSQLFunctionAbsoluteValue extends OSQLFunctionMathAbstract {
     super(NAME, 1, 1);
   }
 
-  public Object execute(final PDatabase database, Object iThis, final PIdentifiable iRecord, final Object iCurrentResult,
+  public Object execute( Object iThis, final PIdentifiable iRecord, final Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
     Object inputValue = iParams[0];
 

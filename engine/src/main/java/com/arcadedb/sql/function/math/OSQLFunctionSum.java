@@ -40,7 +40,7 @@ public class OSQLFunctionSum extends OSQLFunctionMathAbstract {
     super(NAME, 1, -1);
   }
 
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
     if (iParams.length == 1) {
       if (iParams[0] instanceof Number)

@@ -86,7 +86,7 @@ public class OSQLStaticReflectiveFunction extends OSQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(final PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       Object[] iParams, OCommandContext iContext) {
 
     final Supplier<String> paramsPrettyPrint = () -> Arrays.stream(iParams).map(p -> p + " [ " + p.getClass().getName() + " ]")

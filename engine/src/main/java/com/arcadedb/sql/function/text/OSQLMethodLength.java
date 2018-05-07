@@ -41,7 +41,7 @@ public class OSQLMethodLength extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
     if (iThis == null)
       return 0;
 

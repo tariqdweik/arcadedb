@@ -39,7 +39,7 @@ public class OSQLFunctionCount extends OSQLFunctionMathAbstract {
     super(NAME, 1, 1);
   }
 
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
     if (iParams.length == 0 || iParams[0] != null)
       total++;

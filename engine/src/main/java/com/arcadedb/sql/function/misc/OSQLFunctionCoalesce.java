@@ -68,7 +68,7 @@ public class OSQLFunctionCoalesce extends OSQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
       OCommandContext iContext) {
     int length = iParams.length;
     for (int i = 0; i < length; i++) {

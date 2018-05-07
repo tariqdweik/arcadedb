@@ -51,7 +51,7 @@ public class OSQLFunctionPercentile extends OSQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       Object[] iParams, OCommandContext iContext) {
 
     if (quantiles.isEmpty()) { // set quantiles once

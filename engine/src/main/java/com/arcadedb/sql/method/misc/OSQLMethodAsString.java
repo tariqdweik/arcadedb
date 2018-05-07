@@ -33,7 +33,7 @@ public class OSQLMethodAsString extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
       Object ioResult, Object[] iParams) {
     ioResult = ioResult != null ? ioResult.toString() : null;
     return ioResult;

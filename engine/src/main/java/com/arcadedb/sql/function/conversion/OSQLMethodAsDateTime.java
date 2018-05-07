@@ -45,7 +45,7 @@ public class OSQLMethodAsDateTime extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
     if (iThis != null) {
       if (iThis instanceof Date) {
         return iThis;

@@ -40,7 +40,7 @@ public class OSQLFunctionDecode extends OSQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, final OCommandContext iContext) {
 
     final String candidate = iParams[0].toString();

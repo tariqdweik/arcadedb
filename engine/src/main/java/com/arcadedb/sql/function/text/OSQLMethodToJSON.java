@@ -16,7 +16,6 @@
  */
 package com.arcadedb.sql.function.text;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
@@ -46,7 +45,7 @@ public class OSQLMethodToJSON extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult,
       Object[] iParams) {
     if (iThis == null)
       return null;
@@ -68,7 +67,7 @@ public class OSQLMethodToJSON extends OAbstractSQLMethod {
         if (!first) {
           builder.append(",");
         }
-        builder.append(execute(database, o, iCurrentRecord, iContext, ioResult, iParams));
+        builder.append(execute(o, iCurrentRecord, iContext, ioResult, iParams));
         first = false;
       }
 

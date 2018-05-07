@@ -39,7 +39,7 @@ public class OSQLFunctionDistance extends OSQLFunctionAbstract {
     super(NAME, 4, 5);
   }
 
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
     double distance;
 

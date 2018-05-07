@@ -34,7 +34,7 @@ public class OSQLMethodIndexOf extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
     final String toFind = PFileUtils.getStringContent(iParams[0].toString());
     int startIndex = iParams.length > 1 ? Integer.parseInt(iParams[1].toString()) : 0;
 

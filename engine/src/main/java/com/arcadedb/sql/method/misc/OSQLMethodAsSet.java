@@ -37,7 +37,7 @@ public class OSQLMethodAsSet extends OAbstractSQLMethod {
 
   @SuppressWarnings("unchecked")
   @Override
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
     if (ioResult instanceof Set)
       // ALREADY A SET
       return ioResult;

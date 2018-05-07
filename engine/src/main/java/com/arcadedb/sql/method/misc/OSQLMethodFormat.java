@@ -37,7 +37,7 @@ public class OSQLMethodFormat extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iRecord, final OCommandContext iContext,
+  public Object execute( final Object iThis, final PIdentifiable iRecord, final OCommandContext iContext,
       Object ioResult, final Object[] iParams) {
 
     // TRY TO RESOLVE AS DYNAMIC VALUE

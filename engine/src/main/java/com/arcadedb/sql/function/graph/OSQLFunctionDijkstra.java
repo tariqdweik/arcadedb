@@ -47,7 +47,7 @@ public class OSQLFunctionDijkstra extends OSQLFunctionPathFinder {
     super(NAME, 3, 4);
   }
 
-  public LinkedList<PVertex> execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord,
+  public LinkedList<PVertex> execute( final Object iThis, final PIdentifiable iCurrentRecord,
       final Object iCurrentResult, final Object[] iParams, final OCommandContext iContext) {
     return new OSQLFunctionAstar().execute(database, this, iCurrentRecord, iCurrentResult, toAStarParams(iParams), iContext);
   }

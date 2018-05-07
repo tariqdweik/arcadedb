@@ -19,7 +19,6 @@
  */
 package com.arcadedb.sql.function.misc;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.function.OSQLFunctionAbstract;
@@ -42,7 +41,7 @@ public class OSQLFunctionUUID extends OSQLFunctionAbstract {
     super(NAME, 0, 0);
   }
 
-  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
+  public Object execute( Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
       OCommandContext iContext) {
     return UUID.randomUUID().toString();
   }

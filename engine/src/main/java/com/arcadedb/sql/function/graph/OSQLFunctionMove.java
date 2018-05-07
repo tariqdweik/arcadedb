@@ -33,7 +33,7 @@ public abstract class OSQLFunctionMove extends OSQLFunctionConfigurableAbstract 
     return "Syntax error: " + name + "([<labels>])";
   }
 
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
+  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
       final Object[] iParameters, final OCommandContext iContext) {
 
     final String[] labels;

@@ -16,7 +16,6 @@
  */
 package com.arcadedb.sql.method.misc;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
@@ -36,7 +35,7 @@ public class OSQLMethodKeys extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
       Object ioResult, Object[] iParams) {
     if (ioResult instanceof Map) {
       return ((Map<?, ?>) ioResult).keySet();
@@ -47,7 +46,7 @@ public class OSQLMethodKeys extends OAbstractSQLMethod {
     if (ioResult instanceof Collection) {
       List result = new ArrayList();
       for (Object o : (Collection) ioResult) {
-        result.addAll((Collection) execute(database, iThis, iCurrentRecord, iContext, o, iParams));
+        result.addAll((Collection) execute(iThis, iCurrentRecord, iContext, o, iParams));
       }
       return result;
     }

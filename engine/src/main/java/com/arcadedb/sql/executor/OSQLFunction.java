@@ -19,9 +19,6 @@ package com.arcadedb.sql.executor;/*
  */
 
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
-
-import java.util.List;
 
 /**
  * Interface that defines a SQL Function. Functions can be state-less if registered as instance, or state-full when registered as
@@ -47,15 +44,14 @@ public interface OSQLFunction {
    * @return function result, can be null. Special cases : can be null if function aggregate results, can be null if function filter
    * results : this mean result is excluded
    */
-  public Object execute(Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult, Object[] iParams,
-      OCommandContext iContext);
+  Object execute(Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult, Object[] iParams, OCommandContext iContext);
 
   /**
    * Configure the function.
    *
    * @param configuredParameters
    */
-  public void config(Object[] configuredParameters);
+  void config(Object[] configuredParameters);
 
   /**
    * A function can make calculation on several records before returning a result.
@@ -66,7 +62,7 @@ public interface OSQLFunction {
    *
    * @return true if function aggregate results
    */
-  public boolean aggregateResults();
+  boolean aggregateResults();
 
   /**
    * A function can act both as transformation or filtering records. If the function may reduce the number final records than it
@@ -78,28 +74,28 @@ public interface OSQLFunction {
    *
    * @return true if the function acts as a record filter.
    */
-  public boolean filterResult();
+  boolean filterResult();
 
   /**
    * Function name, the name is used by the sql parser to identify a call this function.
    *
    * @return String , function name, never null or empty.
    */
-  public String getName();
+  String getName();
 
   /**
    * Minimum number of parameter this function must have.
    *
    * @return minimum number of parameters
    */
-  public int getMinParams();
+  int getMinParams();
 
   /**
    * Maximum number of parameter this function can handle.
    *
    * @return maximum number of parameters ??? -1 , negative or Integer.MAX_VALUE for unlimited ???
    */
-  public int getMaxParams();
+  int getMaxParams();
 
   /**
    * Returns a convenient SQL String representation of the function.
@@ -114,35 +110,19 @@ public interface OSQLFunction {
    *
    * @return String , never null.
    */
-  public String getSyntax();
+  String getSyntax();
 
   /**
    * Only called when function aggregates results after all records have been passed to the function.
    *
    * @return Aggregation result
    */
-  public Object getResult();
+  Object getResult();
 
   /**
    * Called by OCommandExecutor, given parameter is the number of results. ??? strange ???
    *
    * @param iResult
    */
-  public void setResult(Object iResult);
-
-  /**
-   * This method correspond to distributed query execution
-   *
-   * @return {@code true} if results that comes from different nodes need to be merged to obtain valid one, {@code false} otherwise
-   */
-  public boolean shouldMergeDistributedResult();
-
-  /**
-   * This method correspond to distributed query execution
-   *
-   * @param resultsToMerge is the results that comes from different nodes
-   *
-   * @return is the valid merged result
-   */
-  public Object mergeDistributedResult(List<Object> resultsToMerge);
+  void setResult(Object iResult);
 }

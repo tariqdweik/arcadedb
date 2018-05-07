@@ -37,7 +37,7 @@ public class OSQLMethodAsList extends OAbstractSQLMethod {
 
   @SuppressWarnings("unchecked")
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
       Object ioResult, Object[] iParams) {
     if (ioResult instanceof List)
       // ALREADY A LIST

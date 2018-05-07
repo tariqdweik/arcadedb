@@ -39,7 +39,7 @@ public class OSQLFunctionMap extends OSQLFunctionMultiValueAbstract<Map<Object, 
   }
 
   @SuppressWarnings("unchecked")
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
 
     if (iParams.length > 2)

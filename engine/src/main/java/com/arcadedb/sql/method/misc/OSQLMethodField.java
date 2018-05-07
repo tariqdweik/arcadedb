@@ -34,7 +34,7 @@ public class OSQLMethodField extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, final OCommandContext iContext, Object ioResult,
+  public Object execute( Object iThis, final PIdentifiable iCurrentRecord, final OCommandContext iContext, Object ioResult,
       final Object[] iParams) {
     if (iParams[0] == null)
       return null;

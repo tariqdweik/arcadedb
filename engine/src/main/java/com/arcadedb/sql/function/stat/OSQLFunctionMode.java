@@ -49,7 +49,7 @@ public class OSQLFunctionMode extends OSQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(final PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       Object[] iParams, OCommandContext iContext) {
 
     if (OMultiValue.isMultiValue(iParams[0])) {

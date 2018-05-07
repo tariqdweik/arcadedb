@@ -41,7 +41,7 @@ public class OSQLFunctionDistinct extends OSQLFunctionAbstract {
     super(NAME, 1, 1);
   }
 
-  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
+  public Object execute( Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
       OCommandContext iContext) {
     final Object value = iParams[0];
 

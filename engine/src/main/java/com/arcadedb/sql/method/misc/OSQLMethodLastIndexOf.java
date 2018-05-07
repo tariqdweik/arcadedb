@@ -33,7 +33,7 @@ public class OSQLMethodLastIndexOf extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
       Object ioResult, Object[] iParams) {
     final String toFind = PFileUtils.getStringContent(iParams[0].toString());
     return iParams.length > 1 ?

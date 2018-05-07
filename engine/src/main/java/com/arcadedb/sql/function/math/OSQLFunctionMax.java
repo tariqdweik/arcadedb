@@ -42,7 +42,7 @@ public class OSQLFunctionMax extends OSQLFunctionMathAbstract {
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
 
     // calculate max value for current record

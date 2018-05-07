@@ -36,7 +36,7 @@ public class OSQLFunctionFormat extends OSQLFunctionAbstract {
     super(NAME, 1, -1);
   }
 
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] params, OCommandContext iContext) {
     final Object[] args = new Object[params.length - 1];
 

@@ -39,7 +39,7 @@ public class OSQLFunctionEncode extends OSQLFunctionAbstract {
     super(NAME, 2, 2);
   }
 
-  public Object execute(final PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
 
     final Object candidate = iParams[0];

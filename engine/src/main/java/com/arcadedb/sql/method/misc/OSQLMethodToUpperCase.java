@@ -35,7 +35,7 @@ public class OSQLMethodToUpperCase extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
     ioResult = ioResult != null ? ioResult.toString().toUpperCase(Locale.ENGLISH) : null;
     return ioResult;
   }

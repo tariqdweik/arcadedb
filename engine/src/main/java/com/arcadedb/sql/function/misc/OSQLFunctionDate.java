@@ -50,7 +50,7 @@ public class OSQLFunctionDate extends OSQLFunctionAbstract {
     date = new Date();
   }
 
-  public Object execute(final PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
+  public Object execute( Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
       OCommandContext iContext) {
     if (iParams.length == 0)
       return date;

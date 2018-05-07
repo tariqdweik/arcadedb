@@ -41,7 +41,7 @@ public class OSQLMethodAsMap extends OAbstractSQLMethod {
 
   @SuppressWarnings("unchecked")
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
       Object ioResult, Object[] iParams) {
     if (ioResult instanceof Map)
       // ALREADY A MAP

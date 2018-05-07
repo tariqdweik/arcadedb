@@ -44,7 +44,7 @@ public class OSQLMethodConvert extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord,
+  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord,
       final OCommandContext iContext, final Object ioResult, final Object[] iParams) {
     if (iThis == null || iParams[0] == null) {
       return null;

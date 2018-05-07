@@ -48,7 +48,7 @@ public class OSQLFunctionSysdate extends OSQLFunctionAbstract {
     now = new Date();
   }
 
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
       final Object[] iParams, OCommandContext iContext) {
     if (iParams.length == 0)
       return now;

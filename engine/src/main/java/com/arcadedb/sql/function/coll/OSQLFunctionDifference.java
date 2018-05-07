@@ -41,7 +41,7 @@ public class OSQLFunctionDifference extends OSQLFunctionMultiValueAbstract<Set<O
   }
 
   @SuppressWarnings("unchecked")
-  public Object execute(PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
       OCommandContext iContext) {
     if (iParams[0] == null)
       return null;

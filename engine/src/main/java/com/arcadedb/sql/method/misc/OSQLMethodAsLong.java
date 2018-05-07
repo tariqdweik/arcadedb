@@ -35,7 +35,7 @@ public class OSQLMethodAsLong extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
+  public Object execute( final Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext,
       Object ioResult, Object[] iParams) {
     if (ioResult instanceof Number) {
       ioResult = ((Number) ioResult).longValue();

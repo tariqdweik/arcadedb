@@ -19,7 +19,6 @@
  */
 package com.arcadedb.sql.function.misc;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.function.OSQLFunctionAbstract;
@@ -60,7 +59,7 @@ public class OSQLFunctionIf extends OSQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
+  public Object execute(Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
       final OCommandContext iContext) {
 
     boolean result;

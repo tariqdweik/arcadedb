@@ -33,7 +33,7 @@ public class OSQLMethodAsFloat extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord,
+  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord,
       final OCommandContext iContext, Object ioResult, final Object[] iParams) {
     if (ioResult instanceof Number)
       ioResult = ((Number) ioResult).floatValue();

@@ -61,7 +61,7 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
     super(NAME, 3, 4);
   }
 
-  public LinkedList<PVertex> execute(PDatabase database, final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
+  public LinkedList<PVertex> execute( final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
       final Object[] iParams, final OCommandContext iContext) {
     context = iContext;
     final OSQLFunctionAstar context = this;

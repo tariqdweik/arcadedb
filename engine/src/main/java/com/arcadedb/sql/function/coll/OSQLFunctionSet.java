@@ -41,7 +41,7 @@ public class OSQLFunctionSet extends OSQLFunctionMultiValueAbstract<Set<Object>>
     super(NAME, 1, -1);
   }
 
-  public Object execute(PDatabase database, Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
+  public Object execute( Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
       OCommandContext iContext) {
     if (iParams.length > 1)
       // IN LINE MODE

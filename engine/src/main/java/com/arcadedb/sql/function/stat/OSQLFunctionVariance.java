@@ -67,7 +67,7 @@ public class OSQLFunctionVariance extends OSQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(final PDatabase database, Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, Object iCurrentResult,
       Object[] iParams, OCommandContext iContext) {
     if (iParams[0] instanceof Number) {
       addValue((Number) iParams[0]);

@@ -44,7 +44,7 @@ public class OSQLMethodAsDecimal extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute(final PDatabase database, Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
+  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
     if (iThis instanceof Date) {
       return new BigDecimal(((Date) iThis).getTime());
     }
