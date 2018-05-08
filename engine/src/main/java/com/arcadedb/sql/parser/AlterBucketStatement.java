@@ -12,24 +12,24 @@ import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
-public class AlterClusterStatement extends ODDLStatement {
+public class AlterBucketStatement extends ODDLStatement {
 
   protected Identifier name;
-  protected boolean starred = false;
+  protected boolean    starred = false;
   protected Identifier attributeName;
   protected Expression attributeValue;
 
-  public AlterClusterStatement(int id) {
+  public AlterBucketStatement(int id) {
     super(id);
   }
 
-  public AlterClusterStatement(SqlParser p, int id) {
+  public AlterBucketStatement(SqlParser p, int id) {
     super(p, id);
   }
 
   @Override
   public void toString(Map<Object, Object> params, StringBuilder builder) {
-    builder.append("ALTER CLUSTER ");
+    builder.append("ALTER BUCKET ");
     name.toString(params, builder);
     if (starred) {
       builder.append("*");
@@ -41,8 +41,8 @@ public class AlterClusterStatement extends ODDLStatement {
   }
 
   @Override
-  public AlterClusterStatement copy() {
-    AlterClusterStatement result = new AlterClusterStatement(-1);
+  public AlterBucketStatement copy() {
+    AlterBucketStatement result = new AlterBucketStatement(-1);
     result.name = name == null ? null : name.copy();
     result.attributeName = attributeName == null ? null : attributeName.copy();
     result.starred = starred;
@@ -114,7 +114,7 @@ public class AlterClusterStatement extends ODDLStatement {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    AlterClusterStatement that = (AlterClusterStatement) o;
+    AlterBucketStatement that = (AlterBucketStatement) o;
 
     if (starred != that.starred)
       return false;

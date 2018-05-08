@@ -16,11 +16,11 @@ import java.util.List;
 public class OCreateVertexExecutionPlanner extends OInsertExecutionPlanner {
 
   public OCreateVertexExecutionPlanner(CreateVertexStatement statement) {
-    this.targetClass = statement.getTargetClass() == null ? null : statement.getTargetClass().copy();
-    this.targetClusterName = statement.getTargetClusterName() == null ? null : statement.getTargetClusterName().copy();
-    this.targetCluster = statement.getTargetCluster() == null ? null : statement.getTargetCluster().copy();
-    if (this.targetClass == null && this.targetCluster == null && this.targetClusterName == null) {
-      this.targetClass = new Identifier("V");
+    this.targetType = statement.getTargetType() == null ? null : statement.getTargetType().copy();
+    this.targetBucketName = statement.getTargetBucketName() == null ? null : statement.getTargetBucketName().copy();
+    this.targetBucket = statement.getTargetBucket() == null ? null : statement.getTargetBucket().copy();
+    if (this.targetType == null && this.targetBucket == null && this.targetBucketName == null) {
+      this.targetType = new Identifier("V");
     }
     this.insertBody = statement.getInsertBody() == null ? null : statement.getInsertBody().copy();
     this.returnStatement = statement.getReturnStatement() == null ? null : statement.getReturnStatement().copy();
@@ -40,14 +40,14 @@ public class OCreateVertexExecutionPlanner extends OInsertExecutionPlanner {
   }
 
   private void handleCheckType(InsertExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
-    if (targetClass != null) {
-      result.chain(new CheckClassTypeStep(targetClass.getStringValue(), "V", ctx, profilingEnabled));
+    if (targetType != null) {
+      result.chain(new CheckClassTypeStep(targetType.getStringValue(), "V", ctx, profilingEnabled));
     }
-    if (targetClusterName != null) {
-      result.chain(new CheckClusterTypeStep(targetClusterName.getStringValue(), "V", ctx, profilingEnabled));
+    if (targetBucketName != null) {
+      result.chain(new CheckClusterTypeStep(targetBucketName.getStringValue(), "V", ctx, profilingEnabled));
     }
-    if (targetCluster != null) {
-      result.chain(new CheckClusterTypeStep(targetCluster, "V", ctx, profilingEnabled));
+    if (targetBucket != null) {
+      result.chain(new CheckClusterTypeStep(targetBucket, "V", ctx, profilingEnabled));
     }
   }
 }

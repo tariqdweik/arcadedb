@@ -40,8 +40,8 @@ public class OMatchExecutionPlanner {
   private Pattern                  pattern;
   private List<Pattern>            subPatterns;
   private Map<String, WhereClause> aliasFilters;
-  private Map<String, String>      aliasClasses;
-  private Map<String, String>      aliasClusters;
+  private Map<String, String>      aliasTypes;
+  private Map<String, String>      aliasBuckets;
   private Map<String, Rid>         aliasRids;
   boolean foundOptional = false;
   private long threshold = 100;
@@ -71,7 +71,7 @@ public class OMatchExecutionPlanner {
     splitDisjointPatterns(context);
 
     SelectExecutionPlan result = new SelectExecutionPlan(context);
-    Map<String, Long> estimatedRootEntries = estimateRootEntries(aliasClasses, aliasClusters, aliasRids, aliasFilters, context);
+    Map<String, Long> estimatedRootEntries = estimateRootEntries(aliasTypes, aliasBuckets, aliasRids, aliasFilters, context);
     Set<String> aliasesToPrefetch = estimatedRootEntries.entrySet().stream().filter(x -> x.getValue() < this.threshold).
         map(x -> x.getKey()).collect(Collectors.toSet());
     if (estimatedRootEntries.values().contains(0l)) {
@@ -88,8 +88,7 @@ public class OMatchExecutionPlanner {
       }
       result.chain(step);
     } else {
-      InternalExecutionPlan plan = createPlanForPattern(pattern, context, estimatedRootEntries, aliasesToPrefetch,
-          enableProfiling);
+      InternalExecutionPlan plan = createPlanForPattern(pattern, context, estimatedRootEntries, aliasesToPrefetch, enableProfiling);
       for (ExecutionStep step : plan.getSteps()) {
         result.chain((ExecutionStepInternal) step);
       }
@@ -185,10 +184,10 @@ public class OMatchExecutionPlanner {
     if (sortedEdges.size() > 0) {
       for (EdgeTraversal edge : sortedEdges) {
         if (edge.edge.out.alias != null) {
-          edge.setLeftClass(aliasClasses.get(edge.edge.out.alias));
-          edge.setLeftCluster(aliasClusters.get(edge.edge.out.alias));
+          edge.setLeftClass(aliasTypes.get(edge.edge.out.alias));
+          edge.setLeftCluster(aliasBuckets.get(edge.edge.out.alias));
           edge.setLeftRid(aliasRids.get(edge.edge.out.alias));
-          edge.setLeftClass(aliasClasses.get(edge.edge.out.alias));
+          edge.setLeftClass(aliasTypes.get(edge.edge.out.alias));
           edge.setLeftFilter(aliasFilters.get(edge.edge.out.alias));
         }
         addStepsFor(plan, edge, context, first, profilingEnabled);
@@ -201,8 +200,8 @@ public class OMatchExecutionPlanner {
         plan.chain(new MatchFirstStep(context, node, profilingEnabled));
       } else {
         //from actual execution plan
-        String clazz = aliasClasses.get(node.alias);
-        String cluster = aliasClusters.get(node.alias);
+        String clazz = aliasTypes.get(node.alias);
+        String cluster = aliasBuckets.get(node.alias);
         Rid rid = aliasRids.get(node.alias);
         WhereClause filter = aliasFilters.get(node.alias);
         SelectStatement select = createSelectStatement(clazz, cluster, rid, filter);
@@ -422,8 +421,8 @@ public class OMatchExecutionPlanner {
       boolean profilingEnabled) {
     if (first) {
       PatternNode patternNode = edge.out ? edge.edge.out : edge.edge.in;
-      String clazz = this.aliasClasses.get(patternNode.alias);
-      String cluster = this.aliasClusters.get(patternNode.alias);
+      String clazz = this.aliasTypes.get(patternNode.alias);
+      String cluster = this.aliasBuckets.get(patternNode.alias);
       Rid rid = this.aliasRids.get(patternNode.alias);
       WhereClause where = aliasFilters.get(patternNode.alias);
       SelectStatement select = new SelectStatement(-1);
@@ -432,7 +431,7 @@ public class OMatchExecutionPlanner {
       if (clazz != null) {
         select.getTarget().getItem().setIdentifier(new Identifier(clazz));
       } else if (cluster != null) {
-        select.getTarget().getItem().setCluster(new Cluster(cluster));
+        select.getTarget().getItem().setBucket(new Bucket(cluster));
       } else if (rid != null) {
         select.getTarget().getItem().setRids(Collections.singletonList(rid));
       }
@@ -453,8 +452,8 @@ public class OMatchExecutionPlanner {
   private void addPrefetchSteps(SelectExecutionPlan result, Set<String> aliasesToPrefetch, CommandContext context,
       boolean profilingEnabled) {
     for (String alias : aliasesToPrefetch) {
-      String targetClass = aliasClasses.get(alias);
-      String targetCluster = aliasClusters.get(alias);
+      String targetClass = aliasTypes.get(alias);
+      String targetCluster = aliasBuckets.get(alias);
       Rid targetRid = aliasRids.get(alias);
       WhereClause filter = aliasFilters.get(alias);
       SelectStatement prefetchStm = createSelectStatement(targetClass, targetCluster, targetRid, filter);
@@ -475,7 +474,7 @@ public class OMatchExecutionPlanner {
     } else if (targetClass != null) {
       fromItem.setIdentifier(new Identifier(targetClass));
     } else if (targetCluster != null) {
-      fromItem.setCluster(new Cluster(targetCluster));
+      fromItem.setBucket(new Bucket(targetCluster));
     }
     from.setItem(fromItem);
     prefetchStm.setTarget(from);
@@ -570,8 +569,8 @@ public class OMatchExecutionPlanner {
     }
 
     this.aliasFilters = aliasFilters;
-    this.aliasClasses = aliasClasses;
-    this.aliasClusters = aliasClusters;
+    this.aliasTypes = aliasClasses;
+    this.aliasBuckets = aliasClusters;
     this.aliasRids = aliasRids;
 
     rebindFilters(aliasFilters);
@@ -617,7 +616,7 @@ public class OMatchExecutionPlanner {
         }
       }
 
-      String clazz = matchFilter.getClassName(context);
+      String clazz = matchFilter.getTypeName(context);
       if (clazz != null) {
         String previousClass = aliasClasses.get(alias);
         if (previousClass == null) {
@@ -632,14 +631,14 @@ public class OMatchExecutionPlanner {
         }
       }
 
-      String clusterName = matchFilter.getClusterName(context);
+      String clusterName = matchFilter.getBucketName(context);
       if (clusterName != null) {
         String previousCluster = aliasClusters.get(alias);
         if (previousCluster == null) {
           aliasClusters.put(alias, clusterName);
         } else if (!previousCluster.equalsIgnoreCase(clusterName)) {
           throw new CommandExecutionException(
-              "Invalid expression for alias " + alias + " cannot be of both clusters " + previousCluster + " and " + clusterName);
+              "Invalid expression for alias " + alias + " cannot be of both buckets " + previousCluster + " and " + clusterName);
         }
       }
 
@@ -701,18 +700,18 @@ public class OMatchExecutionPlanner {
 
     Map<String, Long> result = new LinkedHashMap<String, Long>();
     for (String alias : allAliases) {
-      String className = aliasClasses.get(alias);
-      String clusterName = aliasClusters.get(alias);
+      String typeName = aliasClasses.get(alias);
+      String bucketName = aliasClusters.get(alias);
       Rid rid = aliasRids.get(alias);
-      if (className == null && clusterName == null) {
+      if (typeName == null && bucketName == null) {
         continue;
       }
 
-      if (className != null) {
-        if (schema.getType(className)==null) {
-          throw new CommandExecutionException("class not defined: " + className);
+      if (typeName != null) {
+        if (schema.getType(typeName) == null) {
+          throw new CommandExecutionException("Type '" + typeName + "' not defined");
         }
-        PDocumentType oClass = schema.getType(className);
+        PDocumentType oClass = schema.getType(typeName);
         long upperBound;
         WhereClause filter = aliasFilters.get(alias);
         if (filter != null) {
@@ -721,24 +720,24 @@ public class OMatchExecutionPlanner {
           upperBound = ctx.getDatabase().countType(oClass.getName(), true);
         }
         result.put(alias, upperBound);
-      } else if (clusterName != null) {
+      } else if (bucketName != null) {
         Database db = ctx.getDatabase();
-        if (db.getSchema().getBucketByName(clusterName)==null) {
-          throw new CommandExecutionException("cluster not defined: " + clusterName);
+        if (db.getSchema().getBucketByName(bucketName) == null) {
+          throw new CommandExecutionException("Bucket '" + bucketName + "' not defined");
         }
-        int clusterId = db.getSchema().getBucketByName(clusterName).getId();
+        int clusterId = db.getSchema().getBucketByName(bucketName).getId();
         PDocumentType oClass = db.getSchema().getTypeByBucketId(clusterId);
         if (oClass != null) {
           long upperBound;
           WhereClause filter = aliasFilters.get(alias);
           if (filter != null) {
-            upperBound = Math.min(db.countBucket(clusterName), filter.estimate(oClass, this.threshold, ctx));
+            upperBound = Math.min(db.countBucket(bucketName), filter.estimate(oClass, this.threshold, ctx));
           } else {
-            upperBound = db.countBucket(clusterName);
+            upperBound = db.countBucket(bucketName);
           }
           result.put(alias, upperBound);
         } else {
-          result.put(alias, db.countBucket(clusterName));
+          result.put(alias, db.countBucket(bucketName));
         }
       } else if (rid != null) {
         result.put(alias, 1L);

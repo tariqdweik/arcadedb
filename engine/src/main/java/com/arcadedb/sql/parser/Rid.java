@@ -16,7 +16,7 @@ import com.arcadedb.sql.executor.ResultInternal;
 import java.util.Map;
 
 public class Rid extends SimpleNode {
-  protected PInteger cluster;
+  protected PInteger bucket;
   protected PInteger position;
 
   protected Expression expression;
@@ -39,12 +39,12 @@ public class Rid extends SimpleNode {
 
   @Override
   public String toString(String prefix) {
-    return "#" + cluster.getValue() + ":" + position.getValue();
+    return "#" + bucket.getValue() + ":" + position.getValue();
   }
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     if (legacy) {
-      builder.append("#" + cluster.getValue() + ":" + position.getValue());
+      builder.append("#" + bucket.getValue() + ":" + position.getValue());
     } else {
       builder.append("{\"@rid\":");
       expression.toString(params, builder);
@@ -52,9 +52,9 @@ public class Rid extends SimpleNode {
     }
   }
 
-  public RID toRecordId(Result target, CommandContext ctx) {
+  public RID toRecordId(final Result target, final CommandContext ctx) {
     if (legacy) {
-      return new RID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
+      return new RID(ctx.getDatabase(), bucket.value.intValue(), position.value.longValue());
     } else {
       Object result = expression.execute(target, ctx);
       if (result == null) {
@@ -72,7 +72,7 @@ public class Rid extends SimpleNode {
 
   public RID toRecordId(Identifiable target, CommandContext ctx) {
     if (legacy) {
-      return new RID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
+      return new RID(ctx.getDatabase(), bucket.value.intValue(), position.value.longValue());
     } else {
       Object result = expression.execute(target, ctx);
       if (result == null) {
@@ -90,7 +90,7 @@ public class Rid extends SimpleNode {
 
   public Rid copy() {
     Rid result = new Rid(-1);
-    result.cluster = cluster == null ? null : cluster.copy();
+    result.bucket = bucket == null ? null : bucket.copy();
     result.position = position == null ? null : position.copy();
     result.expression = expression == null ? null : expression.copy();
     result.legacy = legacy;
@@ -106,7 +106,7 @@ public class Rid extends SimpleNode {
 
     Rid oRid = (Rid) o;
 
-    if (cluster != null ? !cluster.equals(oRid.cluster) : oRid.cluster != null)
+    if (bucket != null ? !bucket.equals(oRid.bucket) : oRid.bucket != null)
       return false;
     if (position != null ? !position.equals(oRid.position) : oRid.position != null)
       return false;
@@ -120,14 +120,14 @@ public class Rid extends SimpleNode {
 
   @Override
   public int hashCode() {
-    int result = cluster != null ? cluster.hashCode() : 0;
+    int result = bucket != null ? bucket.hashCode() : 0;
     result = 31 * result + (position != null ? position.hashCode() : 0);
     result = 31 * result + (expression != null ? expression.hashCode() : 0);
     return result;
   }
 
-  public void setCluster(PInteger cluster) {
-    this.cluster = cluster;
+  public void setBucket(PInteger bucket) {
+    this.bucket = bucket;
   }
 
   public void setPosition(PInteger position) {
@@ -138,7 +138,7 @@ public class Rid extends SimpleNode {
     this.legacy = b;
   }
 
-  public PInteger getCluster() {
+  public PInteger getBucket() {
     if (expression != null) {
       RID rid = toRecordId((Result) null, new BasicCommandContext());
       if (rid == null) {
@@ -147,7 +147,7 @@ public class Rid extends SimpleNode {
         return result;
       }
     }
-    return cluster;
+    return bucket;
   }
 
   public PInteger getPosition() {
@@ -164,8 +164,8 @@ public class Rid extends SimpleNode {
 
   public Result serialize() {
     ResultInternal result = new ResultInternal();
-    if(cluster!=null){
-      result.setProperty("cluster", cluster.serialize());
+    if(bucket !=null){
+      result.setProperty("bucket", bucket.serialize());
     }
     if(position!=null){
       result.setProperty("position", position.serialize());
@@ -178,9 +178,9 @@ public class Rid extends SimpleNode {
   }
 
   public void deserialize(Result fromResult) {
-    if(fromResult.getProperty("cluster")!=null){
-      cluster = new PInteger(-1);
-      cluster.deserialize(fromResult.getProperty("cluster"));
+    if(fromResult.getProperty("bucket")!=null){
+      bucket = new PInteger(-1);
+      bucket.deserialize(fromResult.getProperty("bucket"));
     }
     if(fromResult.getProperty("position")!=null){
       position = new PInteger(-1);

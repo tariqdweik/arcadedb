@@ -28,8 +28,8 @@ public class OCreateEdgeExecutionPlanner {
 
 
   public OCreateEdgeExecutionPlanner(CreateEdgeStatement statement) {
-    this.targetClass = statement.getTargetClass() == null ? null : statement.getTargetClass().copy();
-    this.targetClusterName = statement.getTargetClusterName() == null ? null : statement.getTargetClusterName().copy();
+    this.targetClass = statement.getTargetType() == null ? null : statement.getTargetType().copy();
+    this.targetClusterName = statement.getTargetBucketName() == null ? null : statement.getTargetBucketName().copy();
     this.leftExpression = statement.getLeftExpression() == null ? null : statement.getLeftExpression().copy();
     this.rightExpression = statement.getRightExpression() == null ? null : statement.getRightExpression().copy();
     this.body = statement.getBody() == null ? null : statement.getBody().copy();

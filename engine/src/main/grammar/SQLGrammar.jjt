@@ -132,8 +132,8 @@ TOKEN:
 	< NULL: ( "N" | "n" ) ( "U" | "u" ) ( "L" | "l" ) ( "L" | "l" ) >
 	|
 	< DEFINED: ( "D" | "d" ) ( "E" | "e" ) ( "F" | "f" ) ( "I" | "i" ) ( "N" | "n" ) ( "E" | "e" ) ( "D" | "d" ) >
-    |
-    < ORDER: ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) ( "e" | "E" ) ( "r" | "R" ) >
+  |
+  < ORDER: ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) ( "e" | "E" ) ( "r" | "R" ) >
 	|
 	< GROUP: ( "g" | "G" ) ( "r" | "R" ) ( "o" | "O" ) ( "u" | "U" ) ( "p" | "P" ) >
 	|
@@ -164,28 +164,28 @@ TOKEN:
 	< AFTER: ( "a" | "A" ) ( "f" | "F" ) ( "t" | "T" ) ( "e" | "E" ) ( "r" | "R" ) >
 	|
 	< LOCK: ( "l" | "L" ) ( "o" | "O" ) ( "c" | "C" ) ( "k" | "K" ) >
-    |
-    < RECORD: ( "r" | "R" ) ( "e" | "E" ) ( "c" | "C" ) ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) >
-    |
-    < WAIT: ( "w" | "W" ) ( "a" | "A" ) ( "i" | "I" ) ( "t" | "T" ) >
-    |
-    < RETRY: ( "r" | "R" ) ( "e" | "E" ) ( "t" | "T" ) ( "r" | "R" ) ( "y" | "Y" ) >
-    |
-    < LET: ( "l" | "L" ) ( "e" | "E" ) ( "t" | "T" ) >
-    |
-    < CACHE: ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
-    |
-    < NOCACHE: ( "n" | "N" ) ( "o" | "O" ) ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
-    |
-    < UNSAFE: ( "u" | "U" ) ( "n" | "N" ) ( "s" | "S" ) ( "a" | "A" ) ( "f" | "F" ) ( "e" | "E" ) >
-    |
-    < PARALLEL: ( "p" | "P" ) ( "a" | "A" ) ( "r" | "R" ) ( "a" | "A" ) ( "l" | "L" ) ( "l" | "L" ) ( "e" | "E" ) ( "l" | "L" ) >
-    |
-    < STRATEGY: ( "s" | "S" ) ( "t" | "T" ) ( "r" | "R" ) ( "a" | "A" ) ( "t" | "T" ) ( "e" | "E" ) ( "g" | "G" ) ( "y" | "Y" )  >
-    |
-    < DEPTH_FIRST: ( "d" | "D" ) ( "e" | "E" ) ( "p" | "P" ) ( "t" | "T" ) ( "h" | "H" ) ( "_" )  ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
-    |
-    < BREADTH_FIRST: ( "b" | "B" ) ( "r" | "R" ) ( "e" | "E" ) ( "a" | "A" ) ( "d" | "D" ) ( "t" | "T" )  ( "h" | "H" ) ( "_" ) ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
+  |
+  < RECORD: ( "r" | "R" ) ( "e" | "E" ) ( "c" | "C" ) ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) >
+  |
+  < WAIT: ( "w" | "W" ) ( "a" | "A" ) ( "i" | "I" ) ( "t" | "T" ) >
+  |
+  < RETRY: ( "r" | "R" ) ( "e" | "E" ) ( "t" | "T" ) ( "r" | "R" ) ( "y" | "Y" ) >
+  |
+  < LET: ( "l" | "L" ) ( "e" | "E" ) ( "t" | "T" ) >
+  |
+  < CACHE: ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
+  |
+  < NOCACHE: ( "n" | "N" ) ( "o" | "O" ) ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
+  |
+  < UNSAFE: ( "u" | "U" ) ( "n" | "N" ) ( "s" | "S" ) ( "a" | "A" ) ( "f" | "F" ) ( "e" | "E" ) >
+  |
+  < PARALLEL: ( "p" | "P" ) ( "a" | "A" ) ( "r" | "R" ) ( "a" | "A" ) ( "l" | "L" ) ( "l" | "L" ) ( "e" | "E" ) ( "l" | "L" ) >
+  |
+  < STRATEGY: ( "s" | "S" ) ( "t" | "T" ) ( "r" | "R" ) ( "a" | "A" ) ( "t" | "T" ) ( "e" | "E" ) ( "g" | "G" ) ( "y" | "Y" )  >
+  |
+  < DEPTH_FIRST: ( "d" | "D" ) ( "e" | "E" ) ( "p" | "P" ) ( "t" | "T" ) ( "h" | "H" ) ( "_" )  ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
+  |
+  < BREADTH_FIRST: ( "b" | "B" ) ( "r" | "R" ) ( "e" | "E" ) ( "a" | "A" ) ( "d" | "D" ) ( "t" | "T" )  ( "h" | "H" ) ( "_" ) ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
 	|
 	< LUCENE: ( "l" | "L" ) ( "u" | "U" ) ( "c" | "C" ) ( "e" | "E" ) ( "n" | "N" ) ( "e" | "E" ) >
 	|
@@ -199,13 +199,13 @@ TOKEN:
 	|
 	< MINDEPTH: ( "m" | "M" ) ( "i" | "I" ) ( "n" | "N" ) ( "d" | "D" ) ( "e" | "E" ) ( "p" | "P" ) ( "t" | "T" ) ( "h" | "H" ) >
 	|
-	< CLASS: ( "c" | "C" ) ( "l" | "L" ) ( "a" | "A" ) ( "s" | "S" ) ( "s" | "S" ) >
+	< TYPE: ( "t" | "T" ) ( "y" | "Y" ) ( "p" | "P" ) ( "e" | "E" ) >
 	|
-	< SUPERCLASS: ( "s" | "S" ) ( "u" | "U" ) ( "p" | "P" ) ( "e" | "E" ) ( "r" | "R" ) ( "c" | "C" ) ( "l" | "L" ) ( "a" | "A" ) ( "s" | "S" ) ( "s" | "S" ) >
+	< SUPERTYPE: ( "s" | "S" ) ( "u" | "U" ) ( "p" | "P" ) ( "e" | "E" ) ( "r" | "R" ) ( "t" | "T" ) ( "y" | "Y" ) ( "p" | "P" ) ( "e" | "E" ) >
 	|
-	< CLASSES: ( "c" | "C" ) ( "l" | "L" ) ( "a" | "A" ) ( "s" | "S" ) ( "s" | "S" ) ( "e" | "E" ) ( "s" | "S" ) >
+	< TYPES: ( "t" | "T" ) ( "y" | "Y" ) ( "p" | "P" ) ( "e" | "E" ) ( "s" | "S" ) >
 	|
-	< SUPERCLASSES: ( "s" | "S" ) ( "u" | "U" ) ( "p" | "P" ) ( "e" | "E" ) ( "r" | "R" ) ( "c" | "C" ) ( "l" | "L" ) ( "a" | "A" ) ( "s" | "S" ) ( "s" | "S" ) ( "e" | "E" ) ( "s" | "S" )>
+	< SUPERTYPES: ( "s" | "S" ) ( "u" | "U" ) ( "p" | "P" ) ( "e" | "E" ) ( "r" | "R" ) ( "t" | "T" ) ( "y" | "Y" ) ( "p" | "P" ) ( "e" | "E" ) ( "s" | "S" ) >
     |
 	< EXCEPTION: ( "e" | "E" ) ( "x" | "X" ) ( "c" | "C" ) ( "e" | "E" ) ( "p" | "P" ) ( "t" | "T" ) ( "i" | "I" ) ( "o" | "O" ) ( "n" | "N" ) >
 	|
@@ -227,7 +227,7 @@ TOKEN:
 	|
 	< EXTENDS: ( "e" | "E" ) ( "x" | "X" ) ( "t" | "T" ) ( "e" | "E" ) ( "n" | "N" ) ( "d" | "D" ) ( "s" | "S" ) >
 	|
-	< CLUSTERS: ( "C" | "c" ) ( "L" | "l" ) ( "U" | "u" ) ( "S" | "s" ) ( "T" | "t" ) ( "E" | "e" ) ( "R" | "r" ) ( "S" | "s" ) >
+	< BUCKETS: ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) >
 	|
 	< ABSTRACT: ( "a" | "A" ) ( "b" | "B" ) ( "s" | "S" ) ( "T" | "t" ) ( "R" | "r" ) ( "a" | "A" ) ( "C" | "c" ) ( "T" | "t" ) >
 	|
@@ -241,13 +241,13 @@ TOKEN:
 	|
 	< STRICTMODE: ( "s" | "S" ) ( "t" | "T" ) ( "r" | "R" ) ( "i" | "I" ) ( "C" | "c" ) ( "T" | "t" ) ( "m" | "M" ) ( "o" | "O" ) ( "d" | "D" ) ( "e" | "E" ) >
 	|
-	< ADDCLUSTER: ( "a" | "A" ) ( "d" | "D" ) ( "d" | "D" ) ( "C" | "c" ) ( "L" | "l" ) ( "U" | "u" ) ( "S" | "s" ) ( "T" | "t" ) ( "E" | "e" ) ( "R" | "r" ) >
+	< ADDBUCKET: ( "a" | "A" ) ( "d" | "D" ) ( "d" | "D" ) ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) >
 	|
-	< REMOVECLUSTER: ( "r" | "R" ) ( "e" | "E" ) ( "m" | "M" ) ( "o" | "O" ) ( "v" | "V" ) ( "e" | "E" ) ( "C" | "c" ) ( "L" | "l" ) ( "U" | "u" ) ( "S" | "s" ) ( "T" | "t" ) ( "E" | "e" ) ( "R" | "r" ) >
+	< REMOVEBUCKET: ( "r" | "R" ) ( "e" | "E" ) ( "m" | "M" ) ( "o" | "O" ) ( "v" | "V" ) ( "e" | "E" ) ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) >
 	|
 	< CUSTOM: ( "c" | "C" ) ( "u" | "U" ) ( "s" | "S" ) ( "t" | "T" ) ( "o" | "O" ) ( "m" | "M" ) >
 	|
-	< CLUSTERSELECTION: ( "C" | "c" ) ( "L" | "l" ) ( "U" | "u" ) ( "S" | "s" ) ( "T" | "t" ) ( "E" | "e" ) ( "R" | "r" ) ( "s" | "S" ) ( "e" | "E" ) ( "l" | "L" ) ( "e" | "E" ) ( "c" | "C" ) ( "t" | "T" ) ( "i" | "I" ) ( "o" | "O" ) ( "n" | "N" ) >
+	< BUCKETSELECTION: ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) ( "s" | "S" ) ( "e" | "E" ) ( "l" | "L" ) ( "e" | "E" ) ( "c" | "C" ) ( "t" | "T" ) ( "i" | "I" ) ( "o" | "O" ) ( "n" | "N" ) >
 	|
 	< DESCRIPTION: ( "d" | "D" ) ( "E" | "e" )  ( "s" | "S" ) ( "c" | "C" ) ( "r" | "R" ) ( "i" | "I" ) ( "p" | "P" ) ( "t" | "T" ) ( "i" | "I" ) ( "o" | "O" ) ( "n" | "N" ) >
 	|
@@ -276,8 +276,6 @@ TOKEN:
     < OPTIMIZE: ( "O" | "o") ( "P" | "p")  ( "T" | "t") ( "I" | "i") ( "M" | "m") ( "I" | "i") ( "Z" | "z") ( "E" | "e") >
     |
     < LINK: ( "L" | "l") ( "I" | "i")  ( "N" | "n") ( "K" | "k") >
-    |
-    < TYPE: ( "T" | "t") ( "Y" | "y")  ( "P" | "p") ( "E" | "e") >
     |
     < INVERSE: ( "I" | "i") ( "N" | "n")  ( "V" | "v") ( "E" | "e") ( "R" | "r")  ( "S" | "s") ( "E" | "e") >
     |
@@ -359,17 +357,15 @@ TOKEN:
 	|
 	< RID: ( "r" | "R" ) ( "i" | "I" ) ( "d" | "D" ) >
 	|
-	< DEFAULTCLUSTER: ( "D" | "d") ( "E" | "e") ( "F" | "f") ( "A" | "a") ( "U" | "u") ( "L" | "l") ( "T" | "t") ( "C" | "c" ) ( "L" | "l" ) ( "U" | "u" ) ( "S" | "s" ) ( "T" | "t" ) ( "E" | "e" ) ( "R" | "r" ) >
+	< DEFAULTBUCKET: ( "D" | "d") ( "E" | "e") ( "F" | "f") ( "A" | "a") ( "U" | "u") ( "L" | "l") ( "T" | "t") ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) >
 	|
 	< THIS: "@" ( ( "t" | "T" ) ( "h" | "H" ) ( "i" | "I" ) ( "s" | "S" ) ) >
 	|
-	< RECORD_ATTRIBUTE: <RID_ATTR> | <CLASS_ATTR> | <VERSION_ATTR> | <SIZE_ATTR> | <TYPE_ATTR> | <RAW_ATTR> | <RID_ID_ATTR> | <RID_POS_ATTR> | <FIELDS_ATTR> >
+	< RECORD_ATTRIBUTE: <RID_ATTR> | <TYPE_ATTR> | <VERSION_ATTR> | <SIZE_ATTR> | <TYPE_ATTR> | <RAW_ATTR> | <RID_ID_ATTR> | <RID_POS_ATTR> | <FIELDS_ATTR> >
 	|
 	< RID_ATTR: "@" ( ( "r" | "R" ) ( "i" | "I" ) ( "d" | "D" ) ) >
 	|
 	< RID_STRING: "\"@" ( ( "r" | "R" ) ( "i" | "I" ) ( "d" | "D" ) ) "\"">
-	|
-	< #CLASS_ATTR: "@" ( ( "c" | "C" ) ( "l" | "L" ) ( "a" | "A" ) ( "s" | "S" ) ( "s" | "S" ))>
 	|
 	< #VERSION_ATTR: "@" ( ( "v" | "V" ) ( "e" | "E" ) ( "r" | "R" ) ( "s" | "S" ) ( "i" | "I" ) ( "o" | "O" ) ( "n" | "N" )) >
 	|
@@ -558,7 +554,7 @@ TOKEN :
 | < MATCHES: ( "M" | "m") ( "A" | "a") ( "T" | "t") ( "C" | "c") ( "H" | "h") ( "E" | "e") ( "S" | "s") >
 | < KEY: ( "K" | "k") ( "E" | "e") ( "Y" | "y") >
 | < INSTANCEOF: ( "I" | "i" ) ( "N" | "n" ) ( "S" | "s" ) ( "T" | "t" ) ( "A" | "a" ) ( "N" | "n" ) ( "C" | "c" ) ( "E" | "e" ) ( "O" | "o" ) ( "F" | "f" ) >
-| < CLUSTER: ( "C" | "c" ) ( "L" | "l" ) ( "U" | "u" ) ( "S" | "s" ) ( "T" | "t" ) ( "E" | "e" ) ( "R" | "r" ) >
+| < BUCKET: ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) >
 }
 
 
@@ -577,9 +573,9 @@ TOKEN :
 |
   < INDEXVALUESDESC_IDENTIFIER: ( "I" | "i") ( "N" | "n") ( "D" | "d") ( "E" | "e") ( "X" | "x") ( "V" | "v") ( "A" | "a") ( "L" | "l") ( "U" | "u") ( "E" | "e") ( "S" | "s") ( "D" | "d") ( "E" | "e") ( "S" | "s") ( "C" | "c") ":" ( "__@recordmap@___" )? <IDENTIFIER> ( ( <DOT> | <MINUS> ) <IDENTIFIER> )* >
 |
-  < CLUSTER_IDENTIFIER: <CLUSTER> <COLON> <IDENTIFIER>  >
+  < BUCKET_IDENTIFIER: <BUCKET> <COLON> <IDENTIFIER>  >
 |
-  < CLUSTER_NUMBER_IDENTIFIER: <CLUSTER> <COLON> <INTEGER_LITERAL>  >
+  < BUCKET_NUMBER_IDENTIFIER: <BUCKET> <COLON> <INTEGER_LITERAL>  >
 |
   < METADATA_IDENTIFIER: "metadata:" <IDENTIFIER>  >
 |
@@ -605,13 +601,13 @@ Rid Rid():
     (
 	     LOOKAHEAD(4)
 	     (
-	       "#" jjtThis.cluster = PInteger() <COLON> jjtThis.position = PInteger()
+	       "#" jjtThis.bucket = PInteger() <COLON> jjtThis.position = PInteger()
 	       { jjtThis.legacy = true; }
 	     )
     	 |
     	 LOOKAHEAD(3)
     	 (
-    	   jjtThis.cluster = PInteger() <COLON> jjtThis.position = PInteger()
+    	   jjtThis.bucket = PInteger() <COLON> jjtThis.position = PInteger()
     	   { jjtThis.legacy = true; }
     	 )
     	 |
@@ -715,9 +711,9 @@ Identifier Identifier():
     |
     token = <LUCENE>
     |
-    token = <CLASS>
+    token = <TYPE>
     |
-    token = <CLASSES>
+    token = <TYPES>
     |
     token = <MINDEPTH>
     |
@@ -743,7 +739,7 @@ Identifier Identifier():
 	|
 	token = <EXTENDS>
 	|
-	token = <CLUSTERS>
+	token = <BUCKETS>
 	|
 	token = <ABSTRACT>
 	|
@@ -753,21 +749,21 @@ Identifier Identifier():
 	|
 	token = <SHORTNAME>
 	|
-	token = <SUPERCLASS>
+	token = <SUPERTYPE>
 	|
-	token = <SUPERCLASSES>
+	token = <SUPERTYPES>
 	|
 	token = <OVERSIZE>
 	|
 	token = <STRICTMODE>
 	|
-	token = <ADDCLUSTER>
+	token = <ADDBUCKET>
 	|
-	token = <REMOVECLUSTER>
+	token = <REMOVEBUCKET>
 	|
 	token = <CUSTOM>
 	|
-	token = <CLUSTERSELECTION>
+	token = <BUCKETSELECTION>
 	|
 	token = <DESCRIPTION>
 	|
@@ -877,7 +873,7 @@ Identifier Identifier():
     |
     token = <RID>
     |
-    token = <DEFAULTCLUSTER>
+    token = <DEFAULTBUCKET>
     |
     quotedToken = <QUOTED_IDENTIFIER>
 ) {
@@ -981,7 +977,7 @@ Statement StatementInternal():
                 result = InsertStatement()
                 |
                 LOOKAHEAD(2)
-                result = CreateClassStatement()
+                result = CreateTypeStatement()
                 |
                 LOOKAHEAD(2)
                 result = CreatePropertyStatement()
@@ -990,7 +986,7 @@ Statement StatementInternal():
                 result = CreateIndexStatement()
                 |
                 LOOKAHEAD(2)
-                result = CreateClusterStatement()
+                result = CreateBucketStatement()
                 |
                 LOOKAHEAD(CreateVertexStatementNoTarget())
                 result = CreateVertexStatementNoTarget()
@@ -1013,20 +1009,20 @@ Statement StatementInternal():
                 LOOKAHEAD(UpdateStatement())
                 result = UpdateStatement()
                 |
-                LOOKAHEAD(TruncateClassStatement())
-                result = TruncateClassStatement()
+                LOOKAHEAD(TruncateTypeStatement())
+                result = TruncateTypeStatement()
                 |
-                LOOKAHEAD(TruncateClusterStatement())
-                result = TruncateClusterStatement()
+                LOOKAHEAD(TruncateBucketStatement())
+                result = TruncateBucketStatement()
                 |
                 LOOKAHEAD(TruncateRecordStatement())
                 result = TruncateRecordStatement()
                 |
-                LOOKAHEAD(AlterClassStatement())
-                result = AlterClassStatement()
+                LOOKAHEAD(AlterTypeStatement())
+                result = AlterTypeStatement()
                 |
-                LOOKAHEAD(DropClassStatement())
-                result = DropClassStatement()
+                LOOKAHEAD(DropTypeStatement())
+                result = DropTypeStatement()
                 |
                 LOOKAHEAD(AlterPropertyStatement())
                 result = AlterPropertyStatement()
@@ -1039,11 +1035,11 @@ Statement StatementInternal():
                 LOOKAHEAD(2)
                 result = DropIndexStatement()
                 |
-                LOOKAHEAD(AlterClusterStatement())
-                result = AlterClusterStatement()
+                LOOKAHEAD(AlterBucketStatement())
+                result = AlterBucketStatement()
                 |
                 LOOKAHEAD(2)
-                result = DropClusterStatement()
+                result = DropBucketStatement()
                 |
                 LOOKAHEAD(2)
                 result = AlterDatabaseStatement()
@@ -1353,7 +1349,7 @@ DeleteEdgeStatement DeleteEdgeFromToStatement():
 	<DELETE>
 	<EDGE>
 
-	[ jjtThis.className = Identifier() ]
+	[ jjtThis.typeName = Identifier() ]
 
 
         <FROM>
@@ -1382,7 +1378,7 @@ DeleteEdgeStatement DeleteEdgeToStatement():
         <DELETE>
         <EDGE>
 
-        jjtThis.className = Identifier()
+        jjtThis.typeName = Identifier()
 
         <TO>
         jjtThis.rightExpression = Expression()
@@ -1426,7 +1422,7 @@ DeleteEdgeStatement DeleteEdgeWhereStatement():
         <DELETE>
         <EDGE>
 
-        [ jjtThis.className = Identifier() ]
+        [ jjtThis.typeName = Identifier() ]
 
         [ <WHERE> jjtThis.whereClause = WhereClause() ]
         [ jjtThis.limit = Limit() ]
@@ -1640,9 +1636,9 @@ InsertStatement InsertStatement():
 	    LOOKAHEAD(IndexIdentifier())
     	jjtThis.targetIndex = IndexIdentifier()
     	|
-	    jjtThis.targetClass = Identifier() [<CLUSTER> jjtThis.targetClusterName = Identifier()]
+	    jjtThis.targetType = Identifier() [<BUCKET> jjtThis.targetBucketName = Identifier()]
 	    |
-	    jjtThis.targetCluster = Cluster()
+	    jjtThis.targetBucket = Bucket()
 
 	)
     [ LOOKAHEAD(InsertBody()) jjtThis.insertBody = InsertBody() ]
@@ -1767,10 +1763,10 @@ CreateVertexStatementEmpty CreateVertexStatementEmpty():
 
 	<CREATE>
 	<VERTEX>
-	jjtThis.targetClass = Identifier()
+	jjtThis.targetType = Identifier()
     [
-        <CLUSTER>
-        jjtThis.targetClusterName = Identifier()
+        <BUCKET>
+        jjtThis.targetBucketName = Identifier()
     ]
     {return jjtThis;}
 }
@@ -1785,15 +1781,15 @@ CreateVertexStatement CreateVertexStatement():
 	(
 	    LOOKAHEAD( Identifier() )
 	    (
-	        jjtThis.targetClass = Identifier()
+	        jjtThis.targetType = Identifier()
 	        [
-	            <CLUSTER>
-	            jjtThis.targetClusterName = Identifier()
+	            <BUCKET>
+	            jjtThis.targetBucketName = Identifier()
 	        ]
 	    )
 	    |
-	    LOOKAHEAD( Cluster() )
-	    jjtThis.targetCluster = Cluster()
+	    LOOKAHEAD( Bucket() )
+	    jjtThis.targetBucket = Bucket()
 	)
 	[ <RETURN> jjtThis.returnStatement = Projection() ]
 	[ LOOKAHEAD(InsertBody()) jjtThis.insertBody = InsertBody() ]
@@ -1819,7 +1815,7 @@ CreateEdgeStatement CreateEdgeStatement():
 (
 	<CREATE>
 	<EDGE>
-	[ jjtThis.targetClass = Identifier() [<CLUSTER> jjtThis.targetClusterName = Identifier()]]
+	[ jjtThis.targetType = Identifier() [<BUCKET> jjtThis.targetBucketName = Identifier()]]
 	<FROM>
 	(
 	    jjtThis.leftExpression = Expression()
@@ -2448,9 +2444,9 @@ FromItem FromItem():
             )* <RBRACKET>
         )
     	|
-    	jjtThis.cluster = Cluster()
+    	jjtThis.bucket = Bucket()
     	|
-    	jjtThis.clusterList = ClusterList()
+    	jjtThis.bucketList = BucketList()
     	|
     	LOOKAHEAD(IndexIdentifier())
     	jjtThis.index = IndexIdentifier()
@@ -2488,26 +2484,26 @@ FromItem FromItem():
     { return jjtThis; }
 }
 
-Cluster Cluster():
+Bucket Bucket():
 { Token cName; }
 {
     (
-	    cName = <CLUSTER_IDENTIFIER> {jjtThis.clusterName = cName.image.split(":")[1];}
+	    cName = <BUCKET_IDENTIFIER> {jjtThis.bucketName = cName.image.split(":")[1];}
 		|
-	    cName = <CLUSTER_NUMBER_IDENTIFIER> {jjtThis.clusterNumber = Integer.parseInt(cName.image.split(":")[1]);}
+	    cName = <BUCKET_NUMBER_IDENTIFIER> {jjtThis.bucketNumber = Integer.parseInt(cName.image.split(":")[1]);}
 
 	)
     { return jjtThis; }
 }
 
-ClusterList ClusterList():
+BucketList BucketList():
 { Identifier lastIdentifier; }
 {
     (
-	     <CLUSTER> <COLON> <LBRACKET>
+	     <BUCKET> <COLON> <LBRACKET>
 	     [
-	        lastIdentifier = Identifier() { jjtThis.clusters.add(lastIdentifier); }
-	        ( <COMMA> lastIdentifier = Identifier() { jjtThis.clusters.add(lastIdentifier); } )*
+	        lastIdentifier = Identifier() { jjtThis.buckets.add(lastIdentifier); }
+	        ( <COMMA> lastIdentifier = Identifier() { jjtThis.buckets.add(lastIdentifier); } )*
 	     ]
 	     <RBRACKET>
 	)
@@ -3590,27 +3586,27 @@ MatchFilterItem MatchFilterItem():
 {
     (
         (
-            <CLASS> <COLON> jjtThis.className = Expression()
+            <TYPE> <COLON> jjtThis.typeName = Expression()
         )
         |
         (
-            <CLASSES> <COLON> jjtThis.classNames = Expression()
+            <TYPES> <COLON> jjtThis.typeNames = Expression()
         )
         |
         (
-            <CLUSTER> <COLON>
+            <BUCKET> <COLON>
             (
-               jjtThis.clusterName = Identifier()
+               jjtThis.bucketName = Identifier()
                |
-               jjtThis.clusterId = PInteger()
+               jjtThis.bucketId = PInteger()
             )
         )
         |
         (
             (
-                lastToken = <CLUSTER_IDENTIFIER> {jjtThis.clusterName = new Identifier(lastToken.image.split(":")[1]);}
+                lastToken = <BUCKET_IDENTIFIER> {jjtThis.bucketName = new Identifier(lastToken.image.split(":")[1]);}
                 |
-                lastToken = <CLUSTER_NUMBER_IDENTIFIER> {jjtThis.clusterId = new PInteger(-1); jjtThis.clusterId.setValue(Integer.parseInt(lastToken.image.split(":")[1]));}
+                lastToken = <BUCKET_NUMBER_IDENTIFIER> {jjtThis.bucketId = new PInteger(-1); jjtThis.bucketId.setValue(Integer.parseInt(lastToken.image.split(":")[1]));}
             )
         )
         |
@@ -3853,24 +3849,24 @@ MatchPathItem BothPathItemOpt():
     }
 }
 
-TruncateClassStatement TruncateClassStatement():
+TruncateTypeStatement TruncateTypeStatement():
 {}
 {
-	<TRUNCATE> <CLASS>
-	jjtThis.className = Identifier()
+	<TRUNCATE> <TYPE>
+	jjtThis.typeName = Identifier()
 	[ <POLYMORPHIC> {jjtThis.polymorphic = true;} ]
 	[ <UNSAFE> {jjtThis.unsafe = true;} ]
 	{ return jjtThis; }
 }
 
-TruncateClusterStatement TruncateClusterStatement():
+TruncateBucketStatement TruncateBucketStatement():
 {}
 {
-	<TRUNCATE> <CLUSTER>
+	<TRUNCATE> <BUCKET>
 	(
-		jjtThis.clusterName = Identifier()
+		jjtThis.bucketName = Identifier()
 		|
-		jjtThis.clusterNumber = PInteger()
+		jjtThis.bucketNumber = PInteger()
 	)
 	[ <UNSAFE> {jjtThis.unsafe = true;} ]
 	{ return jjtThis; }
@@ -3899,44 +3895,44 @@ TruncateRecordStatement TruncateRecordStatement():
 }
 
 
-CreateClassStatement CreateClassStatement():
+CreateTypeStatement CreateTypeStatement():
 {
 	Identifier lastIdentifier;
 	PInteger lastInteger;
 }
 {
-	<CREATE> <CLASS>
+	<CREATE> <TYPE>
 	(
 		jjtThis.name = Identifier()
 		[ <IF> <NOT> <EXISTS> { jjtThis.ifNotExists = true; }]
 		[
-			<EXTENDS> lastIdentifier = Identifier() { jjtThis.superclasses = new ArrayList<Identifier>(); jjtThis.superclasses.add(lastIdentifier); }
+			<EXTENDS> lastIdentifier = Identifier() { jjtThis.supertypes = new ArrayList<Identifier>(); jjtThis.supertypes.add(lastIdentifier); }
 			 (
 			 	<COMMA>
-			 	lastIdentifier = Identifier() { jjtThis.superclasses.add(lastIdentifier); }
+			 	lastIdentifier = Identifier() { jjtThis.supertypes.add(lastIdentifier); }
 			 )*
 		]
 		[
-			<CLUSTER> lastInteger = PInteger() { jjtThis.clusters = new ArrayList<PInteger>(); jjtThis.clusters.add(lastInteger); }
+			<BUCKET> lastInteger = PInteger() { jjtThis.buckets = new ArrayList<PInteger>(); jjtThis.buckets.add(lastInteger); }
 		 	(
 				<COMMA>
-				lastInteger = PInteger() { jjtThis.clusters.add(lastInteger); }
+				lastInteger = PInteger() { jjtThis.buckets.add(lastInteger); }
 		 	)*
 		]
-		[ <CLUSTERS> jjtThis.totalClusterNo = PInteger() ]
-		[ <ABSTRACT> { jjtThis.abstractClass = true; } ]
+		[ <BUCKETS> jjtThis.totalBucketNo = PInteger() ]
+		[ <ABSTRACT> { jjtThis.abstractType = true; } ]
 	)
 	{ return jjtThis; }
 }
 
-AlterClassStatement AlterClassStatement():
+AlterTypeStatement AlterTypeStatement():
 {
 	Identifier lastIdentifier;
 	PInteger lastInteger;
 	Token lastToken;
 }
 {
-	<ALTER> <CLASS>
+	<ALTER> <TYPE>
 	jjtThis.name = Identifier()
 	(
 
@@ -3955,7 +3951,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<SUPERCLASS> { jjtThis.property = "supeclass"; }
+			<SUPERTYPE> { jjtThis.property = "supertype"; }
 			[
 				(
 					<PLUS> {jjtThis.add = true;}
@@ -3973,8 +3969,8 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<SUPERCLASSES> {
-				jjtThis.property = "superclasses";
+			<SUPERTYPES> {
+				jjtThis.property = "supertypes";
 				jjtThis.identifierListValue = new ArrayList<Identifier>();
 			}
 			(
@@ -4009,7 +4005,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<ADDCLUSTER> { jjtThis.property = "addcluster"; }
+			<ADDBUCKET> { jjtThis.property = "addbucket"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4018,7 +4014,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<REMOVECLUSTER> { jjtThis.property = "removecluster"; }
+			<REMOVEBUCKET> { jjtThis.property = "removebucket"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4047,7 +4043,7 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
 		(
-			<CLUSTERSELECTION> { jjtThis.property = "clusterselection"; }
+			<BUCKETSELECTION> { jjtThis.property = "bucketselection"; }
 			(
 				jjtThis.identifierValue = Identifier()
 				|
@@ -4076,11 +4072,11 @@ AlterClassStatement AlterClassStatement():
 		)
 		|
         (
-            <DEFAULTCLUSTER>
+            <DEFAULTBUCKET>
             (
-                jjtThis.defaultClusterId = PInteger()
+                jjtThis.defaultBucketId = PInteger()
                 |
-                jjtThis.defaultClusterName = Identifier()
+                jjtThis.defaultBucketName = Identifier()
             )
         )
 	)
@@ -4089,10 +4085,10 @@ AlterClassStatement AlterClassStatement():
 }
 
 
-DropClassStatement DropClassStatement():
+DropTypeStatement DropTypeStatement():
 {}
 {
-	<DROP> <CLASS>
+	<DROP> <TYPE>
 	jjtThis.name = Identifier()
 	[ <IF> <EXISTS> { jjtThis.ifExists = true; } ]
 	[ <UNSAFE> { jjtThis.unsafe = true; } ]
@@ -4110,7 +4106,7 @@ CreatePropertyStatement CreatePropertyStatement():
 {
 	<CREATE> <PROPERTY>
 	(
-		jjtThis.className = Identifier()
+		jjtThis.typeName = Identifier()
 		<DOT>
 		jjtThis.propertyName = Identifier()
 
@@ -4152,7 +4148,7 @@ AlterPropertyStatement AlterPropertyStatement():
 {
 	<ALTER> <PROPERTY>
 	(
-		jjtThis.className = Identifier()
+		jjtThis.typeName = Identifier()
 		<DOT>
 		jjtThis.propertyName = Identifier()
 		(
@@ -4177,7 +4173,7 @@ DropPropertyStatement DropPropertyStatement():
 {}
 {
 	<DROP> <PROPERTY>
-	jjtThis.className = Identifier()
+	jjtThis.typeName = Identifier()
 	<DOT>
 	jjtThis.propertyName = Identifier()
 	[ <IF> <EXISTS> { jjtThis.ifExists = true; } ]
@@ -4199,7 +4195,7 @@ CreateIndexStatement CreateIndexStatement():
         LOOKAHEAD(3)
         (
             <ON>
-            jjtThis.className = Identifier()
+            jjtThis.typeName = Identifier()
             <LPAREN>
             (
                 lastIdentifier = Identifier() {
@@ -4334,15 +4330,15 @@ DropIndexStatement DropIndexStatement():
 }
 
 
-CreateClusterStatement CreateClusterStatement():
+CreateBucketStatement CreateBucketStatement():
 {}
 {
     (
         <CREATE>
         (
-            ( <CLUSTER> )
+            ( <BUCKET> )
             |
-            ( <BLOB> <CLUSTER> { jjtThis.blob = true; } )
+            ( <BLOB> <BUCKET> { jjtThis.blob = true; } )
         )
         jjtThis.name = Identifier()
         [ <IF> <NOT> <EXISTS> { jjtThis.ifNotExists = true; } ]
@@ -4351,10 +4347,10 @@ CreateClusterStatement CreateClusterStatement():
 	{ return jjtThis; }
 }
 
-AlterClusterStatement AlterClusterStatement():
+AlterBucketStatement AlterBucketStatement():
 {}
 {
-	<ALTER> <CLUSTER>
+	<ALTER> <BUCKET>
 	(
 		jjtThis.name = Identifier()
 	)
@@ -4364,10 +4360,10 @@ AlterClusterStatement AlterClusterStatement():
 	{ return jjtThis; }
 }
 
-DropClusterStatement DropClusterStatement():
+DropBucketStatement DropBucketStatement():
 {}
 {
-	<DROP> <CLUSTER>
+	<DROP> <BUCKET>
 	(
 		jjtThis.name = Identifier()
 		|

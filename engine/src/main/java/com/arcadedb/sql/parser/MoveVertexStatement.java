@@ -14,8 +14,8 @@ import java.util.Map;
 
 public class MoveVertexStatement extends Statement {
   protected FromItem         source;
-  protected Cluster          targetCluster;
-  protected Identifier       targetClass;
+  protected Bucket           targetBucket;
+  protected Identifier       targetType;
   protected UpdateOperations updateOperations;
   protected Batch            batch;
 
@@ -59,11 +59,11 @@ public class MoveVertexStatement extends Statement {
     builder.append("MOVE VERTEX ");
     source.toString(params, builder);
     builder.append(" TO ");
-    if (targetCluster != null) {
-      targetCluster.toString(params, builder);
+    if (targetBucket != null) {
+      targetBucket.toString(params, builder);
     } else {
-      builder.append("CLASS:");
-      targetClass.toString(params, builder);
+      builder.append("TYPE:");
+      targetType.toString(params, builder);
     }
 
     if (updateOperations != null) {
@@ -81,8 +81,8 @@ public class MoveVertexStatement extends Statement {
   public MoveVertexStatement copy() {
     MoveVertexStatement result = new MoveVertexStatement(-1);
     result.source = source.copy();
-    result.targetClass = targetClass == null ? null : targetClass.copy();
-    result.targetCluster = targetCluster == null ? null : targetCluster.copy();
+    result.targetType = targetType == null ? null : targetType.copy();
+    result.targetBucket = targetBucket == null ? null : targetBucket.copy();
     result.updateOperations = updateOperations == null ? null : updateOperations.copy();
     result.batch = batch == null ? null : batch.copy();
     return result;
@@ -99,9 +99,9 @@ public class MoveVertexStatement extends Statement {
 
     if (!source.equals(that.source))
       return false;
-    if (targetCluster != null ? !targetCluster.equals(that.targetCluster) : that.targetCluster != null)
+    if (targetBucket != null ? !targetBucket.equals(that.targetBucket) : that.targetBucket != null)
       return false;
-    if (targetClass != null ? !targetClass.equals(that.targetClass) : that.targetClass != null)
+    if (targetType != null ? !targetType.equals(that.targetType) : that.targetType != null)
       return false;
     if (updateOperations != null ? !updateOperations.equals(that.updateOperations) : that.updateOperations != null)
       return false;
@@ -111,8 +111,8 @@ public class MoveVertexStatement extends Statement {
   @Override
   public int hashCode() {
     int result = source.hashCode();
-    result = 31 * result + (targetCluster != null ? targetCluster.hashCode() : 0);
-    result = 31 * result + (targetClass != null ? targetClass.hashCode() : 0);
+    result = 31 * result + (targetBucket != null ? targetBucket.hashCode() : 0);
+    result = 31 * result + (targetType != null ? targetType.hashCode() : 0);
     result = 31 * result + (updateOperations != null ? updateOperations.hashCode() : 0);
     result = 31 * result + (batch != null ? batch.hashCode() : 0);
     return result;
@@ -126,20 +126,20 @@ public class MoveVertexStatement extends Statement {
     this.source = source;
   }
 
-  public Cluster getTargetCluster() {
-    return targetCluster;
+  public Bucket getTargetBucket() {
+    return targetBucket;
   }
 
-  public void setTargetCluster(Cluster targetCluster) {
-    this.targetCluster = targetCluster;
+  public void setTargetBucket(Bucket targetBucket) {
+    this.targetBucket = targetBucket;
   }
 
-  public Identifier getTargetClass() {
-    return targetClass;
+  public Identifier getTargetType() {
+    return targetType;
   }
 
-  public void setTargetClass(Identifier targetClass) {
-    this.targetClass = targetClass;
+  public void setTargetType(Identifier targetType) {
+    this.targetType = targetType;
   }
 
   public UpdateOperations getUpdateOperations() {

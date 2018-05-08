@@ -11,19 +11,19 @@ import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 
-public class Cluster extends SimpleNode {
-  protected String  clusterName;
-  protected Integer clusterNumber;
+public class Bucket extends SimpleNode {
+  protected String  bucketName;
+  protected Integer bucketNumber;
 
-  public Cluster(String clusterName) {
+  public Bucket(String bucketName) {
     super(-1);
-    this.clusterName = clusterName;
+    this.bucketName = bucketName;
   }
-  public Cluster(int id) {
+  public Bucket(int id) {
     super(id);
   }
 
-  public Cluster(SqlParser p, int id) {
+  public Bucket(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -40,25 +40,25 @@ public class Cluster extends SimpleNode {
   }
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
-    if (clusterName != null) {
-      builder.append("cluster:" + clusterName);
+    if (bucketName != null) {
+      builder.append("bucket:" + bucketName);
     } else {
-      builder.append("cluster:" + clusterNumber);
+      builder.append("bucket:" + bucketNumber);
     }
   }
 
-  public String getClusterName() {
-    return clusterName;
+  public String getBucketName() {
+    return bucketName;
   }
 
-  public Integer getClusterNumber() {
-    return clusterNumber;
+  public Integer getBucketNumber() {
+    return bucketNumber;
   }
 
-  public Cluster copy() {
-    Cluster result = new Cluster(-1);
-    result.clusterName = clusterName;
-    result.clusterNumber = clusterNumber;
+  public Bucket copy() {
+    Bucket result = new Bucket(-1);
+    result.bucketName = bucketName;
+    result.bucketNumber = bucketNumber;
     return result;
   }
 
@@ -69,11 +69,11 @@ public class Cluster extends SimpleNode {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    Cluster oCluster = (Cluster) o;
+    Bucket oCluster = (Bucket) o;
 
-    if (clusterName != null ? !clusterName.equals(oCluster.clusterName) : oCluster.clusterName != null)
+    if (bucketName != null ? !bucketName.equals(oCluster.bucketName) : oCluster.bucketName != null)
       return false;
-    if (clusterNumber != null ? !clusterNumber.equals(oCluster.clusterNumber) : oCluster.clusterNumber != null)
+    if (bucketNumber != null ? !bucketNumber.equals(oCluster.bucketNumber) : oCluster.bucketNumber != null)
       return false;
 
     return true;
@@ -81,21 +81,21 @@ public class Cluster extends SimpleNode {
 
   @Override
   public int hashCode() {
-    int result = clusterName != null ? clusterName.hashCode() : 0;
-    result = 31 * result + (clusterNumber != null ? clusterNumber.hashCode() : 0);
+    int result = bucketName != null ? bucketName.hashCode() : 0;
+    result = 31 * result + (bucketNumber != null ? bucketNumber.hashCode() : 0);
     return result;
   }
 
   public Result serialize() {
     ResultInternal result = new ResultInternal();
-    result.setProperty("clusterName", clusterName);
-    result.setProperty("clusterNumber", clusterNumber);
+    result.setProperty("bucketName", bucketName);
+    result.setProperty("bucketNumber", bucketNumber);
     return result;
   }
 
   public void deserialize(Result fromResult) {
-    clusterName = fromResult.getProperty("clusterName");
-    clusterNumber = fromResult.getProperty("clusterNumber");
+    bucketName = fromResult.getProperty("bucketName");
+    bucketNumber = fromResult.getProperty("bucketNumber");
   }
 }
 /* JavaCC - OriginalChecksum=d27abf009fe7db482fbcaac9d52ba192 (do not edit this line) */

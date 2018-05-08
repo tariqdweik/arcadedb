@@ -22,19 +22,19 @@ import java.util.Optional;
  */
 public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
   private final String     toAlias;
-  private final Identifier targetCluster;
-  private final Identifier targetClass;
+  private final Identifier targetBucket;
+  private final Identifier targetType;
 
   private boolean        inited = false;
   private Iterator       toIter;
   private Edge           nextEdge;
   private Iterator<Edge> currentToEdgesIter;
 
-  public FetchEdgesToVerticesStep(String toAlias, Identifier targetClass, Identifier targetCluster, CommandContext ctx, boolean profilingEnabled) {
+  public FetchEdgesToVerticesStep(String toAlias, Identifier targetType, Identifier targetBucket, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.toAlias = toAlias;
-    this.targetClass = targetClass;
-    this.targetCluster = targetCluster;
+    this.targetType = targetType;
+    this.targetBucket = targetBucket;
   }
 
   @Override
@@ -136,19 +136,19 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
   }
 
   private boolean matchesCluster(Edge edge) {
-    if (targetCluster == null) {
+    if (targetBucket == null) {
       return true;
     }
     int clusterId = edge.getIdentity().getBucketId();
     String clusterName = ctx.getDatabase().getSchema().getBucketById(clusterId).getName();
-    return clusterName.equals(targetCluster.getStringValue());
+    return clusterName.equals(targetBucket.getStringValue());
   }
 
   private boolean matchesClass(Edge edge) {
-    if (targetClass == null) {
+    if (targetType == null) {
       return true;
     }
-    return edge.getType().equals(targetClass.getStringValue());
+    return edge.getType().equals(targetType.getStringValue());
   }
 
   @Override
@@ -156,11 +156,11 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
     String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ FOR EACH x in " + toAlias + "\n";
     result += spaces + "       FETCH EDGES TO x";
-    if (targetClass != null) {
-      result += "\n" + spaces + "       (target class " + targetClass + ")";
+    if (targetType != null) {
+      result += "\n" + spaces + "       (target type " + targetType + ")";
     }
-    if (targetCluster != null) {
-      result += "\n" + spaces + "       (target cluster " + targetCluster + ")";
+    if (targetBucket != null) {
+      result += "\n" + spaces + "       (target bucket " + targetBucket + ")";
     }
     return result;
   }

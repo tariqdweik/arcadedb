@@ -15,7 +15,7 @@ import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
-public class CreateClusterStatement extends ODDLStatement {
+public class CreateBucketStatement extends ODDLStatement {
 
   /**
    * Class name
@@ -28,11 +28,11 @@ public class CreateClusterStatement extends ODDLStatement {
 
   protected boolean blob = false;
 
-  public CreateClusterStatement(int id) {
+  public CreateBucketStatement(int id) {
     super(id);
   }
 
-  public CreateClusterStatement(SqlParser p, int id) {
+  public CreateBucketStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -44,7 +44,7 @@ public class CreateClusterStatement extends ODDLStatement {
       if (ifNotExists) {
         return new InternalResultSet();
       } else {
-        throw new CommandExecutionException("Cluster " + name.getStringValue() + " already exists");
+        throw new CommandExecutionException("Bucket '" + name.getStringValue() + "' already exists");
       }
     }
     if (id != null) {
@@ -53,14 +53,14 @@ public class CreateClusterStatement extends ODDLStatement {
         if (ifNotExists) {
           return new InternalResultSet();
         } else {
-          throw new CommandExecutionException("Cluster " + id.getValue() + " already exists");
+          throw new CommandExecutionException("Bucket '" + id.getValue() + "' already exists");
         }
       }
     }
 
     ResultInternal result = new ResultInternal();
-    result.setProperty("operation", "create cluster");
-    result.setProperty("clusterName", name.getStringValue());
+    result.setProperty("operation", "create bucket");
+    result.setProperty("bucketName", name.getStringValue());
 
     int requestedId = id == null ? -1 : id.getValue().intValue();
     int finalId = -1;
@@ -95,7 +95,7 @@ public class CreateClusterStatement extends ODDLStatement {
     if (blob) {
       builder.append("BLOB ");
     }
-    builder.append("CLUSTER ");
+    builder.append("BUCKET ");
     name.toString(params, builder);
     if (ifNotExists) {
       builder.append(" IF NOT EXISTS");
@@ -107,8 +107,8 @@ public class CreateClusterStatement extends ODDLStatement {
   }
 
   @Override
-  public CreateClusterStatement copy() {
-    CreateClusterStatement result = new CreateClusterStatement(-1);
+  public CreateBucketStatement copy() {
+    CreateBucketStatement result = new CreateBucketStatement(-1);
     result.name = name == null ? null : name.copy();
     result.ifNotExists = this.ifNotExists;
     result.id = id == null ? null : id.copy();
@@ -123,7 +123,7 @@ public class CreateClusterStatement extends ODDLStatement {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    CreateClusterStatement that = (CreateClusterStatement) o;
+    CreateBucketStatement that = (CreateBucketStatement) o;
 
     if (ifNotExists != that.ifNotExists)
       return false;

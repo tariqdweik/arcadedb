@@ -12,17 +12,17 @@ import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
-public class TruncateClassStatement extends ODDLStatement {
+public class TruncateTypeStatement extends ODDLStatement {
 
-  protected Identifier className;
-  protected boolean polymorphic = false;
-  protected boolean unsafe      = false;
+  protected Identifier typeName;
+  protected boolean    polymorphic = false;
+  protected boolean    unsafe      = false;
 
-  public TruncateClassStatement(int id) {
+  public TruncateTypeStatement(int id) {
     super(id);
   }
 
-  public TruncateClassStatement(SqlParser p, int id) {
+  public TruncateTypeStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -118,7 +118,7 @@ public class TruncateClassStatement extends ODDLStatement {
   }
 
   @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
-    builder.append("TRUNCATE CLASS " + className.toString());
+    builder.append("TRUNCATE TYPE " + typeName.toString());
     if (polymorphic) {
       builder.append(" POLYMORPHIC");
     }
@@ -127,9 +127,9 @@ public class TruncateClassStatement extends ODDLStatement {
     }
   }
 
-  @Override public TruncateClassStatement copy() {
-    TruncateClassStatement result = new TruncateClassStatement(-1);
-    result.className = className == null ? null : className.copy();
+  @Override public TruncateTypeStatement copy() {
+    TruncateTypeStatement result = new TruncateTypeStatement(-1);
+    result.typeName = typeName == null ? null : typeName.copy();
     result.polymorphic = polymorphic;
     result.unsafe = unsafe;
     return result;
@@ -141,20 +141,20 @@ public class TruncateClassStatement extends ODDLStatement {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    TruncateClassStatement that = (TruncateClassStatement) o;
+    TruncateTypeStatement that = (TruncateTypeStatement) o;
 
     if (polymorphic != that.polymorphic)
       return false;
     if (unsafe != that.unsafe)
       return false;
-    if (className != null ? !className.equals(that.className) : that.className != null)
+    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
 
     return true;
   }
 
   @Override public int hashCode() {
-    int result = className != null ? className.hashCode() : 0;
+    int result = typeName != null ? typeName.hashCode() : 0;
     result = 31 * result + (polymorphic ? 1 : 0);
     result = 31 * result + (unsafe ? 1 : 0);
     return result;

@@ -11,17 +11,17 @@ import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
-public class TruncateClusterStatement extends ODDLStatement {
+public class TruncateBucketStatement extends ODDLStatement {
 
-  public Identifier clusterName;
-  public PInteger    clusterNumber;
-  public boolean unsafe = false;
+  public Identifier bucketName;
+  public PInteger   bucketNumber;
+  public boolean    unsafe = false;
 
-  public TruncateClusterStatement(int id) {
+  public TruncateBucketStatement(int id) {
     super(id);
   }
 
-  public TruncateClusterStatement(SqlParser p, int id) {
+  public TruncateBucketStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -81,21 +81,21 @@ public class TruncateClusterStatement extends ODDLStatement {
   }
 
   @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
-    builder.append("TRUNCATE CLUSTER ");
-    if (clusterName != null) {
-      clusterName.toString(params, builder);
-    } else if (clusterNumber != null) {
-      clusterNumber.toString(params, builder);
+    builder.append("TRUNCATE BUCKET ");
+    if (bucketName != null) {
+      bucketName.toString(params, builder);
+    } else if (bucketNumber != null) {
+      bucketNumber.toString(params, builder);
     }
     if (unsafe) {
       builder.append(" UNSAFE");
     }
   }
 
-  @Override public TruncateClusterStatement copy() {
-    TruncateClusterStatement result = new TruncateClusterStatement(-1);
-    result.clusterName = clusterName == null ? null : clusterName.copy();
-    result.clusterNumber = clusterNumber == null ? null : clusterNumber.copy();
+  @Override public TruncateBucketStatement copy() {
+    TruncateBucketStatement result = new TruncateBucketStatement(-1);
+    result.bucketName = bucketName == null ? null : bucketName.copy();
+    result.bucketNumber = bucketNumber == null ? null : bucketNumber.copy();
     result.unsafe = unsafe;
     return result;
   }
@@ -106,21 +106,21 @@ public class TruncateClusterStatement extends ODDLStatement {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    TruncateClusterStatement that = (TruncateClusterStatement) o;
+    TruncateBucketStatement that = (TruncateBucketStatement) o;
 
     if (unsafe != that.unsafe)
       return false;
-    if (clusterName != null ? !clusterName.equals(that.clusterName) : that.clusterName != null)
+    if (bucketName != null ? !bucketName.equals(that.bucketName) : that.bucketName != null)
       return false;
-    if (clusterNumber != null ? !clusterNumber.equals(that.clusterNumber) : that.clusterNumber != null)
+    if (bucketNumber != null ? !bucketNumber.equals(that.bucketNumber) : that.bucketNumber != null)
       return false;
 
     return true;
   }
 
   @Override public int hashCode() {
-    int result = clusterName != null ? clusterName.hashCode() : 0;
-    result = 31 * result + (clusterNumber != null ? clusterNumber.hashCode() : 0);
+    int result = bucketName != null ? bucketName.hashCode() : 0;
+    result = 31 * result + (bucketNumber != null ? bucketNumber.hashCode() : 0);
     result = 31 * result + (unsafe ? 1 : 0);
     return result;
   }

@@ -9,16 +9,16 @@ package com.arcadedb.sql.parser;
 import java.util.Map;
 
 public class MatchFilterItem extends SimpleNode {
-  protected Expression         className;
-  protected Expression         classNames;
-  protected Identifier         clusterName;
-  protected PInteger            clusterId;
+  protected Expression         typeName;
+  protected Expression         typeNames;
+  protected Identifier         bucketName;
+  protected PInteger           bucketId;
   protected Rid                rid;
   protected Identifier         alias;
   protected WhereClause        filter;
   protected WhereClause        whileCondition;
   protected ArrayRangeSelector depth;
-  protected PInteger            maxDepth;
+  protected PInteger           maxDepth;
   protected Boolean            optional;
   protected Identifier         depthAlias;
   protected Identifier         pathAlias;
@@ -39,24 +39,24 @@ public class MatchFilterItem extends SimpleNode {
   }
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
-    if (className != null) {
-      builder.append("class: ");
-      className.toString(params, builder);
+    if (typeName != null) {
+      builder.append("type: ");
+      typeName.toString(params, builder);
       return;
     }
-    if (classNames != null) {
-      builder.append("classes: ");
-      classNames.toString(params, builder);
+    if (typeNames != null) {
+      builder.append("types: ");
+      typeNames.toString(params, builder);
       return;
     }
-    if (clusterName != null) {
-      builder.append("cluster: ");
-      clusterName.toString(params, builder);
+    if (bucketName != null) {
+      builder.append("bucket: ");
+      bucketName.toString(params, builder);
       return;
     }
-    if (clusterId != null) {
-      builder.append("cluster: ");
-      clusterId.toString(params, builder);
+    if (bucketId != null) {
+      builder.append("bucket: ");
+      bucketId.toString(params, builder);
       return;
     }
     if (rid != null) {
@@ -114,10 +114,10 @@ public class MatchFilterItem extends SimpleNode {
   @Override
   public MatchFilterItem copy() {
     MatchFilterItem result = new MatchFilterItem(-1);
-    result.className = className == null ? null : className.copy();
-    result.classNames = classNames == null ? null : classNames.copy();
-    result.clusterName = clusterName == null ? null : clusterName.copy();
-    result.clusterId = clusterId == null ? null : clusterId.copy();
+    result.typeName = typeName == null ? null : typeName.copy();
+    result.typeNames = typeNames == null ? null : typeNames.copy();
+    result.bucketName = bucketName == null ? null : bucketName.copy();
+    result.bucketId = bucketId == null ? null : bucketId.copy();
     result.rid = rid == null ? null : rid.copy();
     result.alias = alias == null ? null : alias.copy();
     result.filter = filter == null ? null : filter.copy();
@@ -139,13 +139,13 @@ public class MatchFilterItem extends SimpleNode {
 
     MatchFilterItem that = (MatchFilterItem) o;
 
-    if (className != null ? !className.equals(that.className) : that.className != null)
+    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
-    if (classNames != null ? !classNames.equals(that.classNames) : that.classNames != null)
+    if (typeNames != null ? !typeNames.equals(that.typeNames) : that.typeNames != null)
       return false;
-    if (clusterName != null ? !clusterName.equals(that.clusterName) : that.clusterName != null)
+    if (bucketName != null ? !bucketName.equals(that.bucketName) : that.bucketName != null)
       return false;
-    if (clusterId != null ? !clusterId.equals(that.clusterId) : that.clusterId != null)
+    if (bucketId != null ? !bucketId.equals(that.bucketId) : that.bucketId != null)
       return false;
     if (rid != null ? !rid.equals(that.rid) : that.rid != null)
       return false;
@@ -168,10 +168,10 @@ public class MatchFilterItem extends SimpleNode {
 
   @Override
   public int hashCode() {
-    int result = className != null ? className.hashCode() : 0;
-    result = 31 * result + (classNames != null ? classNames.hashCode() : 0);
-    result = 31 * result + (clusterName != null ? clusterName.hashCode() : 0);
-    result = 31 * result + (clusterId != null ? clusterId.hashCode() : 0);
+    int result = typeName != null ? typeName.hashCode() : 0;
+    result = 31 * result + (typeNames != null ? typeNames.hashCode() : 0);
+    result = 31 * result + (bucketName != null ? bucketName.hashCode() : 0);
+    result = 31 * result + (bucketId != null ? bucketId.hashCode() : 0);
     result = 31 * result + (rid != null ? rid.hashCode() : 0);
     result = 31 * result + (alias != null ? alias.hashCode() : 0);
     result = 31 * result + (filter != null ? filter.hashCode() : 0);

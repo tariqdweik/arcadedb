@@ -15,16 +15,16 @@ import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
-public class DropClusterStatement extends ODDLStatement {
+public class DropBucketStatement extends ODDLStatement {
   protected Identifier name;
   protected PInteger    id;
   protected boolean ifExists = false;
 
-  public DropClusterStatement(int id) {
+  public DropBucketStatement(int id) {
     super(id);
   }
 
-  public DropClusterStatement(SqlParser p, int id) {
+  public DropBucketStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -41,7 +41,7 @@ public class DropClusterStatement extends ODDLStatement {
         if (ifExists) {
           return new InternalResultSet();
         } else {
-          throw new CommandExecutionException("Cluster not found: " + name);
+          throw new CommandExecutionException("Bucket not found: " + name);
         }
       }
     }
@@ -62,7 +62,7 @@ public class DropClusterStatement extends ODDLStatement {
       if (ifExists) {
         return new InternalResultSet();
       } else {
-        throw new CommandExecutionException("Cluster not found: " + clusterId);
+        throw new CommandExecutionException("Bucket not found: " + clusterId);
       }
     }
 
@@ -83,7 +83,7 @@ public class DropClusterStatement extends ODDLStatement {
 
   @Override
   public void toString(Map<Object, Object> params, StringBuilder builder) {
-    builder.append("DROP CLUSTER ");
+    builder.append("DROP BUCKET ");
     if (name != null) {
       name.toString(params, builder);
     } else {
@@ -95,8 +95,8 @@ public class DropClusterStatement extends ODDLStatement {
   }
 
   @Override
-  public DropClusterStatement copy() {
-    DropClusterStatement result = new DropClusterStatement(-1);
+  public DropBucketStatement copy() {
+    DropBucketStatement result = new DropBucketStatement(-1);
     result.name = name == null ? null : name.copy();
     result.id = id == null ? null : id.copy();
     result.ifExists = this.ifExists;
@@ -110,7 +110,7 @@ public class DropClusterStatement extends ODDLStatement {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    DropClusterStatement that = (DropClusterStatement) o;
+    DropBucketStatement that = (DropBucketStatement) o;
 
     if (ifExists != that.ifExists)
       return false;

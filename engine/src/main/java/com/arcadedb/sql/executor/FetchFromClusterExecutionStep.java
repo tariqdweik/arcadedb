@@ -156,7 +156,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
         Rid condRid = cond.getRight().getRid();
         BinaryCompareOperator operator = cond.getOperator();
         if (condRid != null) {
-          if (condRid.getCluster().getValue().intValue() != this.clusterId) {
+          if (condRid.getBucket().getValue().intValue() != this.clusterId) {
             continue;
           }
           if (operator instanceof GtOperator || operator instanceof GeOperator) {

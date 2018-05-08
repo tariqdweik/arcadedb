@@ -15,10 +15,10 @@ import java.util.Map;
 
 public class DropPropertyStatement extends ODDLStatement {
 
-  protected Identifier className;
+  protected Identifier typeName;
   protected Identifier propertyName;
-  protected boolean ifExists = false;
-  protected boolean force = false;
+  protected boolean    ifExists = false;
+  protected boolean    force = false;
 
   public DropPropertyStatement(int id) {
     super(id);
@@ -95,7 +95,7 @@ public class DropPropertyStatement extends ODDLStatement {
 
   @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("DROP PROPERTY ");
-    className.toString(params, builder);
+    typeName.toString(params, builder);
     builder.append(".");
     propertyName.toString(params, builder);
     if(ifExists){
@@ -108,7 +108,7 @@ public class DropPropertyStatement extends ODDLStatement {
 
   @Override public DropPropertyStatement copy() {
     DropPropertyStatement result = new DropPropertyStatement(-1);
-    result.className = className == null ? null : className.copy();
+    result.typeName = typeName == null ? null : typeName.copy();
     result.propertyName = propertyName == null ? null : propertyName.copy();
     result.force = force;
     result.ifExists = ifExists;
@@ -128,7 +128,7 @@ public class DropPropertyStatement extends ODDLStatement {
     if(ifExists!=that.ifExists){
       return false;
     }
-    if (className != null ? !className.equals(that.className) : that.className != null)
+    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
     if (propertyName != null ? !propertyName.equals(that.propertyName) : that.propertyName != null)
       return false;
@@ -137,7 +137,7 @@ public class DropPropertyStatement extends ODDLStatement {
   }
 
   @Override public int hashCode() {
-    int result = className != null ? className.hashCode() : 0;
+    int result = typeName != null ? typeName.hashCode() : 0;
     result = 31 * result + (propertyName != null ? propertyName.hashCode() : 0);
     result = 31 * result + (force ? 1 : 0);
     return result;

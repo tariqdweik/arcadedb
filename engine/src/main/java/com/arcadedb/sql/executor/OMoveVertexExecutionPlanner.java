@@ -13,14 +13,14 @@ import com.arcadedb.sql.parser.*;
 public class OMoveVertexExecutionPlanner {
   private final FromItem         source;
   private final Identifier       targetClass;
-  private final Cluster          targetCluster;
+  private final Bucket           targetCluster;
   private final UpdateOperations updateOperations;
   private final Batch            batch;
 
   public OMoveVertexExecutionPlanner(MoveVertexStatement oStatement) {
     this.source = oStatement.getSource();
-    this.targetClass = oStatement.getTargetClass();
-    this.targetCluster = oStatement.getTargetCluster();
+    this.targetClass = oStatement.getTargetType();
+    this.targetCluster = oStatement.getTargetBucket();
     this.updateOperations = oStatement.getUpdateOperations();
     this.batch = oStatement.getBatch();
   }
@@ -37,7 +37,7 @@ public class OMoveVertexExecutionPlanner {
     return result;
   }
 
-  private void handleTarget(UpdateExecutionPlan result, Identifier targetClass, Cluster targetCluster, CommandContext ctx, boolean profilingEnabled) {
+  private void handleTarget(UpdateExecutionPlan result, Identifier targetClass, Bucket targetCluster, CommandContext ctx, boolean profilingEnabled) {
     result.chain(new MoveVertexStep(targetClass, targetCluster, ctx, profilingEnabled));
   }
 

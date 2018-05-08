@@ -14,9 +14,9 @@ import java.util.Map;
 
 public class CreateVertexStatement extends Statement {
 
-  Identifier targetClass;
-  Identifier targetClusterName;
-  Cluster    targetCluster;
+  Identifier targetType;
+  Identifier targetBucketName;
+  Bucket     targetBucket;
   Projection returnStatement;
   InsertBody insertBody;
 
@@ -36,7 +36,7 @@ public class CreateVertexStatement extends Statement {
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = (InsertExecutionPlan) createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetClass.getStringValue());
+    executionPlan.executeInternal(targetType.getStringValue());
     return new LocalResultSet(executionPlan);
   }
 
@@ -54,7 +54,7 @@ public class CreateVertexStatement extends Statement {
     }
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = (InsertExecutionPlan) createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetClass.getStringValue());
+    executionPlan.executeInternal(targetType.getStringValue());
     return new LocalResultSet(executionPlan);
   }
 
@@ -66,22 +66,22 @@ public class CreateVertexStatement extends Statement {
   public void toString(Map<Object, Object> params, StringBuilder builder) {
 
     builder.append("CREATE VERTEX ");
-    if (targetClass != null) {
-      targetClass.toString(params, builder);
-      if (targetClusterName != null) {
-        builder.append(" CLUSTER ");
-        targetClusterName.toString(params, builder);
+    if (targetType != null) {
+      targetType.toString(params, builder);
+      if (targetBucketName != null) {
+        builder.append(" BUCKET ");
+        targetBucketName.toString(params, builder);
       }
     }
-    if (targetCluster != null) {
-      targetCluster.toString(params, builder);
+    if (targetBucket != null) {
+      targetBucket.toString(params, builder);
     }
     if (returnStatement != null) {
       builder.append(" RETURN ");
       returnStatement.toString(params, builder);
     }
     if (insertBody != null) {
-      if (targetClass != null || targetCluster != null || returnStatement != null) {
+      if (targetType != null || targetBucket != null || returnStatement != null) {
         builder.append(" ");
       }
       insertBody.toString(params, builder);
@@ -95,9 +95,9 @@ public class CreateVertexStatement extends Statement {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    result.targetClass = targetClass == null ? null : targetClass.copy();
-    result.targetClusterName = targetClusterName == null ? null : targetClusterName.copy();
-    result.targetCluster = targetCluster == null ? null : targetCluster.copy();
+    result.targetType = targetType == null ? null : targetType.copy();
+    result.targetBucketName = targetBucketName == null ? null : targetBucketName.copy();
+    result.targetBucket = targetBucket == null ? null : targetBucket.copy();
     result.returnStatement = returnStatement == null ? null : returnStatement.copy();
     result.insertBody = insertBody == null ? null : insertBody.copy();
     return result;
@@ -111,11 +111,11 @@ public class CreateVertexStatement extends Statement {
 
     CreateVertexStatement that = (CreateVertexStatement) o;
 
-    if (targetClass != null ? !targetClass.equals(that.targetClass) : that.targetClass != null)
+    if (targetType != null ? !targetType.equals(that.targetType) : that.targetType != null)
       return false;
-    if (targetClusterName != null ? !targetClusterName.equals(that.targetClusterName) : that.targetClusterName != null)
+    if (targetBucketName != null ? !targetBucketName.equals(that.targetBucketName) : that.targetBucketName != null)
       return false;
-    if (targetCluster != null ? !targetCluster.equals(that.targetCluster) : that.targetCluster != null)
+    if (targetBucket != null ? !targetBucket.equals(that.targetBucket) : that.targetBucket != null)
       return false;
     if (returnStatement != null ? !returnStatement.equals(that.returnStatement) : that.returnStatement != null)
       return false;
@@ -126,36 +126,36 @@ public class CreateVertexStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = targetClass != null ? targetClass.hashCode() : 0;
-    result = 31 * result + (targetClusterName != null ? targetClusterName.hashCode() : 0);
-    result = 31 * result + (targetCluster != null ? targetCluster.hashCode() : 0);
+    int result = targetType != null ? targetType.hashCode() : 0;
+    result = 31 * result + (targetBucketName != null ? targetBucketName.hashCode() : 0);
+    result = 31 * result + (targetBucket != null ? targetBucket.hashCode() : 0);
     result = 31 * result + (returnStatement != null ? returnStatement.hashCode() : 0);
     result = 31 * result + (insertBody != null ? insertBody.hashCode() : 0);
     return result;
   }
 
-  public Identifier getTargetClass() {
-    return targetClass;
+  public Identifier getTargetType() {
+    return targetType;
   }
 
-  public void setTargetClass(Identifier targetClass) {
-    this.targetClass = targetClass;
+  public void setTargetType(Identifier targetType) {
+    this.targetType = targetType;
   }
 
-  public Identifier getTargetClusterName() {
-    return targetClusterName;
+  public Identifier getTargetBucketName() {
+    return targetBucketName;
   }
 
-  public void setTargetClusterName(Identifier targetClusterName) {
-    this.targetClusterName = targetClusterName;
+  public void setTargetBucketName(Identifier targetBucketName) {
+    this.targetBucketName = targetBucketName;
   }
 
-  public Cluster getTargetCluster() {
-    return targetCluster;
+  public Bucket getTargetBucket() {
+    return targetBucket;
   }
 
-  public void setTargetCluster(Cluster targetCluster) {
-    this.targetCluster = targetCluster;
+  public void setTargetBucket(Bucket targetBucket) {
+    this.targetBucket = targetBucket;
   }
 
   public Projection getReturnStatement() {

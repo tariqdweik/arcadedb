@@ -32,8 +32,8 @@ public class ODeleteEdgeExecutionPlanner {
 
   public ODeleteEdgeExecutionPlanner(DeleteEdgeStatement stm) {
 
-    this.className = stm.getClassName() == null ? null : stm.getClassName().copy();
-    this.targetClusterName = stm.getTargetClusterName() == null ? null : stm.getTargetClusterName().copy();
+    this.className = stm.getTypeName() == null ? null : stm.getTypeName().copy();
+    this.targetClusterName = stm.getTargetBucketName() == null ? null : stm.getTargetBucketName().copy();
     if (stm.getRid() != null) {
       this.rids = new ArrayList<>();
       rids.add(stm.getRid().copy());

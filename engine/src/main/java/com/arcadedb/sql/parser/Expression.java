@@ -82,7 +82,7 @@ public class Expression extends SimpleNode {
     //from here it's old stuff, only for the old executor
     if (value instanceof Rid) {
       Rid v = (Rid) value;
-      return new RID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
+      return new RID(ctx.getDatabase(), v.bucket.getValue().intValue(), v.position.getValue().longValue());
     } else if (value instanceof MathExpression) {
       return ((MathExpression) value).execute(iCurrentRecord, ctx);
     } else if (value instanceof ArrayConcatExpression) {
@@ -124,7 +124,7 @@ public class Expression extends SimpleNode {
     //from here it's old stuff, only for the old executor
     if (value instanceof Rid) {
       Rid v = (Rid) value;
-      return new RID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
+      return new RID(ctx.getDatabase(), v.bucket.getValue().intValue(), v.position.getValue().longValue());
     } else if (value instanceof MathExpression) {
       return ((MathExpression) value).execute(iCurrentRecord, ctx);
     } else if (value instanceof ArrayConcatExpression) {

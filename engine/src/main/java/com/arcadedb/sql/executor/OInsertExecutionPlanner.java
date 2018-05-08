@@ -14,9 +14,9 @@ import java.util.List;
  */
 public class OInsertExecutionPlanner {
 
-  protected Identifier      targetClass;
-  protected Identifier      targetClusterName;
-  protected Cluster         targetCluster;
+  protected Identifier      targetType;
+  protected Identifier      targetBucketName;
+  protected Bucket          targetBucket;
   protected IndexIdentifier targetIndex;
   protected InsertBody      insertBody;
   protected Projection      returnStatement;
@@ -27,9 +27,9 @@ public class OInsertExecutionPlanner {
   }
 
   public OInsertExecutionPlanner(InsertStatement statement) {
-    this.targetClass = statement.getTargetClass() == null ? null : statement.getTargetClass().copy();
-    this.targetClusterName = statement.getTargetClusterName() == null ? null : statement.getTargetClusterName().copy();
-    this.targetCluster = statement.getTargetCluster() == null ? null : statement.getTargetCluster().copy();
+    this.targetType = statement.getTargetType() == null ? null : statement.getTargetType().copy();
+    this.targetBucketName = statement.getTargetBucketName() == null ? null : statement.getTargetBucketName().copy();
+    this.targetBucket = statement.getTargetBucket() == null ? null : statement.getTargetBucket().copy();
     this.targetIndex = statement.getTargetIndex() == null ? null : statement.getTargetIndex().copy();
     this.insertBody = statement.getInsertBody() == null ? null : statement.getInsertBody().copy();
     this.returnStatement = statement.getReturnStatement() == null ? null : statement.getReturnStatement().copy();
@@ -47,17 +47,17 @@ public class OInsertExecutionPlanner {
       } else {
         handleCreateRecord(result, this.insertBody, ctx, enableProfiling);
       }
-      handleTargetClass(result, targetClass, ctx, enableProfiling);
+      handleTargetClass(result, targetType, ctx, enableProfiling);
       handleSetFields(result, insertBody, ctx, enableProfiling);
       handleReturn(result, returnStatement, ctx, enableProfiling);
-      if (targetCluster != null) {
-        String name = targetCluster.getClusterName();
+      if (targetBucket != null) {
+        String name = targetBucket.getBucketName();
         if (name == null) {
-          name = ctx.getDatabase().getSchema().getBucketById(targetCluster.getClusterNumber()).getName();
+          name = ctx.getDatabase().getSchema().getBucketById(targetBucket.getBucketNumber()).getName();
         }
         handleSave(result, new Identifier(name), ctx, enableProfiling);
       } else {
-        handleSave(result, targetClusterName, ctx, enableProfiling);
+        handleSave(result, targetBucketName, ctx, enableProfiling);
       }
     }
     return result;
@@ -109,7 +109,7 @@ public class OInsertExecutionPlanner {
     if (body != null && body.getValueExpressions() != null && body.getValueExpressions().size() > 0) {
       tot = body.getValueExpressions().size();
     }
-    result.chain(new CreateRecordStep(targetClass.getStringValue(), ctx, tot, profilingEnabled));
+    result.chain(new CreateRecordStep(targetType.getStringValue(), ctx, tot, profilingEnabled));
   }
 
   private void handleInsertSelect(InsertExecutionPlan result, SelectStatement selectStatement, CommandContext ctx,

@@ -340,21 +340,21 @@ public class OSelectExecutionPlanner {
     FromItem item = info.target.getItem();
     if (item.getRids() != null && item.getRids().size() > 0) {
       if (item.getRids().size() == 1) {
-        PInteger cluster = item.getRids().get(0).getCluster();
+        PInteger cluster = item.getRids().get(0).getBucket();
         result.add(db.getSchema().getBucketById(cluster.getValue().intValue()).getName());
       } else {
         for (Rid rid : item.getRids()) {
-          PInteger cluster = rid.getCluster();
+          PInteger cluster = rid.getBucket();
           result.add(db.getSchema().getBucketById(cluster.getValue().intValue()).getName());
         }
       }
       return result;
     } else if (item.getInputParams() != null && item.getInputParams().size() > 0) {
       return null;
-    } else if (item.getCluster() != null) {
-      String name = item.getCluster().getClusterName();
+    } else if (item.getBucket() != null) {
+      String name = item.getBucket().getBucketName();
       if (name == null) {
-        name = db.getSchema().getBucketById(item.getCluster().getClusterNumber()).getName();
+        name = db.getSchema().getBucketById(item.getBucket().getBucketNumber()).getName();
       }
       if (name != null) {
         result.add(name);
@@ -362,11 +362,11 @@ public class OSelectExecutionPlanner {
       } else {
         return null;
       }
-    } else if (item.getClusterList() != null) {
-      for (Cluster cluster : item.getClusterList().toListOfClusters()) {
-        String name = cluster.getClusterName();
+    } else if (item.getBucketList() != null) {
+      for (Bucket cluster : item.getBucketList().toListOfClusters()) {
+        String name = cluster.getBucketName();
         if (name == null) {
-          name = db.getSchema().getBucketById(cluster.getClusterNumber()).getName();
+          name = db.getSchema().getBucketById(cluster.getBucketNumber()).getName();
         }
         if (name != null) {
           result.add(name);
@@ -974,15 +974,15 @@ public class OSelectExecutionPlanner {
         }
 
         handleClassAsTarget(shardedPlan.getValue(), filterClusters, info, ctx, profilingEnabled);
-      } else if (target.getCluster() != null) {
-        handleClustersAsTarget(shardedPlan.getValue(), info, Collections.singletonList(target.getCluster()), ctx, profilingEnabled);
-      } else if (target.getClusterList() != null) {
-        List<Cluster> allClusters = target.getClusterList().toListOfClusters();
-        List<Cluster> clustersForShard = new ArrayList<>();
-        for (Cluster cluster : allClusters) {
-          String name = cluster.getClusterName();
+      } else if (target.getBucket() != null) {
+        handleClustersAsTarget(shardedPlan.getValue(), info, Collections.singletonList(target.getBucket()), ctx, profilingEnabled);
+      } else if (target.getBucketList() != null) {
+        List<Bucket> allClusters = target.getBucketList().toListOfClusters();
+        List<Bucket> clustersForShard = new ArrayList<>();
+        for (Bucket cluster : allClusters) {
+          String name = cluster.getBucketName();
           if (name == null) {
-            name = ctx.getDatabase().getSchema().getBucketById(cluster.getClusterNumber()).getName();
+            name = ctx.getDatabase().getSchema().getBucketById(cluster.getBucketNumber()).getName();
           }
           if (name != null && info.serverToClusters.get(shardedPlan.getKey()).contains(name)) {
             clustersForShard.add(cluster);
@@ -1132,7 +1132,7 @@ public class OSelectExecutionPlanner {
       PInteger position = new PInteger(-1);
       position.setValue(orid.getPosition());
       rid.setLegacy(true);
-      rid.setCluster(cluster);
+      rid.setBucket(cluster);
       rid.setPosition(position);
 
       if (filterClusters == null || isFromClusters(rid, filterClusters, ctx.getDatabase())) {
@@ -1155,7 +1155,7 @@ public class OSelectExecutionPlanner {
         cluster.setValue(orid.getBucketId());
         PInteger position = new PInteger(-1);
         position.setValue(orid.getPosition());
-        rid.setCluster(cluster);
+        rid.setBucket(cluster);
         rid.setPosition(position);
         if (filterClusters == null || isFromClusters(rid, filterClusters, ctx.getDatabase())) {
           rids.add(rid);
@@ -1184,7 +1184,7 @@ public class OSelectExecutionPlanner {
     if (filterClusters == null) {
       throw new IllegalArgumentException();
     }
-    String clusterName = database.getSchema().getBucketById(rid.getCluster().getValue().intValue()).getName();
+    String clusterName = database.getSchema().getBucketById(rid.getBucket().getValue().intValue()).getName();
     return filterClusters.contains(clusterName);
   }
 
@@ -2162,7 +2162,7 @@ public class OSelectExecutionPlanner {
     return result;
   }
 
-  private void handleClustersAsTarget(SelectExecutionPlan plan, QueryPlanningInfo info, List<Cluster> clusters,
+  private void handleClustersAsTarget(SelectExecutionPlan plan, QueryPlanningInfo info, List<Bucket> clusters,
       CommandContext ctx, boolean profilingEnabled) {
 
     throw new UnsupportedOperationException();
@@ -2316,9 +2316,9 @@ public class OSelectExecutionPlanner {
     }
     if (info.target.getItem().getIdentifier() != null) {
       return true;
-    } else if (info.target.getItem().getCluster() != null) {
+    } else if (info.target.getItem().getBucket() != null) {
       return true;
-    } else if (info.target.getItem().getClusterList() != null) {
+    } else if (info.target.getItem().getBucketList() != null) {
       return true;
     }
     return false;

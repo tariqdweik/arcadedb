@@ -17,17 +17,17 @@ import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
-public class DropClassStatement extends ODDLStatement {
+public class DropTypeStatement extends ODDLStatement {
 
   public Identifier name;
   public boolean    ifExists = false;
   public boolean    unsafe   = false;
 
-  public DropClassStatement(int id) {
+  public DropTypeStatement(int id) {
     super(id);
   }
 
-  public DropClassStatement(SqlParser p, int id) {
+  public DropTypeStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -39,17 +39,17 @@ public class DropClassStatement extends ODDLStatement {
       if (ifExists) {
         return new InternalResultSet();
       }
-      throw new CommandExecutionException("Class " + name.getStringValue() + " does not exist");
+      throw new CommandExecutionException("Type '" + name.getStringValue() + "' does not exist");
     }
 
     if (!unsafe && ctx.getDatabase().countType(clazz.getName(), false) > 0) {
       //check vertex or edge
       if (clazz.getType() == Vertex.RECORD_TYPE) {
-        throw new CommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
+        throw new CommandExecutionException("'DROP TYPE' command cannot drop type '" + name.getStringValue()
             + "' because it contains Vertices. Use 'DELETE VERTEX' command first to avoid broken edges in a database, or apply the 'UNSAFE' keyword to force it");
       } else if (clazz.getType() == Edge.RECORD_TYPE) {
         // FOUND EDGE CLASS
-        throw new CommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
+        throw new CommandExecutionException("'DROP TYPE' command cannot drop type '" + name.getStringValue()
             + "' because it contains Edges. Use 'DELETE EDGE' command first to avoid broken vertices in a database, or apply the 'UNSAFE' keyword to force it");
       }
     }
@@ -67,7 +67,7 @@ public class DropClassStatement extends ODDLStatement {
 
   @Override
   public void toString(Map<Object, Object> params, StringBuilder builder) {
-    builder.append("DROP CLASS ");
+    builder.append("DROP TYPE ");
     name.toString(params, builder);
     if (ifExists) {
       builder.append(" IF EXISTS");
@@ -78,8 +78,8 @@ public class DropClassStatement extends ODDLStatement {
   }
 
   @Override
-  public DropClassStatement copy() {
-    DropClassStatement result = new DropClassStatement(-1);
+  public DropTypeStatement copy() {
+    DropTypeStatement result = new DropTypeStatement(-1);
     result.name = name == null ? null : name.copy();
     result.ifExists = ifExists;
     result.unsafe = unsafe;
@@ -93,7 +93,7 @@ public class DropClassStatement extends ODDLStatement {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    DropClassStatement that = (DropClassStatement) o;
+    DropTypeStatement that = (DropTypeStatement) o;
 
     if (unsafe != that.unsafe)
       return false;

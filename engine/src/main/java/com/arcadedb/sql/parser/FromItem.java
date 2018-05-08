@@ -18,8 +18,8 @@ public class FromItem extends SimpleNode {
 
   protected List<Rid>            rids;
   protected List<InputParameter> inputParams;
-  protected Cluster              cluster;
-  protected ClusterList          clusterList;
+  protected Bucket               bucket;
+  protected BucketList           bucketList;
   protected IndexIdentifier      index;
   protected MetadataIdentifier   metadata;
   protected Statement            statement;
@@ -78,13 +78,13 @@ public class FromItem extends SimpleNode {
         builder.append("]");
         return;
       }
-    } else if (cluster != null) {
-      cluster.toString(params, builder);
+    } else if (bucket != null) {
+      bucket.toString(params, builder);
       return;
       // } else if (className != null) {
       // return className.getValue();
-    } else if (clusterList != null) {
-      clusterList.toString(params, builder);
+    } else if (bucketList != null) {
+      bucketList.toString(params, builder);
       return;
     } else if (metadata != null) {
       metadata.toString(params, builder);
@@ -117,12 +117,12 @@ public class FromItem extends SimpleNode {
     return rids;
   }
 
-  public Cluster getCluster() {
-    return cluster;
+  public Bucket getBucket() {
+    return bucket;
   }
 
-  public ClusterList getClusterList() {
-    return clusterList;
+  public BucketList getBucketList() {
+    return bucketList;
   }
 
   public IndexIdentifier getIndex() {
@@ -161,8 +161,8 @@ public class FromItem extends SimpleNode {
     if (inputParams != null) {
       result.inputParams = inputParams.stream().map(r -> r.copy()).collect(Collectors.toList());
     }
-    result.cluster = cluster == null ? null : cluster.copy();
-    result.clusterList = clusterList == null ? null : clusterList.copy();
+    result.bucket = bucket == null ? null : bucket.copy();
+    result.bucketList = bucketList == null ? null : bucketList.copy();
     result.index = index == null ? null : index.copy();
     result.metadata = metadata == null ? null : metadata.copy();
     result.statement = statement == null ? null : statement.copy();
@@ -187,9 +187,9 @@ public class FromItem extends SimpleNode {
       return false;
     if (inputParams != null ? !inputParams.equals(oFromItem.inputParams) : oFromItem.inputParams != null)
       return false;
-    if (cluster != null ? !cluster.equals(oFromItem.cluster) : oFromItem.cluster != null)
+    if (bucket != null ? !bucket.equals(oFromItem.bucket) : oFromItem.bucket != null)
       return false;
-    if (clusterList != null ? !clusterList.equals(oFromItem.clusterList) : oFromItem.clusterList != null)
+    if (bucketList != null ? !bucketList.equals(oFromItem.bucketList) : oFromItem.bucketList != null)
       return false;
     if (index != null ? !index.equals(oFromItem.index) : oFromItem.index != null)
       return false;
@@ -213,8 +213,8 @@ public class FromItem extends SimpleNode {
   public int hashCode() {
     int result = rids != null ? rids.hashCode() : 0;
     result = 31 * result + (inputParams != null ? inputParams.hashCode() : 0);
-    result = 31 * result + (cluster != null ? cluster.hashCode() : 0);
-    result = 31 * result + (clusterList != null ? clusterList.hashCode() : 0);
+    result = 31 * result + (bucket != null ? bucket.hashCode() : 0);
+    result = 31 * result + (bucketList != null ? bucketList.hashCode() : 0);
     result = 31 * result + (index != null ? index.hashCode() : 0);
     result = 31 * result + (metadata != null ? metadata.hashCode() : 0);
     result = 31 * result + (statement != null ? statement.hashCode() : 0);
@@ -229,12 +229,12 @@ public class FromItem extends SimpleNode {
     this.rids = rids;
   }
 
-  public void setCluster(Cluster cluster) {
-    this.cluster = cluster;
+  public void setBucket(Bucket bucket) {
+    this.bucket = bucket;
   }
 
-  public void setClusterList(ClusterList clusterList) {
-    this.clusterList = clusterList;
+  public void setBucketList(BucketList bucketList) {
+    this.bucketList = bucketList;
   }
 
   public void setIndex(IndexIdentifier index) {
@@ -277,11 +277,11 @@ public class FromItem extends SimpleNode {
     if (inputParams != null) {
       result.setProperty("inputParams", rids.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
-    if (cluster != null) {
-      result.setProperty("cluster", cluster.serialize());
+    if (bucket != null) {
+      result.setProperty("bucket", bucket.serialize());
     }
-    if (clusterList != null) {
-      result.setProperty("clusterList", clusterList.serialize());
+    if (bucketList != null) {
+      result.setProperty("bucketList", bucketList.serialize());
     }
     if (index != null) {
       result.setProperty("index", index.serialize());
@@ -327,13 +327,13 @@ public class FromItem extends SimpleNode {
       }
     }
 
-    if (fromResult.getProperty("cluster") != null) {
-      cluster = new Cluster(-1);
-      cluster.deserialize(fromResult.getProperty("cluster"));
+    if (fromResult.getProperty("bucket") != null) {
+      bucket = new Bucket(-1);
+      bucket.deserialize(fromResult.getProperty("bucket"));
     }
-    if (fromResult.getProperty("clusterList") != null) {
-      clusterList = new ClusterList(-1);
-      clusterList.deserialize(fromResult.getProperty("clusterList"));
+    if (fromResult.getProperty("bucketList") != null) {
+      bucketList = new BucketList(-1);
+      bucketList.deserialize(fromResult.getProperty("bucketList"));
     }
 
     if (fromResult.getProperty("index") != null) {

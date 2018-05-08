@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 public class DeleteEdgeStatement extends Statement {
   private static final Object unset = new Object();
 
-  protected Identifier className;
-  protected Identifier targetClusterName;
+  protected Identifier typeName;
+  protected Identifier targetBucketName;
 
   protected Rid       rid;
   protected List<Rid> rids;
@@ -78,12 +78,12 @@ public class DeleteEdgeStatement extends Statement {
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("DELETE EDGE");
 
-    if (className != null) {
+    if (typeName != null) {
       builder.append(" ");
-      className.toString(params, builder);
-      if (targetClusterName != null) {
-        builder.append(" CLUSTER ");
-        targetClusterName.toString(params, builder);
+      typeName.toString(params, builder);
+      if (targetBucketName != null) {
+        builder.append(" BUCKET ");
+        targetBucketName.toString(params, builder);
       }
     }
 
@@ -132,8 +132,8 @@ public class DeleteEdgeStatement extends Statement {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    result.className = className == null ? null : className.copy();
-    result.targetClusterName = targetClusterName == null ? null : targetClusterName.copy();
+    result.typeName = typeName == null ? null : typeName.copy();
+    result.targetBucketName = targetBucketName == null ? null : targetBucketName.copy();
     result.rid = rid == null ? null : rid.copy();
     result.rids = rids == null ? null : rids.stream().map(x -> x.copy()).collect(Collectors.toList());
     result.leftExpression = leftExpression==null?null:leftExpression.copy();
@@ -152,9 +152,9 @@ public class DeleteEdgeStatement extends Statement {
 
     DeleteEdgeStatement that = (DeleteEdgeStatement) o;
 
-    if (className != null ? !className.equals(that.className) : that.className != null)
+    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
-    if (targetClusterName != null ? !targetClusterName.equals(that.targetClusterName) : that.targetClusterName != null)
+    if (targetBucketName != null ? !targetBucketName.equals(that.targetBucketName) : that.targetBucketName != null)
       return false;
     if (rid != null ? !rid.equals(that.rid) : that.rid != null)
       return false;
@@ -175,8 +175,8 @@ public class DeleteEdgeStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = className != null ? className.hashCode() : 0;
-    result = 31 * result + (targetClusterName != null ? targetClusterName.hashCode() : 0);
+    int result = typeName != null ? typeName.hashCode() : 0;
+    result = 31 * result + (targetBucketName != null ? targetBucketName.hashCode() : 0);
     result = 31 * result + (rid != null ? rid.hashCode() : 0);
     result = 31 * result + (rids != null ? rids.hashCode() : 0);
     result = 31 * result + (leftExpression != null ? leftExpression.hashCode() : 0);
@@ -187,20 +187,20 @@ public class DeleteEdgeStatement extends Statement {
     return result;
   }
 
-  public Identifier getClassName() {
-    return className;
+  public Identifier getTypeName() {
+    return typeName;
   }
 
-  public void setClassName(Identifier className) {
-    this.className = className;
+  public void setTypeName(Identifier typeName) {
+    this.typeName = typeName;
   }
 
-  public Identifier getTargetClusterName() {
-    return targetClusterName;
+  public Identifier getTargetBucketName() {
+    return targetBucketName;
   }
 
-  public void setTargetClusterName(Identifier targetClusterName) {
-    this.targetClusterName = targetClusterName;
+  public void setTargetBucketName(Identifier targetBucketName) {
+    this.targetBucketName = targetBucketName;
   }
 
   public Rid getRid() {

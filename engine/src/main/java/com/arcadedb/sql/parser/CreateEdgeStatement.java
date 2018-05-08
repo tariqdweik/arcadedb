@@ -14,8 +14,8 @@ import java.util.Map;
 
 public class CreateEdgeStatement extends Statement {
 
-  protected Identifier targetClass;
-  protected Identifier targetClusterName;
+  protected Identifier targetType;
+  protected Identifier targetBucketName;
 
   protected Expression leftExpression;
 
@@ -48,7 +48,7 @@ public class CreateEdgeStatement extends Statement {
     }
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetClass.getStringValue());
+    executionPlan.executeInternal(targetType.getStringValue());
     return new LocalResultSet(executionPlan);
   }
 
@@ -60,7 +60,7 @@ public class CreateEdgeStatement extends Statement {
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetClass.getStringValue());
+    executionPlan.executeInternal(targetType.getStringValue());
     return new LocalResultSet(executionPlan);
   }
 
@@ -71,12 +71,12 @@ public class CreateEdgeStatement extends Statement {
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("CREATE EDGE");
-    if (targetClass != null) {
+    if (targetType != null) {
       builder.append(" ");
-      targetClass.toString(params, builder);
-      if (targetClusterName != null) {
-        builder.append(" CLUSTER ");
-        targetClusterName.toString(params, builder);
+      targetType.toString(params, builder);
+      if (targetBucketName != null) {
+        builder.append(" BUCKET ");
+        targetBucketName.toString(params, builder);
       }
     }
     builder.append(" FROM ");
@@ -110,8 +110,8 @@ public class CreateEdgeStatement extends Statement {
       throw new RuntimeException(e);
     }
 
-    result.targetClass = targetClass==null?null:targetClass.copy();
-    result.targetClusterName = targetClusterName==null?null:targetClusterName.copy();
+    result.targetType = targetType ==null?null: targetType.copy();
+    result.targetBucketName = targetBucketName ==null?null: targetBucketName.copy();
 
     result.leftExpression = leftExpression==null?null:leftExpression.copy();
 
@@ -132,9 +132,9 @@ public class CreateEdgeStatement extends Statement {
 
     CreateEdgeStatement that = (CreateEdgeStatement) o;
 
-    if (targetClass != null ? !targetClass.equals(that.targetClass) : that.targetClass != null)
+    if (targetType != null ? !targetType.equals(that.targetType) : that.targetType != null)
       return false;
-    if (targetClusterName != null ? !targetClusterName.equals(that.targetClusterName) : that.targetClusterName != null)
+    if (targetBucketName != null ? !targetBucketName.equals(that.targetBucketName) : that.targetBucketName != null)
       return false;
     if (leftExpression != null ? !leftExpression.equals(that.leftExpression) : that.leftExpression != null)
       return false;
@@ -153,8 +153,8 @@ public class CreateEdgeStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = targetClass != null ? targetClass.hashCode() : 0;
-    result = 31 * result + (targetClusterName != null ? targetClusterName.hashCode() : 0);
+    int result = targetType != null ? targetType.hashCode() : 0;
+    result = 31 * result + (targetBucketName != null ? targetBucketName.hashCode() : 0);
     result = 31 * result + (leftExpression != null ? leftExpression.hashCode() : 0);
     result = 31 * result + (rightExpression != null ? rightExpression.hashCode() : 0);
     result = 31 * result + (body != null ? body.hashCode() : 0);
@@ -164,20 +164,20 @@ public class CreateEdgeStatement extends Statement {
     return result;
   }
 
-  public Identifier getTargetClass() {
-    return targetClass;
+  public Identifier getTargetType() {
+    return targetType;
   }
 
-  public void setTargetClass(Identifier targetClass) {
-    this.targetClass = targetClass;
+  public void setTargetType(Identifier targetType) {
+    this.targetType = targetType;
   }
 
-  public Identifier getTargetClusterName() {
-    return targetClusterName;
+  public Identifier getTargetBucketName() {
+    return targetBucketName;
   }
 
-  public void setTargetClusterName(Identifier targetClusterName) {
-    this.targetClusterName = targetClusterName;
+  public void setTargetBucketName(Identifier targetBucketName) {
+    this.targetBucketName = targetBucketName;
   }
 
   public Expression getLeftExpression() {

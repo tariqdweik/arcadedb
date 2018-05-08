@@ -120,7 +120,7 @@ public class InputParameter extends SimpleNode {
       String[] splitted = stringVal.split(":");
       PInteger c = new PInteger(-1);
       c.setValue(java.lang.Integer.parseInt(splitted[0]));
-      rid.cluster = c;
+      rid.bucket = c;
       PInteger p = new PInteger(-1);
       p.setValue(java.lang.Integer.parseInt(splitted[1]));
       rid.position = p;

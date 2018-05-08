@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class AlterClassStatement extends ODDLStatement {
+public class AlterTypeStatement extends ODDLStatement {
 
   /**
    * the name of the class
@@ -30,24 +30,24 @@ public class AlterClassStatement extends ODDLStatement {
   protected List<Identifier> identifierListValue;
   protected Boolean          add;
   protected Boolean          remove;
-  protected PNumber           numberValue;
+  protected PNumber          numberValue;
   protected Boolean          booleanValue;
   public    Identifier       customKey;
   public    Expression       customValue;
 
-  protected PInteger    defaultClusterId;
-  protected Identifier defaultClusterName;
+  protected PInteger   defaultBucketId;
+  protected Identifier defaultBucketName;
 
   // only to manage 'round-robin' as a cluster selection strategy (not a valid identifier)
   protected String customString;
 
   protected boolean unsafe;
 
-  public AlterClassStatement(int id) {
+  public AlterTypeStatement(int id) {
     super(id);
   }
 
-  public AlterClassStatement(SqlParser p, int id) {
+  public AlterTypeStatement(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -138,7 +138,7 @@ public class AlterClassStatement extends ODDLStatement {
   }
 
   public Statement copy() {
-    AlterClassStatement result = new AlterClassStatement(-1);
+    AlterTypeStatement result = new AlterTypeStatement(-1);
     result.name = name == null ? null : name.copy();
     result.property = property;
     result.identifierValue = identifierValue == null ? null : identifierValue.copy();
@@ -151,8 +151,8 @@ public class AlterClassStatement extends ODDLStatement {
     result.customKey = customKey == null ? null : customKey.copy();
     result.customValue = customValue == null ? null : customValue.copy();
     result.customString = customString;
-    result.defaultClusterId = defaultClusterId == null ? null : defaultClusterId.copy();
-    result.defaultClusterName = defaultClusterName == null ? null : defaultClusterName.copy();
+    result.defaultBucketId = defaultBucketId == null ? null : defaultBucketId.copy();
+    result.defaultBucketName = defaultBucketName == null ? null : defaultBucketName.copy();
     result.unsafe = unsafe;
     return result;
   }
@@ -164,7 +164,7 @@ public class AlterClassStatement extends ODDLStatement {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    AlterClassStatement that = (AlterClassStatement) o;
+    final AlterTypeStatement that = (AlterTypeStatement) o;
 
     if (unsafe != that.unsafe)
       return false;
@@ -188,9 +188,9 @@ public class AlterClassStatement extends ODDLStatement {
       return false;
     if (customValue != null ? !customValue.equals(that.customValue) : that.customValue != null)
       return false;
-    if (defaultClusterId != null ? !defaultClusterId.equals(that.defaultClusterId) : that.defaultClusterId != null)
+    if (defaultBucketId != null ? !defaultBucketId.equals(that.defaultBucketId) : that.defaultBucketId != null)
       return false;
-    if (defaultClusterName != null ? !defaultClusterName.equals(that.defaultClusterName) : that.defaultClusterName != null)
+    if (defaultBucketName != null ? !defaultBucketName.equals(that.defaultBucketName) : that.defaultBucketName != null)
       return false;
     return customString != null ? customString.equals(that.customString) : that.customString == null;
   }
@@ -207,8 +207,8 @@ public class AlterClassStatement extends ODDLStatement {
     result = 31 * result + (booleanValue != null ? booleanValue.hashCode() : 0);
     result = 31 * result + (customKey != null ? customKey.hashCode() : 0);
     result = 31 * result + (customValue != null ? customValue.hashCode() : 0);
-    result = 31 * result + (defaultClusterId != null ? defaultClusterId.hashCode() : 0);
-    result = 31 * result + (defaultClusterName != null ? defaultClusterName.hashCode() : 0);
+    result = 31 * result + (defaultBucketId != null ? defaultBucketId.hashCode() : 0);
+    result = 31 * result + (defaultBucketName != null ? defaultBucketName.hashCode() : 0);
     result = 31 * result + (customString != null ? customString.hashCode() : 0);
     result = 31 * result + (unsafe ? 1 : 0);
     return result;
@@ -218,7 +218,7 @@ public class AlterClassStatement extends ODDLStatement {
   public ResultSet executeDDL(CommandContext ctx) {
     PDocumentType oClass = ctx.getDatabase().getSchema().getType(name.getStringValue());
     if (oClass == null) {
-      throw new CommandExecutionException("Class not found: " + name);
+      throw new CommandExecutionException("Type not found: " + name);
     }
 //    if (property != null) {
 //      switch (property) {

@@ -278,7 +278,7 @@ public class MatchStatement extends Statement {
         }
       }
 
-      String clazz = matchFilter.getClassName(context);
+      String clazz = matchFilter.getTypeName(context);
       if (clazz != null) {
         String previousClass = aliasClasses.get(alias);
         if (previousClass == null) {

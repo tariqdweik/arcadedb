@@ -14,16 +14,16 @@ import java.util.Map;
 
 public class InsertStatement extends Statement {
 
-  Identifier      targetClass;
-  Identifier      targetClusterName;
-  Cluster         targetCluster;
+  Identifier      targetType;
+  Identifier      targetBucketName;
+  Bucket          targetBucket;
   IndexIdentifier targetIndex;
   InsertBody      insertBody;
   Projection      returnStatement;
   SelectStatement selectStatement;
-  boolean selectInParentheses = false;
-  boolean selectWithFrom      = false;
-  boolean unsafe              = false;
+  boolean         selectInParentheses = false;
+  boolean         selectWithFrom      = false;
+  boolean         unsafe              = false;
 
   public InsertStatement(int id) {
     super(id);
@@ -35,15 +35,15 @@ public class InsertStatement extends Statement {
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("INSERT INTO ");
-    if (targetClass != null) {
-      targetClass.toString(params, builder);
-      if (targetClusterName != null) {
-        builder.append(" CLUSTER ");
-        targetClusterName.toString(params, builder);
+    if (targetType != null) {
+      targetType.toString(params, builder);
+      if (targetBucketName != null) {
+        builder.append(" BUCKET ");
+        targetBucketName.toString(params, builder);
       }
     }
-    if (targetCluster != null) {
-      targetCluster.toString(params, builder);
+    if (targetBucket != null) {
+      targetBucket.toString(params, builder);
     }
     if (targetIndex != null) {
       targetIndex.toString(params, builder);
@@ -77,9 +77,9 @@ public class InsertStatement extends Statement {
 
   @Override public InsertStatement copy() {
     InsertStatement result = new InsertStatement(-1);
-    result.targetClass = targetClass == null ? null : targetClass.copy();
-    result.targetClusterName = targetClusterName == null ? null : targetClusterName.copy();
-    result.targetCluster = targetCluster == null ? null : targetCluster.copy();
+    result.targetType = targetType == null ? null : targetType.copy();
+    result.targetBucketName = targetBucketName == null ? null : targetBucketName.copy();
+    result.targetBucket = targetBucket == null ? null : targetBucket.copy();
     result.targetIndex = targetIndex == null ? null : targetIndex.copy();
     result.insertBody = insertBody == null ? null : insertBody.copy();
     result.returnStatement = returnStatement == null ? null : returnStatement.copy();
@@ -104,7 +104,7 @@ public class InsertStatement extends Statement {
     }
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetClass.getStringValue());
+    executionPlan.executeInternal(targetType.getStringValue());
     return new LocalResultSet(executionPlan);
   }
 
@@ -116,7 +116,7 @@ public class InsertStatement extends Statement {
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetClass.getStringValue());
+    executionPlan.executeInternal(targetType.getStringValue());
     return new LocalResultSet(executionPlan);
   }
 
@@ -139,11 +139,11 @@ public class InsertStatement extends Statement {
       return false;
     if (unsafe != that.unsafe)
       return false;
-    if (targetClass != null ? !targetClass.equals(that.targetClass) : that.targetClass != null)
+    if (targetType != null ? !targetType.equals(that.targetType) : that.targetType != null)
       return false;
-    if (targetClusterName != null ? !targetClusterName.equals(that.targetClusterName) : that.targetClusterName != null)
+    if (targetBucketName != null ? !targetBucketName.equals(that.targetBucketName) : that.targetBucketName != null)
       return false;
-    if (targetCluster != null ? !targetCluster.equals(that.targetCluster) : that.targetCluster != null)
+    if (targetBucket != null ? !targetBucket.equals(that.targetBucket) : that.targetBucket != null)
       return false;
     if (targetIndex != null ? !targetIndex.equals(that.targetIndex) : that.targetIndex != null)
       return false;
@@ -158,9 +158,9 @@ public class InsertStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = targetClass != null ? targetClass.hashCode() : 0;
-    result = 31 * result + (targetClusterName != null ? targetClusterName.hashCode() : 0);
-    result = 31 * result + (targetCluster != null ? targetCluster.hashCode() : 0);
+    int result = targetType != null ? targetType.hashCode() : 0;
+    result = 31 * result + (targetBucketName != null ? targetBucketName.hashCode() : 0);
+    result = 31 * result + (targetBucket != null ? targetBucket.hashCode() : 0);
     result = 31 * result + (targetIndex != null ? targetIndex.hashCode() : 0);
     result = 31 * result + (insertBody != null ? insertBody.hashCode() : 0);
     result = 31 * result + (returnStatement != null ? returnStatement.hashCode() : 0);
@@ -171,16 +171,16 @@ public class InsertStatement extends Statement {
     return result;
   }
 
-  public Identifier getTargetClass() {
-    return targetClass;
+  public Identifier getTargetType() {
+    return targetType;
   }
 
-  public Identifier getTargetClusterName() {
-    return targetClusterName;
+  public Identifier getTargetBucketName() {
+    return targetBucketName;
   }
 
-  public Cluster getTargetCluster() {
-    return targetCluster;
+  public Bucket getTargetBucket() {
+    return targetBucket;
   }
 
   public IndexIdentifier getTargetIndex() {

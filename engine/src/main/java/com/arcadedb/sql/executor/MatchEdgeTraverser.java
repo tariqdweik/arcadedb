@@ -194,11 +194,11 @@ public class MatchEdgeTraverser {
   }
 
   protected String targetClassName(MatchPathItem item, CommandContext iCommandContext) {
-    return item.getFilter().getClassName(iCommandContext);
+    return item.getFilter().getTypeName(iCommandContext);
   }
 
   protected String targetClusterName(MatchPathItem item, CommandContext iCommandContext) {
-    return item.getFilter().getClusterName(iCommandContext);
+    return item.getFilter().getBucketName(iCommandContext);
   }
 
   protected Rid targetRid(MatchPathItem item, CommandContext iCommandContext) {

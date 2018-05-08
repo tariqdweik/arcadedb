@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.sql.parser.Cluster;
+import com.arcadedb.sql.parser.Bucket;
 import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
@@ -18,13 +18,13 @@ public class MoveVertexStep extends AbstractExecutionStep {
   private String targetCluster;
   private String targetClass;
 
-  public MoveVertexStep(Identifier targetClass, Cluster targetCluster, CommandContext ctx, boolean profilingEnabled) {
+  public MoveVertexStep(Identifier targetClass, Bucket targetCluster, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass == null ? null : targetClass.getStringValue();
     if (targetCluster != null) {
-      this.targetCluster = targetCluster.getClusterName();
+      this.targetCluster = targetCluster.getBucketName();
       if (this.targetCluster == null) {
-        this.targetCluster = ctx.getDatabase().getSchema().getBucketById(targetCluster.getClusterNumber()).getName();
+        this.targetCluster = ctx.getDatabase().getSchema().getBucketById(targetCluster.getBucketNumber()).getName();
       }
     }
   }

@@ -18,11 +18,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CreatePropertyStatement extends ODDLStatement {
-  public Identifier className;
+  public Identifier typeName;
   public Identifier propertyName;
   boolean ifNotExists = false;
-  public Identifier propertyType;
-  public Identifier linkedType;
+  public Identifier                             propertyType;
+  public Identifier                             linkedType;
   public boolean                                unsafe     = false;
   public List<CreatePropertyAttributeStatement> attributes = new ArrayList<CreatePropertyAttributeStatement>();
 
@@ -34,10 +34,11 @@ public class CreatePropertyStatement extends ODDLStatement {
     super(p, id);
   }
 
-  @Override public ResultSet executeDDL(CommandContext ctx) {
+  @Override
+  public ResultSet executeDDL(CommandContext ctx) {
     ResultInternal result = new ResultInternal();
     result.setProperty("operation", "create property");
-    result.setProperty("className", className.getStringValue());
+    result.setProperty("typeName", typeName.getStringValue());
     result.setProperty("propertyName", propertyName.getStringValue());
     executeInternal(ctx, result);
     InternalResultSet rs = new InternalResultSet();
@@ -81,9 +82,10 @@ public class CreatePropertyStatement extends ODDLStatement {
     throw new UnsupportedOperationException();
   }
 
-  @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
+  @Override
+  public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("CREATE PROPERTY ");
-    className.toString(params, builder);
+    typeName.toString(params, builder);
     builder.append(".");
     propertyName.toString(params, builder);
     if (ifNotExists) {
@@ -114,9 +116,10 @@ public class CreatePropertyStatement extends ODDLStatement {
     }
   }
 
-  @Override public CreatePropertyStatement copy() {
+  @Override
+  public CreatePropertyStatement copy() {
     CreatePropertyStatement result = new CreatePropertyStatement(-1);
-    result.className = className == null ? null : className.copy();
+    result.typeName = typeName == null ? null : typeName.copy();
     result.propertyName = propertyName == null ? null : propertyName.copy();
     result.propertyType = propertyType == null ? null : propertyType.copy();
     result.linkedType = linkedType == null ? null : linkedType.copy();
@@ -126,7 +129,8 @@ public class CreatePropertyStatement extends ODDLStatement {
     return result;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -136,7 +140,7 @@ public class CreatePropertyStatement extends ODDLStatement {
 
     if (unsafe != that.unsafe)
       return false;
-    if (className != null ? !className.equals(that.className) : that.className != null)
+    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
     if (propertyName != null ? !propertyName.equals(that.propertyName) : that.propertyName != null)
       return false;
@@ -153,8 +157,9 @@ public class CreatePropertyStatement extends ODDLStatement {
     return true;
   }
 
-  @Override public int hashCode() {
-    int result = className != null ? className.hashCode() : 0;
+  @Override
+  public int hashCode() {
+    int result = typeName != null ? typeName.hashCode() : 0;
     result = 31 * result + (propertyName != null ? propertyName.hashCode() : 0);
     result = 31 * result + (propertyType != null ? propertyType.hashCode() : 0);
     result = 31 * result + (linkedType != null ? linkedType.hashCode() : 0);

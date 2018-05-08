@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class AlterPropertyStatement extends ODDLStatement {
 
-  Identifier className;
+  Identifier typeName;
 
   Identifier propertyName;
   Identifier customPropertyName;
@@ -96,7 +96,7 @@ public class AlterPropertyStatement extends ODDLStatement {
   @Override
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("ALTER PROPERTY ");
-    className.toString(params, builder);
+    typeName.toString(params, builder);
     builder.append(".");
     propertyName.toString(params, builder);
     if (customPropertyName != null) {
@@ -115,7 +115,7 @@ public class AlterPropertyStatement extends ODDLStatement {
   @Override
   public AlterPropertyStatement copy() {
     AlterPropertyStatement result = new AlterPropertyStatement(-1);
-    result.className = className == null ? null : className.copy();
+    result.typeName = typeName == null ? null : typeName.copy();
     result.propertyName = propertyName == null ? null : propertyName.copy();
     result.customPropertyName = customPropertyName == null ? null : customPropertyName.copy();
     result.customPropertyValue = customPropertyValue == null ? null : customPropertyValue.copy();
@@ -133,7 +133,7 @@ public class AlterPropertyStatement extends ODDLStatement {
 
     AlterPropertyStatement that = (AlterPropertyStatement) o;
 
-    if (className != null ? !className.equals(that.className) : that.className != null)
+    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
     if (propertyName != null ? !propertyName.equals(that.propertyName) : that.propertyName != null)
       return false;
@@ -151,7 +151,7 @@ public class AlterPropertyStatement extends ODDLStatement {
 
   @Override
   public int hashCode() {
-    int result = className != null ? className.hashCode() : 0;
+    int result = typeName != null ? typeName.hashCode() : 0;
     result = 31 * result + (propertyName != null ? propertyName.hashCode() : 0);
     result = 31 * result + (customPropertyName != null ? customPropertyName.hashCode() : 0);
     result = 31 * result + (customPropertyValue != null ? customPropertyValue.hashCode() : 0);

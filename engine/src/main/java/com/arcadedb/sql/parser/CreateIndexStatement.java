@@ -20,13 +20,13 @@ import java.util.stream.Collectors;
 
 public class CreateIndexStatement extends ODDLStatement {
 
-  protected IndexName  name;
-  protected Identifier className;
-  protected List<Property> propertyList = new ArrayList<Property>();
-  protected Identifier type;
-  protected Identifier engine;
+  protected IndexName        name;
+  protected Identifier       typeName;
+  protected List<Property>   propertyList = new ArrayList<Property>();
+  protected Identifier       type;
+  protected Identifier       engine;
   protected List<Identifier> keyTypes = new ArrayList<Identifier>();
-  protected Json metadata;
+  protected Json             metadata;
 
   public CreateIndexStatement(int id) {
     super(id);
@@ -182,9 +182,9 @@ public class CreateIndexStatement extends ODDLStatement {
   public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("CREATE INDEX ");
     name.toString(params, builder);
-    if (className != null) {
+    if (typeName != null) {
       builder.append(" ON ");
-      className.toString(params, builder);
+      typeName.toString(params, builder);
       builder.append(" (");
       boolean first = true;
       for (Property prop : propertyList) {
@@ -236,7 +236,7 @@ public class CreateIndexStatement extends ODDLStatement {
   public CreateIndexStatement copy() {
     CreateIndexStatement result = new CreateIndexStatement(-1);
     result.name = name == null ? null : name.copy();
-    result.className = className == null ? null : className.copy();
+    result.typeName = typeName == null ? null : typeName.copy();
     result.propertyList = propertyList == null ? null : propertyList.stream().map(x -> x.copy()).collect(Collectors.toList());
     result.type = type == null ? null : type.copy();
     result.engine = engine == null ? null : engine.copy();
@@ -256,7 +256,7 @@ public class CreateIndexStatement extends ODDLStatement {
 
     if (name != null ? !name.equals(that.name) : that.name != null)
       return false;
-    if (className != null ? !className.equals(that.className) : that.className != null)
+    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
     if (propertyList != null ? !propertyList.equals(that.propertyList) : that.propertyList != null)
       return false;
@@ -275,7 +275,7 @@ public class CreateIndexStatement extends ODDLStatement {
   @Override
   public int hashCode() {
     int result = name != null ? name.hashCode() : 0;
-    result = 31 * result + (className != null ? className.hashCode() : 0);
+    result = 31 * result + (typeName != null ? typeName.hashCode() : 0);
     result = 31 * result + (propertyList != null ? propertyList.hashCode() : 0);
     result = 31 * result + (type != null ? type.hashCode() : 0);
     result = 31 * result + (engine != null ? engine.hashCode() : 0);

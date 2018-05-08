@@ -91,30 +91,30 @@ public class MatchFilter extends SimpleNode {
     return null;
   }
 
-  public String getClassName(CommandContext context) {
+  public String getTypeName(CommandContext context) {
     for (MatchFilterItem item : items) {
-      if (item.className != null) {
-        if (item.className.value instanceof String)
-          return (String) item.className.value;
-        else if (item.className.value instanceof SimpleNode) {
+      if (item.typeName != null) {
+        if (item.typeName.value instanceof String)
+          return (String) item.typeName.value;
+        else if (item.typeName.value instanceof SimpleNode) {
           StringBuilder builder = new StringBuilder();
 
-          ((SimpleNode) item.className.value).toString(context == null ? null : context.getInputParameters(), builder);
+          ((SimpleNode) item.typeName.value).toString(context == null ? null : context.getInputParameters(), builder);
           return builder.toString();
         } else {
-          return item.className.toString();
+          return item.typeName.toString();
         }
       }
     }
     return null;
   }
 
-  public String getClusterName(CommandContext context) {
+  public String getBucketName(CommandContext context) {
     for (MatchFilterItem item : items) {
-      if (item.clusterName != null) {
-        return item.clusterName.getStringValue();
-      } else if (item.clusterId != null) {
-        int cid = item.clusterId.value.intValue();
+      if (item.bucketName != null) {
+        return item.bucketName.getStringValue();
+      } else if (item.bucketId != null) {
+        int cid = item.bucketId.value.intValue();
         String clusterName = context.getDatabase().getSchema().getBucketById(cid).getName();
         if (clusterName != null) {
           return clusterName;

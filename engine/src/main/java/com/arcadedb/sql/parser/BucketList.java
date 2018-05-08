@@ -14,15 +14,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ClusterList extends SimpleNode {
+public class BucketList extends SimpleNode {
 
-  protected List<Identifier> clusters = new ArrayList<Identifier>();
+  protected List<Identifier> buckets = new ArrayList<Identifier>();
 
-  public ClusterList(int id) {
+  public BucketList(int id) {
     super(id);
   }
 
-  public ClusterList(SqlParser p, int id) {
+  public BucketList(SqlParser p, int id) {
     super(p, id);
   }
 
@@ -35,9 +35,9 @@ public class ClusterList extends SimpleNode {
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
 
-    builder.append("cluster:[");
+    builder.append("buckets:[");
     boolean first = true;
-    for (Identifier id : clusters) {
+    for (Identifier id : buckets) {
       if (!first) {
         builder.append(",");
       }
@@ -47,19 +47,19 @@ public class ClusterList extends SimpleNode {
     builder.append("]");
   }
 
-  public List<Cluster> toListOfClusters() {
-    List<Cluster> result = new ArrayList<>();
-    for (Identifier id : clusters) {
-      Cluster cluster = new Cluster(-1);
-      cluster.clusterName = id.getStringValue();
+  public List<Bucket> toListOfClusters() {
+    List<Bucket> result = new ArrayList<>();
+    for (Identifier id : buckets) {
+      Bucket cluster = new Bucket(-1);
+      cluster.bucketName = id.getStringValue();
       result.add(cluster);
     }
     return result;
   }
 
-  public ClusterList copy() {
-    ClusterList result = new ClusterList(-1);
-    result.clusters = clusters.stream().map(x -> x.copy()).collect(Collectors.toList());
+  public BucketList copy() {
+    BucketList result = new BucketList(-1);
+    result.buckets = buckets.stream().map(x -> x.copy()).collect(Collectors.toList());
     return result;
   }
 
@@ -70,9 +70,9 @@ public class ClusterList extends SimpleNode {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    ClusterList that = (ClusterList) o;
+    BucketList that = (BucketList) o;
 
-    if (clusters != null ? !clusters.equals(that.clusters) : that.clusters != null)
+    if (buckets != null ? !buckets.equals(that.buckets) : that.buckets != null)
       return false;
 
     return true;
@@ -80,25 +80,25 @@ public class ClusterList extends SimpleNode {
 
   @Override
   public int hashCode() {
-    return clusters != null ? clusters.hashCode() : 0;
+    return buckets != null ? buckets.hashCode() : 0;
   }
 
   public Result serialize() {
     ResultInternal result = new ResultInternal();
-    if (clusters != null) {
-      result.setProperty("clusters", clusters.stream().map(x -> x.serialize()).collect(Collectors.toList()));
+    if (buckets != null) {
+      result.setProperty("buckets", buckets.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
     return result;
   }
 
   public void deserialize(Result fromResult) {
-    if (fromResult.getProperty("clusters") != null) {
-      clusters = new ArrayList<>();
-      List<Result> ser = fromResult.getProperty("clusters");
+    if (fromResult.getProperty("buckets") != null) {
+      buckets = new ArrayList<>();
+      List<Result> ser = fromResult.getProperty("buckets");
       for (Result item : ser) {
         Identifier id = new Identifier(-1);
         id.deserialize(item);
-        clusters.add(id);
+        buckets.add(id);
       }
     }
   }

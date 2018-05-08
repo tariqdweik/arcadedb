@@ -64,7 +64,7 @@ public class MatchPathItem extends SimpleNode {
       filter = this.filter.getFilter();
       whileCondition = this.filter.getWhileCondition();
       maxDepth = this.filter.getMaxDepth();
-      String className = this.filter.getClassName(iCommandContext);
+      String className = this.filter.getTypeName(iCommandContext);
       oClass = iCommandContext.getDatabase().getSchema().getType(className);
     }
 
