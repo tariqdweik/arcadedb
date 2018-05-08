@@ -19,7 +19,6 @@
  */
 package com.arcadedb.sql.function.misc;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.function.OSQLFunctionAbstract;
@@ -48,17 +47,21 @@ public class OSQLFunctionSysdate extends OSQLFunctionAbstract {
     now = new Date();
   }
 
-  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult,
-      final Object[] iParams, OCommandContext iContext) {
+  public Object execute(final Object iThis, final PIdentifiable iCurrentRecord, Object iCurrentResult, final Object[] iParams,
+      OCommandContext iContext) {
     if (iParams.length == 0)
       return now;
 
     if (format == null) {
-      format = new SimpleDateFormat((String) iParams[0]);
-      if (iParams.length == 2)
-        format.setTimeZone(TimeZone.getTimeZone(iParams[1].toString()));
+      final TimeZone tz =
+          iParams.length > 0 ? TimeZone.getTimeZone(iParams[0].toString()) : iContext.getDatabase().getSchema().getTimeZone();
+
+      if (iParams.length > 1)
+        format = new SimpleDateFormat((String) iParams[1]);
       else
-        format.setTimeZone(ODateHelper.getDatabaseTimeZone());
+        format = new SimpleDateFormat(iContext.getDatabase().getSchema().getDateFormat());
+
+      format.setTimeZone(tz);
     }
 
     return format.format(now);

@@ -16,18 +16,18 @@
  */
 package com.arcadedb.sql.function.conversion;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
 import com.arcadedb.utility.PLogManager;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
  * Transforms a value to datetime. If the conversion is not possible, null is returned.
- * 
+ *
  * @author Johann Sorel (Geomatys)
  * @author Luca Garulli (l.garulli--(at)--orientdb.com)
  */
@@ -45,7 +45,7 @@ public class OSQLMethodAsDateTime extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute( Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
+  public Object execute(Object iThis, PIdentifiable iCurrentRecord, OCommandContext iContext, Object ioResult, Object[] iParams) {
     if (iThis != null) {
       if (iThis instanceof Date) {
         return iThis;
@@ -53,7 +53,7 @@ public class OSQLMethodAsDateTime extends OAbstractSQLMethod {
         return new Date(((Number) iThis).longValue());
       } else {
         try {
-          return PDatabaseRecordThreadLocal.instance().get().getStorage().getConfiguration().getDateTimeFormatInstance().parse(iThis.toString());
+          return new SimpleDateFormat(iContext.getDatabase().getSchema().getDateTimeFormat()).parse(iThis.toString());
         } catch (ParseException e) {
           PLogManager.instance().error(this, "Error during %s execution", e, NAME);
           // IGNORE IT: RETURN NULL

@@ -1,5 +1,6 @@
+package com.arcadedb.sql.executor;
+
 import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OResultSet;
 import com.arcadedb.utility.*;
 
 import java.lang.reflect.Array;
@@ -374,34 +375,8 @@ public class OMultiValue {
    */
   public static Object add(final Object iObject, final Object iToAdd) {
     if (iObject != null) {
-      if (iObject instanceof Collection<?> || iObject instanceof OCollection<?>) {
-        // COLLECTION - ?
-        final OCollection<Object> coll;
-        if (iObject instanceof Collection<?>) {
-          final Collection<Object> collection = (Collection<Object>) iObject;
-          coll = new OCollection<Object>() {
-            @Override
-            public void add(Object value) {
-              collection.add(value);
-            }
-
-            @Override
-            public void remove(Object value) {
-              collection.remove(value);
-            }
-
-            @Override
-            public Iterator<Object> iterator() {
-              return collection.iterator();
-            }
-
-            @Override
-            public int size() {
-              return collection.size();
-            }
-          };
-        } else
-          coll = (OCollection<Object>) iObject;
+      if (iObject instanceof Collection<?>) {
+        final Collection coll = (Collection) iObject;
 
         if (!(iToAdd instanceof Map) && isMultiValue(iToAdd)) {
           // COLLECTION - COLLECTION
@@ -487,35 +462,8 @@ public class OMultiValue {
         iToRemove = set;
       }
 
-      if (iObject instanceof Collection<?> || iObject instanceof OCollection<?>) {
-        // COLLECTION - ?
-
-        final OCollection<Object> coll;
-        if (iObject instanceof Collection<?>) {
-          final Collection<Object> collection = (Collection<Object>) iObject;
-          coll = new OCollection<Object>() {
-            @Override
-            public void add(Object value) {
-              collection.add(value);
-            }
-
-            @Override
-            public void remove(Object value) {
-              collection.remove(value);
-            }
-
-            @Override
-            public Iterator<Object> iterator() {
-              return collection.iterator();
-            }
-
-            @Override
-            public int size() {
-              return collection.size();
-            }
-          };
-        } else
-          coll = (OCollection<Object>) iObject;
+      if (iObject instanceof Collection<?>) {
+        final Collection coll = (Collection) iObject;
 
         if (iToRemove instanceof Collection<?>) {
           // COLLECTION - COLLECTION
@@ -545,9 +493,6 @@ public class OMultiValue {
             ((PMultiIterator<?>) iToRemove).reset();
 
           if (iAllOccurrences) {
-            if (iObject instanceof OCollection)
-              throw new IllegalStateException("Mutable collection cannot be used to remove all occurrences.");
-
             final Collection<Object> collection = (Collection) iObject;
             PMultiIterator<?> it = (PMultiIterator<?>) iToRemove;
             batchRemove(collection, it);
@@ -604,7 +549,7 @@ public class OMultiValue {
     return iObject;
   }
 
-  protected static void removeFromOCollection(final Object iObject, final OCollection<Object> coll, final Object iToRemove,
+  protected static void removeFromOCollection(final Object iObject, final Collection<Object> coll, final Object iToRemove,
       final boolean iAllOccurrences) {
     if (iAllOccurrences && !(iObject instanceof Set)) {
       // BROWSE THE COLLECTION ONE BY ONE TO REMOVE ALL THE OCCURRENCES

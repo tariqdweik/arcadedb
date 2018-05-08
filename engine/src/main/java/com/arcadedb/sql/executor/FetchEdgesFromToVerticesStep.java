@@ -166,7 +166,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
           }
           if (from instanceof PVertex) {
 
-            currentFromEdgesIter = ((PVertex) from).getEdges(PVertex.DIRECTION.OUT);
+            currentFromEdgesIter = ((PVertex) from).getEdges(PVertex.DIRECTION.OUT).iterator();
           } else {
             throw new PCommandExecutionException("Invalid vertex: " + from);
           }

@@ -19,7 +19,6 @@
  */
 package com.arcadedb.sql.function.geo;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.schema.OType;
 import com.arcadedb.sql.executor.OCommandContext;
@@ -49,7 +48,7 @@ public class OSQLFunctionDistance extends OSQLFunctionAbstract {
       if (iParams[i] == null)
         return null;
 
-      values[i] = ((Double) OType.convert(database, iParams[i], Double.class)).doubleValue();
+      values[i] = ((Double) OType.convert(iContext.getDatabase(), iParams[i], Double.class)).doubleValue();
     }
 
     final double deltaLat = Math.toRadians(values[2] - values[0]);

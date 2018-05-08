@@ -22,6 +22,7 @@ import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
 import com.arcadedb.utility.PLogManager;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -52,8 +53,8 @@ public class OSQLMethodAsDate extends OAbstractSQLMethod {
         return new Date(((Number) iThis).longValue());
       } else {
         try {
-          return PDatabaseRecordThreadLocal.instance().get().getStorage().getConfiguration().getDateFormatInstance()
-              .parse(iThis.toString());
+          return new SimpleDateFormat(iContext.getDatabase().getSchema().getDateFormat()).parse(iThis.toString());
+
         } catch (ParseException e) {
           PLogManager.instance().error(this, "Error during %s execution", e, NAME);
         }

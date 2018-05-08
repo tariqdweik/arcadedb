@@ -18,7 +18,7 @@ public interface PVertex extends PDocument {
 
   Iterable<PEdge> getEdges(DIRECTION direction);
 
-  Iterable<PEdge> getEdges(DIRECTION direction, String edgeType);
+  Iterable<PEdge> getEdges(DIRECTION direction, String edgeTypes[]);
 
   /**
    * Returns all the connected vertices, both directions, any edge type.
@@ -36,7 +36,7 @@ public interface PVertex extends PDocument {
    */
   Iterable<PVertex> getVertices(DIRECTION direction);
 
-  Iterable<PVertex> getVertices(DIRECTION direction, String edgeType);
+  Iterable<PVertex> getVertices(DIRECTION direction, String edgeTypes[]);
 
   boolean isConnectedTo(PIdentifiable toVertex);
 

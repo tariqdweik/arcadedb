@@ -11,25 +11,27 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class PIteratorFilterBase<T> implements Iterator<T>, Iterable<T> {
-  protected PEdgeChunk currentContainer;
+  protected       PEdgeChunk    currentContainer;
   protected final AtomicInteger currentPosition = new AtomicInteger(PModifiableEdgeChunk.CONTENT_START_POSITION);
 
   protected PRID             next;
   protected HashSet<Integer> validBuckets;
 
-  protected PIteratorFilterBase(final PDatabaseInternal database, final PEdgeChunk current, final String edgeType) {
+  protected PIteratorFilterBase(final PDatabaseInternal database, final PEdgeChunk current, final String[] edgeTypes) {
     this.currentContainer = current;
 
-    final PEdgeType type = (PEdgeType) database.getSchema().getType(edgeType);
+    for (String e : edgeTypes) {
+      final PEdgeType type = (PEdgeType) database.getSchema().getType(e);
 
-    final List<PBucket> buckets = type.getBuckets(true);
-    validBuckets = new HashSet<>(buckets.size());
-    for (PBucket b : buckets)
-      validBuckets.add(b.getId());
+      final List<PBucket> buckets = type.getBuckets(true);
+      validBuckets = new HashSet<>(buckets.size());
+      for (PBucket b : buckets)
+        validBuckets.add(b.getId());
+    }
   }
 
   protected boolean hasNext(final boolean edge) {
-    if( next != null )
+    if (next != null)
       return true;
 
     PRID nextEdge;

@@ -31,6 +31,7 @@ import com.arcadedb.utility.PMultiIterator;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -383,11 +384,9 @@ public enum OType {
           if (PFileUtils.isLong(iValue.toString()))
             return new Date(Long.parseLong(iValue.toString()));
           try {
-            return ODatabaseRecordThreadLocal.instance().get().getStorage().getConfiguration().getDateTimeFormatInstance()
-                .parse((String) iValue);
+            return new SimpleDateFormat(database.getSchema().getDateTimeFormat()).parse((String) iValue);
           } catch (ParseException ignore) {
-            return ODatabaseRecordThreadLocal.instance().get().getStorage().getConfiguration().getDateFormatInstance()
-                .parse((String) iValue);
+            return new SimpleDateFormat(database.getSchema().getDateFormat()).parse((String) iValue);
           }
         }
       } else if (iTargetClass.equals(String.class)) {

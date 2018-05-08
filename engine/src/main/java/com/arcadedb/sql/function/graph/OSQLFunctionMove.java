@@ -1,7 +1,9 @@
 package com.arcadedb.sql.function.graph;
 
 import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OMultiValue;
@@ -33,7 +35,7 @@ public abstract class OSQLFunctionMove extends OSQLFunctionConfigurableAbstract 
     return "Syntax error: " + name + "([<labels>])";
   }
 
-  public Object execute( final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
+  public Object execute(final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
       final Object[] iParameters, final OCommandContext iContext) {
 
     final String[] labels;
@@ -51,42 +53,42 @@ public abstract class OSQLFunctionMove extends OSQLFunctionConfigurableAbstract 
     return OSQLEngine.foreachRecord(new PCallable<Object, PIdentifiable>() {
       @Override
       public Object call(final PIdentifiable iArgument) {
-        return move(database, iArgument, labels);
+        return move(iContext.getDatabase(), iArgument, labels);
       }
     }, iThis, iContext);
 
   }
 
-  protected Object v2v(final PDatabase graph, final PIdentifiable iRecord, final PVertex.DIRECTION iDirection, final String[] iLabels) {
-    OElement rec = iRecord.getRecord();
-    if (rec.isVertex()) {
-      return rec.asVertex().get().getVertices(iDirection, iLabels);
-    } else {
-      return null;
-    }
+  protected Object v2v(final PDatabase graph, final PIdentifiable iRecord, final PVertex.DIRECTION iDirection,
+      final String[] iLabels) {
+    final PDocument rec = (PDocument) iRecord.getRecord();
+    if (rec instanceof PVertex)
+      return ((PVertex) rec).getVertices(iDirection, iLabels);
+    return null;
   }
 
-  protected Object v2e(final PDatabase graph, final PIdentifiable iRecord, final PVertex.DIRECTION iDirection, final String[] iLabels) {
-    OElement rec = iRecord.getRecord();
-    if (rec.isVertex()) {
-      return rec.asVertex().get().getEdges(iDirection, iLabels);
-    } else {
-      return null;
-    }
+  protected Object v2e(final PDatabase graph, final PIdentifiable iRecord, final PVertex.DIRECTION iDirection,
+      final String[] iLabels) {
+    PDocument rec = (PDocument) iRecord.getRecord();
+    if (rec instanceof PVertex)
+      return ((PVertex) rec).getEdges(iDirection, iLabels);
+    return null;
+
   }
 
-  protected Object e2v(final PDatabase graph, final PIdentifiable iRecord, final PVertex.DIRECTION iDirection, final String[] iLabels) {
-    OElement rec = iRecord.getRecord();
-    if (rec.isEdge()) {
+  protected Object e2v(final PDatabase graph, final PIdentifiable iRecord, final PVertex.DIRECTION iDirection,
+      final String[] iLabels) {
+    PDocument rec = (PDocument) iRecord.getRecord();
+    if (rec instanceof PEdge) {
       if (iDirection == PVertex.DIRECTION.BOTH) {
-        List results = new ArrayList();
-        results.add(rec.asEdge().get().getVertex(PVertex.DIRECTION.OUT));
-        results.add(rec.asEdge().get().getVertex(PVertex.DIRECTION.IN));
+        final List results = new ArrayList();
+        results.add(((PEdge) rec).getOutVertex());
+        results.add(((PEdge) rec).getInVertex());
         return results;
       }
-      return rec.asEdge().get().getVertex(iDirection);
-    } else {
-      return null;
+      return ((PEdge) rec).getVertex(iDirection);
     }
+
+    return null;
   }
 }

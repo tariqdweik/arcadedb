@@ -5,8 +5,8 @@ import com.arcadedb.database.PDatabaseInternal;
 import java.util.NoSuchElementException;
 
 public class PVertexIteratorFilter extends PIteratorFilterBase<PVertex> {
-  public PVertexIteratorFilter(final PDatabaseInternal database, final PEdgeChunk current, final String edgeType) {
-    super(database, current, edgeType);
+  public PVertexIteratorFilter(final PDatabaseInternal database, final PEdgeChunk current, final String[] edgeTypes) {
+    super(database, current, edgeTypes);
   }
 
   @Override

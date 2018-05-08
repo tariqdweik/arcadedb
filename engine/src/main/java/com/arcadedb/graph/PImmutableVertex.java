@@ -84,8 +84,8 @@ public class PImmutableVertex extends PImmutableDocument implements PVertexInter
   }
 
   @Override
-  public Iterable<PEdge> getEdges(final DIRECTION direction, final String edgeType) {
-    return database.getGraphEngine().getEdges(this, direction, edgeType);
+  public Iterable<PEdge> getEdges(final DIRECTION direction, final String[] edgeTypes) {
+    return database.getGraphEngine().getEdges(this, direction, edgeTypes);
   }
 
   @Override
@@ -99,8 +99,8 @@ public class PImmutableVertex extends PImmutableDocument implements PVertexInter
   }
 
   @Override
-  public Iterable<PVertex> getVertices(final DIRECTION direction, final String edgeType) {
-    return database.getGraphEngine().getVertices(this, direction, edgeType);
+  public Iterable<PVertex> getVertices(final DIRECTION direction, final String[] edgeTypes) {
+    return database.getGraphEngine().getVertices(this, direction, edgeTypes);
   }
 
   @Override

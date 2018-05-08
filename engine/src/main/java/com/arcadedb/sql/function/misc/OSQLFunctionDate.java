@@ -19,7 +19,6 @@
  */
 package com.arcadedb.sql.function.misc;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.exception.PQueryParsingException;
 import com.arcadedb.sql.executor.OCommandContext;
@@ -50,7 +49,7 @@ public class OSQLFunctionDate extends OSQLFunctionAbstract {
     date = new Date();
   }
 
-  public Object execute( Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
+  public Object execute(Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
       OCommandContext iContext) {
     if (iParams.length == 0)
       return date;
@@ -62,14 +61,15 @@ public class OSQLFunctionDate extends OSQLFunctionAbstract {
       return new Date(((Number) iParams[0]).longValue());
 
     if (format == null) {
-      if (iParams.length > 1) {
-        format = new SimpleDateFormat((String) iParams[1]);
-        format.setTimeZone(ODateHelper.getDatabaseTimeZone());
-      } else
-        format = PDatabaseRecordThreadLocal.instance().get().getStorage().getConfiguration().getDateTimeFormatInstance();
+      final TimeZone tz =
+          iParams.length > 2 ? TimeZone.getTimeZone(iParams[2].toString()) : iContext.getDatabase().getSchema().getTimeZone();
 
-      if (iParams.length == 3)
-        format.setTimeZone(TimeZone.getTimeZone(iParams[2].toString()));
+      if (iParams.length > 1)
+        format = new SimpleDateFormat((String) iParams[1]);
+      else
+        format = new SimpleDateFormat(iContext.getDatabase().getSchema().getDateFormat());
+
+      format.setTimeZone(tz);
     }
 
     try {

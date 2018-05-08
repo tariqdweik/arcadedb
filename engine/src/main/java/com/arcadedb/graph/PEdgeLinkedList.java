@@ -24,16 +24,16 @@ public class PEdgeLinkedList {
     return new PEdgeIterator(first);
   }
 
-  public PEdgeIteratorFilter edgeIterator(final String edgeType) {
-    return new PEdgeIteratorFilter((PDatabaseInternal) vertex.getDatabase(), first, edgeType);
+  public PEdgeIteratorFilter edgeIterator(final String[] edgeTypes) {
+    return new PEdgeIteratorFilter((PDatabaseInternal) vertex.getDatabase(), first, edgeTypes);
   }
 
   public PVertexIterator vertexIterator() {
     return new PVertexIterator(first);
   }
 
-  public PVertexIteratorFilter vertexIterator(final String edgeType) {
-    return new PVertexIteratorFilter((PDatabaseInternal) vertex.getDatabase(), first, edgeType);
+  public PVertexIteratorFilter vertexIterator(final String[] edgeTypes) {
+    return new PVertexIteratorFilter((PDatabaseInternal) vertex.getDatabase(), first, edgeTypes);
   }
 
   public boolean containsEdge(final PRID rid) {

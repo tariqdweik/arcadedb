@@ -151,12 +151,12 @@ public class PokecBenchmark {
 
       rootTraversed.incrementAndGet();
 
-      for (final Iterator<PVertex> neighbors = v.getVertices(PVertex.DIRECTION.OUT); neighbors.hasNext(); ) {
+      for (final Iterator<PVertex> neighbors = v.getVertices(PVertex.DIRECTION.OUT).iterator(); neighbors.hasNext(); ) {
         final PVertex neighbor = neighbors.next();
 
         totalTraversed.incrementAndGet();
 
-        for (final Iterator<PVertex> neighbors2 = neighbor.getVertices(PVertex.DIRECTION.OUT); neighbors2.hasNext(); ) {
+        for (final Iterator<PVertex> neighbors2 = neighbor.getVertices(PVertex.DIRECTION.OUT).iterator(); neighbors2.hasNext(); ) {
           final PVertex neighbor2 = neighbors2.next();
 
           totalTraversed.incrementAndGet();

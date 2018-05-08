@@ -19,7 +19,6 @@
  */
 package com.arcadedb.sql.function.graph;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.sql.executor.OCommandContext;
@@ -49,7 +48,7 @@ public class OSQLFunctionDijkstra extends OSQLFunctionPathFinder {
 
   public LinkedList<PVertex> execute( final Object iThis, final PIdentifiable iCurrentRecord,
       final Object iCurrentResult, final Object[] iParams, final OCommandContext iContext) {
-    return new OSQLFunctionAstar().execute(database, this, iCurrentRecord, iCurrentResult, toAStarParams(iParams), iContext);
+    return new OSQLFunctionAstar().execute(this, iCurrentRecord, iCurrentResult, toAStarParams(iParams), iContext);
   }
 
   private Object[] toAStarParams(Object[] iParams) {

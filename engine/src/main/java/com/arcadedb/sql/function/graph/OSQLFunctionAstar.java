@@ -22,10 +22,13 @@ package com.arcadedb.sql.function.graph;
 import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.PRecord;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OMultiValue;
+import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.utility.PFileUtils;
 
 import java.util.*;
 
@@ -61,12 +64,12 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
     super(NAME, 3, 4);
   }
 
-  public LinkedList<PVertex> execute( final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
+  public LinkedList<PVertex> execute(final Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult,
       final Object[] iParams, final OCommandContext iContext) {
     context = iContext;
     final OSQLFunctionAstar context = this;
 
-    final ORecord record = iCurrentRecord != null ? iCurrentRecord.getRecord() : null;
+    final PDocument record = iCurrentRecord != null ? (PDocument) iCurrentRecord.getRecord() : null;
 
     Object source = iParams[0];
     if (OMultiValue.isMultiValue(source)) {
@@ -77,13 +80,13 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
         source = ((OResult) source).getElement().get();
       }
     }
-    source = OSQLHelper.getValue(source, record, iContext);
+    source = record.get((String) source);
     if (source instanceof PIdentifiable) {
-      OElement elem = ((PIdentifiable) source).getRecord();
-      if (!elem.isVertex()) {
+      final PDocument elem = (PDocument) ((PIdentifiable) source).getRecord();
+      if (!(elem instanceof PVertex))
         throw new IllegalArgumentException("The sourceVertex must be a vertex record");
-      }
-      paramSourceVertex = elem.asVertex().get();
+
+      paramSourceVertex = (PVertex) elem;
     } else {
       throw new IllegalArgumentException("The sourceVertex must be a vertex record");
     }
@@ -97,18 +100,18 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
         dest = ((OResult) dest).getElement().get();
       }
     }
-    dest = OSQLHelper.getValue(dest, record, iContext);
+    dest = record.get((String) dest);
     if (dest instanceof PIdentifiable) {
-      OElement elem = ((PIdentifiable) dest).getRecord();
-      if (!elem.isVertex()) {
+      final PDocument elem = (PDocument) ((PIdentifiable) dest).getRecord();
+      if (!(elem instanceof PVertex))
         throw new IllegalArgumentException("The destinationVertex must be a vertex record");
-      }
-      paramDestinationVertex = elem.asVertex().get();
+
+      paramDestinationVertex = (PVertex) elem;
     } else {
       throw new IllegalArgumentException("The destinationVertex must be a vertex record");
     }
 
-    paramWeightFieldName = OIOUtils.getStringContent(iParams[2]);
+    paramWeightFieldName = PFileUtils.getStringContent(iParams[2]);
 
     if (iParams.length > 3) {
       bindAdditionalParams(iParams[3], context);
@@ -184,20 +187,20 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
   }
 
   private PVertex getNeighbor(PVertex current, PEdge neighborEdge, PDatabase graph) {
-    if (neighborEdge.getFrom().equals(current)) {
-      return toVertex(neighborEdge.getTo());
+    if (neighborEdge.getOut().equals(current)) {
+      return toVertex(neighborEdge.getIn());
     }
-    return toVertex(neighborEdge.getFrom());
+    return toVertex(neighborEdge.getOut());
   }
 
   private PVertex toVertex(PIdentifiable outVertex) {
-    if (outVertex == null) {
+    if (outVertex == null)
       return null;
-    }
-    if (!(outVertex instanceof OElement)) {
+
+    if (!(outVertex instanceof PRecord))
       outVertex = outVertex.getRecord();
-    }
-    return ((OElement) outVertex).asVertex().orElse(null);
+
+    return (PVertex) outVertex;
   }
 
   protected Set<PEdge> getNeighborEdges(final PVertex node) {
@@ -270,13 +273,13 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
     PEdge e = null;
     while (edges.hasNext()) {
       PEdge next = edges.next();
-      if (next.getFrom().equals(target) || next.getTo().equals(target)) {
+      if (next.getOut().equals(target) || next.getIn().equals(target)) {
         e = next;
         break;
       }
     }
     if (e != null) {
-      final Object fieldValue = e.getProperty(paramWeightFieldName);
+      final Object fieldValue = e.get(paramWeightFieldName);
       if (fieldValue != null)
         if (fieldValue instanceof Float)
           return (Float) fieldValue;
@@ -289,7 +292,7 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
 
   protected double getDistance(final PEdge edge) {
     if (edge != null) {
-      final Object fieldValue = edge.getProperty(paramWeightFieldName);
+      final Object fieldValue = edge.get(paramWeightFieldName);
       if (fieldValue != null)
         if (fieldValue instanceof Float)
           return (Float) fieldValue;
@@ -312,20 +315,20 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
     if (paramVertexAxisNames.length == 0) {
       return hresult;
     } else if (paramVertexAxisNames.length == 1) {
-      double n = doubleOrDefault(node.getProperty(paramVertexAxisNames[0]), 0.0);
-      double g = doubleOrDefault(target.getProperty(paramVertexAxisNames[0]), 0.0);
+      double n = doubleOrDefault(node.get(paramVertexAxisNames[0]), 0.0);
+      double g = doubleOrDefault(target.get(paramVertexAxisNames[0]), 0.0);
       hresult = getSimpleHeuristicCost(n, g, paramDFactor);
     } else if (paramVertexAxisNames.length == 2) {
       if (parent == null)
         parent = node;
-      double sx = doubleOrDefault(paramSourceVertex.getProperty(paramVertexAxisNames[0]), 0);
-      double sy = doubleOrDefault(paramSourceVertex.getProperty(paramVertexAxisNames[1]), 0);
-      double nx = doubleOrDefault(node.getProperty(paramVertexAxisNames[0]), 0);
-      double ny = doubleOrDefault(node.getProperty(paramVertexAxisNames[1]), 0);
-      double px = doubleOrDefault(parent.getProperty(paramVertexAxisNames[0]), 0);
-      double py = doubleOrDefault(parent.getProperty(paramVertexAxisNames[1]), 0);
-      double gx = doubleOrDefault(target.getProperty(paramVertexAxisNames[0]), 0);
-      double gy = doubleOrDefault(target.getProperty(paramVertexAxisNames[1]), 0);
+      double sx = doubleOrDefault(paramSourceVertex.get(paramVertexAxisNames[0]), 0);
+      double sy = doubleOrDefault(paramSourceVertex.get(paramVertexAxisNames[1]), 0);
+      double nx = doubleOrDefault(node.get(paramVertexAxisNames[0]), 0);
+      double ny = doubleOrDefault(node.get(paramVertexAxisNames[1]), 0);
+      double px = doubleOrDefault(parent.get(paramVertexAxisNames[0]), 0);
+      double py = doubleOrDefault(parent.get(paramVertexAxisNames[1]), 0);
+      double gx = doubleOrDefault(target.get(paramVertexAxisNames[0]), 0);
+      double gy = doubleOrDefault(target.get(paramVertexAxisNames[1]), 0);
 
       switch (paramHeuristicFormula) {
       case MANHATAN:
@@ -343,10 +346,6 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
       case EUCLIDEANNOSQR:
         hresult = getEuclideanNoSQRHeuristicCost(nx, ny, gx, gy, paramDFactor);
         break;
-      case CUSTOM:
-        hresult = getCustomHeuristicCost(paramCustomHeuristicFormula, paramVertexAxisNames, paramSourceVertex,
-            paramDestinationVertex, node, parent, currentDepth, paramDFactor, iContext);
-        break;
       }
       if (paramTieBreaker) {
         hresult = getTieBreakingHeuristicCost(px, py, sx, sy, gx, gy, hresult);
@@ -359,10 +358,10 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
       Map<String, Double> gList = new HashMap<String, Double>();
       parent = parent == null ? node : parent;
       for (int i = 0; i < paramVertexAxisNames.length; i++) {
-        Double s = doubleOrDefault(paramSourceVertex.getProperty(paramVertexAxisNames[i]), 0);
-        Double c = doubleOrDefault(node.getProperty(paramVertexAxisNames[i]), 0);
-        Double g = doubleOrDefault(target.getProperty(paramVertexAxisNames[i]), 0);
-        Double p = doubleOrDefault(parent.getProperty(paramVertexAxisNames[i]), 0);
+        Double s = doubleOrDefault(paramSourceVertex.get(paramVertexAxisNames[i]), 0);
+        Double c = doubleOrDefault(node.get(paramVertexAxisNames[i]), 0);
+        Double g = doubleOrDefault(target.get(paramVertexAxisNames[i]), 0);
+        Double p = doubleOrDefault(parent.get(paramVertexAxisNames[i]), 0);
         if (s != null)
           sList.put(paramVertexAxisNames[i], s);
         if (c != null)
@@ -387,10 +386,6 @@ public class OSQLFunctionAstar extends OSQLFunctionHeuristicPathFinderAbstract {
         break;
       case EUCLIDEANNOSQR:
         hresult = getEuclideanNoSQRHeuristicCost(paramVertexAxisNames, sList, cList, pList, gList, currentDepth, paramDFactor);
-        break;
-      case CUSTOM:
-        hresult = getCustomHeuristicCost(paramCustomHeuristicFormula, paramVertexAxisNames, paramSourceVertex,
-            paramDestinationVertex, node, parent, currentDepth, paramDFactor, iContext);
         break;
       }
       if (paramTieBreaker) {

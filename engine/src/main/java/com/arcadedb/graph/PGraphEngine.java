@@ -220,35 +220,35 @@ public class PGraphEngine {
     return Collections.EMPTY_LIST;
   }
 
-  public Iterable<PEdge> getEdges(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String edgeType) {
+  public Iterable<PEdge> getEdges(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String[] edgeTypes) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
-    if (edgeType == null)
-      throw new IllegalArgumentException("Edge Type is null");
+    if (edgeTypes == null || edgeTypes.length == 0)
+      throw new IllegalArgumentException("Edge Type is empty");
 
     switch (direction) {
     case BOTH:
       final PMultiIterator<PEdge> result = new PMultiIterator<>();
       if (vertex.getOutEdgesHeadChunk() != null)
         result.add(new PEdgeLinkedList(vertex, PVertex.DIRECTION.OUT,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator(edgeType));
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator(edgeTypes));
 
       if (vertex.getInEdgesHeadChunk() != null)
         result.add(new PEdgeLinkedList(vertex, PVertex.DIRECTION.IN,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator(edgeType));
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator(edgeTypes));
       return result;
 
     case OUT:
       if (vertex.getOutEdgesHeadChunk() != null)
         return new PEdgeLinkedList(vertex, PVertex.DIRECTION.OUT,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator(edgeType);
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator(edgeTypes);
       break;
 
     case IN:
       if (vertex.getInEdgesHeadChunk() != null)
         return new PEdgeLinkedList(vertex, PVertex.DIRECTION.IN,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator(edgeType);
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator(edgeTypes);
       break;
 
     default:
@@ -322,39 +322,39 @@ public class PGraphEngine {
    * Returns the connected vertices.
    *
    * @param direction Direction between OUT, IN or BOTH
-   * @param edgeType  Edge type name to filter
+   * @param edgeTypes Edge type names to filter
    *
    * @return An iterator of PVertex instances
    */
-  public Iterable<PVertex> getVertices(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String edgeType) {
+  public Iterable<PVertex> getVertices(final PVertexInternal vertex, final PVertex.DIRECTION direction, final String edgeTypes[]) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
 
-    if (edgeType == null)
-      throw new IllegalArgumentException("Edge Type is null");
+    if (edgeTypes == null || edgeTypes.length == 0)
+      throw new IllegalArgumentException("Edge Type is empty");
 
     switch (direction) {
     case BOTH:
       final PMultiIterator<PVertex> result = new PMultiIterator<>();
       if (vertex.getOutEdgesHeadChunk() != null)
         result.add(new PEdgeLinkedList(vertex, PVertex.DIRECTION.OUT,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).vertexIterator(edgeType));
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).vertexIterator(edgeTypes));
 
       if (vertex.getInEdgesHeadChunk() != null)
         result.add(new PEdgeLinkedList(vertex, PVertex.DIRECTION.IN,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).vertexIterator(edgeType));
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).vertexIterator(edgeTypes));
       return result;
 
     case OUT:
       if (vertex.getOutEdgesHeadChunk() != null)
         return new PEdgeLinkedList(vertex, PVertex.DIRECTION.OUT,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).vertexIterator(edgeType);
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).vertexIterator(edgeTypes);
       break;
 
     case IN:
       if (vertex.getInEdgesHeadChunk() != null)
         return new PEdgeLinkedList(vertex, PVertex.DIRECTION.IN,
-            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).vertexIterator(edgeType);
+            (PEdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).vertexIterator(edgeTypes);
       break;
 
     default:

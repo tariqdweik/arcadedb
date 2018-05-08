@@ -5,8 +5,8 @@ import com.arcadedb.database.PDatabaseInternal;
 import java.util.NoSuchElementException;
 
 public class PEdgeIteratorFilter extends PIteratorFilterBase<PEdge> {
-  public PEdgeIteratorFilter(final PDatabaseInternal database, final PEdgeChunk current, final String edgeType) {
-    super(database, current, edgeType);
+  public PEdgeIteratorFilter(final PDatabaseInternal database, final PEdgeChunk current, final String[] edgeTypes) {
+    super(database, current, edgeTypes);
   }
 
   @Override

@@ -47,6 +47,14 @@ public class PModifiableEdge extends PModifiableDocument implements PEdge {
   }
 
   @Override
+  public PVertex getVertex(final PVertex.DIRECTION iDirection) {
+    if (iDirection == PVertex.DIRECTION.OUT)
+      return (PVertex) out.getRecord();
+    else
+      return (PVertex) in.getRecord();
+  }
+
+  @Override
   public byte getRecordType() {
     return PEdge.RECORD_TYPE;
   }

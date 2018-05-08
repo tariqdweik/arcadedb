@@ -32,7 +32,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.getType());
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.get("name"));
 
-      final Iterator<PVertex> vertices2level = v1.getVertices(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
+      final Iterator<PVertex> vertices2level = v1.getVertices(PVertex.DIRECTION.OUT, new String[]{EDGE1_TYPE_NAME}).iterator();
       Assertions.assertNotNull(vertices2level);
       Assertions.assertTrue(vertices2level.hasNext());
 
@@ -42,7 +42,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.getType());
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
-      final Iterator<PVertex> vertices2level2 = v1.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      final Iterator<PVertex> vertices2level2 = v1.getVertices(PVertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
       Assertions.assertTrue(vertices2level2.hasNext());
 
       final PVertex v3 = vertices2level2.next();
@@ -51,7 +51,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v3.getType());
       Assertions.assertEquals("V3", v3.get("name"));
 
-      final Iterator<PVertex> vertices3level = v2.getVertices(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      final Iterator<PVertex> vertices3level = v2.getVertices(PVertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
       Assertions.assertNotNull(vertices3level);
       Assertions.assertTrue(vertices3level.hasNext());
 
@@ -88,7 +88,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertNotNull(v1);
 
       // TEST CONNECTED EDGES
-      final Iterator<PEdge> edges1 = v1.getEdges(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
+      final Iterator<PEdge> edges1 = v1.getEdges(PVertex.DIRECTION.OUT, new String[]{EDGE1_TYPE_NAME}).iterator();
       Assertions.assertNotNull(edges1);
       Assertions.assertTrue(edges1.hasNext());
 
@@ -102,7 +102,7 @@ public class GraphTest extends BaseGraphTest {
       PVertex v2 = e1.getInVertex();
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
-      final Iterator<PEdge> edges2 = v2.getEdges(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      final Iterator<PEdge> edges2 = v2.getEdges(PVertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
       Assertions.assertTrue(edges2.hasNext());
 
       final PEdge e2 = edges2.next();
@@ -115,7 +115,7 @@ public class GraphTest extends BaseGraphTest {
       PVertex v3 = e2.getInVertex();
       Assertions.assertEquals("V3", v3.get("name"));
 
-      final Iterator<PEdge> edges3 = v1.getEdges(PVertex.DIRECTION.OUT, EDGE2_TYPE_NAME);
+      final Iterator<PEdge> edges3 = v1.getEdges(PVertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
       Assertions.assertNotNull(edges3);
       Assertions.assertTrue(edges3.hasNext());
 
@@ -150,7 +150,7 @@ public class GraphTest extends BaseGraphTest {
       v1Copy.save();
 
       // TEST CONNECTED EDGES
-      final Iterator<PEdge> edges1 = v1.getEdges(PVertex.DIRECTION.OUT, EDGE1_TYPE_NAME);
+      final Iterator<PEdge> edges1 = v1.getEdges(PVertex.DIRECTION.OUT, new String[]{EDGE1_TYPE_NAME}).iterator();
       Assertions.assertNotNull(edges1);
       Assertions.assertTrue(edges1.hasNext());
 
@@ -184,7 +184,7 @@ public class GraphTest extends BaseGraphTest {
       PVertex v1 = (PVertex) db.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
-      Iterator<PVertex> vertices = v1.getVertices(PVertex.DIRECTION.OUT);
+      Iterator<PVertex> vertices = v1.getVertices(PVertex.DIRECTION.OUT).iterator();
       Assertions.assertTrue(vertices.hasNext());
       PVertex v2 = vertices.next();
       Assertions.assertNotNull(v2);
@@ -201,14 +201,14 @@ public class GraphTest extends BaseGraphTest {
 
       Assertions.assertEquals(totalVertices - 1, db.countType(v1.getType(), true));
 
-      vertices = v2.getVertices(PVertex.DIRECTION.IN);
+      vertices = v2.getVertices(PVertex.DIRECTION.IN).iterator();
       Assertions.assertFalse(vertices.hasNext());
 
-      vertices = v2.getVertices(PVertex.DIRECTION.OUT);
+      vertices = v2.getVertices(PVertex.DIRECTION.OUT).iterator();
       Assertions.assertTrue(vertices.hasNext());
 
       // Expecting 1 edge only: V2 is still connected to V3
-      vertices = v3.getVertices(PVertex.DIRECTION.IN);
+      vertices = v3.getVertices(PVertex.DIRECTION.IN).iterator();
       Assertions.assertTrue(vertices.hasNext());
       vertices.next();
       Assertions.assertFalse(vertices.hasNext());
@@ -217,16 +217,16 @@ public class GraphTest extends BaseGraphTest {
       // -----------------------
       v2 = (PVertex) db.lookupByRID(v2.getIdentity(), true);
 
-      vertices = v2.getVertices(PVertex.DIRECTION.IN);
+      vertices = v2.getVertices(PVertex.DIRECTION.IN).iterator();
       Assertions.assertFalse(vertices.hasNext());
 
-      vertices = v2.getVertices(PVertex.DIRECTION.OUT);
+      vertices = v2.getVertices(PVertex.DIRECTION.OUT).iterator();
       Assertions.assertTrue(vertices.hasNext());
 
       v3 = (PVertex) db.lookupByRID(v3.getIdentity(), true);
 
       // Expecting 1 edge only: V2 is still connected to V3
-      vertices = v3.getVertices(PVertex.DIRECTION.IN);
+      vertices = v3.getVertices(PVertex.DIRECTION.IN).iterator();
       Assertions.assertTrue(vertices.hasNext());
       vertices.next();
       Assertions.assertFalse(vertices.hasNext());
@@ -252,7 +252,7 @@ public class GraphTest extends BaseGraphTest {
       PVertex v1 = (PVertex) db.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
-      Iterator<PEdge> edges = v1.getEdges(PVertex.DIRECTION.OUT);
+      Iterator<PEdge> edges = v1.getEdges(PVertex.DIRECTION.OUT).iterator();
       Assertions.assertTrue(edges.hasNext());
       PEdge e2 = edges.next();
       Assertions.assertNotNull(e2);
@@ -266,14 +266,14 @@ public class GraphTest extends BaseGraphTest {
       db.deleteRecord(e2);
 
       PVertex vOut = e2.getOutVertex();
-      edges = vOut.getEdges(PVertex.DIRECTION.OUT);
+      edges = vOut.getEdges(PVertex.DIRECTION.OUT).iterator();
       Assertions.assertTrue(edges.hasNext());
 
       edges.next();
       Assertions.assertFalse(edges.hasNext());
 
       PVertex vIn = e2.getInVertex();
-      edges = vIn.getEdges(PVertex.DIRECTION.IN);
+      edges = vIn.getEdges(PVertex.DIRECTION.IN).iterator();
       Assertions.assertFalse(edges.hasNext());
 
       // RELOAD AND CHECK AGAIN
@@ -285,14 +285,14 @@ public class GraphTest extends BaseGraphTest {
       }
 
       vOut = e2.getOutVertex();
-      edges = vOut.getEdges(PVertex.DIRECTION.OUT);
+      edges = vOut.getEdges(PVertex.DIRECTION.OUT).iterator();
       Assertions.assertTrue(edges.hasNext());
 
       edges.next();
       Assertions.assertFalse(edges.hasNext());
 
       vIn = e2.getInVertex();
-      edges = vIn.getEdges(PVertex.DIRECTION.IN);
+      edges = vIn.getEdges(PVertex.DIRECTION.IN).iterator();
       Assertions.assertFalse(edges.hasNext());
 
     } finally {

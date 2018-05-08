@@ -71,9 +71,4 @@ public abstract class OSQLFunctionMathAbstract extends OSQLFunctionConfigurableA
 	public boolean aggregateResults() {
 		return configuredParameters.length == 1;
 	}
-
-	@Override
-	public boolean shouldMergeDistributedResult() {
-		return true;
-	}
 }

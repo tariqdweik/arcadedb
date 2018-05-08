@@ -56,6 +56,15 @@ public class PImmutableEdge extends PImmutableDocument implements PEdge {
   }
 
   @Override
+  public PVertex getVertex(final PVertex.DIRECTION iDirection) {
+    checkForLazyLoading();
+    if (iDirection == PVertex.DIRECTION.OUT)
+      return (PVertex) out.getRecord();
+    else
+      return (PVertex) in.getRecord();
+  }
+
+  @Override
   public byte getRecordType() {
     return PEdge.RECORD_TYPE;
   }

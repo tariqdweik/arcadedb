@@ -3,6 +3,7 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.OMultiValue;
 import com.arcadedb.sql.executor.OResultInternal;
 
 import java.util.Map;

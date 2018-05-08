@@ -16,7 +16,6 @@
  */
 package com.arcadedb.sql.method.misc;
 
-import com.arcadedb.database.PDatabase;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OMultiValue;
@@ -37,8 +36,8 @@ public class OSQLMethodFormat extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute( final Object iThis, final PIdentifiable iRecord, final OCommandContext iContext,
-      Object ioResult, final Object[] iParams) {
+  public Object execute(final Object iThis, final PIdentifiable iRecord, final OCommandContext iContext, Object ioResult,
+      final Object[] iParams) {
 
     // TRY TO RESOLVE AS DYNAMIC VALUE
     Object v = getParameterValue(iRecord, iParams[0].toString());
@@ -51,28 +50,27 @@ public class OSQLMethodFormat extends OAbstractSQLMethod {
         List<String> result = new ArrayList<String>();
         Iterator<Object> iterator = OMultiValue.getMultiValueIterator(ioResult);
         final SimpleDateFormat format = new SimpleDateFormat(v.toString());
-        if (iParams.length > 1) {
-          format.setTimeZone(TimeZone.getTimeZone(iParams[1].toString()));
-        } else {
-          format.setTimeZone(ODateHelper.getDatabaseTimeZone());
-        }
+
+        final TimeZone tz =
+            iParams.length > 1 ? TimeZone.getTimeZone(iParams[1].toString()) : iContext.getDatabase().getSchema().getTimeZone();
+
+        format.setTimeZone(tz);
+
         while (iterator.hasNext()) {
           result.add(format.format(iterator.next()));
         }
         ioResult = result;
       } else if (ioResult instanceof Date) {
         final SimpleDateFormat format = new SimpleDateFormat(v.toString());
-        if (iParams.length > 1) {
-          format.setTimeZone(TimeZone.getTimeZone(iParams[1].toString()));
-        } else {
-          format.setTimeZone(ODateHelper.getDatabaseTimeZone());
-        }
+        final TimeZone tz =
+            iParams.length > 1 ? TimeZone.getTimeZone(iParams[1].toString()) : iContext.getDatabase().getSchema().getTimeZone();
+
+        format.setTimeZone(tz);
         ioResult = format.format(ioResult);
       } else {
         ioResult = ioResult != null ? String.format(v.toString(), ioResult) : null;
       }
     }
-
     return ioResult;
   }
 

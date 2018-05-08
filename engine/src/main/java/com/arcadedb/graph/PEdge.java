@@ -13,4 +13,6 @@ public interface PEdge extends PDocument {
   PRID getIn();
 
   PVertex getInVertex();
+
+  PVertex getVertex(PVertex.DIRECTION iDirection);
 }

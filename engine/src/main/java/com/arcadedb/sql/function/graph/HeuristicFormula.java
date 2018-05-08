@@ -29,6 +29,5 @@ public enum HeuristicFormula {
     MAXAXIS,
     DIAGONAL,
     EUCLIDEAN,
-    EUCLIDEANNOSQR,
-    CUSTOM
+    EUCLIDEANNOSQR
 }

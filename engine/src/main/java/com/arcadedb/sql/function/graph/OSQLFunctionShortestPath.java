@@ -4,10 +4,12 @@ import com.arcadedb.database.PDocument;
 import com.arcadedb.database.PIdentifiable;
 import com.arcadedb.database.PRID;
 import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.graph.OEdgeToVertexIterable;
 import com.arcadedb.graph.PEdge;
 import com.arcadedb.graph.PVertex;
 import com.arcadedb.sql.executor.OCommandContext;
 import com.arcadedb.sql.executor.OMultiValue;
+import com.arcadedb.sql.executor.OResult;
 import com.arcadedb.sql.function.math.OSQLFunctionMathAbstract;
 import com.arcadedb.utility.PMultiIterator;
 import com.arcadedb.utility.PPair;
@@ -59,7 +61,7 @@ public class OSQLFunctionShortestPath extends OSQLFunctionMathAbstract {
   public List<PRID> execute(Object iThis, final PIdentifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
       final OCommandContext iContext) {
 
-    final ORecord record = iCurrentRecord != null ? iCurrentRecord.getRecord() : null;
+    final PDocument record = iCurrentRecord != null ? (PDocument) iCurrentRecord.getRecord() : null;
 
     final OShortestPathContext ctx = new OShortestPathContext();
 
@@ -72,13 +74,13 @@ public class OSQLFunctionShortestPath extends OSQLFunctionMathAbstract {
         source = ((OResult) source).getElement().get();
       }
     }
-    source = OSQLHelper.getValue(source, record, iContext);
+    source = record.get((String) source);
     if (source instanceof PIdentifiable) {
-      OElement elem = ((PIdentifiable) source).getRecord();
-      if (elem == null || !elem.isVertex()) {
+      final PDocument elem = (PDocument) ((PIdentifiable) source).getRecord();
+      if (elem == null || !(elem instanceof PVertex))
         throw new IllegalArgumentException("The sourceVertex must be a vertex record");
-      }
-      ctx.sourceVertex = elem.asVertex().get();
+
+      ctx.sourceVertex = (PVertex) elem;
     } else {
       throw new IllegalArgumentException("The sourceVertex must be a vertex record");
     }
@@ -92,13 +94,13 @@ public class OSQLFunctionShortestPath extends OSQLFunctionMathAbstract {
         dest = ((OResult) dest).getElement().get();
       }
     }
-    dest = OSQLHelper.getValue(dest, record, iContext);
+    dest = record.get((String) dest);
     if (dest instanceof PIdentifiable) {
-      OElement elem = ((PIdentifiable) dest).getRecord();
-      if (elem == null || !elem.isVertex()) {
+      PDocument elem = (PDocument) ((PIdentifiable) dest).getRecord();
+      if (elem == null || !(elem instanceof PVertex))
         throw new IllegalArgumentException("The destinationVertex must be a vertex record");
-      }
-      ctx.destinationVertex = elem.asVertex().get();
+
+      ctx.destinationVertex = (PVertex) elem;
     } else {
       throw new IllegalArgumentException("The destinationVertex must be a vertex record");
     }
@@ -270,7 +272,7 @@ public class OSQLFunctionShortestPath extends OSQLFunctionMathAbstract {
     } else {
       Iterable<PEdge> edges1 = srcVertex.getEdges(direction, types);
       Iterable<PEdge> edges2 = srcVertex.getEdges(direction, types);
-      return new PPair<>(new PEdgeToVertexIterable(edges1, direction), edges2);
+      return new PPair<>(new OEdgeToVertexIterable(edges1, direction), edges2);
     }
   }
 
