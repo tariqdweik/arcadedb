@@ -20,7 +20,7 @@
 package com.arcadedb.console;
 
 import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.sql.executor.OResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,24 +29,27 @@ import java.util.Set;
 public class PRecordTableFormatter extends PTableFormatter {
 
   public static class PTableRecordRow implements PTableRow {
-    private final PDocument document;
+    private final OResult result;
 
-    public PTableRecordRow(final PDocument document) {
-      this.document = document;
+    public PTableRecordRow(final OResult result) {
+      this.result = result;
     }
 
     @Override
     public Object getField(final String field) {
-      if (field.equalsIgnoreCase("@rid"))
-        return document.getIdentity();
-      else if (field.equalsIgnoreCase("@type"))
-        return document.getType();
-      return document.get(field);
+      if (field.equalsIgnoreCase("@rid")) {
+        if (result.getIdentity().isPresent())
+          return result.getIdentity().get();
+      } else if (field.equalsIgnoreCase("@type")) {
+        if (result.getRecord().isPresent())
+          return ((PDocument) result.getRecord().get()).getType();
+      }
+      return result.getProperty(field);
     }
 
     @Override
     public Set<String> getFields() {
-      return document.getPropertyNames();
+      return result.getPropertyNames();
     }
   }
 
@@ -54,10 +57,10 @@ public class PRecordTableFormatter extends PTableFormatter {
     super(iConsole);
   }
 
-  public void writeRecords(final List<PIdentifiable> records, final int limit) {
+  public void writeRecords(final List<OResult> records, final int limit) {
     final List<PTableRow> rows = new ArrayList<>();
-    for (PIdentifiable id : records)
-      rows.add(new PTableRecordRow((PDocument) id.getRecord()));
+    for (OResult record : records)
+      rows.add(new PTableRecordRow(record));
 
     super.writeRows(rows, limit);
   }

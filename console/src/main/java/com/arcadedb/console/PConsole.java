@@ -19,7 +19,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class PConsole {
   private static final String          PROMPT = "\n%s> ";
@@ -38,7 +37,7 @@ public class PConsole {
     terminal = TerminalBuilder.builder().system(system).streams(System.in, System.out).jansi(true).build();
     lineReader = LineReaderBuilder.builder().terminal(terminal).parser(parser).build();
 
-    output("ArcadeDB Console v.%s - %s (%s)\n", PConstants.VERSION, PConstants.COPYRIGHT, PConstants.URL);
+    output("%s Console v.%s - %s (%s)\n", PConstants.PRODUCT, PConstants.VERSION, PConstants.COPYRIGHT, PConstants.URL);
 
     if (!interactive)
       return;
@@ -146,6 +145,8 @@ public class PConsole {
   private void executeCommand(String line) {
     checkDatabaseIsOpen();
 
+    final long beginTime = System.currentTimeMillis();
+
     final OResultSet result = database.command(line, null);
     final PTableFormatter table = new PTableFormatter(new PTableFormatter.OTableOutput() {
       @Override
@@ -157,13 +158,14 @@ public class PConsole {
 
     final List<PRecordTableFormatter.PTableRecordRow> list = new ArrayList<>();
     while (result.hasNext()) {
-      final Optional<PDocument> next = result.next().getElement();
-
-      if (next.isPresent())
-        list.add(new PRecordTableFormatter.PTableRecordRow(next.get()));
+      list.add(new PRecordTableFormatter.PTableRecordRow(result.next()));
     }
 
+    final long elapsed = System.currentTimeMillis() - beginTime;
+
     table.writeRows(list, 20);
+
+    terminal.writer().printf("\nCommand executed in %dms\n", elapsed);
   }
 
   private void executeLoad(final String fileName) throws IOException {
