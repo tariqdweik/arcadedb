@@ -13,14 +13,24 @@ import com.arcadedb.exception.PSchemaException;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexLSM;
 import com.arcadedb.serializer.PBinaryTypes;
+import com.arcadedb.utility.PFileUtils;
 import com.arcadedb.utility.PLogManager;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
 public class PSchemaImpl implements PSchema {
-  private static final String                     SCHEMA_FILE_NAME = "/schema.pcsv";
+  public static final String DEFAULT_DATE_FORMAT     = "yyyy-MM-dd";
+  public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+  public static final String DEFAULT_ENCODING        = "UTF-8";
+
+  private static final String                     SCHEMA_FILE_NAME = "/schema.json";
   private final        PDatabaseInternal          database;
   private final        List<PPaginatedComponent>  files            = new ArrayList<PPaginatedComponent>();
   private final        Map<String, PDocumentType> types            = new HashMap<String, PDocumentType>();
@@ -28,6 +38,10 @@ public class PSchemaImpl implements PSchema {
   private final        Map<String, PIndex>        indexMap         = new HashMap<String, PIndex>();
   private final        String                     databasePath;
   private              PDictionary                dictionary;
+  private              String                     dateFormat       = DEFAULT_DATE_FORMAT;
+  private              String                     dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
+  private              String                     encoding         = DEFAULT_ENCODING;
+  private              TimeZone                   timeZone         = TimeZone.getDefault();
 
   public PSchemaImpl(final PDatabaseInternal database, final String databasePath, final PPaginatedFile.MODE mode) {
     this.database = database;
@@ -49,7 +63,7 @@ public class PSchemaImpl implements PSchema {
     }
   }
 
-  public void load(final PPaginatedFile.MODE mode) {
+  public void load(final PPaginatedFile.MODE mode) throws IOException {
     for (PPaginatedFile file : database.getFileManager().getFiles()) {
       final String fileName = file.getFileName();
       final int fileId = file.getFileId();
@@ -94,6 +108,36 @@ public class PSchemaImpl implements PSchema {
     }
 
     readConfiguration();
+  }
+
+  @Override
+  public TimeZone getTimeZone() {
+    return timeZone;
+  }
+
+  @Override
+  public void setTimeZone(final TimeZone timeZone) {
+    this.timeZone = timeZone;
+  }
+
+  @Override
+  public String getDateFormat() {
+    return dateFormat;
+  }
+
+  @Override
+  public void setDateFormat(final String dateFormat) {
+    this.dateFormat = dateFormat;
+  }
+
+  @Override
+  public String getDateTimeFormat() {
+    return dateTimeFormat;
+  }
+
+  @Override
+  public void setDateTimeFormat(final String dateTimeFormat) {
+    this.dateTimeFormat = dateTimeFormat;
   }
 
   @Override
@@ -425,7 +469,7 @@ public class PSchemaImpl implements PSchema {
 
         if (types.containsKey(typeName))
           throw new PSchemaException("Edge type '" + typeName + "' already exists");
-        final PDocumentType c = new PEdgeType(PSchemaImpl.this, typeName, dictionary.getIdByName(typeName, true));
+        final PDocumentType c = new PEdgeType(PSchemaImpl.this, typeName);
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
@@ -460,77 +504,85 @@ public class PSchemaImpl implements PSchema {
     oldIndex.drop();
   }
 
-  protected void readConfiguration() {
+  protected void readConfiguration() throws IOException {
     types.clear();
 
     final File file = new File(databasePath + SCHEMA_FILE_NAME);
     if (!file.exists())
       return;
 
-    try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-      int lineNum = 0;
-      String line;
+    final String fileContent = PFileUtils.readStreamAsString(new FileInputStream(file), encoding);
 
-      PDocumentType lastType = null;
+    final JSONObject root = new JSONObject(fileContent);
 
-      final Map<String, String[]> parentTypes = new HashMap<>();
+    //root.get("version", PConstants.VERSION);
 
-      while ((line = br.readLine()) != null) {
-        if (lineNum == 0) {
-          if (!line.startsWith("#ARCADEDB,"))
-            throw new PConfigurationException("Format exception while parsing schema file: " + (databasePath + SCHEMA_FILE_NAME));
-        } else if (!line.startsWith("+")) {
-          // TYPE
-          final String[] parts = line.split(",");
+    final JSONObject settings = root.getJSONObject("settings");
 
-          final String typeName = parts[0];
-          final String kind = parts[1];
+    timeZone = TimeZone.getTimeZone(settings.getString("timeZone"));
+    dateFormat = settings.getString("dateFormat");
+    dateTimeFormat = settings.getString("dateTimeFormat");
 
-          final PDocumentType type;
-          if ("v".equals(kind)) {
-            type = new PVertexType(this, typeName);
-          } else if ("e".equals(kind)) {
-            type = new PEdgeType(this, typeName, dictionary.getIdByName(typeName, false));
-          } else {
-            type = new PDocumentType(this, typeName);
-          }
+    final JSONObject schema = root.getJSONObject("schema");
 
-          // parts[1] // IGNORE STRATEGY FOR NOW
-          final String[] parentItems = parts[3].isEmpty() ? null : parts[3].split(";");
+    final Map<String, String[]> parentTypes = new HashMap<>();
 
-          if (parentItems != null)
-            // SAVE THE PARENT HIERARCHY FOR LATER
-            parentTypes.put(typeName, parentItems);
+    for (String typeName : schema.keySet()) {
+      final JSONObject schemaType = schema.getJSONObject(typeName);
 
-          final String[] bucketItems = parts[4].split(";");
-          for (String b : bucketItems) {
-            final PPaginatedComponent bucket = files.get(Integer.parseInt(b));
-            if (bucket == null || !(bucket instanceof PBucket))
-              PLogManager.instance().warn(this, "Cannot find bucket %s for type '%s'", b, parts[0]);
-            type.addBucketInternal((PBucket) bucket);
-          }
+      final PDocumentType type;
 
-          types.put(type.getName(), type);
-          lastType = type;
-        } else {
-          // INDEX
-          final String[] parts = line.substring(1).split(",");
-          final String bucketName = parts[1];
-          final String[] keys = parts[2].split(";");
-          lastType.addIndexInternal(getIndexByName(parts[0]), bucketMap.get(bucketName), keys);
+      final String kind = (String) schemaType.get("type");
+      if ("v".equals(kind)) {
+        type = new PVertexType(this, typeName);
+      } else if ("e".equals(kind)) {
+        type = new PEdgeType(this, typeName);
+      } else if ("d".equals(kind)) {
+        type = new PDocumentType(this, typeName);
+      } else
+        throw new PConfigurationException("Type '" + kind + "' is not supported");
+
+      types.put(typeName, type);
+
+      final JSONArray schemaParent = schemaType.getJSONArray("parents");
+      if (schemaParent != null) {
+        // SAVE THE PARENT HIERARCHY FOR LATER
+        final String[] parents = new String[schemaParent.length()];
+        parentTypes.put(typeName, parents);
+        for (int i = 0; i < schemaParent.length(); ++i)
+          parents[i] = schemaParent.getString(i);
+      }
+
+      final JSONArray schemaBucket = schemaType.getJSONArray("buckets");
+      if (schemaBucket != null) {
+        for (int i = 0; i < schemaBucket.length(); ++i) {
+          final PPaginatedComponent bucket = bucketMap.get(schemaBucket.getString(i));
+          if (bucket == null || !(bucket instanceof PBucket))
+            PLogManager.instance().warn(this, "Cannot find bucket %s for type '%s'", schemaBucket.getInt(i), type);
+          type.addBucketInternal((PBucket) bucket);
         }
-        lineNum++;
       }
 
-      // RESTORE THE INHERITANCE
-      for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
-        final PDocumentType type = getType(entry.getKey());
-        for (String p : entry.getValue())
-          type.addParent(getType(p));
-      }
+      final JSONObject schemaIndexes = schemaType.getJSONObject("indexes");
+      if (schemaIndexes != null) {
+        for (String indexName : schemaIndexes.keySet()) {
+          final JSONObject index = schemaIndexes.getJSONObject(indexName);
 
-    } catch (IOException e) {
-      PLogManager.instance().error(this, "Error on loading schema configuration from file: %s", e, databasePath + SCHEMA_FILE_NAME);
+          final JSONArray schemaProperties = index.getJSONArray("properties");
+
+          final String[] properties = new String[schemaProperties.length()];
+          for (int i = 0; i < properties.length; ++i)
+            properties[i] = schemaProperties.getString(i);
+          type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
+        }
+      }
+    }
+
+    // RESTORE THE INHERITANCE
+    for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
+      final PDocumentType type = getType(entry.getKey());
+      for (String p : entry.getValue())
+        type.addParent(getType(p));
     }
   }
 
@@ -538,22 +590,22 @@ public class PSchemaImpl implements PSchema {
     try {
       final FileWriter file = new FileWriter(databasePath + SCHEMA_FILE_NAME);
 
-      file.append(String.format("#ARCADEDB,%s\n", PConstants.VERSION));
+      final JSONObject root = new JSONObject();
+      root.put("version", PConstants.VERSION);
+
+      final JSONObject settings = new JSONObject();
+      root.put("settings", settings);
+
+      settings.put("timeZone", timeZone);
+      settings.put("dateFormat", dateFormat);
+      settings.put("dateTimeFormat", dateTimeFormat);
+
+      final JSONObject schema = new JSONObject();
+      root.put("schema", schema);
+
       for (PDocumentType t : types.values()) {
-
-        final StringBuilder parentList2String = new StringBuilder();
-        for (PDocumentType p : t.getParentTypes()) {
-          if (parentList2String.length() > 0)
-            parentList2String.append(';');
-          parentList2String.append(p.getName());
-        }
-
-        final StringBuilder bucketList2String = new StringBuilder();
-        for (PBucket b : t.getBuckets(false)) {
-          if (bucketList2String.length() > 0)
-            bucketList2String.append(';');
-          bucketList2String.append(b.getId());
-        }
+        final JSONObject type = new JSONObject();
+        schema.put(t.getName(), type);
 
         final String kind;
         if (t instanceof PVertexType)
@@ -562,25 +614,37 @@ public class PSchemaImpl implements PSchema {
           kind = "e";
         else
           kind = "d";
+        type.put("type", kind);
 
-        file.append(String
-            .format("%s,%s,%s,%s,%s\n", t.getName(), kind, t.getSyncSelectionStrategy().getName(), parentList2String.toString(),
-                bucketList2String.toString()));
+        final String[] parents = new String[t.getParentTypes().size()];
+        for (int i = 0; i < parents.length; ++i)
+          parents[i] = t.getParentTypes().get(i).getName();
+        type.put("parents", parents);
+
+        final List<PBucket> originalBuckets = t.getBuckets(false);
+        final String[] buckets = new String[originalBuckets.size()];
+        for (int i = 0; i < buckets.length; ++i)
+          buckets[i] = originalBuckets.get(i).getName();
+
+        type.put("buckets", buckets);
+        type.put("syncSelectionStrategy", t.getSyncSelectionStrategy().getName());
+        type.put("asyncSelectionStrategy", t.getAsyncSelectionStrategy().getName());
+
+        final JSONObject indexes = new JSONObject();
+        type.put("indexes", indexes);
 
         for (List<PDocumentType.IndexMetadata> list : t.getAllIndexesMetadata()) {
           for (PDocumentType.IndexMetadata entry : list) {
-            final StringBuilder keys2String = new StringBuilder();
-            for (String k : entry.propertyNames) {
-              if (keys2String.length() > 0)
-                keys2String.append(';');
-              keys2String.append(k);
-            }
+            final JSONObject index = new JSONObject();
+            indexes.put(entry.index.getName(), index);
 
-            file.append(String
-                .format("+%s,%s,%s\n", entry.index.getName(), getBucketById(entry.bucketId).getName(), keys2String.toString()));
+            index.put("bucket", getBucketById(entry.bucketId).getName());
+            index.put("properties", entry.propertyNames);
           }
         }
       }
+
+      file.write(root.toString());
       file.close();
 
     } catch (IOException e) {

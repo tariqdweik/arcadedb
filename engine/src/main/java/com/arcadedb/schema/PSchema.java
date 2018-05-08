@@ -2,12 +2,15 @@ package com.arcadedb.schema;
 
 import com.arcadedb.engine.PBucket;
 import com.arcadedb.engine.PDictionary;
-import com.arcadedb.index.PIndex;
 import com.arcadedb.engine.PPaginatedComponent;
+import com.arcadedb.index.PIndex;
 
 import java.util.Collection;
+import java.util.TimeZone;
 
 public interface PSchema {
+
+  void setDateTimeFormat(String dateTimeFormat);
 
   PPaginatedComponent getFileById(int id);
 
@@ -64,4 +67,14 @@ public interface PSchema {
   PEdgeType createEdgeType(String typeName, int buckets);
 
   PEdgeType createEdgeType(String typeName, int buckets, int pageSize);
+
+  TimeZone getTimeZone();
+
+  void setTimeZone(TimeZone timeZone);
+
+  String getDateFormat();
+
+  void setDateFormat(String dateFormat);
+
+  String getDateTimeFormat();
 }
