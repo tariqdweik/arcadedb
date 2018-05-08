@@ -523,12 +523,12 @@ public class PSchemaImpl implements PSchema {
     dateFormat = settings.getString("dateFormat");
     dateTimeFormat = settings.getString("dateTimeFormat");
 
-    final JSONObject schema = root.getJSONObject("schema");
+    final JSONObject types = root.getJSONObject("types");
 
     final Map<String, String[]> parentTypes = new HashMap<>();
 
-    for (String typeName : schema.keySet()) {
-      final JSONObject schemaType = schema.getJSONObject(typeName);
+    for (String typeName : types.keySet()) {
+      final JSONObject schemaType = types.getJSONObject(typeName);
 
       final PDocumentType type;
 
@@ -542,7 +542,7 @@ public class PSchemaImpl implements PSchema {
       } else
         throw new PConfigurationException("Type '" + kind + "' is not supported");
 
-      types.put(typeName, type);
+      this.types.put(typeName, type);
 
       final JSONArray schemaParent = schemaType.getJSONArray("parents");
       if (schemaParent != null) {
@@ -596,16 +596,16 @@ public class PSchemaImpl implements PSchema {
       final JSONObject settings = new JSONObject();
       root.put("settings", settings);
 
-      settings.put("timeZone", timeZone);
+      settings.put("timeZone", timeZone.getDisplayName());
       settings.put("dateFormat", dateFormat);
       settings.put("dateTimeFormat", dateTimeFormat);
 
-      final JSONObject schema = new JSONObject();
-      root.put("schema", schema);
+      final JSONObject types = new JSONObject();
+      root.put("types", types);
 
-      for (PDocumentType t : types.values()) {
+      for (PDocumentType t : this.types.values()) {
         final JSONObject type = new JSONObject();
-        schema.put(t.getName(), type);
+        types.put(t.getName(), type);
 
         final String kind;
         if (t instanceof PVertexType)
