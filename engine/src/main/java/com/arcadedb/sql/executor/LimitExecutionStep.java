@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Limit;
 
 /**
@@ -11,21 +11,21 @@ public class LimitExecutionStep extends AbstractExecutionStep {
 
   int loaded = 0;
 
-  public LimitExecutionStep(Limit limit, OCommandContext ctx, boolean profilingEnabled) {
+  public LimitExecutionStep(Limit limit, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.limit = limit;
   }
 
-  @Override public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  @Override public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     int limitVal = limit.getValue(ctx);
     if (limitVal == -1) {
       return getPrev().get().syncPull(ctx, nRecords);
     }
     if (limitVal <= loaded) {
-      return new OInternalResultSet();
+      return new InternalResultSet();
     }
     int nextBlockSize = Math.min(nRecords, limitVal - loaded);
-    OResultSet result = prev.get().syncPull(ctx, nextBlockSize);
+    ResultSet result = prev.get().syncPull(ctx, nextBlockSize);
     loaded += nextBlockSize;
     return result;
   }
@@ -39,7 +39,7 @@ public class LimitExecutionStep extends AbstractExecutionStep {
   }
 
   @Override public String prettyPrint(int depth, int indent) {
-    return OExecutionStepInternal.getIndent(depth, indent) + "+ LIMIT (" + limit.toString() + ")";
+    return ExecutionStepInternal.getIndent(depth, indent) + "+ LIMIT (" + limit.toString() + ")";
   }
 
 }

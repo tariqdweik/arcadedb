@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,18 +35,18 @@ public class InstanceofCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
     if (currentRecord == null) {
       return false;
     }
-    PRecord record = currentRecord.getRecord();
+    Record record = currentRecord.getRecord();
     if (record == null) {
       return false;
     }
-    if (!(record instanceof PDocument)) {
+    if (!(record instanceof Document)) {
       return false;
     }
-    PDocument doc = (PDocument)record;
+    Document doc = (Document)record;
     String clazz = doc.getType();
     if (clazz == null) {
       return false;
@@ -60,21 +60,21 @@ public class InstanceofCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Result currentRecord, CommandContext ctx) {
     if (currentRecord == null) {
       return false;
     }
     if (!currentRecord.isElement()) {
       return false;
     }
-    PRecord record = currentRecord.getElement().get().getRecord();
+    Record record = currentRecord.getElement().get().getRecord();
     if (record == null) {
       return false;
     }
-    if (!(record instanceof PDocument)) {
+    if (!(record instanceof Document)) {
       return false;
     }
-    PDocument doc = (PDocument) record;
+    Document doc = (Document) record;
     String clazz = doc.getType();
     if (clazz == null) {
       return false;

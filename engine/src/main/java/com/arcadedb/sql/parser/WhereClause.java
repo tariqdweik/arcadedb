@@ -2,13 +2,13 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,14 +33,14 @@ public class WhereClause extends SimpleNode {
     return visitor.visit(this, data);
   }
 
-  public boolean matchesFilters(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean matchesFilters(Identifiable currentRecord, CommandContext ctx) {
     if (baseExpression == null) {
       return true;
     }
     return baseExpression.evaluate(currentRecord, ctx);
   }
 
-  public boolean matchesFilters(OResult currentRecord, OCommandContext ctx) {
+  public boolean matchesFilters(Result currentRecord, CommandContext ctx) {
     if (baseExpression == null) {
       return true;
     }
@@ -62,7 +62,7 @@ public class WhereClause extends SimpleNode {
    * @return an estimation of the number of records of this class returned applying this filter, 0 if and only if sure that no
    * records are returned
    */
-  public long estimate(PDocumentType oClass, long threshold, OCommandContext ctx) {
+  public long estimate(PDocumentType oClass, long threshold, CommandContext ctx) {
 //    long count = oClass.count();
 //    if (count > 1) {
 //      count = count / 2;
@@ -171,7 +171,7 @@ public class WhereClause extends SimpleNode {
     return Long.MAX_VALUE;
   }
 
-  public Iterable fetchFromIndexes(PDocumentType oClass, OCommandContext ctx) {
+  public Iterable fetchFromIndexes(PDocumentType oClass, CommandContext ctx) {
 
       //TODO
       throw new UnsupportedOperationException("TODO");
@@ -268,14 +268,14 @@ public class WhereClause extends SimpleNode {
 //    return PType.convert(o, oType.getDefaultJavaType());
   }
 
-  private Map<String, Object> getEqualityOperations(AndBlock condition, OCommandContext ctx) {
+  private Map<String, Object> getEqualityOperations(AndBlock condition, CommandContext ctx) {
     Map<String, Object> result = new HashMap<String, Object>();
     for (BooleanExpression expression : condition.subBlocks) {
       if (expression instanceof BinaryCondition) {
         BinaryCondition b = (BinaryCondition) expression;
         if (b.operator instanceof EqualsCompareOperator) {
           if (b.left.isBaseIdentifier() && b.right.isEarlyCalculated()) {
-            result.put(b.left.toString(), b.right.execute((OResult) null, ctx));
+            result.put(b.left.toString(), b.right.execute((Result) null, ctx));
           }
         }
       }
@@ -295,7 +295,7 @@ public class WhereClause extends SimpleNode {
 
   }
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, PDatabase database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
     if (baseExpression == null) {
       return null;
     }
@@ -364,8 +364,8 @@ public class WhereClause extends SimpleNode {
     this.flattened = flattened;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (baseExpression != null) {
       result.setProperty("baseExpression", baseExpression.serialize());
     }
@@ -375,14 +375,14 @@ public class WhereClause extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("baseExpression") != null) {
       baseExpression = BooleanExpression.deserializeFromOResult(fromResult.getProperty("baseExpression"));
     }
     if (fromResult.getProperty("flattened") != null) {
-      List<OResult> ser = fromResult.getProperty("flattened");
+      List<Result> ser = fromResult.getProperty("flattened");
       flattened = new ArrayList<>();
-      for (OResult r : ser) {
+      for (Result r : ser) {
         AndBlock block = new AndBlock(-1);
         block.deserialize(r);
         flattened.add(block);

@@ -11,19 +11,19 @@ import java.util.List;
  */
 public class WhileMatchStep extends AbstractUnrollStep {
 
-  private final OInternalExecutionPlan body;
-  private final WhereClause            condition;
+  private final InternalExecutionPlan body;
+  private final WhereClause           condition;
 
-  public WhileMatchStep(OCommandContext ctx, WhereClause condition, OInternalExecutionPlan body, boolean profilingEnabled) {
+  public WhileMatchStep(CommandContext ctx, WhereClause condition, InternalExecutionPlan body, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.body = body;
     this.condition = condition;
   }
 
-  @Override protected Collection<OResult> unroll(OResult doc, OCommandContext iContext) {
+  @Override protected Collection<Result> unroll(Result doc, CommandContext iContext) {
     body.reset(iContext);
-    List<OResult> result = new ArrayList<>();
-    OResultSet block = body.fetchNext(100);
+    List<Result> result = new ArrayList<>();
+    ResultSet block = body.fetchNext(100);
     while(block.hasNext()){
       while(block.hasNext()){
         result.add(block.next());
@@ -34,8 +34,8 @@ public class WhileMatchStep extends AbstractUnrollStep {
   }
 
   @Override public String prettyPrint(int depth, int indent) {
-    String indentStep = OExecutionStepInternal.getIndent(1, indent);
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String indentStep = ExecutionStepInternal.getIndent(1, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ WHILE\n");

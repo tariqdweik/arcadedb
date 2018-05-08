@@ -1,6 +1,6 @@
 package performance;
 
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.utility.FileUtils;
 
 import java.io.File;
 
@@ -9,7 +9,7 @@ public abstract class PerformanceTest {
 
   public static void clean() {
     final File dir = new File(PerformanceTest.DATABASE_PATH);
-    PFileUtils.deleteRecursively(dir);
+    FileUtils.deleteRecursively(dir);
     dir.mkdirs();
   }
 }

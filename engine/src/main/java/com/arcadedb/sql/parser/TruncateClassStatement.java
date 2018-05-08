@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.database.Database;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
@@ -22,8 +22,8 @@ public class TruncateClassStatement extends ODDLStatement {
     super(p, id);
   }
 
-  @Override public OResultSet executeDDL(OCommandContext ctx) {
-    PDatabase db = ctx.getDatabase();
+  @Override public ResultSet executeDDL(CommandContext ctx) {
+    Database db = ctx.getDatabase();
 //    OSchema schema = db.getMetadata().getSchema();
 //    OClass clazz = schema.getClass(className.getStringValue());
 //    if (clazz == null) {

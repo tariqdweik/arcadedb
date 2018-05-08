@@ -1,12 +1,12 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.sql.parser.Identifier;
 
 import java.util.*;
@@ -23,18 +23,18 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
   //operation stuff
 
   //iterator of FROM vertices
-  Iterator        fromIter;
+  Iterator       fromIter;
   //iterator of edges on current from
-  Iterator<PEdge> currentFromEdgesIter;
-  Iterator        toIterator;
+  Iterator<Edge> currentFromEdgesIter;
+  Iterator       toIterator;
 
-  Set<PRID> toList = new HashSet<>();
+  Set<RID> toList = new HashSet<>();
   private boolean inited = false;
 
-  private PEdge nextEdge = null;
+  private Edge nextEdge = null;
 
   public FetchEdgesFromToVerticesStep(String fromAlias, String toAlias, Identifier targetClass, Identifier targetCluster,
-      OCommandContext ctx, boolean profilingEnabled) {
+      CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass;
     this.targetCluster = targetCluster;
@@ -43,10 +43,10 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init();
-    return new OResultSet() {
+    return new ResultSet() {
       int currentBatch = 0;
 
       @Override
@@ -55,26 +55,26 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (!hasNext()) {
           throw new IllegalStateException();
         }
-        PEdge edge = nextEdge;
+        Edge edge = nextEdge;
         fetchNextEdge();
-        OResultInternal result = new OResultInternal();
+        ResultInternal result = new ResultInternal();
         result.setElement(edge);
         return result;
       }
 
       @Override
       public void close() {
-        if (fromIter instanceof OResultSet) {
-          ((OResultSet) fromIter).close();
+        if (fromIter instanceof ResultSet) {
+          ((ResultSet) fromIter).close();
         }
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -85,15 +85,15 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
     };
   }
 
-  private PVertex asVertex(Object currentFrom) {
-    if (currentFrom instanceof PRID) {
-      currentFrom = ((PRID) currentFrom).getRecord();
+  private Vertex asVertex(Object currentFrom) {
+    if (currentFrom instanceof RID) {
+      currentFrom = ((RID) currentFrom).getRecord();
     }
-    if (currentFrom instanceof OResult) {
-      return ((OResult) currentFrom).getVertex().orElse(null);
+    if (currentFrom instanceof Result) {
+      return ((Result) currentFrom).getVertex().orElse(null);
     }
-    if (currentFrom instanceof PVertex) {
-      return (PVertex) currentFrom;
+    if (currentFrom instanceof Vertex) {
+      return (Vertex) currentFrom;
     }
     return null;
   }
@@ -109,7 +109,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
     Object fromValues = null;
 
     fromValues = ctx.getVariable(fromAlias);
-    if (fromValues instanceof Iterable && !(fromValues instanceof PIdentifiable)) {
+    if (fromValues instanceof Iterable && !(fromValues instanceof Identifiable)) {
       fromValues = ((Iterable) fromValues).iterator();
     } else if (!(fromValues instanceof Iterator)) {
       fromValues = Collections.singleton(fromValues).iterator();
@@ -118,7 +118,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
     Object toValues = null;
 
     toValues = ctx.getVariable(toAlias);
-    if (toValues instanceof Iterable && !(toValues instanceof PIdentifiable)) {
+    if (toValues instanceof Iterable && !(toValues instanceof Identifiable)) {
       toValues = ((Iterable) toValues).iterator();
     } else if (!(toValues instanceof Iterator)) {
       toValues = Collections.singleton(toValues).iterator();
@@ -130,17 +130,17 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
 
     while (toIter != null && toIter.hasNext()) {
       Object elem = toIter.next();
-      if (elem instanceof OResult) {
-        elem = ((OResult) elem).toElement();
+      if (elem instanceof Result) {
+        elem = ((Result) elem).toElement();
       }
-      if (elem instanceof PIdentifiable && !(elem instanceof PRecord)) {
-        elem = ((PIdentifiable) elem).getRecord();
+      if (elem instanceof Identifiable && !(elem instanceof Record)) {
+        elem = ((Identifiable) elem).getRecord();
       }
-      if (!(elem instanceof PRecord)) {
-        throw new PCommandExecutionException("Invalid vertex: " + elem);
+      if (!(elem instanceof Record)) {
+        throw new CommandExecutionException("Invalid vertex: " + elem);
       }
-      if (elem instanceof PVertex) {
-        toList.add(((PVertex) elem).getIdentity());
+      if (elem instanceof Vertex) {
+        toList.add(((Vertex) elem).getIdentity());
       }
     }
 
@@ -158,23 +158,23 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
         }
         if (this.fromIter.hasNext()) {
           Object from = fromIter.next();
-          if (from instanceof OResult) {
-            from = ((OResult) from).toElement();
+          if (from instanceof Result) {
+            from = ((Result) from).toElement();
           }
-          if (from instanceof PIdentifiable && !(from instanceof PRecord)) {
-            from = ((PIdentifiable) from).getRecord();
+          if (from instanceof Identifiable && !(from instanceof Record)) {
+            from = ((Identifiable) from).getRecord();
           }
-          if (from instanceof PVertex) {
+          if (from instanceof Vertex) {
 
-            currentFromEdgesIter = ((PVertex) from).getEdges(PVertex.DIRECTION.OUT).iterator();
+            currentFromEdgesIter = ((Vertex) from).getEdges(Vertex.DIRECTION.OUT).iterator();
           } else {
-            throw new PCommandExecutionException("Invalid vertex: " + from);
+            throw new CommandExecutionException("Invalid vertex: " + from);
           }
         } else {
           return;
         }
       }
-      PEdge edge = this.currentFromEdgesIter.next();
+      Edge edge = this.currentFromEdgesIter.next();
       if (toList == null || toList.contains(edge.getIn().getIdentity())) {
         if (matchesClass(edge) && matchesCluster(edge)) {
           this.nextEdge = edge;
@@ -184,7 +184,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
     }
   }
 
-  private boolean matchesCluster(PEdge edge) {
+  private boolean matchesCluster(Edge edge) {
     if (targetCluster == null) {
       return true;
     }
@@ -193,7 +193,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
     return clusterName.equals(targetCluster.getStringValue());
   }
 
-  private boolean matchesClass(PEdge edge) {
+  private boolean matchesClass(Edge edge) {
     if (targetClass == null) {
       return true;
     }
@@ -202,7 +202,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ FOR EACH x in " + fromAlias + "\n";
     result += spaces + "    FOR EACH y in " + toAlias + "\n";
     result += spaces + "       FETCH EDGES FROM x TO y";

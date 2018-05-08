@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.*;
@@ -56,67 +56,67 @@ public class MethodCall extends SimpleNode {
     return bidirectionalMethods.contains(methodName.getStringValue().toLowerCase(Locale.ENGLISH));
   }
 
-  public Object execute(Object targetObjects, OCommandContext ctx) {
+  public Object execute(Object targetObjects, CommandContext ctx) {
     return execute(targetObjects, ctx, methodName.getStringValue(), params, null);
   }
 
-  public Object execute(Object targetObjects, Iterable<PIdentifiable> iPossibleResults, OCommandContext ctx) {
+  public Object execute(Object targetObjects, Iterable<Identifiable> iPossibleResults, CommandContext ctx) {
     return execute(targetObjects, ctx, methodName.getStringValue(), params, iPossibleResults);
   }
 
-  private Object execute(Object targetObjects, OCommandContext ctx, String name, List<Expression> iParams,
-      Iterable<PIdentifiable> iPossibleResults) {
+  private Object execute(Object targetObjects, CommandContext ctx, String name, List<Expression> iParams,
+      Iterable<Identifiable> iPossibleResults) {
     List<Object> paramValues = new ArrayList<Object>();
     Object val = ctx.getVariable("$current");
     if (val == null && targetObjects == null) {
       return null;
     }
     for (Expression expr : iParams) {
-      if (val instanceof PIdentifiable) {
-        paramValues.add(expr.execute((PIdentifiable) val, ctx));
-      } else if (val instanceof OResult) {
-        paramValues.add(expr.execute((OResult) val, ctx));
-      } else if (targetObjects instanceof PIdentifiable) {
-        paramValues.add(expr.execute((PIdentifiable) targetObjects, ctx));
-      } else if (targetObjects instanceof OResult) {
-        paramValues.add(expr.execute((OResult) targetObjects, ctx));
+      if (val instanceof Identifiable) {
+        paramValues.add(expr.execute((Identifiable) val, ctx));
+      } else if (val instanceof Result) {
+        paramValues.add(expr.execute((Result) val, ctx));
+      } else if (targetObjects instanceof Identifiable) {
+        paramValues.add(expr.execute((Identifiable) targetObjects, ctx));
+      } else if (targetObjects instanceof Result) {
+        paramValues.add(expr.execute((Result) targetObjects, ctx));
       } else {
-        throw new PCommandExecutionException("Invalild value for $current: " + val);
+        throw new CommandExecutionException("Invalild value for $current: " + val);
       }
     }
     if (isGraphFunction()) {
-      OSQLFunction function = OSQLEngine.getInstance().getFunction(name);
-      if (function instanceof OSQLFunctionFiltered) {
+      SQLFunction function = SQLEngine.getInstance().getFunction(name);
+      if (function instanceof SQLFunctionFiltered) {
         Object current = ctx.getVariable("$current");
-        if (current instanceof OResult) {
-          current = ((OResult) current).getElement().orElse(null);
+        if (current instanceof Result) {
+          current = ((Result) current).getElement().orElse(null);
         }
-        return ((OSQLFunctionFiltered) function)
-            .execute(targetObjects, (PIdentifiable) current, null, paramValues.toArray(), iPossibleResults, ctx);
+        return ((SQLFunctionFiltered) function)
+            .execute(targetObjects, (Identifiable) current, null, paramValues.toArray(), iPossibleResults, ctx);
       } else {
         Object current = ctx.getVariable("$current");
-        if (current instanceof PIdentifiable) {
-          return function.execute(targetObjects, (PIdentifiable) current, null, paramValues.toArray(), ctx);
-        } else if (current instanceof OResult) {
-          return function.execute(targetObjects, ((OResult) current).getElement().orElse(null), null, paramValues.toArray(), ctx);
+        if (current instanceof Identifiable) {
+          return function.execute(targetObjects, (Identifiable) current, null, paramValues.toArray(), ctx);
+        } else if (current instanceof Result) {
+          return function.execute(targetObjects, ((Result) current).getElement().orElse(null), null, paramValues.toArray(), ctx);
         } else {
           return function.execute(targetObjects, null, null, paramValues.toArray(), ctx);
         }
       }
 
     }
-    OSQLMethod method = OSQLEngine.getMethod(name);
+    SQLMethod method = SQLEngine.getMethod(name);
     if (method != null) {
-      if (val instanceof OResult) {
-        val = ((OResult) val).getElement().orElse(null);
+      if (val instanceof Result) {
+        val = ((Result) val).getElement().orElse(null);
       }
-      return method.execute(targetObjects, (PIdentifiable) val, ctx, targetObjects, paramValues.toArray());
+      return method.execute(targetObjects, (Identifiable) val, ctx, targetObjects, paramValues.toArray());
     }
     throw new UnsupportedOperationException("OMethod call, something missing in the implementation...?");
 
   }
 
-  public Object executeReverse(Object targetObjects, OCommandContext ctx) {
+  public Object executeReverse(Object targetObjects, CommandContext ctx) {
     if (!isBidirectional()) {
       throw new UnsupportedOperationException();
     }
@@ -211,8 +211,8 @@ public class MethodCall extends SimpleNode {
     return false;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (methodName != null) {
       result.setProperty("methodName", methodName.serialize());
     }
@@ -222,15 +222,15 @@ public class MethodCall extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("methodName") != null) {
       methodName = new Identifier(-1);
       methodName.deserialize(fromResult.getProperty("methodName"));
     }
     if (fromResult.getProperty("params") != null) {
-      List<OResult> ser = fromResult.getProperty("params");
+      List<Result> ser = fromResult.getProperty("params");
       params = new ArrayList<>();
-      for (OResult r : ser) {
+      for (Result r : ser) {
         Expression exp = new Expression(-1);
         exp.deserialize(r);
         params.add(exp);

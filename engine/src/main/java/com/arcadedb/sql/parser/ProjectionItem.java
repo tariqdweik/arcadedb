@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.AggregationContext;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 
@@ -94,7 +94,7 @@ public class ProjectionItem extends SimpleNode {
     }
   }
 
-  public Object execute(PRecord iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Record iCurrentRecord, CommandContext ctx) {
     Object result;
     if (all) {
       result = iCurrentRecord;
@@ -116,7 +116,7 @@ public class ProjectionItem extends SimpleNode {
     return value;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     Object result;
     if (all) {
       result = iCurrentRecord;
@@ -194,9 +194,9 @@ public class ProjectionItem extends SimpleNode {
     }
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     if (expression == null) {
-      throw new PCommandExecutionException("Cannot aggregate on this projection: " + toString());
+      throw new CommandExecutionException("Cannot aggregate on this projection: " + toString());
     }
     return expression.getAggregationContext(ctx);
   }
@@ -257,8 +257,8 @@ public class ProjectionItem extends SimpleNode {
     return false;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("all", all);
     if (alias != null) {
       result.setProperty("alias", alias.serialize());
@@ -273,7 +273,7 @@ public class ProjectionItem extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     all = fromResult.getProperty("all");
     if (fromResult.getProperty("alias") != null) {
       alias = Identifier.deserialize(fromResult.getProperty("alias"));

@@ -1,6 +1,6 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 import com.arcadedb.sql.executor.*;
 
 import java.util.HashMap;
@@ -22,10 +22,10 @@ public abstract class SimpleExecStatement extends Statement {
     super(p, id);
   }
 
-  public abstract OResultSet executeSimple(OCommandContext ctx);
+  public abstract ResultSet executeSimple(CommandContext ctx);
 
-  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentContext) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Object[] args, CommandContext parentContext) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentContext != null) {
       ctx.setParentWithoutOverridingChild(parentContext);
     }
@@ -37,23 +37,23 @@ public abstract class SimpleExecStatement extends Statement {
       }
     }
     ctx.setInputParameters(params);
-    OSingleOpExecutionPlan executionPlan = (OSingleOpExecutionPlan) createExecutionPlan(ctx, false);
+    SingleOpExecutionPlan executionPlan = (SingleOpExecutionPlan) createExecutionPlan(ctx, false);
     return executionPlan.executeInternal(ctx);
   }
 
-  public OResultSet execute(PDatabase db, Map params, OCommandContext parentContext) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Map params, CommandContext parentContext) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentContext != null) {
       ctx.setParentWithoutOverridingChild(parentContext);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
-    OSingleOpExecutionPlan executionPlan = (OSingleOpExecutionPlan) createExecutionPlan(ctx, false);
+    SingleOpExecutionPlan executionPlan = (SingleOpExecutionPlan) createExecutionPlan(ctx, false);
     return executionPlan.executeInternal(ctx);
   }
 
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
-    return new OSingleOpExecutionPlan(ctx, this);
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
+    return new SingleOpExecutionPlan(ctx, this);
   }
 
 }

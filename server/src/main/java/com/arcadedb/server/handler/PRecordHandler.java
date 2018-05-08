@@ -1,21 +1,21 @@
 package com.arcadedb.server.handler;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRID;
-import com.arcadedb.exception.PRecordNotFoundException;
-import com.arcadedb.server.PHttpServer;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
+import com.arcadedb.exception.RecordNotFoundException;
+import com.arcadedb.server.HttpServer;
 import io.undertow.server.HttpServerExchange;
 
 import java.util.Deque;
 
 public class PRecordHandler extends PBasicHandler {
-  public PRecordHandler(final PHttpServer pHttpServer) {
-    super(pHttpServer);
+  public PRecordHandler(final HttpServer httpServer) {
+    super(httpServer);
   }
 
   @Override
-  public void execute(final HttpServerExchange exchange, final PDatabase database) {
+  public void execute(final HttpServerExchange exchange, final Database database) {
     try {
       final Deque<String> rid = exchange.getQueryParameters().get("rid");
       if (rid.isEmpty()) {
@@ -26,14 +26,14 @@ public class PRecordHandler extends PBasicHandler {
 
       final String[] ridParts = rid.getFirst().split(":");
 
-      final PDocument record = (PDocument) database
-          .lookupByRID(new PRID(database, Integer.parseInt(ridParts[0]), Long.parseLong(ridParts[1])), true);
+      final Document record = (Document) database
+          .lookupByRID(new RID(database, Integer.parseInt(ridParts[0]), Long.parseLong(ridParts[1])), true);
 
       exchange.setStatusCode(200);
       exchange.getResponseSender()
           .send("{ \"result\" : " + httpServer.getJsonSerializer().serializeRecord(record).toString() + "}");
 
-    } catch (PRecordNotFoundException e) {
+    } catch (RecordNotFoundException e) {
       exchange.setStatusCode(404);
       exchange.getResponseSender().send("{ \"error\" : \"Record id is null\"}");
     }

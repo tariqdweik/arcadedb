@@ -1,10 +1,10 @@
 package performance;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,7 +18,7 @@ public class PerformanceScanSQL {
   }
 
   private void run() {
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
 
     database.asynch().setParallelLevel(4);
 
@@ -28,9 +28,9 @@ public class PerformanceScanSQL {
 
         final AtomicInteger row = new AtomicInteger();
 
-        final OResultSet rs = database.query("select from " + TYPE_NAME + " where id < 1l", null);
+        final ResultSet rs = database.query("select from " + TYPE_NAME + " where id < 1l", null);
         while (rs.hasNext()) {
-          OResult record = rs.next();
+          Result record = rs.next();
           Assertions.assertNotNull(record);
           Assertions.assertTrue((long) record.getProperty("id") < 1);
           row.incrementAndGet();

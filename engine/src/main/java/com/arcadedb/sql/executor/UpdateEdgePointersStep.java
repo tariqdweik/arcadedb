@@ -1,10 +1,10 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.graph.PEdge;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.graph.Edge;
 
 import java.util.Map;
 import java.util.Optional;
@@ -14,33 +14,33 @@ import java.util.Optional;
  */
 public class UpdateEdgePointersStep extends AbstractExecutionStep {
 
-  public UpdateEdgePointersStep(OCommandContext ctx, boolean profilingEnabled) {
+  public UpdateEdgePointersStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
-        if (result instanceof OResultInternal) {
+      public Result next() {
+        Result result = upstream.next();
+        if (result instanceof ResultInternal) {
           handleUpdateEdge(result.getElement().get());
         }
         return result;
       }
 
-      private void updateIn(OResult item) {
+      private void updateIn(Result item) {
 
       }
 
-      private void updateOut(OResult item) {
+      private void updateOut(Result item) {
 
       }
 
@@ -50,7 +50,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -63,7 +63,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ UPDATE EDGE POINTERS");
@@ -75,7 +75,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
    *
    * @param record the edge record
    */
-  private void handleUpdateEdge(PDocument record) {
+  private void handleUpdateEdge(Document record) {
     Object currentOut = record.get("out");
     Object currentIn = record.get("in");
 
@@ -97,7 +97,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
    * @param currentVertex the currently connected vertex
    * @param direction     the direction ("out" or "in")
    */
-  private void changeVertexEdgePointer(PEdge edge, PIdentifiable prevVertex, PIdentifiable currentVertex, String direction) {
+  private void changeVertexEdgePointer(Edge edge, Identifiable prevVertex, Identifiable currentVertex, String direction) {
 //    if (prevVertex != null && !prevVertex.equals(currentVertex)) {
 //      String edgeClassName = edge.getClassName();
 //      if (edgeClassName.equalsIgnoreCase("E")) {
@@ -121,7 +121,7 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
 //    }
   }
 
-  private void validateOutInForEdge(PRecord record, Object currentOut, Object currentIn) {
+  private void validateOutInForEdge(Record record, Object currentOut, Object currentIn) {
 //    if (!isRecordInstanceOf(currentOut, "V")) {
 //      throw new PCommandExecutionException("Error updating edge: 'out' is not a vertex - " + currentOut + "");
 //    }
@@ -142,10 +142,10 @@ public class UpdateEdgePointersStep extends AbstractExecutionStep {
     if (iRecord == null) {
       return false;
     }
-    if (!(iRecord instanceof PIdentifiable)) {
+    if (!(iRecord instanceof Identifiable)) {
       return false;
     }
-    PDocument record = (PDocument) ((PIdentifiable) iRecord).getRecord();
+    Document record = (Document) ((Identifiable) iRecord).getRecord();
     if (iRecord == null) {
       return false;
     }

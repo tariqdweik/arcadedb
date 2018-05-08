@@ -6,39 +6,39 @@ import java.util.Optional;
 /**
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
-public abstract class AbstractExecutionStep implements OExecutionStepInternal {
+public abstract class AbstractExecutionStep implements ExecutionStepInternal {
 
-  protected final OCommandContext ctx;
-  protected Optional<OExecutionStepInternal> prev     = Optional.empty();
-  protected Optional<OExecutionStepInternal> next     = Optional.empty();
-  protected boolean                          timedOut = false;
+  protected final CommandContext                  ctx;
+  protected       Optional<ExecutionStepInternal> prev     = Optional.empty();
+  protected       Optional<ExecutionStepInternal> next     = Optional.empty();
+  protected       boolean                         timedOut = false;
 
   protected boolean profilingEnabled = false;
 
-  public AbstractExecutionStep(OCommandContext ctx, boolean profilingEnabled) {
+  public AbstractExecutionStep(CommandContext ctx, boolean profilingEnabled) {
     this.ctx = ctx;
     this.profilingEnabled = profilingEnabled;
   }
 
   @Override
-  public void setPrevious(OExecutionStepInternal step) {
+  public void setPrevious(ExecutionStepInternal step) {
     this.prev = Optional.ofNullable(step);
   }
 
   @Override
-  public void setNext(OExecutionStepInternal step) {
+  public void setNext(ExecutionStepInternal step) {
     this.next = Optional.ofNullable(step);
   }
 
-  public OCommandContext getContext() {
+  public CommandContext getContext() {
     return ctx;
   }
 
-  public Optional<OExecutionStepInternal> getPrev() {
+  public Optional<ExecutionStepInternal> getPrev() {
     return prev;
   }
 
-  public Optional<OExecutionStepInternal> getNext() {
+  public Optional<ExecutionStepInternal> getNext() {
     return next;
   }
 

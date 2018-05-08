@@ -1,7 +1,7 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 import java.util.Set;
@@ -105,15 +105,15 @@ public class JsonItem {
     return result;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("leftIdentifier", leftIdentifier.serialize());
     result.setProperty("leftString", leftString);
     result.setProperty("right", right.serialize());
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("leftIdentifier") != null) {
       leftIdentifier = new Identifier(-1);
       leftIdentifier.deserialize(fromResult.getProperty("leftIdentifier"));

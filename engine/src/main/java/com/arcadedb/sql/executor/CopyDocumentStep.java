@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -19,28 +19,28 @@ public class CopyDocumentStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  public CopyDocumentStep(OCommandContext ctx, boolean profilingEnabled) {
+  public CopyDocumentStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult toCopy = upstream.next();
+      public Result next() {
+        Result toCopy = upstream.next();
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          PRecord resultDoc = null;
+          Record resultDoc = null;
           if (toCopy.isElement()) {
 
-            PRecord docToCopy = toCopy.getElement().get().getRecord();
+            Record docToCopy = toCopy.getElement().get().getRecord();
 
             throw new UnsupportedOperationException("TODO");
 //            if (docToCopy instanceof PBaseRecord) {
@@ -57,7 +57,7 @@ public class CopyDocumentStep extends AbstractExecutionStep {
           } else {
             resultDoc = toCopy.toElement().getRecord();
           }
-          return new OUpdatableResult((PModifiableDocument) resultDoc);
+          return new UpdatableResult((ModifiableDocument) resultDoc);
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);
@@ -71,7 +71,7 @@ public class CopyDocumentStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -84,7 +84,7 @@ public class CopyDocumentStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ COPY DOCUMENT");

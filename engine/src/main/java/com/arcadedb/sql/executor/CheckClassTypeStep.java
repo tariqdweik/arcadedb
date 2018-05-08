@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
 
@@ -32,34 +32,34 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
    * @param ctx              execuiton context
    * @param profilingEnabled true to collect execution stats
    */
-  public CheckClassTypeStep(String targetClass, String parentClass, OCommandContext ctx, boolean profilingEnabled) {
+  public CheckClassTypeStep(String targetClass, String parentClass, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass;
     this.parentClass = parentClass;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     long begin = profilingEnabled ? System.nanoTime() : 0;
     try {
       if (found) {
-        return new OInternalResultSet();
+        return new InternalResultSet();
       }
       if (this.targetClass.equals(this.parentClass)) {
-        return new OInternalResultSet();
+        return new InternalResultSet();
       }
 
       if (this.parentClass != null) {
         if (!this.parentClass.equals("V") && this.parentClass.equals("E")) {
-          PDatabase db = ctx.getDatabase();
+          Database db = ctx.getDatabase();
 
           PSchema schema = db.getSchema();
           PDocumentType parentClazz = schema.getType(this.parentClass);
 
           PDocumentType targetClazz = schema.getType(this.targetClass);
           if (targetClazz == null) {
-            throw new PCommandExecutionException("Class not found: " + this.targetClass);
+            throw new CommandExecutionException("Class not found: " + this.targetClass);
           }
 
           if (parentClazz.equals(targetClazz)) {
@@ -73,11 +73,11 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
             }
           }
           if (!found) {
-            throw new PCommandExecutionException("Class  " + this.targetClass + " is not a subclass of " + this.parentClass);
+            throw new CommandExecutionException("Class  " + this.targetClass + " is not a subclass of " + this.parentClass);
           }
         }
       }
-      return new OInternalResultSet();
+      return new InternalResultSet();
     } finally {
       if (profilingEnabled) {
         cost += (System.nanoTime() - begin);
@@ -87,7 +87,7 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ CHECK CLASS HIERARCHY");

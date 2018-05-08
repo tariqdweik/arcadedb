@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.AndBlock;
 import com.arcadedb.sql.parser.BooleanExpression;
 import com.arcadedb.sql.parser.FromClause;
@@ -18,28 +18,28 @@ public class UpsertStep extends AbstractExecutionStep {
 
   boolean applied = false;
 
-  public UpsertStep(FromClause target, WhereClause where, OCommandContext ctx, boolean profilingEnabled) {
+  public UpsertStep(FromClause target, WhereClause where, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.commandTarget = target;
     this.initialFilter = where;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (applied) {
       return getPrev().get().syncPull(ctx, nRecords);
     }
     applied = true;
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
     if (upstream.hasNext()) {
       return upstream;
     }
-    OInternalResultSet result = new OInternalResultSet();
+    InternalResultSet result = new InternalResultSet();
     result.add(createNewRecord(commandTarget, initialFilter));
     return result;
   }
 
-  private OResult createNewRecord(FromClause commandTarget, WhereClause initialFilter) {
+  private Result createNewRecord(FromClause commandTarget, WhereClause initialFilter) {
     throw new UnsupportedOperationException(); //TODO
 //    if (commandTarget.getItem().getIdentifier() == null) {
 //      throw new PCommandExecutionException("Cannot execute UPSERT on target '" + commandTarget + "'");
@@ -53,13 +53,13 @@ public class UpsertStep extends AbstractExecutionStep {
 //    return result;
   }
 
-  private void setContent(OResultInternal doc, WhereClause initialFilter) {
+  private void setContent(ResultInternal doc, WhereClause initialFilter) {
     List<AndBlock> flattened = initialFilter.flatten();
     if (flattened.size() == 0) {
       return;
     }
     if (flattened.size() > 1) {
-      throw new PCommandExecutionException("Cannot UPSERT on OR conditions");
+      throw new CommandExecutionException("Cannot UPSERT on OR conditions");
     }
     AndBlock andCond = flattened.get(0);
     for (BooleanExpression condition : andCond.getSubBlocks()) {
@@ -69,7 +69,7 @@ public class UpsertStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ INSERT (upsert, if needed)\n");

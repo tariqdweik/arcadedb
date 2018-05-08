@@ -1,6 +1,6 @@
 package com.arcadedb.schema;
 
-import com.arcadedb.graph.PEdge;
+import com.arcadedb.graph.Edge;
 
 public class PEdgeType extends PDocumentType {
   public PEdgeType(final PSchemaImpl schema, final String name) {
@@ -8,6 +8,6 @@ public class PEdgeType extends PDocumentType {
   }
 
   public byte getType() {
-    return PEdge.RECORD_TYPE;
+    return Edge.RECORD_TYPE;
   }
 }

@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Expression;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -13,29 +13,29 @@ public class GlobalLetExpressionStep extends AbstractExecutionStep {
 
   boolean executed = false;
 
-  public GlobalLetExpressionStep(Identifier varName, Expression expression, OCommandContext ctx, boolean profilingEnabled) {
+  public GlobalLetExpressionStep(Identifier varName, Expression expression, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varname = varName;
     this.expression = expression;
   }
 
-  @Override public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  @Override public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     calculate(ctx);
-    return new OInternalResultSet();
+    return new InternalResultSet();
   }
 
-  private void calculate(OCommandContext ctx) {
+  private void calculate(CommandContext ctx) {
     if (executed) {
       return;
     }
-    Object value = expression.execute((OResult) null, ctx);
+    Object value = expression.execute((Result) null, ctx);
     ctx.setVariable(varname.getStringValue(), value);
     executed = true;
   }
 
   @Override public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ LET (once)\n" +
         spaces + "  " + varname + " = " + expression;
   }

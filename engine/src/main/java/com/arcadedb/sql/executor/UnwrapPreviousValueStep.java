@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -15,14 +15,14 @@ public class UnwrapPreviousValueStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  public UnwrapPreviousValueStep(OCommandContext ctx, boolean profilingEnabled) {
+  public UnwrapPreviousValueStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = prev.get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = prev.get().syncPull(ctx, nRecords);
+    return new ResultSet() {
 
       @Override
       public boolean hasNext() {
@@ -30,18 +30,18 @@ public class UnwrapPreviousValueStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          OResult prevResult = upstream.next();
-          if (prevResult instanceof OUpdatableResult) {
-            prevResult = ((OUpdatableResult) prevResult).previousValue;
+          Result prevResult = upstream.next();
+          if (prevResult instanceof UpdatableResult) {
+            prevResult = ((UpdatableResult) prevResult).previousValue;
             if (prevResult == null) {
-              throw new PCommandExecutionException("Invalid status of record: no previous value available");
+              throw new CommandExecutionException("Invalid status of record: no previous value available");
             }
             return prevResult;
           } else {
-            throw new PCommandExecutionException("Invalid status of record: no previous value available");
+            throw new CommandExecutionException("Invalid status of record: no previous value available");
           }
         } finally {
           if (profilingEnabled) {
@@ -56,7 +56,7 @@ public class UnwrapPreviousValueStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -69,7 +69,7 @@ public class UnwrapPreviousValueStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result = OExecutionStepInternal.getIndent(depth, indent) + "+ UNWRAP PREVIOUS VALUE";
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ UNWRAP PREVIOUS VALUE";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }

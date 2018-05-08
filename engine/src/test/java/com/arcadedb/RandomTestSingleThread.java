@@ -1,15 +1,15 @@
 package com.arcadedb;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.engine.PDatabaseChecker;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.exception.PConcurrentModificationException;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.Record;
+import com.arcadedb.engine.DatabaseChecker;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.schema.PEdgeType;
 import com.arcadedb.schema.PVertexType;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Test;
 import performance.PerformanceTest;
 
@@ -31,7 +31,7 @@ public class RandomTestSingleThread {
 
   @Test
   public void testRandom() {
-    PLogManager.instance().info(this, "Executing " + CYCLES + " transactions");
+    LogManager.instance().info(this, "Executing " + CYCLES + " transactions");
 
     PerformanceTest.clean();
     createSchema();
@@ -39,7 +39,7 @@ public class RandomTestSingleThread {
 
     long begin = System.currentTimeMillis();
 
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     try {
       database.begin();
 
@@ -48,7 +48,7 @@ public class RandomTestSingleThread {
 
           final int op = rnd.nextInt(6);
 
-          PLogManager.instance().info(this, "Operation %d %d/%d", op, i, CYCLES);
+          LogManager.instance().info(this, "Operation %d %d/%d", op, i, CYCLES);
 
           switch (op) {
           case 0:
@@ -64,18 +64,18 @@ public class RandomTestSingleThread {
             Thread.sleep(rnd.nextInt(100));
             break;
           case 5:
-            PLogManager.instance().info(this, "Comitting...");
+            LogManager.instance().info(this, "Comitting...");
             database.commit();
             database.begin();
             break;
           }
 
         } catch (Exception e) {
-          if (e instanceof PConcurrentModificationException) {
+          if (e instanceof ConcurrentModificationException) {
             mvccErrors.incrementAndGet();
           } else {
             otherErrors.incrementAndGet();
-            PLogManager.instance().error(this, "UNEXPECTED ERROR: " + e, e);
+            LogManager.instance().error(this, "UNEXPECTED ERROR: " + e, e);
           }
         }
       }
@@ -83,7 +83,7 @@ public class RandomTestSingleThread {
       database.commit();
 
     } finally {
-      new PDatabaseChecker().check(database);
+      new DatabaseChecker().check(database);
 
       database.close();
 
@@ -91,18 +91,18 @@ public class RandomTestSingleThread {
           + " otherExceptions=" + otherErrors.get());
     }
 
-    PLogManager.instance().flush();
+    LogManager.instance().flush();
     System.out.flush();
     System.out.println("----------------");
   }
 
-  private void createTransactions(PDatabase database) {
+  private void createTransactions(Database database) {
     final int txOps = rnd.nextInt(100);
 
-    PLogManager.instance().info(this, "Creating %d transactions...", txOps);
+    LogManager.instance().info(this, "Creating %d transactions...", txOps);
 
     for (long txId = 0; txId < txOps; ++txId) {
-      final PModifiableDocument tx = database.newVertex("Transaction");
+      final ModifiableDocument tx = database.newVertex("Transaction");
       tx.set("uuid", UUID.randomUUID().toString());
       tx.set("date", new Date());
       tx.set("amount", rnd.nextInt(STARTING_ACCOUNT));
@@ -110,23 +110,23 @@ public class RandomTestSingleThread {
     }
   }
 
-  private void deleteRecords(PDatabase database) {
-    PLogManager.instance().info(this, "Deleting records...");
+  private void deleteRecords(Database database) {
+    LogManager.instance().info(this, "Deleting records...");
 
-    final Iterator<PRecord> iter = database.iterateType("Account", true);
+    final Iterator<Record> iter = database.iterateType("Account", true);
 
     while (iter.hasNext() && rnd.nextInt(10) != 0) {
-      final PRecord next = iter.next();
+      final Record next = iter.next();
 
       if (rnd.nextInt(2) == 0) {
         database.deleteRecord(next);
-        PLogManager.instance().info(this, "Deleted record %s", next.getIdentity());
+        LogManager.instance().info(this, "Deleted record %s", next.getIdentity());
       }
     }
   }
 
   private void populateDatabase() {
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
 
     long begin = System.currentTimeMillis();
 
@@ -134,7 +134,7 @@ public class RandomTestSingleThread {
 
     try {
       for (long row = 0; row < STARTING_ACCOUNT; ++row) {
-        final PModifiableDocument record = database.newVertex("Account");
+        final ModifiableDocument record = database.newVertex("Account");
         record.set("id", row);
         record.set("name", "Luca" + row);
         record.set("surname", "Skywalker" + row);
@@ -146,12 +146,12 @@ public class RandomTestSingleThread {
 
     } finally {
       database.close();
-      PLogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 
   private void createSchema() {
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType("Account")) {
         database.begin();

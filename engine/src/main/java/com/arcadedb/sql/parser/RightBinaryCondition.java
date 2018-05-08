@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.*;
 
@@ -52,12 +52,12 @@ public class RightBinaryCondition extends SimpleNode {
     }
   }
 
-  public Object execute(OResult iCurrentRecord, Object elementToFilter, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, Object elementToFilter, CommandContext ctx) {
     if (elementToFilter == null) {
       return null;
     }
     Iterator iterator;
-    if (elementToFilter instanceof PIdentifiable) {
+    if (elementToFilter instanceof Identifiable) {
       iterator = Collections.singleton(elementToFilter).iterator();
     } else if (elementToFilter instanceof Iterable) {
       iterator = ((Iterable) elementToFilter).iterator();
@@ -77,12 +77,12 @@ public class RightBinaryCondition extends SimpleNode {
     return result;
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, Object elementToFilter, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, Object elementToFilter, CommandContext ctx) {
     if (elementToFilter == null) {
       return null;
     }
     Iterator iterator;
-    if (elementToFilter instanceof PIdentifiable) {
+    if (elementToFilter instanceof Identifiable) {
       iterator = Collections.singleton(elementToFilter).iterator();
     } else if (elementToFilter instanceof Iterable) {
       iterator = ((Iterable) elementToFilter).iterator();
@@ -102,7 +102,7 @@ public class RightBinaryCondition extends SimpleNode {
     return result;
   }
 
-  private boolean matchesFilters(PIdentifiable iCurrentRecord, Object element, OCommandContext ctx) {
+  private boolean matchesFilters(Identifiable iCurrentRecord, Object element, CommandContext ctx) {
     if (operator != null) {
       operator.execute(element, right.execute(iCurrentRecord, ctx));
     } else if (inOperator != null) {
@@ -120,7 +120,7 @@ public class RightBinaryCondition extends SimpleNode {
     return false;
   }
 
-  private boolean matchesFilters(OResult iCurrentRecord, Object element, OCommandContext ctx) {
+  private boolean matchesFilters(Result iCurrentRecord, Object element, CommandContext ctx) {
     if (operator != null) {
       return operator.execute(element, right.execute(iCurrentRecord, ctx));
     } else if (inOperator != null) {
@@ -138,11 +138,11 @@ public class RightBinaryCondition extends SimpleNode {
     return false;
   }
 
-  public Object evaluateRight(PIdentifiable currentRecord, OCommandContext ctx) {
+  public Object evaluateRight(Identifiable currentRecord, CommandContext ctx) {
     return right.execute(currentRecord, ctx);
   }
 
-  public Object evaluateRight(OResult currentRecord, OCommandContext ctx) {
+  public Object evaluateRight(Result currentRecord, CommandContext ctx) {
     return right.execute(currentRecord, ctx);
   }
 
@@ -166,9 +166,9 @@ public class RightBinaryCondition extends SimpleNode {
     return false;
   }
 
-  public OResult serialize() {
+  public Result serialize() {
 
-    OResultInternal result = new OResultInternal();
+    ResultInternal result = new ResultInternal();
     result.setProperty("operator", operator.getClass().getName());
     result.setProperty("not", not);
     result.setProperty("in", inOperator != null);
@@ -176,11 +176,11 @@ public class RightBinaryCondition extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
       operator = (BinaryCompareOperator) Class.forName(String.valueOf(fromResult.getProperty("operator"))).newInstance();
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
     not = fromResult.getProperty("not");
     if (Boolean.TRUE.equals(fromResult.getProperty("in"))) {

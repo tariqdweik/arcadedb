@@ -2,14 +2,14 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
@@ -28,24 +28,24 @@ public class DropClassStatement extends ODDLStatement {
   }
 
   @Override
-  public OResultSet executeDDL(OCommandContext ctx) {
+  public ResultSet executeDDL(CommandContext ctx) {
     PSchema schema = ctx.getDatabase().getSchema();
     PDocumentType clazz = schema.getType(name.getStringValue());
     if (clazz == null) {
       if (ifExists) {
-        return new OInternalResultSet();
+        return new InternalResultSet();
       }
-      throw new PCommandExecutionException("Class " + name.getStringValue() + " does not exist");
+      throw new CommandExecutionException("Class " + name.getStringValue() + " does not exist");
     }
 
     if (!unsafe && ctx.getDatabase().countType(clazz.getName(), false) > 0) {
       //check vertex or edge
-      if (clazz.getType() == PVertex.RECORD_TYPE) {
-        throw new PCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
+      if (clazz.getType() == Vertex.RECORD_TYPE) {
+        throw new CommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
             + "' because it contains Vertices. Use 'DELETE VERTEX' command first to avoid broken edges in a database, or apply the 'UNSAFE' keyword to force it");
-      } else if (clazz.getType() == PEdge.RECORD_TYPE) {
+      } else if (clazz.getType() == Edge.RECORD_TYPE) {
         // FOUND EDGE CLASS
-        throw new PCommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
+        throw new CommandExecutionException("'DROP CLASS' command cannot drop class '" + name.getStringValue()
             + "' because it contains Edges. Use 'DELETE EDGE' command first to avoid broken vertices in a database, or apply the 'UNSAFE' keyword to force it");
       }
     }

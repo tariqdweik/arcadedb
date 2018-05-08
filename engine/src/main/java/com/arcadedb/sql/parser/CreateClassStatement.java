@@ -2,13 +2,13 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultInternal;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultInternal;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.List;
 import java.util.Map;
@@ -48,19 +48,19 @@ public class CreateClassStatement extends ODDLStatement {
   }
 
   @Override
-  public OResultSet executeDDL(OCommandContext ctx) {
+  public ResultSet executeDDL(CommandContext ctx) {
 
     PSchema schema = ctx.getDatabase().getSchema();
     if (schema.existsType(name.getStringValue())) {
       if (ifNotExists) {
-        return new OInternalResultSet();
+        return new InternalResultSet();
       } else {
-        throw new PCommandExecutionException("Class " + name + " already exists");
+        throw new CommandExecutionException("Class " + name + " already exists");
       }
     }
     checkSuperTypes(schema, ctx);
 
-    OResultInternal result = new OResultInternal();
+    ResultInternal result = new ResultInternal();
     result.setProperty("operation", "create class");
     result.setProperty("className", name.getStringValue());
 
@@ -76,7 +76,7 @@ public class CreateClassStatement extends ODDLStatement {
     for (PDocumentType c : superclasses)
       type.addParent(c);
 
-    OInternalResultSet rs = new OInternalResultSet();
+    InternalResultSet rs = new InternalResultSet();
     rs.add(result);
     return rs;
   }
@@ -89,11 +89,11 @@ public class CreateClassStatement extends ODDLStatement {
         .toArray(new PDocumentType[] {});
   }
 
-  private void checkSuperTypes(PSchema schema, OCommandContext ctx) {
+  private void checkSuperTypes(PSchema schema, CommandContext ctx) {
     if (superclasses != null) {
       for (Identifier superType : superclasses) {
         if (!schema.existsType(superType.value)) {
-          throw new PCommandExecutionException("Supertype " + superType + " not found");
+          throw new CommandExecutionException("Supertype " + superType + " not found");
         }
       }
     }

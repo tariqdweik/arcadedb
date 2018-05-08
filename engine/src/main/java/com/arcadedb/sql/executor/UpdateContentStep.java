@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Json;
 
 import java.util.Map;
@@ -15,32 +15,32 @@ import java.util.Optional;
 public class UpdateContentStep extends AbstractExecutionStep {
   private final Json json;
 
-  public UpdateContentStep(Json json, OCommandContext ctx, boolean profilingEnabled) {
+  public UpdateContentStep(Json json, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.json = json;
 
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
-        if (result instanceof OResultInternal) {
-          if (!(result.getElement().get() instanceof PRecord)) {
-            ((OResultInternal) result).setElement((PDocument) result.getElement().get().getRecord());
+      public Result next() {
+        Result result = upstream.next();
+        if (result instanceof ResultInternal) {
+          if (!(result.getElement().get() instanceof Record)) {
+            ((ResultInternal) result).setElement((Document) result.getElement().get().getRecord());
           }
-          if (!(result.getElement().get() instanceof PRecord)) {
+          if (!(result.getElement().get() instanceof Record)) {
             return result;
           }
-          handleContent((PRecord) result.getElement().get(), ctx);
+          handleContent((Record) result.getElement().get(), ctx);
         }
         return result;
       }
@@ -51,7 +51,7 @@ public class UpdateContentStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -62,10 +62,10 @@ public class UpdateContentStep extends AbstractExecutionStep {
     };
   }
 
-  private boolean handleContent(PRecord record, OCommandContext ctx) {
+  private boolean handleContent(Record record, CommandContext ctx) {
     boolean updated = false;
 
-    final PModifiableDocument doc = (PModifiableDocument) record.getRecord().modify();
+    final ModifiableDocument doc = (ModifiableDocument) record.getRecord().modify();
 
     doc.merge(json.toDocument(record, ctx));
 
@@ -76,7 +76,7 @@ public class UpdateContentStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ UPDATE CONTENT\n");

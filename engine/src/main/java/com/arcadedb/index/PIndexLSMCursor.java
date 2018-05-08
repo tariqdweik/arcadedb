@@ -1,16 +1,16 @@
 package com.arcadedb.index;
 
-import com.arcadedb.database.PBinary;
-import com.arcadedb.engine.PBasePage;
-import com.arcadedb.engine.PPageId;
-import com.arcadedb.serializer.PBinaryComparator;
-import com.arcadedb.serializer.PBinarySerializer;
+import com.arcadedb.database.Binary;
+import com.arcadedb.engine.BasePage;
+import com.arcadedb.engine.PageId;
+import com.arcadedb.serializer.BinaryComparator;
+import com.arcadedb.serializer.BinarySerializer;
 
 import java.io.IOException;
 import java.util.Arrays;
 
 public class PIndexLSMCursor implements PIndexCursor {
-  private final PIndexLSM               index;
+  private final IndexLSM                index;
   private final boolean                 ascendingOrder;
   private final Object[]                fromKeys;
   private final Object[]                toKeys;
@@ -21,16 +21,16 @@ public class PIndexLSMCursor implements PIndexCursor {
   private       int                     totalPages;
   private       byte[]                  keyTypes;
   private final Object[][]              keys;
-  private       PBinarySerializer       serializer;
-  private       PBinaryComparator       comparator;
+  private       BinarySerializer        serializer;
+  private       BinaryComparator        comparator;
 
   private int validIterators;
 
-  public PIndexLSMCursor(final PIndexLSM index, final boolean ascendingOrder) throws IOException {
+  public PIndexLSMCursor(final IndexLSM index, final boolean ascendingOrder) throws IOException {
     this(index, ascendingOrder, null, null);
   }
 
-  public PIndexLSMCursor(final PIndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys)
+  public PIndexLSMCursor(final IndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys)
       throws IOException {
     this.index = index;
     this.ascendingOrder = ascendingOrder;
@@ -51,12 +51,12 @@ public class PIndexLSMCursor implements PIndexCursor {
     while (ascendingOrder ? pageId < totalPages : pageId >= 0) {
       if (fromKeys != null) {
         // SEEK FOR THE FROM RANGE
-        final PBasePage currentPage = index.getDatabase().getTransaction()
-            .getPage(new PPageId(index.getFileId(), pageId), index.getPageSize());
-        final PBinary currentPageBuffer = new PBinary(currentPage.slice());
+        final BasePage currentPage = index.getDatabase().getTransaction()
+            .getPage(new PageId(index.getFileId(), pageId), index.getPageSize());
+        final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = index.getCount(currentPage);
 
-        final PIndexLSM.LookupResult lookupResult;
+        final IndexLSM.LookupResult lookupResult;
         if (fromKeys == toKeys)
           // USE THE BLOOM FILTER
           lookupResult = index.searchInPage(currentPage, currentPageBuffer, fromKeys, count, ascendingOrder ? 1 : 2);
@@ -71,8 +71,8 @@ public class PIndexLSMCursor implements PIndexCursor {
         if (ascendingOrder) {
           pageIterators[pageId] = index.newPageIterator(pageId, -1, ascendingOrder);
         } else {
-          final PBasePage currentPage = index.getDatabase().getTransaction()
-              .getPage(new PPageId(index.getFileId(), pageId), index.getPageSize());
+          final BasePage currentPage = index.getDatabase().getTransaction()
+              .getPage(new PageId(index.getFileId(), pageId), index.getPageSize());
           pageIterators[pageId] = index.newPageIterator(pageId, index.getCount(currentPage), ascendingOrder);
         }
 
@@ -93,7 +93,7 @@ public class PIndexLSMCursor implements PIndexCursor {
         if (it.hasNext()) {
           keys[p] = it.getKeys();
 
-          if (toKeys != null && (PIndexLSM.compareKeys(comparator, keyTypes, keys[p], toKeys) > 0)) {
+          if (toKeys != null && (IndexLSM.compareKeys(comparator, keyTypes, keys[p], toKeys) > 0)) {
             it.close();
             pageIterators[p] = null;
             keys[p] = null;
@@ -126,7 +126,7 @@ public class PIndexLSMCursor implements PIndexCursor {
         minorKeyIndex = p;
       } else {
         if (keys[p] != null) {
-          if (PIndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+          if (IndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
             minorKey = keys[p];
             minorKeyIndex = p;
           }
@@ -142,7 +142,7 @@ public class PIndexLSMCursor implements PIndexCursor {
       currentIterator.next();
       keys[minorKeyIndex] = currentIterator.getKeys();
 
-      if (toKeys != null && (PIndexLSM.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
+      if (toKeys != null && (IndexLSM.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
         currentIterator.close();
         currentIterator = null;
         pageIterators[minorKeyIndex] = null;

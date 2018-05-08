@@ -1,6 +1,6 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.sql.executor.PatternEdge;
 import com.arcadedb.sql.executor.PatternNode;
 
@@ -51,11 +51,11 @@ public class Pattern {
     for (PatternNode node : this.aliasToNode.values()) {
       if (node.isOptionalNode()) {
         if (node.out.size() > 0) {
-          throw new PCommandSQLParsingException(
+          throw new CommandSQLParsingException(
               "In current MATCH version, optional nodes are allowed only on right terminal nodes, eg. {} --> {optional:true} is allowed, {optional:true} <-- {} is not. ");
         }
         if (node.in.size() == 0) {
-          throw new PCommandSQLParsingException(
+          throw new CommandSQLParsingException(
               "In current MATCH version, optional nodes must have at least one incoming pattern edge");
         }
         //        if (node.in.size() != 1) {

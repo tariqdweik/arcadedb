@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -14,23 +14,23 @@ public class CheckRecordTypeStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  public CheckRecordTypeStep(OCommandContext ctx, String className, boolean profilingEnabled) {
+  public CheckRecordTypeStep(CommandContext ctx, String className, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.clazz = className;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = prev.get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = prev.get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
+      public Result next() {
+        Result result = upstream.next();
         throw new UnsupportedOperationException("TODO");
 //        long begin = profilingEnabled ? System.nanoTime() : 0;
 //        try {
@@ -60,7 +60,7 @@ public class CheckRecordTypeStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -73,11 +73,11 @@ public class CheckRecordTypeStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result = OExecutionStepInternal.getIndent(depth, indent) + "+ CHECK RECORD TYPE";
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ CHECK RECORD TYPE";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }
-    result += (OExecutionStepInternal.getIndent(depth, indent) + "  " + clazz);
+    result += (ExecutionStepInternal.getIndent(depth, indent) + "  " + clazz);
     return result;
   }
 

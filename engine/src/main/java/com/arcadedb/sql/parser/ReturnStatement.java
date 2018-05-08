@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDocument;
+import com.arcadedb.database.Document;
 import com.arcadedb.sql.executor.*;
 
 import java.util.Map;
@@ -19,19 +19,19 @@ public class ReturnStatement extends SimpleExecStatement {
   }
 
   @Override
-  public OResultSet executeSimple(OCommandContext ctx) {
-    OInternalResultSet rs = new OInternalResultSet();
-    Object result = expression.execute((OResult) null, ctx);
-    if (result instanceof OResult) {
-      rs.add((OResult) result);
-    } else if (result instanceof PDocument) {
-      OResultInternal res = new OResultInternal();
-      res.setElement((PDocument) result);
+  public ResultSet executeSimple(CommandContext ctx) {
+    InternalResultSet rs = new InternalResultSet();
+    Object result = expression.execute((Result) null, ctx);
+    if (result instanceof Result) {
+      rs.add((Result) result);
+    } else if (result instanceof Document) {
+      ResultInternal res = new ResultInternal();
+      res.setElement((Document) result);
       rs.add(res);
-    } else if (result instanceof OResultSet) {
-      if (!((OResultSet) result).hasNext()) {
+    } else if (result instanceof ResultSet) {
+      if (!((ResultSet) result).hasNext()) {
         try {
-          ((OResultSet) result).reset();
+          ((ResultSet) result).reset();
         } catch (UnsupportedOperationException ignore) {
           // just try to reset the RS, in case it was already used during the script execution already
           // You can have two cases here:
@@ -39,9 +39,9 @@ public class ReturnStatement extends SimpleExecStatement {
           // - a result from a direct query (eg. RETURN SELECT...), that is new or just empty, so this operation does not hurt
         }
       }
-      return (OResultSet) result;
+      return (ResultSet) result;
     } else {
-      OResultInternal res = new OResultInternal();
+      ResultInternal res = new ResultInternal();
       res.setProperty("value", result);
       rs.add(res);
     }

@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.List;
 import java.util.Map;
@@ -211,10 +211,10 @@ public class AlterClassStatement extends ODDLStatement {
   }
 
   @Override
-  public OResultSet executeDDL(OCommandContext ctx) {
+  public ResultSet executeDDL(CommandContext ctx) {
     PDocumentType oClass = ctx.getDatabase().getSchema().getType(name.getStringValue());
     if (oClass == null) {
-      throw new PCommandExecutionException("Class not found: " + name);
+      throw new CommandExecutionException("Class not found: " + name);
     }
 //    if (property != null) {
 //      switch (property) {
@@ -346,7 +346,7 @@ public class AlterClassStatement extends ODDLStatement {
 //    }
   }
 
-  private void doSetSuperclass(OCommandContext ctx, PDocumentType oClass, Identifier superclassName) {
+  private void doSetSuperclass(CommandContext ctx, PDocumentType oClass, Identifier superclassName) {
 //    if (superclassName == null) {
 //      throw new PCommandExecutionException("Invalid superclass name: " + toString());
 //    }
@@ -363,7 +363,7 @@ public class AlterClassStatement extends ODDLStatement {
 //    }
   }
 
-  private void doSetSuperclasses(OCommandContext ctx, PDocumentType oClass, List<Identifier> superclassNames) {
+  private void doSetSuperclasses(CommandContext ctx, PDocumentType oClass, List<Identifier> superclassNames) {
 //    if (superclassNames == null) {
 //      throw new PCommandExecutionException("Invalid superclass name: " + toString());
 //    }

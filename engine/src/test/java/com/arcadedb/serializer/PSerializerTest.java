@@ -1,9 +1,9 @@
 package com.arcadedb.serializer;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.engine.Bucket;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +17,7 @@ public class PSerializerTest {
 
   @Test
   public void testVarNumber() {
-    final PBinary binary = new PBinary();
+    final Binary binary = new Binary();
     binary.putNumber(0);
     binary.putNumber(3);
     binary.putNumber(Short.MIN_VALUE);
@@ -42,7 +42,7 @@ public class PSerializerTest {
     binary.flip();
 
     final ByteBuffer dBuffer = ByteBuffer.allocate(1024);
-    final PBinary buffer = new PBinary(dBuffer);
+    final Binary buffer = new Binary(dBuffer);
     dBuffer.put(binary.toByteArray());
 
     binary.position(0);
@@ -102,33 +102,33 @@ public class PSerializerTest {
 
   @Test
   public void testPropertiesInDocument() {
-    PFileUtils.deleteRecursively(new File(DB_PATH));
+    FileUtils.deleteRecursively(new File(DB_PATH));
 
-    final PBinarySerializer serializer = new PBinarySerializer();
+    final BinarySerializer serializer = new BinarySerializer();
 
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase database) {
+      public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
         database.commit();
 
         database.begin();
 
-        final PModifiableDocument v = database.newDocument("Test");
+        final ModifiableDocument v = database.newDocument("Test");
         v.set("id", 0);
         v.set("idLong", Long.MAX_VALUE);
         v.set("name", "Jay");
         v.set("surname", "Miner");
 
-        final PBinary buffer = serializer.serialize(database, v, -1);
+        final Binary buffer = serializer.serialize(database, v, -1);
 
-        final ByteBuffer buffer2 = ByteBuffer.allocate(PBucket.DEF_PAGE_SIZE);
+        final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
         buffer2.put(buffer.toByteArray());
         buffer2.flip();
 
-        PBinary buffer3 = new PBinary(buffer2);
+        Binary buffer3 = new Binary(buffer2);
         buffer3.getByte(); // SKIP RECORD TYPE
-        Map<String, Object> record2 = serializer.deserializeProperties((PEmbeddedDatabase) database, buffer3);
+        Map<String, Object> record2 = serializer.deserializeProperties((EmbeddedDatabase) database, buffer3);
 
         Assertions.assertEquals(4, record2.size());
         Assertions.assertEquals(0, record2.get("id"));

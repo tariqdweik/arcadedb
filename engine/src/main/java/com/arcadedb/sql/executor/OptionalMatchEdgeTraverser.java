@@ -7,13 +7,13 @@ import java.util.List;
  * Created by luigidellaquila on 17/10/16.
  */
 public class OptionalMatchEdgeTraverser extends MatchEdgeTraverser {
-  public static final OResult EMPTY_OPTIONAL = new OResultInternal();
+  public static final Result EMPTY_OPTIONAL = new ResultInternal();
 
-  public OptionalMatchEdgeTraverser(OResult lastUpstreamRecord, EdgeTraversal edge) {
+  public OptionalMatchEdgeTraverser(Result lastUpstreamRecord, EdgeTraversal edge) {
     super(lastUpstreamRecord, edge);
   }
 
-  protected void init(OCommandContext ctx) {
+  protected void init(CommandContext ctx) {
     if (downstream == null) {
       super.init(ctx);
       if (!downstream.hasNext()) {
@@ -24,7 +24,7 @@ public class OptionalMatchEdgeTraverser extends MatchEdgeTraverser {
     }
   }
 
-  public OResult next(OCommandContext ctx) {
+  public Result next(CommandContext ctx) {
     init(ctx);
     if (!downstream.hasNext()) {
       throw new IllegalStateException();
@@ -32,7 +32,7 @@ public class OptionalMatchEdgeTraverser extends MatchEdgeTraverser {
 
     String endPointAlias = getEndpointAlias();
     Object prevValue = sourceRecord.getProperty(endPointAlias);
-    OResultInternal next = downstream.next();
+    ResultInternal next = downstream.next();
 
     if (isEmptyOptional(prevValue)) {
       return sourceRecord;
@@ -43,7 +43,7 @@ public class OptionalMatchEdgeTraverser extends MatchEdgeTraverser {
       }
     }
 
-    OResultInternal result = new OResultInternal();
+    ResultInternal result = new ResultInternal();
     for (String prop : sourceRecord.getPropertyNames()) {
       result.setProperty(prop, sourceRecord.getProperty(prop));
     }
@@ -55,7 +55,7 @@ public class OptionalMatchEdgeTraverser extends MatchEdgeTraverser {
     if (elem == EMPTY_OPTIONAL) {
       return true;
     }
-    if (elem instanceof OResult && EMPTY_OPTIONAL == ((OResult) elem).getElement().orElse(null)) {
+    if (elem instanceof Result && EMPTY_OPTIONAL == ((Result) elem).getElement().orElse(null)) {
       return true;
     }
 

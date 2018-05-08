@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultInternal;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.database.Database;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultInternal;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,19 +30,19 @@ public class CreatePropertyStatement extends ODDLStatement {
     super(p, id);
   }
 
-  @Override public OResultSet executeDDL(OCommandContext ctx) {
-    OResultInternal result = new OResultInternal();
+  @Override public ResultSet executeDDL(CommandContext ctx) {
+    ResultInternal result = new ResultInternal();
     result.setProperty("operation", "create property");
     result.setProperty("className", className.getStringValue());
     result.setProperty("propertyName", propertyName.getStringValue());
     executeInternal(ctx, result);
-    OInternalResultSet rs = new OInternalResultSet();
+    InternalResultSet rs = new InternalResultSet();
     rs.add(result);
     return rs;
   }
 
-  private void executeInternal(OCommandContext ctx, OResultInternal result) {
-    PDatabase db = ctx.getDatabase();
+  private void executeInternal(CommandContext ctx, ResultInternal result) {
+    Database db = ctx.getDatabase();
 //    OClassEmbedded clazz = (OClassEmbedded) db.getMetadata().getSchema().getClass(className.getStringValue());
 //    if (clazz == null) {
 //      throw new PCommandExecutionException("Class not found: " + className.getStringValue());

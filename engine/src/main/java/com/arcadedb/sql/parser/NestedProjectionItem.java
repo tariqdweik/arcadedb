@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 
@@ -124,12 +124,12 @@ public class NestedProjectionItem extends SimpleNode {
     return result;
   }
 
-  public Object expand(Expression expression, String name, Object value, OCommandContext ctx, int recursion) {
+  public Object expand(Expression expression, String name, Object value, CommandContext ctx, int recursion) {
     return expansion.apply(expression, value, ctx);
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("exclude", exclude);
     result.setProperty("star", star);
     if (expression != null) {
@@ -145,7 +145,7 @@ public class NestedProjectionItem extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     exclude = fromResult.getProperty("exclude");
     star = fromResult.getProperty("star");
     if (fromResult.getProperty("field") != null) {

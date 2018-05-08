@@ -1,10 +1,10 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRID;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -13,13 +13,13 @@ import java.util.stream.Collectors;
  * Created by luigidellaquila on 22/07/16.
  */
 public class FetchFromRidsStep extends AbstractExecutionStep {
-  private Collection<PRID> rids;
+  private Collection<RID> rids;
 
-  private Iterator<PRID> iterator;
+  private Iterator<RID> iterator;
 
-  private OResult nextResult = null;
+  private Result nextResult = null;
 
-  public FetchFromRidsStep(Collection<PRID> rids, OCommandContext ctx, boolean profilingEnabled) {
+  public FetchFromRidsStep(Collection<RID> rids, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.rids = rids;
     reset();
@@ -31,9 +31,9 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       int internalNext = 0;
 
       private void fetchNext() {
@@ -41,16 +41,16 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
           return;
         }
         while (iterator.hasNext()) {
-          PRID nextRid = iterator.next();
+          RID nextRid = iterator.next();
           if (nextRid == null) {
             continue;
           }
-          PIdentifiable nextDoc = (PIdentifiable) ctx.getDatabase().lookupByRID(nextRid, true);
+          Identifiable nextDoc = (Identifiable) ctx.getDatabase().lookupByRID(nextRid, true);
           if (nextDoc == null) {
             continue;
           }
-          nextResult = new OResultInternal();
-          ((OResultInternal) nextResult).setElement((PDocument) nextDoc);
+          nextResult = new ResultInternal();
+          ((ResultInternal) nextResult).setElement((Document) nextDoc);
           return;
         }
         return;
@@ -68,13 +68,13 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (!hasNext()) {
           throw new IllegalStateException();
         }
 
         internalNext++;
-        OResult result = nextResult;
+        Result result = nextResult;
         nextResult = null;
         return result;
       }
@@ -85,7 +85,7 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -98,13 +98,13 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    return OExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM RIDs\n" + OExecutionStepInternal.getIndent(depth, indent)
+    return ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM RIDs\n" + ExecutionStepInternal.getIndent(depth, indent)
         + "  " + rids;
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     if (rids != null) {
       result.setProperty("rids", rids.stream().map(x -> x.toString()).collect(Collectors.toList()));
     }
@@ -112,9 +112,9 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       if (fromResult.getProperty("rids") != null) {
         List<String> ser = fromResult.getProperty("rids");
         throw new UnsupportedOperationException();
@@ -122,7 +122,7 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
       }
       reset();
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 }

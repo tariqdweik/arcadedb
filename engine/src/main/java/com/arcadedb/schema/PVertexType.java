@@ -1,6 +1,6 @@
 package com.arcadedb.schema;
 
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.graph.Vertex;
 
 public class PVertexType extends PDocumentType {
 
@@ -9,6 +9,6 @@ public class PVertexType extends PDocumentType {
   }
 
   public byte getType() {
-    return PVertex.RECORD_TYPE;
+    return Vertex.RECORD_TYPE;
   }
 }

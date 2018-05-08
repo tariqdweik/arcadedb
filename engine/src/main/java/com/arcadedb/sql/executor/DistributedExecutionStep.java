@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -11,14 +11,14 @@ import java.util.Optional;
  */
 public class DistributedExecutionStep extends AbstractExecutionStep {
 
-  private final OSelectExecutionPlan subExecuitonPlan;
-  private final String               nodeName;
+  private final SelectExecutionPlan subExecuitonPlan;
+  private final String              nodeName;
 
   private boolean inited;
 
-  private OResultSet remoteResultSet;
+  private ResultSet remoteResultSet;
 
-  public DistributedExecutionStep(OSelectExecutionPlan subExecutionPlan, String nodeName, OCommandContext ctx,
+  public DistributedExecutionStep(SelectExecutionPlan subExecutionPlan, String nodeName, CommandContext ctx,
       boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.subExecuitonPlan = subExecutionPlan;
@@ -26,17 +26,17 @@ public class DistributedExecutionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     init(ctx);
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         throw new UnsupportedOperationException("Implement distributed execution step!");
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         throw new UnsupportedOperationException("Implement distributed execution step!");
       }
 
@@ -46,7 +46,7 @@ public class DistributedExecutionStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -57,15 +57,15 @@ public class DistributedExecutionStep extends AbstractExecutionStep {
     };
   }
 
-  public void init(OCommandContext ctx) {
+  public void init(CommandContext ctx) {
     if (!inited) {
       inited = true;
       this.remoteResultSet = sendSerializedExecutionPlan(nodeName, subExecuitonPlan, ctx);
     }
   }
 
-  private OResultSet sendSerializedExecutionPlan(String nodeName, OExecutionPlan serializedExecutionPlan, OCommandContext ctx) {
-    PDatabase db = ctx.getDatabase();
+  private ResultSet sendSerializedExecutionPlan(String nodeName, ExecutionPlan serializedExecutionPlan, CommandContext ctx) {
+    Database db = ctx.getDatabase();
     throw new UnsupportedOperationException();
 //    return db.queryOnNode(nodeName, serializedExecutionPlan, ctx.getInputParameters());
   }
@@ -81,7 +81,7 @@ public class DistributedExecutionStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     StringBuilder builder = new StringBuilder();
-    String ind = OExecutionStepInternal.getIndent(depth, indent);
+    String ind = ExecutionStepInternal.getIndent(depth, indent);
     builder.append(ind);
     builder.append("+ EXECUTE ON NODE " + nodeName + "----------- \n");
     builder.append(subExecuitonPlan.prettyPrint(depth + 1, indent));

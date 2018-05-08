@@ -1,11 +1,11 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PSchema;
 import com.arcadedb.sql.parser.*;
-import com.arcadedb.utility.PPair;
+import com.arcadedb.utility.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -61,12 +61,12 @@ public class OMatchExecutionPlanner {
     this.unwind = stm.getUnwind() == null ? null : stm.getUnwind().copy();
   }
 
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext context, boolean enableProfiling) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext context, boolean enableProfiling) {
 
     buildPatterns(context);
     splitDisjointPatterns(context);
 
-    OSelectExecutionPlan result = new OSelectExecutionPlan(context);
+    SelectExecutionPlan result = new SelectExecutionPlan(context);
     Map<String, Long> estimatedRootEntries = estimateRootEntries(aliasClasses, aliasClusters, aliasRids, aliasFilters, context);
     Set<String> aliasesToPrefetch = estimatedRootEntries.entrySet().stream().filter(x -> x.getValue() < this.threshold).
         map(x -> x.getKey()).collect(Collectors.toSet());
@@ -84,10 +84,10 @@ public class OMatchExecutionPlanner {
       }
       result.chain(step);
     } else {
-      OInternalExecutionPlan plan = createPlanForPattern(pattern, context, estimatedRootEntries, aliasesToPrefetch,
+      InternalExecutionPlan plan = createPlanForPattern(pattern, context, estimatedRootEntries, aliasesToPrefetch,
           enableProfiling);
-      for (OExecutionStep step : plan.getSteps()) {
-        result.chain((OExecutionStepInternal) step);
+      for (ExecutionStep step : plan.getSteps()) {
+        result.chain((ExecutionStepInternal) step);
       }
     }
 
@@ -102,7 +102,7 @@ public class OMatchExecutionPlanner {
         result.chain(new DistinctExecutionStep(context, enableProfiling));
       }
       if (groupBy != null) {
-        throw new PCommandExecutionException(
+        throw new CommandExecutionException(
             "Cannot execute GROUP BY in MATCH query with RETURN $elements, $pathElements, $patterns or $paths");
       }
 
@@ -149,7 +149,7 @@ public class OMatchExecutionPlanner {
 
   }
 
-  private void addReturnStep(OSelectExecutionPlan result, OCommandContext context, boolean profilingEnabled) {
+  private void addReturnStep(SelectExecutionPlan result, CommandContext context, boolean profilingEnabled) {
     if (returnElements) {
       result.chain(new ReturnMatchElementsStep(context, profilingEnabled));
     } else if (returnPaths) {
@@ -172,9 +172,9 @@ public class OMatchExecutionPlanner {
     }
   }
 
-  private OInternalExecutionPlan createPlanForPattern(Pattern pattern, OCommandContext context,
+  private InternalExecutionPlan createPlanForPattern(Pattern pattern, CommandContext context,
       Map<String, Long> estimatedRootEntries, Set<String> prefetchedAliases, boolean profilingEnabled) {
-    OSelectExecutionPlan plan = new OSelectExecutionPlan(context);
+    SelectExecutionPlan plan = new SelectExecutionPlan(context);
     List<EdgeTraversal> sortedEdges = getTopologicalSortedSchedule(estimatedRootEntries, pattern);
 
     boolean first = true;
@@ -218,20 +218,20 @@ public class OMatchExecutionPlanner {
     Set<PatternEdge> visitedEdges = new HashSet<>();
 
     // Sort the possible root vertices in order of estimated size, since we want to start with a small vertex set.
-    List<PPair<Long, String>> rootWeights = new ArrayList<>();
+    List<Pair<Long, String>> rootWeights = new ArrayList<>();
     for (Map.Entry<String, Long> root : estimatedRootEntries.entrySet()) {
-      rootWeights.add(new PPair<>(root.getValue(), root.getKey()));
+      rootWeights.add(new Pair<>(root.getValue(), root.getKey()));
     }
-    Collections.sort(rootWeights, new Comparator<PPair<Long, String>>() {
+    Collections.sort(rootWeights, new Comparator<Pair<Long, String>>() {
       @Override
-      public int compare(PPair<Long, String> o1, PPair<Long, String> o2) {
+      public int compare(Pair<Long, String> o1, Pair<Long, String> o2) {
         return o1.getFirst().compareTo(o2.getFirst());
       }
     });
 
     // Add the starting vertices, in the correct order, to an ordered set.
     Set<String> remainingStarts = new LinkedHashSet<String>();
-    for (PPair<Long, String> item : rootWeights) {
+    for (Pair<Long, String> item : rootWeights) {
       remainingStarts.add(item.getSecond());
     }
     // Add all the remaining aliases after all the suggested start points.
@@ -265,7 +265,7 @@ public class OMatchExecutionPlanner {
         // We didn't manage to find a valid root, and yet we haven't constructed a complete schedule.
         // This means there must be a cycle in our dependency graph, or all dependency-free nodes are optional.
         // Therefore, the query is invalid.
-        throw new PCommandExecutionException("This query contains MATCH conditions that cannot be evaluated, "
+        throw new CommandExecutionException("This query contains MATCH conditions that cannot be evaluated, "
             + "like an undefined alias or a circular dependency on a $matched condition.");
       }
 
@@ -406,7 +406,7 @@ public class OMatchExecutionPlanner {
     return result;
   }
 
-  private void splitDisjointPatterns(OCommandContext context) {
+  private void splitDisjointPatterns(CommandContext context) {
     if (this.subPatterns != null) {
       return;
     }
@@ -414,7 +414,7 @@ public class OMatchExecutionPlanner {
     this.subPatterns = pattern.getDisjointPatterns();
   }
 
-  private void addStepsFor(OSelectExecutionPlan plan, EdgeTraversal edge, OCommandContext context, boolean first,
+  private void addStepsFor(SelectExecutionPlan plan, EdgeTraversal edge, CommandContext context, boolean first,
       boolean profilingEnabled) {
     if (first) {
       PatternNode patternNode = edge.out ? edge.edge.out : edge.edge.in;
@@ -433,7 +433,7 @@ public class OMatchExecutionPlanner {
         select.getTarget().getItem().setRids(Collections.singletonList(rid));
       }
       select.setWhereClause(where == null ? null : where.copy());
-      OBasicCommandContext subContxt = new OBasicCommandContext();
+      BasicCommandContext subContxt = new BasicCommandContext();
       subContxt.setParentWithoutOverridingChild(context);
       plan.chain(
           new MatchFirstStep(context, patternNode, select.createExecutionPlan(subContxt, profilingEnabled), profilingEnabled));
@@ -446,7 +446,7 @@ public class OMatchExecutionPlanner {
     }
   }
 
-  private void addPrefetchSteps(OSelectExecutionPlan result, Set<String> aliasesToPrefetch, OCommandContext context,
+  private void addPrefetchSteps(SelectExecutionPlan result, Set<String> aliasesToPrefetch, CommandContext context,
       boolean profilingEnabled) {
     for (String alias : aliasesToPrefetch) {
       String targetClass = aliasClasses.get(alias);
@@ -481,7 +481,7 @@ public class OMatchExecutionPlanner {
   /**
    * sort edges in the order they will be matched
    */
-  private List<EdgeTraversal> sortEdges(Map<String, Long> estimatedRootEntries, Pattern pattern, OCommandContext ctx) {
+  private List<EdgeTraversal> sortEdges(Map<String, Long> estimatedRootEntries, Pattern pattern, CommandContext ctx) {
     OQueryStats stats = null;
     if (ctx != null && ctx.getDatabase() != null) {
       stats = OQueryStats.get(ctx.getDatabase());
@@ -490,13 +490,13 @@ public class OMatchExecutionPlanner {
 
     List<EdgeTraversal> result = new ArrayList<EdgeTraversal>();
 
-    List<PPair<Long, String>> rootWeights = new ArrayList<PPair<Long, String>>();
+    List<Pair<Long, String>> rootWeights = new ArrayList<Pair<Long, String>>();
     for (Map.Entry<String, Long> root : estimatedRootEntries.entrySet()) {
-      rootWeights.add(new PPair<Long, String>(root.getValue(), root.getKey()));
+      rootWeights.add(new Pair<Long, String>(root.getValue(), root.getKey()));
     }
-    Collections.sort(rootWeights, new Comparator<PPair<Long, String>>() {
+    Collections.sort(rootWeights, new Comparator<Pair<Long, String>>() {
       @Override
-      public int compare(PPair<Long, String> o1, PPair<Long, String> o2) {
+      public int compare(Pair<Long, String> o1, Pair<Long, String> o2) {
         return o1.getFirst().compareTo(o2.getFirst());
       }
     });
@@ -506,7 +506,7 @@ public class OMatchExecutionPlanner {
     List<PatternNode> nextNodes = new ArrayList<PatternNode>();
 
     while (result.size() < pattern.getNumOfEdges()) {
-      for (PPair<Long, String> rootPair : rootWeights) {
+      for (Pair<Long, String> rootPair : rootWeights) {
         PatternNode root = pattern.get(rootPair.getSecond());
         if (root.isOptionalNode()) {
           continue;
@@ -547,7 +547,7 @@ public class OMatchExecutionPlanner {
     return result;
   }
 
-  private void buildPatterns(OCommandContext ctx) {
+  private void buildPatterns(CommandContext ctx) {
     if (this.pattern != null) {
       return;
     }
@@ -586,7 +586,7 @@ public class OMatchExecutionPlanner {
   }
 
   private void addAliases(MatchExpression expr, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
-      Map<String, String> aliasClusters, Map<String, Rid> aliasRids, OCommandContext context) {
+      Map<String, String> aliasClusters, Map<String, Rid> aliasRids, CommandContext context) {
     addAliases(expr.getOrigin(), aliasFilters, aliasClasses, aliasClusters, aliasRids, context);
     for (MatchPathItem item : expr.getItems()) {
       if (item.getFilter() != null) {
@@ -596,7 +596,7 @@ public class OMatchExecutionPlanner {
   }
 
   private void addAliases(MatchFilter matchFilter, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
-      Map<String, String> aliasClusters, Map<String, Rid> aliasRids, OCommandContext context) {
+      Map<String, String> aliasClusters, Map<String, Rid> aliasRids, CommandContext context) {
     String alias = matchFilter.getAlias();
     WhereClause filter = matchFilter.getFilter();
     if (alias != null) {
@@ -621,7 +621,7 @@ public class OMatchExecutionPlanner {
         } else {
           String lower = getLowerSubclass(context.getDatabase(), clazz, previousClass);
           if (lower == null) {
-            throw new PCommandExecutionException(
+            throw new CommandExecutionException(
                 "classes defined for alias " + alias + " (" + clazz + ", " + previousClass + ") are not in the same hierarchy");
           }
           aliasClasses.put(alias, lower);
@@ -634,7 +634,7 @@ public class OMatchExecutionPlanner {
         if (previousCluster == null) {
           aliasClusters.put(alias, clusterName);
         } else if (!previousCluster.equalsIgnoreCase(clusterName)) {
-          throw new PCommandExecutionException(
+          throw new CommandExecutionException(
               "Invalid expression for alias " + alias + " cannot be of both clusters " + previousCluster + " and " + clusterName);
         }
       }
@@ -645,14 +645,14 @@ public class OMatchExecutionPlanner {
         if (previousRid == null) {
           aliasRids.put(alias, rid);
         } else if (!previousRid.equals(rid)) {
-          throw new PCommandExecutionException(
+          throw new CommandExecutionException(
               "Invalid expression for alias " + alias + " cannot be of both RIDs " + previousRid + " and " + rid);
         }
       }
     }
   }
 
-  private String getLowerSubclass(PDatabase db, String className1, String className2) {
+  private String getLowerSubclass(Database db, String className1, String className2) {
     PSchema schema = db.getSchema();
     PDocumentType class1 = schema.getType(className1);
     PDocumentType class2 = schema.getType(className2);
@@ -686,7 +686,7 @@ public class OMatchExecutionPlanner {
   }
 
   private Map<String, Long> estimateRootEntries(Map<String, String> aliasClasses, Map<String, String> aliasClusters,
-      Map<String, Rid> aliasRids, Map<String, WhereClause> aliasFilters, OCommandContext ctx) {
+      Map<String, Rid> aliasRids, Map<String, WhereClause> aliasFilters, CommandContext ctx) {
     Set<String> allAliases = new LinkedHashSet<String>();
     allAliases.addAll(aliasClasses.keySet());
     allAliases.addAll(aliasFilters.keySet());
@@ -706,7 +706,7 @@ public class OMatchExecutionPlanner {
 
       if (className != null) {
         if (schema.getType(className)==null) {
-          throw new PCommandExecutionException("class not defined: " + className);
+          throw new CommandExecutionException("class not defined: " + className);
         }
         PDocumentType oClass = schema.getType(className);
         long upperBound;
@@ -718,9 +718,9 @@ public class OMatchExecutionPlanner {
         }
         result.put(alias, upperBound);
       } else if (clusterName != null) {
-        PDatabase db = ctx.getDatabase();
+        Database db = ctx.getDatabase();
         if (db.getSchema().getBucketByName(clusterName)==null) {
-          throw new PCommandExecutionException("cluster not defined: " + clusterName);
+          throw new CommandExecutionException("cluster not defined: " + clusterName);
         }
         int clusterId = db.getSchema().getBucketByName(clusterName).getId();
         PDocumentType oClass = db.getSchema().getTypeByBucketId(clusterId);

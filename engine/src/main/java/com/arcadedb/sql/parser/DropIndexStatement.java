@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.database.Database;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
@@ -24,9 +24,9 @@ public class DropIndexStatement extends ODDLStatement {
   }
 
   @Override
-  public OResultSet executeDDL(OCommandContext ctx) {
-    OInternalResultSet rs = new OInternalResultSet();
-    PDatabase db = ctx.getDatabase();
+  public ResultSet executeDDL(CommandContext ctx) {
+    InternalResultSet rs = new InternalResultSet();
+    Database db = ctx.getDatabase();
 //    OIndexManager idxMgr = db.getMetadata().getIndexManager();
 //    if (all) {
 //      for (OIndex<?> idx : idxMgr.getIndexes()) {

@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OMultiValue;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.MultiValue;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -84,10 +84,10 @@ public class InputParameter extends SimpleNode {
     if (value instanceof String) {
       return value;
     }
-    if (OMultiValue.isMultiValue(value) && !(value instanceof byte[]) && !(value instanceof Byte[])) {
+    if (MultiValue.isMultiValue(value) && !(value instanceof byte[]) && !(value instanceof Byte[])) {
       PCollection coll = new PCollection(-1);
       coll.expressions = new ArrayList<Expression>();
-      Iterator iterator = OMultiValue.getMultiValueIterator(value);
+      Iterator iterator = MultiValue.getMultiValueIterator(value);
       while (iterator.hasNext()) {
         Object o = iterator.next();
         Expression exp = new Expression(-1);
@@ -109,10 +109,10 @@ public class InputParameter extends SimpleNode {
       }
       return json;
     }
-    if (value instanceof PIdentifiable) {
+    if (value instanceof Identifiable) {
       // TODO if invalid build a JSON
       Rid rid = new Rid(-1);
-      String stringVal = ((PIdentifiable) value).getIdentity().toString().substring(1);
+      String stringVal = ((Identifiable) value).getIdentity().toString().substring(1);
       String[] splitted = stringVal.split(":");
       PInteger c = new PInteger(-1);
       c.setValue(java.lang.Integer.parseInt(splitted[0]));
@@ -153,24 +153,24 @@ public class InputParameter extends SimpleNode {
     throw new UnsupportedOperationException();
   }
 
-  public static InputParameter deserializeFromOResult(OResult doc) {
+  public static InputParameter deserializeFromOResult(Result doc) {
     try {
       InputParameter result = (InputParameter) Class.forName(doc.getProperty("__class")).getConstructor(java.lang.Integer.class)
           .newInstance(-1);
       result.deserialize(doc);
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
     return null;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("__class", getClass().getName());
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     throw new UnsupportedOperationException();
   }
 }

@@ -10,25 +10,25 @@ public class SkipExecutionStep extends AbstractExecutionStep {
 
   int skipped = 0;
 
-  OResultSet lastFetch;
+  ResultSet lastFetch;
   private boolean finished;
 
-  public SkipExecutionStep(Skip skip, OCommandContext ctx, boolean profilingEnabled) {
+  public SkipExecutionStep(Skip skip, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.skip = skip;
   }
 
-  @Override public OResultSet syncPull(OCommandContext ctx, int nRecords) {
+  @Override public ResultSet syncPull(CommandContext ctx, int nRecords) {
     if (finished == true) {
-      return new OInternalResultSet();//empty
+      return new InternalResultSet();//empty
     }
     int skipValue = skip.getValue(ctx);
     while (skipped < skipValue) {
       //fetch and discard
-      OResultSet rs = prev.get().syncPull(ctx, Math.min(100, skipValue - skipped));//fetch blocks of 100, at most
+      ResultSet rs = prev.get().syncPull(ctx, Math.min(100, skipValue - skipped));//fetch blocks of 100, at most
       if (!rs.hasNext()) {
         finished = true;
-        return new OInternalResultSet();//empty
+        return new InternalResultSet();//empty
       }
       while (rs.hasNext()) {
         rs.next();
@@ -49,7 +49,7 @@ public class SkipExecutionStep extends AbstractExecutionStep {
   }
 
   @Override public String prettyPrint(int depth, int indent) {
-    return OExecutionStepInternal.getIndent(depth, indent) + "+ SKIP (" + skip.toString() + ")";
+    return ExecutionStepInternal.getIndent(depth, indent) + "+ SKIP (" + skip.toString() + ")";
   }
 
 }

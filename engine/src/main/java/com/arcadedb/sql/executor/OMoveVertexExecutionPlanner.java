@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.parser.*;
 
 /**
@@ -21,8 +21,8 @@ public class OMoveVertexExecutionPlanner {
     this.batch = oStatement.getBatch();
   }
 
-  public OUpdateExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
-    OUpdateExecutionPlan result = new OUpdateExecutionPlan(ctx);
+  public UpdateExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
+    UpdateExecutionPlan result = new UpdateExecutionPlan(ctx);
 
     handleSource(result, ctx, this.source, enableProfiling);
     convertToModifiableResult(result, ctx, enableProfiling);
@@ -33,11 +33,11 @@ public class OMoveVertexExecutionPlanner {
     return result;
   }
 
-  private void handleTarget(OUpdateExecutionPlan result, Identifier targetClass, Cluster targetCluster, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleTarget(UpdateExecutionPlan result, Identifier targetClass, Cluster targetCluster, CommandContext ctx, boolean profilingEnabled) {
     result.chain(new MoveVertexStep(targetClass, targetCluster, ctx, profilingEnabled));
   }
 
-  private void handleBatch(OUpdateExecutionPlan result, OCommandContext ctx, Batch batch, boolean profilingEnabled) {
+  private void handleBatch(UpdateExecutionPlan result, CommandContext ctx, Batch batch, boolean profilingEnabled) {
     if (batch != null) {
       result.chain(new BatchStep(batch, ctx, profilingEnabled));
     }
@@ -49,17 +49,17 @@ public class OMoveVertexExecutionPlanner {
    * @param plan the execution plan
    * @param ctx  the executino context
    */
-  private void convertToModifiableResult(OUpdateExecutionPlan plan, OCommandContext ctx, boolean profilingEnabled) {
+  private void convertToModifiableResult(UpdateExecutionPlan plan, CommandContext ctx, boolean profilingEnabled) {
     plan.chain(new ConvertToUpdatableResultStep(ctx, profilingEnabled));
   }
 
-  private void handleResultForReturnCount(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnCount, boolean profilingEnabled) {
+  private void handleResultForReturnCount(UpdateExecutionPlan result, CommandContext ctx, boolean returnCount, boolean profilingEnabled) {
     if (returnCount) {
       result.chain(new CountStep(ctx, profilingEnabled));
     }
   }
 
-  private void handleResultForReturnAfter(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnAfter,
+  private void handleResultForReturnAfter(UpdateExecutionPlan result, CommandContext ctx, boolean returnAfter,
       Projection returnProjection, boolean profilingEnabled) {
     if (returnAfter) {
       //re-convert to normal step
@@ -70,7 +70,7 @@ public class OMoveVertexExecutionPlanner {
     }
   }
 
-  private void handleResultForReturnBefore(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnBefore,
+  private void handleResultForReturnBefore(UpdateExecutionPlan result, CommandContext ctx, boolean returnBefore,
       Projection returnProjection, boolean profilingEnabled) {
     if (returnBefore) {
       result.chain(new UnwrapPreviousValueStep(ctx, profilingEnabled));
@@ -80,40 +80,40 @@ public class OMoveVertexExecutionPlanner {
     }
   }
 
-  private void handleSave(OUpdateExecutionPlan result, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleSave(UpdateExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
     result.chain(new SaveElementStep(ctx, profilingEnabled));
   }
 
-  private void handleTimeout(OUpdateExecutionPlan result, OCommandContext ctx, Timeout timeout, boolean profilingEnabled) {
+  private void handleTimeout(UpdateExecutionPlan result, CommandContext ctx, Timeout timeout, boolean profilingEnabled) {
     if (timeout != null && timeout.getVal().longValue() > 0) {
       result.chain(new TimeoutStep(timeout, ctx, profilingEnabled));
     }
   }
 
-  private void handleReturnBefore(OUpdateExecutionPlan result, OCommandContext ctx, boolean returnBefore, boolean profilingEnabled) {
+  private void handleReturnBefore(UpdateExecutionPlan result, CommandContext ctx, boolean returnBefore, boolean profilingEnabled) {
     if (returnBefore) {
       result.chain(new CopyRecordContentBeforeUpdateStep(ctx, profilingEnabled));
     }
   }
 
-  private void handleLock(OUpdateExecutionPlan result, OCommandContext ctx, Object lockRecord) {
+  private void handleLock(UpdateExecutionPlan result, CommandContext ctx, Object lockRecord) {
 
   }
 
-  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, Limit limit, boolean profilingEnabled) {
+  private void handleLimit(UpdateExecutionPlan plan, CommandContext ctx, Limit limit, boolean profilingEnabled) {
     if (limit != null) {
       plan.chain(new LimitExecutionStep(limit, ctx, profilingEnabled));
     }
   }
 
-  private void handleUpsert(OUpdateExecutionPlan plan, OCommandContext ctx, FromClause target, WhereClause where,
+  private void handleUpsert(UpdateExecutionPlan plan, CommandContext ctx, FromClause target, WhereClause where,
       boolean upsert, boolean profilingEnabled) {
     if (upsert) {
       plan.chain(new UpsertStep(target, where, ctx, profilingEnabled));
     }
   }
 
-  private void handleOperations(OUpdateExecutionPlan plan, OCommandContext ctx, UpdateOperations op, boolean profilingEnabled) {
+  private void handleOperations(UpdateExecutionPlan plan, CommandContext ctx, UpdateOperations op, boolean profilingEnabled) {
     if (op != null) {
       switch (op.getType()) {
       case UpdateOperations.TYPE_SET:
@@ -131,12 +131,12 @@ public class OMoveVertexExecutionPlanner {
       case UpdateOperations.TYPE_PUT:
       case UpdateOperations.TYPE_INCREMENT:
       case UpdateOperations.TYPE_ADD:
-        throw new PCommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
+        throw new CommandExecutionException("Cannot execute with UPDATE PUT/ADD/INCREMENT new executor: " + op);
       }
     }
   }
 
-  private void handleSource(OUpdateExecutionPlan result, OCommandContext ctx, FromItem source, boolean profilingEnabled) {
+  private void handleSource(UpdateExecutionPlan result, CommandContext ctx, FromItem source, boolean profilingEnabled) {
     SelectStatement sourceStatement = new SelectStatement(-1);
     sourceStatement.setTarget(new FromClause(-1));
     sourceStatement.getTarget().setItem(source);

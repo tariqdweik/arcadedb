@@ -1,6 +1,6 @@
 package com.arcadedb.index;
 
-import com.arcadedb.database.PRID;
+import com.arcadedb.database.RID;
 
 import java.io.IOException;
 import java.util.List;
@@ -19,9 +19,9 @@ public interface PIndex {
 
   PIndexCursor range(Object[] beginKeys, Object[] endKeys) throws IOException;
 
-  List<PRID> get(Object[] keys);
+  List<RID> get(Object[] keys);
 
-  void put(Object[] keys, PRID rid);
+  void put(Object[] keys, RID rid);
 
   void remove(Object[] keys);
 

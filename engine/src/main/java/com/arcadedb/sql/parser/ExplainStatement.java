@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 import com.arcadedb.sql.executor.*;
 
 import java.util.HashMap;
@@ -25,8 +25,8 @@ public class ExplainStatement extends Statement {
     statement.toString(params, builder);
   }
 
-  @Override public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  @Override public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -38,27 +38,27 @@ public class ExplainStatement extends Statement {
     }
     ctx.setInputParameters(params);
 
-    OExecutionPlan executionPlan = statement.createExecutionPlan(ctx, false);
+    ExecutionPlan executionPlan = statement.createExecutionPlan(ctx, false);
 
-    OExplainResultSet result = new OExplainResultSet(executionPlan);
+    ExplainResultSet result = new ExplainResultSet(executionPlan);
     return result;
   }
 
-  @Override public OResultSet execute(PDatabase db, Map args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  @Override public ResultSet execute(Database db, Map args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(args);
 
-    OExecutionPlan executionPlan = statement.createExecutionPlan(ctx, false);
+    ExecutionPlan executionPlan = statement.createExecutionPlan(ctx, false);
 
-    OExplainResultSet result = new OExplainResultSet(executionPlan);
+    ExplainResultSet result = new ExplainResultSet(executionPlan);
     return result;
   }
 
-  @Override public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  @Override public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
     return statement.createExecutionPlan(ctx, enableProfiling);
   }
 

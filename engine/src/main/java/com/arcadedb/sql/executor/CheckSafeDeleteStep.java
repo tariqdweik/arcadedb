@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.schema.PDocumentType;
 
 import java.util.Map;
@@ -23,29 +23,29 @@ import java.util.Optional;
 public class CheckSafeDeleteStep extends AbstractExecutionStep {
   private long cost = 0;
 
-  public CheckSafeDeleteStep(OCommandContext ctx, boolean profilingEnabled) {
+  public CheckSafeDeleteStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
+      public Result next() {
+        Result result = upstream.next();
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           if (result.isElement()) {
 
-            PRecord record = result.getElement().get();
-            if (record instanceof PDocument) {
-              PDocument doc = (PDocument) record;
+            Record record = result.getElement().get();
+            if (record instanceof Document) {
+              Document doc = (Document) record;
               PDocumentType clazz = ctx.getDatabase().getSchema().getType(doc.getType());
               //TODO
 //              if (clazz != null) {
@@ -72,7 +72,7 @@ public class CheckSafeDeleteStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -85,7 +85,7 @@ public class CheckSafeDeleteStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ CHECK SAFE DELETE");

@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
@@ -38,8 +38,8 @@ public class IfStatement extends Statement {
     return true;
   }
 
-  @Override public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  @Override public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -51,62 +51,62 @@ public class IfStatement extends Statement {
       }
     }
     ctx.setInputParameters(params);
-    OIfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    IfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    OExecutionStepInternal last = executionPlan.executeUntilReturn();
+    ExecutionStepInternal last = executionPlan.executeUntilReturn();
     if (isIdempotent()) {
-      OSelectExecutionPlan finalPlan = new OSelectExecutionPlan(ctx);
+      SelectExecutionPlan finalPlan = new SelectExecutionPlan(ctx);
       finalPlan.chain(last);
-      return new OLocalResultSet(finalPlan);
+      return new LocalResultSet(finalPlan);
     } else {
-      OUpdateExecutionPlan finalPlan = new OUpdateExecutionPlan(ctx);
+      UpdateExecutionPlan finalPlan = new UpdateExecutionPlan(ctx);
       finalPlan.chain(last);
       finalPlan.executeInternal();
-      return new OLocalResultSet(finalPlan);
+      return new LocalResultSet(finalPlan);
     }
   }
 
-  @Override public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  @Override public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
-    OIfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    IfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    OExecutionStepInternal last = executionPlan.executeUntilReturn();
+    ExecutionStepInternal last = executionPlan.executeUntilReturn();
     if (isIdempotent()) {
-      OSelectExecutionPlan finalPlan = new OSelectExecutionPlan(ctx);
+      SelectExecutionPlan finalPlan = new SelectExecutionPlan(ctx);
       finalPlan.chain(last);
-      return new OLocalResultSet(finalPlan);
+      return new LocalResultSet(finalPlan);
     } else {
-      OUpdateExecutionPlan finalPlan = new OUpdateExecutionPlan(ctx);
+      UpdateExecutionPlan finalPlan = new UpdateExecutionPlan(ctx);
       finalPlan.chain(last);
       finalPlan.executeInternal();
-      return new OLocalResultSet(finalPlan);
+      return new LocalResultSet(finalPlan);
     }
   }
 
-  @Override public OIfExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  @Override public IfExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
 
-    OIfExecutionPlan plan = new OIfExecutionPlan(ctx);
+    IfExecutionPlan plan = new IfExecutionPlan(ctx);
 
     IfStep step = new IfStep(ctx, enableProfiling);
     step.setCondition(this.expression);
     plan.chain(step);
 
-    OBasicCommandContext subCtx1 = new OBasicCommandContext();
+    BasicCommandContext subCtx1 = new BasicCommandContext();
     subCtx1.setParent(ctx);
-    OScriptExecutionPlan positivePlan = new OScriptExecutionPlan(subCtx1);
+    ScriptExecutionPlan positivePlan = new ScriptExecutionPlan(subCtx1);
     for (Statement stm : statements) {
       positivePlan.chain(stm.createExecutionPlan(subCtx1, enableProfiling), enableProfiling);
     }
     step.setPositivePlan(positivePlan);
     if (elseStatements.size() > 0) {
-      OBasicCommandContext subCtx2 = new OBasicCommandContext();
+      BasicCommandContext subCtx2 = new BasicCommandContext();
       subCtx2.setParent(ctx);
-      OScriptExecutionPlan negativePlan = new OScriptExecutionPlan(subCtx2);
+      ScriptExecutionPlan negativePlan = new ScriptExecutionPlan(subCtx2);
       for (Statement stm : elseStatements) {
         negativePlan.chain(stm.createExecutionPlan(subCtx2, enableProfiling), enableProfiling);
       }

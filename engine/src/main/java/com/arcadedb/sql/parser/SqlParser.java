@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.arcadedb.exception.PQueryParsingException;
+import com.arcadedb.exception.QueryParsingException;
 
 /** Database Sql grammar. */
 public class SqlParser/*@bgen(jjtree)*/implements SqlParserTreeConstants, SqlParserConstants {/*@bgen(jjtree)*/
@@ -12128,7 +12128,7 @@ Token token;
           throw new ParseException();
         }
                 if(prevItem !=null && prevItem.filter == null){
-                    {if (true) throw new PQueryParsingException("MATCH sub-pattern with no square brackets");}
+                    {if (true) throw new QueryParsingException("MATCH sub-pattern with no square brackets");}
                 }
                 prevItem = nextItem;
         switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {

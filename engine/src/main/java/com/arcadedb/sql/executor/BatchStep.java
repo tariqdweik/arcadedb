@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Batch;
 
 import java.util.Map;
@@ -15,25 +15,25 @@ public class BatchStep extends AbstractExecutionStep {
 
   int count = 0;
 
-  public BatchStep(Batch batch, OCommandContext ctx, boolean profilingEnabled) {
+  public BatchStep(Batch batch, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     batchSize = batch.evaluate(ctx);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet prevResult = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet prevResult = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return prevResult.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult res = prevResult.next();
+      public Result next() {
+        Result res = prevResult.next();
         if (count % batchSize == 0) {
-          PDatabase db = ctx.getDatabase();
+          Database db = ctx.getDatabase();
           if (db.getTransaction().isActive()) {
             db.commit();
             db.begin();
@@ -49,7 +49,7 @@ public class BatchStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -67,7 +67,7 @@ public class BatchStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ BATCH COMMIT EVERY " + batchSize);

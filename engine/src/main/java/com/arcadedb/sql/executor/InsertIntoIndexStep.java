@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.IndexIdentifier;
 import com.arcadedb.sql.parser.InsertBody;
 
@@ -13,14 +13,14 @@ public class InsertIntoIndexStep extends AbstractExecutionStep {
 
   boolean executed = false;
 
-  public InsertIntoIndexStep(IndexIdentifier targetIndex, InsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
+  public InsertIntoIndexStep(IndexIdentifier targetIndex, InsertBody insertBody, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetIndex = targetIndex;
     this.body = insertBody;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     throw new UnsupportedOperationException();
 //    return new OResultSet() {

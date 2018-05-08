@@ -6,8 +6,8 @@
  */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.HashMap;
@@ -212,11 +212,11 @@ public class SelectStatement extends Statement {
     }
   }
 
-  public void validate() throws PCommandSQLParsingException {
+  public void validate() throws CommandSQLParsingException {
     if (projection != null) {
       projection.validate();
       if (projection.isExpand() && groupBy != null) {
-        throw new PCommandSQLParsingException("expand() cannot be used together with GROUP BY");
+        throw new CommandSQLParsingException("expand() cannot be used together with GROUP BY");
       }
     }
   }
@@ -246,8 +246,8 @@ public class SelectStatement extends Statement {
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -259,27 +259,27 @@ public class SelectStatement extends Statement {
       }
     }
     ctx.setInputParameters(params);
-    OInternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    OLocalResultSet result = new OLocalResultSet(executionPlan);
+    LocalResultSet result = new LocalResultSet(executionPlan);
     return result;
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
-    OInternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    OLocalResultSet result = new OLocalResultSet(executionPlan);
+    LocalResultSet result = new LocalResultSet(executionPlan);
     return result;
   }
 
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
     OSelectExecutionPlanner planner = new OSelectExecutionPlanner(this);
     return planner.createExecutionPlan(ctx, enableProfiling);
   }
@@ -418,8 +418,8 @@ public class SelectStatement extends Statement {
     this.noCache = noCache;
   }
 
-  public OResult serialize() {
-    OResultInternal result = (OResultInternal) super.serialize();
+  public Result serialize() {
+    ResultInternal result = (ResultInternal) super.serialize();
     if (target != null) {
       result.setProperty("target", target.serialize());
     }
@@ -461,7 +461,7 @@ public class SelectStatement extends Statement {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("target") != null) {
       target = new FromClause(-1);
       target.deserialize(fromResult.getProperty("target"));

@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultInternal;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultInternal;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
@@ -33,28 +33,28 @@ public class CreateClusterStatement extends ODDLStatement {
   }
 
   @Override
-  public OResultSet executeDDL(OCommandContext ctx) {
-    PDatabase db = ctx.getDatabase();
+  public ResultSet executeDDL(CommandContext ctx) {
+    Database db = ctx.getDatabase();
     int existingId = db.getSchema().getBucketByName(name.getStringValue()).getId();
     if (existingId >= 0) {
       if (ifNotExists) {
-        return new OInternalResultSet();
+        return new InternalResultSet();
       } else {
-        throw new PCommandExecutionException("Cluster " + name.getStringValue() + " already exists");
+        throw new CommandExecutionException("Cluster " + name.getStringValue() + " already exists");
       }
     }
     if (id != null) {
       String existingName = db.getSchema().getBucketById(id.getValue().intValue()).getName();
       if (existingName != null) {
         if (ifNotExists) {
-          return new OInternalResultSet();
+          return new InternalResultSet();
         } else {
-          throw new PCommandExecutionException("Cluster " + id.getValue() + " already exists");
+          throw new CommandExecutionException("Cluster " + id.getValue() + " already exists");
         }
       }
     }
 
-    OResultInternal result = new OResultInternal();
+    ResultInternal result = new ResultInternal();
     result.setProperty("operation", "create cluster");
     result.setProperty("clusterName", name.getStringValue());
 

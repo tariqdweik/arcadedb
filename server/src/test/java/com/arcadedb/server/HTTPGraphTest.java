@@ -1,9 +1,9 @@
 package com.arcadedb.server;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,21 +14,21 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class HTTPGraphTest extends BaseGraphServerTest {
-  private PHttpServer server;
+  private HttpServer server;
 
   @BeforeEach
   public void populate() {
     super.populate();
 
-    final PHttpServerConfiguration config = new PHttpServerConfiguration();
+    final HttpServerConfiguration config = new HttpServerConfiguration();
     config.databaseDirectory = "target/database";
-    server = new PHttpServer(config);
+    server = new HttpServer(config);
 
     new Thread(new Runnable() {
       @Override
       public void run() {
         server.start();
-        PLogManager.instance().info(this, "Test Server is down");
+        LogManager.instance().info(this, "Test Server is down");
       }
     }).start();
 
@@ -43,7 +43,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
   public void drop() {
     server.close();
 
-    final PDatabase db = new PDatabaseFactory(BaseGraphServerTest.DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(BaseGraphServerTest.DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
@@ -58,7 +58,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      PLogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().info(this, "Response: ", response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -82,7 +82,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      PLogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().info(this, "Response: ", response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 

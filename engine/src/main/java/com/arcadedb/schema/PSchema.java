@@ -1,8 +1,8 @@
 package com.arcadedb.schema;
 
-import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PDictionary;
-import com.arcadedb.engine.PPaginatedComponent;
+import com.arcadedb.engine.Bucket;
+import com.arcadedb.engine.Dictionary;
+import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.index.PIndex;
 
 import java.util.Collection;
@@ -12,19 +12,19 @@ public interface PSchema {
 
   void setDateTimeFormat(String dateTimeFormat);
 
-  PPaginatedComponent getFileById(int id);
+  PaginatedComponent getFileById(int id);
 
   void removeFile(int fileId);
 
   boolean existsBucket(String bucketName);
 
-  PBucket getBucketByName(String name);
+  Bucket getBucketByName(String name);
 
-  Collection<PBucket> getBuckets();
+  Collection<Bucket> getBuckets();
 
-  PBucket getBucketById(int id);
+  Bucket getBucketById(int id);
 
-  PBucket createBucket(String bucketName);
+  Bucket createBucket(String bucketName);
 
   boolean existsIndex(String indexName);
 
@@ -38,7 +38,7 @@ public interface PSchema {
 
   PIndex createManualIndex(String indexName, byte[] keyTypes, int pageSize);
 
-  PDictionary getDictionary();
+  Dictionary getDictionary();
 
   Collection<PDocumentType> getTypes();
 

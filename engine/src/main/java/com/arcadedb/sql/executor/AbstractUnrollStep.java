@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -15,11 +15,11 @@ import java.util.Optional;
 public abstract class AbstractUnrollStep extends AbstractExecutionStep {
 
 
-  OResultSet        lastResult      = null;
-  Iterator<OResult> nextSubsequence = null;
-  OResult           nextElement     = null;
+  ResultSet        lastResult      = null;
+  Iterator<Result> nextSubsequence = null;
+  Result           nextElement     = null;
 
-  public AbstractUnrollStep(OCommandContext ctx, boolean profilingEnabled) {
+  public AbstractUnrollStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
@@ -29,11 +29,11 @@ public abstract class AbstractUnrollStep extends AbstractExecutionStep {
     this.nextElement = null;
   }
 
-  @Override public OResultSet syncPull(OCommandContext ctx, int nRecords) {
+  @Override public ResultSet syncPull(CommandContext ctx, int nRecords) {
     if (prev == null || !prev.isPresent()) {
-      throw new PCommandExecutionException("Cannot expand without a target");
+      throw new CommandExecutionException("Cannot expand without a target");
     }
-    return new OResultSet() {
+    return new ResultSet() {
       long localCount = 0;
 
       @Override public boolean hasNext() {
@@ -49,7 +49,7 @@ public abstract class AbstractUnrollStep extends AbstractExecutionStep {
         return true;
       }
 
-      @Override public OResult next() {
+      @Override public Result next() {
         if (localCount >= nRecords) {
           throw new IllegalStateException();
         }
@@ -60,7 +60,7 @@ public abstract class AbstractUnrollStep extends AbstractExecutionStep {
           throw new IllegalStateException();
         }
 
-        OResult result = nextElement;
+        Result result = nextElement;
         localCount++;
         nextElement = null;
         fetchNext(ctx, nRecords);
@@ -71,7 +71,7 @@ public abstract class AbstractUnrollStep extends AbstractExecutionStep {
 
       }
 
-      @Override public Optional<OExecutionPlan> getExecutionPlan() {
+      @Override public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -81,7 +81,7 @@ public abstract class AbstractUnrollStep extends AbstractExecutionStep {
     };
   }
 
-  private void fetchNext(OCommandContext ctx, int n) {
+  private void fetchNext(CommandContext ctx, int n) {
     do {
       if (nextSubsequence != null && nextSubsequence.hasNext()) {
         nextElement = nextSubsequence.next();
@@ -97,13 +97,13 @@ public abstract class AbstractUnrollStep extends AbstractExecutionStep {
         }
       }
 
-      OResult nextAggregateItem = lastResult.next();
+      Result nextAggregateItem = lastResult.next();
       nextSubsequence = unroll(nextAggregateItem, ctx).iterator();
 
     } while (true);
 
   }
 
-  protected abstract Collection<OResult> unroll(final OResult doc, final OCommandContext iContext);
+  protected abstract Collection<Result> unroll(final Result doc, final CommandContext iContext);
 
 }

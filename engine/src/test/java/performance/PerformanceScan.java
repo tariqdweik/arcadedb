@@ -1,7 +1,7 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.engine.PaginatedFile;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,7 +14,7 @@ public class PerformanceScan {
   }
 
   private void run() {
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
 
     database.asynch().setParallelLevel(4);
 
@@ -24,10 +24,10 @@ public class PerformanceScan {
 
         final AtomicInteger row = new AtomicInteger();
 
-        database.asynch().scanType(CLASS_NAME, true, new PDocumentCallback() {
+        database.asynch().scanType(CLASS_NAME, true, new DocumentCallback() {
           @Override
-          public boolean onRecord(final PDocument record) {
-            final PImmutableDocument document = ((PImmutableDocument) record);
+          public boolean onRecord(final Document record) {
+            final ImmutableDocument document = ((ImmutableDocument) record);
 
             document.get("id");
 

@@ -32,8 +32,8 @@ public class OInsertExecutionPlanner {
     this.selectStatement = statement.getSelectStatement() == null ? null : statement.getSelectStatement().copy();
   }
 
-  public OInsertExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
-    OInsertExecutionPlan result = new OInsertExecutionPlan(ctx);
+  public InsertExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
+    InsertExecutionPlan result = new InsertExecutionPlan(ctx);
 
     if (targetIndex != null) {
       result.chain(new InsertIntoIndexStep(targetIndex, insertBody, ctx, enableProfiling));
@@ -59,19 +59,19 @@ public class OInsertExecutionPlanner {
     return result;
   }
 
-  private void handleSave(OInsertExecutionPlan result, Identifier targetClusterName, OCommandContext ctx,
+  private void handleSave(InsertExecutionPlan result, Identifier targetClusterName, CommandContext ctx,
       boolean profilingEnabled) {
     result.chain(new SaveElementStep(ctx, targetClusterName, profilingEnabled));
   }
 
-  private void handleReturn(OInsertExecutionPlan result, Projection returnStatement, OCommandContext ctx,
+  private void handleReturn(InsertExecutionPlan result, Projection returnStatement, CommandContext ctx,
       boolean profilingEnabled) {
     if (returnStatement != null) {
       result.chain(new ProjectionCalculationStep(returnStatement, ctx, profilingEnabled));
     }
   }
 
-  private void handleSetFields(OInsertExecutionPlan result, InsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleSetFields(InsertExecutionPlan result, InsertBody insertBody, CommandContext ctx, boolean profilingEnabled) {
     if (insertBody == null) {
       return;
     }
@@ -92,14 +92,14 @@ public class OInsertExecutionPlanner {
     }
   }
 
-  private void handleTargetClass(OInsertExecutionPlan result, Identifier targetClass, OCommandContext ctx,
+  private void handleTargetClass(InsertExecutionPlan result, Identifier targetClass, CommandContext ctx,
       boolean profilingEnabled) {
     if (targetClass != null) {
       result.chain(new SetDocumentClassStep(targetClass, ctx, profilingEnabled));
     }
   }
 
-  private void handleCreateRecord(OInsertExecutionPlan result, InsertBody body, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleCreateRecord(InsertExecutionPlan result, InsertBody body, CommandContext ctx, boolean profilingEnabled) {
     int tot = 1;
 
     if (body != null && body.getValueExpressions() != null && body.getValueExpressions().size() > 0) {
@@ -108,9 +108,9 @@ public class OInsertExecutionPlanner {
     result.chain(new CreateRecordStep(targetClass.getStringValue(), ctx, tot, profilingEnabled));
   }
 
-  private void handleInsertSelect(OInsertExecutionPlan result, SelectStatement selectStatement, OCommandContext ctx,
+  private void handleInsertSelect(InsertExecutionPlan result, SelectStatement selectStatement, CommandContext ctx,
       boolean profilingEnabled) {
-    OInternalExecutionPlan subPlan = selectStatement.createExecutionPlan(ctx, profilingEnabled);
+    InternalExecutionPlan subPlan = selectStatement.createExecutionPlan(ctx, profilingEnabled);
     result.chain(new SubQueryStep(subPlan, ctx, ctx, profilingEnabled));
     result.chain(new CopyDocumentStep(ctx, profilingEnabled));
     result.chain(new RemoveEdgePointersStep(ctx, profilingEnabled));

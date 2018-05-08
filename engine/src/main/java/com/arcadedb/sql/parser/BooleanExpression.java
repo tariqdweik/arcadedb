@@ -1,12 +1,12 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.*;
 
@@ -17,12 +17,12 @@ public abstract class BooleanExpression extends SimpleNode {
 
   public static final BooleanExpression TRUE = new BooleanExpression(0) {
     @Override
-    public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+    public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
       return true;
     }
 
     @Override
-    public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+    public boolean evaluate(Result currentRecord, CommandContext ctx) {
       return true;
     }
 
@@ -94,12 +94,12 @@ public abstract class BooleanExpression extends SimpleNode {
 
   public static final BooleanExpression FALSE = new BooleanExpression(0) {
     @Override
-    public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+    public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
       return false;
     }
 
     @Override
-    public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+    public boolean evaluate(Result currentRecord, CommandContext ctx) {
       return false;
     }
 
@@ -184,9 +184,9 @@ public abstract class BooleanExpression extends SimpleNode {
     return visitor.visit(this, data);
   }
 
-  public abstract boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx);
+  public abstract boolean evaluate(Identifiable currentRecord, CommandContext ctx);
 
-  public abstract boolean evaluate(OResult currentRecord, OCommandContext ctx);
+  public abstract boolean evaluate(Result currentRecord, CommandContext ctx);
 
   /**
    * @return true if this expression can be calculated in plain Java, false otherwise (eg. LUCENE operator)
@@ -203,7 +203,7 @@ public abstract class BooleanExpression extends SimpleNode {
    */
   protected abstract List<Object> getExternalCalculationConditions();
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, PDatabase database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
     return null;
   }
 
@@ -251,24 +251,24 @@ public abstract class BooleanExpression extends SimpleNode {
 
   }
 
-  public static BooleanExpression deserializeFromOResult(OResult doc) {
+  public static BooleanExpression deserializeFromOResult(Result doc) {
     try {
       BooleanExpression result = (BooleanExpression) Class.forName(doc.getProperty("__class")).getConstructor(Integer.class)
           .newInstance(-1);
       result.deserialize(doc);
     } catch (Exception e) {
-      throw new PCommandExecutionException("", e);
+      throw new CommandExecutionException("", e);
     }
     return null;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("__class", getClass().getName());
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     throw new UnsupportedOperationException();
   }
 

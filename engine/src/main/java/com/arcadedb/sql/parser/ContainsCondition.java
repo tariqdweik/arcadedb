@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OMultiValue;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.MultiValue;
 import com.arcadedb.sql.executor.OQueryOperatorEquals;
-import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.Result;
 
 import java.util.*;
 
@@ -40,8 +40,8 @@ public class ContainsCondition extends BooleanExpression {
 
         if (((Collection) right).size() == 1) {
           Object item = ((Collection) right).iterator().next();
-          if (item instanceof OResult && ((OResult) item).getPropertyNames().size() == 1) {
-            Object propValue = ((OResult) item).getProperty(((OResult) item).getPropertyNames().iterator().next());
+          if (item instanceof Result && ((Result) item).getPropertyNames().size() == 1) {
+            Object propValue = ((Result) item).getProperty(((Result) item).getPropertyNames().iterator().next());
             return ((Collection) left).contains(propValue);
           }
         }
@@ -96,21 +96,21 @@ public class ContainsCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
     Object leftValue = left.execute(currentRecord, ctx);
     if (right != null) {
       Object rightValue = right.execute(currentRecord, ctx);
       return execute(leftValue, rightValue);
     } else {
-      if (!OMultiValue.isMultiValue(leftValue)) {
+      if (!MultiValue.isMultiValue(leftValue)) {
         return false;
       }
-      Iterator<Object> iter = OMultiValue.getMultiValueIterator(leftValue);
+      Iterator<Object> iter = MultiValue.getMultiValueIterator(leftValue);
       while (iter.hasNext()) {
         Object item = iter.next();
-        if (item instanceof PIdentifiable && condition.evaluate((PIdentifiable) item, ctx)) {
+        if (item instanceof Identifiable && condition.evaluate((Identifiable) item, ctx)) {
           return true;
-        } else if (item instanceof OResult && condition.evaluate((OResult) item, ctx)) {
+        } else if (item instanceof Result && condition.evaluate((Result) item, ctx)) {
           return true;
         }
       }
@@ -119,21 +119,21 @@ public class ContainsCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Result currentRecord, CommandContext ctx) {
     Object leftValue = left.execute(currentRecord, ctx);
     if (right != null) {
       Object rightValue = right.execute(currentRecord, ctx);
       return execute(leftValue, rightValue);
     } else {
-      if (!OMultiValue.isMultiValue(leftValue)) {
+      if (!MultiValue.isMultiValue(leftValue)) {
         return false;
       }
-      Iterator<Object> iter = OMultiValue.getMultiValueIterator(leftValue);
+      Iterator<Object> iter = MultiValue.getMultiValueIterator(leftValue);
       while (iter.hasNext()) {
         Object item = iter.next();
-        if (item instanceof PIdentifiable && condition.evaluate((PIdentifiable) item, ctx)) {
+        if (item instanceof Identifiable && condition.evaluate((Identifiable) item, ctx)) {
           return true;
-        } else if (item instanceof OResult && condition.evaluate((OResult) item, ctx)) {
+        } else if (item instanceof Result && condition.evaluate((Result) item, ctx)) {
           return true;
         }
       }

@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -44,7 +44,7 @@ public class ArraySelector extends SimpleNode {
     }
   }
 
-  public java.lang.Integer getValue(PIdentifiable iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public java.lang.Integer getValue(Identifiable iCurrentRecord, Object iResult, CommandContext ctx) {
     Object result = null;
     if (inputParam != null) {
       result = inputParam.getValue(ctx.getInputParameters());
@@ -63,7 +63,7 @@ public class ArraySelector extends SimpleNode {
     return null;
   }
 
-  public Object getValue(OResult iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public Object getValue(Result iCurrentRecord, Object iResult, CommandContext ctx) {
     Object result = null;
     if (inputParam != null) {
       result = inputParam.getValue(ctx.getInputParameters());
@@ -141,7 +141,7 @@ public class ArraySelector extends SimpleNode {
     return false;
   }
 
-  public void setValue(OResult currentRecord, Object target, Object value, OCommandContext ctx) {
+  public void setValue(Result currentRecord, Object target, Object value, CommandContext ctx) {
     Object idx = null;
     if (this.rid != null) {
       idx = this.rid.toRecordId(currentRecord, ctx);
@@ -164,7 +164,7 @@ public class ArraySelector extends SimpleNode {
     }
   }
 
-  public void setValue(List target, int idx, Object value, OCommandContext ctx) {
+  public void setValue(List target, int idx, Object value, CommandContext ctx) {
     int originalSize = target.size();
     for (int i = originalSize; i <= idx; i++) {
       if (i >= originalSize) {
@@ -174,7 +174,7 @@ public class ArraySelector extends SimpleNode {
     target.set(idx, value);
   }
 
-  public void setValue(Set target, int idx, Object value, OCommandContext ctx) {
+  public void setValue(Set target, int idx, Object value, CommandContext ctx) {
     Set result = new LinkedHashSet<>();
     int originalSize = target.size();
     int max = Math.max(idx, originalSize - 1);
@@ -196,18 +196,18 @@ public class ArraySelector extends SimpleNode {
     }
   }
 
-  public void setValue(Map target, Object idx, Object value, OCommandContext ctx) {
+  public void setValue(Map target, Object idx, Object value, CommandContext ctx) {
     target.put(idx, value);
   }
 
-  private void setArrayValue(Object target, int idx, Object value, OCommandContext ctx) {
+  private void setArrayValue(Object target, int idx, Object value, CommandContext ctx) {
     if (idx >= 0 && idx < Array.getLength(target)) {
       Array.set(target, idx, value);
     }
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (rid != null) {
       result.setProperty("rid", rid.serialize());
     }
@@ -223,7 +223,7 @@ public class ArraySelector extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("rid") != null) {
       rid = new Rid(-1);
       rid.deserialize(fromResult.getProperty("rid"));

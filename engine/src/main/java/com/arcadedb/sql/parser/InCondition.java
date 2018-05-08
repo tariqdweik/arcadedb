@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public class InCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
     Object leftVal = evaluateLeft(currentRecord, ctx);
     Object rightVal = evaluateRight(currentRecord, ctx);
     if (rightVal == null) {
@@ -47,7 +47,7 @@ public class InCondition extends BooleanExpression {
     return evaluateExpression(leftVal, rightVal);
   }
 
-  public Object evaluateRight(PIdentifiable currentRecord, OCommandContext ctx) {
+  public Object evaluateRight(Identifiable currentRecord, CommandContext ctx) {
     Object rightVal = null;
     if (rightStatement != null) {
       rightVal = executeQuery(rightStatement, ctx);
@@ -59,12 +59,12 @@ public class InCondition extends BooleanExpression {
     return rightVal;
   }
 
-  public Object evaluateLeft(PIdentifiable currentRecord, OCommandContext ctx) {
+  public Object evaluateLeft(Identifiable currentRecord, CommandContext ctx) {
     return left.execute(currentRecord, ctx);
   }
 
   @Override
-  public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Result currentRecord, CommandContext ctx) {
     Object leftVal = evaluateLeft(currentRecord, ctx);
     Object rightVal = evaluateRight(currentRecord, ctx);
     if (rightVal == null) {
@@ -73,7 +73,7 @@ public class InCondition extends BooleanExpression {
     return evaluateExpression(leftVal, rightVal);
   }
 
-  public Object evaluateRight(OResult currentRecord, OCommandContext ctx) {
+  public Object evaluateRight(Result currentRecord, CommandContext ctx) {
     Object rightVal = null;
     if (rightStatement != null) {
       rightVal = executeQuery(rightStatement, ctx);
@@ -85,30 +85,30 @@ public class InCondition extends BooleanExpression {
     return rightVal;
   }
 
-  public Object evaluateLeft(OResult currentRecord, OCommandContext ctx) {
+  public Object evaluateLeft(Result currentRecord, CommandContext ctx) {
     return left.execute(currentRecord, ctx);
   }
 
-  protected static Object executeQuery(SelectStatement rightStatement, OCommandContext ctx) {
-    OBasicCommandContext subCtx = new OBasicCommandContext();
+  protected static Object executeQuery(SelectStatement rightStatement, CommandContext ctx) {
+    BasicCommandContext subCtx = new BasicCommandContext();
     subCtx.setParentWithoutOverridingChild(ctx);
-    OResultSet result = rightStatement.execute(ctx.getDatabase(), ctx.getInputParameters());
+    ResultSet result = rightStatement.execute(ctx.getDatabase(), ctx.getInputParameters());
     return result.stream().collect(Collectors.toSet());
   }
 
   protected static boolean evaluateExpression(final Object iLeft, final Object iRight) {
-    if (OMultiValue.isMultiValue(iRight)) {
+    if (MultiValue.isMultiValue(iRight)) {
       if (iRight instanceof Set<?>)
         return ((Set) iRight).contains(iLeft);
 
-      for (final Object o : OMultiValue.getMultiValueIterable(iRight, false)) {
+      for (final Object o : MultiValue.getMultiValueIterable(iRight, false)) {
         if (OQueryOperatorEquals.equals(iLeft, o))
           return true;
-        if (OMultiValue.isMultiValue(iLeft) && OMultiValue.getSize(iLeft) == 1) {
+        if (MultiValue.isMultiValue(iLeft) && MultiValue.getSize(iLeft) == 1) {
 
-          Object item = OMultiValue.getFirstValue(iLeft);
-          if (item instanceof OResult && ((OResult) item).getPropertyNames().size() == 1) {
-            Object propValue = ((OResult) item).getProperty(((OResult) item).getPropertyNames().iterator().next());
+          Object item = MultiValue.getFirstValue(iLeft);
+          if (item instanceof Result && ((Result) item).getPropertyNames().size() == 1) {
+            Object propValue = ((Result) item).getProperty(((Result) item).getPropertyNames().iterator().next());
             if (OQueryOperatorEquals.equals(propValue, o))
               return true;
           }
@@ -120,12 +120,12 @@ public class InCondition extends BooleanExpression {
         if (OQueryOperatorEquals.equals(iLeft, o))
           return true;
       }
-    } else if (iRight instanceof OResultSet)
+    } else if (iRight instanceof ResultSet)
 
     {
-      OResultSet rsRight = (OResultSet) iRight;
+      ResultSet rsRight = (ResultSet) iRight;
       rsRight.reset();
-      while (((OResultSet) iRight).hasNext()) {
+      while (((ResultSet) iRight).hasNext()) {
         if (OQueryOperatorEquals.equals(iLeft, rsRight.next())) {
           return true;
         }

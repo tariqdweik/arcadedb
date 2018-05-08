@@ -1,11 +1,11 @@
 package com.arcadedb.sql;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,22 +26,22 @@ public class FunctionTest {
 
   @AfterAll
   public static void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void testCountFunction() {
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase db) {
+      public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", 10);
-        OResultSet rs = db.query("SELECT count(*) as count FROM V WHERE id < :id", params);
+        ResultSet rs = db.query("SELECT count(*) as count FROM V WHERE id < :id", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {
-          OResult record = rs.next();
+          Result record = rs.next();
           Assertions.assertNotNull(record);
           Assertions.assertFalse(record.getIdentity().isPresent());
           Assertions.assertEquals(10, ((Number) record.getProperty("count")).intValue());
@@ -54,16 +54,16 @@ public class FunctionTest {
 
   @Test
   public void testAvgFunction() {
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase db) {
+      public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", 10);
-        OResultSet rs = db.query("SELECT avg(id) as avg FROM V WHERE id < :id", params);
+        ResultSet rs = db.query("SELECT avg(id) as avg FROM V WHERE id < :id", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {
-          OResult record = rs.next();
+          Result record = rs.next();
           Assertions.assertNotNull(record);
           Assertions.assertFalse(record.getIdentity().isPresent());
           Assertions.assertEquals(4, ((Number) record.getProperty("avg")).intValue());
@@ -76,15 +76,15 @@ public class FunctionTest {
 
   @Test
   public void testMaxFunction() {
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase db) {
+      public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
-        OResultSet rs = db.query("SELECT max(id) as max FROM V", params);
+        ResultSet rs = db.query("SELECT max(id) as max FROM V", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {
-          OResult record = rs.next();
+          Result record = rs.next();
           Assertions.assertNotNull(record);
           Assertions.assertFalse(record.getIdentity().isPresent());
           Assertions.assertEquals(TOT - 1, ((Number) record.getProperty("max")).intValue());
@@ -97,15 +97,15 @@ public class FunctionTest {
 
   @Test
   public void testMinFunction() {
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase db) {
+      public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
-        OResultSet rs = db.query("SELECT min(id) as min FROM V", params);
+        ResultSet rs = db.query("SELECT min(id) as min FROM V", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {
-          OResult record = rs.next();
+          Result record = rs.next();
           Assertions.assertNotNull(record);
           Assertions.assertFalse(record.getIdentity().isPresent());
           Assertions.assertEquals(0, ((Number) record.getProperty("min")).intValue());
@@ -117,14 +117,14 @@ public class FunctionTest {
   }
 
   private static void populate(final int total) {
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase database) {
+      public void execute(Database database) {
         if (!database.getSchema().existsType("V"))
           database.getSchema().createVertexType("V");
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newVertex("V");
+          final ModifiableDocument v = database.newVertex("V");
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner" + i);

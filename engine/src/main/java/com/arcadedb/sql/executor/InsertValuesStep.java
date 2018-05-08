@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Expression;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -19,7 +19,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
 
   int nextValueSet = 0;
 
-  public InsertValuesStep(List<Identifier> identifierList, List<List<Expression>> valueExpressions, OCommandContext ctx,
+  public InsertValuesStep(List<Identifier> identifierList, List<List<Expression>> valueExpressions, CommandContext ctx,
       boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.identifiers = identifierList;
@@ -27,26 +27,26 @@ public class InsertValuesStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
-        if (!(result instanceof OResultInternal)) {
+      public Result next() {
+        Result result = upstream.next();
+        if (!(result instanceof ResultInternal)) {
           if (!result.isElement()) {
-            throw new PCommandExecutionException("Error executing INSERT, cannot modify element: " + result);
+            throw new CommandExecutionException("Error executing INSERT, cannot modify element: " + result);
           }
-          result = new OUpdatableResult((PModifiableDocument) result.getElement().get());
+          result = new UpdatableResult((ModifiableDocument) result.getElement().get());
         }
         List<Expression> currentValues = values.get(nextValueSet++);
         if (currentValues.size() != identifiers.size()) {
-          throw new PCommandExecutionException(
+          throw new CommandExecutionException(
               "Cannot execute INSERT, the number of fields is different from the number of expressions: " + identifiers + " "
                   + currentValues);
         }
@@ -54,7 +54,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
         for (int i = 0; i < currentValues.size(); i++) {
           Identifier identifier = identifiers.get(i);
           Object value = currentValues.get(i).execute(result, ctx);
-          ((OResultInternal) result).setProperty(identifier.getStringValue(), value);
+          ((ResultInternal) result).setProperty(identifier.getStringValue(), value);
         }
         return result;
       }
@@ -65,7 +65,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -78,7 +78,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ SET VALUES \n");

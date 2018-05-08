@@ -1,11 +1,11 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.exception.PSchemaException;
-import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.exception.SchemaException;
+import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.PVertexType;
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,15 +17,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PolymorphicTest {
   private static final String DB_PATH = "target/database/graph";
 
-  private static PRID root;
+  private static RID root;
 
   @BeforeEach
   public void populate() {
-    PFileUtils.deleteRecursively(new File(DB_PATH));
+    FileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase database) {
+      public void execute(Database database) {
         //------------
         // VEHICLES VERTICES
         //------------
@@ -38,7 +38,7 @@ public class PolymorphicTest {
         try {
           motorcycle.createProperty("brand", String.class);
           Assertions.fail("Expected to fail by creating the same property name as the parent type");
-        } catch (PSchemaException e) {
+        } catch (SchemaException e) {
         }
 
         Assertions.assertTrue(database.getSchema().getType("Motorcycle").instanceOf("Vehicle"));
@@ -68,28 +68,28 @@ public class PolymorphicTest {
       }
     });
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
-      final PModifiableVertex maserati = db.newVertex("Car");
+      final ModifiableVertex maserati = db.newVertex("Car");
       maserati.set("brand", "Maserati");
       maserati.set("type", "Ghibli");
       maserati.set("year", 2017);
       maserati.save();
 
-      final PModifiableVertex ducati = db.newVertex("Motorcycle");
+      final ModifiableVertex ducati = db.newVertex("Motorcycle");
       ducati.set("brand", "Ducati");
       ducati.set("type", "Monster");
       ducati.set("year", 2015);
       ducati.save();
 
-      final PModifiableVertex ferrari = db.newVertex("Supercar");
+      final ModifiableVertex ferrari = db.newVertex("Supercar");
       ferrari.set("brand", "Ferrari");
       ferrari.set("type", "458 Italia");
       ferrari.set("year", 2014);
       ferrari.save();
 
-      final PModifiableVertex luca = db.newVertex("Client");
+      final ModifiableVertex luca = db.newVertex("Client");
       luca.set("firstName", "Luca");
       luca.set("lastName", "Skywalker");
       luca.save();
@@ -109,13 +109,13 @@ public class PolymorphicTest {
 
   @AfterEach
   public void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void count() {
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
       // NON POLYMORPHIC COUNTING
@@ -149,7 +149,7 @@ public class PolymorphicTest {
 
   @Test
   public void scan() {
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db2.begin();
     try {
       Assertions.assertEquals(0, scanAndCountType(db2, "Vehicle", false));
@@ -180,12 +180,12 @@ public class PolymorphicTest {
     }
   }
 
-  private int scanAndCountType(final PDatabase db, final String type, final boolean polymorphic) {
+  private int scanAndCountType(final Database db, final String type, final boolean polymorphic) {
     // NON POLYMORPHIC COUNTING
     final AtomicInteger counter = new AtomicInteger();
-    db.scanType(type, polymorphic, new PDocumentCallback() {
+    db.scanType(type, polymorphic, new DocumentCallback() {
       @Override
-      public boolean onRecord(PDocument record) {
+      public boolean onRecord(Document record) {
         Assertions.assertTrue(db.getSchema().getType(record.getType()).instanceOf(type));
         counter.incrementAndGet();
         return true;

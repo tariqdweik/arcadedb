@@ -1,19 +1,19 @@
 package com.arcadedb.server.handler;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PRecordNotFoundException;
-import com.arcadedb.server.PHttpServer;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.RecordNotFoundException;
+import com.arcadedb.server.HttpServer;
 import io.undertow.server.HttpServerExchange;
 
 import java.util.Deque;
 
 public class PCreateHandler extends PBasicHandler {
-  public PCreateHandler(final PHttpServer pHttpServer) {
-    super(pHttpServer);
+  public PCreateHandler(final HttpServer httpServer) {
+    super(httpServer);
   }
 
   @Override
-  public void execute(final HttpServerExchange exchange, final PDatabase database) {
+  public void execute(final HttpServerExchange exchange, final Database database) {
     try {
       final Deque<String> recordInJson = exchange.getQueryParameters().get("record");
       if (recordInJson.isEmpty()) {
@@ -28,7 +28,7 @@ public class PCreateHandler extends PBasicHandler {
 //      exchange.getResponseSender()
 //          .send("{ \"result\" : " + httpServer.getJsonSerializer().serializeRecord(record).toString() + "}");
 
-    } catch (PRecordNotFoundException e) {
+    } catch (RecordNotFoundException e) {
       exchange.setStatusCode(404);
       exchange.getResponseSender().send("{ \"error\" : \"Record id is null\"}");
     }

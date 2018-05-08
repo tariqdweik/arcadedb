@@ -29,7 +29,7 @@ public class QueryPlanningInfo {
    */
   Map<String, Set<String>> serverToClusters;
 
-  Map<String, OSelectExecutionPlan> distributedFetchExecutionPlans;
+  Map<String, SelectExecutionPlan> distributedFetchExecutionPlans;
 
   /**
    * set to true when the distributedFetchExecutionPlans are aggregated in the main execution plan

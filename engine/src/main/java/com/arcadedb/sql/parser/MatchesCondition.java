@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +32,7 @@ public class MatchesCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
     String regex = right;
     if (regex != null) {
       regex = regex.substring(1, regex.length() - 1);
@@ -49,7 +49,7 @@ public class MatchesCondition extends BooleanExpression {
     return matches(value, regex, ctx);
   }
 
-  private boolean matches(Object value, String regex, OCommandContext ctx) {
+  private boolean matches(Object value, String regex, CommandContext ctx) {
     final String key = "MATCHES_" + regex.hashCode();
     java.util.regex.Pattern p = (java.util.regex.Pattern) ctx.getVariable(key);
     if (p == null) {
@@ -65,7 +65,7 @@ public class MatchesCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Result currentRecord, CommandContext ctx) {
     String regex = right;
     if (regex != null) {
       regex = regex.substring(1, regex.length() - 1);

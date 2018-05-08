@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -16,17 +16,17 @@ public class FilterByClustersStep extends AbstractExecutionStep {
   private Set<String>  clusters;
   private Set<Integer> clusterIds;
 
-  OResultSet prevResult = null;
+  ResultSet prevResult = null;
 
-  public FilterByClustersStep(Set<String> filterClusters, OCommandContext ctx, boolean profilingEnabled) {
+  public FilterByClustersStep(Set<String> filterClusters, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.clusters = filterClusters;
-    PDatabase db = ctx.getDatabase();
+    Database db = ctx.getDatabase();
     init(db);
 
   }
 
-  private void init(PDatabase db) {
+  private void init(Database db) {
 //    if (this.clusterIds == null) {
 //      this.clusterIds = clusters.stream().map(x -> db.getClusterIdByName(x)).filter(x -> x != null).collect(Collectors.toSet());
 //    }
@@ -34,17 +34,17 @@ public class FilterByClustersStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     init(ctx.getDatabase());
     if (!prev.isPresent()) {
       throw new IllegalStateException("filter step requires a previous step");
     }
-    OExecutionStepInternal prevStep = prev.get();
+    ExecutionStepInternal prevStep = prev.get();
 
-    return new OResultSet() {
+    return new ResultSet() {
       public boolean finished = false;
 
-      OResult nextItem = null;
+      Result nextItem = null;
       int fetched = 0;
 
       private void fetchNextItem() {
@@ -100,7 +100,7 @@ public class FilterByClustersStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (fetched >= nRecords || finished) {
           throw new IllegalStateException();
         }
@@ -110,7 +110,7 @@ public class FilterByClustersStep extends AbstractExecutionStep {
         if (nextItem == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextItem;
+        Result result = nextItem;
         nextItem = null;
         fetched++;
         return result;
@@ -122,7 +122,7 @@ public class FilterByClustersStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -136,13 +136,13 @@ public class FilterByClustersStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    return OExecutionStepInternal.getIndent(depth, indent) + "+ FILTER ITEMS BY CLUSTERS \n" + OExecutionStepInternal
+    return ExecutionStepInternal.getIndent(depth, indent) + "+ FILTER ITEMS BY CLUSTERS \n" + ExecutionStepInternal
         .getIndent(depth, indent) + "  " + clusters.stream().collect(Collectors.joining(", "));
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     if (clusters != null) {
       result.setProperty("clusters", clusters);
     }
@@ -151,12 +151,12 @@ public class FilterByClustersStep extends AbstractExecutionStep {
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       clusters = fromResult.getProperty("clusters");
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 

@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandSQLParsingException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandSQLParsingException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +85,7 @@ public class Projection extends SimpleNode {
     }
   }
 
-  public OResult calculateSingle(OCommandContext iContext, OResult iRecord) {
+  public Result calculateSingle(CommandContext iContext, Result iRecord) {
     if (isExpand()) {
       throw new IllegalStateException("This is an expand projection, it cannot be calculated as a single result" + toString());
     }
@@ -94,20 +94,20 @@ public class Projection extends SimpleNode {
       return iRecord;
     }
 
-    OResultInternal result = new OResultInternal();
+    ResultInternal result = new ResultInternal();
     for (ProjectionItem item : items) {
       if (item.isAll()) {
         for (String alias : iRecord.getPropertyNames()) {
           result.setProperty(alias, iRecord.getProperty(alias));
         }
         if (iRecord.getElement().isPresent()) {
-          PRecord x = iRecord.getElement().get();
+          Record x = iRecord.getElement().get();
           result.setProperty("@rid", x.getIdentity());
 //          result.setProperty("@version", x.getVersion());
 //          result.setProperty("@class", x.getSchemaType().map(clazz -> clazz.getName()).orElse(null));
         }
         if (item.nestedProjection != null) {
-          result = (OResultInternal) item.nestedProjection.apply(item.expression, result, iContext);
+          result = (ResultInternal) item.nestedProjection.apply(item.expression, result, iContext);
         }
       } else {
         result.setProperty(item.getProjectionAliasAsString(), item.execute(iRecord, iContext));
@@ -125,7 +125,7 @@ public class Projection extends SimpleNode {
     if (items != null && items.size() > 1) {
       for (ProjectionItem item : items) {
         if (item.isExpand()) {
-          throw new PCommandSQLParsingException("Cannot execute a query with expand() together with other projections");
+          throw new CommandSQLParsingException("Cannot execute a query with expand() together with other projections");
         }
       }
     }
@@ -196,8 +196,8 @@ public class Projection extends SimpleNode {
     return false;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("distinct", distinct);
     if (items != null) {
       result.setProperty("items", items.stream().map(x -> x.serialize()).collect(Collectors.toList()));
@@ -205,13 +205,13 @@ public class Projection extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     distinct = fromResult.getProperty("distinct");
     if (fromResult.getProperty("items") != null) {
       items = new ArrayList<>();
 
-      List<OResult> ser = fromResult.getProperty("items");
-      for (OResult x : ser) {
+      List<Result> ser = fromResult.getProperty("items");
+      for (Result x : ser) {
         ProjectionItem item = new ProjectionItem(-1);
         item.deserialize(x);
         items.add(item);

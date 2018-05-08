@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -15,28 +15,28 @@ public class EmptyDataGeneratorStep extends AbstractExecutionStep {
   int size;
   int served = 0;
 
-  public EmptyDataGeneratorStep(int size, OCommandContext ctx, boolean profilingEnabled) {
+  public EmptyDataGeneratorStep(int size, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.size = size;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return served < size;
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
 
           if (served < size) {
             served++;
-            OResultInternal result = new OResultInternal();
+            ResultInternal result = new ResultInternal();
             ctx.setVariable("$current", result);
             return result;
           }
@@ -54,7 +54,7 @@ public class EmptyDataGeneratorStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -72,7 +72,7 @@ public class EmptyDataGeneratorStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ GENERATE " + size + " EMPTY " + (size == 1 ? "RECORD" : "RECORDS");
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";

@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
@@ -15,31 +15,31 @@ public class SaveElementStep extends AbstractExecutionStep {
 
   private final Identifier cluster;
 
-  public SaveElementStep(OCommandContext ctx, Identifier cluster, boolean profilingEnabled) {
+  public SaveElementStep(CommandContext ctx, Identifier cluster, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.cluster = cluster;
   }
 
-  public SaveElementStep(OCommandContext ctx, boolean profilingEnabled) {
+  public SaveElementStep(CommandContext ctx, boolean profilingEnabled) {
     this(ctx, null, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
+      public Result next() {
+        Result result = upstream.next();
         if (result.isElement()) {
-          final PDocument doc = result.getElement().orElse(null);
+          final Document doc = result.getElement().orElse(null);
 
-          final PModifiableDocument modifiableDoc = (PModifiableDocument) doc.modify();
+          final ModifiableDocument modifiableDoc = (ModifiableDocument) doc.modify();
           if (cluster == null)
             modifiableDoc.save();
           else
@@ -54,7 +54,7 @@ public class SaveElementStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -67,7 +67,7 @@ public class SaveElementStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ SAVE RECORD");

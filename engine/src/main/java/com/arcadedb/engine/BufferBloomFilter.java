@@ -1,13 +1,13 @@
 package com.arcadedb.engine;
 
-import com.arcadedb.database.PBinary;
+import com.arcadedb.database.Binary;
 
 public class BufferBloomFilter {
-  private final PBinary buffer;
-  private final int     hashSeed;
-  private final int     capacity;
+  private final Binary buffer;
+  private final int    hashSeed;
+  private final int    capacity;
 
-  public BufferBloomFilter(final PBinary buffer, final int slots, final int hashSeed) {
+  public BufferBloomFilter(final Binary buffer, final int slots, final int hashSeed) {
     if (slots % 8 > 0)
       throw new IllegalArgumentException("Slots must be a multiplier of 8");
     this.buffer = buffer;

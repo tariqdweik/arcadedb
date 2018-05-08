@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.AggregationContext;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +42,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     }
   }
 
-  public Object execute(PRecord iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Record iCurrentRecord, CommandContext ctx) {
     if (functionCall != null) {
       return functionCall.execute(iCurrentRecord, ctx);
     }
@@ -55,7 +55,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     throw new UnsupportedOperationException();
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     if (functionCall != null) {
       return functionCall.execute(iCurrentRecord, ctx);
     }
@@ -75,7 +75,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     return false;
   }
 
-  public long estimateIndexedFunction(FromClause target, OCommandContext context, BinaryCompareOperator operator, Object right) {
+  public long estimateIndexedFunction(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (functionCall != null) {
       return functionCall.estimateIndexedFunction(target, context, operator, right);
     }
@@ -83,7 +83,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     return -1;
   }
 
-  public Iterable<PRecord> executeIndexedFunction(FromClause target, OCommandContext context,
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (functionCall != null) {
       return functionCall.executeIndexedFunction(target, context, operator, right);
@@ -100,7 +100,7 @@ public class LevelZeroIdentifier extends SimpleNode {
    * @param right
    * @return true if current expression is an indexed funciton AND that function can also be executed without using the index, false otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right) {
     if (this.functionCall == null) {
       return false;
@@ -116,7 +116,7 @@ public class LevelZeroIdentifier extends SimpleNode {
    * @param right
    * @return true if current expression involves an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right){
     if (this.functionCall == null) {
       return false;
@@ -132,7 +132,7 @@ public class LevelZeroIdentifier extends SimpleNode {
    * @param context the execution context
    * @return true if current expression is an indexed function AND the function has also to be executed after the index search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right){
     if (this.functionCall == null) {
       return false;
@@ -149,7 +149,7 @@ public class LevelZeroIdentifier extends SimpleNode {
 
   public Expression getExpandContent() {
     if (functionCall.getParams().size() != 1) {
-      throw new PCommandExecutionException("Invalid expand expression: " + functionCall.toString());
+      throw new CommandExecutionException("Invalid expand expression: " + functionCall.toString());
     }
     return functionCall.getParams().get(0);
   }
@@ -213,14 +213,14 @@ public class LevelZeroIdentifier extends SimpleNode {
     }
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     if (isAggregate()) {
       LevelZeroIdentifier result = new LevelZeroIdentifier(-1);
       if (functionCall != null) {
         return functionCall.getAggregationContext(ctx);
       }
     }
-    throw new PCommandExecutionException("cannot aggregate on " + toString());
+    throw new CommandExecutionException("cannot aggregate on " + toString());
   }
 
   public LevelZeroIdentifier copy() {
@@ -282,8 +282,8 @@ public class LevelZeroIdentifier extends SimpleNode {
     return collection;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (functionCall != null) {
       result.setProperty("functionCall", functionCall.serialize());
     }
@@ -294,7 +294,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("functionCall") != null) {
       functionCall = new FunctionCall(-1);
       functionCall.deserialize(fromResult.getProperty("functionCall"));

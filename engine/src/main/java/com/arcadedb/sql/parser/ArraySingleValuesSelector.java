@@ -2,13 +2,13 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OMultiValue;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.MultiValue;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,19 +43,19 @@ public class ArraySingleValuesSelector extends SimpleNode {
     }
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, Object iResult, CommandContext ctx) {
     List<Object> result = new ArrayList<Object>();
     for (ArraySelector item : items) {
       java.lang.Integer index = item.getValue(iCurrentRecord, iResult, ctx);
       if (this.items.size() == 1) {
-        return OMultiValue.getValue(iResult, index);
+        return MultiValue.getValue(iResult, index);
       }
-      result.add(OMultiValue.getValue(iResult, index));
+      result.add(MultiValue.getValue(iResult, index));
     }
     return result;
   }
 
-  public Object execute(OResult iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, Object iResult, CommandContext ctx) {
     List<Object> result = new ArrayList<Object>();
     for (ArraySelector item : items) {
       Object index = item.getValue(iCurrentRecord, iResult, ctx);
@@ -64,12 +64,12 @@ public class ArraySingleValuesSelector extends SimpleNode {
       }
 
       if (index instanceof Integer) {
-        result.add(OMultiValue.getValue(iResult, ((Integer) index).intValue()));
+        result.add(MultiValue.getValue(iResult, ((Integer) index).intValue()));
       } else {
         if (iResult instanceof Map) {
           result.add(((Map) iResult).get(index));
-        } else if (iResult instanceof PDocument && index instanceof String) {
-          result.add(((PDocument) iResult).get((String) index));
+        } else if (iResult instanceof Document && index instanceof String) {
+          result.add(((Document) iResult).get((String) index));
         } else {
           result.add(null);
         }
@@ -135,7 +135,7 @@ public class ArraySingleValuesSelector extends SimpleNode {
     return false;
   }
 
-  public void setValue(OResult currentRecord, Object target, Object value, OCommandContext ctx) {
+  public void setValue(Result currentRecord, Object target, Object value, CommandContext ctx) {
     if (items != null) {
       for (ArraySelector item : items) {
         item.setValue(currentRecord, target, value, ctx);
@@ -143,7 +143,7 @@ public class ArraySingleValuesSelector extends SimpleNode {
     }
   }
 
-  public void applyRemove(Object currentValue, OResultInternal originalRecord, OCommandContext ctx) {
+  public void applyRemove(Object currentValue, ResultInternal originalRecord, CommandContext ctx) {
     if (currentValue == null) {
       return;
     }
@@ -169,7 +169,7 @@ public class ArraySingleValuesSelector extends SimpleNode {
         }
       }
     } else {
-      throw new PCommandExecutionException(
+      throw new CommandExecutionException(
           "Trying to remove elements from " + currentValue + " (" + currentValue.getClass().getSimpleName() + ")");
     }
 
@@ -189,20 +189,20 @@ public class ArraySingleValuesSelector extends SimpleNode {
     }
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (items != null) {
       result.setProperty("items", items.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
 
     if (fromResult.getProperty("items") != null) {
-      List<OResult> ser = fromResult.getProperty("items");
+      List<Result> ser = fromResult.getProperty("items");
       items = new ArrayList<>();
-      for (OResult r : ser) {
+      for (Result r : ser) {
         ArraySelector exp = new ArraySelector(-1);
         exp.deserialize(r);
         items.add(exp);

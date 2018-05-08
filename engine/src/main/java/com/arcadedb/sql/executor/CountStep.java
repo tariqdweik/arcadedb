@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 /**
  * Counts the records from the previous steps.
@@ -19,25 +19,25 @@ public class CountStep extends AbstractExecutionStep {
    * @param ctx the query context
    * @param profilingEnabled true to enable the profiling of the execution (for SQL PROFILE)
    */
-  public CountStep(OCommandContext ctx, boolean profilingEnabled) {
+  public CountStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (executed) {
-      return new OInternalResultSet();
+      return new InternalResultSet();
     }
-    OResultInternal resultRecord = new OResultInternal();
+    ResultInternal resultRecord = new ResultInternal();
     executed = true;
     long count = 0;
     while (true) {
-      OResultSet prevResult = getPrev().get().syncPull(ctx, nRecords);
+      ResultSet prevResult = getPrev().get().syncPull(ctx, nRecords);
 
       if (!prevResult.hasNext()) {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          OInternalResultSet result = new OInternalResultSet();
+          InternalResultSet result = new InternalResultSet();
           resultRecord.setProperty("count", count);
           result.add(resultRecord);
           return result;
@@ -56,7 +56,7 @@ public class CountStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ COUNT");

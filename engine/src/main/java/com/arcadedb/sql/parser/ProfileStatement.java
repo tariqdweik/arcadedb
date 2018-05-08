@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.HashMap;
@@ -28,8 +28,8 @@ public class ProfileStatement extends Statement {
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -41,49 +41,49 @@ public class ProfileStatement extends Statement {
     }
     ctx.setInputParameters(params);
 
-    OExecutionPlan executionPlan = statement.createExecutionPlan(ctx, true);
-    if(executionPlan instanceof OUpdateExecutionPlan){
-      ((OUpdateExecutionPlan) executionPlan).executeInternal();
+    ExecutionPlan executionPlan = statement.createExecutionPlan(ctx, true);
+    if(executionPlan instanceof UpdateExecutionPlan){
+      ((UpdateExecutionPlan) executionPlan).executeInternal();
     }
 
-    OLocalResultSet rs = new OLocalResultSet((OInternalExecutionPlan) executionPlan);
+    LocalResultSet rs = new LocalResultSet((InternalExecutionPlan) executionPlan);
 
     while (rs.hasNext()) {
       rs.next();
     }
 
-    OExplainResultSet result = new OExplainResultSet(
-        rs.getExecutionPlan().orElseThrow(() -> new PCommandExecutionException("Cannot profile command: " + statement)));
+    ExplainResultSet result = new ExplainResultSet(
+        rs.getExecutionPlan().orElseThrow(() -> new CommandExecutionException("Cannot profile command: " + statement)));
     rs.close();
     return result;
 
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Map args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Map args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(args);
 
-    OExecutionPlan executionPlan = statement.createExecutionPlan(ctx, true);
+    ExecutionPlan executionPlan = statement.createExecutionPlan(ctx, true);
 
-    OLocalResultSet rs = new OLocalResultSet((OInternalExecutionPlan) executionPlan);
+    LocalResultSet rs = new LocalResultSet((InternalExecutionPlan) executionPlan);
 
     while (rs.hasNext()) {
       rs.next();
     }
 
-    OExplainResultSet result = new OExplainResultSet(
-        rs.getExecutionPlan().orElseThrow(() -> new PCommandExecutionException("Cannot profile command: " + statement)));
+    ExplainResultSet result = new ExplainResultSet(
+        rs.getExecutionPlan().orElseThrow(() -> new CommandExecutionException("Cannot profile command: " + statement)));
     rs.close();
     return result;
   }
 
   @Override
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean profile) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean profile) {
     return statement.createExecutionPlan(ctx, profile);
   }
 

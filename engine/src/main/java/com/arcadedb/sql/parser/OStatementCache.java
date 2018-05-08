@@ -1,8 +1,8 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandSQLParsingException;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandSQLParsingException;
+import com.arcadedb.utility.LogManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -53,7 +53,7 @@ public class OStatementCache {
    *
    * @return a statement executor from the cache
    */
-  public static Statement get(String statement, PDatabase db) {
+  public static Statement get(String statement, Database db) {
 //    if (db == null) {
       return parse(statement, db);
 //    }
@@ -69,9 +69,9 @@ public class OStatementCache {
    *
    * @return the corresponding executor
    *
-   * @throws PCommandSQLParsingException if the input parameter is not a valid SQL statement
+   * @throws CommandSQLParsingException if the input parameter is not a valid SQL statement
    */
-  protected static Statement parse(String statement, PDatabase db) throws PCommandSQLParsingException {
+  protected static Statement parse(String statement, Database db) throws CommandSQLParsingException {
     try {
 
       InputStream is;
@@ -84,7 +84,7 @@ public class OStatementCache {
           is = new ByteArrayInputStream(statement.getBytes("UTF-8"));
 //          is = new ByteArrayInputStream(statement.getBytes(db.getStorage().getConfiguration().getCharset()));
         } catch (UnsupportedEncodingException e2) {
-          PLogManager.instance()
+          LogManager.instance()
               .warn(null, "Unsupported charset for database " + db);
           is = new ByteArrayInputStream(statement.getBytes());
         }
@@ -98,7 +98,7 @@ public class OStatementCache {
 //          osql = new SqlParser(is, db.getStorage().getConfiguration().getCharset());
           osql = new SqlParser(is, "UTF-8");
         } catch (UnsupportedEncodingException e2) {
-          PLogManager.instance()
+          LogManager.instance()
               .warn(null, "Unsupported charset for database " + db );
           osql = new SqlParser(is);
         }
@@ -116,11 +116,11 @@ public class OStatementCache {
   }
 
   protected static void throwParsingException(ParseException e, String statement) {
-    throw new PCommandSQLParsingException(statement, e);
+    throw new CommandSQLParsingException(statement, e);
   }
 
   protected static void throwParsingException(TokenMgrError e, String statement) {
-    throw new PCommandSQLParsingException(statement, e);
+    throw new CommandSQLParsingException(statement, e);
   }
 
   public void clear() {

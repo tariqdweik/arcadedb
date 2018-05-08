@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
@@ -21,7 +21,7 @@ public class TruncateClusterStatement extends ODDLStatement {
     super(p, id);
   }
 
-  @Override public OResultSet executeDDL(OCommandContext ctx) {
+  @Override public ResultSet executeDDL(CommandContext ctx) {
 //    ODatabaseDocumentAbstract database = (ODatabaseDocumentAbstract) ctx.getDatabase();
 //    OInternalResultSet rs = new OInternalResultSet();
 //

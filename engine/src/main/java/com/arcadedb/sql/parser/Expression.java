@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.List;
@@ -52,7 +52,7 @@ public class Expression extends SimpleNode {
     return visitor.visit(this, data);
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, CommandContext ctx) {
     if (isNull) {
       return null;
     }
@@ -78,7 +78,7 @@ public class Expression extends SimpleNode {
     //from here it's old stuff, only for the old executor
     if (value instanceof Rid) {
       Rid v = (Rid) value;
-      return new PRID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
+      return new RID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
     } else if (value instanceof MathExpression) {
       return ((MathExpression) value).execute(iCurrentRecord, ctx);
     } else if (value instanceof ArrayConcatExpression) {
@@ -94,7 +94,7 @@ public class Expression extends SimpleNode {
     return value;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     if (isNull) {
       return null;
     }
@@ -120,7 +120,7 @@ public class Expression extends SimpleNode {
     //from here it's old stuff, only for the old executor
     if (value instanceof Rid) {
       Rid v = (Rid) value;
-      return new PRID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
+      return new RID(ctx.getDatabase(), v.cluster.getValue().intValue(), v.position.getValue().longValue());
     } else if (value instanceof MathExpression) {
       return ((MathExpression) value).execute(iCurrentRecord, ctx);
     } else if (value instanceof ArrayConcatExpression) {
@@ -278,14 +278,14 @@ public class Expression extends SimpleNode {
     return builder.toString();
   }
 
-  public long estimateIndexedFunction(FromClause target, OCommandContext context, BinaryCompareOperator operator, Object right) {
+  public long estimateIndexedFunction(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (mathExpression != null) {
       return mathExpression.estimateIndexedFunction(target, context, operator, right);
     }
     return -1;
   }
 
-  public Iterable<PRecord> executeIndexedFunction(FromClause target, OCommandContext context,
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (mathExpression != null) {
       return mathExpression.executeIndexedFunction(target, context, operator, right);
@@ -304,7 +304,7 @@ public class Expression extends SimpleNode {
    * @return true if current expression is an indexed funciton AND that function can also be executed without using the index, false
    * otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right) {
     if (mathExpression != null) {
       return mathExpression.canExecuteIndexedFunctionWithoutIndex(target, context, operator, right);
@@ -322,7 +322,7 @@ public class Expression extends SimpleNode {
    *
    * @return true if current expression involves an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context,
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (mathExpression != null) {
       return mathExpression.allowsIndexedFunctionExecutionOnTarget(target, context, operator, right);
@@ -341,7 +341,7 @@ public class Expression extends SimpleNode {
    * @return true if current expression involves an indexed function AND the function has also to be executed after the index
    * search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context,
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (mathExpression != null) {
       return mathExpression.executeIndexedFunctionAfterIndexSearch(target, context, operator, right);
@@ -418,13 +418,13 @@ public class Expression extends SimpleNode {
     }
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     if (mathExpression != null) {
       return mathExpression.getAggregationContext(ctx);
     } else if (arrayConcatExpression != null) {
       return arrayConcatExpression.getAggregationContext(ctx);
     } else {
-      throw new PCommandExecutionException("Cannot aggregate on " + toString());
+      throw new CommandExecutionException("Cannot aggregate on " + toString());
     }
   }
 
@@ -554,11 +554,11 @@ public class Expression extends SimpleNode {
     return null;
   }
 
-  public void applyRemove(OResultInternal result, OCommandContext ctx) {
+  public void applyRemove(ResultInternal result, CommandContext ctx) {
     if (mathExpression != null) {
       mathExpression.applyRemove(result, ctx);
     } else {
-      throw new PCommandExecutionException("Cannot apply REMOVE " + toString());
+      throw new CommandExecutionException("Cannot apply REMOVE " + toString());
     }
   }
 
@@ -577,8 +577,8 @@ public class Expression extends SimpleNode {
     this.arrayConcatExpression = arrayConcatExpression;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("singleQuotes", singleQuotes);
     result.setProperty("doubleQuotes", doubleQuotes);
     result.setProperty("isNull", isNull);
@@ -599,7 +599,7 @@ public class Expression extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     singleQuotes = fromResult.getProperty("singleQuotes");
     doubleQuotes = fromResult.getProperty("doubleQuotes");
     isNull = fromResult.getProperty("isNull");
@@ -622,7 +622,7 @@ public class Expression extends SimpleNode {
     booleanValue = fromResult.getProperty("booleanValue");
   }
 
-  public boolean isDefinedFor(OResult currentRecord) {
+  public boolean isDefinedFor(Result currentRecord) {
     if (mathExpression != null) {
       return mathExpression.isDefinedFor(currentRecord);
     } else {
@@ -630,7 +630,7 @@ public class Expression extends SimpleNode {
     }
   }
 
-  public boolean isDefinedFor(PRecord currentRecord) {
+  public boolean isDefinedFor(Record currentRecord) {
     if (mathExpression != null) {
       return mathExpression.isDefinedFor(currentRecord);
     } else {
@@ -638,7 +638,7 @@ public class Expression extends SimpleNode {
     }
   }
 
-  public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
+  public OCollate getCollate(Result currentRecord, CommandContext ctx) {
     if (mathExpression != null) {
       return mathExpression.getCollate(currentRecord, ctx);
     }

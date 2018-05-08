@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.*;
@@ -43,7 +43,7 @@ public class ArrayConcatExpression extends SimpleNode {
     }
 
     if (right == null) {
-      if (OMultiValue.isMultiValue(left)) {
+      if (MultiValue.isMultiValue(left)) {
         return left;
       } else {
         return Collections.singletonList(left);
@@ -51,7 +51,7 @@ public class ArrayConcatExpression extends SimpleNode {
     }
 
     if (left == null) {
-      if (OMultiValue.isMultiValue(right)) {
+      if (MultiValue.isMultiValue(right)) {
         return right;
       } else {
         return Collections.singletonList(right);
@@ -59,8 +59,8 @@ public class ArrayConcatExpression extends SimpleNode {
     }
 
     List<Object> result = new ArrayList<>();
-    if (OMultiValue.isMultiValue(left)) {
-      Iterator<Object> leftIter = OMultiValue.getMultiValueIterator(left);
+    if (MultiValue.isMultiValue(left)) {
+      Iterator<Object> leftIter = MultiValue.getMultiValueIterator(left);
       while (leftIter.hasNext()) {
         result.add(leftIter.next());
       }
@@ -68,8 +68,8 @@ public class ArrayConcatExpression extends SimpleNode {
       result.add(left);
     }
 
-    if (OMultiValue.isMultiValue(right)) {
-      Iterator<Object> rigthIter = OMultiValue.getMultiValueIterator(right);
+    if (MultiValue.isMultiValue(right)) {
+      Iterator<Object> rigthIter = MultiValue.getMultiValueIterator(right);
       while (rigthIter.hasNext()) {
         result.add(rigthIter.next());
       }
@@ -80,7 +80,7 @@ public class ArrayConcatExpression extends SimpleNode {
     return result;
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, CommandContext ctx) {
     Object result = childExpressions.get(0).execute(iCurrentRecord, ctx);
     for (int i = 1; i < childExpressions.size(); i++) {
       result = apply(result, childExpressions.get(i).execute(iCurrentRecord, ctx));
@@ -88,7 +88,7 @@ public class ArrayConcatExpression extends SimpleNode {
     return result;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     Object result = childExpressions.get(0).execute(iCurrentRecord, ctx);
     for (int i = 1; i < childExpressions.size(); i++) {
       result = apply(result, childExpressions.get(i).execute(iCurrentRecord, ctx));
@@ -134,13 +134,13 @@ public class ArrayConcatExpression extends SimpleNode {
 
   public SimpleNode splitForAggregation(AggregateProjectionSplit aggregateProj) {
     if (isAggregate()) {
-      throw new PCommandExecutionException("Cannot use aggregate functions in array concatenation");
+      throw new CommandExecutionException("Cannot use aggregate functions in array concatenation");
     } else {
       return this;
     }
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     throw new UnsupportedOperationException("array concatenation expressions do not allow plain aggregation");
   }
 
@@ -205,20 +205,20 @@ public class ArrayConcatExpression extends SimpleNode {
     return childExpressions != null ? childExpressions.hashCode() : 0;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (childExpressions != null) {
       result.setProperty("childExpressions", childExpressions.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
 
     if (fromResult.getProperty("childExpressions") != null) {
-      List<OResult> ser = fromResult.getProperty("childExpressions");
+      List<Result> ser = fromResult.getProperty("childExpressions");
       childExpressions = new ArrayList<>();
-      for (OResult r : ser) {
+      for (Result r : ser) {
         ArrayConcatExpressionElement exp = new ArrayConcatExpressionElement(-1);
         exp.deserialize(r);
         childExpressions.add(exp);

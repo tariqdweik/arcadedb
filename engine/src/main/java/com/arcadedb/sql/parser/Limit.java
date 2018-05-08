@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 
@@ -42,7 +42,7 @@ public class Limit extends SimpleNode {
     }
   }
 
-  public int getValue(OCommandContext ctx) {
+  public int getValue(CommandContext ctx) {
     if (num != null) {
       return num.getValue().intValue();
     }
@@ -51,10 +51,10 @@ public class Limit extends SimpleNode {
       if (paramValue instanceof Number) {
         return ((Number) paramValue).intValue();
       } else {
-        throw new PCommandExecutionException("Invalid value for LIMIT: " + paramValue);
+        throw new CommandExecutionException("Invalid value for LIMIT: " + paramValue);
       }
     }
-    throw new PCommandExecutionException("No value for LIMIT");
+    throw new CommandExecutionException("No value for LIMIT");
   }
 
   public Limit copy() {
@@ -88,8 +88,8 @@ public class Limit extends SimpleNode {
     return result;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (num != null) {
       result.setProperty("num", num.serialize());
     }
@@ -99,7 +99,7 @@ public class Limit extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("num") != null) {
       num = new PInteger(-1);
       num.deserialize(fromResult.getProperty("num"));

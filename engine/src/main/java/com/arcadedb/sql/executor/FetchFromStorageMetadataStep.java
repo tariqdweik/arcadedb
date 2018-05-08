@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -16,21 +16,21 @@ public class FetchFromStorageMetadataStep extends AbstractExecutionStep {
   boolean served = false;
   long    cost   = 0;
 
-  public FetchFromStorageMetadataStep(OCommandContext ctx, boolean profilingEnabled) {
+  public FetchFromStorageMetadataStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return !served;
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         throw new UnsupportedOperationException();
 //        try {
@@ -70,7 +70,7 @@ public class FetchFromStorageMetadataStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -139,7 +139,7 @@ public class FetchFromStorageMetadataStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ FETCH STORAGE METADATA";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";

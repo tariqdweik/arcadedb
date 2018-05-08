@@ -1,13 +1,13 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 /**
  * Created by luigidellaquila on 22/07/16.
  */
 public class SubQueryStep extends AbstractExecutionStep {
-  private final OInternalExecutionPlan subExecuitonPlan;
-  private final OCommandContext        childCtx;
+  private final InternalExecutionPlan subExecuitonPlan;
+  private final CommandContext        childCtx;
 
   /**
    * executes a sub-query
@@ -16,7 +16,7 @@ public class SubQueryStep extends AbstractExecutionStep {
    * @param ctx              the context of the current execution plan
    * @param subCtx           the context of the subquery execution plan
    */
-  public SubQueryStep(OInternalExecutionPlan subExecutionPlan, OCommandContext ctx, OCommandContext subCtx,
+  public SubQueryStep(InternalExecutionPlan subExecutionPlan, CommandContext ctx, CommandContext subCtx,
       boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.subExecuitonPlan = subExecutionPlan;
@@ -24,7 +24,7 @@ public class SubQueryStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return subExecuitonPlan.fetchNext(nRecords);
   }
@@ -32,7 +32,7 @@ public class SubQueryStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     StringBuilder builder = new StringBuilder();
-    String ind = OExecutionStepInternal.getIndent(depth, indent);
+    String ind = ExecutionStepInternal.getIndent(depth, indent);
     builder.append(ind);
     builder.append("+ FETCH FROM SUBQUERY \n");
     builder.append(subExecuitonPlan.prettyPrint(depth + 1, indent));

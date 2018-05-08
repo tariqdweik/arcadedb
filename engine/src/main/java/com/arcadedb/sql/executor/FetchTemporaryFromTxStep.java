@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -20,22 +20,22 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
 
   //runtime
 
-  private Iterator<PDocument> txEntries;
-  private Object              order;
+  private Iterator<Document> txEntries;
+  private Object             order;
 
   private long cost = 0;
 
-  public FetchTemporaryFromTxStep(OCommandContext ctx, String className, boolean profilingEnabled) {
+  public FetchTemporaryFromTxStep(CommandContext ctx, String className, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.className = className;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init();
 
-    return new OResultSet() {
+    return new ResultSet() {
 
       int currentElement = 0;
 
@@ -51,7 +51,7 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           if (txEntries == null) {
@@ -63,10 +63,10 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
           if (!txEntries.hasNext()) {
             throw new IllegalStateException();
           }
-          PDocument record = txEntries.next();
+          Document record = txEntries.next();
 
           currentElement++;
-          OResultInternal result = new OResultInternal();
+          ResultInternal result = new ResultInternal();
           result.setElement(record);
           ctx.setVariable("$current", result);
           return result;
@@ -83,7 +83,7 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -183,7 +183,7 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ FETCH NEW RECORDS FROM CURRENT TRANSACTION SCOPE (if any)");
@@ -194,19 +194,19 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     result.setProperty("className", className);
     return result;
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       className = fromResult.getProperty("className");
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 
@@ -216,7 +216,7 @@ public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     FetchTemporaryFromTxStep result = new FetchTemporaryFromTxStep(ctx, this.className, profilingEnabled);
     return result;
   }

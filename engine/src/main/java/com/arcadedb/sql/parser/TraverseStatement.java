@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ public class TraverseStatement extends Statement {
     super(p, id);
   }
 
-  public void validate() throws PCommandSQLParsingException {
+  public void validate() throws CommandSQLParsingException {
 //    for(OTraverseProjectionItem projection:projections) {
 //
 //        projection. validate();
@@ -55,8 +55,8 @@ public class TraverseStatement extends Statement {
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -68,25 +68,25 @@ public class TraverseStatement extends Statement {
       }
     }
     ctx.setInputParameters(params);
-    OInternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    return new OLocalResultSet(executionPlan);
+    return new LocalResultSet(executionPlan);
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
-    OInternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    return new OLocalResultSet(executionPlan);
+    return new LocalResultSet(executionPlan);
   }
 
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
     OTraverseExecutionPlanner planner = new OTraverseExecutionPlanner(this);
     return planner.createExecutionPlan(ctx, enableProfiling);
   }

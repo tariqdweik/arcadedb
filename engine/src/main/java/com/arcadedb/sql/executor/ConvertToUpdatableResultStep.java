@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -20,23 +20,23 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  OResultSet prevResult = null;
+  ResultSet prevResult = null;
 
-  public ConvertToUpdatableResultStep(OCommandContext ctx, boolean profilingEnabled) {
+  public ConvertToUpdatableResultStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (!prev.isPresent()) {
       throw new IllegalStateException("filter step requires a previous step");
     }
-    OExecutionStepInternal prevStep = prev.get();
+    ExecutionStepInternal prevStep = prev.get();
 
-    return new OResultSet() {
+    return new ResultSet() {
       public boolean finished = false;
 
-      OResult nextItem = null;
+      Result nextItem = null;
       int fetched = 0;
 
       private void fetchNextItem() {
@@ -62,13 +62,13 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
           nextItem = prevResult.next();
           long begin = profilingEnabled ? System.nanoTime() : 0;
           try {
-            if (nextItem instanceof OUpdatableResult) {
+            if (nextItem instanceof UpdatableResult) {
               break;
             }
             if (nextItem.isElement()) {
-              PRecord element = nextItem.getElement().get();
-              if (element != null && element instanceof PModifiableDocument) {
-                nextItem = new OUpdatableResult((PModifiableDocument) element);
+              Record element = nextItem.getElement().get();
+              if (element != null && element instanceof ModifiableDocument) {
+                nextItem = new UpdatableResult((ModifiableDocument) element);
               }
               break;
             }
@@ -97,7 +97,7 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (fetched >= nRecords || finished) {
           throw new IllegalStateException();
         }
@@ -107,7 +107,7 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
         if (nextItem == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextItem;
+        Result result = nextItem;
         nextItem = null;
         fetched++;
         ctx.setVariable("$current", result);
@@ -120,7 +120,7 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -134,7 +134,7 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result = OExecutionStepInternal.getIndent(depth, indent) + "+ CONVERT TO UPDATABLE ITEM";
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ CONVERT TO UPDATABLE ITEM";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }

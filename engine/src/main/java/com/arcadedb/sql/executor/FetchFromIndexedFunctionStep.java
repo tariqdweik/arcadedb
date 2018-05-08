@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.BinaryCondition;
 import com.arcadedb.sql.parser.FromClause;
 
@@ -20,9 +20,9 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
 
   private long cost = 0;
   //runtime
-  Iterator<PRecord> fullResult = null;
+  Iterator<Record> fullResult = null;
 
-  public FetchFromIndexedFunctionStep(BinaryCondition functionCondition, FromClause queryTarget, OCommandContext ctx,
+  public FetchFromIndexedFunctionStep(BinaryCondition functionCondition, FromClause queryTarget, CommandContext ctx,
       boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.functionCondition = functionCondition;
@@ -30,11 +30,11 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init(ctx);
 
-    return new OResultSet() {
+    return new ResultSet() {
       int localCount = 0;
 
       @Override
@@ -49,7 +49,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           if (localCount >= nRecords) {
@@ -58,8 +58,8 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
           if (!fullResult.hasNext()) {
             throw new IllegalStateException();
           }
-          OResultInternal result = new OResultInternal();
-          result.setElement((PDocument) fullResult.next().getRecord());
+          ResultInternal result = new ResultInternal();
+          result.setElement((Document) fullResult.next().getRecord());
           localCount++;
           return result;
         } finally {
@@ -75,7 +75,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -86,7 +86,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
     };
   }
 
-  private void init(OCommandContext ctx) {
+  private void init(CommandContext ctx) {
     if (fullResult == null) {
       long begin = profilingEnabled ? System.nanoTime() : 0;
       try {
@@ -102,7 +102,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     String result =
-        OExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEXED FUNCTION " + functionCondition.toString();
+        ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEXED FUNCTION " + functionCondition.toString();
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }
@@ -120,8 +120,8 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     result.setProperty("functionCondition", this.functionCondition.serialize());
     result.setProperty("queryTarget", this.queryTarget.serialize());
 
@@ -129,9 +129,9 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       functionCondition = new BinaryCondition(-1);
       functionCondition.deserialize(fromResult.getProperty("functionCondition "));
 
@@ -139,7 +139,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
       queryTarget.deserialize(fromResult.getProperty("functionCondition "));
 
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 }

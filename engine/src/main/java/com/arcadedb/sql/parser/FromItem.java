@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -265,8 +265,8 @@ public class FromItem extends SimpleNode {
     this.inputParams = inputParams;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (rids != null) {
       result.setProperty("rids", rids.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
@@ -304,11 +304,11 @@ public class FromItem extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("rids") != null) {
-      List<OResult> serRids = fromResult.getProperty("rids");
+      List<Result> serRids = fromResult.getProperty("rids");
       rids = new ArrayList<>();
-      for (OResult res : serRids) {
+      for (Result res : serRids) {
         Rid rid = new Rid(-1);
         rid.deserialize(res);
         rids.add(rid);
@@ -316,9 +316,9 @@ public class FromItem extends SimpleNode {
     }
 
     if (fromResult.getProperty("inputParams") != null) {
-      List<OResult> ser = fromResult.getProperty("inputParams");
+      List<Result> ser = fromResult.getProperty("inputParams");
       inputParams = new ArrayList<>();
-      for (OResult res : ser) {
+      for (Result res : ser) {
         inputParams.add(InputParameter.deserializeFromOResult(res));
       }
     }

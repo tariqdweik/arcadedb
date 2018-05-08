@@ -1,11 +1,11 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRID;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.RID;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.sql.parser.Batch;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -27,14 +27,14 @@ public class CreateEdgesStep extends AbstractExecutionStep {
   //operation stuff
   Iterator fromIter;
   Iterator toIterator;
-  PVertex  currentFrom;
-  List toList = new ArrayList<>();
+  Vertex   currentFrom;
+  List     toList = new ArrayList<>();
   private boolean inited = false;
 
   private long cost = 0;
 
   public CreateEdgesStep(Identifier targetClass, Identifier targetClusterName, Identifier fromAlias, Identifier toAlias,
-      Number wait, Number retry, Batch batch, OCommandContext ctx, boolean profilingEnabled) {
+      Number wait, Number retry, Batch batch, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.targetClass = targetClass;
     this.targetCluster = targetClusterName;
@@ -47,10 +47,10 @@ public class CreateEdgesStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init();
-    return new OResultSet() {
+    return new ResultSet() {
       int currentBatch = 0;
 
       @Override
@@ -59,7 +59,7 @@ public class CreateEdgesStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (!toIterator.hasNext()) {
           toIterator = toList.iterator();
           if (!fromIter.hasNext()) {
@@ -70,23 +70,23 @@ public class CreateEdgesStep extends AbstractExecutionStep {
         if (currentBatch < nRecords && (toIterator.hasNext() || (toList.size() > 0 && fromIter.hasNext()))) {
 
           if (currentFrom == null) {
-            throw new PCommandExecutionException("Invalid FROM vertex for edge");
+            throw new CommandExecutionException("Invalid FROM vertex for edge");
           }
 
           Object obj = toIterator.next();
           long begin = profilingEnabled ? System.nanoTime() : 0;
           try {
-            PVertex currentTo = asVertex(obj);
+            Vertex currentTo = asVertex(obj);
             if (currentTo == null) {
-              throw new PCommandExecutionException("Invalid TO vertex for edge");
+              throw new CommandExecutionException("Invalid TO vertex for edge");
             }
 
-            PEdge edge = currentFrom.newEdge(targetClass.getStringValue(), currentTo, true);
+            Edge edge = currentFrom.newEdge(targetClass.getStringValue(), currentTo, true);
 
-            if (!(edge instanceof PModifiableDocument)) {
+            if (!(edge instanceof ModifiableDocument)) {
               throw new UnsupportedOperationException("How to make an unmodifiable edge modifiable?");
             }
-            OUpdatableResult result = new OUpdatableResult((PModifiableDocument) edge);
+            UpdatableResult result = new UpdatableResult((ModifiableDocument) edge);
             result.setElement(edge);
             currentBatch++;
             return result;
@@ -106,7 +106,7 @@ public class CreateEdgesStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -139,9 +139,9 @@ public class CreateEdgesStep extends AbstractExecutionStep {
     }
 
     fromIter = (Iterator) fromValues;
-    if (fromIter instanceof OResultSet) {
+    if (fromIter instanceof ResultSet) {
       try {
-        ((OResultSet) fromIter).reset();
+        ((ResultSet) fromIter).reset();
       } catch (Exception ignore) {
       }
     }
@@ -153,9 +153,9 @@ public class CreateEdgesStep extends AbstractExecutionStep {
     }
 
     toIterator = toList.iterator();
-    if (toIter instanceof OResultSet) {
+    if (toIter instanceof ResultSet) {
       try {
-        ((OResultSet) toIter).reset();
+        ((ResultSet) toIter).reset();
       } catch (Exception ignore) {
       }
     }
@@ -164,22 +164,22 @@ public class CreateEdgesStep extends AbstractExecutionStep {
 
   }
 
-  private PVertex asVertex(Object currentFrom) {
-    if (currentFrom instanceof PRID) {
-      currentFrom = ((PRID) currentFrom).getRecord();
+  private Vertex asVertex(Object currentFrom) {
+    if (currentFrom instanceof RID) {
+      currentFrom = ((RID) currentFrom).getRecord();
     }
-    if (currentFrom instanceof OResult && ((OResult) currentFrom).isVertex()) {
-      return (PVertex) ((OResult) currentFrom).getElement().get();
+    if (currentFrom instanceof Result && ((Result) currentFrom).isVertex()) {
+      return (Vertex) ((Result) currentFrom).getElement().get();
     }
-    if (currentFrom instanceof PVertex) {
-      return (PVertex) currentFrom;
+    if (currentFrom instanceof Vertex) {
+      return (Vertex) currentFrom;
     }
     return null;
   }
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ FOR EACH x in " + fromAlias + "\n";
     result += spaces + "    FOR EACH y in " + toAlias + "\n";
     result += spaces + "       CREATE EDGE " + targetClass + " FROM x TO y";

@@ -1,10 +1,10 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.exception.PDatabaseIsReadOnlyException;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +28,7 @@ public class TransactionTypeTest {
 
   @AfterEach
   public void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
@@ -40,12 +40,12 @@ public class TransactionTypeTest {
   public void testScan() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME, true, new PDocumentCallback() {
+      db.scanType(TYPE_NAME, true, new DocumentCallback() {
         @Override
-        public boolean onRecord(final PDocument record) {
+        public boolean onRecord(final Document record) {
           Assertions.assertNotNull(record);
 
           Set<String> prop = new HashSet<String>();
@@ -75,13 +75,13 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByRID() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME,true,  new PDocumentCallback() {
+      db.scanType(TYPE_NAME,true,  new DocumentCallback() {
         @Override
-        public boolean onRecord(final PDocument record) {
-          final PDocument record2 = (PDocument) db.lookupByRID(record.getIdentity(), false);
+        public boolean onRecord(final Document record) {
+          final Document record2 = (Document) db.lookupByRID(record.getIdentity(), false);
           Assertions.assertNotNull(record2);
           Assertions.assertEquals(record, record2);
 
@@ -112,15 +112,15 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByKey() {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       for (int i = 0; i < TOT; i++) {
-        final PCursor<PRID> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
+        final Cursor<RID> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.size());
 
-        final PDocument record2 = (PDocument) result.next().getRecord();
+        final Document record2 = (Document) result.next().getRecord();
 
         Assertions.assertEquals(i, record2.get("id"));
 
@@ -149,12 +149,12 @@ public class TransactionTypeTest {
   public void testDeleteAllRecordsReuseSpace() throws IOException {
     final AtomicInteger total = new AtomicInteger();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
-      db.scanType(TYPE_NAME,true,  new PDocumentCallback() {
+      db.scanType(TYPE_NAME,true,  new DocumentCallback() {
         @Override
-        public boolean onRecord(final PDocument record) {
+        public boolean onRecord(final Document record) {
           db.deleteRecord(record);
           total.incrementAndGet();
           return true;
@@ -171,7 +171,7 @@ public class TransactionTypeTest {
 
     populate();
 
-    final PDatabase db2 = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db2.begin();
     try {
       Assertions.assertEquals(TOT, db2.countType(TYPE_NAME, true));
@@ -184,13 +184,13 @@ public class TransactionTypeTest {
   @Test
   public void testDeleteFail() {
 
-    Assertions.assertThrows(PDatabaseIsReadOnlyException.class, () -> {
-      final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    Assertions.assertThrows(DatabaseIsReadOnlyException.class, () -> {
+      final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
       db.begin();
       try {
-        db.scanType(TYPE_NAME,true,  new PDocumentCallback() {
+        db.scanType(TYPE_NAME,true,  new DocumentCallback() {
           @Override
-          public boolean onRecord(final PDocument record) {
+          public boolean onRecord(final Document record) {
             db.deleteRecord(record);
             return true;
           }
@@ -205,11 +205,11 @@ public class TransactionTypeTest {
   }
 
   private void populate(final int total) {
-    PFileUtils.deleteRecursively(new File(DB_PATH));
+    FileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase database) {
+      public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
         final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
@@ -217,7 +217,7 @@ public class TransactionTypeTest {
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" });
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument(TYPE_NAME);
+          final ModifiableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

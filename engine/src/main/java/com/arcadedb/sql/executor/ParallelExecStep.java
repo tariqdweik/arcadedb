@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.List;
 import java.util.Map;
@@ -11,20 +11,20 @@ import java.util.stream.Collectors;
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
 public class ParallelExecStep extends AbstractExecutionStep {
-  private final List<OInternalExecutionPlan> subExecutionPlans;
+  private final List<InternalExecutionPlan> subExecutionPlans;
 
   int current = 0;
-  private OResultSet currentResultSet = null;
+  private ResultSet currentResultSet = null;
 
-  public ParallelExecStep(List<OInternalExecutionPlan> subExecuitonPlans, OCommandContext ctx, boolean profilingEnabled) {
+  public ParallelExecStep(List<InternalExecutionPlan> subExecuitonPlans, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.subExecutionPlans = subExecuitonPlans;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       int localCount = 0;
 
       @Override
@@ -42,7 +42,7 @@ public class ParallelExecStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (localCount >= nRecords) {
           throw new IllegalStateException();
         }
@@ -62,7 +62,7 @@ public class ParallelExecStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -73,7 +73,7 @@ public class ParallelExecStep extends AbstractExecutionStep {
     };
   }
 
-  void fetchNext(OCommandContext ctx, int nRecords) {
+  void fetchNext(CommandContext ctx, int nRecords) {
     do {
       if (current >= subExecutionPlans.size()) {
         currentResultSet = null;
@@ -89,12 +89,12 @@ public class ParallelExecStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     String result = "";
-    String ind = OExecutionStepInternal.getIndent(depth, indent);
+    String ind = ExecutionStepInternal.getIndent(depth, indent);
 
     int[] blockSizes = new int[subExecutionPlans.size()];
 
     for (int i = 0; i < subExecutionPlans.size(); i++) {
-      OInternalExecutionPlan currentPlan = subExecutionPlans.get(subExecutionPlans.size() - 1 - i);
+      InternalExecutionPlan currentPlan = subExecutionPlans.get(subExecutionPlans.size() - 1 - i);
       String partial = currentPlan.prettyPrint(0, indent);
 
       String[] partials = partial.split("\n");
@@ -176,7 +176,7 @@ public class ParallelExecStep extends AbstractExecutionStep {
   }
 
   private String head(int depth, int indent, int nItems) {
-    String ind = OExecutionStepInternal.getIndent(depth, indent);
+    String ind = ExecutionStepInternal.getIndent(depth, indent);
     return ind + "+ PARALLEL";
   }
 
@@ -200,13 +200,13 @@ public class ParallelExecStep extends AbstractExecutionStep {
     return "| " + p;
   }
 
-  public List<OExecutionPlan> getSubExecutionPlans() {
+  public List<ExecutionPlan> getSubExecutionPlans() {
     return (List) subExecutionPlans;
   }
 
   @Override
   public boolean canBeCached() {
-    for (OInternalExecutionPlan plan : subExecutionPlans) {
+    for (InternalExecutionPlan plan : subExecutionPlans) {
       if (!plan.canBeCached()) {
         return false;
       }
@@ -215,7 +215,7 @@ public class ParallelExecStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     return new ParallelExecStep(subExecutionPlans.stream().map(x -> x.copy(ctx)).collect(Collectors.toList()), ctx,
         profilingEnabled);
   }

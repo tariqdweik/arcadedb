@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,19 +41,19 @@ public class MultiMatchPathItem extends MatchPathItem {
     }
   }
 
-  protected Iterable<PIdentifiable> traversePatternEdge(MatchStatement.MatchContext matchContext, PIdentifiable startingPoint,
-      OCommandContext iCommandContext) {
-    Set<PIdentifiable> result = new HashSet<PIdentifiable>();
+  protected Iterable<Identifiable> traversePatternEdge(MatchStatement.MatchContext matchContext, Identifiable startingPoint,
+      CommandContext iCommandContext) {
+    Set<Identifiable> result = new HashSet<Identifiable>();
     result.add(startingPoint);
     for (MatchPathItem subItem : items) {
-      Set<PIdentifiable> startingPoints = result;
-      result = new HashSet<PIdentifiable>();
-      for (PIdentifiable sp : startingPoints) {
-        Iterable<PIdentifiable> subResult = subItem.executeTraversal(matchContext, iCommandContext, sp, 0);
+      Set<Identifiable> startingPoints = result;
+      result = new HashSet<Identifiable>();
+      for (Identifiable sp : startingPoints) {
+        Iterable<Identifiable> subResult = subItem.executeTraversal(matchContext, iCommandContext, sp, 0);
         if (subResult instanceof Collection) {
           result.addAll((Collection) subResult);
         } else {
-          for (PIdentifiable id : subResult) {
+          for (Identifiable id : subResult) {
             result.add(id);
           }
         }

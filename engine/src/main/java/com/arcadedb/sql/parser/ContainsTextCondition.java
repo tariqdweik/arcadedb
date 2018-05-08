@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ public class ContainsTextCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
     Object leftValue = left.execute(currentRecord, ctx);
     if (leftValue == null || !(leftValue instanceof String)) {
       return false;
@@ -46,7 +46,7 @@ public class ContainsTextCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Result currentRecord, CommandContext ctx) {
     Object leftValue = left.execute(currentRecord, ctx);
     if (leftValue == null || !(leftValue instanceof String)) {
       return false;

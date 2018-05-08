@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Identifier;
-import com.arcadedb.sql.parser.OLocalResultSet;
+import com.arcadedb.sql.parser.LocalResultSet;
 import com.arcadedb.sql.parser.Statement;
 
 import java.util.ArrayList;
@@ -19,19 +19,19 @@ public class LetQueryStep extends AbstractExecutionStep {
   private final Identifier varName;
   private final Statement  query;
 
-  public LetQueryStep(Identifier varName, Statement query, OCommandContext ctx, boolean profilingEnabled) {
+  public LetQueryStep(Identifier varName, Statement query, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varName = varName;
     this.query = query;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (!getPrev().isPresent()) {
-      throw new PCommandExecutionException("Cannot execute a local LET on a query without a target");
+      throw new CommandExecutionException("Cannot execute a local LET on a query without a target");
     }
-    return new OResultSet() {
-      OResultSet source = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
+      ResultSet source = getPrev().get().syncPull(ctx, nRecords);
 
       @Override
       public boolean hasNext() {
@@ -39,24 +39,24 @@ public class LetQueryStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
-        OResultInternal result = (OResultInternal) source.next();
+      public Result next() {
+        ResultInternal result = (ResultInternal) source.next();
         if (result != null) {
           calculate(result, ctx);
         }
         return result;
       }
 
-      private void calculate(OResultInternal result, OCommandContext ctx) {
-        OBasicCommandContext subCtx = new OBasicCommandContext();
+      private void calculate(ResultInternal result, CommandContext ctx) {
+        BasicCommandContext subCtx = new BasicCommandContext();
         subCtx.setDatabase(ctx.getDatabase());
         subCtx.setParentWithoutOverridingChild(ctx);
-        OInternalExecutionPlan subExecutionPlan = query.createExecutionPlan(subCtx, profilingEnabled);
-        result.setMetadata(varName.getStringValue(), toList(new OLocalResultSet(subExecutionPlan)));
+        InternalExecutionPlan subExecutionPlan = query.createExecutionPlan(subCtx, profilingEnabled);
+        result.setMetadata(varName.getStringValue(), toList(new LocalResultSet(subExecutionPlan)));
       }
 
-      private List<OResult> toList(OLocalResultSet oLocalResultSet) {
-        List<OResult> result = new ArrayList<>();
+      private List<Result> toList(LocalResultSet oLocalResultSet) {
+        List<Result> result = new ArrayList<>();
         while (oLocalResultSet.hasNext()) {
           result.add(oLocalResultSet.next());
         }
@@ -70,7 +70,7 @@ public class LetQueryStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -83,7 +83,7 @@ public class LetQueryStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ LET (for each record)\n" + spaces + "  " + varName + " = (" + query + ")";
   }
 }

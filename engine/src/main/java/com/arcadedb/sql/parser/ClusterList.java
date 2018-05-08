@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,19 +79,19 @@ public class ClusterList extends SimpleNode {
     return clusters != null ? clusters.hashCode() : 0;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (clusters != null) {
       result.setProperty("clusters", clusters.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("clusters") != null) {
       clusters = new ArrayList<>();
-      List<OResult> ser = fromResult.getProperty("clusters");
-      for (OResult item : ser) {
+      List<Result> ser = fromResult.getProperty("clusters");
+      for (Result item : ser) {
         Identifier id = new Identifier(-1);
         id.deserialize(item);
         clusters.add(id);

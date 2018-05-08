@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ public class PCollection extends SimpleNode {
     this.expressions.add(exp);
   }
 
-  public Object execute(PRecord iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Record iCurrentRecord, CommandContext ctx) {
     List<Object> result = new ArrayList<Object>();
     for (Expression exp : expressions) {
       result.add(exp.execute(iCurrentRecord, ctx));
@@ -57,7 +57,7 @@ public class PCollection extends SimpleNode {
     return result;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     List<Object> result = new ArrayList<Object>();
     for (Expression exp : expressions) {
       result.add(exp.execute(iCurrentRecord, ctx));
@@ -90,7 +90,7 @@ public class PCollection extends SimpleNode {
         if (exp.isAggregate() || exp.isEarlyCalculated()) {
           result.expressions.add(exp.splitForAggregation(aggregateProj));
         } else {
-          throw new PCommandExecutionException("Cannot mix aggregate and non-aggregate operations in a collection: " + toString());
+          throw new CommandExecutionException("Cannot mix aggregate and non-aggregate operations in a collection: " + toString());
         }
       }
       return result;
@@ -145,19 +145,19 @@ public class PCollection extends SimpleNode {
     return false;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (expressions != null) {
       result.setProperty("expressions", expressions.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("expressions") != null) {
       expressions = new ArrayList<>();
-      List<OResult> ser = fromResult.getProperty("expressions");
-      for (OResult item : ser) {
+      List<Result> ser = fromResult.getProperty("expressions");
+      for (Result item : ser) {
         Expression exp = new Expression(-1);
         exp.deserialize(item);
         expressions.add(exp);

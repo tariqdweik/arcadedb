@@ -1,7 +1,7 @@
 package com.arcadedb.sql.function;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OSQLFunction;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.SQLFunction;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -19,7 +19,7 @@ public abstract class OSQLFunctionFactoryTemplate implements OSQLFunctionFactory
     functions = new HashMap<>();
   }
 
-  protected void register(final OSQLFunction function) {
+  protected void register(final SQLFunction function) {
     functions.put(function.getName().toLowerCase(Locale.ENGLISH), function);
   }
 
@@ -38,21 +38,21 @@ public abstract class OSQLFunctionFactoryTemplate implements OSQLFunctionFactory
   }
 
   @Override
-  public OSQLFunction createFunction(final String name) throws PCommandExecutionException {
+  public SQLFunction createFunction(final String name) throws CommandExecutionException {
     final Object obj = functions.get(name);
 
     if (obj == null)
-      throw new PCommandExecutionException("Unknown function name :" + name);
+      throw new CommandExecutionException("Unknown function name :" + name);
 
-    if (obj instanceof OSQLFunction)
-      return (OSQLFunction) obj;
+    if (obj instanceof SQLFunction)
+      return (SQLFunction) obj;
     else {
       // it's a class
       final Class<?> clazz = (Class<?>) obj;
       try {
-        return (OSQLFunction) clazz.newInstance();
+        return (SQLFunction) clazz.newInstance();
       } catch (Exception e) {
-        throw new PCommandExecutionException("Error in creation of function " + name
+        throw new CommandExecutionException("Error in creation of function " + name
             + "(). Probably there is not an empty constructor or the constructor generates errors", e);
 
       }

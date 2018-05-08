@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PCommandSQLParsingException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.Map;
@@ -35,7 +35,7 @@ public class Statement extends SimpleNode {
     throw new UnsupportedOperationException("missing implementation in " + getClass().getSimpleName());
   }
 
-  public void validate() throws PCommandSQLParsingException {
+  public void validate() throws CommandSQLParsingException {
 
   }
 
@@ -50,19 +50,19 @@ public class Statement extends SimpleNode {
 //    throw new UnsupportedOperationException("Unsupported command: " + getClass().getSimpleName());
 //  }
 
-  public OResultSet execute(PDatabase db, Object[] args) {
+  public ResultSet execute(Database db, Object[] args) {
     return execute(db, args, null);
   }
 
-  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentContext) {
+  public ResultSet execute(Database db, Object[] args, CommandContext parentContext) {
     throw new UnsupportedOperationException();
   }
 
-  public OResultSet execute(PDatabase db, Map args) {
+  public ResultSet execute(Database db, Map args) {
     return execute(db, args, null);
   }
 
-  public OResultSet execute(PDatabase db, Map args, OCommandContext parentContext) {
+  public ResultSet execute(Database db, Map args, CommandContext parentContext) {
     throw new UnsupportedOperationException();
   }
 
@@ -73,7 +73,7 @@ public class Statement extends SimpleNode {
    *
    * @return an execution plan
    */
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx) {
     return createExecutionPlan(ctx, false);
   }
 
@@ -85,7 +85,7 @@ public class Statement extends SimpleNode {
    *
    * @return an execution plan
    */
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean profile) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean profile) {
     throw new UnsupportedOperationException();
   }
 
@@ -101,23 +101,23 @@ public class Statement extends SimpleNode {
     return false;
   }
 
-  public static Statement deserializeFromOResult(OResult doc) {
+  public static Statement deserializeFromOResult(Result doc) {
     try {
       Statement result = (Statement) Class.forName(doc.getProperty("__class")).getConstructor(Integer.class).newInstance(-1);
       result.deserialize(doc);
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
     return null;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("__class", getClass().getName());
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     throw new UnsupportedOperationException();
   }
 

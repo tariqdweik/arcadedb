@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
@@ -24,26 +24,26 @@ public class LetStatement extends SimpleExecStatement {
   }
 
   @Override
-  public OResultSet executeSimple(OCommandContext ctx) {
+  public ResultSet executeSimple(CommandContext ctx) {
     Object result;
     if (expression != null) {
-      result = expression.execute((OResult) null, ctx);
+      result = expression.execute((Result) null, ctx);
     } else {
       Map<Object, Object> params = ctx.getInputParameters();
       result = statement.execute(ctx.getDatabase(), params, ctx);
     }
-    if (result instanceof OResultSet) {
-      OInternalResultSet rs = new OInternalResultSet();
-      ((OResultSet) result).stream().forEach(x -> rs.add(x));
-      rs.setPlan(((OResultSet) result).getExecutionPlan().orElse(null));
-      ((OResultSet) result).close();
+    if (result instanceof ResultSet) {
+      InternalResultSet rs = new InternalResultSet();
+      ((ResultSet) result).stream().forEach(x -> rs.add(x));
+      rs.setPlan(((ResultSet) result).getExecutionPlan().orElse(null));
+      ((ResultSet) result).close();
       result = rs;
     }
 
     if (ctx != null && ctx.getParent() != null) {
       ctx.getParent().setVariable(name.getStringValue(), result);
     }
-    return new OInternalResultSet();
+    return new InternalResultSet();
   }
 
   @Override

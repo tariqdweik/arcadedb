@@ -1,13 +1,13 @@
 package com.arcadedb;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,13 +28,13 @@ public class IndexTest {
 
   @AfterAll
   public static void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void testScanIndexAscending() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -67,7 +67,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexDescending() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -100,7 +100,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexAscendingPartial() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -133,7 +133,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexDescendingPartial() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -166,7 +166,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexRange() throws IOException {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       int total = 0;
@@ -198,11 +198,11 @@ public class IndexTest {
   }
 
   private static void populate(final int total) {
-    PFileUtils.deleteRecursively(new File(DB_PATH));
+    FileUtils.deleteRecursively(new File(DB_PATH));
 
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase database) {
+      public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
         final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
@@ -210,7 +210,7 @@ public class IndexTest {
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 20000);
 
         for (int i = 0; i < total; ++i) {
-          final PModifiableDocument v = database.newDocument(TYPE_NAME);
+          final ModifiableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

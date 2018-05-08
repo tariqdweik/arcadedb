@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Projection;
 
 import java.util.Map;
@@ -14,30 +14,30 @@ public class ProjectionCalculationStep extends AbstractExecutionStep {
 
   protected long cost = 0;
 
-  public ProjectionCalculationStep(Projection projection, OCommandContext ctx, boolean profilingEnabled) {
+  public ProjectionCalculationStep(Projection projection, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.projection = projection;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (!prev.isPresent()) {
       throw new IllegalStateException("Cannot calculate projections without a previous source");
     }
 
-    OResultSet parentRs = prev.get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+    ResultSet parentRs = prev.get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return parentRs.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult item = parentRs.next();
+      public Result next() {
+        Result item = parentRs.next();
         Object oldCurrent = ctx.getVariable("$current");
         ctx.setVariable("$current", item);
-        OResult result = calculateProjections(ctx, item);
+        Result result = calculateProjections(ctx, item);
         ctx.setVariable("$current", oldCurrent);
         return result;
       }
@@ -48,7 +48,7 @@ public class ProjectionCalculationStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -59,7 +59,7 @@ public class ProjectionCalculationStep extends AbstractExecutionStep {
     };
   }
 
-  private OResult calculateProjections(OCommandContext ctx, OResult next) {
+  private Result calculateProjections(CommandContext ctx, Result next) {
     long begin = profilingEnabled ? System.nanoTime() : 0;
     try {
       return this.projection.calculateSingle(ctx, next);
@@ -72,7 +72,7 @@ public class ProjectionCalculationStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
 
     String result = spaces + "+ CALCULATE PROJECTIONS";
     if (profilingEnabled) {
@@ -93,7 +93,7 @@ public class ProjectionCalculationStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     return new ProjectionCalculationStep(projection.copy(), ctx, profilingEnabled);
   }
 }

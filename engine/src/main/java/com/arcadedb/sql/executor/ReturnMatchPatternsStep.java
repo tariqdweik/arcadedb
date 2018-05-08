@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -10,21 +10,21 @@ import java.util.Optional;
  */
 public class ReturnMatchPatternsStep extends AbstractExecutionStep {
 
-  public ReturnMatchPatternsStep(OCommandContext context, boolean profilingEnabled) {
+  public ReturnMatchPatternsStep(CommandContext context, boolean profilingEnabled) {
     super(context, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         return filter(upstream.next());
       }
 
@@ -34,7 +34,7 @@ public class ReturnMatchPatternsStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -45,15 +45,15 @@ public class ReturnMatchPatternsStep extends AbstractExecutionStep {
     };
   }
 
-  private OResult filter(OResult next) {
+  private Result filter(Result next) {
     next.getPropertyNames().stream().filter(s -> s.startsWith(OMatchExecutionPlanner.DEFAULT_ALIAS_PREFIX))
-        .forEach(((OResultInternal) next)::removeProperty);
+        .forEach(((ResultInternal) next)::removeProperty);
     return next;
   }
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ RETURN $patterns";
   }
 }

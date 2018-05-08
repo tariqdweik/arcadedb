@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Timeout;
 
 /**
@@ -11,13 +11,13 @@ public class TimeoutStep extends AbstractExecutionStep {
 
   private Long expiryTime;
 
-  public TimeoutStep(Timeout timeout, OCommandContext ctx, boolean profilingEnabled) {
+  public TimeoutStep(Timeout timeout, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.timeout = timeout;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (this.expiryTime == null) {
       this.expiryTime = System.currentTimeMillis() + timeout.getVal().longValue();
     }
@@ -27,13 +27,13 @@ public class TimeoutStep extends AbstractExecutionStep {
     return getPrev().get().syncPull(ctx, nRecords);//TODO do it more granular
   }
 
-  private OResultSet fail() {
+  private ResultSet fail() {
     this.timedOut = true;
     sendTimeout();
     if (Timeout.RETURN.equals(this.timeout.getFailureStrategy())) {
-      return new OInternalResultSet();
+      return new InternalResultSet();
     } else {
-      throw new PTimeoutException("Timeout expired");
+      throw new TimeoutException("Timeout expired");
     }
   }
 

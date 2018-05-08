@@ -1,14 +1,14 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
-import com.arcadedb.database.async.PErrorCallback;
-import com.arcadedb.engine.PDatabaseChecker;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.exception.PConcurrentModificationException;
-import com.arcadedb.graph.PModifiableVertex;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.DatabaseChecker;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.exception.ConcurrentModificationException;
+import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.PEdgeType;
 import com.arcadedb.schema.PVertexType;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import performance.PerformanceTest;
@@ -34,23 +34,23 @@ public class MVCCTest {
 
       populateDatabase();
 
-      PLogManager.instance().info(this, "Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
+      LogManager.instance().info(this, "Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
 
-      final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+      final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
 
       database.asynch().setParallelLevel(PARALLEL);
 
       final AtomicLong otherErrors = new AtomicLong();
       final AtomicLong mvccErrors = new AtomicLong();
-      database.asynch().onError(new PErrorCallback() {
+      database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
 
-          if (exception instanceof PConcurrentModificationException) {
+          if (exception instanceof ConcurrentModificationException) {
             mvccErrors.incrementAndGet();
           } else {
             otherErrors.incrementAndGet();
-            PLogManager.instance().error(this, "UNEXPECTED ERROR: " + exception, exception);
+            LogManager.instance().error(this, "UNEXPECTED ERROR: " + exception, exception);
           }
         }
       });
@@ -61,31 +61,31 @@ public class MVCCTest {
         final Random rnd = new Random();
 
         for (long txId = 0; txId < TOT_TX; ++txId) {
-          database.asynch().transaction(new PDatabase.PTransaction() {
+          database.asynch().transaction(new Database.PTransaction() {
             @Override
-            public void execute(PDatabase database) {
+            public void execute(Database database) {
               Assertions.assertTrue(database.getTransaction().getModifiedPages() == 0);
               Assertions.assertNull(database.getTransaction().getPageCounter(1));
 
-              final PModifiableDocument tx = database.newVertex("Transaction");
+              final ModifiableDocument tx = database.newVertex("Transaction");
               tx.set("uuid", UUID.randomUUID().toString());
               tx.set("date", new Date());
               tx.set("amount", rnd.nextInt(TOT_ACCOUNT));
               tx.save();
 
-              final PCursor<PRID> accounts = database.lookupByKey("Account", new String[] { "id" }, new Object[] { 0 });
+              final Cursor<RID> accounts = database.lookupByKey("Account", new String[] { "id" }, new Object[] { 0 });
 
               Assertions.assertTrue(accounts.hasNext());
 
-              PRID account = accounts.next();
+              RID account = accounts.next();
 
-              ((PModifiableVertex) tx).newEdge("PurchasedBy", account, true, "date", new Date());
+              ((ModifiableVertex) tx).newEdge("PurchasedBy", account, true, "date", new Date());
             }
           }, 0);
         }
 
       } finally {
-        new PDatabaseChecker().check(database);
+        new DatabaseChecker().check(database);
 
         database.close();
 
@@ -96,14 +96,14 @@ public class MVCCTest {
             "Insertion finished in " + (System.currentTimeMillis() - begin) + "ms, managed mvcc exceptions " + mvccErrors.get());
       }
 
-      PLogManager.instance().flush();
+      LogManager.instance().flush();
       System.out.flush();
       System.out.println("----------------");
     }
   }
 
   private void populateDatabase() {
-    final PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
 
     long begin = System.currentTimeMillis();
 
@@ -112,15 +112,15 @@ public class MVCCTest {
       database.asynch().setTransactionUseWAL(true);
       database.asynch().setTransactionSync(true);
       database.asynch().setCommitEvery(20000);
-      database.asynch().onError(new PErrorCallback() {
+      database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
-          PLogManager.instance().error(this, "ERROR: " + exception, exception);
+          LogManager.instance().error(this, "ERROR: " + exception, exception);
         }
       });
 
       for (long row = 0; row < TOT_ACCOUNT; ++row) {
-        final PModifiableDocument record = database.newVertex("Account");
+        final ModifiableDocument record = database.newVertex("Account");
         record.set("id", row);
         record.set("name", "Luca" + row);
         record.set("surname", "Skywalker" + row);
@@ -130,12 +130,12 @@ public class MVCCTest {
 
     } finally {
       database.close();
-      PLogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 
   private void createSchema() {
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType("Account")) {
         database.begin();

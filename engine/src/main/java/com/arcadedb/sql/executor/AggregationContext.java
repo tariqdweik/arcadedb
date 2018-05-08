@@ -8,5 +8,5 @@ public interface AggregationContext {
 
   public Object getFinalValue();
 
-  void apply(OResult next, OCommandContext ctx);
+  void apply(Result next, CommandContext ctx);
 }

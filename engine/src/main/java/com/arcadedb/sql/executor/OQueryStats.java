@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +16,7 @@ public class OQueryStats {
 
   public Map<String, Long> stats = new ConcurrentHashMap<>();
 
-  public static OQueryStats get(PDatabase db) {
+  public static OQueryStats get(Database db) {
     return new OQueryStats();//TODO
   }
 

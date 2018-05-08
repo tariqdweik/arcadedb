@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.parser.*;
 
 import java.util.*;
@@ -11,11 +11,11 @@ import java.util.*;
  * Created by luigidellaquila on 14/10/16.
  */
 public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
-  public MatchMultiEdgeTraverser(OResult lastUpstreamRecord, EdgeTraversal edge) {
+  public MatchMultiEdgeTraverser(Result lastUpstreamRecord, EdgeTraversal edge) {
     super(lastUpstreamRecord, edge);
   }
 
-  protected Iterable<OResultInternal> traversePatternEdge(PIdentifiable startingPoint, OCommandContext iCommandContext) {
+  protected Iterable<ResultInternal> traversePatternEdge(Identifiable startingPoint, CommandContext iCommandContext) {
 
     Iterable possibleResults = null;
     //    if (this.edge.edge.item.getFilter() != null) {
@@ -31,14 +31,14 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     //    }
 
     MultiMatchPathItem item = (MultiMatchPathItem) this.item;
-    List<OResultInternal> result = new ArrayList<>();
+    List<ResultInternal> result = new ArrayList<>();
 
     List<Object> nextStep = new ArrayList<>();
     nextStep.add(startingPoint);
 
     Object oldCurrent = iCommandContext.getVariable("$current");
     for (MatchPathItem sub : item.getItems()) {
-      List<OResultInternal> rightSide = new ArrayList<>();
+      List<ResultInternal> rightSide = new ArrayList<>();
       for (Object o : nextStep) {
         WhereClause whileCond = sub.getFilter() == null ? null : sub.getFilter().getWhileCondition();
 
@@ -49,25 +49,25 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
 
         if (whileCond != null) {
           Object current = o;
-          if (current instanceof OResult) {
-            current = ((OResult) current).getElement().orElse(null);
+          if (current instanceof Result) {
+            current = ((Result) current).getElement().orElse(null);
           }
           MatchEdgeTraverser subtraverser = new MatchEdgeTraverser(null, sub);
-          subtraverser.executeTraversal(iCommandContext, sub, (PIdentifiable) current, 0, null).forEach(x -> rightSide.add(x));
+          subtraverser.executeTraversal(iCommandContext, sub, (Identifiable) current, 0, null).forEach(x -> rightSide.add(x));
 
         } else {
           iCommandContext.setVariable("$current", o);
           Object nextSteps = method.execute(o, possibleResults, iCommandContext);
           if (nextSteps instanceof Collection) {
             ((Collection) nextSteps).stream().map(x -> toOResultInternal(x)).filter(Objects::nonNull)
-                .forEach(i -> rightSide.add((OResultInternal) i));
-          } else if (nextSteps instanceof PDocument) {
-            rightSide.add(new OResultInternal((PDocument) nextSteps));
-          } else if (nextSteps instanceof OResultInternal) {
-            rightSide.add((OResultInternal) nextSteps);
+                .forEach(i -> rightSide.add((ResultInternal) i));
+          } else if (nextSteps instanceof Document) {
+            rightSide.add(new ResultInternal((Document) nextSteps));
+          } else if (nextSteps instanceof ResultInternal) {
+            rightSide.add((ResultInternal) nextSteps);
           } else if (nextSteps instanceof Iterable) {
             for (Object step : (Iterable) nextSteps) {
-              OResultInternal converted = toOResultInternal(step);
+              ResultInternal converted = toOResultInternal(step);
               if (converted != null) {
                 rightSide.add(converted);
               }
@@ -75,7 +75,7 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
           } else if (nextSteps instanceof Iterator) {
             Iterator iterator = (Iterator) nextSteps;
             while (iterator.hasNext()) {
-              OResultInternal converted = toOResultInternal(iterator.next());
+              ResultInternal converted = toOResultInternal(iterator.next());
               if (converted != null) {
                 rightSide.add(converted);
               }
@@ -92,13 +92,13 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
     return (Iterable) result;
   }
 
-  private OResultInternal toOResultInternal(Object x) {
-    if (x instanceof OResultInternal) {
-      return (OResultInternal) x;
+  private ResultInternal toOResultInternal(Object x) {
+    if (x instanceof ResultInternal) {
+      return (ResultInternal) x;
     }
-    if (x instanceof PDocument) {
-      return new OResultInternal((PDocument) x);
+    if (x instanceof Document) {
+      return new ResultInternal((Document) x);
     }
-    throw new PCommandExecutionException("Cannot execute traversal on " + x);
+    throw new CommandExecutionException("Cannot execute traversal on " + x);
   }
 }

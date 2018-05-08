@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.parser.ODDLStatement;
 
 import java.util.Collections;
@@ -9,14 +9,14 @@ import java.util.List;
 /**
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
-public class ODDLExecutionPlan implements OInternalExecutionPlan {
+public class ODDLExecutionPlan implements InternalExecutionPlan {
 
   private final ODDLStatement statement;
-  OCommandContext ctx;
+  CommandContext ctx;
 
   boolean executed = false;
 
-  public ODDLExecutionPlan(OCommandContext ctx, ODDLStatement stm) {
+  public ODDLExecutionPlan(CommandContext ctx, ODDLStatement stm) {
     this.ctx = ctx;
     this.statement = stm;
   }
@@ -27,11 +27,11 @@ public class ODDLExecutionPlan implements OInternalExecutionPlan {
   }
 
   @Override
-  public OResultSet fetchNext(int n) {
+  public ResultSet fetchNext(int n) {
     return null;
   }
 
-  public void reset(OCommandContext ctx) {
+  public void reset(CommandContext ctx) {
     executed = false;
   }
 
@@ -45,26 +45,26 @@ public class ODDLExecutionPlan implements OInternalExecutionPlan {
     return false;
   }
 
-  public OResultSet executeInternal(OBasicCommandContext ctx) throws PCommandExecutionException {
+  public ResultSet executeInternal(BasicCommandContext ctx) throws CommandExecutionException {
     if (executed) {
-      throw new PCommandExecutionException("Trying to execute a result-set twice. Please use reset()");
+      throw new CommandExecutionException("Trying to execute a result-set twice. Please use reset()");
     }
     executed = true;
-    OResultSet result = statement.executeDDL(this.ctx);
-    if (result instanceof OInternalResultSet) {
-      ((OInternalResultSet) result).plan = this;
+    ResultSet result = statement.executeDDL(this.ctx);
+    if (result instanceof InternalResultSet) {
+      ((InternalResultSet) result).plan = this;
     }
     return result;
   }
 
   @Override
-  public List<OExecutionStep> getSteps() {
+  public List<ExecutionStep> getSteps() {
     return Collections.emptyList();
   }
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ DDL\n");
@@ -74,8 +74,8 @@ public class ODDLExecutionPlan implements OInternalExecutionPlan {
   }
 
   @Override
-  public OResult toResult() {
-    OResultInternal result = new OResultInternal();
+  public Result toResult() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("type", "DDLExecutionPlan");
     result.setProperty(JAVA_TYPE, getClass().getName());
     result.setProperty("stmText", statement.toString());

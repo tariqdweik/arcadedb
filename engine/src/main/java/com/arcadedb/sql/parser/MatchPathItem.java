@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.*;
 
@@ -49,8 +49,8 @@ public class MatchPathItem extends SimpleNode {
     }
   }
 
-  public Iterable<PIdentifiable> executeTraversal(MatchStatement.MatchContext matchContext, OCommandContext iCommandContext,
-      PIdentifiable startingPoint, int depth) {
+  public Iterable<Identifiable> executeTraversal(MatchStatement.MatchContext matchContext, CommandContext iCommandContext,
+      Identifiable startingPoint, int depth) {
 
     WhereClause filter = null;
     WhereClause whileCondition = null;
@@ -64,17 +64,17 @@ public class MatchPathItem extends SimpleNode {
       oClass = iCommandContext.getDatabase().getSchema().getType(className);
     }
 
-    Set<PIdentifiable> result = new HashSet<PIdentifiable>();
+    Set<Identifiable> result = new HashSet<Identifiable>();
 
     if (whileCondition == null && maxDepth == null) {// in this case starting point is not returned and only one level depth is
       // evaluated
-      Iterable<PIdentifiable> queryResult = traversePatternEdge(matchContext, startingPoint, iCommandContext);
+      Iterable<Identifiable> queryResult = traversePatternEdge(matchContext, startingPoint, iCommandContext);
 
       if (this.filter == null || this.filter.getFilter() == null) {
         return queryResult;
       }
 
-      for (PIdentifiable origin : queryResult) {
+      for (Identifiable origin : queryResult) {
         Object previousMatch = iCommandContext.getVariable("$currentMatch");
         iCommandContext.setVariable("$currentMatch", origin);
         if ((oClass == null || matchesClass(origin, oClass)) && (filter == null || filter
@@ -95,15 +95,15 @@ public class MatchPathItem extends SimpleNode {
       if ((maxDepth == null || depth < maxDepth) && (whileCondition == null || whileCondition
           .matchesFilters(startingPoint, iCommandContext))) {
 
-        Iterable<PIdentifiable> queryResult = traversePatternEdge(matchContext, startingPoint, iCommandContext);
+        Iterable<Identifiable> queryResult = traversePatternEdge(matchContext, startingPoint, iCommandContext);
 
-        for (PIdentifiable origin : queryResult) {
+        for (Identifiable origin : queryResult) {
           // TODO consider break strategies (eg. re-traverse nodes)
-          Iterable<PIdentifiable> subResult = executeTraversal(matchContext, iCommandContext, origin, depth + 1);
+          Iterable<Identifiable> subResult = executeTraversal(matchContext, iCommandContext, origin, depth + 1);
           if (subResult instanceof java.util.Collection) {
-            result.addAll((java.util.Collection<? extends PIdentifiable>) subResult);
+            result.addAll((java.util.Collection<? extends Identifiable>) subResult);
           } else {
-            for (PIdentifiable i : subResult) {
+            for (Identifiable i : subResult) {
               result.add(i);
             }
           }
@@ -114,24 +114,24 @@ public class MatchPathItem extends SimpleNode {
     return result;
   }
 
-  private boolean matchesClass(PIdentifiable identifiable, PDocumentType oClass) {
+  private boolean matchesClass(Identifiable identifiable, PDocumentType oClass) {
     if (identifiable == null) {
       return false;
     }
-    PRecord record = identifiable.getRecord();
+    Record record = identifiable.getRecord();
     if (record == null) {
       return false;
     }
 
-    return ((PDocument) record).getType().equals(oClass);
+    return ((Document) record).getType().equals(oClass);
   }
 
-  protected Iterable<PIdentifiable> traversePatternEdge(MatchStatement.MatchContext matchContext, PIdentifiable startingPoint,
-      OCommandContext iCommandContext) {
+  protected Iterable<Identifiable> traversePatternEdge(MatchStatement.MatchContext matchContext, Identifiable startingPoint,
+      CommandContext iCommandContext) {
 
     Iterable possibleResults = null;
     if (filter != null) {
-      PIdentifiable matchedNode = matchContext.matched.get(filter.getAlias());
+      Identifiable matchedNode = matchContext.matched.get(filter.getAlias());
       if (matchedNode != null) {
         possibleResults = Collections.singleton(matchedNode);
       } else if (matchContext.matched.containsKey(filter.getAlias())) {
@@ -142,7 +142,7 @@ public class MatchPathItem extends SimpleNode {
     }
 
     Object qR = this.method.execute(startingPoint, possibleResults, iCommandContext);
-    return (qR instanceof Iterable && !(qR instanceof PRecord)) ? (Iterable) qR : Collections.singleton((PIdentifiable) qR);
+    return (qR instanceof Iterable && !(qR instanceof Record)) ? (Iterable) qR : Collections.singleton((Identifiable) qR);
   }
 
   @Override

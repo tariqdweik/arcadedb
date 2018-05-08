@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRID;
-import com.arcadedb.sql.executor.OBasicCommandContext;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
+import com.arcadedb.sql.executor.BasicCommandContext;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 
@@ -48,16 +48,16 @@ public class Rid extends SimpleNode {
     }
   }
 
-  public PRID toRecordId(OResult target, OCommandContext ctx) {
+  public RID toRecordId(Result target, CommandContext ctx) {
     if (legacy) {
-      return new PRID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
+      return new RID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
     } else {
       Object result = expression.execute(target, ctx);
       if (result == null) {
         return null;
       }
-      if (result instanceof PIdentifiable) {
-        return ((PIdentifiable) result).getIdentity();
+      if (result instanceof Identifiable) {
+        return ((Identifiable) result).getIdentity();
       }
       if (result instanceof String) {
         throw new UnsupportedOperationException();
@@ -66,16 +66,16 @@ public class Rid extends SimpleNode {
     }
   }
 
-  public PRID toRecordId(PIdentifiable target, OCommandContext ctx) {
+  public RID toRecordId(Identifiable target, CommandContext ctx) {
     if (legacy) {
-      return new PRID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
+      return new RID(ctx.getDatabase(), cluster.value.intValue(), position.value.longValue());
     } else {
       Object result = expression.execute(target, ctx);
       if (result == null) {
         return null;
       }
-      if (result instanceof PIdentifiable) {
-        return ((PIdentifiable) result).getIdentity();
+      if (result instanceof Identifiable) {
+        return ((Identifiable) result).getIdentity();
       }
       if (result instanceof String) {
         throw new UnsupportedOperationException();
@@ -136,7 +136,7 @@ public class Rid extends SimpleNode {
 
   public PInteger getCluster() {
     if (expression != null) {
-      PRID rid = toRecordId((OResult) null, new OBasicCommandContext());
+      RID rid = toRecordId((Result) null, new BasicCommandContext());
       if (rid == null) {
         PInteger result = new PInteger(-1);
         result.setValue(rid.getBucketId());
@@ -148,7 +148,7 @@ public class Rid extends SimpleNode {
 
   public PInteger getPosition() {
     if (expression != null) {
-      PRID rid = toRecordId((OResult) null, new OBasicCommandContext());
+      RID rid = toRecordId((Result) null, new BasicCommandContext());
       if (rid == null) {
         PInteger result = new PInteger(-1);
         result.setValue(rid.getPosition());
@@ -158,8 +158,8 @@ public class Rid extends SimpleNode {
     return position;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if(cluster!=null){
       result.setProperty("cluster", cluster.serialize());
     }
@@ -173,7 +173,7 @@ public class Rid extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if(fromResult.getProperty("cluster")!=null){
       cluster = new PInteger(-1);
       cluster.deserialize(fromResult.getProperty("cluster"));

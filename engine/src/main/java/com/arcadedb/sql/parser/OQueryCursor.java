@@ -1,7 +1,7 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -9,23 +9,23 @@ import java.util.NoSuchElementException;
 /**
  * Created by luigidellaquila on 02/10/15.
  */
-public class OQueryCursor implements Iterator<PIdentifiable> {
-  private int                     limit;
-  private int                     skip;
-  private WhereClause             filter;
-  private Iterator<PIdentifiable> iterator;
-  private OrderBy                 orderBy;
-  private OCommandContext         ctx;
+public class OQueryCursor implements Iterator<Identifiable> {
+  private int                    limit;
+  private int                    skip;
+  private WhereClause            filter;
+  private Iterator<Identifiable> iterator;
+  private OrderBy                orderBy;
+  private CommandContext         ctx;
 
-  private PIdentifiable           next         = null;
-  private long                    countFetched = 0;
+  private Identifiable next         = null;
+  private long         countFetched = 0;
 
   public OQueryCursor() {
 
   }
 
-  public OQueryCursor(Iterator<PIdentifiable> PIdentifiableIterator, WhereClause filter, OrderBy orderBy, int skip, int limit,
-      OCommandContext ctx) {
+  public OQueryCursor(Iterator<Identifiable> PIdentifiableIterator, WhereClause filter, OrderBy orderBy, int skip, int limit,
+      CommandContext ctx) {
     this.iterator = PIdentifiableIterator;
     this.filter = filter;
     this.skip = skip;
@@ -56,13 +56,13 @@ public class OQueryCursor implements Iterator<PIdentifiable> {
     countFetched++;
   }
 
-  private PIdentifiable getNextFromIterator() {
+  private Identifiable getNextFromIterator() {
     while (true) {
       if (iterator == null || !iterator.hasNext()) {
         return null;
       }
 
-      PIdentifiable result = iterator.next();
+      Identifiable result = iterator.next();
       if (filter==null || filter.matchesFilters(result, ctx)) {
         return result;
       }
@@ -77,8 +77,8 @@ public class OQueryCursor implements Iterator<PIdentifiable> {
     throw new UnsupportedOperationException("remove");
   }
 
-  public PIdentifiable next() {
-    PIdentifiable result = next;
+  public Identifiable next() {
+    Identifiable result = next;
     if (result == null) {
       throw new NoSuchElementException();
     }

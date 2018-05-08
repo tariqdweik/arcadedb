@@ -19,8 +19,8 @@
  */
 package com.arcadedb.security;
 
-import com.arcadedb.exception.PConfigurationException;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.utility.LogManager;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -47,7 +47,7 @@ public class OSecurityManager {
     try {
       md = MessageDigest.getInstance(HASH_ALGORITHM);
     } catch (NoSuchAlgorithmException e) {
-      PLogManager.instance().error(this, "Cannot use OSecurityManager", e);
+      LogManager.instance().error(this, "Cannot use OSecurityManager", e);
     }
   }
 
@@ -77,9 +77,9 @@ public class OSecurityManager {
       return md.digest(iInput.getBytes("UTF-8"));
     } catch (UnsupportedEncodingException e) {
       final String message = "The requested encoding is not supported: cannot execute security checks";
-      PLogManager.instance().error(this, message, e);
+      LogManager.instance().error(this, message, e);
 
-      throw new PConfigurationException(message, e);
+      throw new ConfigurationException(message, e);
     }
   }
 
@@ -107,7 +107,7 @@ public class OSecurityManager {
       // Downgrade it to PBKDF2_ALGORITHM.
       validAlgo = PBKDF2_ALGORITHM;
 
-      PLogManager.instance().debug(this, "The %s algorithm is not supported, downgrading to %s", iAlgorithm, validAlgo);
+      LogManager.instance().debug(this, "The %s algorithm is not supported, downgrading to %s", iAlgorithm, validAlgo);
     }
 
     return validAlgo;

@@ -1,13 +1,13 @@
 package performance;
 
-import com.arcadedb.database.PCursor;
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PRID;
-import com.arcadedb.database.async.PErrorCallback;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.graph.PModifiableVertex;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.database.Cursor;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.schema.PDocumentType;
 import org.junit.jupiter.api.Assertions;
 
@@ -25,7 +25,7 @@ public class PerformanceVertexIndexTest {
 
     long begin = System.currentTimeMillis();
 
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -45,7 +45,7 @@ public class PerformanceVertexIndexTest {
       database.asynch().setTransactionSync(true);
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(PARALLEL);
-      database.asynch().onError(new PErrorCallback() {
+      database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
           System.out.println("ERROR: " + exception);
@@ -55,7 +55,7 @@ public class PerformanceVertexIndexTest {
 
       long row = 0;
       for (; row < TOT; ++row) {
-        final PModifiableVertex record = database.newVertex(TYPE_NAME);
+        final ModifiableVertex record = database.newVertex(TYPE_NAME);
 
         record.set("id", row);
         record.set("name", "Luca" + row);
@@ -74,17 +74,17 @@ public class PerformanceVertexIndexTest {
 
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {
-        final PCursor<PRID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
+        final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
 
         if (records.size() > 1) {
-          for (PRID r : records)
+          for (RID r : records)
             System.out.println("FOUND " + r.getRecord());
         }
 
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
 
-        final PVertex record = (PVertex) records.next().getRecord();
+        final Vertex record = (Vertex) records.next().getRecord();
         Assertions.assertEquals(id, record.get("id"));
 
         if (id % 100000 == 0)

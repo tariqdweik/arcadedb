@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
 import com.arcadedb.sql.parser.MatchPathItem;
 import com.arcadedb.sql.parser.Rid;
 import com.arcadedb.sql.parser.WhereClause;
@@ -13,41 +13,41 @@ import java.util.*;
  * Created by luigidellaquila on 23/09/16.
  */
 public class MatchEdgeTraverser {
-  protected OResult       sourceRecord;
+  protected Result        sourceRecord;
   protected EdgeTraversal edge;
   protected MatchPathItem item;
 
-  Iterator<OResultInternal> downstream;
+  Iterator<ResultInternal> downstream;
 
-  public MatchEdgeTraverser(OResult lastUpstreamRecord, EdgeTraversal edge) {
+  public MatchEdgeTraverser(Result lastUpstreamRecord, EdgeTraversal edge) {
     this.sourceRecord = lastUpstreamRecord;
     this.edge = edge;
     this.item = edge.edge.item;
   }
 
-  public MatchEdgeTraverser(OResult lastUpstreamRecord, MatchPathItem item) {
+  public MatchEdgeTraverser(Result lastUpstreamRecord, MatchPathItem item) {
     this.sourceRecord = lastUpstreamRecord;
     this.item = item;
   }
 
-  public boolean hasNext(OCommandContext ctx) {
+  public boolean hasNext(CommandContext ctx) {
     init(ctx);
     return downstream.hasNext();
   }
 
-  public OResult next(OCommandContext ctx) {
+  public Result next(CommandContext ctx) {
     init(ctx);
     if (!downstream.hasNext()) {
       throw new IllegalStateException();
     }
     String endPointAlias = getEndpointAlias();
-    OResultInternal nextR = downstream.next();
-    PDocument nextElement = nextR.getElement().get();
+    ResultInternal nextR = downstream.next();
+    Document nextElement = nextR.getElement().get();
     Object prevValue = sourceRecord.getProperty(endPointAlias);
     if (prevValue != null && !equals(prevValue, nextElement)) {
       return null;
     }
-    OResultInternal result = new OResultInternal();
+    ResultInternal result = new ResultInternal();
     for (String prop : sourceRecord.getPropertyNames()) {
       result.setProperty(prop, sourceRecord.getProperty(prop));
     }
@@ -61,18 +61,18 @@ public class MatchEdgeTraverser {
     return result;
   }
 
-  protected boolean equals(Object prevValue, PIdentifiable nextElement) {
-    if (prevValue instanceof OResult) {
-      prevValue = ((OResult) prevValue).getElement().orElse(null);
+  protected boolean equals(Object prevValue, Identifiable nextElement) {
+    if (prevValue instanceof Result) {
+      prevValue = ((Result) prevValue).getElement().orElse(null);
     }
-    if (nextElement instanceof OResult) {
-      nextElement = ((OResult) nextElement).getElement().orElse(null);
+    if (nextElement instanceof Result) {
+      nextElement = ((Result) nextElement).getElement().orElse(null);
     }
     return prevValue != null && prevValue.equals(nextElement);
   }
 
-  protected Object toResult(PDocument nextElement) {
-    OResultInternal result = new OResultInternal();
+  protected Object toResult(Document nextElement) {
+    ResultInternal result = new ResultInternal();
     result.setElement(nextElement);
     return result;
   }
@@ -88,18 +88,18 @@ public class MatchEdgeTraverser {
     return this.edge.edge.in.alias;
   }
 
-  protected void init(OCommandContext ctx) {
+  protected void init(CommandContext ctx) {
     if (downstream == null) {
       Object startingElem = sourceRecord.getProperty(getStartingPointAlias());
-      if (startingElem instanceof OResult) {
-        startingElem = ((OResult) startingElem).getElement().orElse(null);
+      if (startingElem instanceof Result) {
+        startingElem = ((Result) startingElem).getElement().orElse(null);
       }
-      downstream = executeTraversal(ctx, this.item, (PIdentifiable) startingElem, 0, null).iterator();
+      downstream = executeTraversal(ctx, this.item, (Identifiable) startingElem, 0, null).iterator();
     }
   }
 
-  protected Iterable<OResultInternal> executeTraversal(OCommandContext iCommandContext, MatchPathItem item,
-      PIdentifiable startingPoint, int depth, List<PIdentifiable> pathToHere) {
+  protected Iterable<ResultInternal> executeTraversal(CommandContext iCommandContext, MatchPathItem item,
+      Identifiable startingPoint, int depth, List<Identifiable> pathToHere) {
 
     WhereClause filter = null;
     WhereClause whileCondition = null;
@@ -119,15 +119,15 @@ public class MatchEdgeTraverser {
       targetRid = targetRid(item, iCommandContext);
     }
 
-    List<OResultInternal> result = new ArrayList<>();
+    List<ResultInternal> result = new ArrayList<>();
 
     if (whileCondition == null && maxDepth == null) {// in this case starting point is not returned and only one level depth is
       // evaluated
-      Iterable<OResultInternal> queryResult = traversePatternEdge(startingPoint, iCommandContext);
+      Iterable<ResultInternal> queryResult = traversePatternEdge(startingPoint, iCommandContext);
 
-      for (OResultInternal origin : queryResult) {
+      for (ResultInternal origin : queryResult) {
         Object previousMatch = iCommandContext.getVariable("$currentMatch");
-        PRecord elem = origin.toElement();
+        Record elem = origin.toElement();
         iCommandContext.setVariable("$currentMatch", elem);
         if (matchesFilters(iCommandContext, filter, elem) && matchesClass(iCommandContext, className, elem) && matchesCluster(
             iCommandContext, clusterId, elem) && matchesRid(iCommandContext, targetRid, elem)) {
@@ -142,7 +142,7 @@ public class MatchEdgeTraverser {
 
       if (matchesFilters(iCommandContext, filter, startingPoint) && matchesClass(iCommandContext, className, startingPoint)
           && matchesCluster(iCommandContext, clusterId, startingPoint) && matchesRid(iCommandContext, targetRid, startingPoint)) {
-        OResultInternal rs = new OResultInternal((PDocument) startingPoint.getRecord());
+        ResultInternal rs = new ResultInternal((Document) startingPoint.getRecord());
         // set traversal depth in the metadata
         rs.setMetadata("$depth", depth);
         // set traversal path in the metadata
@@ -154,27 +154,27 @@ public class MatchEdgeTraverser {
       if ((maxDepth == null || depth < maxDepth) && (whileCondition == null || whileCondition
           .matchesFilters(startingPoint, iCommandContext))) {
 
-        Iterable<OResultInternal> queryResult = traversePatternEdge(startingPoint, iCommandContext);
+        Iterable<ResultInternal> queryResult = traversePatternEdge(startingPoint, iCommandContext);
 
-        for (OResultInternal origin : queryResult) {
+        for (ResultInternal origin : queryResult) {
           //          if(origin.equals(startingPoint)){
           //            continue;
           //          }
           // TODO consider break strategies (eg. re-traverse nodes)
 
-          List<PIdentifiable> newPath = new ArrayList<>();
+          List<Identifiable> newPath = new ArrayList<>();
           if (pathToHere != null) {
             newPath.addAll(pathToHere);
           }
 
-          PRecord elem = origin.toElement();
+          Record elem = origin.toElement();
           newPath.add(elem.getIdentity());
 
-          Iterable<OResultInternal> subResult = executeTraversal(iCommandContext, item, elem, depth + 1, newPath);
+          Iterable<ResultInternal> subResult = executeTraversal(iCommandContext, item, elem, depth + 1, newPath);
           if (subResult instanceof Collection) {
-            result.addAll((Collection<? extends OResultInternal>) subResult);
+            result.addAll((Collection<? extends ResultInternal>) subResult);
           } else {
-            for (OResultInternal i : subResult) {
+            for (ResultInternal i : subResult) {
               result.add(i);
             }
           }
@@ -189,29 +189,29 @@ public class MatchEdgeTraverser {
     return item.getFilter().getFilter();
   }
 
-  protected String targetClassName(MatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClassName(MatchPathItem item, CommandContext iCommandContext) {
     return item.getFilter().getClassName(iCommandContext);
   }
 
-  protected String targetClusterName(MatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClusterName(MatchPathItem item, CommandContext iCommandContext) {
     return item.getFilter().getClusterName(iCommandContext);
   }
 
-  protected Rid targetRid(MatchPathItem item, OCommandContext iCommandContext) {
+  protected Rid targetRid(MatchPathItem item, CommandContext iCommandContext) {
     return item.getFilter().getRid(iCommandContext);
   }
 
-  private boolean matchesClass(OCommandContext iCommandContext, String className, PIdentifiable origin) {
+  private boolean matchesClass(CommandContext iCommandContext, String className, Identifiable origin) {
     if (className == null) {
       return true;
     }
-    PDocument element = null;
-    if (origin instanceof PDocument) {
-      element = (PDocument) origin;
+    Document element = null;
+    if (origin instanceof Document) {
+      element = (Document) origin;
     } else {
       Object record = origin.getRecord();
-      if (record instanceof PDocument) {
-        element = (PDocument) record;
+      if (record instanceof Document) {
+        element = (Document) record;
       }
     }
     if (element != null) {
@@ -224,7 +224,7 @@ public class MatchEdgeTraverser {
     return false;
   }
 
-  private boolean matchesCluster(OCommandContext iCommandContext, Integer clusterId, PIdentifiable origin) {
+  private boolean matchesCluster(CommandContext iCommandContext, Integer clusterId, Identifiable origin) {
     if (clusterId == null) {
       return true;
     }
@@ -238,7 +238,7 @@ public class MatchEdgeTraverser {
     return clusterId.equals(origin.getIdentity().getBucketId());
   }
 
-  private boolean matchesRid(OCommandContext iCommandContext, Rid rid, PIdentifiable origin) {
+  private boolean matchesRid(CommandContext iCommandContext, Rid rid, Identifiable origin) {
     if (rid == null) {
       return true;
     }
@@ -252,13 +252,13 @@ public class MatchEdgeTraverser {
     return origin.getIdentity().equals(rid.toRecordId(origin, iCommandContext));
   }
 
-  protected boolean matchesFilters(OCommandContext iCommandContext, WhereClause filter, PIdentifiable origin) {
+  protected boolean matchesFilters(CommandContext iCommandContext, WhereClause filter, Identifiable origin) {
     return filter == null || filter.matchesFilters(origin, iCommandContext);
   }
 
   //TODO refactor this method to receive the item.
 
-  protected Iterable<OResultInternal> traversePatternEdge(PIdentifiable startingPoint, OCommandContext iCommandContext) {
+  protected Iterable<ResultInternal> traversePatternEdge(Identifiable startingPoint, CommandContext iCommandContext) {
 
     Iterable possibleResults = null;
     if (this.item.getFilter() != null) {
@@ -285,17 +285,17 @@ public class MatchEdgeTraverser {
     if (qR == null) {
       return Collections.EMPTY_LIST;
     }
-    if (qR instanceof PDocument) {
-      return Collections.singleton(new OResultInternal((PDocument) qR));
+    if (qR instanceof Document) {
+      return Collections.singleton(new ResultInternal((Document) qR));
     }
     if (qR instanceof Iterable) {
       Iterable iterable = (Iterable) qR;
-      List<OResultInternal> result = new ArrayList<>();
+      List<ResultInternal> result = new ArrayList<>();
       for (Object o : iterable) {
-        if (o instanceof PDocument) {
-          result.add(new OResultInternal((PDocument) o));
-        } else if (o instanceof OResultInternal) {
-          result.add((OResultInternal) o);
+        if (o instanceof Document) {
+          result.add(new ResultInternal((Document) o));
+        } else if (o instanceof ResultInternal) {
+          result.add((ResultInternal) o);
         } else if (o == null) {
           continue;
         } else {

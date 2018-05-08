@@ -2,15 +2,15 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.executor.OCollate;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.*;
 
@@ -35,12 +35,12 @@ public class BinaryCondition extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
     return operator.execute(left.execute(currentRecord, ctx), right.execute(currentRecord, ctx));
   }
 
   @Override
-  public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Result currentRecord, CommandContext ctx) {
     Object leftVal = left.execute(currentRecord, ctx);
     Object rightVal = right.execute(currentRecord, ctx);
     OCollate collate = left.getCollate(currentRecord, ctx);
@@ -100,19 +100,19 @@ public class BinaryCondition extends BooleanExpression {
     return result;
   }
 
-  public BinaryCondition isIndexedFunctionCondition(PDocumentType iSchemaClass, PDatabase database) {
+  public BinaryCondition isIndexedFunctionCondition(PDocumentType iSchemaClass, Database database) {
     if (left.isIndexedFunctionCal()) {
       return this;
     }
     return null;
   }
 
-  public long estimateIndexed(FromClause target, OCommandContext context) {
-    return left.estimateIndexedFunction(target, context, operator, right.execute((OResult) null, context));
+  public long estimateIndexed(FromClause target, CommandContext context) {
+    return left.estimateIndexedFunction(target, context, operator, right.execute((Result) null, context));
   }
 
-  public Iterable<PRecord> executeIndexedFunction(FromClause target, OCommandContext context) {
-    return left.executeIndexedFunction(target, context, operator, right.execute((OResult) null, context));
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context) {
+    return left.executeIndexedFunction(target, context, operator, right.execute((Result) null, context));
   }
 
   /**
@@ -123,8 +123,8 @@ public class BinaryCondition extends BooleanExpression {
    *
    * @return true if current expression involves an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context) {
-    return left.canExecuteIndexedFunctionWithoutIndex(target, context, operator, right.execute((OResult) null, context));
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context) {
+    return left.canExecuteIndexedFunctionWithoutIndex(target, context, operator, right.execute((Result) null, context));
   }
 
   /**
@@ -135,8 +135,8 @@ public class BinaryCondition extends BooleanExpression {
    *
    * @return true if current expression involves an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context) {
-    return left.allowsIndexedFunctionExecutionOnTarget(target, context, operator, right.execute((OResult) null, context));
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context) {
+    return left.allowsIndexedFunctionExecutionOnTarget(target, context, operator, right.execute((Result) null, context));
   }
 
   /**
@@ -150,11 +150,11 @@ public class BinaryCondition extends BooleanExpression {
    * @return true if current expression involves an indexed function AND the function has also to be executed after the index
    * search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context) {
-    return left.executeIndexedFunctionAfterIndexSearch(target, context, operator, right.execute((OResult) null, context));
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context) {
+    return left.executeIndexedFunctionAfterIndexSearch(target, context, operator, right.execute((Result) null, context));
   }
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, PDatabase database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
     if (left.isIndexedFunctionCal()) {
       return Collections.singletonList(this);
     }
@@ -337,7 +337,7 @@ public class BinaryCondition extends BooleanExpression {
             Expression val = identifierToStringExpr(identifier);
             newColl.expressions.add(val);
           } else {
-            throw new PCommandExecutionException("Cannot execute because of invalid LUCENE expression");
+            throw new CommandExecutionException("Cannot execute because of invalid LUCENE expression");
           }
         }
         Expression result = new Expression(-1);
@@ -349,7 +349,7 @@ public class BinaryCondition extends BooleanExpression {
         return result;
       }
     }
-    throw new PCommandExecutionException("Cannot execute because of invalid LUCENE expression");
+    throw new CommandExecutionException("Cannot execute because of invalid LUCENE expression");
   }
 
   private Expression identifierToStringExpr(Identifier identifier) {
@@ -360,21 +360,21 @@ public class BinaryCondition extends BooleanExpression {
     return result;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("left", left.serialize());
     result.setProperty("operator", operator.getClass().getName());
     result.setProperty("right", right.serialize());
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     left = new Expression(-1);
     left.deserialize(fromResult.getProperty("left"));
     try {
       operator = (BinaryCompareOperator) Class.forName(String.valueOf(fromResult.getProperty("operator"))).newInstance();
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
     right = new Expression(-1);
     right.deserialize(fromResult.getProperty("right"));

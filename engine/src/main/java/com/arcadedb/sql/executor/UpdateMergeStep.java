@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Json;
 
 import java.util.Map;
@@ -13,22 +13,22 @@ import java.util.Optional;
 public class UpdateMergeStep extends AbstractExecutionStep {
   private final Json json;
 
-  public UpdateMergeStep(Json json, OCommandContext ctx, boolean profilingEnabled) {
+  public UpdateMergeStep(Json json, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.json = json;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         throw new UnsupportedOperationException();
 //        OResult result = upstream.next();
 //        if (result instanceof OResultInternal) {
@@ -49,7 +49,7 @@ public class UpdateMergeStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -60,14 +60,14 @@ public class UpdateMergeStep extends AbstractExecutionStep {
     };
   }
 
-  private void handleMerge(PRecord record, OCommandContext ctx) {
+  private void handleMerge(Record record, CommandContext ctx) {
     throw new UnsupportedOperationException();
 //    record.merge(json.toDocument(record, ctx), true, false);
   }
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ UPDATE MERGE\n");

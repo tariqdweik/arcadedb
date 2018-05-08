@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.MultiMatchPathItem;
 
 import java.util.Map;
@@ -12,12 +12,12 @@ import java.util.Optional;
 public class MatchStep extends AbstractExecutionStep {
   protected final EdgeTraversal edge;
 
-  OResultSet         upstream;
-  OResult            lastUpstreamRecord;
+  ResultSet          upstream;
+  Result             lastUpstreamRecord;
   MatchEdgeTraverser traverser;
-  OResult            nextResult;
+  Result             nextResult;
 
-  public MatchStep(OCommandContext context, EdgeTraversal edge, boolean profilingEnabled) {
+  public MatchStep(CommandContext context, EdgeTraversal edge, boolean profilingEnabled) {
     super(context, profilingEnabled);
     this.edge = edge;
   }
@@ -31,8 +31,8 @@ public class MatchStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    return new ResultSet() {
       int localCount = 0;
 
       @Override
@@ -50,7 +50,7 @@ public class MatchStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (localCount >= nRecords) {
           throw new IllegalStateException();
         }
@@ -60,7 +60,7 @@ public class MatchStep extends AbstractExecutionStep {
         if (nextResult == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextResult;
+        Result result = nextResult;
         fetchNext(ctx, nRecords);
         localCount++;
         ctx.setVariable("$matched", result);
@@ -73,7 +73,7 @@ public class MatchStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -84,7 +84,7 @@ public class MatchStep extends AbstractExecutionStep {
     };
   }
 
-  private void fetchNext(OCommandContext ctx, int nRecords) {
+  private void fetchNext(CommandContext ctx, int nRecords) {
     nextResult = null;
     while (true) {
       if (traverser != null && traverser.hasNext(ctx)) {
@@ -117,7 +117,7 @@ public class MatchStep extends AbstractExecutionStep {
     }
   }
 
-  protected MatchEdgeTraverser createTraverser(OResult lastUpstreamRecord) {
+  protected MatchEdgeTraverser createTraverser(Result lastUpstreamRecord) {
     if (edge.edge.item instanceof MultiMatchPathItem) {
       return new MatchMultiEdgeTraverser(lastUpstreamRecord, edge);
     } else if (edge.out) {
@@ -129,7 +129,7 @@ public class MatchStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ MATCH ");

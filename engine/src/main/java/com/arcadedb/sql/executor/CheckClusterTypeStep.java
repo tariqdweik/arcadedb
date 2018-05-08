@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Cluster;
 
 /**
@@ -22,13 +22,13 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
 
   boolean found = false;
 
-  public CheckClusterTypeStep(String targetClusterName, String clazz, OCommandContext ctx, boolean profilingEnabled) {
+  public CheckClusterTypeStep(String targetClusterName, String clazz, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.clusterName = targetClusterName;
     this.targetClass = clazz;
   }
 
-  public CheckClusterTypeStep(Cluster targetCluster, String clazz, OCommandContext ctx, boolean profilingEnabled) {
+  public CheckClusterTypeStep(Cluster targetCluster, String clazz, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.cluster = targetCluster;
     this.targetClass = clazz;
@@ -36,14 +36,14 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     long begin = profilingEnabled ? System.nanoTime() : 0;
     try {
       if (found) {
-        return new OInternalResultSet();
+        return new InternalResultSet();
       }
-      PDatabase db = ctx.getDatabase();
+      Database db = ctx.getDatabase();
 
       throw new UnsupportedOperationException("TODO");
 //      int clusterId;
@@ -85,7 +85,7 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ CHECK TARGET CLUSTER FOR CLASS");

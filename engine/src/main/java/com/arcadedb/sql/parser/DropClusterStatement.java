@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
@@ -25,8 +25,8 @@ public class DropClusterStatement extends ODDLStatement {
   }
 
   @Override
-  public OResultSet executeDDL(OCommandContext ctx) {
-    PDatabase database = ctx.getDatabase();
+  public ResultSet executeDDL(CommandContext ctx) {
+    Database database = ctx.getDatabase();
     // CHECK IF ANY CLASS IS USING IT
     final int clusterId;
     if (id != null) {
@@ -35,9 +35,9 @@ public class DropClusterStatement extends ODDLStatement {
       clusterId = database.getSchema().getBucketByName(name.getStringValue()).getId();
       if (clusterId < 0) {
         if (ifExists) {
-          return new OInternalResultSet();
+          return new InternalResultSet();
         } else {
-          throw new PCommandExecutionException("Cluster not found: " + name);
+          throw new CommandExecutionException("Cluster not found: " + name);
         }
       }
     }
@@ -56,9 +56,9 @@ public class DropClusterStatement extends ODDLStatement {
     String clusterName = database.getSchema().getBucketById(clusterId).getName();
     if (clusterName == null) {
       if (ifExists) {
-        return new OInternalResultSet();
+        return new InternalResultSet();
       } else {
-        throw new PCommandExecutionException("Cluster not found: " + clusterId);
+        throw new CommandExecutionException("Cluster not found: " + clusterId);
       }
     }
 

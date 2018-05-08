@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
@@ -15,26 +15,26 @@ public class FilterByClassStep extends AbstractExecutionStep {
 
   //runtime
 
-  OResultSet prevResult = null;
+  ResultSet prevResult = null;
 
   private long cost;
 
-  public FilterByClassStep(Identifier identifier, OCommandContext ctx, boolean profilingEnabled) {
+  public FilterByClassStep(Identifier identifier, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.identifier = identifier;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (!prev.isPresent()) {
       throw new IllegalStateException("filter step requires a previous step");
     }
-    OExecutionStepInternal prevStep = prev.get();
+    ExecutionStepInternal prevStep = prev.get();
 
-    return new OResultSet() {
+    return new ResultSet() {
       public boolean finished = false;
 
-      OResult nextItem = null;
+      Result nextItem = null;
       int fetched = 0;
 
       private void fetchNextItem() {
@@ -93,7 +93,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (fetched >= nRecords || finished) {
           throw new IllegalStateException();
         }
@@ -103,7 +103,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
         if (nextItem == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextItem;
+        Result result = nextItem;
         nextItem = null;
         fetched++;
         return result;
@@ -115,7 +115,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -130,33 +130,33 @@ public class FilterByClassStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     StringBuilder result = new StringBuilder();
-    result.append(OExecutionStepInternal.getIndent(depth, indent));
+    result.append(ExecutionStepInternal.getIndent(depth, indent));
     result.append("+ FILTER ITEMS BY CLASS");
     if (profilingEnabled) {
       result.append(" (" + getCostFormatted() + ")");
     }
     result.append(" \n");
-    result.append(OExecutionStepInternal.getIndent(depth, indent));
+    result.append(ExecutionStepInternal.getIndent(depth, indent));
     result.append("  ");
     result.append(identifier.getStringValue());
     return result.toString();
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     result.setProperty("identifier", identifier.serialize());
 
     return result;
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       identifier = Identifier.deserialize(fromResult.getProperty("identifier"));
     } catch (Exception e) {
-      throw new PCommandExecutionException( e);
+      throw new CommandExecutionException( e);
     }
   }
 
@@ -171,7 +171,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     return new FilterByClassStep(this.identifier.copy(), ctx, this.profilingEnabled);
   }
 }

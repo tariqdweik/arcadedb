@@ -1,6 +1,6 @@
 package com.arcadedb.console;
 
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,18 +10,18 @@ import java.io.File;
 import java.io.IOException;
 
 public class ConsoleTest {
-  private static final String   DB_PATH = "target/database/console";
-  private static       PConsole console;
+  private static final String  DB_PATH = "target/database/console";
+  private static       Console console;
 
   @BeforeEach
   public void populate() throws IOException {
-    console = new PConsole(false);
+    console = new Console(false);
   }
 
   @AfterEach
   public void drop() {
     console.close();
-    PFileUtils.deleteRecursively(new File(DB_PATH));
+    FileUtils.deleteRecursively(new File(DB_PATH));
   }
 
   @Test
@@ -35,7 +35,7 @@ public class ConsoleTest {
     Assertions.assertTrue(console.parse("create class Person"));
 
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new PConsoleOutput() {
+    console.setOutput(new ConsoleOutput() {
       @Override
       public void onOutput(final String output) {
         buffer.append(output);
@@ -52,7 +52,7 @@ public class ConsoleTest {
     Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'"));
 
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new PConsoleOutput() {
+    console.setOutput(new ConsoleOutput() {
       @Override
       public void onOutput(final String output) {
         buffer.append(output);
@@ -70,7 +70,7 @@ public class ConsoleTest {
     Assertions.assertTrue(console.parse("rollback"));
 
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new PConsoleOutput() {
+    console.setOutput(new ConsoleOutput() {
       @Override
       public void onOutput(final String output) {
         buffer.append(output);
@@ -83,7 +83,7 @@ public class ConsoleTest {
   @Test
   public void testHelp() throws IOException {
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new PConsoleOutput() {
+    console.setOutput(new ConsoleOutput() {
       @Override
       public void onOutput(final String output) {
         buffer.append(output);

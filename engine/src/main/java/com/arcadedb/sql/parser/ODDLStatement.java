@@ -1,6 +1,6 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 import com.arcadedb.sql.executor.*;
 
 import java.util.HashMap;
@@ -19,10 +19,10 @@ public abstract class ODDLStatement extends Statement {
     super(p, id);
   }
 
-  public abstract OResultSet executeDDL(OCommandContext ctx);
+  public abstract ResultSet executeDDL(CommandContext ctx);
 
-  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -38,8 +38,8 @@ public abstract class ODDLStatement extends Statement {
     return executionPlan.executeInternal(ctx);
   }
 
-  public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -49,7 +49,7 @@ public abstract class ODDLStatement extends Statement {
     return executionPlan.executeInternal(ctx);
   }
 
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
     return new ODDLExecutionPlan(ctx, this);
   }
 

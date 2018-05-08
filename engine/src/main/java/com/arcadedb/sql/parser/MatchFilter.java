@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,7 +87,7 @@ public class MatchFilter extends SimpleNode {
     return null;
   }
 
-  public String getClassName(OCommandContext context) {
+  public String getClassName(CommandContext context) {
     for (MatchFilterItem item : items) {
       if (item.className != null) {
         if (item.className.value instanceof String)
@@ -105,7 +105,7 @@ public class MatchFilter extends SimpleNode {
     return null;
   }
 
-  public String getClusterName(OCommandContext context) {
+  public String getClusterName(CommandContext context) {
     for (MatchFilterItem item : items) {
       if (item.clusterName != null) {
         return item.clusterName.getStringValue();
@@ -120,7 +120,7 @@ public class MatchFilter extends SimpleNode {
     return null;
   }
 
-  public Rid getRid(OCommandContext context) {
+  public Rid getRid(CommandContext context) {
     for (MatchFilterItem item : items) {
       if (item.rid != null) {
         return item.rid;

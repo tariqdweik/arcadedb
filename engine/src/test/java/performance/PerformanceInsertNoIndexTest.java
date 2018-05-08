@@ -1,12 +1,12 @@
 package performance;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.async.PErrorCallback;
-import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.utility.LogManager;
 
 public class PerformanceInsertNoIndexTest {
   private static final int    TOT       = 100000000;
@@ -20,7 +20,7 @@ public class PerformanceInsertNoIndexTest {
   private void run() {
     PerformanceTest.clean();
 
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -38,7 +38,7 @@ public class PerformanceInsertNoIndexTest {
       database.close();
     }
 
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
 
     long begin = System.currentTimeMillis();
 
@@ -49,17 +49,17 @@ public class PerformanceInsertNoIndexTest {
       database.asynch().setTransactionUseWAL(false);
       database.asynch().setTransactionSync(false);
       database.asynch().setCommitEvery(20000);
-      database.asynch().onError(new PErrorCallback() {
+      database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
-          PLogManager.instance().error(this, "ERROR: " + exception, exception);
+          LogManager.instance().error(this, "ERROR: " + exception, exception);
           System.exit(1);
         }
       });
 
       long row = 0;
       for (; row < TOT; ++row) {
-        final PModifiableDocument record = database.newDocument(TYPE_NAME);
+        final ModifiableDocument record = database.newDocument(TYPE_NAME);
 
         record.set("id", row);
         record.set("name", "Luca" + row);

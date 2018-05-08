@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.parser.*;
 
 import java.util.ArrayList;
@@ -45,8 +45,8 @@ public class ODeleteEdgeExecutionPlanner {
     this.limit = stm.getLimit() == null ? null : stm.getLimit().copy();
   }
 
-  public ODeleteExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
-    ODeleteExecutionPlan result = new ODeleteExecutionPlan(ctx);
+  public DeleteExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
+    DeleteExecutionPlan result = new DeleteExecutionPlan(ctx);
 
     if (leftExpression != null || rightExpression != null) {
       handleGlobalLet(result, new Identifier("$__ORIENT_DELETE_EDGE_fromV"), leftExpression, ctx, enableProfiling);
@@ -80,13 +80,13 @@ public class ODeleteEdgeExecutionPlanner {
     return result;
   }
 
-  private void handleWhere(ODeleteExecutionPlan result, OCommandContext ctx, WhereClause whereClause, boolean profilingEnabled) {
+  private void handleWhere(DeleteExecutionPlan result, CommandContext ctx, WhereClause whereClause, boolean profilingEnabled) {
     if (whereClause != null) {
       result.chain(new FilterStep(whereClause, ctx, profilingEnabled));
     }
   }
 
-  private void handleFetchFromTo(ODeleteExecutionPlan result, OCommandContext ctx, String fromAlias, String toAlias,
+  private void handleFetchFromTo(DeleteExecutionPlan result, CommandContext ctx, String fromAlias, String toAlias,
       Identifier targetClass, Identifier targetCluster, boolean profilingEnabled) {
     if (fromAlias != null && toAlias != null) {
       result.chain(new FetchEdgesFromToVerticesStep(fromAlias, toAlias, targetClass, targetCluster, ctx, profilingEnabled));
@@ -95,60 +95,60 @@ public class ODeleteEdgeExecutionPlanner {
     }
   }
 
-  private void handleTargetRids(ODeleteExecutionPlan result, OCommandContext ctx, List<Rid> rids, boolean profilingEnabled) {
+  private void handleTargetRids(DeleteExecutionPlan result, CommandContext ctx, List<Rid> rids, boolean profilingEnabled) {
     if (rids != null) {
       result.chain(
-          new FetchFromRidsStep(rids.stream().map(x -> x.toRecordId((OResult) null, ctx)).collect(Collectors.toList()), ctx,
+          new FetchFromRidsStep(rids.stream().map(x -> x.toRecordId((Result) null, ctx)).collect(Collectors.toList()), ctx,
               profilingEnabled));
     }
   }
 
-  private void handleTargetCluster(ODeleteExecutionPlan result, OCommandContext ctx, Identifier targetClusterName,
+  private void handleTargetCluster(DeleteExecutionPlan result, CommandContext ctx, Identifier targetClusterName,
       boolean profilingEnabled) {
     if (targetClusterName != null) {
       String name = targetClusterName.getStringValue();
       int clusterId = ctx.getDatabase().getSchema().getBucketByName(name).getId();
       if (clusterId < 0) {
-        throw new PCommandExecutionException("Cluster not found: " + name);
+        throw new CommandExecutionException("Cluster not found: " + name);
       }
       result.chain(new FetchFromClusterExecutionStep(clusterId, ctx, profilingEnabled));
     }
   }
 
-  private void handleTargetClass(ODeleteExecutionPlan result, OCommandContext ctx, Identifier className,
+  private void handleTargetClass(DeleteExecutionPlan result, CommandContext ctx, Identifier className,
       boolean profilingEnabled) {
     if (className != null) {
       result.chain(new FetchFromClassExecutionStep(className.getStringValue(), null, ctx, null, profilingEnabled));
     }
   }
 
-  private boolean handleIndexAsTarget(ODeleteExecutionPlan result, IndexIdentifier indexIdentifier, WhereClause whereClause,
-      OCommandContext ctx, boolean profilingEnabled) {
+  private boolean handleIndexAsTarget(DeleteExecutionPlan result, IndexIdentifier indexIdentifier, WhereClause whereClause,
+      CommandContext ctx, boolean profilingEnabled) {
     if (indexIdentifier == null) {
       return false;
     }
-    throw new PCommandExecutionException("DELETE VERTEX FROM INDEX is not supported");
+    throw new CommandExecutionException("DELETE VERTEX FROM INDEX is not supported");
   }
 
-  private void handleDelete(ODeleteExecutionPlan result, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleDelete(DeleteExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
     result.chain(new DeleteStep(ctx, profilingEnabled));
   }
 
-  private void handleReturn(ODeleteExecutionPlan result, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleReturn(DeleteExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
     result.chain(new CountStep(ctx, profilingEnabled));
   }
 
-  private void handleLimit(OUpdateExecutionPlan plan, OCommandContext ctx, Limit limit, boolean profilingEnabled) {
+  private void handleLimit(UpdateExecutionPlan plan, CommandContext ctx, Limit limit, boolean profilingEnabled) {
     if (limit != null) {
       plan.chain(new LimitExecutionStep(limit, ctx, profilingEnabled));
     }
   }
 
-  private void handleCastToEdge(ODeleteExecutionPlan plan, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleCastToEdge(DeleteExecutionPlan plan, CommandContext ctx, boolean profilingEnabled) {
     plan.chain(new CastToEdgeStep(ctx, profilingEnabled));
   }
 
-  private void handleTarget(OUpdateExecutionPlan result, OCommandContext ctx, FromClause target, WhereClause whereClause,
+  private void handleTarget(UpdateExecutionPlan result, CommandContext ctx, FromClause target, WhereClause whereClause,
       boolean profilingEnabled) {
     SelectStatement sourceStatement = new SelectStatement(-1);
     sourceStatement.setTarget(target);
@@ -157,7 +157,7 @@ public class ODeleteEdgeExecutionPlanner {
     result.chain(new SubQueryStep(planner.createExecutionPlan(ctx, profilingEnabled), ctx, ctx, profilingEnabled));
   }
 
-  private void handleGlobalLet(ODeleteExecutionPlan result, Identifier name, Expression expression, OCommandContext ctx,
+  private void handleGlobalLet(DeleteExecutionPlan result, Identifier name, Expression expression, CommandContext ctx,
       boolean profilingEnabled) {
     if (expression != null) {
       result.chain(new GlobalLetExpressionStep(name, expression, ctx, profilingEnabled));

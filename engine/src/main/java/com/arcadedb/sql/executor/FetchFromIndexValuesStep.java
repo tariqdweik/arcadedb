@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.index.PIndex;
 
 /**
@@ -10,7 +10,7 @@ public class FetchFromIndexValuesStep extends FetchFromIndexStep {
 
   private boolean asc;
 
-  public FetchFromIndexValuesStep(PIndex index, boolean asc, OCommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexValuesStep(PIndex index, boolean asc, CommandContext ctx, boolean profilingEnabled) {
     super(index, null, null, ctx, profilingEnabled);
     this.asc = asc;
   }
@@ -23,26 +23,26 @@ public class FetchFromIndexValuesStep extends FetchFromIndexStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     if (isOrderAsc()) {
-      return OExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEX VAUES ASC " + index.getName();
+      return ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEX VAUES ASC " + index.getName();
     } else {
-      return OExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEX VAUES DESC " + index.getName();
+      return ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEX VAUES DESC " + index.getName();
     }
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = (OResultInternal) super.serialize();
+  public Result serialize() {
+    ResultInternal result = (ResultInternal) super.serialize();
     result.setProperty("asc", asc);
     return result;
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
       super.deserialize(fromResult);
       this.asc = fromResult.getProperty("asc");
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 

@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PRID;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.RID;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -13,22 +13,22 @@ import java.util.Set;
  */
 public class DistinctExecutionStep extends AbstractExecutionStep {
 
-  Set<OResult> pastItems = new HashSet<>();
-  ORidSet      pastRids  = new ORidSet();
+  Set<Result> pastItems = new HashSet<>();
+  RidSet      pastRids  = new RidSet();
 
-  OResultSet lastResult = null;
-  OResult nextValue;
+  ResultSet lastResult = null;
+  Result    nextValue;
 
   private long cost = 0;
 
-  public DistinctExecutionStep(OCommandContext ctx, boolean profilingEnabled) {
+  public DistinctExecutionStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
 
-    OResultSet result = new OResultSet() {
+    ResultSet result = new ResultSet() {
       int nextLocal = 0;
 
       @Override
@@ -44,7 +44,7 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (nextLocal >= nRecords) {
           throw new IllegalStateException();
         }
@@ -54,7 +54,7 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
         if (nextValue == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextValue;
+        Result result = nextValue;
         nextValue = null;
         nextLocal++;
         return result;
@@ -66,7 +66,7 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -106,9 +106,9 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
     }
   }
 
-  private void markAsVisited(OResult nextValue) {
+  private void markAsVisited(Result nextValue) {
     if (nextValue.isElement()) {
-      PRID identity = nextValue.getElement().get().getIdentity();
+      RID identity = nextValue.getElement().get().getIdentity();
       int cluster = identity.getBucketId();
       long pos = identity.getPosition();
       if (cluster >= 0 && pos >= 0) {
@@ -119,9 +119,9 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
     pastItems.add(nextValue);
   }
 
-  private boolean alreadyVisited(OResult nextValue) {
+  private boolean alreadyVisited(Result nextValue) {
     if (nextValue.isElement()) {
-      PRID identity = nextValue.getElement().get().getIdentity();
+      RID identity = nextValue.getElement().get().getIdentity();
       int cluster = identity.getBucketId();
       long pos = identity.getPosition();
       if (cluster >= 0 && pos >= 0) {
@@ -143,7 +143,7 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result = OExecutionStepInternal.getIndent(depth, indent) + "+ DISTINCT";
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ DISTINCT";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }

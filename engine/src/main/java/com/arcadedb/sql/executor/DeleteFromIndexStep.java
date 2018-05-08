@@ -1,12 +1,12 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.sql.parser.*;
-import com.arcadedb.utility.PPair;
+import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
 import java.util.Map;
@@ -21,7 +21,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
   private final   BooleanExpression ridCondition;
   private final   boolean           orderAsc;
 
-  PPair<Object, PIdentifiable> nextEntry = null;
+  Pair<Object, Identifiable> nextEntry = null;
 
   BooleanExpression condition;
 
@@ -31,12 +31,12 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
   private long cost = 0;
 
   public DeleteFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      BooleanExpression ridCondition, OCommandContext ctx, boolean profilingEnabled) {
+      BooleanExpression ridCondition, CommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, ridCondition, true, ctx, profilingEnabled);
   }
 
   public DeleteFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      BooleanExpression ridCondition, boolean orderAsc, OCommandContext ctx, boolean profilingEnabled) {
+      BooleanExpression ridCondition, boolean orderAsc, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
     this.condition = condition;
@@ -46,11 +46,11 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init();
 
-    return new OResultSet() {
+    return new ResultSet() {
       int localCount = 0;
 
       @Override
@@ -59,15 +59,15 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           if (!hasNext()) {
             throw new IllegalStateException();
           }
-          PPair<Object, PIdentifiable> entry = nextEntry;
-          OResultInternal result = new OResultInternal();
-          PIdentifiable value = entry.getSecond();
+          Pair<Object, Identifiable> entry = nextEntry;
+          ResultInternal result = new ResultInternal();
+          Identifiable value = entry.getSecond();
 
           throw new UnsupportedOperationException("index remove");
 //          index.remove(entry.getKey(), value);
@@ -86,7 +86,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -115,15 +115,15 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     }
   }
 
-  private PPair<Object, PIdentifiable> loadNextEntry(OCommandContext commandContext) throws IOException {
+  private Pair<Object, Identifiable> loadNextEntry(CommandContext commandContext) throws IOException {
     while (cursor.hasNext()) {
       cursor.next();
 
-      PPair<Object, PIdentifiable> result = new PPair(cursor.getKeys(), cursor.getValue());
+      Pair<Object, Identifiable> result = new Pair(cursor.getKeys(), cursor.getValue());
       if (ridCondition == null) {
         return result;
       }
-      OResultInternal res = new OResultInternal();
+      ResultInternal res = new ResultInternal();
       res.setProperty("rid", result.getSecond());
       if (ridCondition.evaluate(res, commandContext)) {
         return result;
@@ -142,7 +142,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     } else if (condition instanceof AndBlock) {
       processAndBlock();
     } else {
-      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
+      throw new CommandExecutionException("search for index for " + condition + " is not supported yet");
     }
   }
 
@@ -162,8 +162,8 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
   }
 
   private void init(PCollection fromKey, boolean fromKeyIncluded, PCollection toKey, boolean toKeyIncluded) {
-    Object secondValue = fromKey.execute((OResult) null, ctx);
-    Object thirdValue = toKey.execute((OResult) null, ctx);
+    Object secondValue = fromKey.execute((Result) null, ctx);
+    Object thirdValue = toKey.execute((Result) null, ctx);
 //    OIndexDefinition indexDef = index.getDefinition();
 //    if (index.supportsOrderedIterations()) {
 //      cursor = index
@@ -376,13 +376,13 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result = OExecutionStepInternal.getIndent(depth, indent) + "+ DELETE FROM INDEX " + index.getName();
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ DELETE FROM INDEX " + index.getName();
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }
     result += (condition == null ?
         "" :
-        ("\n" + OExecutionStepInternal.getIndent(depth, indent) + "  " + condition + (additional == null ?
+        ("\n" + ExecutionStepInternal.getIndent(depth, indent) + "  " + condition + (additional == null ?
             "" :
             " and " + additional)));
     return result;

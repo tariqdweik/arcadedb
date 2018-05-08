@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.UpdateRemoveItem;
 
 import java.util.List;
@@ -13,26 +13,26 @@ import java.util.Optional;
 public class UpdateRemoveStep extends AbstractExecutionStep {
   private final List<UpdateRemoveItem> items;
 
-  public UpdateRemoveStep(List<UpdateRemoveItem> items, OCommandContext ctx, boolean profilingEnabled) {
+  public UpdateRemoveStep(List<UpdateRemoveItem> items, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.items = items;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
-        if (result instanceof OResultInternal) {
+      public Result next() {
+        Result result = upstream.next();
+        if (result instanceof ResultInternal) {
           for (UpdateRemoveItem item : items) {
-            item.applyUpdate((OResultInternal) result, ctx);
+            item.applyUpdate((ResultInternal) result, ctx);
           }
         }
         return result;
@@ -44,7 +44,7 @@ public class UpdateRemoveStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -57,7 +57,7 @@ public class UpdateRemoveStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ UPDATE REMOVE");

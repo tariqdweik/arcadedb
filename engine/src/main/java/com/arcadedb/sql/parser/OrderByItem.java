@@ -1,9 +1,9 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
+import com.arcadedb.utility.LogManager;
 
 import java.util.Map;
 
@@ -68,7 +68,7 @@ public class OrderByItem {
     }
   }
 
-  public int compare(OResult a, OResult b, OCommandContext ctx) {
+  public int compare(Result a, Result b, CommandContext ctx) {
     Object aVal = null;
     Object bVal = null;
     if (rid != null) {
@@ -101,7 +101,7 @@ public class OrderByItem {
       try {
         result = ((Comparable) aVal).compareTo(bVal);
       } catch (Exception e) {
-        PLogManager.instance().error(this, "Error during comparision", e);
+        LogManager.instance().error(this, "Error during comparision", e);
         result = 0;
       }
     }
@@ -141,8 +141,8 @@ public class OrderByItem {
     return modifier;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("alias", alias);
     if (modifier != null) {
       result.setProperty("modifier", modifier.serialize());
@@ -155,7 +155,7 @@ public class OrderByItem {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     alias = fromResult.getProperty("alias");
     if (fromResult.getProperty("modifier") != null) {
       modifier = new Modifier(-1);

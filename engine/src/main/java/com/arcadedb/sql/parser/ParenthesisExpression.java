@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalExecutionPlan;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalExecutionPlan;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class ParenthesisExpression extends MathExpression {
   }
 
   @Override
-  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, CommandContext ctx) {
     if (expression != null) {
       return expression.execute(iCurrentRecord, ctx);
     }
@@ -51,14 +51,14 @@ public class ParenthesisExpression extends MathExpression {
   }
 
   @Override
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     if (expression != null) {
       return expression.execute(iCurrentRecord, ctx);
     }
     if (statement != null) {
-      OInternalExecutionPlan execPlan = statement.createExecutionPlan(ctx, false);
-      OLocalResultSet rs = new OLocalResultSet(execPlan);
-      List<OResult> result = new ArrayList<>();
+      InternalExecutionPlan execPlan = statement.createExecutionPlan(ctx, false);
+      LocalResultSet rs = new LocalResultSet(execPlan);
+      List<Result> result = new ArrayList<>();
       while (rs.hasNext()) {
         result.add(rs.next());
       }
@@ -205,16 +205,16 @@ public class ParenthesisExpression extends MathExpression {
   }
 
   @Override
-  public void applyRemove(OResultInternal result, OCommandContext ctx) {
+  public void applyRemove(ResultInternal result, CommandContext ctx) {
     if (expression != null) {
       expression.applyRemove(result, ctx);
     } else {
-      throw new PCommandExecutionException("Cannot apply REMOVE " + toString());
+      throw new CommandExecutionException("Cannot apply REMOVE " + toString());
     }
   }
 
-  public OResult serialize() {
-    OResultInternal result = (OResultInternal) super.serialize();
+  public Result serialize() {
+    ResultInternal result = (ResultInternal) super.serialize();
     if (expression != null) {
       result.setProperty("expression", expression.serialize());
     }
@@ -224,7 +224,7 @@ public class ParenthesisExpression extends MathExpression {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     super.deserialize(fromResult);
     if (fromResult.getProperty("expression") != null) {
       expression = new Expression(-1);

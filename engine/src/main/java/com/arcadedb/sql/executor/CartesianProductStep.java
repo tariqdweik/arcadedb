@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OLocalResultSet;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.sql.parser.LocalResultSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,29 +13,29 @@ import java.util.Optional;
  */
 public class CartesianProductStep extends AbstractExecutionStep {
 
-  private List<OInternalExecutionPlan> subPlans = new ArrayList<>();
+  private List<InternalExecutionPlan> subPlans = new ArrayList<>();
 
   private boolean inited = false;
-  List<Boolean>            completedPrefetch = new ArrayList<>();
-  List<OInternalResultSet> preFetches        = new ArrayList<>();//consider using resultset.reset() instead of buffering
+  List<Boolean>           completedPrefetch = new ArrayList<>();
+  List<InternalResultSet> preFetches        = new ArrayList<>();//consider using resultset.reset() instead of buffering
 
-  List<OResultSet> resultSets   = new ArrayList<>();
-  List<OResult>    currentTuple = new ArrayList<>();
+  List<ResultSet> resultSets   = new ArrayList<>();
+  List<Result>    currentTuple = new ArrayList<>();
 
-  OResultInternal nextRecord;
+  ResultInternal nextRecord;
 
   private long cost = 0;
 
-  public CartesianProductStep(OCommandContext ctx, boolean profilingEnabled) {
+  public CartesianProductStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init(ctx);
     //    return new OInternalResultSet();
-    return new OResultSet() {
+    return new ResultSet() {
       int currentCount = 0;
 
       @Override
@@ -47,11 +47,11 @@ public class CartesianProductStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (currentCount >= nRecords || nextRecord == null) {
           throw new IllegalStateException();
         }
-        OResultInternal result = nextRecord;
+        ResultInternal result = nextRecord;
         fetchNextRecord();
         currentCount++;
         return result;
@@ -63,7 +63,7 @@ public class CartesianProductStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -76,7 +76,7 @@ public class CartesianProductStep extends AbstractExecutionStep {
     //TODO
   }
 
-  private void init(OCommandContext ctx) {
+  private void init(CommandContext ctx) {
     if (subPlans == null || subPlans.isEmpty()) {
       return;
     }
@@ -84,9 +84,9 @@ public class CartesianProductStep extends AbstractExecutionStep {
       return;
     }
 
-    for (OInternalExecutionPlan plan : subPlans) {
-      resultSets.add(new OLocalResultSet(plan));
-      this.preFetches.add(new OInternalResultSet());
+    for (InternalExecutionPlan plan : subPlans) {
+      resultSets.add(new LocalResultSet(plan));
+      this.preFetches.add(new InternalResultSet());
     }
     fetchFirstRecord();
     inited = true;
@@ -94,12 +94,12 @@ public class CartesianProductStep extends AbstractExecutionStep {
 
   private void fetchFirstRecord() {
     int i = 0;
-    for (OResultSet rs : resultSets) {
+    for (ResultSet rs : resultSets) {
       if (!rs.hasNext()) {
         nextRecord = null;
         return;
       }
-      OResult item = rs.next();
+      Result item = rs.next();
       currentTuple.add(item);
       completedPrefetch.add(false);
     }
@@ -111,7 +111,7 @@ public class CartesianProductStep extends AbstractExecutionStep {
   }
 
   private void fetchNextRecord(int level) {
-    OResultSet currentRs = resultSets.get(level);
+    ResultSet currentRs = resultSets.get(level);
     if (!currentRs.hasNext()) {
       if (level <= 0) {
         nextRecord = null;
@@ -136,10 +136,10 @@ public class CartesianProductStep extends AbstractExecutionStep {
         nextRecord = null;
         return;
       }
-      nextRecord = new OResultInternal();
+      nextRecord = new ResultInternal();
 
       for (int i = 0; i < this.currentTuple.size(); i++) {
-        OResult res = this.currentTuple.get(i);
+        Result res = this.currentTuple.get(i);
         for (String s : res.getPropertyNames()) {
           nextRecord.setProperty(s, res.getProperty(s));
         }
@@ -157,19 +157,19 @@ public class CartesianProductStep extends AbstractExecutionStep {
     }
   }
 
-  public void addSubPlan(OInternalExecutionPlan subPlan) {
+  public void addSubPlan(InternalExecutionPlan subPlan) {
     this.subPlans.add(subPlan);
   }
 
   @Override
   public String prettyPrint(int depth, int indent) {
     String result = "";
-    String ind = OExecutionStepInternal.getIndent(depth, indent);
+    String ind = ExecutionStepInternal.getIndent(depth, indent);
 
     int[] blockSizes = new int[subPlans.size()];
 
     for (int i = 0; i < subPlans.size(); i++) {
-      OInternalExecutionPlan currentPlan = subPlans.get(subPlans.size() - 1 - i);
+      InternalExecutionPlan currentPlan = subPlans.get(subPlans.size() - 1 - i);
       String partial = currentPlan.prettyPrint(0, indent);
 
       String[] partials = partial.split("\n");
@@ -251,7 +251,7 @@ public class CartesianProductStep extends AbstractExecutionStep {
   }
 
   private String head(int depth, int indent, int nItems) {
-    String ind = OExecutionStepInternal.getIndent(depth, indent);
+    String ind = ExecutionStepInternal.getIndent(depth, indent);
     String result = ind + "+ CARTESIAN PRODUCT";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";

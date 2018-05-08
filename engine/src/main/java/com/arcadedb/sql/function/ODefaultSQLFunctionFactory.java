@@ -16,13 +16,13 @@
 package com.arcadedb.sql.function;
 
 import com.arcadedb.sql.function.coll.*;
-import com.arcadedb.sql.function.geo.OSQLFunctionDistance;
+import com.arcadedb.sql.function.geo.SQLFunctionDistance;
 import com.arcadedb.sql.function.graph.*;
 import com.arcadedb.sql.function.math.*;
 import com.arcadedb.sql.function.misc.*;
 import com.arcadedb.sql.function.stat.*;
-import com.arcadedb.sql.function.text.OSQLFunctionConcat;
-import com.arcadedb.sql.function.text.OSQLFunctionFormat;
+import com.arcadedb.sql.function.text.SQLFunctionConcat;
+import com.arcadedb.sql.function.text.SQLFunctionFormat;
 
 /**
  * Default set of SQL function.
@@ -32,50 +32,50 @@ import com.arcadedb.sql.function.text.OSQLFunctionFormat;
 public final class ODefaultSQLFunctionFactory extends OSQLFunctionFactoryTemplate {
   public ODefaultSQLFunctionFactory() {
     // MISC FUNCTIONS
-    register(OSQLFunctionAverage.NAME, OSQLFunctionAverage.class);
-    register(OSQLFunctionCoalesce.NAME, new OSQLFunctionCoalesce());
-    register(OSQLFunctionCount.NAME, OSQLFunctionCount.class);
-    register(OSQLFunctionDate.NAME, OSQLFunctionDate.class);
-    register(OSQLFunctionDecode.NAME, new OSQLFunctionDecode());
-    register(OSQLFunctionDifference.NAME, OSQLFunctionDifference.class);
-    register(OSQLFunctionSymmetricDifference.NAME, OSQLFunctionSymmetricDifference.class);
-    register(OSQLFunctionDistance.NAME, new OSQLFunctionDistance());
-    register(OSQLFunctionDistinct.NAME, OSQLFunctionDistinct.class);
-    register(OSQLFunctionEncode.NAME, new OSQLFunctionEncode());
-    register(OSQLFunctionFirst.NAME, new OSQLFunctionFirst());
-    register(OSQLFunctionFormat.NAME, new OSQLFunctionFormat());
-    register(OSQLFunctionIf.NAME, new OSQLFunctionIf());
-    register(OSQLFunctionIfNull.NAME, new OSQLFunctionIfNull());
-    register(OSQLFunctionIntersect.NAME, OSQLFunctionIntersect.class);
-    register(OSQLFunctionLast.NAME, new OSQLFunctionLast());
-    register(OSQLFunctionList.NAME, OSQLFunctionList.class);
-    register(OSQLFunctionMap.NAME, OSQLFunctionMap.class);
-    register(OSQLFunctionMax.NAME, OSQLFunctionMax.class);
-    register(OSQLFunctionMin.NAME, OSQLFunctionMin.class);
-    register(OSQLFunctionSet.NAME, OSQLFunctionSet.class);
-    register(OSQLFunctionSysdate.NAME, OSQLFunctionSysdate.class);
-    register(OSQLFunctionSum.NAME, OSQLFunctionSum.class);
-    register(OSQLFunctionUnionAll.NAME, OSQLFunctionUnionAll.class);
-    register(OSQLFunctionMode.NAME, OSQLFunctionMode.class);
-    register(OSQLFunctionPercentile.NAME, OSQLFunctionPercentile.class);
-    register(OSQLFunctionMedian.NAME, OSQLFunctionMedian.class);
-    register(OSQLFunctionVariance.NAME, OSQLFunctionVariance.class);
-    register(OSQLFunctionStandardDeviation.NAME, OSQLFunctionStandardDeviation.class);
-    register(OSQLFunctionUUID.NAME, OSQLFunctionUUID.class);
-    register(OSQLFunctionConcat.NAME, OSQLFunctionConcat.class);
-    register(OSQLFunctionAbsoluteValue.NAME, OSQLFunctionAbsoluteValue.class);
+    register(SQLFunctionAverage.NAME, SQLFunctionAverage.class);
+    register(SQLFunctionCoalesce.NAME, new SQLFunctionCoalesce());
+    register(SQLFunctionCount.NAME, SQLFunctionCount.class);
+    register(SQLFunctionDate.NAME, SQLFunctionDate.class);
+    register(SQLFunctionDecode.NAME, new SQLFunctionDecode());
+    register(SQLFunctionDifference.NAME, SQLFunctionDifference.class);
+    register(SQLFunctionSymmetricDifference.NAME, SQLFunctionSymmetricDifference.class);
+    register(SQLFunctionDistance.NAME, new SQLFunctionDistance());
+    register(SQLFunctionDistinct.NAME, SQLFunctionDistinct.class);
+    register(SQLFunctionEncode.NAME, new SQLFunctionEncode());
+    register(SQLFunctionFirst.NAME, new SQLFunctionFirst());
+    register(SQLFunctionFormat.NAME, new SQLFunctionFormat());
+    register(SQLFunctionIf.NAME, new SQLFunctionIf());
+    register(SQLFunctionIfNull.NAME, new SQLFunctionIfNull());
+    register(SQLFunctionIntersect.NAME, SQLFunctionIntersect.class);
+    register(SQLFunctionLast.NAME, new SQLFunctionLast());
+    register(SQLFunctionList.NAME, SQLFunctionList.class);
+    register(SQLFunctionMap.NAME, SQLFunctionMap.class);
+    register(SQLFunctionMax.NAME, SQLFunctionMax.class);
+    register(SQLFunctionMin.NAME, SQLFunctionMin.class);
+    register(SQLFunctionSet.NAME, SQLFunctionSet.class);
+    register(SQLFunctionSysdate.NAME, SQLFunctionSysdate.class);
+    register(SQLFunctionSum.NAME, SQLFunctionSum.class);
+    register(SQLFunctionUnionAll.NAME, SQLFunctionUnionAll.class);
+    register(SQLFunctionMode.NAME, SQLFunctionMode.class);
+    register(SQLFunctionPercentile.NAME, SQLFunctionPercentile.class);
+    register(SQLFunctionMedian.NAME, SQLFunctionMedian.class);
+    register(SQLFunctionVariance.NAME, SQLFunctionVariance.class);
+    register(SQLFunctionStandardDeviation.NAME, SQLFunctionStandardDeviation.class);
+    register(SQLFunctionUUID.NAME, SQLFunctionUUID.class);
+    register(SQLFunctionConcat.NAME, SQLFunctionConcat.class);
+    register(SQLFunctionAbsoluteValue.NAME, SQLFunctionAbsoluteValue.class);
     //graph
-    register(OSQLFunctionOut.NAME, OSQLFunctionOut.class);
-    register(OSQLFunctionIn.NAME, OSQLFunctionIn.class);
-    register(OSQLFunctionBoth.NAME, OSQLFunctionBoth.class);
-    register(OSQLFunctionOutE.NAME, OSQLFunctionOutE.class);
-    register(OSQLFunctionOutV.NAME, OSQLFunctionOutV.class);
-    register(OSQLFunctionInE.NAME, OSQLFunctionInE.class);
-    register(OSQLFunctionInV.NAME, OSQLFunctionInV.class);
-    register(OSQLFunctionBothE.NAME, OSQLFunctionBothE.class);
-    register(OSQLFunctionBothV.NAME, OSQLFunctionBothV.class);
-    register(OSQLFunctionShortestPath.NAME, OSQLFunctionShortestPath.class);
-    register(OSQLFunctionDijkstra.NAME, OSQLFunctionDijkstra.class);
-    register(OSQLFunctionAstar.NAME, OSQLFunctionAstar.class);
+    register(SQLFunctionOut.NAME, SQLFunctionOut.class);
+    register(SQLFunctionIn.NAME, SQLFunctionIn.class);
+    register(SQLFunctionBoth.NAME, SQLFunctionBoth.class);
+    register(SQLFunctionOutE.NAME, SQLFunctionOutE.class);
+    register(SQLFunctionOutV.NAME, SQLFunctionOutV.class);
+    register(SQLFunctionInE.NAME, SQLFunctionInE.class);
+    register(SQLFunctionInV.NAME, SQLFunctionInV.class);
+    register(SQLFunctionBothE.NAME, SQLFunctionBothE.class);
+    register(SQLFunctionBothV.NAME, SQLFunctionBothV.class);
+    register(SQLFunctionShortestPath.NAME, SQLFunctionShortestPath.class);
+    register(SQLFunctionDijkstra.NAME, SQLFunctionDijkstra.class);
+    register(SQLFunctionAstar.NAME, SQLFunctionAstar.class);
   }
 }

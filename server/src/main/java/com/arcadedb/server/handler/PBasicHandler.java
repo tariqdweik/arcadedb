@@ -1,7 +1,7 @@
 package com.arcadedb.server.handler;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.server.PHttpServer;
+import com.arcadedb.database.Database;
+import com.arcadedb.server.HttpServer;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
@@ -9,13 +9,13 @@ import io.undertow.util.Headers;
 import java.util.Deque;
 
 public abstract class PBasicHandler implements HttpHandler {
-  protected final PHttpServer httpServer;
+  protected final HttpServer httpServer;
 
-  public PBasicHandler(final PHttpServer pHttpServer) {
-    this.httpServer = pHttpServer;
+  public PBasicHandler(final HttpServer httpServer) {
+    this.httpServer = httpServer;
   }
 
-  protected abstract void execute(HttpServerExchange exchange, PDatabase database) throws Exception;
+  protected abstract void execute(HttpServerExchange exchange, Database database) throws Exception;
 
   @Override
   public final void handleRequest(HttpServerExchange exchange) throws Exception {

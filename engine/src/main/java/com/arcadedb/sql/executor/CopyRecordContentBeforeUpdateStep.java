@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -19,38 +19,38 @@ import java.util.Optional;
 public class CopyRecordContentBeforeUpdateStep extends AbstractExecutionStep {
   private long cost = 0;
 
-  public CopyRecordContentBeforeUpdateStep(OCommandContext ctx, boolean profilingEnabled) {
+  public CopyRecordContentBeforeUpdateStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet lastFetched = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet lastFetched = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return lastFetched.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = lastFetched.next();
+      public Result next() {
+        Result result = lastFetched.next();
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
 
-          if (result instanceof OUpdatableResult) {
-            OResultInternal prevValue = new OResultInternal();
-            PRecord rec = result.getElement().get().getRecord();
+          if (result instanceof UpdatableResult) {
+            ResultInternal prevValue = new ResultInternal();
+            Record rec = result.getElement().get().getRecord();
             prevValue.setProperty("@rid", rec.getIdentity());
-            if (rec instanceof PDocument) {
-              prevValue.setProperty("@class", ((PDocument) rec).getType());
+            if (rec instanceof Document) {
+              prevValue.setProperty("@class", ((Document) rec).getType());
             }
             for (String propName : result.getPropertyNames()) {
               prevValue.setProperty(propName, result.getProperty(propName));
             }
-            ((OUpdatableResult) result).previousValue = prevValue;
+            ((UpdatableResult) result).previousValue = prevValue;
           } else {
-            throw new PCommandExecutionException("Cannot fetch previous value: " + result);
+            throw new CommandExecutionException("Cannot fetch previous value: " + result);
           }
           return result;
         } finally {
@@ -66,7 +66,7 @@ public class CopyRecordContentBeforeUpdateStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -79,7 +79,7 @@ public class CopyRecordContentBeforeUpdateStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ COPY RECORD CONTENT BEFORE UPDATE");

@@ -1,43 +1,43 @@
 package com.arcadedb.index;
 
-import com.arcadedb.PGlobalConfiguration;
-import com.arcadedb.database.PBinary;
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PRID;
-import com.arcadedb.database.PTrackableBinary;
-import com.arcadedb.engine.PModifiablePage;
+import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.database.Binary;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.TrackableBinary;
+import com.arcadedb.engine.ModifiablePage;
 import com.arcadedb.schema.PSchemaImpl;
-import com.arcadedb.serializer.PBinaryComparator;
-import com.arcadedb.serializer.PBinarySerializer;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.serializer.BinaryComparator;
+import com.arcadedb.serializer.BinarySerializer;
+import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
 
 public class PIndexLSMCompactor {
-  private final PIndexLSM index;
+  private final IndexLSM index;
 
-  public PIndexLSMCompactor(final PIndexLSM index) {
+  public PIndexLSMCompactor(final IndexLSM index) {
     this.index = index;
   }
 
   public void compact() throws IOException {
-    final PDatabase database = index.getDatabase();
+    final Database database = index.getDatabase();
 
     final int totalPages = index.getTotalPages();
-    PLogManager.instance().info(this, "Compacting index '%s' (pages=%d)...", index, totalPages);
+    LogManager.instance().info(this, "Compacting index '%s' (pages=%d)...", index, totalPages);
 
     index.getDatabase().begin();
-    final PIndexLSM newIndex = index.copy();
+    final IndexLSM newIndex = index.copy();
     ((PSchemaImpl) index.getDatabase().getSchema()).registerFile(newIndex);
 
     final byte[] keyTypes = index.getKeyTypes();
 
-    final long indexCompactionRAM = PGlobalConfiguration.INDEX_COMPACTION_RAM.getValueAsLong() * 1024 * 1024;
+    final long indexCompactionRAM = GlobalConfiguration.INDEX_COMPACTION_RAM.getValueAsLong() * 1024 * 1024;
 
     long loops = 0;
     long totalKeys = 0;
 
-    final PBinary keyValueContent = new PBinary();
+    final Binary keyValueContent = new Binary();
 
     int pagesToCompact = 0;
     for (int pageIndex = 0; pageIndex < totalPages; ) {
@@ -64,11 +64,11 @@ public class PIndexLSMCompactor {
         }
       }
 
-      final PBinarySerializer serializer = database.getSerializer();
-      final PBinaryComparator comparator = serializer.getComparator();
+      final BinarySerializer serializer = database.getSerializer();
+      final BinaryComparator comparator = serializer.getComparator();
 
-      PModifiablePage lastPage = null;
-      PTrackableBinary currentPageBuffer = null;
+      ModifiablePage lastPage = null;
+      TrackableBinary currentPageBuffer = null;
 
       boolean moreItems = true;
       for (; moreItems; ++loops) {
@@ -85,7 +85,7 @@ public class PIndexLSMCompactor {
           } else {
             if (keys[p] != null) {
               moreItems = true;
-              if (PIndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+              if (IndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
                 minorKey = keys[p];
                 minorKeyIndex = p;
               }
@@ -94,8 +94,8 @@ public class PIndexLSMCompactor {
         }
 
         final Object value = iterators[minorKeyIndex].getValue();
-        final PModifiablePage newPage = newIndex
-            .appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, (PRID) value);
+        final ModifiablePage newPage = newIndex
+            .appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, (RID) value);
         if (newPage != lastPage) {
           currentPageBuffer = newPage.getTrackable();
           lastPage = newPage;
@@ -104,7 +104,7 @@ public class PIndexLSMCompactor {
         ++totalKeys;
 
         if (totalKeys % 1000000 == 0)
-          PLogManager.instance().info(this, "- keys %d - loops %d - page %s", totalKeys, loops, newPage);
+          LogManager.instance().info(this, "- keys %d - loops %d - page %s", totalKeys, loops, newPage);
 
         if (iterators[minorKeyIndex].hasNext()) {
           iterators[minorKeyIndex].next();
@@ -116,7 +116,7 @@ public class PIndexLSMCompactor {
         }
       }
 
-      PLogManager.instance().info(this, "Compacted %s pages, total %d...", pagesToCompact, pageIndex + pagesToCompact);
+      LogManager.instance().info(this, "Compacted %s pages, total %d...", pagesToCompact, pageIndex + pagesToCompact);
 
       database.commit();
       database.begin();
@@ -130,7 +130,7 @@ public class PIndexLSMCompactor {
 
     database.commit();
 
-    PLogManager.instance().info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index,
+    LogManager.instance().info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index,
         newIndex.getTotalPages(), loops);
   }
 }

@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class FunctionCall extends SimpleNode {
     super(p, id);
   }
 
-  public static PDatabase getDatabase() {
+  public static Database getDatabase() {
     throw new UnsupportedOperationException();
   }
 
@@ -78,20 +78,20 @@ public class FunctionCall extends SimpleNode {
     builder.append(")");
   }
 
-  public Object execute(Object targetObjects, OCommandContext ctx) {
+  public Object execute(Object targetObjects, CommandContext ctx) {
     return execute(targetObjects, ctx, name.getStringValue());
   }
 
-  private Object execute(Object targetObjects, OCommandContext ctx, String name) {
+  private Object execute(Object targetObjects, CommandContext ctx, String name) {
     List<Object> paramValues = new ArrayList<Object>();
 
     Object record = null;
 
     if (record == null) {
-      if (targetObjects instanceof PIdentifiable) {
-        record = (PIdentifiable) targetObjects;
-      } else if (targetObjects instanceof OResult) {
-        record = ((OResult) targetObjects).toElement();
+      if (targetObjects instanceof Identifiable) {
+        record = (Identifiable) targetObjects;
+      } else if (targetObjects instanceof Result) {
+        record = ((Result) targetObjects).toElement();
       } else {
         record = targetObjects;
       }
@@ -99,44 +99,44 @@ public class FunctionCall extends SimpleNode {
     if (record == null) {
       Object current = ctx == null ? null : ctx.getVariable("$current");
       if (current != null) {
-        if (current instanceof PIdentifiable) {
+        if (current instanceof Identifiable) {
           record = current;
-        } else if (current instanceof OResult) {
-          record = ((OResult) current).toElement();
+        } else if (current instanceof Result) {
+          record = ((Result) current).toElement();
         } else {
           record = current;
         }
       }
     }
     for (Expression expr : this.params) {
-      if (record instanceof PIdentifiable) {
-        paramValues.add(expr.execute((PIdentifiable) record, ctx));
-      } else if (record instanceof OResult) {
-        paramValues.add(expr.execute((OResult) record, ctx));
+      if (record instanceof Identifiable) {
+        paramValues.add(expr.execute((Identifiable) record, ctx));
+      } else if (record instanceof Result) {
+        paramValues.add(expr.execute((Result) record, ctx));
       } else if (record == null) {
-        paramValues.add(expr.execute((OResult) record, ctx));
+        paramValues.add(expr.execute((Result) record, ctx));
       } else {
-        throw new PCommandExecutionException("Invalid value for $current: " + record);
+        throw new CommandExecutionException("Invalid value for $current: " + record);
       }
     }
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name);
+    SQLFunction function = SQLEngine.getInstance().getFunction(name);
     if (function != null) {
-      if (record instanceof PIdentifiable) {
-        return function.execute(targetObjects, (PIdentifiable) record, null, paramValues.toArray(), ctx);
-      } else if (record instanceof OResult) {
-        return function.execute(targetObjects, ((OResult) record).getElement().orElse(null), null, paramValues.toArray(), ctx);
+      if (record instanceof Identifiable) {
+        return function.execute(targetObjects, (Identifiable) record, null, paramValues.toArray(), ctx);
+      } else if (record instanceof Result) {
+        return function.execute(targetObjects, ((Result) record).getElement().orElse(null), null, paramValues.toArray(), ctx);
       } else if (record == null) {
         return function.execute(targetObjects, null, null, paramValues.toArray(), ctx);
       } else {
-        throw new PCommandExecutionException("Invalid value for $current: " + record);
+        throw new CommandExecutionException("Invalid value for $current: " + record);
       }
     } else {
-      throw new PCommandExecutionException("Funciton not found: " + name);
+      throw new CommandExecutionException("Funciton not found: " + name);
     }
   }
 
   public boolean isIndexedFunctionCall() {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     return (function instanceof OIndexableSQLFunction);
   }
 
@@ -150,9 +150,9 @@ public class FunctionCall extends SimpleNode {
    *
    * @return
    */
-  public Iterable<PRecord> executeIndexedFunction(FromClause target, OCommandContext ctx, BinaryCompareOperator operator,
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext ctx, BinaryCompareOperator operator,
       Object rightValue) {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     if (function instanceof OIndexableSQLFunction) {
       return ((OIndexableSQLFunction) function)
           .searchFromTarget(target, operator, rightValue, ctx, this.getParams().toArray(new Expression[] {}));
@@ -168,8 +168,8 @@ public class FunctionCall extends SimpleNode {
    *
    * @return the approximate number of items returned by the condition execution, -1 if the extimation cannot be executed
    */
-  public long estimateIndexedFunction(FromClause target, OCommandContext ctx, BinaryCompareOperator operator, Object rightValue) {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+  public long estimateIndexedFunction(FromClause target, CommandContext ctx, BinaryCompareOperator operator, Object rightValue) {
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     if (function instanceof OIndexableSQLFunction) {
       return ((OIndexableSQLFunction) function)
           .estimate(target, operator, rightValue, ctx, this.getParams().toArray(new Expression[] {}));
@@ -188,9 +188,9 @@ public class FunctionCall extends SimpleNode {
    * @return true if current function is an indexed funciton AND that function can also be executed without using the index, false
    * otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right) {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     if (function instanceof OIndexableSQLFunction) {
       return ((OIndexableSQLFunction) function)
           .canExecuteInline(target, operator, right, context, this.getParams().toArray(new Expression[] {}));
@@ -208,9 +208,9 @@ public class FunctionCall extends SimpleNode {
    *
    * @return true if current function is an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context,
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     if (function instanceof OIndexableSQLFunction) {
       return ((OIndexableSQLFunction) function)
           .allowsIndexedExecution(target, operator, right, context, this.getParams().toArray(new Expression[] {}));
@@ -228,9 +228,9 @@ public class FunctionCall extends SimpleNode {
    *
    * @return true if current expression is an indexed function AND the function has also to be executed after the index search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context,
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     if (function instanceof OIndexableSQLFunction) {
       return ((OIndexableSQLFunction) function)
           .shouldExecuteAfterSearch(target, operator, right, context, this.getParams().toArray(new Expression[] {}));
@@ -280,7 +280,7 @@ public class FunctionCall extends SimpleNode {
         } else {
           for (Expression param : params) {
             if (param.isAggregate()) {
-              throw new PCommandExecutionException(
+              throw new CommandExecutionException(
                   "Cannot calculate an aggregate function of another aggregate function " + toString());
             }
             Identifier nextAlias = aggregateProj.getNextAlias();
@@ -311,7 +311,7 @@ public class FunctionCall extends SimpleNode {
   }
 
   private boolean isAggregateFunction() {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     function.config(this.params.toArray());
     return function.aggregateResults();
   }
@@ -340,11 +340,11 @@ public class FunctionCall extends SimpleNode {
     return true;
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
-    OSQLFunction function = OSQLEngine.getInstance().getFunction(name.getStringValue());
+  public AggregationContext getAggregationContext(CommandContext ctx) {
+    SQLFunction function = SQLEngine.getInstance().getFunction(name.getStringValue());
     function.config(this.params.toArray());
 
-    OFunctionAggregationContext result = new OFunctionAggregationContext(function, this.params);
+    FunctionAggregationContext result = new FunctionAggregationContext(function, this.params);
     return result;
   }
 
@@ -401,8 +401,8 @@ public class FunctionCall extends SimpleNode {
     return result;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (name != null) {
       result.setProperty("name", name.serialize());
     }
@@ -412,15 +412,15 @@ public class FunctionCall extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("name") != null) {
       name = new Identifier(-1);
       name.deserialize(fromResult.getProperty("name"));
     }
     if (fromResult.getProperty("params") != null) {
       params = new ArrayList<>();
-      List<OResult> ser = fromResult.getProperty("params");
-      for (OResult item : ser) {
+      List<Result> ser = fromResult.getProperty("params");
+      for (Result item : ser) {
         Expression exp = new Expression(-1);
         exp.deserialize(item);
         params.add(exp);

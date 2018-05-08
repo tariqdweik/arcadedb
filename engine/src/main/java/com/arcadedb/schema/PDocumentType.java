@@ -1,11 +1,11 @@
 package com.arcadedb.schema;
 
-import com.arcadedb.database.PBucketSelectionStrategy;
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRoundRobinBucketSelectionStrategy;
-import com.arcadedb.database.PThreadAffinityBucketSelectionStrategy;
-import com.arcadedb.engine.PBucket;
-import com.arcadedb.exception.PSchemaException;
+import com.arcadedb.database.BucketSelectionStrategy;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.RoundRobinBucketSelectionStrategy;
+import com.arcadedb.database.ThreadAffinityBucketSelectionStrategy;
+import com.arcadedb.engine.Bucket;
+import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.PIndex;
 
 import java.util.*;
@@ -15,9 +15,9 @@ public class PDocumentType {
   private final String                                 name;
   private final List<PDocumentType>                    parentTypes            = new ArrayList<>();
   private final List<PDocumentType>                    subTypes               = new ArrayList<>();
-  private final List<PBucket>                          buckets                = new ArrayList<>();
-  private       PBucketSelectionStrategy               syncSelectionStrategy  = new PThreadAffinityBucketSelectionStrategy();
-  private       PBucketSelectionStrategy               asyncSelectionStrategy = new PRoundRobinBucketSelectionStrategy();
+  private final List<Bucket>                           buckets                = new ArrayList<>();
+  private       BucketSelectionStrategy                syncSelectionStrategy  = new ThreadAffinityBucketSelectionStrategy();
+  private       BucketSelectionStrategy                asyncSelectionStrategy = new RoundRobinBucketSelectionStrategy();
   private final Map<String, PProperty>                 properties             = new HashMap<>();
   private       Map<Integer, List<IndexMetadata>>      indexesByBucket        = new HashMap<>();
   private       Map<List<String>, List<IndexMetadata>> indexesByProperties    = new HashMap<>();
@@ -44,7 +44,7 @@ public class PDocumentType {
   }
 
   public byte getType() {
-    return PDocument.RECORD_TYPE;
+    return Document.RECORD_TYPE;
   }
 
   public void addParent(final String parentName) {
@@ -98,11 +98,11 @@ public class PDocumentType {
 
   public PProperty createProperty(final String propertyName, final Class<?> propertyType) {
     if (properties.containsKey(propertyName))
-      throw new PSchemaException(
+      throw new SchemaException(
           "Cannot create the property '" + propertyName + "' in type '" + name + "' because it already exists");
 
     if (getPolymorphicPropertyNames().contains(propertyName))
-      throw new PSchemaException("Cannot create the property '" + propertyName + "' in type '" + name
+      throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name
           + "' because it was already defined in a parent class");
 
     final PProperty property = new PProperty(this, propertyName, propertyType);
@@ -112,11 +112,11 @@ public class PDocumentType {
     return property;
   }
 
-  public List<PBucket> getBuckets(final boolean polymorphic) {
+  public List<Bucket> getBuckets(final boolean polymorphic) {
     if (!polymorphic)
       return buckets;
 
-    final List<PBucket> allBuckets = new ArrayList<>();
+    final List<Bucket> allBuckets = new ArrayList<>();
     allBuckets.addAll(buckets);
 
     for (PDocumentType p : subTypes)
@@ -126,36 +126,36 @@ public class PDocumentType {
   }
 
   private boolean hasBucket(final String bucketName) {
-    for (PBucket b : buckets)
+    for (Bucket b : buckets)
       if (b.getName().equals(bucketName))
         return true;
     return false;
   }
 
-  public void addBucket(final PBucket bucket) {
+  public void addBucket(final Bucket bucket) {
     addBucketInternal(bucket);
     schema.saveConfiguration();
   }
 
-  public PBucket getBucketToSave(final boolean async) {
+  public Bucket getBucketToSave(final boolean async) {
     if (buckets.isEmpty())
-      throw new PSchemaException("Cannot save on a bucket for type '" + name + "' because there are no buckets associated");
+      throw new SchemaException("Cannot save on a bucket for type '" + name + "' because there are no buckets associated");
     return buckets.get(async ? asyncSelectionStrategy.getBucketToSave() : syncSelectionStrategy.getBucketToSave());
   }
 
-  public PBucketSelectionStrategy getSyncSelectionStrategy() {
+  public BucketSelectionStrategy getSyncSelectionStrategy() {
     return syncSelectionStrategy;
   }
 
-  public void setSyncSelectionStrategy(final PBucketSelectionStrategy selectionStrategy) {
+  public void setSyncSelectionStrategy(final BucketSelectionStrategy selectionStrategy) {
     this.syncSelectionStrategy = selectionStrategy;
   }
 
-  public PBucketSelectionStrategy getAsyncSelectionStrategy() {
+  public BucketSelectionStrategy getAsyncSelectionStrategy() {
     return asyncSelectionStrategy;
   }
 
-  public void setAsyncSelectionStrategy(final PBucketSelectionStrategy selectionStrategy) {
+  public void setAsyncSelectionStrategy(final BucketSelectionStrategy selectionStrategy) {
     this.asyncSelectionStrategy = selectionStrategy;
   }
 
@@ -170,14 +170,14 @@ public class PDocumentType {
   public PProperty getProperty(final String propertyName) {
     final PProperty prop = properties.get(propertyName);
     if (prop == null)
-      throw new PSchemaException("Cannot find property '" + propertyName + "' in type '" + name + "'");
+      throw new SchemaException("Cannot find property '" + propertyName + "' in type '" + name + "'");
     return prop;
   }
 
   public PProperty getPolymorphicProperty(final String propertyName) {
     final PProperty prop = getPolymorphicProperties().get(propertyName);
     if (prop == null)
-      throw new PSchemaException("Cannot find property '" + propertyName + "' in type '" + name + "'");
+      throw new SchemaException("Cannot find property '" + propertyName + "' in type '" + name + "'");
     return prop;
 
   }
@@ -203,7 +203,7 @@ public class PDocumentType {
     return name;
   }
 
-  protected void addIndexInternal(final PIndex index, final PBucket bucket, final String[] propertyNames) {
+  protected void addIndexInternal(final PIndex index, final Bucket bucket, final String[] propertyNames) {
     final IndexMetadata metadata = new IndexMetadata(index, bucket.getId(), propertyNames);
 
     List<IndexMetadata> list1 = indexesByBucket.get(bucket.getId());
@@ -223,10 +223,10 @@ public class PDocumentType {
     list2.add(metadata);
   }
 
-  protected void addBucketInternal(final PBucket bucket) {
+  protected void addBucketInternal(final Bucket bucket) {
     for (PDocumentType cl : schema.getTypes()) {
       if (cl.hasBucket(bucket.getName()))
-        throw new PSchemaException("Cannot add the bucket '" + bucket.getName() + "' to the type '" + name
+        throw new SchemaException("Cannot add the bucket '" + bucket.getName() + "' to the type '" + name
             + "', because the bucket is already associated to the type '" + cl.getName() + "'");
     }
 

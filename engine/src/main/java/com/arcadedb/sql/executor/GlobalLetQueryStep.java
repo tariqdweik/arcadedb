@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Identifier;
-import com.arcadedb.sql.parser.OLocalResultSet;
+import com.arcadedb.sql.parser.LocalResultSet;
 import com.arcadedb.sql.parser.Statement;
 
 import java.util.ArrayList;
@@ -14,40 +14,40 @@ import java.util.List;
  */
 public class GlobalLetQueryStep extends AbstractExecutionStep {
 
-  private final Identifier             varName;
-  private final OInternalExecutionPlan subExecutionPlan;
+  private final Identifier            varName;
+  private final InternalExecutionPlan subExecutionPlan;
 
   boolean executed = false;
 
 
-  public GlobalLetQueryStep(Identifier varName, Statement query, OCommandContext ctx, boolean profilingEnabled) {
+  public GlobalLetQueryStep(Identifier varName, Statement query, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varName = varName;
 
-    OBasicCommandContext subCtx = new OBasicCommandContext();
+    BasicCommandContext subCtx = new BasicCommandContext();
     subCtx.setDatabase(ctx.getDatabase());
     subCtx.setParent(ctx);
     subExecutionPlan = query.createExecutionPlan(subCtx, profilingEnabled);
   }
 
-  @Override public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  @Override public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     calculate(ctx);
-    return new OInternalResultSet();
+    return new InternalResultSet();
   }
 
-  private void calculate(OCommandContext ctx) {
+  private void calculate(CommandContext ctx) {
     if (executed) {
       return;
     }
-    ctx.setVariable(varName.getStringValue(), toList(new OLocalResultSet(subExecutionPlan)));
+    ctx.setVariable(varName.getStringValue(), toList(new LocalResultSet(subExecutionPlan)));
     executed = true;
   }
 
 
 
-  private List<OResult> toList(OLocalResultSet oLocalResultSet) {
-    List<OResult> result = new ArrayList<>();
+  private List<Result> toList(LocalResultSet oLocalResultSet) {
+    List<Result> result = new ArrayList<>();
     while (oLocalResultSet.hasNext()) {
       result.add(oLocalResultSet.next());
     }
@@ -56,13 +56,13 @@ public class GlobalLetQueryStep extends AbstractExecutionStep {
   }
 
   @Override public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ LET (once)\n" +
         spaces + "  " + varName + " = \n" + box(spaces+"    ", this.subExecutionPlan.prettyPrint(0, indent));
   }
 
   @Override
-  public List<OExecutionPlan> getSubExecutionPlans() {
+  public List<ExecutionPlan> getSubExecutionPlans() {
     return Collections.singletonList(this.subExecutionPlan);
   }
 

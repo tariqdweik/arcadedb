@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Unwind;
 
 import java.util.*;
@@ -18,22 +18,22 @@ public class UnwindStep extends AbstractExecutionStep {
   private final Unwind       unwind;
   private       List<String> unwindFields;
 
-  OResultSet        lastResult      = null;
-  Iterator<OResult> nextSubsequence = null;
-  OResult           nextElement     = null;
+  ResultSet        lastResult      = null;
+  Iterator<Result> nextSubsequence = null;
+  Result           nextElement     = null;
 
-  public UnwindStep(Unwind unwind, OCommandContext ctx, boolean profilingEnabled) {
+  public UnwindStep(Unwind unwind, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.unwind = unwind;
     unwindFields = unwind.getItems().stream().map(x -> x.getStringValue()).collect(Collectors.toList());
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (prev == null || !prev.isPresent()) {
-      throw new PCommandExecutionException("Cannot expand without a target");
+      throw new CommandExecutionException("Cannot expand without a target");
     }
-    return new OResultSet() {
+    return new ResultSet() {
       long localCount = 0;
 
       @Override
@@ -51,7 +51,7 @@ public class UnwindStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (localCount >= nRecords) {
           throw new IllegalStateException();
         }
@@ -62,7 +62,7 @@ public class UnwindStep extends AbstractExecutionStep {
           throw new IllegalStateException();
         }
 
-        OResult result = nextElement;
+        Result result = nextElement;
         localCount++;
         nextElement = null;
         fetchNext(ctx, nRecords);
@@ -75,7 +75,7 @@ public class UnwindStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -86,7 +86,7 @@ public class UnwindStep extends AbstractExecutionStep {
     };
   }
 
-  private void fetchNext(OCommandContext ctx, int n) {
+  private void fetchNext(CommandContext ctx, int n) {
     do {
       if (nextSubsequence != null && nextSubsequence.hasNext()) {
         nextElement = nextSubsequence.next();
@@ -102,15 +102,15 @@ public class UnwindStep extends AbstractExecutionStep {
         }
       }
 
-      OResult nextAggregateItem = lastResult.next();
+      Result nextAggregateItem = lastResult.next();
       nextSubsequence = unwind(nextAggregateItem, unwindFields, ctx).iterator();
 
     } while (true);
 
   }
 
-  private Collection<OResult> unwind(final OResult doc, final List<String> unwindFields, final OCommandContext iContext) {
-    final List<OResult> result = new ArrayList<>();
+  private Collection<Result> unwind(final Result doc, final List<String> unwindFields, final CommandContext iContext) {
+    final List<Result> result = new ArrayList<>();
 
     if (unwindFields.size() == 0) {
       result.add(doc);
@@ -119,7 +119,7 @@ public class UnwindStep extends AbstractExecutionStep {
       final List<String> nextFields = unwindFields.subList(1, unwindFields.size());
 
       Object fieldValue = doc.getProperty(firstField);
-      if (fieldValue == null || fieldValue instanceof PRecord) {
+      if (fieldValue == null || fieldValue instanceof Record) {
         result.addAll(unwind(doc, nextFields, iContext));
         return result;
       }
@@ -131,12 +131,12 @@ public class UnwindStep extends AbstractExecutionStep {
 
       Iterator iterator;
       if (fieldValue.getClass().isArray()) {
-        iterator = OMultiValue.getMultiValueIterator(fieldValue);
+        iterator = MultiValue.getMultiValueIterator(fieldValue);
       } else {
         iterator = ((Iterable) fieldValue).iterator();
       }
       if (!iterator.hasNext()) {
-        OResultInternal unwindedDoc = new OResultInternal();
+        ResultInternal unwindedDoc = new ResultInternal();
         copy(doc, unwindedDoc);
 
         unwindedDoc.setProperty(firstField, null);
@@ -144,7 +144,7 @@ public class UnwindStep extends AbstractExecutionStep {
       } else {
         do {
           Object o = iterator.next();
-          OResultInternal unwindedDoc = new OResultInternal();
+          ResultInternal unwindedDoc = new ResultInternal();
           copy(doc, unwindedDoc);
           unwindedDoc.setProperty(firstField, o);
           result.addAll(unwind(unwindedDoc, nextFields, iContext));
@@ -155,7 +155,7 @@ public class UnwindStep extends AbstractExecutionStep {
     return result;
   }
 
-  private void copy(OResult from, OResultInternal to) {
+  private void copy(Result from, ResultInternal to) {
     for (String prop : from.getPropertyNames()) {
       to.setProperty(prop, from.getProperty(prop));
     }
@@ -163,7 +163,7 @@ public class UnwindStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ " + unwind;
   }
 }

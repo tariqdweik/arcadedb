@@ -1,7 +1,7 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.Collections;
 import java.util.Map;
@@ -34,10 +34,10 @@ public class MatchPathItemFirst extends MatchPathItem {
     }
   }
 
-  protected Iterable<PIdentifiable> traversePatternEdge(MatchStatement.MatchContext matchContext, PIdentifiable startingPoint,
-      OCommandContext iCommandContext) {
+  protected Iterable<Identifiable> traversePatternEdge(MatchStatement.MatchContext matchContext, Identifiable startingPoint,
+      CommandContext iCommandContext) {
     Object qR = this.function.execute(startingPoint, iCommandContext);
-    return (qR instanceof Iterable) ? (Iterable) qR : Collections.singleton((PIdentifiable) qR);
+    return (qR instanceof Iterable) ? (Iterable) qR : Collections.singleton((Identifiable) qR);
   }
 
   @Override

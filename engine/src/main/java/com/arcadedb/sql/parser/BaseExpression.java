@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.Collections;
@@ -86,7 +86,7 @@ public class BaseExpression extends MathExpression {
 
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, CommandContext ctx) {
     Object result = null;
     if (number != null) {
       result = number.getValue();
@@ -105,7 +105,7 @@ public class BaseExpression extends MathExpression {
     return result;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     Object result = null;
     if (number != null) {
       result = number.getValue();
@@ -135,14 +135,14 @@ public class BaseExpression extends MathExpression {
     return identifier.isIndexedFunctionCall();
   }
 
-  public long estimateIndexedFunction(FromClause target, OCommandContext context, BinaryCompareOperator operator, Object right) {
+  public long estimateIndexedFunction(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return -1;
     }
     return identifier.estimateIndexedFunction(target, context, operator, right);
   }
 
-  public Iterable<PRecord> executeIndexedFunction(FromClause target, OCommandContext context,
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return null;
@@ -161,7 +161,7 @@ public class BaseExpression extends MathExpression {
    * @return true if current expression is an indexed funciton AND that function can also be executed without using the index, false
    * otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right) {
     if (this.identifier == null) {
       return false;
@@ -179,7 +179,7 @@ public class BaseExpression extends MathExpression {
    *
    * @return true if current expression is an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context,
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return false;
@@ -197,7 +197,7 @@ public class BaseExpression extends MathExpression {
    *
    * @return true if current expression is an indexed function AND the function has also to be executed after the index search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context,
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return false;
@@ -211,7 +211,7 @@ public class BaseExpression extends MathExpression {
   }
 
   @Override
-  public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
+  public OCollate getCollate(Result currentRecord, CommandContext ctx) {
     return identifier != null && modifier == null ? identifier.getCollate(currentRecord, ctx) : null;
   }
 
@@ -278,11 +278,11 @@ public class BaseExpression extends MathExpression {
     }
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     if (identifier != null) {
       return identifier.getAggregationContext(ctx);
     } else {
-      throw new PCommandExecutionException("cannot aggregate on " + toString());
+      throw new CommandExecutionException("cannot aggregate on " + toString());
     }
   }
 
@@ -362,7 +362,7 @@ public class BaseExpression extends MathExpression {
   }
 
   @Override
-  public void applyRemove(OResultInternal result, OCommandContext ctx) {
+  public void applyRemove(ResultInternal result, CommandContext ctx) {
     if (identifier != null) {
       if (modifier == null) {
         identifier.applyRemove(result, ctx);
@@ -373,8 +373,8 @@ public class BaseExpression extends MathExpression {
     }
   }
 
-  public OResult serialize() {
-    OResultInternal result = (OResultInternal) super.serialize();
+  public Result serialize() {
+    ResultInternal result = (ResultInternal) super.serialize();
 
     if (number != null) {
       result.setProperty("number", number.serialize());
@@ -394,7 +394,7 @@ public class BaseExpression extends MathExpression {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     super.deserialize(fromResult);
 
     if (fromResult.getProperty("number") != null) {
@@ -419,7 +419,7 @@ public class BaseExpression extends MathExpression {
   }
 
   @Override
-  public boolean isDefinedFor(OResult currentRecord) {
+  public boolean isDefinedFor(Result currentRecord) {
     if (this.identifier != null) {
       if (modifier == null) {
         return identifier.isDefinedFor(currentRecord);
@@ -431,7 +431,7 @@ public class BaseExpression extends MathExpression {
   }
 
   @Override
-  public boolean isDefinedFor(PRecord currentRecord) {
+  public boolean isDefinedFor(Record currentRecord) {
     if (this.identifier != null) {
       if (modifier == null) {
         return identifier.isDefinedFor(currentRecord);

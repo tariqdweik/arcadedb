@@ -2,15 +2,15 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRID;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PProperty;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -107,7 +107,7 @@ public class UpdateItem extends SimpleNode {
     return result;
   }
 
-  public void applyUpdate(OResultInternal doc, OCommandContext ctx) {
+  public void applyUpdate(ResultInternal doc, CommandContext ctx) {
     Object rightValue = right.execute(doc, ctx);
     if (leftModifier == null) {
       applyOperation(doc, left, rightValue, ctx);
@@ -117,7 +117,7 @@ public class UpdateItem extends SimpleNode {
     }
   }
 
-  public void applyOperation(OResultInternal doc, Identifier attrName, Object rightValue, OCommandContext ctx) {
+  public void applyOperation(ResultInternal doc, Identifier attrName, Object rightValue, CommandContext ctx) {
 
     switch (operator) {
     case OPERATOR_EQ:
@@ -140,8 +140,8 @@ public class UpdateItem extends SimpleNode {
     }
   }
 
-  private Object convertToPropertyType(OResultInternal res, Identifier attrName, Object newValue) {
-    PDocument doc = res.toElement();
+  private Object convertToPropertyType(ResultInternal res, Identifier attrName, Object newValue) {
+    Document doc = res.toElement();
     Optional<PDocumentType> optSchema = Optional.ofNullable(doc.getDatabase().getSchema().getType(doc.getType()));
     if (!optSchema.isPresent()) {
       return newValue;
@@ -156,13 +156,13 @@ public class UpdateItem extends SimpleNode {
     }
 
     if (newValue instanceof Collection) {
-      if (prop.getType() == PRID.class) {
+      if (prop.getType() == RID.class) {
         if (((Collection) newValue).size() == 0) {
           newValue = null;
         } else if (((Collection) newValue).size() == 1) {
           newValue = ((Collection) newValue).iterator().next();
         } else {
-          throw new PCommandExecutionException("Cannot assign a collection to a LINK property");
+          throw new CommandExecutionException("Cannot assign a collection to a LINK property");
         }
       }
     }
@@ -170,10 +170,10 @@ public class UpdateItem extends SimpleNode {
   }
 
   private Object convertResultToDocument(Object value) {
-    if (value instanceof OResult) {
-      return ((OResult) value).toElement();
+    if (value instanceof Result) {
+      return ((Result) value).toElement();
     }
-    if (value instanceof PIdentifiable) {
+    if (value instanceof Identifiable) {
       return value;
     }
     if (value instanceof List && containsOResult((Collection) value)) {
@@ -186,10 +186,10 @@ public class UpdateItem extends SimpleNode {
   }
 
   private boolean containsOResult(Collection value) {
-    return value.stream().anyMatch(x -> x instanceof OResult);
+    return value.stream().anyMatch(x -> x instanceof Result);
   }
 
-  private Object calculateNewValue(OResultInternal doc, OCommandContext ctx, MathExpression.Operator explicitOperator) {
+  private Object calculateNewValue(ResultInternal doc, CommandContext ctx, MathExpression.Operator explicitOperator) {
     Expression leftEx = new Expression(left.copy());
     if (leftModifier != null) {
       ((BaseExpression) leftEx.mathExpression).modifier = leftModifier.copy();

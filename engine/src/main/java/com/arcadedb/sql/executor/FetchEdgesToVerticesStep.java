@@ -1,11 +1,11 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.graph.PEdge;
-import com.arcadedb.graph.PVertex;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Collections;
@@ -21,12 +21,12 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
   private final Identifier targetCluster;
   private final Identifier targetClass;
 
-  private boolean inited = false;
+  private boolean        inited = false;
   private Iterator       toIter;
-  private PEdge          nextEdge;
-  private Iterator<PEdge> currentToEdgesIter;
+  private Edge           nextEdge;
+  private Iterator<Edge> currentToEdgesIter;
 
-  public FetchEdgesToVerticesStep(String toAlias, Identifier targetClass, Identifier targetCluster, OCommandContext ctx, boolean profilingEnabled) {
+  public FetchEdgesToVerticesStep(String toAlias, Identifier targetClass, Identifier targetCluster, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.toAlias = toAlias;
     this.targetClass = targetClass;
@@ -34,11 +34,11 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init();
 
-    return new OResultSet() {
+    return new ResultSet() {
       int currentBatch = 0;
 
       @Override
@@ -47,26 +47,26 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (!hasNext()) {
           throw new IllegalStateException();
         }
-        PEdge edge = nextEdge;
+        Edge edge = nextEdge;
         fetchNextEdge();
-        OResultInternal result = new OResultInternal();
+        ResultInternal result = new ResultInternal();
         result.setElement(edge);
         return result;
       }
 
       @Override
       public void close() {
-        if (toIter instanceof OResultSet) {
-          ((OResultSet) toIter).close();
+        if (toIter instanceof ResultSet) {
+          ((ResultSet) toIter).close();
         }
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -88,7 +88,7 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
     Object toValues = null;
 
     toValues = ctx.getVariable(toAlias);
-    if (toValues instanceof Iterable && !(toValues instanceof PIdentifiable)) {
+    if (toValues instanceof Iterable && !(toValues instanceof Identifiable)) {
       toValues = ((Iterable) toValues).iterator();
     } else if (!(toValues instanceof Iterator)) {
       toValues = Collections.singleton(toValues).iterator();
@@ -108,22 +108,22 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
         }
         if (this.toIter.hasNext()) {
           Object from = toIter.next();
-          if (from instanceof OResult) {
-            from = ((OResult) from).toElement();
+          if (from instanceof Result) {
+            from = ((Result) from).toElement();
           }
-          if (from instanceof PIdentifiable && !(from instanceof PRecord)) {
-            from = ((PIdentifiable) from).getRecord();
+          if (from instanceof Identifiable && !(from instanceof Record)) {
+            from = ((Identifiable) from).getRecord();
           }
-          if (from instanceof PVertex) {
-            currentToEdgesIter = ((PVertex) from).getEdges(PVertex.DIRECTION.IN).iterator();
+          if (from instanceof Vertex) {
+            currentToEdgesIter = ((Vertex) from).getEdges(Vertex.DIRECTION.IN).iterator();
           } else {
-            throw new PCommandExecutionException("Invalid vertex: " + from);
+            throw new CommandExecutionException("Invalid vertex: " + from);
           }
         } else {
           return;
         }
       }
-      PEdge edge = this.currentToEdgesIter.next();
+      Edge edge = this.currentToEdgesIter.next();
       if (matchesClass(edge) && matchesCluster(edge)) {
         this.nextEdge = edge;
         return;
@@ -131,7 +131,7 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
     }
   }
 
-  private boolean matchesCluster(PEdge edge) {
+  private boolean matchesCluster(Edge edge) {
     if (targetCluster == null) {
       return true;
     }
@@ -140,7 +140,7 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
     return clusterName.equals(targetCluster.getStringValue());
   }
 
-  private boolean matchesClass(PEdge edge) {
+  private boolean matchesClass(Edge edge) {
     if (targetClass == null) {
       return true;
     }
@@ -149,7 +149,7 @@ public class FetchEdgesToVerticesStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ FOR EACH x in " + toAlias + "\n";
     result += spaces + "       FETCH EDGES TO x";
     if (targetClass != null) {

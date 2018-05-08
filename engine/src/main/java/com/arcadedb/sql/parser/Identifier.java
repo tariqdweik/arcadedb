@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 
@@ -38,7 +38,7 @@ public class Identifier extends SimpleNode {
     super(id);
   }
 
-  public static Identifier deserialize(OResult fromResult) {
+  public static Identifier deserialize(Result fromResult) {
     Identifier identifier = new Identifier(-1);
     identifier.value = fromResult.getProperty("value");
     identifier.quoted = fromResult.getProperty("quoted");
@@ -165,8 +165,8 @@ public class Identifier extends SimpleNode {
     return result;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("value", value);
     result.setProperty("quoted", quoted);
     return result;

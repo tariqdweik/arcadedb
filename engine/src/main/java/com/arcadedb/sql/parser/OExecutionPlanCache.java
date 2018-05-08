@@ -1,9 +1,9 @@
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OExecutionPlan;
-import com.arcadedb.sql.executor.OInternalExecutionPlan;
+import com.arcadedb.database.Database;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.ExecutionPlan;
+import com.arcadedb.sql.executor.InternalExecutionPlan;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,8 +17,8 @@ import java.util.Map;
 //TODO BIND THE CACHE TO THE DB AND UNCOMMENT STUFF
 public class OExecutionPlanCache /*implements OMetadataUpdateListener*/ {
 
-  Map<String, OInternalExecutionPlan> map;
-  int                                 mapSize;
+  Map<String, InternalExecutionPlan> map;
+  int                                mapSize;
 
   protected long lastInvalidation = -1;
 
@@ -27,14 +27,14 @@ public class OExecutionPlanCache /*implements OMetadataUpdateListener*/ {
    */
   public OExecutionPlanCache(int size) {
     this.mapSize = size;
-    map = new LinkedHashMap<String, OInternalExecutionPlan>(size) {
-      protected boolean removeEldestEntry(final Map.Entry<String, OInternalExecutionPlan> eldest) {
+    map = new LinkedHashMap<String, InternalExecutionPlan>(size) {
+      protected boolean removeEldestEntry(final Map.Entry<String, InternalExecutionPlan> eldest) {
         return super.size() > mapSize;
       }
     };
   }
 
-  public static long getLastInvalidation(PDatabase db) {
+  public static long getLastInvalidation(Database db) {
     if (db == null) {
       throw new IllegalArgumentException("DB cannot be null");
     }
@@ -66,18 +66,18 @@ public class OExecutionPlanCache /*implements OMetadataUpdateListener*/ {
    *
    * @return a statement executor from the cache
    */
-  public static OExecutionPlan get(String statement, OCommandContext ctx, PDatabase db) {
+  public static ExecutionPlan get(String statement, CommandContext ctx, Database db) {
     if (db == null) {
       throw new IllegalArgumentException("DB cannot be null");
     }
 
 //    OExecutionPlanCache resource = db.getSharedContext().getExecutionPlanCache();
     OExecutionPlanCache resource = instance(db);
-    OExecutionPlan result = resource.getInternal(statement, ctx, db);
+    ExecutionPlan result = resource.getInternal(statement, ctx, db);
     return result;
   }
 
-  public static void put(String statement, OExecutionPlan plan, PDatabase db) {
+  public static void put(String statement, ExecutionPlan plan, Database db) {
 //    if (db == null) {
 //      throw new IllegalArgumentException("DB cannot be null");
 //    }
@@ -87,9 +87,9 @@ public class OExecutionPlanCache /*implements OMetadataUpdateListener*/ {
     //TODO
   }
 
-  public void putInternal(String statement, OExecutionPlan plan) {
+  public void putInternal(String statement, ExecutionPlan plan) {
     synchronized (map) {
-      OInternalExecutionPlan internal = (OInternalExecutionPlan) plan;
+      InternalExecutionPlan internal = (InternalExecutionPlan) plan;
       internal = internal.copy(null);
       map.put(statement, internal);
     }
@@ -101,8 +101,8 @@ public class OExecutionPlanCache /*implements OMetadataUpdateListener*/ {
    *
    * @return the corresponding executor, taking it from the internal cache, if it exists
    */
-  public OExecutionPlan getInternal(String statement, OCommandContext ctx, PDatabase db) {
-    OInternalExecutionPlan result;
+  public ExecutionPlan getInternal(String statement, CommandContext ctx, Database db) {
+    InternalExecutionPlan result;
     synchronized (map) {
       //LRU
       result = map.remove(statement);
@@ -149,7 +149,7 @@ public class OExecutionPlanCache /*implements OMetadataUpdateListener*/ {
 //    invalidate();
 //  }
 
-  public static OExecutionPlanCache instance(PDatabase db) {
+  public static OExecutionPlanCache instance(Database db) {
     if (db == null) {
       throw new IllegalArgumentException("DB cannot be null");
     }

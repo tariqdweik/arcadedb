@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.Map;
 
@@ -28,13 +28,13 @@ public class Batch extends SimpleNode {
     return visitor.visit(this, data);
   }
 
-  public java.lang.Integer evaluate(OCommandContext ctx) {
+  public java.lang.Integer evaluate(CommandContext ctx) {
     if (this.num != null) {
       return num.getValue().intValue();
     } else if (inputParam != null) {
       Object obj = inputParam.getValue(ctx.getInputParameters());
       if (obj == null || !(obj instanceof Number)) {
-        throw new PCommandExecutionException("" + obj + " is not a number (BATCH)");
+        throw new CommandExecutionException("" + obj + " is not a number (BATCH)");
       }
       return ((Number) obj).intValue();
     }

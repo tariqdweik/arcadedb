@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.List;
@@ -22,11 +22,11 @@ public class ValueExpression extends Expression {
     this.value = val;
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, CommandContext ctx) {
     return value;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     return value;
   }
 
@@ -54,17 +54,17 @@ public class ValueExpression extends Expression {
     return false;
   }
 
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right) {
     return false;
   }
 
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context,
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     return false;
   }
 
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context,
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     return false;
   }
@@ -89,8 +89,8 @@ public class ValueExpression extends Expression {
     return this;
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
-    throw new PCommandExecutionException("Cannot aggregate on " + toString());
+  public AggregationContext getAggregationContext(CommandContext ctx) {
+    throw new CommandExecutionException("Cannot aggregate on " + toString());
   }
 
   public ValueExpression copy() {
@@ -133,33 +133,33 @@ public class ValueExpression extends Expression {
     return null;
   }
 
-  public void applyRemove(OResultInternal result, OCommandContext ctx) {
-    throw new PCommandExecutionException("Cannot apply REMOVE " + toString());
+  public void applyRemove(ResultInternal result, CommandContext ctx) {
+    throw new CommandExecutionException("Cannot apply REMOVE " + toString());
   }
 
   public boolean isCount() {
     return false;
   }
 
-  public OResult serialize() {
+  public Result serialize() {
     throw new UnsupportedOperationException("Cannot serialize value expression (not supported yet)");
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     throw new UnsupportedOperationException("Cannot deserialize value expression (not supported yet)");
   }
 
-  public boolean isDefinedFor(OResult currentRecord) {
+  public boolean isDefinedFor(Result currentRecord) {
     return true;
 
   }
 
-  public boolean isDefinedFor(PRecord currentRecord) {
+  public boolean isDefinedFor(Record currentRecord) {
     return true;
 
   }
 
-  public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
+  public OCollate getCollate(Result currentRecord, CommandContext ctx) {
     return null;
   }
 

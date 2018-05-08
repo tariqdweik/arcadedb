@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.*;
@@ -50,7 +50,7 @@ public class SuffixIdentifier extends SimpleNode {
     }
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, CommandContext ctx) {
     if (star) {
       return iCurrentRecord;
     }
@@ -61,17 +61,17 @@ public class SuffixIdentifier extends SimpleNode {
       }
 
       if (iCurrentRecord != null) {
-        return ((PDocument) iCurrentRecord.getRecord()).get(varName);
+        return ((Document) iCurrentRecord.getRecord()).get(varName);
       }
       return null;
     }
     if (recordAttribute != null) {
-      return ((PDocument) iCurrentRecord.getRecord()).get(recordAttribute.name);
+      return ((Document) iCurrentRecord.getRecord()).get(recordAttribute.name);
     }
     return null;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     if (star) {
       return iCurrentRecord;
     }
@@ -101,9 +101,9 @@ public class SuffixIdentifier extends SimpleNode {
     return null;
   }
 
-  public Object execute(Map iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Map iCurrentRecord, CommandContext ctx) {
     if (star) {
-      OResultInternal result = new OResultInternal();
+      ResultInternal result = new ResultInternal();
       if (iCurrentRecord != null) {
         for (Map.Entry<Object, Object> x : ((Map<Object, Object>) iCurrentRecord).entrySet()) {
           result.setProperty("" + x.getKey(), x.getValue());
@@ -131,7 +131,7 @@ public class SuffixIdentifier extends SimpleNode {
     return null;
   }
 
-  public Object execute(Iterable iterable, OCommandContext ctx) {
+  public Object execute(Iterable iterable, CommandContext ctx) {
     if (star) {
       return null;
     }
@@ -142,7 +142,7 @@ public class SuffixIdentifier extends SimpleNode {
     return result;
   }
 
-  public Object execute(Iterator iterator, OCommandContext ctx) {
+  public Object execute(Iterator iterator, CommandContext ctx) {
     if (star) {
       return null;
     }
@@ -150,16 +150,16 @@ public class SuffixIdentifier extends SimpleNode {
     while (iterator.hasNext()) {
       result.add(execute(iterator.next(), ctx));
     }
-    if (iterator instanceof OResultSet) {
+    if (iterator instanceof ResultSet) {
       try {
-        ((OResultSet) iterator).reset();
+        ((ResultSet) iterator).reset();
       } catch (Exception ignore) {
       }
     }
     return result;
   }
 
-  public Object execute(OCommandContext iCurrentRecord) {
+  public Object execute(CommandContext iCurrentRecord) {
     if (star) {
       return null;
     }
@@ -176,18 +176,18 @@ public class SuffixIdentifier extends SimpleNode {
     return null;
   }
 
-  public Object execute(Object currentValue, OCommandContext ctx) {
-    if (currentValue instanceof OResult) {
-      return execute((OResult) currentValue, ctx);
+  public Object execute(Object currentValue, CommandContext ctx) {
+    if (currentValue instanceof Result) {
+      return execute((Result) currentValue, ctx);
     }
-    if (currentValue instanceof PIdentifiable) {
-      return execute((PIdentifiable) currentValue, ctx);
+    if (currentValue instanceof Identifiable) {
+      return execute((Identifiable) currentValue, ctx);
     }
     if (currentValue instanceof Map) {
       return execute((Map) currentValue, ctx);
     }
-    if (currentValue instanceof OCommandContext) {
-      return execute((OCommandContext) currentValue);
+    if (currentValue instanceof CommandContext) {
+      return execute((CommandContext) currentValue);
     }
     if (currentValue instanceof Iterable) {
       return execute((Iterable) currentValue, ctx);
@@ -196,7 +196,7 @@ public class SuffixIdentifier extends SimpleNode {
       return execute((Iterator) currentValue, ctx);
     }
     if (currentValue == null) {
-      return execute((OResult) null, ctx);
+      return execute((Result) null, ctx);
     }
 
     return null;
@@ -240,11 +240,11 @@ public class SuffixIdentifier extends SimpleNode {
     return false;
   }
 
-  public void aggregate(Object value, OCommandContext ctx) {
+  public void aggregate(Object value, CommandContext ctx) {
     throw new UnsupportedOperationException("this operation does not support plain aggregation: " + toString());
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     throw new UnsupportedOperationException("this operation does not support plain aggregation: " + toString());
   }
 
@@ -294,37 +294,37 @@ public class SuffixIdentifier extends SimpleNode {
     return false;
   }
 
-  public void setValue(Object target, Object value, OCommandContext ctx) {
-    if (target instanceof OResult) {
-      setValue((OResult) target, value, ctx);
-    } else if (target instanceof PIdentifiable) {
-      setValue((PIdentifiable) target, value, ctx);
+  public void setValue(Object target, Object value, CommandContext ctx) {
+    if (target instanceof Result) {
+      setValue((Result) target, value, ctx);
+    } else if (target instanceof Identifiable) {
+      setValue((Identifiable) target, value, ctx);
     } else if (target instanceof Map) {
       setValue((Map) target, value, ctx);
     }
   }
 
-  public void setValue(PIdentifiable target, Object value, OCommandContext ctx) {
+  public void setValue(Identifiable target, Object value, CommandContext ctx) {
     if (target == null) {
       return;
     }
-    PModifiableDocument doc = null;
-    if (target instanceof PModifiableDocument) {
-      doc = (PModifiableDocument) target;
+    ModifiableDocument doc = null;
+    if (target instanceof ModifiableDocument) {
+      doc = (ModifiableDocument) target;
     } else {
-      PRecord rec = target.getRecord();
-      if (rec instanceof PRecord) {
-        doc = (PModifiableDocument) rec;
+      Record rec = target.getRecord();
+      if (rec instanceof Record) {
+        doc = (ModifiableDocument) rec;
       }
     }
     if (doc != null) {
       doc.set(identifier.getStringValue(), value);
     } else {
-      throw new PCommandExecutionException("Cannot set record attribute " + recordAttribute + " on existing document");
+      throw new CommandExecutionException("Cannot set record attribute " + recordAttribute + " on existing document");
     }
   }
 
-  public void setValue(Map target, Object value, OCommandContext ctx) {
+  public void setValue(Map target, Object value, CommandContext ctx) {
     if (target == null) {
       return;
     }
@@ -335,39 +335,39 @@ public class SuffixIdentifier extends SimpleNode {
     }
   }
 
-  public void setValue(OResult target, Object value, OCommandContext ctx) {
+  public void setValue(Result target, Object value, CommandContext ctx) {
     if (target == null) {
       return;
     }
-    if (target instanceof OResultInternal) {
-      OResultInternal intTarget = (OResultInternal) target;
+    if (target instanceof ResultInternal) {
+      ResultInternal intTarget = (ResultInternal) target;
       if (identifier != null) {
         intTarget.setProperty(identifier.getStringValue(), value);
       } else if (recordAttribute != null) {
         intTarget.setProperty(recordAttribute.getName(), value);
       }
     } else {
-      throw new PCommandExecutionException("Cannot set property on unmodifiable target: " + target);
+      throw new CommandExecutionException("Cannot set property on unmodifiable target: " + target);
     }
   }
 
-  public void applyRemove(Object currentValue, OCommandContext ctx) {
+  public void applyRemove(Object currentValue, CommandContext ctx) {
     if (currentValue == null) {
       return;
     }
     if (identifier != null) {
-      if (currentValue instanceof OResultInternal) {
-        ((OResultInternal) currentValue).removeProperty(identifier.getStringValue());
-      } else if (currentValue instanceof PModifiableDocument) {
-        ((PModifiableDocument) currentValue).set(identifier.getStringValue(), null);
+      if (currentValue instanceof ResultInternal) {
+        ((ResultInternal) currentValue).removeProperty(identifier.getStringValue());
+      } else if (currentValue instanceof ModifiableDocument) {
+        ((ModifiableDocument) currentValue).set(identifier.getStringValue(), null);
       } else if (currentValue instanceof Map) {
         ((Map) currentValue).remove(identifier.getStringValue());
       }
     }
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (identifier != null) {
       result.setProperty("identifier", identifier.serialize());
     }
@@ -378,7 +378,7 @@ public class SuffixIdentifier extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("identifier") != null) {
       identifier = new Identifier(-1);
       identifier.deserialize(fromResult.getProperty("identifier"));
@@ -390,21 +390,21 @@ public class SuffixIdentifier extends SimpleNode {
     star = fromResult.getProperty("star");
   }
 
-  public boolean isDefinedFor(OResult currentRecord) {
+  public boolean isDefinedFor(Result currentRecord) {
     if (identifier != null) {
       return currentRecord.hasProperty(identifier.getStringValue());
     }
     return true;
   }
 
-  public boolean isDefinedFor(PRecord currentRecord) {
+  public boolean isDefinedFor(Record currentRecord) {
     if (identifier != null) {
-      return ((PDocument) currentRecord.getRecord()).getPropertyNames().contains(identifier.getStringValue());
+      return ((Document) currentRecord.getRecord()).getPropertyNames().contains(identifier.getStringValue());
     }
     return true;
   }
 
-  public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
+  public OCollate getCollate(Result currentRecord, CommandContext ctx) {
 //    if (identifier != null) {
 //      return currentRecord.getRecord().map(x -> (PRecord) x).ap(elem -> elem.getType())
 //          .map(clazz -> clazz.getProperty(identifier.getStringValue())).map(prop -> prop.getCollate()).orElse(null);

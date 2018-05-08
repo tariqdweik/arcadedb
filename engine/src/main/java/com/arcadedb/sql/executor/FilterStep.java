@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.WhereClause;
 
 import java.util.Map;
@@ -13,26 +13,26 @@ import java.util.Optional;
 public class FilterStep extends AbstractExecutionStep {
   private WhereClause whereClause;
 
-  OResultSet prevResult = null;
+  ResultSet prevResult = null;
 
   private long cost;
 
-  public FilterStep(WhereClause whereClause, OCommandContext ctx, boolean profilingEnabled) {
+  public FilterStep(WhereClause whereClause, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.whereClause = whereClause;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (!prev.isPresent()) {
       throw new IllegalStateException("filter step requires a previous step");
     }
-    OExecutionStepInternal prevStep = prev.get();
+    ExecutionStepInternal prevStep = prev.get();
 
-    return new OResultSet() {
+    return new ResultSet() {
       public boolean finished = false;
 
-      OResult nextItem = null;
+      Result nextItem = null;
       int fetched = 0;
 
       private void fetchNextItem() {
@@ -89,7 +89,7 @@ public class FilterStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (fetched >= nRecords || finished) {
           throw new IllegalStateException();
         }
@@ -99,7 +99,7 @@ public class FilterStep extends AbstractExecutionStep {
         if (nextItem == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextItem;
+        Result result = nextItem;
         nextItem = null;
         fetched++;
         return result;
@@ -111,7 +111,7 @@ public class FilterStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -126,20 +126,20 @@ public class FilterStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     StringBuilder result = new StringBuilder();
-    result.append(OExecutionStepInternal.getIndent(depth, indent) + "+ FILTER ITEMS WHERE ");
+    result.append(ExecutionStepInternal.getIndent(depth, indent) + "+ FILTER ITEMS WHERE ");
     if (profilingEnabled) {
       result.append(" (" + getCostFormatted() + ")");
     }
     result.append("\n");
-    result.append(OExecutionStepInternal.getIndent(depth, indent));
+    result.append(ExecutionStepInternal.getIndent(depth, indent));
     result.append("  ");
     result.append(whereClause.toString());
     return result.toString();
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     if (whereClause != null) {
       result.setProperty("whereClause", whereClause.serialize());
     }
@@ -148,13 +148,13 @@ public class FilterStep extends AbstractExecutionStep {
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       whereClause = new WhereClause(-1);
       whereClause.deserialize(fromResult.getProperty("whereClause"));
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 
@@ -169,7 +169,7 @@ public class FilterStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     return new FilterStep(this.whereClause.copy(), ctx, profilingEnabled);
   }
 }

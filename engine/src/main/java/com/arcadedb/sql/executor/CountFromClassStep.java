@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -28,23 +28,23 @@ public class CountFromClassStep extends AbstractExecutionStep {
    * @param ctx              the query context
    * @param profilingEnabled true to enable the profiling of the execution (for SQL PROFILE)
    */
-  public CountFromClassStep(Identifier targetClass, String alias, OCommandContext ctx, boolean profilingEnabled) {
+  public CountFromClassStep(Identifier targetClass, String alias, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.target = targetClass;
     this.alias = alias;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return !executed;
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (executed) {
           throw new IllegalStateException();
         }
@@ -52,12 +52,12 @@ public class CountFromClassStep extends AbstractExecutionStep {
         try {
           PDocumentType clazz = ctx.getDatabase().getSchema().getType(target.getStringValue());
           if (clazz == null) {
-            throw new PCommandExecutionException("Class " + target.getStringValue() + " does not exist in the database schema");
+            throw new CommandExecutionException("Class " + target.getStringValue() + " does not exist in the database schema");
           }
 
           long size = ctx.getDatabase().countType(target.getStringValue(), true);
           executed = true;
-          OResultInternal result = new OResultInternal();
+          ResultInternal result = new ResultInternal();
           result.setProperty(alias, size);
           return result;
 
@@ -74,7 +74,7 @@ public class CountFromClassStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -97,7 +97,7 @@ public class CountFromClassStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ CALCULATE CLASS SIZE: " + target;
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";

@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.sql.parser.*;
 
@@ -35,13 +35,13 @@ public class OCreateEdgeExecutionPlanner {
 
   }
 
-  public OInsertExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  public InsertExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
 
     if (targetClass == null) {
       if (targetClusterName == null) {
         targetClass = new Identifier("E");
       } else {
-        PDatabase db = ctx.getDatabase();
+        Database db = ctx.getDatabase();
         PDocumentType clazz = db.getSchema()
             .getTypeByBucketId((db.getSchema().getBucketByName(targetClusterName.getStringValue()).getId()));
         if (clazz != null) {
@@ -52,7 +52,7 @@ public class OCreateEdgeExecutionPlanner {
       }
     }
 
-    OInsertExecutionPlan result = new OInsertExecutionPlan(ctx);
+    InsertExecutionPlan result = new InsertExecutionPlan(ctx);
 
     handleCheckType(result, ctx, enableProfiling);
 
@@ -68,21 +68,21 @@ public class OCreateEdgeExecutionPlanner {
     return result;
   }
 
-  private void handleGlobalLet(OInsertExecutionPlan result, Identifier name, Expression expression, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleGlobalLet(InsertExecutionPlan result, Identifier name, Expression expression, CommandContext ctx, boolean profilingEnabled) {
     result.chain(new GlobalLetExpressionStep(name, expression, ctx, profilingEnabled));
   }
 
-  private void handleCheckType(OInsertExecutionPlan result, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleCheckType(InsertExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
     if (targetClass != null) {
       result.chain(new CheckClassTypeStep(targetClass.getStringValue(), "E", ctx, profilingEnabled));
     }
   }
 
-  private void handleSave(OInsertExecutionPlan result, Identifier targetClusterName, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleSave(InsertExecutionPlan result, Identifier targetClusterName, CommandContext ctx, boolean profilingEnabled) {
     result.chain(new SaveElementStep(ctx, targetClusterName, profilingEnabled));
   }
 
-  private void handleSetFields(OInsertExecutionPlan result, InsertBody insertBody, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleSetFields(InsertExecutionPlan result, InsertBody insertBody, CommandContext ctx, boolean profilingEnabled) {
     if (insertBody == null) {
       return;
     }

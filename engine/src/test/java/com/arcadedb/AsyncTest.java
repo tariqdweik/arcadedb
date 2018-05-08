@@ -1,11 +1,11 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
-import com.arcadedb.database.async.PErrorCallback;
-import com.arcadedb.database.async.POkCallback;
-import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.database.async.OkCallback;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,20 +26,20 @@ public class AsyncTest {
 
   @AfterAll
   public static void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void testScan() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
 
-      db.asynch().scanType(TYPE_NAME,true, new PDocumentCallback() {
+      db.asynch().scanType(TYPE_NAME,true, new DocumentCallback() {
         @Override
-        public boolean onRecord(PDocument record) {
+        public boolean onRecord(Document record) {
           callbackInvoked.incrementAndGet();
           return true;
         }
@@ -54,14 +54,14 @@ public class AsyncTest {
 
   @Test
   public void testScanInterrupt() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
 
-      db.asynch().scanType(TYPE_NAME,true, new PDocumentCallback() {
+      db.asynch().scanType(TYPE_NAME,true, new DocumentCallback() {
         @Override
-        public boolean onRecord(PDocument record) {
+        public boolean onRecord(Document record) {
           if (callbackInvoked.get() > 9)
             return false;
 
@@ -77,9 +77,9 @@ public class AsyncTest {
   }
 
   private static void populate(final int total) {
-    PFileUtils.deleteRecursively(new File(DB_PATH));
+    FileUtils.deleteRecursively(new File(DB_PATH));
 
-    final PDatabase database = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     database.begin();
     try {
 
@@ -89,14 +89,14 @@ public class AsyncTest {
 
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(3);
-      database.asynch().onOk(new POkCallback() {
+      database.asynch().onOk(new OkCallback() {
         @Override
         public void call() {
           okCallbackInvoked.incrementAndGet();
         }
       });
 
-      database.asynch().onError(new PErrorCallback() {
+      database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
           Assertions.fail("Error on creating async record", exception);
@@ -112,7 +112,7 @@ public class AsyncTest {
       database.commit();
 
       for (int i = 0; i < total; ++i) {
-        final PModifiableDocument v = database.newDocument(TYPE_NAME);
+        final ModifiableDocument v = database.newDocument(TYPE_NAME);
         v.set("id", i);
         v.set("name", "Jay");
         v.set("surname", "Miner");

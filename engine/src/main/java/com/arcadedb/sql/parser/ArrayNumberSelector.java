@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +41,7 @@ public class ArrayNumberSelector extends SimpleNode {
     }
   }
 
-  public Integer getValue(PIdentifiable iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public Integer getValue(Identifiable iCurrentRecord, Object iResult, CommandContext ctx) {
     Object result = null;
     if (inputValue != null) {
       result = inputValue.getValue(ctx.getInputParameters());
@@ -60,7 +60,7 @@ public class ArrayNumberSelector extends SimpleNode {
     return null;
   }
 
-  public Integer getValue(OResult iCurrentRecord, Object iResult, OCommandContext ctx) {
+  public Integer getValue(Result iCurrentRecord, Object iResult, CommandContext ctx) {
     Object result = null;
     if (inputValue != null) {
       result = inputValue.getValue(ctx.getInputParameters());
@@ -131,8 +131,8 @@ public class ArrayNumberSelector extends SimpleNode {
     return false;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (inputValue != null) {
       result.setProperty("inputValue", inputValue.serialize());
     }
@@ -143,7 +143,7 @@ public class ArrayNumberSelector extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("inputValue") != null) {
       inputValue = InputParameter.deserializeFromOResult(fromResult.getProperty("inputValue"));
     }

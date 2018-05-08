@@ -1,15 +1,15 @@
 package performance;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.async.PErrorCallback;
-import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.graph.PModifiableVertex;
-import com.arcadedb.index.PIndexLSM;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.Bucket;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.index.IndexLSM;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.utility.PFileUtils;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.utility.FileUtils;
+import com.arcadedb.utility.LogManager;
 
 import java.io.*;
 
@@ -45,11 +45,11 @@ public class PokecLoader {
   private PokecLoader() throws Exception {
     final File directory = new File(DB_PATH);
     if (directory.exists())
-      PFileUtils.deleteRecursively(directory);
+      FileUtils.deleteRecursively(directory);
     else
       directory.mkdirs();
 
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     try {
       createSchema(db);
       loadProfiles(db);
@@ -59,7 +59,7 @@ public class PokecLoader {
     }
   }
 
-  private void loadProfiles(final PDatabase db) throws IOException {
+  private void loadProfiles(final Database db) throws IOException {
     InputStream fileStream = new FileInputStream(POKEC_PROFILES_FILE);
 //    InputStream gzipStream = new GZIPInputStream(fileStream);
     Reader decoder = new InputStreamReader(fileStream);
@@ -69,10 +69,10 @@ public class PokecLoader {
     db.asynch().setTransactionSync(USE_WAL_SYNC);
     db.asynch().setCommitEvery(COMMIT_EVERY);
     db.asynch().setParallelLevel(PARALLEL_LEVEL);
-    db.asynch().onError(new PErrorCallback() {
+    db.asynch().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
-        PLogManager.instance().error(this, "ERROR: " + exception, exception);
+        LogManager.instance().error(this, "ERROR: " + exception, exception);
 
       }
     });
@@ -81,7 +81,7 @@ public class PokecLoader {
       final String line = buffered.readLine();
       final String[] profile = line.split("\t");
 
-      final PModifiableVertex v = db.newVertex("V");
+      final ModifiableVertex v = db.newVertex("V");
       final int id = Integer.parseInt(profile[0]);
       v.set(COLUMNS[0], id);
       if (IMPORT_PROPERTIES)
@@ -92,12 +92,12 @@ public class PokecLoader {
       db.asynch().createRecord(v);
 
       if (i % 20000 == 0) {
-        PLogManager.instance().info(this, "Inserted %d vertices...", i);
+        LogManager.instance().info(this, "Inserted %d vertices...", i);
       }
     }
   }
 
-  private void loadRelationships(PDatabase db) throws IOException {
+  private void loadRelationships(Database db) throws IOException {
     InputStream fileStream = new FileInputStream(POKEC_RELATIONSHIP_FILE);
 //    InputStream gzipStream = new GZIPInputStream(fileStream);
     Reader decoder = new InputStreamReader(fileStream);
@@ -121,7 +121,7 @@ public class PokecLoader {
               "E", true);
 
       if (i % 20000 == 0) {
-        PLogManager.instance().info(this, "Committing %d edges...", i);
+        LogManager.instance().info(this, "Committing %d edges...", i);
         db.commit();
         db.begin();
         db.getTransaction().setUseWAL(USE_WAL);
@@ -131,9 +131,9 @@ public class PokecLoader {
     db.commit();
   }
 
-  private static void createSchema(final PDatabase db) {
+  private static void createSchema(final Database db) {
     db.begin();
-    PDocumentType v = db.getSchema().createVertexType("V", PARALLEL_LEVEL, PBucket.DEF_PAGE_SIZE * 2);
+    PDocumentType v = db.getSchema().createVertexType("V", PARALLEL_LEVEL, Bucket.DEF_PAGE_SIZE * 2);
     v.createProperty("id", Integer.class);
 
     for (int i = 0; i < COLUMNS.length; ++i) {
@@ -145,7 +145,7 @@ public class PokecLoader {
 
     db.getSchema().createEdgeType("E");
 
-    db.getSchema().createClassIndexes("V", new String[] { "id" }, PIndexLSM.DEF_PAGE_SIZE * 10);
+    db.getSchema().createClassIndexes("V", new String[] { "id" }, IndexLSM.DEF_PAGE_SIZE * 10);
     db.commit();
   }
 }

@@ -1,10 +1,10 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -19,20 +19,20 @@ public class ExpandStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  OResultSet lastResult      = null;
-  Iterator   nextSubsequence = null;
-  OResult    nextElement     = null;
+  ResultSet lastResult      = null;
+  Iterator  nextSubsequence = null;
+  Result    nextElement     = null;
 
-  public ExpandStep(OCommandContext ctx, boolean profilingEnabled) {
+  public ExpandStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (prev == null || !prev.isPresent()) {
-      throw new PCommandExecutionException("Cannot expand without a target");
+      throw new CommandExecutionException("Cannot expand without a target");
     }
-    return new OResultSet() {
+    return new ResultSet() {
       long localCount = 0;
 
       @Override
@@ -50,7 +50,7 @@ public class ExpandStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (localCount >= nRecords) {
           throw new IllegalStateException();
         }
@@ -61,7 +61,7 @@ public class ExpandStep extends AbstractExecutionStep {
           throw new IllegalStateException();
         }
 
-        OResult result = nextElement;
+        Result result = nextElement;
         localCount++;
         nextElement = null;
         fetchNext(ctx, nRecords);
@@ -74,7 +74,7 @@ public class ExpandStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -85,24 +85,24 @@ public class ExpandStep extends AbstractExecutionStep {
     };
   }
 
-  private void fetchNext(OCommandContext ctx, int n) {
+  private void fetchNext(CommandContext ctx, int n) {
     do {
       if (nextSubsequence != null && nextSubsequence.hasNext()) {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           Object nextElementObj = nextSubsequence.next();
-          if (nextElementObj instanceof OResult) {
-            nextElement = (OResult) nextElementObj;
-          } else if (nextElementObj instanceof PIdentifiable) {
-            PRecord record = ((PIdentifiable) nextElementObj).getRecord();
+          if (nextElementObj instanceof Result) {
+            nextElement = (Result) nextElementObj;
+          } else if (nextElementObj instanceof Identifiable) {
+            Record record = ((Identifiable) nextElementObj).getRecord();
             if (record == null) {
               continue;
             }
-            nextElement = new OResultInternal();
-            ((OResultInternal) nextElement).setElement((PDocument) record);
+            nextElement = new ResultInternal();
+            ((ResultInternal) nextElement).setElement((Document) record);
           } else {
-            nextElement = new OResultInternal();
-            ((OResultInternal) nextElement).setProperty("value", nextElementObj);
+            nextElement = new ResultInternal();
+            ((ResultInternal) nextElement).setProperty("value", nextElementObj);
           }
           break;
         } finally {
@@ -121,7 +121,7 @@ public class ExpandStep extends AbstractExecutionStep {
         }
       }
 
-      OResult nextAggregateItem = lastResult.next();
+      Result nextAggregateItem = lastResult.next();
       long begin = profilingEnabled ? System.nanoTime() : 0;
       try {
         if (nextAggregateItem.getPropertyNames().size() == 0) {
@@ -136,17 +136,17 @@ public class ExpandStep extends AbstractExecutionStep {
         if (projValue == null) {
           continue;
         }
-        if (projValue instanceof PIdentifiable) {
-          PRecord rec = ((PIdentifiable) projValue).getRecord();
+        if (projValue instanceof Identifiable) {
+          Record rec = ((Identifiable) projValue).getRecord();
           if (rec == null) {
             continue;
           }
-          OResultInternal res = new OResultInternal();
-          res.setElement((PDocument) rec);
+          ResultInternal res = new ResultInternal();
+          res.setElement((Document) rec);
 
           nextSubsequence = Collections.singleton(res).iterator();
-        } else if (projValue instanceof OResult) {
-          nextSubsequence = Collections.singleton((OResult) projValue).iterator();
+        } else if (projValue instanceof Result) {
+          nextSubsequence = Collections.singleton((Result) projValue).iterator();
         } else if (projValue instanceof Iterator) {
           nextSubsequence = (Iterator) projValue;
         } else if (projValue instanceof Iterable) {
@@ -163,7 +163,7 @@ public class ExpandStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ EXPAND";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";

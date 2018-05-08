@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.schema.PDocumentType;
 import com.arcadedb.schema.PEdgeType;
 import com.arcadedb.schema.PVertexType;
@@ -22,16 +22,16 @@ public class CreateRecordStep extends AbstractExecutionStep {
 
   String typeName = null;
 
-  public CreateRecordStep(final String typeName, OCommandContext ctx, int total, boolean profilingEnabled) {
+  public CreateRecordStep(final String typeName, CommandContext ctx, int total, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.typeName = typeName;
     this.total = total;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       int locallyCreated = 0;
 
       @Override
@@ -43,7 +43,7 @@ public class CreateRecordStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           if (!hasNext()) {
@@ -54,7 +54,7 @@ public class CreateRecordStep extends AbstractExecutionStep {
 
           final PDocumentType type = ctx.getDatabase().getSchema().getType(typeName);
 
-          final PDocument instance;
+          final Document instance;
           if (type instanceof PVertexType)
             instance = ctx.getDatabase().newVertex(typeName);
           else if (type instanceof PEdgeType)
@@ -62,7 +62,7 @@ public class CreateRecordStep extends AbstractExecutionStep {
           else
             instance = ctx.getDatabase().newDocument(typeName);
 
-          return new OUpdatableResult((PModifiableDocument) instance);
+          return new UpdatableResult((ModifiableDocument) instance);
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);
@@ -76,7 +76,7 @@ public class CreateRecordStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -89,7 +89,7 @@ public class CreateRecordStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ CREATE EMPTY RECORDS");

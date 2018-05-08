@@ -2,13 +2,13 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultInternal;
-import com.arcadedb.sql.executor.OResultSet;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultInternal;
+import com.arcadedb.sql.executor.ResultSet;
+import com.arcadedb.utility.LogManager;
 
 import java.util.Map;
 
@@ -24,24 +24,24 @@ public class ConsoleStatement extends SimpleExecStatement {
     super(p, id);
   }
 
-  @Override public OResultSet executeSimple(OCommandContext ctx) {
-    OInternalResultSet result = new OInternalResultSet();
-    OResultInternal item = new OResultInternal();
-    Object msg = "" + message.execute((PIdentifiable) null, ctx);
+  @Override public ResultSet executeSimple(CommandContext ctx) {
+    InternalResultSet result = new InternalResultSet();
+    ResultInternal item = new ResultInternal();
+    Object msg = "" + message.execute((Identifiable) null, ctx);
 
     if (logLevel.getStringValue().equalsIgnoreCase("log")) {
-      PLogManager.instance().info(this, "%s", msg);
+      LogManager.instance().info(this, "%s", msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("output")) {
       System.out.println(msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("error")) {
       System.err.println(msg);
-      PLogManager.instance().error(this, "%s", null, msg);
+      LogManager.instance().error(this, "%s", null, msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("warn")) {
-      PLogManager.instance().warn(this, "%s", msg);
+      LogManager.instance().warn(this, "%s", msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("debug")) {
-      PLogManager.instance().debug(this, "%s", msg);
+      LogManager.instance().debug(this, "%s", msg);
     } else {
-      throw new PCommandExecutionException("Unsupported log level: " + logLevel);
+      throw new CommandExecutionException("Unsupported log level: " + logLevel);
     }
 
     item.setProperty("operation", "console");

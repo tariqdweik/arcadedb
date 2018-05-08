@@ -22,20 +22,20 @@ public class OCreateVertexExecutionPlanner extends OInsertExecutionPlanner {
     this.returnStatement = statement.getReturnStatement() == null ? null : statement.getReturnStatement().copy();
   }
 
-  @Override public OInsertExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
-    OInsertExecutionPlan prev = super.createExecutionPlan(ctx, enableProfiling);
-    List<OExecutionStep> steps = new ArrayList<>(prev.getSteps());
-    OInsertExecutionPlan result = new OInsertExecutionPlan(ctx);
+  @Override public InsertExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
+    InsertExecutionPlan prev = super.createExecutionPlan(ctx, enableProfiling);
+    List<ExecutionStep> steps = new ArrayList<>(prev.getSteps());
+    InsertExecutionPlan result = new InsertExecutionPlan(ctx);
 
     handleCheckType(result, ctx, enableProfiling);
-    for (OExecutionStep step : steps) {
-      result.chain((OExecutionStepInternal) step);
+    for (ExecutionStep step : steps) {
+      result.chain((ExecutionStepInternal) step);
     }
     return result;
 
   }
 
-  private void handleCheckType(OInsertExecutionPlan result, OCommandContext ctx, boolean profilingEnabled) {
+  private void handleCheckType(InsertExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
     if (targetClass != null) {
       result.chain(new CheckClassTypeStep(targetClass.getStringValue(), "V", ctx, profilingEnabled));
     }

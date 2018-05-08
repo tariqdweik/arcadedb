@@ -1,14 +1,14 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.index.PIndex;
 import com.arcadedb.index.PIndexCursor;
 import com.arcadedb.sql.parser.*;
 import com.arcadedb.sql.parser.PCollection;
-import com.arcadedb.utility.PPair;
+import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -35,16 +35,16 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
 //  OMultiCollectionIterator<Map.Entry<Object, PIdentifiable>> customIterator;
 
-  private Iterator nullKeyIterator;
-  private PPair<Object, PIdentifiable> nextEntry = null;
+  private Iterator                   nullKeyIterator;
+  private Pair<Object, Identifiable> nextEntry = null;
 
   public FetchFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      OCommandContext ctx, boolean profilingEnabled) {
+      CommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, true, ctx, profilingEnabled);
   }
 
   public FetchFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc,
-      OCommandContext ctx, boolean profilingEnabled) {
+      CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
     this.indexName = index.getName();
@@ -54,7 +54,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   public FetchFromIndexStep(String indexName, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      boolean orderAsc, OCommandContext ctx, boolean profilingEnabled) {
+      boolean orderAsc, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.indexName = indexName;
     this.condition = condition;
@@ -63,10 +63,10 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     init(ctx.getDatabase());
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    return new OResultSet() {
+    return new ResultSet() {
       int localCount = 0;
 
       @Override
@@ -78,26 +78,26 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
           try {
             fetchNextEntry();
           } catch (IOException e) {
-            throw new PCommandExecutionException(e);
+            throw new CommandExecutionException(e);
           }
         }
         return nextEntry != null;
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (!hasNext()) {
           throw new IllegalStateException();
         }
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
           Object key = nextEntry.getFirst();
-          PIdentifiable value = nextEntry.getSecond();
+          Identifiable value = nextEntry.getSecond();
 
           nextEntry = null;
 
           localCount++;
-          OResultInternal result = new OResultInternal();
+          ResultInternal result = new ResultInternal();
           result.setProperty("key", key);
           result.setProperty("rid", value);
           ctx.setVariable("$current", result);
@@ -115,7 +115,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -132,8 +132,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       if (cursor == null) {
         if (nextCursors.size() == 0) {
           if (nextEntry == null && nullKeyIterator != null && nullKeyIterator.hasNext()) {
-            PIdentifiable nextValue = (PIdentifiable) nullKeyIterator.next();
-            nextEntry = new PPair(null, nextValue);
+            Identifiable nextValue = (Identifiable) nullKeyIterator.next();
+            nextEntry = new Pair(null, nextValue);
           } else {
             updateIndexStats();
           }
@@ -143,7 +143,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       }
       if (cursor.hasNext()) {
         cursor.next();
-        nextEntry = new PPair(cursor.getKeys(), cursor.getValue());
+        nextEntry = new Pair(cursor.getKeys(), cursor.getValue());
         count++;
         return;
       }
@@ -181,7 +181,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     stats.pushIndexStats(indexName, size, range, additionalRangeCondition != null, count);
   }
 
-  private synchronized void init(PDatabase db) {
+  private synchronized void init(Database db) {
     if (inited) {
       return;
     }
@@ -189,7 +189,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     init(condition, db);
   }
 
-  private void init(BooleanExpression condition, PDatabase db) {
+  private void init(BooleanExpression condition, Database db) {
     long begin = profilingEnabled ? System.nanoTime() : 0;
     if (index == null) {
       index = db.getSchema().getIndexByName(indexName);
@@ -207,10 +207,10 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
         processInCondition();
       } else {
         //TODO process containsAny
-        throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
+        throw new CommandExecutionException("search for index for " + condition + " is not supported yet");
       }
     } catch (IOException e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     } finally {
       if (profilingEnabled) {
         cost += (System.nanoTime() - begin);
@@ -317,8 +317,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
     for (int i = 0; i < secondValueCombinations.size(); i++) {
 
-      Object secondValue = secondValueCombinations.get(i).execute((OResult) null, ctx);
-      Object thirdValue = thirdValueCombinations.get(i).execute((OResult) null, ctx);
+      Object secondValue = secondValueCombinations.get(i).execute((Result) null, ctx);
+      Object thirdValue = thirdValueCombinations.get(i).execute((Result) null, ctx);
 
       secondValue = convertToIndexDefinitionTypes(secondValue);
       thirdValue = convertToIndexDefinitionTypes(thirdValue);
@@ -348,8 +348,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       return Collections.singletonList(head);
     }
     Expression nextElementInKey = key.getExpressions().get(0);
-    Object value = nextElementInKey.execute(new OResultInternal(), ctx);
-    if (value instanceof Iterable && !(value instanceof PIdentifiable)) {
+    Object value = nextElementInKey.execute(new ResultInternal(), ctx);
+    if (value instanceof Iterable && !(value instanceof Identifiable)) {
       List<PCollection> result = new ArrayList<>();
       for (Object elemInKey : (java.util.Collection) value) {
         PCollection newHead = new PCollection(-1);
@@ -375,7 +375,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
   }
 
-  private Expression toExpression(Object value, OCommandContext ctx) {
+  private Expression toExpression(Object value, CommandContext ctx) {
     return new ValueExpression(value);
   }
 
@@ -438,9 +438,9 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     BinaryCompareOperator operator = ((BinaryCondition) condition).getOperator();
     Expression left = ((BinaryCondition) condition).getLeft();
     if (!left.toString().equalsIgnoreCase("key")) {
-      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
+      throw new CommandExecutionException("search for index for " + condition + " is not supported yet");
     }
-    Object rightValue = ((BinaryCondition) condition).getRight().execute((OResult) null, ctx);
+    Object rightValue = ((BinaryCondition) condition).getRight().execute((Result) null, ctx);
     cursor = createCursor(operator, rightValue, ctx);
     if (cursor != null) {
       fetchNextEntry();
@@ -479,7 +479,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     throw new UnsupportedOperationException();
   }
 
-  private PIndexCursor createCursor(BinaryCompareOperator operator, Object value, OCommandContext ctx)
+  private PIndexCursor createCursor(BinaryCompareOperator operator, Object value, CommandContext ctx)
       throws IOException {
     boolean orderAsc = isOrderAsc();
     if (operator instanceof EqualsCompareOperator) {
@@ -501,7 +501,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 //      return index.iterateEntriesMinor(value, false, orderAsc);
       throw new UnsupportedEncodingException();
     } else {
-      throw new PCommandExecutionException("search for index for " + condition + " is not supported yet");
+      throw new CommandExecutionException("search for index for " + condition + " is not supported yet");
     }
 
   }
@@ -657,12 +657,12 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result = OExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEX " + indexName;
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM INDEX " + indexName;
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }
     if (condition != null) {
-      result += ("\n" + OExecutionStepInternal.getIndent(depth, indent) + "  " + condition + (additionalRangeCondition == null ?
+      result += ("\n" + ExecutionStepInternal.getIndent(depth, indent) + "  " + condition + (additionalRangeCondition == null ?
           "" :
           " and " + additionalRangeCondition));
     }
@@ -676,8 +676,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     result.setProperty("indexName", index.getName());
     if (condition != null) {
       result.setProperty("condition", condition.serialize());
@@ -690,9 +690,9 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       indexName = fromResult.getProperty("indexName");
       if (fromResult.getProperty("condition") != null) {
         condition = BooleanExpression.deserializeFromOResult(fromResult.getProperty("condition"));
@@ -703,7 +703,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       }
       orderAsc = fromResult.getProperty("orderAsc");
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 
@@ -729,7 +729,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     FetchFromIndexStep result = new FetchFromIndexStep(indexName, this.condition == null ? null : this.condition.copy(),
         this.additionalRangeCondition == null ? null : this.additionalRangeCondition.copy(), this.orderAsc, ctx,
         this.profilingEnabled);

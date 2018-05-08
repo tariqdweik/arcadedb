@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,21 +12,21 @@ import java.util.List;
  */
 public class ReturnMatchPathElementsStep extends AbstractUnrollStep {
 
-  public ReturnMatchPathElementsStep(OCommandContext context, boolean profilingEnabled) {
+  public ReturnMatchPathElementsStep(CommandContext context, boolean profilingEnabled) {
     super(context, profilingEnabled);
   }
 
-  @Override protected Collection<OResult> unroll(OResult doc, OCommandContext iContext) {
-    List<OResult> result = new ArrayList<>();
+  @Override protected Collection<Result> unroll(Result doc, CommandContext iContext) {
+    List<Result> result = new ArrayList<>();
     for (String s : doc.getPropertyNames()) {
       Object elem = doc.getProperty(s);
-      if (elem instanceof PIdentifiable) {
-        OResultInternal newelem = new OResultInternal();
-        newelem.setElement((PDocument) ((PIdentifiable) elem).getRecord());
+      if (elem instanceof Identifiable) {
+        ResultInternal newelem = new ResultInternal();
+        newelem.setElement((Document) ((Identifiable) elem).getRecord());
         elem = newelem;
       }
-      if (elem instanceof OResult) {
-        result.add((OResult) elem);
+      if (elem instanceof Result) {
+        result.add((Result) elem);
       }
       //else...? TODO
     }
@@ -34,7 +34,7 @@ public class ReturnMatchPathElementsStep extends AbstractUnrollStep {
   }
 
   @Override public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ UNROLL $pathElements";
   }
 }

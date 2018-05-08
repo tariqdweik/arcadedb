@@ -1,8 +1,8 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.database.async.PErrorCallback;
-import com.arcadedb.engine.PPaginatedFile;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.schema.PDocumentType;
 import org.junit.jupiter.api.Assertions;
 
@@ -19,7 +19,7 @@ public class PerformanceIndexTest {
 
     final int parallel = 2;
 
-    PDatabase database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -40,7 +40,7 @@ public class PerformanceIndexTest {
       database.close();
     }
 
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
 
     long begin = System.currentTimeMillis();
 
@@ -50,7 +50,7 @@ public class PerformanceIndexTest {
       database.asynch().setParallelLevel(parallel);
       database.asynch().setTransactionUseWAL(true);
 
-      database.asynch().onError(new PErrorCallback() {
+      database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
           System.out.println("ERROR: " + exception);
@@ -60,7 +60,7 @@ public class PerformanceIndexTest {
 
       long row = 0;
       for (; row < TOT; ++row) {
-        final PModifiableDocument record = database.newDocument(TYPE_NAME);
+        final ModifiableDocument record = database.newDocument(TYPE_NAME);
 
         record.set("id", row);
         record.set("name", "Luca" + row);
@@ -85,15 +85,15 @@ public class PerformanceIndexTest {
     }
 
     begin = System.currentTimeMillis();
-    database = new PDatabaseFactory(PerformanceTest.DATABASE_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     try {
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {
-        final PCursor<PRID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
+        final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
 
-        final PDocument record = (PDocument) records.next().getRecord();
+        final Document record = (Document) records.next().getRecord();
         Assertions.assertEquals(id, record.get("id"));
 
         if (id % 100000 == 0)

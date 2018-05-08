@@ -27,7 +27,7 @@ public class IndexSearchDescriptor {
 
   }
 
-  public int cost(OCommandContext ctx) {
+  public int cost(CommandContext ctx) {
     OQueryStats stats = OQueryStats.get(ctx.getDatabase());
 
     String indexName = idx.getName();

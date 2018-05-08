@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,20 +66,20 @@ public class FetchPlan extends SimpleNode {
     return items != null ? items.hashCode() : 0;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (items != null) {
       result.setProperty("items", items.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
 
     if (fromResult.getProperty("items") != null) {
-      List<OResult> ser = fromResult.getProperty("items");
+      List<Result> ser = fromResult.getProperty("items");
       items = new ArrayList<>();
-      for (OResult r : ser) {
+      for (Result r : ser) {
         FetchPlanItem exp = new FetchPlanItem(-1);
         exp.deserialize(r);
         items.add(exp);

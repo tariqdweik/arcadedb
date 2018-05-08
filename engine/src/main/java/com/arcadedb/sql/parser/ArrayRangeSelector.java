@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OMultiValue;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.MultiValue;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -57,11 +57,11 @@ public class ArrayRangeSelector extends SimpleNode {
     }
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, Object result, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, Object result, CommandContext ctx) {
     if (result == null) {
       return null;
     }
-    if (!OMultiValue.isMultiValue(result)) {
+    if (!MultiValue.isMultiValue(result)) {
       return null;
     }
     Integer lFrom = from;
@@ -81,7 +81,7 @@ public class ArrayRangeSelector extends SimpleNode {
     if (lFrom > lTo) {
       return null;
     }
-    Object[] arrayResult = OMultiValue.array(result);
+    Object[] arrayResult = MultiValue.array(result);
 
     if (arrayResult == null || arrayResult.length == 0) {
       return arrayResult;
@@ -97,11 +97,11 @@ public class ArrayRangeSelector extends SimpleNode {
     return Arrays.asList(Arrays.copyOfRange(arrayResult, lFrom, lTo));
   }
 
-  public Object execute(OResult iCurrentRecord, Object result, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, Object result, CommandContext ctx) {
     if (result == null) {
       return null;
     }
-    if (!OMultiValue.isMultiValue(result)) {
+    if (!MultiValue.isMultiValue(result)) {
       return null;
     }
     Integer lFrom = from;
@@ -121,7 +121,7 @@ public class ArrayRangeSelector extends SimpleNode {
     if (lFrom > lTo) {
       return null;
     }
-    Object[] arrayResult = OMultiValue.array(result);
+    Object[] arrayResult = MultiValue.array(result);
 
     if (arrayResult == null || arrayResult.length == 0) {
       return arrayResult;
@@ -222,7 +222,7 @@ public class ArrayRangeSelector extends SimpleNode {
    *
    * @return
    */
-  public void setValue(Object target, Object value, OCommandContext ctx) {
+  public void setValue(Object target, Object value, CommandContext ctx) {
     if (target == null) {
       return;
     }
@@ -230,14 +230,14 @@ public class ArrayRangeSelector extends SimpleNode {
       setArrayValue(target, value, ctx);
     } else if (target instanceof List) {
       setValue((List) target, value, ctx);
-    } else if (OMultiValue.isMultiValue(value)) {
+    } else if (MultiValue.isMultiValue(value)) {
       //TODO
     }
     //TODO
 
   }
 
-  public void setValue(List target, Object value, OCommandContext ctx) {
+  public void setValue(List target, Object value, CommandContext ctx) {
     int from = this.from == null ? 0 : this.from;
     int to = target.size() - 1;
     if (this.to != null) {
@@ -260,7 +260,7 @@ public class ArrayRangeSelector extends SimpleNode {
     }
   }
 
-  public void setValue(Set target, Object value, OCommandContext ctx) {
+  public void setValue(Set target, Object value, CommandContext ctx) {
     Set result = new LinkedHashSet<>();
     int from = this.from == null ? 0 : this.from;
     int to = target.size() - 1;
@@ -292,7 +292,7 @@ public class ArrayRangeSelector extends SimpleNode {
     }
   }
 
-  public void setValue(Map target, Object value, OCommandContext ctx) {
+  public void setValue(Map target, Object value, CommandContext ctx) {
     int from = this.from == null ? 0 : this.from;
     int to = this.to;
     if (!included) {
@@ -307,7 +307,7 @@ public class ArrayRangeSelector extends SimpleNode {
     }
   }
 
-  private void setArrayValue(Object target, Object value, OCommandContext ctx) {
+  private void setArrayValue(Object target, Object value, CommandContext ctx) {
 
     int from = this.from == null ? 0 : this.from;
     int to = Array.getLength(target) - 1;
@@ -326,7 +326,7 @@ public class ArrayRangeSelector extends SimpleNode {
     }
   }
 
-  public void applyRemove(Object currentValue, OResultInternal originalRecord, OCommandContext ctx) {
+  public void applyRemove(Object currentValue, ResultInternal originalRecord, CommandContext ctx) {
     if (currentValue == null) {
       return;
     }
@@ -339,7 +339,7 @@ public class ArrayRangeSelector extends SimpleNode {
       to = toSelector.getValue(originalRecord, null, ctx);
     }
     if (from == null || to == null) {
-      throw new PCommandExecutionException("Invalid range expression: " + toString() + " one of the elements is null");
+      throw new CommandExecutionException("Invalid range expression: " + toString() + " one of the elements is null");
     }
     if (included) {
       to++;
@@ -375,13 +375,13 @@ public class ArrayRangeSelector extends SimpleNode {
         count++;
       }
     } else {
-      throw new PCommandExecutionException(
+      throw new CommandExecutionException(
           "Trying to remove elements from " + currentValue + " (" + currentValue.getClass().getSimpleName() + ")");
     }
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("from", from);
     result.setProperty("to", to);
     result.setProperty("newRange", newRange);
@@ -396,7 +396,7 @@ public class ArrayRangeSelector extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     from = fromResult.getProperty("from");
     to = fromResult.getProperty("to");
     newRange = fromResult.getProperty("newRange");

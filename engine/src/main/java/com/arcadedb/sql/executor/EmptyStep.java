@@ -1,23 +1,23 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 
 /**
  * Created by luigidellaquila on 08/07/16.
  */
 public class EmptyStep extends AbstractExecutionStep {
-  public EmptyStep(OCommandContext ctx, boolean profilingEnabled) {
+  public EmptyStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
-    OInternalResultSet result = new OInternalResultSet();
+    InternalResultSet result = new InternalResultSet();
     return result;
   }
 
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     throw new UnsupportedOperationException();
   }
 

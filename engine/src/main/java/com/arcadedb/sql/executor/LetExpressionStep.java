@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Expression;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -15,19 +15,19 @@ public class LetExpressionStep extends AbstractExecutionStep {
   private Identifier varname;
   private Expression expression;
 
-  public LetExpressionStep(Identifier varName, Expression expression, OCommandContext ctx, boolean profilingEnabled) {
+  public LetExpressionStep(Identifier varName, Expression expression, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.varname = varName;
     this.expression = expression;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (!getPrev().isPresent()) {
-      throw new PCommandExecutionException("Cannot execute a local LET on a query without a target");
+      throw new CommandExecutionException("Cannot execute a local LET on a query without a target");
     }
-    return new OResultSet() {
-      OResultSet source = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
+      ResultSet source = getPrev().get().syncPull(ctx, nRecords);
 
       @Override
       public boolean hasNext() {
@@ -35,8 +35,8 @@ public class LetExpressionStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
-        OResultInternal result = (OResultInternal) source.next();
+      public Result next() {
+        ResultInternal result = (ResultInternal) source.next();
         Object value = expression.execute(result, ctx);
         result.setMetadata(varname.getStringValue(), value);
         return result;
@@ -48,7 +48,7 @@ public class LetExpressionStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -61,13 +61,13 @@ public class LetExpressionStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ LET (for each record)\n" + spaces + "  " + varname + " = " + expression;
   }
 
   @Override
-  public OResult serialize() {
-    OResultInternal result = OExecutionStepInternal.basicSerialize(this);
+  public Result serialize() {
+    ResultInternal result = ExecutionStepInternal.basicSerialize(this);
     if (varname != null) {
       result.setProperty("varname", varname.serialize());
     }
@@ -78,9 +78,9 @@ public class LetExpressionStep extends AbstractExecutionStep {
   }
 
   @Override
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     try {
-      OExecutionStepInternal.basicDeserialize(fromResult, this);
+      ExecutionStepInternal.basicDeserialize(fromResult, this);
       if (fromResult.getProperty("varname") != null) {
         varname = Identifier.deserialize(fromResult.getProperty("varname"));
       }
@@ -90,7 +90,7 @@ public class LetExpressionStep extends AbstractExecutionStep {
       }
       reset();
     } catch (Exception e) {
-      throw new PCommandExecutionException(e);
+      throw new CommandExecutionException(e);
     }
   }
 }

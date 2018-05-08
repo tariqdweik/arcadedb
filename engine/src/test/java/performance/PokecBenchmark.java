@@ -1,10 +1,10 @@
 package performance;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PBucket;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.graph.PVertex;
-import com.arcadedb.utility.PLogManager;
+import com.arcadedb.engine.Bucket;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.graph.Vertex;
+import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -119,7 +119,7 @@ public class PokecBenchmark {
   }
 
   private PokecBenchmark() throws Exception {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
 
     try {
@@ -135,8 +135,8 @@ public class PokecBenchmark {
     }
   }
 
-  private void neighbors2(PDatabase db) {
-    PLogManager.instance().info(this, "Traversing the entire graph...");
+  private void neighbors2(Database db) {
+    LogManager.instance().info(this, "Traversing the entire graph...");
 
     final long begin = System.currentTimeMillis();
 
@@ -144,20 +144,20 @@ public class PokecBenchmark {
     final AtomicLong totalTraversed = new AtomicLong();
 
     for (int i = 0; i < IDS.length; ++i) {
-      final PCursor<PRID> result = db
+      final Cursor<RID> result = db
           .lookupByKey("V", new String[] { "id" }, new Object[] { Integer.parseInt(IDS[i].substring(1)) });
 
-      final PVertex v = (PVertex) result.next().getRecord();
+      final Vertex v = (Vertex) result.next().getRecord();
 
       rootTraversed.incrementAndGet();
 
-      for (final Iterator<PVertex> neighbors = v.getVertices(PVertex.DIRECTION.OUT).iterator(); neighbors.hasNext(); ) {
-        final PVertex neighbor = neighbors.next();
+      for (final Iterator<Vertex> neighbors = v.getVertices(Vertex.DIRECTION.OUT).iterator(); neighbors.hasNext(); ) {
+        final Vertex neighbor = neighbors.next();
 
         totalTraversed.incrementAndGet();
 
-        for (final Iterator<PVertex> neighbors2 = neighbor.getVertices(PVertex.DIRECTION.OUT).iterator(); neighbors2.hasNext(); ) {
-          final PVertex neighbor2 = neighbors2.next();
+        for (final Iterator<Vertex> neighbors2 = neighbor.getVertices(Vertex.DIRECTION.OUT).iterator(); neighbors2.hasNext(); ) {
+          final Vertex neighbor2 = neighbors2.next();
 
           totalTraversed.incrementAndGet();
         }
@@ -168,21 +168,21 @@ public class PokecBenchmark {
 //      }
     }
 
-    PLogManager.instance()
+    LogManager.instance()
         .info(this, "- elapsed: " + (System.currentTimeMillis() - begin) + "traversed %d roots - %d total", rootTraversed.get(),
             totalTraversed.get());
   }
 
-  private void aggregate(PDatabase db) {
-    PLogManager.instance().info(this, "Aggregating by age...");
+  private void aggregate(Database db) {
+    LogManager.instance().info(this, "Aggregating by age...");
 
     for (int i = 0; i < 3; ++i) {
       final long begin = System.currentTimeMillis();
 
       final Map<String, AtomicInteger> aggregate = new HashMap<>();
-      db.scanType("V", true, new PDocumentCallback() {
+      db.scanType("V", true, new DocumentCallback() {
         @Override
-        public boolean onRecord(final PDocument record) {
+        public boolean onRecord(final Document record) {
           String age = (String) record.get("age");
 
           AtomicInteger counter = aggregate.get(age);
@@ -196,43 +196,43 @@ public class PokecBenchmark {
         }
       });
 
-      PLogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
+      LogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
     }
   }
 
-  private void displayVertices(PDatabase db) {
-    PLogManager.instance().info(this, "Display vertices...");
+  private void displayVertices(Database db) {
+    LogManager.instance().info(this, "Display vertices...");
 
     final long begin = System.currentTimeMillis();
 
     final Map<String, AtomicInteger> aggregate = new HashMap<>();
-    db.scanType("V", true, new PDocumentCallback() {
+    db.scanType("V", true, new DocumentCallback() {
       @Override
-      public boolean onRecord(final PDocument record) {
-        final PVertex v = (PVertex) record;
-        final long countOut = v.countEdges(PVertex.DIRECTION.OUT, "E");
-        final long countIn = v.countEdges(PVertex.DIRECTION.IN, "E");
+      public boolean onRecord(final Document record) {
+        final Vertex v = (Vertex) record;
+        final long countOut = v.countEdges(Vertex.DIRECTION.OUT, "E");
+        final long countIn = v.countEdges(Vertex.DIRECTION.IN, "E");
 
-        PLogManager.instance().info(this, "- %s out=%d in=%d", v.getIdentity(), countOut, countIn);
+        LogManager.instance().info(this, "- %s out=%d in=%d", v.getIdentity(), countOut, countIn);
 
         return true;
       }
     });
 
-    PLogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
+    LogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
   }
 
-  private void warmup(PDatabase db) throws IOException {
-    PLogManager.instance().info(this, "Warming up...");
+  private void warmup(Database db) throws IOException {
+    LogManager.instance().info(this, "Warming up...");
 
     final long begin = System.currentTimeMillis();
 
-    for (PBucket bucket : db.getSchema().getBuckets()) {
-      PLogManager.instance().info(this, "Loading bucket %s in RAM...", bucket);
+    for (Bucket bucket : db.getSchema().getBuckets()) {
+      LogManager.instance().info(this, "Loading bucket %s in RAM...", bucket);
       db.getPageManager().preloadFile(bucket.getId());
-      PLogManager.instance().info(this, "- done, elapsed so far " + (System.currentTimeMillis() - begin));
+      LogManager.instance().info(this, "- done, elapsed so far " + (System.currentTimeMillis() - begin));
     }
 
-    PLogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
+    LogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
   }
 }

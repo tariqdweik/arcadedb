@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.Map;
@@ -46,7 +46,7 @@ public class BaseIdentifier extends SimpleNode {
     }
   }
 
-  public Object execute(PRecord iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Record iCurrentRecord, CommandContext ctx) {
     if (levelZero != null) {
       return levelZero.execute(iCurrentRecord, ctx);
     }
@@ -56,7 +56,7 @@ public class BaseIdentifier extends SimpleNode {
     return null;
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     if (levelZero != null) {
       return levelZero.execute(iCurrentRecord, ctx);
     }
@@ -73,7 +73,7 @@ public class BaseIdentifier extends SimpleNode {
     return false;
   }
 
-  public long estimateIndexedFunction(FromClause target, OCommandContext context, BinaryCompareOperator operator, Object right) {
+  public long estimateIndexedFunction(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (levelZero != null) {
       return levelZero.estimateIndexedFunction(target, context, operator, right);
     }
@@ -81,7 +81,7 @@ public class BaseIdentifier extends SimpleNode {
     return -1;
   }
 
-  public Iterable<PRecord> executeIndexedFunction(FromClause target, OCommandContext context,
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (levelZero != null) {
       return levelZero.executeIndexedFunction(target, context, operator, right);
@@ -101,7 +101,7 @@ public class BaseIdentifier extends SimpleNode {
    * @return true if current expression is an indexed funciton AND that function can also be executed without using the index, false
    * otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right) {
     if (this.levelZero == null) {
       return false;
@@ -119,7 +119,7 @@ public class BaseIdentifier extends SimpleNode {
    *
    * @return true if current expression involves an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context,
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.levelZero == null) {
       return false;
@@ -137,7 +137,7 @@ public class BaseIdentifier extends SimpleNode {
    *
    * @return true if current expression is an indexed function AND the function has also to be executed after the index search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context,
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.levelZero == null) {
       return false;
@@ -221,7 +221,7 @@ public class BaseIdentifier extends SimpleNode {
     }
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     if (isAggregate()) {
 
       if (levelZero != null) {
@@ -229,10 +229,10 @@ public class BaseIdentifier extends SimpleNode {
       } else if (suffix != null) {
         return suffix.getAggregationContext(ctx);
       } else {
-        throw new PCommandExecutionException("cannot aggregate on " + toString());
+        throw new CommandExecutionException("cannot aggregate on " + toString());
       }
     } else {
-      throw new PCommandExecutionException("cannot aggregate on " + toString());
+      throw new CommandExecutionException("cannot aggregate on " + toString());
     }
   }
 
@@ -290,16 +290,16 @@ public class BaseIdentifier extends SimpleNode {
     return levelZero;
   }
 
-  public void applyRemove(OResultInternal result, OCommandContext ctx) {
+  public void applyRemove(ResultInternal result, CommandContext ctx) {
     if (suffix != null) {
       suffix.applyRemove(result, ctx);
     } else {
-      throw new PCommandExecutionException("cannot apply REMOVE " + toString());
+      throw new CommandExecutionException("cannot apply REMOVE " + toString());
     }
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (levelZero != null) {
       result.setProperty("levelZero", levelZero.serialize());
     }
@@ -309,7 +309,7 @@ public class BaseIdentifier extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("levelZero") != null) {
       levelZero = new LevelZeroIdentifier(-1);
       levelZero.deserialize(fromResult.getProperty("levelZero"));
@@ -320,14 +320,14 @@ public class BaseIdentifier extends SimpleNode {
     }
   }
 
-  public boolean isDefinedFor(OResult currentRecord) {
+  public boolean isDefinedFor(Result currentRecord) {
     if (suffix != null) {
       return suffix.isDefinedFor(currentRecord);
     }
     return true;
   }
 
-  public boolean isDefinedFor(PRecord currentRecord) {
+  public boolean isDefinedFor(Record currentRecord) {
     if (suffix != null) {
       return suffix.isDefinedFor(currentRecord);
     }
@@ -346,7 +346,7 @@ public class BaseIdentifier extends SimpleNode {
     }
   }
 
-  public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
+  public OCollate getCollate(Result currentRecord, CommandContext ctx) {
     return suffix == null ? null : suffix.getCollate(currentRecord, ctx);
 
   }

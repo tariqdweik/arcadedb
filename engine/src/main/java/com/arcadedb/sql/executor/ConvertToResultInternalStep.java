@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -19,23 +19,23 @@ import java.util.Optional;
 public class ConvertToResultInternalStep extends AbstractExecutionStep {
   private long cost = 0;
 
-  OResultSet prevResult = null;
+  ResultSet prevResult = null;
 
-  public ConvertToResultInternalStep(OCommandContext ctx, boolean profilingEnabled) {
+  public ConvertToResultInternalStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     if (!prev.isPresent()) {
       throw new IllegalStateException("filter step requires a previous step");
     }
-    OExecutionStepInternal prevStep = prev.get();
+    ExecutionStepInternal prevStep = prev.get();
 
-    return new OResultSet() {
+    return new ResultSet() {
       public boolean finished = false;
 
-      OResult nextItem = null;
+      Result nextItem = null;
       int fetched = 0;
 
       private void fetchNextItem() {
@@ -61,11 +61,11 @@ public class ConvertToResultInternalStep extends AbstractExecutionStep {
           nextItem = prevResult.next();
           long begin = profilingEnabled ? System.nanoTime() : 0;
           try {
-            if (nextItem instanceof OUpdatableResult) {
-              PRecord element = nextItem.getElement().get();
-              if (element != null && element instanceof PDocument) {
-                nextItem = new OResultInternal();
-                ((OResultInternal) nextItem).setElement((PDocument) element);
+            if (nextItem instanceof UpdatableResult) {
+              Record element = nextItem.getElement().get();
+              if (element != null && element instanceof Document) {
+                nextItem = new ResultInternal();
+                ((ResultInternal) nextItem).setElement((Document) element);
               }
               break;
             }
@@ -95,7 +95,7 @@ public class ConvertToResultInternalStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (fetched >= nRecords || finished) {
           throw new IllegalStateException();
         }
@@ -105,7 +105,7 @@ public class ConvertToResultInternalStep extends AbstractExecutionStep {
         if (nextItem == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextItem;
+        Result result = nextItem;
         nextItem = null;
         fetched++;
         return result;
@@ -117,7 +117,7 @@ public class ConvertToResultInternalStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -131,7 +131,7 @@ public class ConvertToResultInternalStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result = OExecutionStepInternal.getIndent(depth, indent) + "+ CONVERT TO REGULAR RESULT ITEM";
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ CONVERT TO REGULAR RESULT ITEM";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }

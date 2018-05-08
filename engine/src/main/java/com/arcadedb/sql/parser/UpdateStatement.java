@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
@@ -122,8 +122,8 @@ public class UpdateStatement extends Statement {
     return result;
   }
 
-  @Override public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  @Override public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -135,24 +135,24 @@ public class UpdateStatement extends Statement {
       }
     }
     ctx.setInputParameters(params);
-    OUpdateExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    UpdateExecutionPlan executionPlan = createExecutionPlan(ctx, false);
     executionPlan.executeInternal();
-    return new OLocalResultSet(executionPlan);
+    return new LocalResultSet(executionPlan);
   }
 
-  @Override public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  @Override public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
-    OUpdateExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    UpdateExecutionPlan executionPlan = createExecutionPlan(ctx, false);
     executionPlan.executeInternal();
-    return new OLocalResultSet(executionPlan);
+    return new LocalResultSet(executionPlan);
   }
 
-  public OUpdateExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  public UpdateExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
     OUpdateExecutionPlanner planner = new OUpdateExecutionPlanner(this);
     return planner.createExecutionPlan(ctx, enableProfiling);
   }

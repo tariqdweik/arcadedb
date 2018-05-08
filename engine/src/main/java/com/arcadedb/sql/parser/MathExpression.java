@@ -2,9 +2,9 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.math.BigDecimal;
@@ -16,14 +16,14 @@ public class MathExpression extends SimpleNode {
   private static final Object NULL_VALUE = new Object();
 
   public Expression getExpandContent() {
-    throw new PCommandExecutionException("Invalid expand expression");
+    throw new CommandExecutionException("Invalid expand expression");
   }
 
-  public boolean isDefinedFor(OResult currentRecord) {
+  public boolean isDefinedFor(Result currentRecord) {
     return true;
   }
 
-  public boolean isDefinedFor(PRecord currentRecord) {
+  public boolean isDefinedFor(Record currentRecord) {
     return true;
   }
 
@@ -571,7 +571,7 @@ public class MathExpression extends SimpleNode {
     return true;
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, CommandContext ctx) {
     if (childExpressions.size() == 0) {
       return null;
     }
@@ -588,7 +588,7 @@ public class MathExpression extends SimpleNode {
     return calculateWithOpPriority(iCurrentRecord, ctx);
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     if (childExpressions.size() == 0) {
       return null;
     }
@@ -605,7 +605,7 @@ public class MathExpression extends SimpleNode {
     return calculateWithOpPriority(iCurrentRecord, ctx);
   }
 
-  private Object calculateWithOpPriority(OResult iCurrentRecord, OCommandContext ctx) {
+  private Object calculateWithOpPriority(Result iCurrentRecord, CommandContext ctx) {
     Deque valuesStack = new ArrayDeque<>();
     Deque<Operator> operatorsStack = new ArrayDeque<Operator>();
 
@@ -633,7 +633,7 @@ public class MathExpression extends SimpleNode {
     return iterateOnPriorities(valuesStack, operatorsStack);
   }
 
-  private Object calculateWithOpPriority(PIdentifiable iCurrentRecord, OCommandContext ctx) {
+  private Object calculateWithOpPriority(Identifiable iCurrentRecord, CommandContext ctx) {
     Deque valuesStack = new ArrayDeque<>();
     Deque<Operator> operatorsStack = new ArrayDeque<Operator>();
 
@@ -784,14 +784,14 @@ public class MathExpression extends SimpleNode {
     return this.childExpressions.get(0).isIndexedFunctionCall();
   }
 
-  public long estimateIndexedFunction(FromClause target, OCommandContext context, BinaryCompareOperator operator, Object right) {
+  public long estimateIndexedFunction(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (this.childExpressions.size() != 1) {
       return -1;
     }
     return this.childExpressions.get(0).estimateIndexedFunction(target, context, operator, right);
   }
 
-  public Iterable<PRecord> executeIndexedFunction(FromClause target, OCommandContext context,
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.childExpressions.size() != 1) {
       return null;
@@ -808,7 +808,7 @@ public class MathExpression extends SimpleNode {
    * @return true if current expression is an indexed funciton AND that function can also be executed without using the index, false
    * otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, OCommandContext context, BinaryCompareOperator operator,
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
       Object right) {
     if (this.childExpressions.size() != 1) {
       return false;
@@ -824,7 +824,7 @@ public class MathExpression extends SimpleNode {
    *
    * @return true if current expression is an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, OCommandContext context,
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.childExpressions.size() != 1) {
       return false;
@@ -842,7 +842,7 @@ public class MathExpression extends SimpleNode {
    *
    * @return true if current expression is an indexed function AND the function has also to be executed after the index search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, OCommandContext context,
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context,
       BinaryCompareOperator operator, Object right) {
     if (this.childExpressions.size() != 1) {
       return false;
@@ -858,7 +858,7 @@ public class MathExpression extends SimpleNode {
   }
 
   //TODO
-  public OCollate getCollate(OResult currentRecord, OCommandContext ctx) {
+  public OCollate getCollate(Result currentRecord, CommandContext ctx) {
 //    if (childExpressions.size() == 1)
 //      return childExpressions.get(0).getCollate(currentRecord, ctx);
     return null;
@@ -886,7 +886,7 @@ public class MathExpression extends SimpleNode {
     for (MathExpression expr : this.childExpressions) {
       if (expr.isExpand()) {
         if (this.childExpressions.size() > 1) {
-          throw new PCommandExecutionException("Cannot calculate expand() with other expressions");
+          throw new CommandExecutionException("Cannot calculate expand() with other expressions");
         }
         return true;
       }
@@ -924,7 +924,7 @@ public class MathExpression extends SimpleNode {
           if (res.isEarlyCalculated() || res.isAggregate()) {
             result.childExpressions.add(res);
           } else {
-            throw new PCommandExecutionException("Cannot mix aggregate and single record attribute values in the same projection");
+            throw new CommandExecutionException("Cannot mix aggregate and single record attribute values in the same projection");
           }
         } else if (splitResult instanceof Expression) {
           result.childExpressions.add(((Expression) splitResult).mathExpression);//this comes from a splitted aggregate function
@@ -937,7 +937,7 @@ public class MathExpression extends SimpleNode {
     }
   }
 
-  public AggregationContext getAggregationContext(OCommandContext ctx) {
+  public AggregationContext getAggregationContext(CommandContext ctx) {
     throw new UnsupportedOperationException("multiple math expressions do not allow plain aggregation");
   }
 
@@ -1012,27 +1012,27 @@ public class MathExpression extends SimpleNode {
     return result;
   }
 
-  public void applyRemove(OResultInternal result, OCommandContext ctx) {
+  public void applyRemove(ResultInternal result, CommandContext ctx) {
     if (childExpressions.size() != 1) {
-      throw new PCommandExecutionException("cannot apply REMOVE " + toString());
+      throw new CommandExecutionException("cannot apply REMOVE " + toString());
     }
     childExpressions.get(0).applyRemove(result, ctx);
   }
 
-  public static MathExpression deserializeFromResult(OResult fromResult) {
+  public static MathExpression deserializeFromResult(Result fromResult) {
     String className = fromResult.getProperty("__class");
     try {
       MathExpression result = (MathExpression) Class.forName(className).getConstructor(Integer.class).newInstance(-1);
       result.deserialize(fromResult);
       return result;
     } catch (Exception e) {
-      throw new PCommandExecutionException( e);
+      throw new CommandExecutionException( e);
     }
 
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("__class", getClass().getName());
     if (childExpressions != null) {
       result.setProperty("childExpressions", childExpressions.stream().map(x -> x.serialize()).collect(Collectors.toList()));
@@ -1043,9 +1043,9 @@ public class MathExpression extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     if (fromResult.getProperty("childExpressions") != null) {
-      List<OResult> ser = fromResult.getProperty("childExpressions");
+      List<Result> ser = fromResult.getProperty("childExpressions");
       childExpressions = ser.stream().map(x -> deserializeFromResult(x)).collect(Collectors.toList());
 
     }

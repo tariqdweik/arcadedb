@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.parser.Expression;
 import com.arcadedb.sql.parser.GroupBy;
 import com.arcadedb.sql.parser.Projection;
@@ -16,25 +16,25 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
   private final GroupBy groupBy;
 
   //the key is the GROUP BY key, the value is the (partially) aggregated value
-  private Map<List, OResultInternal> aggregateResults = new LinkedHashMap<>();
-  private List<OResultInternal>      finalResults     = null;
+  private Map<List, ResultInternal> aggregateResults = new LinkedHashMap<>();
+  private List<ResultInternal>      finalResults     = null;
 
   private int  nextItem = 0;
   private long cost     = 0;
 
-  public AggregateProjectionCalculationStep(Projection projection, GroupBy groupBy, OCommandContext ctx,
+  public AggregateProjectionCalculationStep(Projection projection, GroupBy groupBy, CommandContext ctx,
       boolean profilingEnabled) {
     super(projection, ctx, profilingEnabled);
     this.groupBy = groupBy;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) {
     if (finalResults == null) {
       executeAggregation(ctx, nRecords);
     }
 
-    return new OResultSet() {
+    return new ResultSet() {
       int localNext = 0;
 
       @Override
@@ -46,11 +46,11 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (localNext > nRecords || nextItem >= finalResults.size()) {
           throw new IllegalStateException();
         }
-        OResult result = finalResults.get(nextItem);
+        Result result = finalResults.get(nextItem);
         nextItem++;
         localNext++;
         return result;
@@ -62,7 +62,7 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -73,12 +73,12 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
     };
   }
 
-  private void executeAggregation(OCommandContext ctx, int nRecords) {
+  private void executeAggregation(CommandContext ctx, int nRecords) {
     if (!prev.isPresent()) {
-      throw new PCommandExecutionException("Cannot execute an aggregation or a GROUP BY without a previous result");
+      throw new CommandExecutionException("Cannot execute an aggregation or a GROUP BY without a previous result");
     }
-    OExecutionStepInternal prevStep = prev.get();
-    OResultSet lastRs = prevStep.syncPull(ctx, nRecords);
+    ExecutionStepInternal prevStep = prev.get();
+    ResultSet lastRs = prevStep.syncPull(ctx, nRecords);
     while (lastRs.hasNext()) {
       aggregate(lastRs.next(), ctx);
       if (!lastRs.hasNext()) {
@@ -88,7 +88,7 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
     finalResults = new ArrayList<>();
     finalResults.addAll(aggregateResults.values());
     aggregateResults.clear();
-    for (OResultInternal item : finalResults) {
+    for (ResultInternal item : finalResults) {
       for (String name : item.getPropertyNames()) {
         Object prevVal = item.getProperty(name);
         if (prevVal instanceof AggregationContext) {
@@ -98,7 +98,7 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
     }
   }
 
-  private void aggregate(OResult next, OCommandContext ctx) {
+  private void aggregate(Result next, CommandContext ctx) {
     long begin = profilingEnabled ? System.nanoTime() : 0;
     try {
       List<Object> key = new ArrayList<>();
@@ -108,9 +108,9 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
           key.add(val);
         }
       }
-      OResultInternal preAggr = aggregateResults.get(key);
+      ResultInternal preAggr = aggregateResults.get(key);
       if (preAggr == null) {
-        preAggr = new OResultInternal();
+        preAggr = new ResultInternal();
         aggregateResults.put(key, preAggr);
       }
 
@@ -136,7 +136,7 @@ public class AggregateProjectionCalculationStep extends ProjectionCalculationSte
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ CALCULATE AGGREGATE PROJECTIONS";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";

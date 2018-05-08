@@ -1,9 +1,9 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRID;
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
+import com.arcadedb.exception.TimeoutException;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -21,31 +21,31 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  private OResultSet prevResult = null;
+  private ResultSet prevResult = null;
 
   /**
    * @param ctx              the execution context
    * @param filterClusterIds only extract values from these clusters. Pass null if no filtering is needed
    * @param profilingEnabled enable profiling
    */
-  public GetValueFromIndexEntryStep(OCommandContext ctx, int[] filterClusterIds, boolean profilingEnabled) {
+  public GetValueFromIndexEntryStep(CommandContext ctx, int[] filterClusterIds, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.filterClusterIds = filterClusterIds;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
 
     if (!prev.isPresent()) {
       throw new IllegalStateException("filter step requires a previous step");
     }
-    OExecutionStepInternal prevStep = prev.get();
+    ExecutionStepInternal prevStep = prev.get();
 
-    return new OResultSet() {
+    return new ResultSet() {
 
       public boolean finished = false;
 
-      OResult nextItem = null;
+      Result nextItem = null;
       int fetched = 0;
 
       @Override
@@ -66,7 +66,7 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (fetched >= nRecords || finished) {
           throw new IllegalStateException();
         }
@@ -76,7 +76,7 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
         if (nextItem == null) {
           throw new IllegalStateException();
         }
-        OResult result = nextItem;
+        Result result = nextItem;
         nextItem = null;
         fetched++;
         return result;
@@ -102,16 +102,16 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
               return;
             }
           }
-          OResult val = prevResult.next();
+          Result val = prevResult.next();
           long begin = profilingEnabled ? System.nanoTime() : 0;
 
           try {
             Object finalVal = val.getProperty("rid");
             if (filterClusterIds != null) {
-              if (!(finalVal instanceof PIdentifiable)) {
+              if (!(finalVal instanceof Identifiable)) {
                 continue;
               }
-              PRID rid = ((PIdentifiable) finalVal).getIdentity();
+              RID rid = ((Identifiable) finalVal).getIdentity();
               boolean found = false;
               for (int filterClusterId : filterClusterIds) {
                 if (rid.getBucketId() < 0 || filterClusterId == rid.getBucketId()) {
@@ -123,12 +123,12 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
                 continue;
               }
             }
-            if (finalVal instanceof PDocument) {
-              OResultInternal res = new OResultInternal();
-              res.setElement((PDocument) finalVal);
+            if (finalVal instanceof Document) {
+              ResultInternal res = new ResultInternal();
+              res.setElement((Document) finalVal);
               nextItem = res;
-            } else if (finalVal instanceof OResult) {
-              nextItem = (OResult) finalVal;
+            } else if (finalVal instanceof Result) {
+              nextItem = (Result) finalVal;
             }
             break;
           } finally {
@@ -145,7 +145,7 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -158,7 +158,7 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     String result = spaces + "+ EXTRACT VALUE FROM INDEX ENTRY";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
@@ -184,7 +184,7 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OExecutionStep copy(OCommandContext ctx) {
+  public ExecutionStep copy(CommandContext ctx) {
     return new GetValueFromIndexEntryStep(ctx, this.filterClusterIds, this.profilingEnabled);
   }
 }

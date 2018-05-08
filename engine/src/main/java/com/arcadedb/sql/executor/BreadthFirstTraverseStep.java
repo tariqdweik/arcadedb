@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PRID;
-import com.arcadedb.database.PRecord;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.Record;
 import com.arcadedb.sql.parser.PInteger;
 import com.arcadedb.sql.parser.TraverseProjectionItem;
 import com.arcadedb.sql.parser.WhereClause;
@@ -15,25 +15,25 @@ import java.util.*;
 public class BreadthFirstTraverseStep extends AbstractTraverseStep {
 
   public BreadthFirstTraverseStep(List<TraverseProjectionItem> projections, WhereClause whileClause, PInteger maxDepth,
-      OCommandContext ctx, boolean profilingEnabled) {
+      CommandContext ctx, boolean profilingEnabled) {
     super(projections, whileClause, maxDepth, ctx, profilingEnabled);
   }
 
   @Override
-  protected void fetchNextEntryPoints(OCommandContext ctx, int nRecords) {
-    OResultSet nextN = getPrev().get().syncPull(ctx, nRecords);
+  protected void fetchNextEntryPoints(CommandContext ctx, int nRecords) {
+    ResultSet nextN = getPrev().get().syncPull(ctx, nRecords);
     while (nextN.hasNext()) {
       while (nextN.hasNext()) {
-        OResult item = toTraverseResult(nextN.next());
+        Result item = toTraverseResult(nextN.next());
         if(item != null){
-          ArrayDeque<PRID> stack = new ArrayDeque<PRID>();
+          ArrayDeque<RID> stack = new ArrayDeque<RID>();
           item.getIdentity().ifPresent(x -> stack.push(x));
-          ((OResultInternal) item).setMetadata("$stack", stack);
+          ((ResultInternal) item).setMetadata("$stack", stack);
 
 
-          List<PRID> path = new ArrayList<>();
+          List<RID> path = new ArrayList<>();
           path.add(item.getIdentity().get());
-          ((OResultInternal) item).setMetadata("$path", path);
+          ((ResultInternal) item).setMetadata("$path", path);
 
           if (item != null && item.isElement() && !traversed.contains(item.getElement().get().getIdentity())) {
             tryAddEntryPoint(item, ctx);
@@ -45,12 +45,12 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
     }
   }
 
-  private OResult toTraverseResult(OResult item) {
-    OTraverseResult res = null;
-    if (item instanceof OTraverseResult) {
-      res = (OTraverseResult) item;
+  private Result toTraverseResult(Result item) {
+    TraverseResult res = null;
+    if (item instanceof TraverseResult) {
+      res = (TraverseResult) item;
     } else if (item.isElement()) {
-      res = new OTraverseResult();
+      res = new TraverseResult();
       res.setElement(item.getElement().get());
       res.depth = 0;
       res.setMetadata("$depth", 0);
@@ -62,45 +62,45 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
   }
 
   @Override
-  protected void fetchNextResults(OCommandContext ctx, int nRecords) {
+  protected void fetchNextResults(CommandContext ctx, int nRecords) {
     if (!this.entryPoints.isEmpty()) {
-      OTraverseResult item = (OTraverseResult) this.entryPoints.remove(0);
+      TraverseResult item = (TraverseResult) this.entryPoints.remove(0);
       this.results.add(item);
       for (TraverseProjectionItem proj : projections) {
         Object nextStep = proj.execute(item, ctx);
         if (this.maxDepth == null || this.maxDepth.getValue().intValue() > item.depth) {
-          addNextEntryPoints(nextStep, item.depth + 1, (List<PRID>) item.getMetadata("$path"), ctx);
+          addNextEntryPoints(nextStep, item.depth + 1, (List<RID>) item.getMetadata("$path"), ctx);
         }
       }
     }
   }
 
-  private void addNextEntryPoints(Object nextStep, int depth, List<PRID> path, OCommandContext ctx) {
-    if (nextStep instanceof PRecord) {
-      addNextEntryPoints(((PRecord) nextStep), depth, path, ctx);
+  private void addNextEntryPoints(Object nextStep, int depth, List<RID> path, CommandContext ctx) {
+    if (nextStep instanceof Record) {
+      addNextEntryPoints(((Record) nextStep), depth, path, ctx);
     } else if (nextStep instanceof Iterable) {
       addNextEntryPoints(((Iterable) nextStep).iterator(), depth, path, ctx);
-    } else if (nextStep instanceof OResult) {
-      addNextEntryPoints(((OResult) nextStep), depth, path, ctx);
+    } else if (nextStep instanceof Result) {
+      addNextEntryPoints(((Result) nextStep), depth, path, ctx);
     }
   }
 
-  private void addNextEntryPoints(Iterator nextStep, int depth, List<PRID> path, OCommandContext ctx) {
+  private void addNextEntryPoints(Iterator nextStep, int depth, List<RID> path, CommandContext ctx) {
     while (nextStep.hasNext()) {
       addNextEntryPoints(nextStep.next(), depth, path, ctx);
     }
   }
 
-  private void addNextEntryPoints(PDocument nextStep, int depth, List<PRID> path, OCommandContext ctx) {
+  private void addNextEntryPoints(Document nextStep, int depth, List<RID> path, CommandContext ctx) {
     if (this.traversed.contains(nextStep.getIdentity())) {
       return;
     }
-    OTraverseResult res = new OTraverseResult();
+    TraverseResult res = new TraverseResult();
     res.setElement(nextStep);
     res.depth = depth;
     res.setMetadata("$depth", depth);
 
-    List<PRID> newPath = new ArrayList<>();
+    List<RID> newPath = new ArrayList<>();
     newPath.addAll(path);
     newPath.add(res.getIdentity().get());
     res.setMetadata("$path", newPath);
@@ -116,53 +116,53 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
 
   }
 
-  private void addNextEntryPoints(OResult nextStep, int depth, List<PRID> path, OCommandContext ctx) {
+  private void addNextEntryPoints(Result nextStep, int depth, List<RID> path, CommandContext ctx) {
     if (!nextStep.isElement()) {
       return;
     }
     if (this.traversed.contains(nextStep.getElement().get().getIdentity())) {
       return;
     }
-    if (nextStep instanceof OTraverseResult) {
-      ((OTraverseResult) nextStep).depth = depth;
-      ((OTraverseResult) nextStep).setMetadata("$depth", depth);
+    if (nextStep instanceof TraverseResult) {
+      ((TraverseResult) nextStep).depth = depth;
+      ((TraverseResult) nextStep).setMetadata("$depth", depth);
 
-      List<PRID> newPath = new ArrayList<>();
+      List<RID> newPath = new ArrayList<>();
       newPath.addAll(path);
-      newPath.add(((OTraverseResult) nextStep).getIdentity().get());
-      ((OTraverseResult) nextStep).setMetadata("$path", newPath);
+      newPath.add(((TraverseResult) nextStep).getIdentity().get());
+      ((TraverseResult) nextStep).setMetadata("$path", newPath);
 
       List reverseStack = new ArrayList();
       reverseStack.addAll(newPath);
       Collections.reverse(reverseStack);
       ArrayDeque newStack = new ArrayDeque();
       newStack.addAll(reverseStack);
-      ((OTraverseResult) nextStep).setMetadata("$stack", newStack);
+      ((TraverseResult) nextStep).setMetadata("$stack", newStack);
 
       tryAddEntryPoint(nextStep, ctx);
     } else {
-      OTraverseResult res = new OTraverseResult();
+      TraverseResult res = new TraverseResult();
       res.setElement(nextStep.getElement().get());
       res.depth = depth;
       res.setMetadata("$depth", depth);
 
-      List<PRID> newPath = new ArrayList<>();
+      List<RID> newPath = new ArrayList<>();
       newPath.addAll(path);
-      newPath.add(((OTraverseResult) nextStep).getIdentity().get());
-      ((OTraverseResult) nextStep).setMetadata("$path", newPath);
+      newPath.add(((TraverseResult) nextStep).getIdentity().get());
+      ((TraverseResult) nextStep).setMetadata("$path", newPath);
 
       List reverseStack = new ArrayList();
       reverseStack.addAll(newPath);
       Collections.reverse(reverseStack);
       ArrayDeque newStack = new ArrayDeque();
       newStack.addAll(reverseStack);
-      ((OTraverseResult) nextStep).setMetadata("$stack", newStack);
+      ((TraverseResult) nextStep).setMetadata("$stack", newStack);
 
       tryAddEntryPoint(res, ctx);
     }
   }
 
-  private void tryAddEntryPoint(OResult res, OCommandContext ctx) {
+  private void tryAddEntryPoint(Result res, CommandContext ctx) {
     if (whileClause == null || whileClause.matchesFilters(res, ctx)) {
       this.entryPoints.add(res);
     }
@@ -171,7 +171,7 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ BREADTH-FIRST TRAVERSE \n");

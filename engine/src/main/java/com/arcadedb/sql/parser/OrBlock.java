@@ -2,11 +2,11 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +26,7 @@ public class OrBlock extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(PIdentifiable currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
     if (getSubBlocks() == null) {
       return true;
     }
@@ -40,7 +40,7 @@ public class OrBlock extends BooleanExpression {
   }
 
   @Override
-  public boolean evaluate(OResult currentRecord, OCommandContext ctx) {
+  public boolean evaluate(Result currentRecord, CommandContext ctx) {
     if (getSubBlocks() == null) {
       return true;
     }
@@ -53,11 +53,11 @@ public class OrBlock extends BooleanExpression {
     return false;
   }
 
-  public boolean evaluate(Object currentRecord, OCommandContext ctx) {
-    if (currentRecord instanceof OResult) {
-      return evaluate((OResult) currentRecord, ctx);
-    } else if (currentRecord instanceof PIdentifiable) {
-      return evaluate((PIdentifiable) currentRecord, ctx);
+  public boolean evaluate(Object currentRecord, CommandContext ctx) {
+    if (currentRecord instanceof Result) {
+      return evaluate((Result) currentRecord, ctx);
+    } else if (currentRecord instanceof Identifiable) {
+      return evaluate((Identifiable) currentRecord, ctx);
     } else if (currentRecord instanceof Map) {
 //      ODocument doc = new ODocument();
 //      doc.fromMap((Map<String, Object>) currentRecord);
@@ -122,7 +122,7 @@ public class OrBlock extends BooleanExpression {
     return result;
   }
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, PDatabase database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
     if (subBlocks == null || subBlocks.size() > 1) {
       return null;
     }

@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PRID;
+import com.arcadedb.database.RID;
 import com.arcadedb.sql.parser.PInteger;
 import com.arcadedb.sql.parser.TraverseProjectionItem;
 import com.arcadedb.sql.parser.WhereClause;
@@ -16,14 +16,14 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
   protected final List<TraverseProjectionItem> projections;
   protected final PInteger                     maxDepth;
 
-  protected List<OResult> entryPoints = null;
-  protected List<OResult> results     = new ArrayList<>();
-  private   long          cost        = 0;
+  protected List<Result> entryPoints = null;
+  protected List<Result> results     = new ArrayList<>();
+  private   long         cost        = 0;
 
-  Set<PRID> traversed = new ORidSet();
+  Set<RID> traversed = new RidSet();
 
   public AbstractTraverseStep(List<TraverseProjectionItem> projections, WhereClause whileClause, PInteger maxDepth,
-      OCommandContext ctx, boolean profilingEnabled) {
+      CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.whileClause = whileClause;
     this.maxDepth = maxDepth;
@@ -31,10 +31,10 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) {
     //TODO
 
-    return new OResultSet() {
+    return new ResultSet() {
       int localFetched = 0;
 
       @Override
@@ -52,7 +52,7 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (localFetched >= nRecords) {
           throw new IllegalStateException();
         }
@@ -63,7 +63,7 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
           }
         }
         localFetched++;
-        OResult result = results.remove(0);
+        Result result = results.remove(0);
         if (result.isElement()) {
           traversed.add(result.getElement().get().getIdentity());
         }
@@ -76,7 +76,7 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -87,9 +87,9 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
     };
   }
 
-  private void fetchNextBlock(OCommandContext ctx, int nRecords) {
+  private void fetchNextBlock(CommandContext ctx, int nRecords) {
     if (this.entryPoints == null) {
-      this.entryPoints = new ArrayList<OResult>();
+      this.entryPoints = new ArrayList<Result>();
     }
     if (!this.results.isEmpty()) {
       return;
@@ -112,9 +112,9 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
     }
   }
 
-  protected abstract void fetchNextEntryPoints(OCommandContext ctx, int nRecords);
+  protected abstract void fetchNextEntryPoints(CommandContext ctx, int nRecords);
 
-  protected abstract void fetchNextResults(OCommandContext ctx, int nRecords);
+  protected abstract void fetchNextResults(CommandContext ctx, int nRecords);
 
   protected boolean isFinished() {
     return entryPoints != null && entryPoints.isEmpty() && results.isEmpty();

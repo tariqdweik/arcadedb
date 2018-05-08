@@ -1,34 +1,34 @@
 package com.arcadedb.index;
 
-import com.arcadedb.database.PBinary;
-import com.arcadedb.engine.PBasePage;
-import com.arcadedb.engine.PPageId;
-import com.arcadedb.serializer.PBinarySerializer;
+import com.arcadedb.database.Binary;
+import com.arcadedb.engine.BasePage;
+import com.arcadedb.engine.PageId;
+import com.arcadedb.serializer.BinarySerializer;
 
 import java.io.IOException;
 
-import static com.arcadedb.database.PBinary.INT_SERIALIZED_SIZE;
+import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
 public class PIndexLSMPageIterator {
-  private final PIndexLSM         index;
-  private final PPageId           pageId;
-  private final PBinary           buffer;
-  private final byte[]            keyTypes;
-  private final int               keyStartPosition;
-  private final PBinarySerializer serializer;
-  private final int               totalKeys;
-  private final boolean           ascendingOrder;
+  private final IndexLSM         index;
+  private final PageId           pageId;
+  private final Binary           buffer;
+  private final byte[]           keyTypes;
+  private final int              keyStartPosition;
+  private final BinarySerializer serializer;
+  private final int              totalKeys;
+  private final boolean          ascendingOrder;
 
   private int currentEntryIndex;
   private int valuePosition = -1;
   private Object[] nextKeys;
   private Object   nextValue;
 
-  public PIndexLSMPageIterator(final PIndexLSM index, final PBasePage page, final int currentEntryInPage, final int keyStartPosition,
+  public PIndexLSMPageIterator(final IndexLSM index, final BasePage page, final int currentEntryInPage, final int keyStartPosition,
       final byte[] keyTypes, final int totalKeys, final boolean ascendingOrder) {
     this.index = index;
     this.pageId = page.getPageId();
-    this.buffer = new PBinary(page.slice());
+    this.buffer = new Binary(page.slice());
     this.keyStartPosition = keyStartPosition;
     this.keyTypes = keyTypes;
     this.serializer = index.getDatabase().getSerializer();

@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRecord;
-import com.arcadedb.exception.PCommandExecutionException;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.Record;
+import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
 
 import java.util.*;
@@ -29,11 +29,11 @@ public class MatchStatement extends Statement {
   public class MatchContext {
     int currentEdgeNumber = 0;
 
-    Map<String, Iterable>      candidates   = new LinkedHashMap<String, Iterable>();
-    Map<String, PIdentifiable> matched      = new LinkedHashMap<String, PIdentifiable>();
-    Map<PatternEdge, Boolean>  matchedEdges = new IdentityHashMap<PatternEdge, Boolean>();
+    Map<String, Iterable>     candidates   = new LinkedHashMap<String, Iterable>();
+    Map<String, Identifiable> matched      = new LinkedHashMap<String, Identifiable>();
+    Map<PatternEdge, Boolean> matchedEdges = new IdentityHashMap<PatternEdge, Boolean>();
 
-    public MatchContext copy(String alias, PIdentifiable value) {
+    public MatchContext copy(String alias, Identifiable value) {
       MatchContext result = new MatchContext();
 
       result.candidates.putAll(candidates);
@@ -47,7 +47,7 @@ public class MatchStatement extends Statement {
       return result;
     }
 
-    public PRecord toDoc() {
+    public Record toDoc() {
       throw new UnsupportedOperationException();
     }
 
@@ -89,7 +89,7 @@ public class MatchStatement extends Statement {
   private Map<String, String>      aliasClasses;
 
   // execution data
-  private OCommandContext context;
+  private CommandContext context;
 //  private OProgressListener progressListener;
 
   public MatchStatement() {
@@ -105,8 +105,8 @@ public class MatchStatement extends Statement {
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Object[] args, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
@@ -118,25 +118,25 @@ public class MatchStatement extends Statement {
       }
     }
     ctx.setInputParameters(params);
-    OInternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    return new OLocalResultSet(executionPlan);
+    return new LocalResultSet(executionPlan);
   }
 
   @Override
-  public OResultSet execute(PDatabase db, Map params, OCommandContext parentCtx) {
-    OBasicCommandContext ctx = new OBasicCommandContext();
+  public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+    BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
-    OInternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
 
-    return new OLocalResultSet(executionPlan);
+    return new LocalResultSet(executionPlan);
   }
 
-  public OInternalExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
     OMatchExecutionPlanner planner = new OMatchExecutionPlanner(this);
     return planner.createExecutionPlan(ctx, enableProfiling);
   }
@@ -247,7 +247,7 @@ public class MatchStatement extends Statement {
   }
 
   private void addAliases(MatchExpression expr, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
-      OCommandContext context) {
+      CommandContext context) {
     addAliases(expr.origin, aliasFilters, aliasClasses, context);
     for (MatchPathItem item : expr.items) {
       if (item.filter != null) {
@@ -257,7 +257,7 @@ public class MatchStatement extends Statement {
   }
 
   private void addAliases(MatchFilter matchFilter, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
-      OCommandContext context) {
+      CommandContext context) {
     String alias = matchFilter.getAlias();
     WhereClause filter = matchFilter.getFilter();
     if (alias != null) {
@@ -282,7 +282,7 @@ public class MatchStatement extends Statement {
         } else {
           String lower = getLowerSubclass(clazz, previousClass);
           if (lower == null) {
-            throw new PCommandExecutionException(
+            throw new CommandExecutionException(
                 "classes defined for alias " + alias + " (" + clazz + ", " + previousClass + ") are not in the same hierarchy");
           }
           aliasClasses.put(alias, lower);

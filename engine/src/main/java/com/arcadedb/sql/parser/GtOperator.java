@@ -2,7 +2,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.Identifiable;
 
 public class GtOperator extends SimpleNode implements BinaryCompareOperator {
   public GtOperator(int id) {
@@ -35,7 +35,7 @@ public class GtOperator extends SimpleNode implements BinaryCompareOperator {
 //    }
     if (iRight == null)
       return false;
-    if (iLeft instanceof PIdentifiable && !(iRight instanceof PIdentifiable)) {
+    if (iLeft instanceof Identifiable && !(iRight instanceof Identifiable)) {
       return false;
     }
     if (!(iLeft instanceof Comparable)) {

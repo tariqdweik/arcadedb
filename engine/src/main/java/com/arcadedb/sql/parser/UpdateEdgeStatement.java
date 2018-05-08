@@ -2,8 +2,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OUpdateExecutionPlan;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.UpdateExecutionPlan;
 import com.arcadedb.sql.executor.OUpdateExecutionPlanner;
 
 import java.util.stream.Collectors;
@@ -21,7 +21,7 @@ public class UpdateEdgeStatement extends UpdateStatement {
     return "UPDATE EDGE ";
   }
 
-  @Override public OUpdateExecutionPlan createExecutionPlan(OCommandContext ctx, boolean enableProfiling) {
+  @Override public UpdateExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
     OUpdateExecutionPlanner planner = new OUpdateExecutionPlanner(this);
     return planner.createExecutionPlan(ctx, enableProfiling);
   }

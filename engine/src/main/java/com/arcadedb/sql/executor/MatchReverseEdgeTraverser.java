@@ -1,7 +1,7 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.sql.parser.MatchPathItem;
 import com.arcadedb.sql.parser.Rid;
 import com.arcadedb.sql.parser.WhereClause;
@@ -18,21 +18,21 @@ public class MatchReverseEdgeTraverser extends MatchEdgeTraverser {
   private final String startingPointAlias;
   private final String endPointAlias;
 
-  public MatchReverseEdgeTraverser(OResult lastUpstreamRecord, EdgeTraversal edge) {
+  public MatchReverseEdgeTraverser(Result lastUpstreamRecord, EdgeTraversal edge) {
     super(lastUpstreamRecord, edge);
     this.startingPointAlias = edge.edge.in.alias;
     this.endPointAlias = edge.edge.out.alias;
   }
 
-  protected String targetClassName(MatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClassName(MatchPathItem item, CommandContext iCommandContext) {
     return edge.getLeftClass();
   }
 
-  protected String targetClusterName(MatchPathItem item, OCommandContext iCommandContext) {
+  protected String targetClusterName(MatchPathItem item, CommandContext iCommandContext) {
     return edge.getLeftCluster();
   }
 
-  protected Rid targetRid(MatchPathItem item, OCommandContext iCommandContext) {
+  protected Rid targetRid(MatchPathItem item, CommandContext iCommandContext) {
     return edge.getLeftRid();
   }
 
@@ -41,26 +41,26 @@ public class MatchReverseEdgeTraverser extends MatchEdgeTraverser {
   }
 
   @Override
-  protected Iterable<OResultInternal> traversePatternEdge(PIdentifiable startingPoint, OCommandContext iCommandContext) {
+  protected Iterable<ResultInternal> traversePatternEdge(Identifiable startingPoint, CommandContext iCommandContext) {
 
     Object qR = this.item.getMethod().executeReverse(startingPoint, iCommandContext);
     if (qR == null) {
       return Collections.emptyList();
     }
-    if (qR instanceof OResultInternal) {
-      return Collections.singleton((OResultInternal) qR);
+    if (qR instanceof ResultInternal) {
+      return Collections.singleton((ResultInternal) qR);
     }
-    if (qR instanceof PDocument) {
-      return Collections.singleton(new OResultInternal((PDocument) qR));
+    if (qR instanceof Document) {
+      return Collections.singleton(new ResultInternal((Document) qR));
     }
     if (qR instanceof Iterable) {
       Iterable iterable = (Iterable) qR;
-      List<OResultInternal> result = new ArrayList<>();
+      List<ResultInternal> result = new ArrayList<>();
       for (Object o : iterable) {
-        if (o instanceof PDocument) {
-          result.add(new OResultInternal((PDocument) o));
-        } else if (o instanceof OResultInternal) {
-          result.add((OResultInternal) o);
+        if (o instanceof Document) {
+          result.add(new ResultInternal((Document) o));
+        } else if (o instanceof ResultInternal) {
+          result.add((ResultInternal) o);
         } else if (o == null) {
           continue;
         } else {

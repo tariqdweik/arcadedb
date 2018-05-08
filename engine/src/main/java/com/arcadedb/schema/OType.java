@@ -19,14 +19,14 @@
  */
 package com.arcadedb.schema;
 
-import com.arcadedb.database.PBinary;
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PRID;
-import com.arcadedb.sql.executor.OMultiValue;
-import com.arcadedb.utility.PFileUtils;
-import com.arcadedb.utility.PLogManager;
-import com.arcadedb.utility.PMultiIterator;
+import com.arcadedb.database.Binary;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
+import com.arcadedb.sql.executor.MultiValue;
+import com.arcadedb.utility.FileUtils;
+import com.arcadedb.utility.LogManager;
+import com.arcadedb.utility.MultiIterator;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -59,13 +59,13 @@ public enum OType {
 
   BINARY("Binary", 8, byte[].class, new Class<?>[] { byte[].class }),
 
-  EMBEDDEDLIST("EmbeddedList", 9, List.class, new Class<?>[] { List.class, PMultiIterator.class }),
+  EMBEDDEDLIST("EmbeddedList", 9, List.class, new Class<?>[] { List.class, MultiIterator.class }),
 
   EMBEDDEDSET("EmbeddedSet", 10, Set.class, new Class<?>[] { Set.class }),
 
   EMBEDDEDMAP("EmbeddedMap", 11, Map.class, new Class<?>[] { Map.class }),
 
-  LINK("Link", 12, PIdentifiable.class, new Class<?>[] { PIdentifiable.class, PRID.class }),
+  LINK("Link", 12, Identifiable.class, new Class<?>[] { Identifiable.class, RID.class }),
 
   BYTE("Byte", 13, Byte.class, new Class<?>[] { Number.class }),
 
@@ -211,7 +211,7 @@ public enum OType {
   private static boolean checkLinkCollection(Collection<?> toCheck) {
     boolean empty = true;
     for (Object object : toCheck) {
-      if (object != null && !(object instanceof PIdentifiable))
+      if (object != null && !(object instanceof Identifiable))
         return false;
       else if (object != null)
         empty = false;
@@ -246,7 +246,7 @@ public enum OType {
    * @return The converted value or the original if no conversion was applied
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public static Object convert(final PDatabase database, final Object iValue, final Class<?> iTargetClass) {
+  public static Object convert(final Database database, final Object iValue, final Class<?> iTargetClass) {
     if (iValue == null)
       return null;
 
@@ -262,8 +262,8 @@ public enum OType {
       return iValue;
 
     try {
-      if (iValue instanceof PBinary && iTargetClass.isAssignableFrom(byte[].class))
-        return ((PBinary) iValue).toByteArray();
+      if (iValue instanceof Binary && iTargetClass.isAssignableFrom(byte[].class))
+        return ((Binary) iValue).toByteArray();
       else if (byte[].class.isAssignableFrom(iValue.getClass())) {
         return iValue;
       } else if (iTargetClass.isEnum()) {
@@ -381,7 +381,7 @@ public enum OType {
         if (iValue instanceof Number)
           return new Date(((Number) iValue).longValue());
         if (iValue instanceof String) {
-          if (PFileUtils.isLong(iValue.toString()))
+          if (FileUtils.isLong(iValue.toString()))
             return new Date(Long.parseLong(iValue.toString()));
           try {
             return new SimpleDateFormat(database.getSchema().getDateTimeFormat()).parse((String) iValue);
@@ -391,17 +391,17 @@ public enum OType {
         }
       } else if (iTargetClass.equals(String.class)) {
         return iValue.toString();
-      } else if (iTargetClass.equals(PIdentifiable.class)) {
-        if (OMultiValue.isMultiValue(iValue)) {
-          List<PIdentifiable> result = new ArrayList<>();
-          for (Object o : OMultiValue.getMultiValueIterable(iValue)) {
-            if (o instanceof PIdentifiable) {
-              result.add((PIdentifiable) o);
+      } else if (iTargetClass.equals(Identifiable.class)) {
+        if (MultiValue.isMultiValue(iValue)) {
+          List<Identifiable> result = new ArrayList<>();
+          for (Object o : MultiValue.getMultiValueIterable(iValue)) {
+            if (o instanceof Identifiable) {
+              result.add((Identifiable) o);
             } else if (o instanceof String) {
               try {
-                result.add(new PRID(database, iValue.toString()));
+                result.add(new RID(database, iValue.toString()));
               } catch (Exception e) {
-                PLogManager.instance()
+                LogManager.instance()
                     .debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
               }
             }
@@ -409,9 +409,9 @@ public enum OType {
           return result;
         } else if (iValue instanceof String) {
           try {
-            return new PRID(database, (String) iValue);
+            return new RID(database, (String) iValue);
           } catch (Exception e) {
-            PLogManager.instance().debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+            LogManager.instance().debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
           }
         }
       }
@@ -419,7 +419,7 @@ public enum OType {
       // PASS THROUGH
       throw e;
     } catch (Exception e) {
-      PLogManager.instance().debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+      LogManager.instance().debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
       return null;
     }
 

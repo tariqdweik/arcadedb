@@ -15,15 +15,15 @@
  */
 package com.arcadedb.sql.method.misc;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OSQLMethod;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.SQLMethod;
 
 /**
  * 
  * @author Johann Sorel (Geomatys)
  */
-public abstract class OAbstractSQLMethod implements OSQLMethod {
+public abstract class OAbstractSQLMethod implements SQLMethod {
 
   private final String name;
   private final int    minparams;
@@ -86,7 +86,7 @@ public abstract class OAbstractSQLMethod implements OSQLMethod {
     return maxparams;
   }
 
-  protected Object getParameterValue(final PIdentifiable iRecord, final String iValue) {
+  protected Object getParameterValue(final Identifiable iRecord, final String iValue) {
     if (iValue == null) {
       return null;
     }
@@ -100,11 +100,11 @@ public abstract class OAbstractSQLMethod implements OSQLMethod {
       return null;
     }
     // SEARCH FOR FIELD
-    return ((PDocument) iRecord.getRecord()).get(iValue);
+    return ((Document) iRecord.getRecord()).get(iValue);
   }
 
   @Override
-  public int compareTo(OSQLMethod o) {
+  public int compareTo(SQLMethod o) {
     return this.getName().compareTo(o.getName());
   }
 

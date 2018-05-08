@@ -2,10 +2,10 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,7 +25,7 @@ public class TraverseProjectionItem extends SimpleNode {
     super(p, id);
   }
 
-  public Object execute(OResult iCurrentRecord, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, CommandContext ctx) {
     if (isStar()) {
       return handleStar(iCurrentRecord, ctx);
     }
@@ -40,7 +40,7 @@ public class TraverseProjectionItem extends SimpleNode {
     return base.toString().equals("*") && modifier == null;
   }
 
-  private Object handleStar(OResult iCurrentRecord, OCommandContext ctx) {
+  private Object handleStar(Result iCurrentRecord, CommandContext ctx) {
     Set<Object> result = new HashSet<>();
     for (String prop : iCurrentRecord.getPropertyNames()) {
       Object val = iCurrentRecord.getProperty(prop);
@@ -58,9 +58,9 @@ public class TraverseProjectionItem extends SimpleNode {
               result.add(sub);
             }
           }
-        } else if (val instanceof OResultSet) {
-          while (((OResultSet) val).hasNext()) {
-            result.add(((OResultSet) val).next());
+        } else if (val instanceof ResultSet) {
+          while (((ResultSet) val).hasNext()) {
+            result.add(((ResultSet) val).next());
           }
         }
       }
@@ -69,14 +69,14 @@ public class TraverseProjectionItem extends SimpleNode {
   }
 
   private boolean isValidIdentifiable(Object val) {
-    if (!(val instanceof PIdentifiable)) {
+    if (!(val instanceof Identifiable)) {
       return false;
     }
     return true;
   }
 
   private boolean isOResult(Object val) {
-    return val instanceof OResult;
+    return val instanceof Result;
   }
 
   /**

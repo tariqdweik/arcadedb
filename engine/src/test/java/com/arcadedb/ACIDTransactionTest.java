@@ -1,14 +1,14 @@
 package com.arcadedb;
 
-import com.arcadedb.database.PDatabase;
-import com.arcadedb.database.PDatabaseFactory;
-import com.arcadedb.database.PDatabaseInternal;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.database.async.PErrorCallback;
-import com.arcadedb.engine.PPaginatedFile;
-import com.arcadedb.engine.PWALException;
-import com.arcadedb.exception.PTransactionException;
-import com.arcadedb.utility.PFileUtils;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.engine.WALException;
+import com.arcadedb.exception.TransactionException;
+import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,10 +27,10 @@ public class ACIDTransactionTest {
 
   @BeforeEach
   public void populate() {
-    PFileUtils.deleteRecursively(new File(DB_PATH));
-    new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).execute(new PDatabaseFactory.POperation() {
+    FileUtils.deleteRecursively(new File(DB_PATH));
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
-      public void execute(PDatabase database) {
+      public void execute(Database database) {
         if (!database.getSchema().existsType("V"))
           database.getSchema().createDocumentType("V");
       }
@@ -39,26 +39,26 @@ public class ACIDTransactionTest {
 
   @AfterEach
   public void drop() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();
   }
 
   @Test
   public void testCrashDuringTx() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
     try {
-      final PModifiableDocument v = db.newDocument("V");
+      final ModifiableDocument v = db.newDocument("V");
       v.set("id", 0);
       v.set("name", "Crash");
       v.set("surname", "Test");
       v.save();
 
     } finally {
-      ((PDatabaseInternal) db).kill();
+      ((DatabaseInternal) db).kill();
     }
 
-    final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
+    final Database db2 = verifyDatabaseWasNotClosedProperly();
     try {
       Assertions.assertEquals(0, db2.countType("V", true));
     } finally {
@@ -68,17 +68,17 @@ public class ACIDTransactionTest {
 
   @Test
   public void testIOExceptionDuringCommit() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
 
     try {
-      final PModifiableDocument v = db.newDocument("V");
+      final ModifiableDocument v = db.newDocument("V");
       v.set("id", 0);
       v.set("name", "Crash");
       v.set("surname", "Test");
       v.save();
 
-      ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_LAST_OP, new Callable<Void>() {
+      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_LAST_OP, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
           throw new IOException("Test IO Exception");
@@ -89,14 +89,14 @@ public class ACIDTransactionTest {
 
       Assertions.fail("Expected commit to fail");
 
-    } catch (PTransactionException e) {
-      Assertions.assertTrue(e.getCause() instanceof PWALException);
+    } catch (TransactionException e) {
+      Assertions.assertTrue(e.getCause() instanceof WALException);
     }
-    ((PDatabaseInternal) db).kill();
+    ((DatabaseInternal) db).kill();
 
     verifyWALFilesAreStillPresent();
 
-    final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
+    final Database db2 = verifyDatabaseWasNotClosedProperly();
     try {
       Assertions.assertEquals(0, db2.countType("V", true));
     } finally {
@@ -106,17 +106,17 @@ public class ACIDTransactionTest {
 
   @Test
   public void testIOExceptionAfterWALIsWritten() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.begin();
 
     try {
-      final PModifiableDocument v = db.newDocument("V");
+      final ModifiableDocument v = db.newDocument("V");
       v.set("id", 0);
       v.set("name", "Crash");
       v.set("surname", "Test");
       v.save();
 
-      ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
+      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
           throw new IOException("Test IO Exception");
@@ -127,14 +127,14 @@ public class ACIDTransactionTest {
 
       Assertions.fail("Expected commit to fail");
 
-    } catch (PTransactionException e) {
-      Assertions.assertTrue(e.getCause() instanceof PWALException);
+    } catch (TransactionException e) {
+      Assertions.assertTrue(e.getCause() instanceof WALException);
     }
-    ((PDatabaseInternal) db).kill();
+    ((DatabaseInternal) db).kill();
 
     verifyWALFilesAreStillPresent();
 
-    final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
+    final Database db2 = verifyDatabaseWasNotClosedProperly();
     try {
       Assertions.assertEquals(1, db2.countType("V", true));
     } finally {
@@ -144,14 +144,14 @@ public class ACIDTransactionTest {
 
   @Test
   public void testAsyncIOExceptionAfterWALIsWrittenLastRecords() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
 
     final AtomicInteger errors = new AtomicInteger(0);
 
     db.asynch().setTransactionSync(true);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1);
-    db.asynch().onError(new PErrorCallback() {
+    db.asynch().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
         errors.incrementAndGet();
@@ -164,7 +164,7 @@ public class ACIDTransactionTest {
     final AtomicInteger commits = new AtomicInteger(0);
 
     try {
-      ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
+      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
           if (commits.incrementAndGet() > TOT - 1)
@@ -174,7 +174,7 @@ public class ACIDTransactionTest {
       });
 
       for (; total.get() < TOT; total.incrementAndGet()) {
-        final PModifiableDocument v = db.newDocument("V");
+        final ModifiableDocument v = db.newDocument("V");
         v.set("id", 0);
         v.set("name", "Crash");
         v.set("surname", "Test");
@@ -186,14 +186,14 @@ public class ACIDTransactionTest {
 
       Assertions.assertEquals(1, errors.get());
 
-    } catch (PTransactionException e) {
+    } catch (TransactionException e) {
       Assertions.assertTrue(e.getCause() instanceof IOException);
     }
-    ((PDatabaseInternal) db).kill();
+    ((DatabaseInternal) db).kill();
 
     verifyWALFilesAreStillPresent();
 
-    final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
+    final Database db2 = verifyDatabaseWasNotClosedProperly();
     try {
       Assertions.assertEquals(TOT, db2.countType("V", true));
     } finally {
@@ -203,7 +203,7 @@ public class ACIDTransactionTest {
 
   @Test
   public void testAsyncIOExceptionAfterWALIsWrittenManyRecords() {
-    final PDatabase db = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
 
     final int TOT = 100000;
 
@@ -214,7 +214,7 @@ public class ACIDTransactionTest {
     db.asynch().setTransactionSync(true);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1000000);
-    db.asynch().onError(new PErrorCallback() {
+    db.asynch().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
         errors.incrementAndGet();
@@ -222,7 +222,7 @@ public class ACIDTransactionTest {
     });
 
     try {
-      ((PDatabaseInternal) db).registerCallback(PDatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
+      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
           if (total.incrementAndGet() > TOT - 10)
@@ -231,7 +231,7 @@ public class ACIDTransactionTest {
         }
       });
 
-      db.asynch().onError(new PErrorCallback() {
+      db.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
           errors.incrementAndGet();
@@ -239,7 +239,7 @@ public class ACIDTransactionTest {
       });
 
       for (; total.get() < TOT; total.incrementAndGet()) {
-        final PModifiableDocument v = db.newDocument("V");
+        final ModifiableDocument v = db.newDocument("V");
         v.set("id", 0);
         v.set("name", "Crash");
         v.set("surname", "Test");
@@ -251,14 +251,14 @@ public class ACIDTransactionTest {
 
       Assertions.assertTrue(errors.get() > 0);
 
-    } catch (PTransactionException e) {
+    } catch (TransactionException e) {
       Assertions.assertTrue(e.getCause() instanceof IOException);
     }
-    ((PDatabaseInternal) db).kill();
+    ((DatabaseInternal) db).kill();
 
     verifyWALFilesAreStillPresent();
 
-    final PDatabase db2 = verifyDatabaseWasNotClosedProperly();
+    final Database db2 = verifyDatabaseWasNotClosedProperly();
     try {
       Assertions.assertEquals(TOT, db2.countType("V", true));
     } finally {
@@ -266,11 +266,11 @@ public class ACIDTransactionTest {
     }
   }
 
-  private PDatabase verifyDatabaseWasNotClosedProperly() {
+  private Database verifyDatabaseWasNotClosedProperly() {
     final AtomicBoolean dbNotClosedCaught = new AtomicBoolean(false);
 
-    final PDatabaseFactory factory = new PDatabaseFactory(DB_PATH, PPaginatedFile.MODE.READ_WRITE);
-    factory.registerCallback(PDatabaseInternal.CALLBACK_EVENT.DB_NOT_CLOSED, new Callable<Void>() {
+    final DatabaseFactory factory = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE);
+    factory.registerCallback(DatabaseInternal.CALLBACK_EVENT.DB_NOT_CLOSED, new Callable<Void>() {
       @Override
       public Void call() {
         dbNotClosedCaught.set(true);
@@ -278,7 +278,7 @@ public class ACIDTransactionTest {
       }
     });
 
-    PDatabase db = factory.acquire();
+    Database db = factory.acquire();
     Assertions.assertTrue(dbNotClosedCaught.get());
     return db;
   }

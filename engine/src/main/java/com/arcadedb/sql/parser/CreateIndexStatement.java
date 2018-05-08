@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDatabase;
+import com.arcadedb.database.Database;
 import com.arcadedb.index.PIndex;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OInternalResultSet;
-import com.arcadedb.sql.executor.OResultInternal;
-import com.arcadedb.sql.executor.OResultSet;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultInternal;
+import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,18 +33,18 @@ public class CreateIndexStatement extends ODDLStatement {
   }
 
   @Override
-  public OResultSet executeDDL(OCommandContext ctx) {
+  public ResultSet executeDDL(CommandContext ctx) {
     execute(ctx);
-    OInternalResultSet rs = new OInternalResultSet();
-    OResultInternal result = new OResultInternal();
+    InternalResultSet rs = new InternalResultSet();
+    ResultInternal result = new ResultInternal();
     result.setProperty("operation", "create index");
     result.setProperty("name", name.getValue());
     rs.add(result);
     return rs;
   }
 
-  Object execute(OCommandContext ctx) {
-    final PDatabase database = ctx.getDatabase();
+  Object execute(CommandContext ctx) {
+    final Database database = ctx.getDatabase();
     final PIndex idx;
 //    List<OCollate> collatesList = calculateCollates(ctx);
 //    String engine = this.engine == null ? null : this.engine.getStringValue().toUpperCase(Locale.ENGLISH);
@@ -109,7 +109,7 @@ public class CreateIndexStatement extends ODDLStatement {
    * @param ctx
    * @return
    */
-  private String[] calculateProperties(OCommandContext ctx) {
+  private String[] calculateProperties(CommandContext ctx) {
     if (propertyList == null) {
       return null;
     }

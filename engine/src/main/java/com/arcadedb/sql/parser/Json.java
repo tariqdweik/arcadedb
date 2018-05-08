@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.database.PModifiableDocument;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,9 +45,9 @@ public class Json extends SimpleNode {
     builder.append("}");
   }
 
-  public PDocument toDocument(final PIdentifiable source, final OCommandContext ctx) {
+  public Document toDocument(final Identifiable source, final CommandContext ctx) {
     final String className = getClassNameForDocument(ctx, source);
-    final PModifiableDocument doc;
+    final ModifiableDocument doc;
     if (className != null) {
       doc = ctx.getDatabase().newDocument(className);
     } else {
@@ -70,7 +70,7 @@ public class Json extends SimpleNode {
     return doc;
   }
 
-  public Map<String, Object> toMap(final PIdentifiable source, final OCommandContext ctx) {
+  public Map<String, Object> toMap(final Identifiable source, final CommandContext ctx) {
     final Map<String, Object> doc = new HashMap<String, Object>();
     for (JsonItem item : items) {
       final String name = item.getLeftValue();
@@ -84,7 +84,7 @@ public class Json extends SimpleNode {
     return doc;
   }
 
-  public Map<String, Object> toMap(final OResult source, final OCommandContext ctx) {
+  public Map<String, Object> toMap(final Result source, final CommandContext ctx) {
     final Map<String, Object> doc = new HashMap<String, Object>();
     for (JsonItem item : items) {
       final String name = item.getLeftValue();
@@ -98,9 +98,9 @@ public class Json extends SimpleNode {
     return doc;
   }
 
-  private String getClassNameForDocument(final OCommandContext ctx, final PIdentifiable record) {
+  private String getClassNameForDocument(final CommandContext ctx, final Identifiable record) {
     if (record != null) {
-      final PDocument doc = (PDocument) record.getRecord();
+      final Document doc = (Document) record.getRecord();
       if (doc != null)
         return doc.getType();
     }
@@ -108,7 +108,7 @@ public class Json extends SimpleNode {
     for (JsonItem item : items) {
       final String left = item.getLeftValue();
       if (left != null && left.toLowerCase(Locale.ENGLISH).equals("@type")) {
-        return "" + item.right.execute((OResult) null, ctx);
+        return "" + item.right.execute((Result) null, ctx);
       }
     }
 
@@ -186,20 +186,20 @@ public class Json extends SimpleNode {
     return false;
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     if (items != null) {
       result.setProperty("items", items.stream().map(x -> x.serialize()).collect(Collectors.toList()));
     }
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
 
     if (fromResult.getProperty("items") != null) {
-      List<OResult> ser = fromResult.getProperty("items");
+      List<Result> ser = fromResult.getProperty("items");
       items = new ArrayList<>();
-      for (OResult r : ser) {
+      for (Result r : ser) {
         JsonItem exp = new JsonItem();
         exp.deserialize(r);
         items.add(exp);

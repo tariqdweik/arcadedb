@@ -15,8 +15,8 @@
  */
 package com.arcadedb.sql.function;
 
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OSQLFunction;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.SQLFunction;
 
 import java.util.Set;
 
@@ -39,8 +39,8 @@ public interface OSQLFunctionFactory {
    *
    * @return OSQLFunction : created function
    *
-   * @throws PCommandExecutionException : when function creation fail
+   * @throws CommandExecutionException : when function creation fail
    */
-  OSQLFunction createFunction(String name) throws PCommandExecutionException;
+  SQLFunction createFunction(String name) throws CommandExecutionException;
 
 }

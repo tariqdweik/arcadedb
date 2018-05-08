@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.IndexIdentifier;
 
 import java.util.Map;
@@ -25,24 +25,24 @@ public class CountFromIndexStep extends AbstractExecutionStep {
    * @param ctx the query context
    * @param profilingEnabled true to enable the profiling of the execution (for SQL PROFILE)
    */
-  public CountFromIndexStep(IndexIdentifier targetIndex, String alias, OCommandContext ctx, boolean profilingEnabled) {
+  public CountFromIndexStep(IndexIdentifier targetIndex, String alias, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.target = targetIndex;
     this.alias = alias;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
 
-    return new OResultSet() {
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return !executed;
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (executed) {
           throw new IllegalStateException();
         }
@@ -67,7 +67,7 @@ public class CountFromIndexStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -90,7 +90,7 @@ public class CountFromIndexStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     return spaces + "+ CALCULATE INDEX SIZE: " + target;
   }
 }

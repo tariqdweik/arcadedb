@@ -2,12 +2,12 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
-import com.arcadedb.database.PIdentifiable;
-import com.arcadedb.exception.PCommandExecutionException;
-import com.arcadedb.sql.executor.OCommandContext;
-import com.arcadedb.sql.executor.OMultiValue;
-import com.arcadedb.sql.executor.OResult;
-import com.arcadedb.sql.executor.OResultInternal;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.MultiValue;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -66,7 +66,7 @@ public class Modifier extends SimpleNode {
     }
   }
 
-  public Object execute(PIdentifiable iCurrentRecord, Object result, OCommandContext ctx) {
+  public Object execute(Identifiable iCurrentRecord, Object result, CommandContext ctx) {
     if (methodCall != null) {
       result = methodCall.execute(result, ctx);
     } else if (suffix != null) {
@@ -86,7 +86,7 @@ public class Modifier extends SimpleNode {
     return result;
   }
 
-  public Object execute(OResult iCurrentRecord, Object result, OCommandContext ctx) {
+  public Object execute(Result iCurrentRecord, Object result, CommandContext ctx) {
     if (methodCall != null) {
       result = methodCall.execute(result, ctx);
     } else if (suffix != null) {
@@ -106,7 +106,7 @@ public class Modifier extends SimpleNode {
     return result;
   }
 
-  private Object filterByCondition(Object iResult, OCommandContext ctx) {
+  private Object filterByCondition(Object iResult, CommandContext ctx) {
     if (iResult == null) {
       return null;
     }
@@ -120,7 +120,7 @@ public class Modifier extends SimpleNode {
       }
       return result;
     }
-    if (iResult instanceof PIdentifiable) {
+    if (iResult instanceof Identifiable) {
       iResult = Collections.singleton(iResult);
     }
     if (iResult instanceof Iterable) {
@@ -271,7 +271,7 @@ public class Modifier extends SimpleNode {
     return false;
   }
 
-  protected void setValue(OResult currentRecord, Object target, Object value, OCommandContext ctx) {
+  protected void setValue(Result currentRecord, Object target, Object value, CommandContext ctx) {
     if (next == null) {
       doSetValue(currentRecord, target, value, ctx);
     } else {
@@ -282,7 +282,7 @@ public class Modifier extends SimpleNode {
     }
   }
 
-  private void doSetValue(OResult currentRecord, Object target, Object value, OCommandContext ctx) {
+  private void doSetValue(Result currentRecord, Object target, Object value, CommandContext ctx) {
     if (methodCall != null) {
       //do nothing
     } else if (suffix != null) {
@@ -299,7 +299,7 @@ public class Modifier extends SimpleNode {
     }
   }
 
-  private Object calculateLocal(OResult currentRecord, Object target, OCommandContext ctx) {
+  private Object calculateLocal(Result currentRecord, Object target, CommandContext ctx) {
     if (methodCall != null) {
       return methodCall.execute(target, ctx);
     } else if (suffix != null) {
@@ -307,15 +307,15 @@ public class Modifier extends SimpleNode {
     } else if (arrayRange != null) {
       return arrayRange.execute(currentRecord, target, ctx);
     } else if (condition != null) {
-      if (target instanceof OResult || target instanceof PIdentifiable || target instanceof Map) {
+      if (target instanceof Result || target instanceof Identifiable || target instanceof Map) {
         if (condition.evaluate(target, ctx)) {
           return target;
         } else {
           return null;
         }
-      } else if (OMultiValue.isMultiValue(target)) {
+      } else if (MultiValue.isMultiValue(target)) {
         List<Object> result = new ArrayList<>();
-        for (Object o : OMultiValue.getMultiValueIterable(target)) {
+        for (Object o : MultiValue.getMultiValueIterable(target)) {
           if (condition.evaluate(target, ctx)) {
             result.add(o);
           }
@@ -333,7 +333,7 @@ public class Modifier extends SimpleNode {
 
   }
 
-  public void applyRemove(Object currentValue, OResultInternal originalRecord, OCommandContext ctx) {
+  public void applyRemove(Object currentValue, ResultInternal originalRecord, CommandContext ctx) {
     if (next != null) {
       Object val = calculateLocal(originalRecord, currentValue, ctx);
       next.applyRemove(val, originalRecord, ctx);
@@ -350,14 +350,14 @@ public class Modifier extends SimpleNode {
       } else if (suffix != null) {
         suffix.applyRemove(currentValue, ctx);
       } else {
-        throw new PCommandExecutionException("cannot apply REMOVE " + toString());
+        throw new CommandExecutionException("cannot apply REMOVE " + toString());
       }
     }
 
   }
 
-  public OResult serialize() {
-    OResultInternal result = new OResultInternal();
+  public Result serialize() {
+    ResultInternal result = new ResultInternal();
     result.setProperty("squareBrackets", squareBrackets);
     if (arrayRange != null) {
       result.setProperty("arrayRange", arrayRange.serialize());
@@ -383,7 +383,7 @@ public class Modifier extends SimpleNode {
     return result;
   }
 
-  public void deserialize(OResult fromResult) {
+  public void deserialize(Result fromResult) {
     squareBrackets = fromResult.getProperty("squareBrackets");
 
     if (fromResult.getProperty("arrayRange") != null) {

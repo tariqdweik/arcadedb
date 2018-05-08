@@ -1,8 +1,8 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.PDocument;
-import com.arcadedb.exception.PTimeoutException;
-import com.arcadedb.sql.parser.OLocalResultSet;
+import com.arcadedb.database.Document;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.sql.parser.LocalResultSet;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -14,16 +14,16 @@ import java.util.Optional;
  */
 public class MatchFirstStep extends AbstractExecutionStep {
   private final PatternNode node;
-  OInternalExecutionPlan executionPlan;
+  InternalExecutionPlan executionPlan;
 
-  Iterator<OResult> iterator;
-  OResultSet        subResultSet;
+  Iterator<Result> iterator;
+  ResultSet        subResultSet;
 
-  public MatchFirstStep(OCommandContext context, PatternNode node, boolean profilingEnabled) {
+  public MatchFirstStep(CommandContext context, PatternNode node, boolean profilingEnabled) {
     this(context, node, null, profilingEnabled);
   }
 
-  public MatchFirstStep(OCommandContext context, PatternNode node, OInternalExecutionPlan subPlan, boolean profilingEnabled) {
+  public MatchFirstStep(CommandContext context, PatternNode node, InternalExecutionPlan subPlan, boolean profilingEnabled) {
     super(context, profilingEnabled);
     this.node = node;
     this.executionPlan = subPlan;
@@ -39,10 +39,10 @@ public class MatchFirstStep extends AbstractExecutionStep {
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     init(ctx);
-    return new OResultSet() {
+    return new ResultSet() {
 
       int currentCount = 0;
 
@@ -59,11 +59,11 @@ public class MatchFirstStep extends AbstractExecutionStep {
       }
 
       @Override
-      public OResult next() {
+      public Result next() {
         if (currentCount >= nRecords) {
           throw new IllegalStateException();
         }
-        OResultInternal result = new OResultInternal();
+        ResultInternal result = new ResultInternal();
         if (iterator != null) {
           result.setProperty(getAlias(), iterator.next());
         } else {
@@ -80,7 +80,7 @@ public class MatchFirstStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -91,13 +91,13 @@ public class MatchFirstStep extends AbstractExecutionStep {
     };
   }
 
-  private Object toResult(PDocument nextElement) {
-    OResultInternal result = new OResultInternal();
+  private Object toResult(Document nextElement) {
+    ResultInternal result = new ResultInternal();
     result.setElement(nextElement);
     return result;
   }
 
-  private void init(OCommandContext ctx) {
+  private void init(CommandContext ctx) {
     if (iterator == null && subResultSet == null) {
       String alias = getAlias();
       Object matchedNodes = ctx.getVariable(MatchPrefetchStep.PREFETCHED_MATCH_ALIAS_PREFIX + alias);
@@ -109,8 +109,8 @@ public class MatchFirstStep extends AbstractExecutionStep {
     }
   }
 
-  private void initFromExecutionPlan(OCommandContext ctx) {
-    this.subResultSet = new OLocalResultSet(executionPlan);
+  private void initFromExecutionPlan(CommandContext ctx) {
+    this.subResultSet = new LocalResultSet(executionPlan);
   }
 
   private void initFromPrefetch(Object matchedNodes) {
@@ -125,7 +125,7 @@ public class MatchFirstStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ SET \n");

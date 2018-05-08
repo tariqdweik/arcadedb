@@ -1,6 +1,6 @@
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.exception.PTimeoutException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.UpdateItem;
 
 import java.util.List;
@@ -13,26 +13,26 @@ import java.util.Optional;
 public class UpdateSetStep extends AbstractExecutionStep {
   private final List<UpdateItem> items;
 
-  public UpdateSetStep(List<UpdateItem> updateItems, OCommandContext ctx, boolean profilingEnabled) {
+  public UpdateSetStep(List<UpdateItem> updateItems, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.items = updateItems;
   }
 
   @Override
-  public OResultSet syncPull(OCommandContext ctx, int nRecords) throws PTimeoutException {
-    OResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
-    return new OResultSet() {
+  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+    ResultSet upstream = getPrev().get().syncPull(ctx, nRecords);
+    return new ResultSet() {
       @Override
       public boolean hasNext() {
         return upstream.hasNext();
       }
 
       @Override
-      public OResult next() {
-        OResult result = upstream.next();
-        if (result instanceof OResultInternal) {
+      public Result next() {
+        Result result = upstream.next();
+        if (result instanceof ResultInternal) {
           for (UpdateItem item : items) {
-            item.applyUpdate((OResultInternal) result, ctx);
+            item.applyUpdate((ResultInternal) result, ctx);
           }
         }
         return result;
@@ -44,7 +44,7 @@ public class UpdateSetStep extends AbstractExecutionStep {
       }
 
       @Override
-      public Optional<OExecutionPlan> getExecutionPlan() {
+      public Optional<ExecutionPlan> getExecutionPlan() {
         return null;
       }
 
@@ -57,7 +57,7 @@ public class UpdateSetStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String spaces = OExecutionStepInternal.getIndent(depth, indent);
+    String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ UPDATE SET");
