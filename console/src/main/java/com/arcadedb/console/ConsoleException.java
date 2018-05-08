@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
+ */
+
 package com.arcadedb.console;
 
 public class ConsoleException extends RuntimeException {

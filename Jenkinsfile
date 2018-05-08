@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
+ */
+
 #!/usr/bin/env groovy
 
 node {

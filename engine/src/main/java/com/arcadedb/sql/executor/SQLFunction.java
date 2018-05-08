@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
+ */
+
 package com.arcadedb.sql.executor;/*
  *
  *  *  Copyright 2010-2016 OrientDB LTD (http://orientdb.com)
