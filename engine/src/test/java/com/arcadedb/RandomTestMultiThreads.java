@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RandomTestMultiThreads {
-  private static final int CYCLES           = 100000;
+  private static final int CYCLES           = 20000;
   private static final int STARTING_ACCOUNT = 100;
   private static final int PARALLEL         = Runtime.getRuntime().availableProcessors();
   private static final int WORKERS          = Runtime.getRuntime().availableProcessors() * 8;
