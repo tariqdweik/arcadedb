@@ -178,7 +178,7 @@ public class PTransactionManager {
             PLogManager.instance().error(this, "Error on dropping WAL file '%s'", e, file);
           }
         }
-        activeWALFilePool = null;
+        createFilePool();
         database.getPageManager().clear();
       }
     } finally {
