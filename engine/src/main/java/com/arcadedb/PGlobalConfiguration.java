@@ -15,7 +15,7 @@ import java.util.TimerTask;
  */
 public enum PGlobalConfiguration {
   // ENVIRONMENT
-  DUMP_CONFIG_AT_STARTUP("proton.dumpConfigAtStartup", "Dumps the configuration at startup", Boolean.class, false,
+  DUMP_CONFIG_AT_STARTUP("arcadedb.dumpConfigAtStartup", "Dumps the configuration at startup", Boolean.class, false,
       new PCallable<Object, Object>() {
         @Override
         public Object call(final Object value) {
@@ -24,7 +24,7 @@ public enum PGlobalConfiguration {
         }
       }),
 
-  DUMP_METRICS_EVERY("proton.dumpMetricsEvery", "Dumps the metrics at startup, shutdown and every configurable amount of time",
+  DUMP_METRICS_EVERY("arcadedb.dumpMetricsEvery", "Dumps the metrics at startup, shutdown and every configurable amount of time",
       Long.class, 0, new PCallable<Object, Object>() {
     @Override
     public Object call(final Object value) {
@@ -43,7 +43,7 @@ public enum PGlobalConfiguration {
     }
   }),
 
-  MAX_PAGE_RAM("proton.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4 * 1024l * 1024l,
+  MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4 * 1024l * 1024l,
       new PCallable<Object, Object>() {
         @Override
         public Object call(final Object value) {
@@ -64,28 +64,28 @@ public enum PGlobalConfiguration {
     }
   }),
 
-  FLUSH_ONLY_AT_CLOSE("proton.flushOnlyAtClose", "Never flushes pages on disk until the database closing", Boolean.class, false),
+  FLUSH_ONLY_AT_CLOSE("arcadedb.flushOnlyAtClose", "Never flushes pages on disk until the database closing", Boolean.class, false),
 
-  TX_FLUSH("proton.txFlush", "Flushes the pages on disk at commit time", Boolean.class, false),
+  TX_FLUSH("arcadedb.txFlush", "Flushes the pages on disk at commit time", Boolean.class, false),
 
-  TX_WAL("proton.txWAL", "Uses the WAL", Boolean.class, true),
+  TX_WAL("arcadedb.txWAL", "Uses the WAL", Boolean.class, true),
 
-  FREE_PAGE_RAM("proton.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
+  FREE_PAGE_RAM("arcadedb.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
-  ASYNC_OPERATIONS_QUEUE("proton.asyncOperationsQueue",
+  ASYNC_OPERATIONS_QUEUE("arcadedb.asyncOperationsQueue",
       "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)",
       Integer.class, 1024),
 
-  ASYNC_TX_BATCH_SIZE("proton.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class,
+  ASYNC_TX_BATCH_SIZE("arcadedb.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class,
       1024 * 10),
 
-  PAGE_FLUSH_QUEUE("proton.pageFlushQueue", "Size of the asynchronous page flush queue", Integer.class, 128),
+  PAGE_FLUSH_QUEUE("arcadedb.pageFlushQueue", "Size of the asynchronous page flush queue", Integer.class, 128),
 
-  COMMIT_LOCK_TIMEOUT("proton.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),
+  COMMIT_LOCK_TIMEOUT("arcadedb.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),
 
-  MVCC_RETRIES("proton.mvccRetries", "Number of retries in case of MVCC exception", Integer.class, 50),
+  MVCC_RETRIES("arcadedb.mvccRetries", "Number of retries in case of MVCC exception", Integer.class, 50),
 
-  INDEX_COMPACTION_RAM("proton.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300);
+  INDEX_COMPACTION_RAM("arcadedb.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300);
 
   /**
    * Place holder for the "undefined" value of setting.

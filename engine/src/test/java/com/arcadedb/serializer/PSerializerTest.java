@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class PSerializerTest {
 
-  public static final String DB_PATH = "./target/proton/testdb";
+  public static final String DB_PATH = "./target/arcadedb/testdb";
 
   @Test
   public void testVarNumber() {
