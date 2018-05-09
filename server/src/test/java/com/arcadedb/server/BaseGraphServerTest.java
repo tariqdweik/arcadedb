@@ -47,6 +47,8 @@ public abstract class BaseGraphServerTest {
 
         database.getSchema().createEdgeType(EDGE1_TYPE_NAME);
         database.getSchema().createEdgeType(EDGE2_TYPE_NAME);
+
+        database.getSchema().createDocumentType("Person");
       }
     });
 
