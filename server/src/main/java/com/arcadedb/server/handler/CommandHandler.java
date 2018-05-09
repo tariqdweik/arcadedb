@@ -13,8 +13,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Deque;
 
-public class PCommandHandler extends PBasicHandler {
-  public PCommandHandler(final HttpServer httpServer) {
+public class CommandHandler extends BasicHandler {
+  public CommandHandler(final HttpServer httpServer) {
     super(httpServer);
   }
 

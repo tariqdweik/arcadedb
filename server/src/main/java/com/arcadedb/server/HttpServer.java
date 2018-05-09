@@ -6,10 +6,13 @@ package com.arcadedb.server;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.ThreadAffinityBucketSelectionStrategy;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.serializer.JsonSerializer;
-import com.arcadedb.server.handler.PCommandHandler;
-import com.arcadedb.server.handler.PRecordHandler;
+import com.arcadedb.server.handler.CommandHandler;
+import com.arcadedb.server.handler.CreateDocumentHandler;
+import com.arcadedb.server.handler.GetDocumentHandler;
 import com.arcadedb.utility.LogManager;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
@@ -27,8 +30,9 @@ public class HttpServer {
   public HttpServer(final HttpServerConfiguration configuration) {
     this.configuration = configuration;
 
-    final HttpHandler routes = new RoutingHandler().post("/command/{database}/{command}", new PCommandHandler(this))
-        .get("/record/{database}/{rid}", new PRecordHandler(this));
+    final HttpHandler routes = new RoutingHandler().post("/command/{database}/{command}", new CommandHandler(this))
+        .get("/document/{database}/{rid}", new GetDocumentHandler(this))
+        .post("/document/{database}", new CreateDocumentHandler(this));
     server = Undertow.builder().addHttpListener(configuration.bindPort, configuration.bindServer).setHandler(routes).build();
   }
 
@@ -53,6 +57,11 @@ public class HttpServer {
     if (db == null) {
       db = new DatabaseFactory(configuration.databaseDirectory + "/" + databaseName, PaginatedFile.MODE.READ_WRITE)
           .setAutoTransaction(true).acquire();
+
+      // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
+      for (DocumentType t : db.getSchema().getTypes()) {
+        t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
+      }
 
       final Database oldDb = databases.putIfAbsent(databaseName, db);
 

@@ -5,7 +5,7 @@
 package com.arcadedb.server;
 
 public class HttpServerConfiguration {
-  public String databaseDirectory = "./database";
+  public String databaseDirectory = "../databases";
   public String bindServer        = "localhost";
   public int    bindPort          = 2480;
 

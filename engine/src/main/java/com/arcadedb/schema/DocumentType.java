@@ -153,6 +153,7 @@ public class DocumentType {
 
   public void setSyncSelectionStrategy(final BucketSelectionStrategy selectionStrategy) {
     this.syncSelectionStrategy = selectionStrategy;
+    this.syncSelectionStrategy.setTotalBuckets(buckets.size());
   }
 
   public BucketSelectionStrategy getAsyncSelectionStrategy() {
@@ -161,6 +162,7 @@ public class DocumentType {
 
   public void setAsyncSelectionStrategy(final BucketSelectionStrategy selectionStrategy) {
     this.asyncSelectionStrategy = selectionStrategy;
+    this.asyncSelectionStrategy.setTotalBuckets(buckets.size());
   }
 
   public boolean existsProperty(final String propertyName) {

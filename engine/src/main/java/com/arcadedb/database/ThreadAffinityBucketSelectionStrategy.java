@@ -4,6 +4,8 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.exception.ConfigurationException;
+
 public class ThreadAffinityBucketSelectionStrategy implements BucketSelectionStrategy {
   private int total;
 
@@ -14,6 +16,9 @@ public class ThreadAffinityBucketSelectionStrategy implements BucketSelectionStr
 
   @Override
   public int getBucketToSave() {
+    if (total == 0)
+      throw new ConfigurationException("No buckets found");
+
     return (int) (Thread.currentThread().getId() % total);
   }
 

@@ -13,8 +13,8 @@ import io.undertow.server.HttpServerExchange;
 
 import java.util.Deque;
 
-public class PRecordHandler extends PBasicHandler {
-  public PRecordHandler(final HttpServer httpServer) {
+public class GetDocumentHandler extends BasicHandler {
+  public GetDocumentHandler(final HttpServer httpServer) {
     super(httpServer);
   }
 
