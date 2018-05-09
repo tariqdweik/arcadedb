@@ -71,8 +71,8 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
             }
             if (nextItem.isElement()) {
               Record element = nextItem.getElement().get();
-              if (element != null && element instanceof ModifiableDocument) {
-                nextItem = new UpdatableResult((ModifiableDocument) element);
+              if (element != null) {
+                nextItem = new UpdatableResult((ModifiableDocument) element.modify());
               }
               break;
             }

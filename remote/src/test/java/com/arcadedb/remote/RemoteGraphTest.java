@@ -104,12 +104,16 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
         database.command("create vertex V1 set id = " + i + ", name = 'Jay', surname='Miner'");
       }
 
+      ResultSet resultset = database.command("select count(*) as count from V1");
+      Result item = resultset.next();
+      Assertions.assertEquals(1001, (int) item.getProperty("count"));
+
       database.command("update V1 set value = 1");
 
-      ResultSet resultset = database.command("select count(*) as count from V1 where value > 0");
+      resultset = database.command("select count(*) as count from V1 where value > 0 limit 1000");
       Assertions.assertTrue(resultset.hasNext());
 
-      final Result item = resultset.next();
+      item = resultset.next();
       Assertions.assertEquals(1000, (int) item.getProperty("count"));
 
     } finally {

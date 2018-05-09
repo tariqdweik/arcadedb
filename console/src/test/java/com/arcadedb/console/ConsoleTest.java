@@ -69,6 +69,7 @@ public class ConsoleTest {
   @Test
   public void testInsertAndRollback() throws IOException {
     Assertions.assertTrue(console.parse("connect " + DB_PATH));
+    Assertions.assertTrue(console.parse("begin"));
     Assertions.assertTrue(console.parse("create type Person"));
     Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'"));
     Assertions.assertTrue(console.parse("rollback"));
