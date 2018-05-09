@@ -4,16 +4,14 @@
 
 package com.arcadedb.index;
 
-import java.io.IOException;
-
 public interface IndexCursor {
   Object[] getKeys();
 
   Object getValue();
 
-  boolean hasNext() throws IOException;
+  boolean hasNext();
 
-  void next() throws IOException;
+  Object next();
 
   void close();
 }

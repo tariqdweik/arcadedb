@@ -9,8 +9,6 @@ import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.serializer.BinarySerializer;
 
-import java.io.IOException;
-
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
 public class IndexLSMPageIterator {
@@ -23,8 +21,8 @@ public class IndexLSMPageIterator {
   private final int              totalKeys;
   private final boolean          ascendingOrder;
 
-  private int currentEntryIndex;
-  private int valuePosition = -1;
+  private int      currentEntryIndex;
+  private int      valuePosition = -1;
   private Object[] nextKeys;
   private Object   nextValue;
 
@@ -41,13 +39,13 @@ public class IndexLSMPageIterator {
     this.ascendingOrder = ascendingOrder;
   }
 
-  public boolean hasNext() throws IOException {
+  public boolean hasNext() {
     if (ascendingOrder)
       return currentEntryIndex < totalKeys - 1;
     return currentEntryIndex > 0;
   }
 
-  public void next() throws IOException {
+  public void next() {
     currentEntryIndex += ascendingOrder ? 1 : -1;
     nextKeys = null;
     nextValue = null;

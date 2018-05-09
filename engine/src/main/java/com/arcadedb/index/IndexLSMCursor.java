@@ -114,12 +114,12 @@ public class IndexLSMCursor implements IndexCursor {
   }
 
   @Override
-  public boolean hasNext() throws IOException {
+  public boolean hasNext() {
     return validIterators > 0;
   }
 
   @Override
-  public void next() throws IOException {
+  public Object next() {
     Object[] minorKey = null;
     int minorKeyIndex = -1;
 
@@ -160,6 +160,8 @@ public class IndexLSMCursor implements IndexCursor {
       keys[minorKeyIndex] = null;
       --validIterators;
     }
+
+    return currentValue;
   }
 
   @Override
