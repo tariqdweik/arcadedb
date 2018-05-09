@@ -468,7 +468,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       @Override
       public Object call() throws Exception {
 
-        checkTransactionIsActive();
+        final boolean begunHere = checkTransactionIsActive();
+
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot create a new record");
 
@@ -480,6 +481,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         indexDocument(record, type, bucket);
 
         getTransaction().updateRecordInCache(record);
+
+        if (begunHere)
+          commit();
 
         return null;
       }
@@ -502,7 +506,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (record.getIdentity() != null)
       throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
-    checkTransactionIsActive();
+    final boolean begunHere = checkTransactionIsActive();
+
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot create a new record");
 
@@ -511,6 +516,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     ((RecordInternal) record).setIdentity(bucket.createRecord(record));
 
     getTransaction().updateRecordInCache(record);
+
+    if (begunHere)
+      commit();
   }
 
   @Override
@@ -529,13 +537,17 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (record.getIdentity() == null)
       throw new IllegalArgumentException("Cannot update the record because it is not persistent");
 
-    checkTransactionIsActive();
+    final boolean begunHere = checkTransactionIsActive();
+
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
 
     schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
     getTransaction().updateRecordInCache(record);
+
+    if (begunHere)
+      commit();
   }
 
   @Override
@@ -546,7 +558,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     super.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        checkTransactionIsActive();
+        final boolean begunHere = checkTransactionIsActive();
+
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot delete record " + record.getIdentity());
 
@@ -560,6 +573,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           bucket.deleteRecord(record.getIdentity());
 
         getTransaction().removeRecordFromCache(record);
+
+        if (begunHere)
+          commit();
 
         return null;
       }
@@ -712,12 +728,15 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public void checkTransactionIsActive() {
+  public boolean checkTransactionIsActive() {
     checkDatabaseIsOpen();
-    if (autoTransaction && !isTransactionActive())
+    if (autoTransaction && !isTransactionActive()) {
       begin();
-    else if (!getTransaction().isActive())
+      return true;
+    } else if (!getTransaction().isActive())
       throw new DatabaseOperationException("Transaction not begun");
+
+    return false;
   }
 
   @Override

@@ -38,7 +38,7 @@ public interface Database {
 
   boolean isTransactionActive();
 
-  void checkTransactionIsActive();
+  boolean checkTransactionIsActive();
 
   void transaction(PTransaction txBlock);
 
