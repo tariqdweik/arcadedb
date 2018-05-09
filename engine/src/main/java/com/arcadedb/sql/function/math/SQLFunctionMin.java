@@ -4,7 +4,7 @@
 package com.arcadedb.sql.function.math;
 
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.OType;
+import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.Collection;
@@ -39,7 +39,7 @@ public class SQLFunctionMin extends SQLFunctionMathAbstract {
         }
       } else {
         if ((item instanceof Number) && (min instanceof Number)) {
-          Number[] converted = OType.castComparableNumber((Number) item, (Number) min);
+          Number[] converted = Type.castComparableNumber((Number) item, (Number) min);
           item = converted[0];
           min = converted[1];
         }
@@ -56,7 +56,7 @@ public class SQLFunctionMin extends SQLFunctionMathAbstract {
         context = (Comparable) min;
       else {
         if (context instanceof Number && min instanceof Number) {
-          final Number[] casted = OType.castComparableNumber((Number) context, (Number) min);
+          final Number[] casted = Type.castComparableNumber((Number) context, (Number) min);
           context = casted[0];
           min = casted[1];
         }

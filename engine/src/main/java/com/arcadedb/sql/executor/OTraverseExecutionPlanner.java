@@ -8,8 +8,8 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.index.PIndex;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.index.Index;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.parser.*;
 
 import java.util.ArrayList;
@@ -112,11 +112,11 @@ public class OTraverseExecutionPlanner {
     Object paramValue = inputParam.getValue(ctx.getInputParameters());
     if (paramValue == null) {
       result.chain(new EmptyStep(ctx, profilingEnabled));//nothing to return
-    } else if (paramValue instanceof PDocumentType) {
+    } else if (paramValue instanceof DocumentType) {
       FromClause from = new FromClause(-1);
       FromItem item = new FromItem(-1);
       from.setItem(item);
-      item.setIdentifier(new Identifier(((PDocumentType) paramValue).getName()));
+      item.setIdentifier(new Identifier(((DocumentType) paramValue).getName()));
       handleClassAsTarget(result, from, ctx, profilingEnabled);
     } else if (paramValue instanceof String) {
       //strings are treated as classes
@@ -169,7 +169,7 @@ public class OTraverseExecutionPlanner {
 
   private void handleIndexAsTarget(SelectExecutionPlan result, IndexIdentifier indexIdentifier, CommandContext ctx, boolean profilingEnabled) {
     String indexName = indexIdentifier.getIndexName();
-    PIndex index = ctx.getDatabase().getSchema().getIndexByName(indexName);
+    Index index = ctx.getDatabase().getSchema().getIndexByName(indexName);
     if (index == null) {
       throw new CommandExecutionException("Index not found: " + indexName);
     }

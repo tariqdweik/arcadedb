@@ -4,7 +4,7 @@
 package com.arcadedb.sql.function.math;
 
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.OType;
+import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.MultiValue;
 
@@ -45,7 +45,7 @@ public class SQLFunctionSum extends SQLFunctionMathAbstract {
         // FIRST TIME
         sum = value;
       else
-        sum = OType.increment(sum, value);
+        sum = Type.increment(sum, value);
     }
   }
 

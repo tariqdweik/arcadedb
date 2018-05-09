@@ -7,7 +7,7 @@ package com.arcadedb.sql.parser;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -207,7 +207,7 @@ public abstract class BooleanExpression extends SimpleNode {
    */
   protected abstract List<Object> getExternalCalculationConditions();
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(DocumentType iSchemaClass, Database database) {
     return null;
   }
 

@@ -4,7 +4,7 @@
 package com.arcadedb.sql.function.math;
 
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.OType;
+import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.Collection;
@@ -39,7 +39,7 @@ public class SQLFunctionMax extends SQLFunctionMathAbstract {
         }
       } else {
         if ((item instanceof Number) && (max instanceof Number)) {
-          Number[] converted = OType.castComparableNumber((Number) item, (Number) max);
+          Number[] converted = Type.castComparableNumber((Number) item, (Number) max);
           item = converted[0];
           max = converted[1];
         }
@@ -56,7 +56,7 @@ public class SQLFunctionMax extends SQLFunctionMathAbstract {
         context = (Comparable) max;
       else {
         if (context instanceof Number && max instanceof Number) {
-          final Number[] casted = OType.castComparableNumber((Number) context, (Number) max);
+          final Number[] casted = Type.castComparableNumber((Number) context, (Number) max);
           context = casted[0];
           max = casted[1];
         }

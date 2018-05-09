@@ -7,7 +7,7 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.index.PIndex;
+import com.arcadedb.index.Index;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -49,7 +49,7 @@ public class CreateIndexStatement extends ODDLStatement {
 
   Object execute(CommandContext ctx) {
     final Database database = ctx.getDatabase();
-    final PIndex idx;
+    final Index idx;
 //    List<OCollate> collatesList = calculateCollates(ctx);
 //    String engine = this.engine == null ? null : this.engine.getStringValue().toUpperCase(Locale.ENGLISH);
 //    ODocument metadataDoc = calculateMetadata(ctx);

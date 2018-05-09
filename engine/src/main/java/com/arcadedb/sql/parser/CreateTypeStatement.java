@@ -7,8 +7,8 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.schema.PSchema;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -54,7 +54,7 @@ public class CreateTypeStatement extends ODDLStatement {
   @Override
   public ResultSet executeDDL(CommandContext ctx) {
 
-    PSchema schema = ctx.getDatabase().getSchema();
+    Schema schema = ctx.getDatabase().getSchema();
     if (schema.existsType(name.getStringValue())) {
       if (ifNotExists) {
         return new InternalResultSet();
@@ -68,8 +68,8 @@ public class CreateTypeStatement extends ODDLStatement {
     result.setProperty("operation", "create type");
     result.setProperty("typeName", name.getStringValue());
 
-    PDocumentType type = null;
-    PDocumentType[] superclasses = getSuperTypes(schema);
+    DocumentType type = null;
+    DocumentType[] superclasses = getSuperTypes(schema);
 
     if (totalBucketNo != null) {
       type = schema.createDocumentType(name.getStringValue(), totalBucketNo.getValue().intValue());
@@ -77,7 +77,7 @@ public class CreateTypeStatement extends ODDLStatement {
       type = schema.createDocumentType(name.getStringValue());
     }
 
-    for (PDocumentType c : superclasses)
+    for (DocumentType c : superclasses)
       type.addParent(c);
 
     InternalResultSet rs = new InternalResultSet();
@@ -85,15 +85,15 @@ public class CreateTypeStatement extends ODDLStatement {
     return rs;
   }
 
-  private PDocumentType[] getSuperTypes(PSchema schema) {
+  private DocumentType[] getSuperTypes(Schema schema) {
     if (supertypes == null) {
-      return new PDocumentType[] {};
+      return new DocumentType[] {};
     }
     return supertypes.stream().map(x -> schema.getType(x.getStringValue())).filter(x -> x != null).collect(Collectors.toList())
-        .toArray(new PDocumentType[] {});
+        .toArray(new DocumentType[] {});
   }
 
-  private void checkSuperTypes(PSchema schema, CommandContext ctx) {
+  private void checkSuperTypes(Schema schema, CommandContext ctx) {
     if (supertypes != null) {
       for (Identifier superType : supertypes) {
         if (!schema.existsType(superType.value)) {

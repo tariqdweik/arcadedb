@@ -13,7 +13,7 @@ import java.io.IOException;
 
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
-public class PIndexLSMPageIterator {
+public class IndexLSMPageIterator {
   private final IndexLSM         index;
   private final PageId           pageId;
   private final Binary           buffer;
@@ -28,7 +28,7 @@ public class PIndexLSMPageIterator {
   private Object[] nextKeys;
   private Object   nextValue;
 
-  public PIndexLSMPageIterator(final IndexLSM index, final BasePage page, final int currentEntryInPage, final int keyStartPosition,
+  public IndexLSMPageIterator(final IndexLSM index, final BasePage page, final int currentEntryInPage, final int keyStartPosition,
       final byte[] keyTypes, final int totalKeys, final boolean ascendingOrder) {
     this.index = index;
     this.pageId = page.getPageId();

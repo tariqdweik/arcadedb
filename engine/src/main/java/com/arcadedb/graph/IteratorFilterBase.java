@@ -7,7 +7,7 @@ package com.arcadedb.graph;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.schema.PEdgeType;
+import com.arcadedb.schema.EdgeType;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,7 +25,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
     this.currentContainer = current;
 
     for (String e : edgeTypes) {
-      final PEdgeType type = (PEdgeType) database.getSchema().getType(e);
+      final EdgeType type = (EdgeType) database.getSchema().getType(e);
 
       final List<Bucket> buckets = type.getBuckets(true);
       validBuckets = new HashSet<>(buckets.size());

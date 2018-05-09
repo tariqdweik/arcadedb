@@ -8,7 +8,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.graph.ModifiableVertex;
-import com.arcadedb.schema.PVertexType;
+import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -33,10 +33,10 @@ public class PolymorphicTest {
         //------------
         // VEHICLES VERTICES
         //------------
-        PVertexType vehicle = database.getSchema().createVertexType("Vehicle", 3);
+        VertexType vehicle = database.getSchema().createVertexType("Vehicle", 3);
         vehicle.createProperty("brand", String.class);
 
-        PVertexType motorcycle = database.getSchema().createVertexType("Motorcycle", 3);
+        VertexType motorcycle = database.getSchema().createVertexType("Motorcycle", 3);
         motorcycle.addParent("Vehicle");
 
         try {
@@ -56,7 +56,7 @@ public class PolymorphicTest {
         //------------
         // PEOPLE VERTICES
         //------------
-        PVertexType person = database.getSchema().createVertexType("Person");
+        VertexType person = database.getSchema().createVertexType("Person");
         database.getSchema().createVertexType("Client").addParent(person);
         Assertions.assertTrue(database.getSchema().getType("Client").instanceOf("Person"));
         Assertions.assertFalse(database.getSchema().getType("Client").instanceOf("Vehicle"));

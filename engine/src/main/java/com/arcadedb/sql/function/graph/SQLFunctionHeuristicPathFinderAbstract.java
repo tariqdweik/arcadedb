@@ -27,18 +27,18 @@ public abstract class SQLFunctionHeuristicPathFinderAbstract extends SQLFunction
   public static final String PARAM_EMPTY_IF_MAX_DEPTH       = "emptyIfMaxDepth";
   protected static    Random rnd                            = new Random();
 
-  protected Boolean          paramParallel               = false;
-  protected Boolean          paramTieBreaker             = true;
-  protected Boolean          paramEmptyIfMaxDepth        = false;
-  protected String[]         paramEdgeTypeNames          = new String[] {};
-  protected String[]         paramVertexAxisNames        = new String[] {};
-  protected Vertex           paramSourceVertex;
-  protected Vertex           paramDestinationVertex;
-  protected HeuristicFormula paramHeuristicFormula       = HeuristicFormula.MANHATAN;
-  protected Vertex.DIRECTION paramDirection              = Vertex.DIRECTION.OUT;
-  protected long             paramMaxDepth               = Long.MAX_VALUE;
-  protected double           paramDFactor                = 1.0;
-  protected String           paramCustomHeuristicFormula = "";
+  protected Boolean             paramParallel               = false;
+  protected Boolean             paramTieBreaker             = true;
+  protected Boolean             paramEmptyIfMaxDepth        = false;
+  protected String[]            paramEdgeTypeNames          = new String[] {};
+  protected String[]            paramVertexAxisNames        = new String[] {};
+  protected Vertex              paramSourceVertex;
+  protected Vertex              paramDestinationVertex;
+  protected SQLHeuristicFormula paramHeuristicFormula       = SQLHeuristicFormula.MANHATAN;
+  protected Vertex.DIRECTION    paramDirection              = Vertex.DIRECTION.OUT;
+  protected long                paramMaxDepth               = Long.MAX_VALUE;
+  protected double              paramDFactor                = 1.0;
+  protected String              paramCustomHeuristicFormula = "";
 
   protected              CommandContext context;
   protected              List<Vertex>   route = new LinkedList<Vertex>();

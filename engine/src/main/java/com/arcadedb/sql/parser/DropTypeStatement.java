@@ -9,8 +9,8 @@ package com.arcadedb.sql.parser;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
-import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.schema.PSchema;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultSet;
@@ -33,8 +33,8 @@ public class DropTypeStatement extends ODDLStatement {
 
   @Override
   public ResultSet executeDDL(CommandContext ctx) {
-    PSchema schema = ctx.getDatabase().getSchema();
-    PDocumentType clazz = schema.getType(name.getStringValue());
+    Schema schema = ctx.getDatabase().getSchema();
+    DocumentType clazz = schema.getType(name.getStringValue());
     if (clazz == null) {
       if (ifExists) {
         return new InternalResultSet();

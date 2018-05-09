@@ -7,9 +7,9 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.schema.PEdgeType;
-import com.arcadedb.schema.PVertexType;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.EdgeType;
+import com.arcadedb.schema.VertexType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -56,12 +56,12 @@ public class CreateRecordStep extends AbstractExecutionStep {
           created++;
           locallyCreated++;
 
-          final PDocumentType type = ctx.getDatabase().getSchema().getType(typeName);
+          final DocumentType type = ctx.getDatabase().getSchema().getType(typeName);
 
           final Document instance;
-          if (type instanceof PVertexType)
+          if (type instanceof VertexType)
             instance = ctx.getDatabase().newVertex(typeName);
-          else if (type instanceof PEdgeType)
+          else if (type instanceof EdgeType)
             throw new IllegalArgumentException("Cannot instantiate an edge");
           else
             instance = ctx.getDatabase().newDocument(typeName);

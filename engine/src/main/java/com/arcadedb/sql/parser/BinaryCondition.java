@@ -10,7 +10,7 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.OCollate;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
@@ -104,7 +104,7 @@ public class BinaryCondition extends BooleanExpression {
     return result;
   }
 
-  public BinaryCondition isIndexedFunctionCondition(PDocumentType iSchemaClass, Database database) {
+  public BinaryCondition isIndexedFunctionCondition(DocumentType iSchemaClass, Database database) {
     if (left.isIndexedFunctionCal()) {
       return this;
     }
@@ -158,7 +158,7 @@ public class BinaryCondition extends BooleanExpression {
     return left.executeIndexedFunctionAfterIndexSearch(target, context, operator, right.execute((Result) null, context));
   }
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(DocumentType iSchemaClass, Database database) {
     if (left.isIndexedFunctionCal()) {
       return Collections.singletonList(this);
     }

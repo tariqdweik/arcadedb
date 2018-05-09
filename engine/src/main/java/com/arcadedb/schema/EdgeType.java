@@ -6,8 +6,8 @@ package com.arcadedb.schema;
 
 import com.arcadedb.graph.Edge;
 
-public class PEdgeType extends PDocumentType {
-  public PEdgeType(final PSchemaImpl schema, final String name) {
+public class EdgeType extends DocumentType {
+  public EdgeType(final SchemaImpl schema, final String name) {
     super(schema, name);
   }
 

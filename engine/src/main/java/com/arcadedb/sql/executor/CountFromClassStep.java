@@ -6,7 +6,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.parser.Identifier;
 
 import java.util.Map;
@@ -54,7 +54,7 @@ public class CountFromClassStep extends AbstractExecutionStep {
         }
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          PDocumentType clazz = ctx.getDatabase().getSchema().getType(target.getStringValue());
+          DocumentType clazz = ctx.getDatabase().getSchema().getType(target.getStringValue());
           if (clazz == null) {
             throw new CommandExecutionException("Class " + target.getStringValue() + " does not exist in the database schema");
           }

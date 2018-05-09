@@ -7,8 +7,8 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.Database;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.schema.PSchema;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
 
 /**
  * <p>
@@ -58,10 +58,10 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
         if (!this.parentClass.equals("V") && this.parentClass.equals("E")) {
           Database db = ctx.getDatabase();
 
-          PSchema schema = db.getSchema();
-          PDocumentType parentClazz = schema.getType(this.parentClass);
+          Schema schema = db.getSchema();
+          DocumentType parentClazz = schema.getType(this.parentClass);
 
-          PDocumentType targetClazz = schema.getType(this.targetClass);
+          DocumentType targetClazz = schema.getType(this.targetClass);
           if (targetClazz == null) {
             throw new CommandExecutionException("Class not found: " + this.targetClass);
           }
@@ -69,7 +69,7 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
           if (parentClazz.equals(targetClazz)) {
             found = true;
           } else {
-            for (PDocumentType sublcass : parentClazz.getSubTypes()) {
+            for (DocumentType sublcass : parentClazz.getSubTypes()) {
               if (sublcass.equals(targetClazz)) {
                 this.found = true;
                 break;

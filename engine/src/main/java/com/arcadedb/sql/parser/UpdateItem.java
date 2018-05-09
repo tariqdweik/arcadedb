@@ -10,8 +10,8 @@ import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.schema.PProperty;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Property;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -146,7 +146,7 @@ public class UpdateItem extends SimpleNode {
 
   private Object convertToPropertyType(ResultInternal res, Identifier attrName, Object newValue) {
     Document doc = res.toElement();
-    Optional<PDocumentType> optSchema = Optional.ofNullable(doc.getDatabase().getSchema().getType(doc.getType()));
+    Optional<DocumentType> optSchema = Optional.ofNullable(doc.getDatabase().getSchema().getType(doc.getType()));
     if (!optSchema.isPresent()) {
       return newValue;
     }
@@ -154,7 +154,7 @@ public class UpdateItem extends SimpleNode {
     if (!optSchema.get().existsProperty(attrName.getStringValue()))
       return newValue;
 
-    final PProperty prop = optSchema.get().getProperty(attrName.getStringValue());
+    final Property prop = optSchema.get().getProperty(attrName.getStringValue());
     if (prop == null) {
       return newValue;
     }

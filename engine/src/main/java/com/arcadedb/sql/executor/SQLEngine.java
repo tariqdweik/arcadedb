@@ -6,7 +6,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.sql.function.ODefaultSQLFunctionFactory;
+import com.arcadedb.sql.function.DefaultSQLFunctionFactory;
 import com.arcadedb.sql.parser.OStatementCache;
 import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.utility.Callable;
@@ -15,11 +15,11 @@ import com.arcadedb.utility.MultiIterator;
 import java.util.Iterator;
 
 public class SQLEngine {
-  private static final SQLEngine                  INSTANCE = new SQLEngine();
-  private final        ODefaultSQLFunctionFactory functions;
+  private static final SQLEngine                 INSTANCE = new SQLEngine();
+  private final        DefaultSQLFunctionFactory functions;
 
   protected SQLEngine() {
-    functions = new ODefaultSQLFunctionFactory();
+    functions = new DefaultSQLFunctionFactory();
   }
 
   public static Object foreachRecord(final Callable<Object, Identifiable> iCallable, Object iCurrent,

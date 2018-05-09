@@ -9,7 +9,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 
 public class PerformanceInsertNoIndexTest {
@@ -29,7 +29,7 @@ public class PerformanceInsertNoIndexTest {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
 
-        final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, PARALLEL);
+        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, PARALLEL);
 
         type.createProperty("id", Long.class);
         type.createProperty("name", String.class);

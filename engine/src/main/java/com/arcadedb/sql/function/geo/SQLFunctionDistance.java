@@ -4,7 +4,7 @@
 package com.arcadedb.sql.function.geo;
 
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.OType;
+import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.function.SQLFunctionAbstract;
 
@@ -32,7 +32,7 @@ public class SQLFunctionDistance extends SQLFunctionAbstract {
       if (iParams[i] == null)
         return null;
 
-      values[i] = ((Double) OType.convert(iContext.getDatabase(), iParams[i], Double.class)).doubleValue();
+      values[i] = ((Double) Type.convert(iContext.getDatabase(), iParams[i], Double.class)).doubleValue();
     }
 
     final double deltaLat = Math.toRadians(values[2] - values[0]);

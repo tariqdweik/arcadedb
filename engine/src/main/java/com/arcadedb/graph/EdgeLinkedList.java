@@ -7,7 +7,7 @@ package com.arcadedb.graph;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 
 import java.util.HashSet;
 import java.util.List;
@@ -76,7 +76,7 @@ public class EdgeLinkedList {
 
     final Set<Integer> fileIdToFilter;
     if (edgeType != null) {
-      final PDocumentType type = vertex.getDatabase().getSchema().getType(edgeType);
+      final DocumentType type = vertex.getDatabase().getSchema().getType(edgeType);
       final List<Bucket> buckets = type.getBuckets(true);
       fileIdToFilter = new HashSet<Integer>(buckets.size());
       for (Bucket b : buckets)

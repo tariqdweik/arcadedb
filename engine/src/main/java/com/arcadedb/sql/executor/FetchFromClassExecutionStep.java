@@ -6,7 +6,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,7 +52,7 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
     } else if (Boolean.FALSE.equals(ridOrder)) {
       orderByRidDesc = true;
     }
-    PDocumentType clazz = ctx.getDatabase().getSchema().getType(className);
+    DocumentType clazz = ctx.getDatabase().getSchema().getType(className);
     if (clazz == null) {
       throw new CommandExecutionException("Class " + className + " not found");
     }

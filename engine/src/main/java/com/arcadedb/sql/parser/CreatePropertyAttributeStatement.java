@@ -7,7 +7,7 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.PProperty;
+import com.arcadedb.schema.Property;
 import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.Map;
@@ -68,7 +68,7 @@ public class CreatePropertyAttributeStatement extends SimpleNode {
     return result;
   }
 
-  public Object setOnProperty(PProperty internalProp, CommandContext ctx) {
+  public Object setOnProperty(Property internalProp, CommandContext ctx) {
     String attrName = settingName.getStringValue();
     Object attrValue = this.settingValue == null ? true : this.settingValue.execute((Identifiable) null, ctx);
     throw new UnsupportedOperationException();

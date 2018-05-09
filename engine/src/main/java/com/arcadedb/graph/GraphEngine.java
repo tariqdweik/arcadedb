@@ -6,7 +6,7 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.MultiIterator;
 
 import java.util.Collections;
@@ -15,7 +15,7 @@ import java.util.Map;
 public class GraphEngine {
   public static final int EDGES_LINKEDLIST_CHUNK_SIZE = 30;
 
-  public void createVertexType(DatabaseInternal database, final PDocumentType type) {
+  public void createVertexType(DatabaseInternal database, final DocumentType type) {
     for (Bucket b : type.getBuckets(false)) {
       if (!database.getSchema().existsBucket(b.getName() + "_out_edges"))
         database.getSchema().createBucket(b.getName() + "_out_edges");

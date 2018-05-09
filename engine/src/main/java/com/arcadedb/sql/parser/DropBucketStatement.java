@@ -8,7 +8,7 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultSet;
@@ -45,7 +45,7 @@ public class DropBucketStatement extends ODDLStatement {
         }
       }
     }
-    for (PDocumentType iClass : database.getSchema().getTypes()) {
+    for (DocumentType iClass : database.getSchema().getTypes()) {
 //      for (int i : iClass.getClusterIds()) {
 //        if (i == clusterId) {
 //          // IN USE

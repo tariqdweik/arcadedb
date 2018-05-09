@@ -12,8 +12,8 @@ import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.RecordNotFoundException;
-import com.arcadedb.schema.PEdgeType;
-import com.arcadedb.schema.PVertexType;
+import com.arcadedb.schema.EdgeType;
+import com.arcadedb.schema.VertexType;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
@@ -313,7 +313,7 @@ public class RandomTestMultiThreads {
       if (!database.getSchema().existsType("Account")) {
         database.begin();
 
-        final PVertexType accountType = database.getSchema().createVertexType("Account", PARALLEL);
+        final VertexType accountType = database.getSchema().createVertexType("Account", PARALLEL);
         accountType.createProperty("id", Long.class);
         accountType.createProperty("name", String.class);
         accountType.createProperty("surname", String.class);
@@ -321,14 +321,14 @@ public class RandomTestMultiThreads {
 
         database.getSchema().createClassIndexes("Account", new String[] { "id" }, 500000);
 
-        final PVertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
+        final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
         txType.createProperty("uuid", String.class);
         txType.createProperty("date", Date.class);
         txType.createProperty("amount", BigDecimal.class);
 
         database.getSchema().createClassIndexes("Transaction", new String[] { "uuid" }, 500000);
 
-        final PEdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
+        final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
         edgeType.createProperty("date", Date.class);
 
         database.commit();

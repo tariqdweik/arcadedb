@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.index.PIndex;
+import com.arcadedb.index.Index;
 
 /**
  * Created by luigidellaquila on 02/08/16.
@@ -14,7 +14,7 @@ public class FetchFromIndexValuesStep extends FetchFromIndexStep {
 
   private boolean asc;
 
-  public FetchFromIndexValuesStep(PIndex index, boolean asc, CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexValuesStep(Index index, boolean asc, CommandContext ctx, boolean profilingEnabled) {
     super(index, null, null, ctx, profilingEnabled);
     this.asc = asc;
   }

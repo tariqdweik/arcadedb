@@ -12,7 +12,7 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.graph.Vertex;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import org.junit.jupiter.api.Assertions;
 
 public class PerformanceVertexIndexTest {
@@ -34,7 +34,7 @@ public class PerformanceVertexIndexTest {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
 
-        final PDocumentType type = database.getSchema().createVertexType(TYPE_NAME, PARALLEL);
+        final DocumentType type = database.getSchema().createVertexType(TYPE_NAME, PARALLEL);
 
         type.createProperty("id", Long.class);
         type.createProperty("name", String.class);

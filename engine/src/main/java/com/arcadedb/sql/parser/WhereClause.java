@@ -8,8 +8,8 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.index.PIndex;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.index.Index;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -66,7 +66,7 @@ public class WhereClause extends SimpleNode {
    * @return an estimation of the number of records of this class returned applying this filter, 0 if and only if sure that no
    * records are returned
    */
-  public long estimate(PDocumentType oClass, long threshold, CommandContext ctx) {
+  public long estimate(DocumentType oClass, long threshold, CommandContext ctx) {
 //    long count = oClass.count();
 //    if (count > 1) {
 //      count = count / 2;
@@ -127,7 +127,7 @@ public class WhereClause extends SimpleNode {
       throw new UnsupportedOperationException("TODO");
   }
 
-  private long estimateFromIndex(PIndex index, Map<String, Object> conditions, int nMatchingKeys) {
+  private long estimateFromIndex(Index index, Map<String, Object> conditions, int nMatchingKeys) {
     if (nMatchingKeys < 1) {
       throw new IllegalArgumentException("Cannot estimate from an index with zero keys");
     }
@@ -175,7 +175,7 @@ public class WhereClause extends SimpleNode {
     return Long.MAX_VALUE;
   }
 
-  public Iterable fetchFromIndexes(PDocumentType oClass, CommandContext ctx) {
+  public Iterable fetchFromIndexes(DocumentType oClass, CommandContext ctx) {
 
       //TODO
       throw new UnsupportedOperationException("TODO");
@@ -227,7 +227,7 @@ public class WhereClause extends SimpleNode {
 //    return result;
   }
 
-  private Iterable fetchFromIndex(PDocumentType index, Map<String, Object> conditions) {
+  private Iterable fetchFromIndex(DocumentType index, Map<String, Object> conditions) {
       //TODO
 //    OIndexDefinition definition = index.getDefinition();
 //    List<String> definitionFields = definition.getFields();
@@ -266,7 +266,7 @@ public class WhereClause extends SimpleNode {
     return null;
   }
 
-  private Object convert(Object o, PDocumentType oType) {
+  private Object convert(Object o, DocumentType oType) {
     return o;
     //TODO
 //    return PType.convert(o, oType.getDefaultJavaType());
@@ -299,7 +299,7 @@ public class WhereClause extends SimpleNode {
 
   }
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(DocumentType iSchemaClass, Database database) {
     if (baseExpression == null) {
       return null;
     }

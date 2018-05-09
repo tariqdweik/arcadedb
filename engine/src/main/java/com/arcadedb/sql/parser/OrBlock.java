@@ -8,7 +8,7 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 
@@ -126,7 +126,7 @@ public class OrBlock extends BooleanExpression {
     return result;
   }
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(DocumentType iSchemaClass, Database database) {
     if (subBlocks == null || subBlocks.size() > 1) {
       return null;
     }

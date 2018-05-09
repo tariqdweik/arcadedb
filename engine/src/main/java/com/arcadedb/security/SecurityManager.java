@@ -10,7 +10,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class OSecurityManager {
+public class SecurityManager {
   public static final String HASH_ALGORITHM        = "SHA-256";
   public static final String HASH_ALGORITHM_PREFIX = "{" + HASH_ALGORITHM + "}";
 
@@ -23,11 +23,11 @@ public class OSecurityManager {
   public static final int SALT_SIZE = 24;
   public static final int HASH_SIZE = 24;
 
-  private static final OSecurityManager instance = new OSecurityManager();
+  private static final SecurityManager instance = new SecurityManager();
 
   private MessageDigest md;
 
-  public OSecurityManager() {
+  public SecurityManager() {
     try {
       md = MessageDigest.getInstance(HASH_ALGORITHM);
     } catch (NoSuchAlgorithmException e) {
@@ -45,7 +45,7 @@ public class OSecurityManager {
     return byteArrayToHexStr(msgDigest.digest(iInput.getBytes("UTF-8")));
   }
 
-  public static OSecurityManager instance() {
+  public static SecurityManager instance() {
     return instance;
   }
 

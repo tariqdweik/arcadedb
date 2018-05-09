@@ -9,7 +9,7 @@ import com.arcadedb.engine.FileManager;
 import com.arcadedb.engine.PageManager;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.ModifiableVertex;
-import com.arcadedb.schema.PSchema;
+import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.ResultSet;
 
@@ -76,7 +76,7 @@ public interface Database {
       String[] destinationVertexKey, Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType,
       boolean bidirectional, Object... properties);
 
-  PSchema getSchema();
+  Schema getSchema();
 
   FileManager getFileManager();
 

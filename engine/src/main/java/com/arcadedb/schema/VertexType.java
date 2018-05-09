@@ -6,9 +6,9 @@ package com.arcadedb.schema;
 
 import com.arcadedb.graph.Vertex;
 
-public class PVertexType extends PDocumentType {
+public class VertexType extends DocumentType {
 
-  public PVertexType(final PSchemaImpl schema, final String name) {
+  public VertexType(final SchemaImpl schema, final String name) {
     super(schema, name);
   }
 

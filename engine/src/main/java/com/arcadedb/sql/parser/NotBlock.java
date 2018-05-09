@@ -8,7 +8,7 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 
@@ -91,7 +91,7 @@ public class NotBlock extends BooleanExpression {
     return sub.getExternalCalculationConditions();
   }
 
-  public List<BinaryCondition> getIndexedFunctionConditions(PDocumentType iSchemaClass, Database database) {
+  public List<BinaryCondition> getIndexedFunctionConditions(DocumentType iSchemaClass, Database database) {
     if (sub == null) {
       return null;
     }

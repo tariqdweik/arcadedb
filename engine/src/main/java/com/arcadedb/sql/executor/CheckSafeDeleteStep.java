@@ -7,7 +7,7 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +50,7 @@ public class CheckSafeDeleteStep extends AbstractExecutionStep {
             Record record = result.getElement().get();
             if (record instanceof Document) {
               Document doc = (Document) record;
-              PDocumentType clazz = ctx.getDatabase().getSchema().getType(doc.getType());
+              DocumentType clazz = ctx.getDatabase().getSchema().getType(doc.getType());
               //TODO
 //              if (clazz != null) {
 //                if (clazz.getName().equalsIgnoreCase("V") || clazz.isSubClassOf("V")) {

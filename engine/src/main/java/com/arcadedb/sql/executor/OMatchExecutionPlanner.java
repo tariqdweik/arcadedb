@@ -6,8 +6,8 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.schema.PSchema;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
 import com.arcadedb.sql.parser.*;
 import com.arcadedb.utility.Pair;
 
@@ -656,9 +656,9 @@ public class OMatchExecutionPlanner {
   }
 
   private String getLowerSubclass(Database db, String className1, String className2) {
-    PSchema schema = db.getSchema();
-    PDocumentType class1 = schema.getType(className1);
-    PDocumentType class2 = schema.getType(className2);
+    Schema schema = db.getSchema();
+    DocumentType class1 = schema.getType(className1);
+    DocumentType class2 = schema.getType(className2);
     if (class1.equals(class2)) {
       return class1.getName();
     }
@@ -696,7 +696,7 @@ public class OMatchExecutionPlanner {
     allAliases.addAll(aliasClusters.keySet());
     allAliases.addAll(aliasRids.keySet());
 
-    PSchema schema = ctx.getDatabase().getSchema();
+    Schema schema = ctx.getDatabase().getSchema();
 
     Map<String, Long> result = new LinkedHashMap<String, Long>();
     for (String alias : allAliases) {
@@ -711,7 +711,7 @@ public class OMatchExecutionPlanner {
         if (schema.getType(typeName) == null) {
           throw new CommandExecutionException("Type '" + typeName + "' not defined");
         }
-        PDocumentType oClass = schema.getType(typeName);
+        DocumentType oClass = schema.getType(typeName);
         long upperBound;
         WhereClause filter = aliasFilters.get(alias);
         if (filter != null) {
@@ -726,7 +726,7 @@ public class OMatchExecutionPlanner {
           throw new CommandExecutionException("Bucket '" + bucketName + "' not defined");
         }
         int clusterId = db.getSchema().getBucketByName(bucketName).getId();
-        PDocumentType oClass = db.getSchema().getTypeByBucketId(clusterId);
+        DocumentType oClass = db.getSchema().getTypeByBucketId(clusterId);
         if (oClass != null) {
           long upperBound;
           WhereClause filter = aliasFilters.get(alias);

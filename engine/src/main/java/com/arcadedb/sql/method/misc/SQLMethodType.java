@@ -4,7 +4,7 @@
 package com.arcadedb.sql.method.misc;
 
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.OType;
+import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 
 /**
@@ -26,7 +26,7 @@ public class SQLMethodType extends OAbstractSQLMethod {
     if (ioResult == null)
       return null;
 
-    final OType t = OType.getTypeByValue(ioResult);
+    final Type t = Type.getTypeByValue(ioResult);
 
     if (t != null)
       return t.toString();

@@ -8,7 +8,7 @@ package com.arcadedb.sql.function.graph;
  *
  * @author Saeed Tabrizi (saeed a_t  nowcando.com)
  */
-public enum HeuristicFormula {
+public enum SQLHeuristicFormula {
     MANHATAN,
     MAXAXIS,
     DIAGONAL,

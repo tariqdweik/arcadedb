@@ -7,7 +7,7 @@ package performance;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.index.PIndex;
+import com.arcadedb.index.Index;
 
 import java.io.IOException;
 
@@ -22,7 +22,7 @@ public class PerformanceIndexCompaction {
     final long begin = System.currentTimeMillis();
     try {
       System.out.println("Compacting all indexes...");
-      for (PIndex index : database.getSchema().getIndexes())
+      for (Index index : database.getSchema().getIndexes())
         index.compact();
 
       System.out.println("Compaction done");

@@ -9,7 +9,7 @@ package com.arcadedb.sql.parser;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.Record;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.CommandContext;
 
 import java.util.*;
@@ -59,7 +59,7 @@ public class MatchPathItem extends SimpleNode {
     WhereClause filter = null;
     WhereClause whileCondition = null;
     Integer maxDepth = null;
-    PDocumentType oClass = null;
+    DocumentType oClass = null;
     if (this.filter != null) {
       filter = this.filter.getFilter();
       whileCondition = this.filter.getWhileCondition();
@@ -118,7 +118,7 @@ public class MatchPathItem extends SimpleNode {
     return result;
   }
 
-  private boolean matchesClass(Identifiable identifiable, PDocumentType oClass) {
+  private boolean matchesClass(Identifiable identifiable, DocumentType oClass) {
     if (identifiable == null) {
       return false;
     }

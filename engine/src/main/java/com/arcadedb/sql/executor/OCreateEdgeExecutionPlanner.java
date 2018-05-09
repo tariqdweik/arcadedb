@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.parser.*;
 
 import java.util.ArrayList;
@@ -46,7 +46,7 @@ public class OCreateEdgeExecutionPlanner {
         targetClass = new Identifier("E");
       } else {
         Database db = ctx.getDatabase();
-        PDocumentType clazz = db.getSchema()
+        DocumentType clazz = db.getSchema()
             .getTypeByBucketId((db.getSchema().getBucketByName(targetClusterName.getStringValue()).getId()));
         if (clazz != null) {
           targetClass = new Identifier(clazz.getName());

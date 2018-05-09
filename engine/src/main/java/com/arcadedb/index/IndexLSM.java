@@ -33,7 +33,7 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * HEADER Nst PAGE = [numberOfEntries(int:4),offsetFreeKeyValueContent(int:4),bloomFilterSeed(int:4),
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
-public class IndexLSM extends PaginatedComponent implements PIndex {
+public class IndexLSM extends PaginatedComponent implements Index {
   public static final String INDEX_EXT     = "pindex";
   public static final int    DEF_PAGE_SIZE = 6553600;
 
@@ -118,7 +118,7 @@ public class IndexLSM extends PaginatedComponent implements PIndex {
 
     compacting = true;
     try {
-      final PIndexLSMCompactor compactor = new PIndexLSMCompactor(this);
+      final IndexLSMCompactor compactor = new IndexLSMCompactor(this);
       compactor.compact();
     } finally {
       compacting = false;
@@ -126,12 +126,12 @@ public class IndexLSM extends PaginatedComponent implements PIndex {
   }
 
   @Override
-  public PIndexCursor iterator(final boolean ascendingOrder) throws IOException {
-    return new PIndexLSMCursor(this, ascendingOrder);
+  public IndexCursor iterator(final boolean ascendingOrder) throws IOException {
+    return new IndexLSMCursor(this, ascendingOrder);
   }
 
   @Override
-  public PIndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
+  public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
     if (ascendingOrder)
       return range(fromKeys, null);
 
@@ -139,19 +139,19 @@ public class IndexLSM extends PaginatedComponent implements PIndex {
   }
 
   @Override
-  public PIndexCursor iterator(final Object[] fromKeys) throws IOException {
+  public IndexCursor iterator(final Object[] fromKeys) throws IOException {
     return range(fromKeys, fromKeys);
   }
 
   @Override
-  public PIndexCursor range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
-    return new PIndexLSMCursor(this, true, fromKeys, toKeys);
+  public IndexCursor range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
+    return new IndexLSMCursor(this, true, fromKeys, toKeys);
   }
 
-  public PIndexLSMPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder)
+  public IndexLSMPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder)
       throws IOException {
     final BasePage page = database.getTransaction().getPage(new PageId(file.getFileId(), pageId), pageSize);
-    return new PIndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page),
+    return new IndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page),
         ascendingOrder);
   }
 
@@ -436,7 +436,7 @@ public class IndexLSM extends PaginatedComponent implements PIndex {
     try {
       return (int) database.getFileManager().getVirtualFileSize(file.getFileId()) / pageSize;
     } catch (IOException e) {
-      throw new PIndexException("Error on determine the total pages", e);
+      throw new IndexException("Error on determine the total pages", e);
     }
   }
 
@@ -477,7 +477,7 @@ public class IndexLSM extends PaginatedComponent implements PIndex {
 
       final int contentPos = currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE));
       if (contentPos < startIndexArray + (count * INT_SERIALIZED_SIZE))
-        throw new PIndexException("Internal error: invalid content position " + contentPos + " is < of " + (startIndexArray + (count
+        throw new IndexException("Internal error: invalid content position " + contentPos + " is < of " + (startIndexArray + (count
             * INT_SERIALIZED_SIZE)));
 
       currentPageBuffer.position(contentPos);

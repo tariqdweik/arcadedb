@@ -11,7 +11,7 @@ import com.arcadedb.database.Document;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.ResultSet;
 import org.jline.reader.*;
 import org.jline.terminal.Terminal;
@@ -219,7 +219,7 @@ public class Console {
       });
 
       final List<TableFormatter.PTableMapRow> rows = new ArrayList<>();
-      for (PDocumentType type : database.getSchema().getTypes()) {
+      for (DocumentType type : database.getSchema().getTypes()) {
         final TableFormatter.PTableMapRow row = new TableFormatter.PTableMapRow();
         row.setField("NAME", type.getName());
 

@@ -11,7 +11,7 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.index.IndexLSM;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 
@@ -137,7 +137,7 @@ public class PokecLoader {
 
   private static void createSchema(final Database db) {
     db.begin();
-    PDocumentType v = db.getSchema().createVertexType("V", PARALLEL_LEVEL, Bucket.DEF_PAGE_SIZE * 2);
+    DocumentType v = db.getSchema().createVertexType("V", PARALLEL_LEVEL, Bucket.DEF_PAGE_SIZE * 2);
     v.createProperty("id", Integer.class);
 
     for (int i = 0; i < COLUMNS.length; ++i) {

@@ -5,7 +5,7 @@ package com.arcadedb.sql.function.text;
 
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.security.OSecurityManager;
+import com.arcadedb.security.SecurityManager;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
 
@@ -36,9 +36,9 @@ public class SQLMethodHash extends OAbstractSQLMethod {
     if (iThis == null)
       return null;
 
-    final String algorithm = iParams.length > 0 ? iParams[0].toString() : OSecurityManager.HASH_ALGORITHM;
+    final String algorithm = iParams.length > 0 ? iParams[0].toString() : SecurityManager.HASH_ALGORITHM;
     try {
-      return OSecurityManager.createHash(iThis.toString(), algorithm);
+      return SecurityManager.createHash(iThis.toString(), algorithm);
 
     } catch (NoSuchAlgorithmException e) {
       throw new CommandExecutionException("hash(): algorithm '" + algorithm + "' is not supported", e);

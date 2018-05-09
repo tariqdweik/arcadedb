@@ -231,10 +231,10 @@ public class SQLFunctionAstar extends SQLFunctionHeuristicPathFinderAbstract {
       ctx.paramDFactor = doubleOrDefault(mapParams.get(SQLFunctionAstar.PARAM_D_FACTOR), ctx.paramDFactor);
       if (mapParams.get(SQLFunctionAstar.PARAM_HEURISTIC_FORMULA) != null) {
         if (mapParams.get(SQLFunctionAstar.PARAM_HEURISTIC_FORMULA) instanceof String) {
-          ctx.paramHeuristicFormula = HeuristicFormula.valueOf(
+          ctx.paramHeuristicFormula = SQLHeuristicFormula.valueOf(
               stringOrDefault(mapParams.get(SQLFunctionAstar.PARAM_HEURISTIC_FORMULA), "MANHATAN").toUpperCase(Locale.ENGLISH));
         } else {
-          ctx.paramHeuristicFormula = (HeuristicFormula) mapParams.get(SQLFunctionAstar.PARAM_HEURISTIC_FORMULA);
+          ctx.paramHeuristicFormula = (SQLHeuristicFormula) mapParams.get(SQLFunctionAstar.PARAM_HEURISTIC_FORMULA);
         }
       }
 

@@ -8,8 +8,8 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.index.PIndex;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.index.Index;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.parser.*;
 
 import java.util.*;
@@ -389,7 +389,7 @@ public class OSelectExecutionPlanner {
       return null;
     } else if (item.getIdentifier() != null) {
       String className = item.getIdentifier().getStringValue();
-      PDocumentType clazz = db.getSchema().getType(className);
+      DocumentType clazz = db.getSchema().getType(className);
       if (clazz == null) {
         return null;
       }
@@ -1110,11 +1110,11 @@ public class OSelectExecutionPlanner {
     Object paramValue = inputParam.getValue(ctx.getInputParameters());
     if (paramValue == null) {
       result.chain(new EmptyStep(ctx, profilingEnabled));//nothing to return
-    } else if (paramValue instanceof PDocumentType) {
+    } else if (paramValue instanceof DocumentType) {
       FromClause from = new FromClause(-1);
       FromItem item = new FromItem(-1);
       from.setItem(item);
-      item.setIdentifier(new Identifier(((PDocumentType) paramValue).getName()));
+      item.setIdentifier(new Identifier(((DocumentType) paramValue).getName()));
       handleClassAsTarget(result, filterClusters, from, info, ctx, profilingEnabled);
     } else if (paramValue instanceof String) {
       //strings are treated as classes
@@ -1195,7 +1195,7 @@ public class OSelectExecutionPlanner {
   private void handleIndexAsTarget(SelectExecutionPlan result, QueryPlanningInfo info, IndexIdentifier indexIdentifier,
       Set<String> filterClusters, CommandContext ctx, boolean profilingEnabled) {
     String indexName = indexIdentifier.getIndexName();
-    PIndex index = ctx.getDatabase().getSchema().getIndexByName(indexName);
+    Index index = ctx.getDatabase().getSchema().getIndexByName(indexName);
     if (index == null) {
       throw new CommandExecutionException("Index not found: " + indexName);
     }
@@ -1457,7 +1457,7 @@ public class OSelectExecutionPlanner {
     if (queryTarget == null) {
       return false;
     }
-    PDocumentType clazz = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
+    DocumentType clazz = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
     if (clazz == null) {
       throw new CommandExecutionException("Class not found: " + queryTarget);
     }
@@ -1608,7 +1608,7 @@ public class OSelectExecutionPlanner {
   private boolean handleClassWithIndexForSortOnly(SelectExecutionPlan plan, Identifier queryTarget, Set<String> filterClusters,
       QueryPlanningInfo info, CommandContext ctx, boolean profilingEnabled) {
 
-    PDocumentType clazz = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
+    DocumentType clazz = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
     if (clazz == null) {
       throw new CommandExecutionException("Class not found: " + queryTarget.getStringValue());
     }
@@ -1703,7 +1703,7 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private boolean isDiamondHierarchy(PDocumentType clazz) {
+  private boolean isDiamondHierarchy(DocumentType clazz) {
     //TODO no class hierarchies..?
 //    Set<OClass> traversed = new HashSet<>();
 //    List<OClass> stack = new ArrayList<>();
@@ -1727,7 +1727,7 @@ public class OSelectExecutionPlanner {
     List<ExecutionStepInternal> result = handleClassAsTargetWithIndex(targetClass, filterClusters, info, ctx, profilingEnabled);
     if (result == null) {
       result = new ArrayList<>();
-      PDocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass);
+      DocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass);
       if (clazz == null) {
         throw new CommandExecutionException("Cannot find class " + targetClass);
       }
@@ -1761,14 +1761,14 @@ public class OSelectExecutionPlanner {
       return null;
     }
 
-    PDocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass);
+    DocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass);
     if (clazz == null) {
       throw new CommandExecutionException("Cannot find class " + targetClass);
     }
 
     //TODO!!!
 //    Set<PIndex> indexes = clazz.getIndexes();
-    Set<PIndex> indexes = new HashSet<>();
+    Set<Index> indexes = new HashSet<>();
 
     List<IndexSearchDescriptor> indexSearchDescriptors = info.flattenedWhereClause.stream()
         .map(x -> findBestIndexFor(ctx, indexes, x, clazz)).filter(Objects::nonNull).collect(Collectors.toList());
@@ -1810,7 +1810,7 @@ public class OSelectExecutionPlanner {
     return result;
   }
 
-  private boolean fullySorted(OrderBy orderBy, AndBlock conditions, PIndex idx) {
+  private boolean fullySorted(OrderBy orderBy, AndBlock conditions, Index idx) {
 //    if (!idx.supportsOrderedIterations())
       return false;
 //
@@ -1953,7 +1953,7 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private IndexSearchDescriptor findBestIndexFor(CommandContext ctx, Set<PIndex> indexes, AndBlock block, PDocumentType clazz) {
+  private IndexSearchDescriptor findBestIndexFor(CommandContext ctx, Set<Index> indexes, AndBlock block, DocumentType clazz) {
     return indexes.stream()
         //.filter(index -> index.getInternal().canBeUsedInEqualityOperators())
         .map(index -> buildIndexSearchDescriptor(ctx, index, block, clazz)).filter(Objects::nonNull)
@@ -1972,7 +1972,7 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private IndexSearchDescriptor buildIndexSearchDescriptor(CommandContext ctx, PIndex index, AndBlock block, PDocumentType clazz) {
+  private IndexSearchDescriptor buildIndexSearchDescriptor(CommandContext ctx, Index index, AndBlock block, DocumentType clazz) {
     //TODO!!!
 //    List<String> indexFields = index.getDefinition().getFields();
 //    OBinaryCondition keyCondition = new OBinaryCondition(-1);
@@ -2123,7 +2123,7 @@ public class OSelectExecutionPlanner {
     return false;
   }
 
-  private boolean allowsRangeQueries(PIndex index) {
+  private boolean allowsRangeQueries(Index index) {
 //    return index.supportsOrderedIterations();
     return false;
   }
@@ -2136,7 +2136,7 @@ public class OSelectExecutionPlanner {
    */
   private List<IndexSearchDescriptor> commonFactor(List<IndexSearchDescriptor> indexSearchDescriptors) {
     //index, key condition, additional filter (to aggregate in OR)
-    Map<PIndex, Map<IndexCondPair, OrBlock>> aggregation = new HashMap<>();
+    Map<Index, Map<IndexCondPair, OrBlock>> aggregation = new HashMap<>();
     for (IndexSearchDescriptor item : indexSearchDescriptors) {
       Map<IndexCondPair, OrBlock> filtersForIndex = aggregation.get(item.idx);
       if (filtersForIndex == null) {
@@ -2153,7 +2153,7 @@ public class OSelectExecutionPlanner {
       existingAdditionalConditions.getSubBlocks().add(item.remainingCondition);
     }
     List<IndexSearchDescriptor> result = new ArrayList<>();
-    for (Map.Entry<PIndex, Map<IndexCondPair, OrBlock>> item : aggregation.entrySet()) {
+    for (Map.Entry<Index, Map<IndexCondPair, OrBlock>> item : aggregation.entrySet()) {
       for (Map.Entry<IndexCondPair, OrBlock> filters : item.getValue().entrySet()) {
         result.add(new IndexSearchDescriptor(item.getKey(), filters.getKey().mainCondition, filters.getKey().additionalRange,
             filters.getValue()));

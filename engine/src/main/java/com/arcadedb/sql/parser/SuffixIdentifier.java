@@ -19,7 +19,7 @@ public class SuffixIdentifier extends SimpleNode {
 
   protected Identifier      identifier;
   protected RecordAttribute recordAttribute;
-  protected boolean star = false;
+  protected boolean         star = false;
 
   public SuffixIdentifier(int id) {
     super(id);
@@ -88,9 +88,10 @@ public class SuffixIdentifier extends SimpleNode {
         return ctx.getVariable(varName);
       }
       if (iCurrentRecord != null) {
-        if (iCurrentRecord.hasProperty(varName)) {
-          return iCurrentRecord.getProperty(varName);
-        }
+        final Object v = iCurrentRecord.getProperty(varName);
+        if (v != null)
+          return v;
+
         if (iCurrentRecord.getMetadataKeys().contains(varName)) {
           return iCurrentRecord.getMetadata(varName);
         }

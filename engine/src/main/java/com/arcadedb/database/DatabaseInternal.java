@@ -7,7 +7,7 @@ package com.arcadedb.database;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.TransactionManager;
 import com.arcadedb.graph.GraphEngine;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -40,7 +40,7 @@ public interface DatabaseInternal extends Database {
 
   void updateRecordNoLock(Record record);
 
-  void indexDocument(ModifiableDocument record, PDocumentType type, Bucket bucket);
+  void indexDocument(ModifiableDocument record, DocumentType type, Bucket bucket);
 
   void kill();
 }

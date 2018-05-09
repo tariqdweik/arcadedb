@@ -7,7 +7,7 @@ package performance;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import org.junit.jupiter.api.Assertions;
 
 public class PerformanceIndexTest {
@@ -28,7 +28,7 @@ public class PerformanceIndexTest {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
 
-        final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, parallel);
+        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, parallel);
 
         type.createProperty("id", Long.class);
         type.createProperty("name", String.class);

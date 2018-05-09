@@ -7,7 +7,7 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.ResultSet;
 
@@ -216,7 +216,7 @@ public class AlterTypeStatement extends ODDLStatement {
 
   @Override
   public ResultSet executeDDL(CommandContext ctx) {
-    PDocumentType oClass = ctx.getDatabase().getSchema().getType(name.getStringValue());
+    DocumentType oClass = ctx.getDatabase().getSchema().getType(name.getStringValue());
     if (oClass == null) {
       throw new CommandExecutionException("Type not found: " + name);
     }
@@ -335,7 +335,7 @@ public class AlterTypeStatement extends ODDLStatement {
 //    return resultSet;
   }
 
-  private void checkNotIndexed(PDocumentType oClass) {
+  private void checkNotIndexed(DocumentType oClass) {
 //    Set<PIndex> indexes = oClass.getAllIndexesMetadata();
 //    if (indexes != null && indexes.size() > 0) {
 //      throw new PCommandExecutionException("Cannot rename class '" + oClass.getName()
@@ -343,14 +343,14 @@ public class AlterTypeStatement extends ODDLStatement {
 //    }
   }
 
-  private void checkNotEdge(PDocumentType oClass) {
+  private void checkNotEdge(DocumentType oClass) {
 //    if (oClass.isSubClassOf("E")) {
 //      throw new PCommandExecutionException("Cannot alter class '" + oClass
 //          + "' because is an Edge class and could break vertices. Use UNSAFE if you want to force it");
 //    }
   }
 
-  private void doSetSuperclass(CommandContext ctx, PDocumentType oClass, Identifier superclassName) {
+  private void doSetSuperclass(CommandContext ctx, DocumentType oClass, Identifier superclassName) {
 //    if (superclassName == null) {
 //      throw new PCommandExecutionException("Invalid superclass name: " + toString());
 //    }
@@ -367,7 +367,7 @@ public class AlterTypeStatement extends ODDLStatement {
 //    }
   }
 
-  private void doSetSuperclasses(CommandContext ctx, PDocumentType oClass, List<Identifier> superclassNames) {
+  private void doSetSuperclasses(CommandContext ctx, DocumentType oClass, List<Identifier> superclassNames) {
 //    if (superclassNames == null) {
 //      throw new PCommandExecutionException("Invalid superclass name: " + toString());
 //    }

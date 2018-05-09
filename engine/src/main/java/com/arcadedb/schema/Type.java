@@ -24,7 +24,7 @@ import java.util.*;
  *
  * @author Luca Garulli (l.garulli--(at)--orientdb.com)
  */
-public enum OType {
+public enum Type {
   BOOLEAN("Boolean", 0, Boolean.class, new Class<?>[] { Number.class }),
 
   INTEGER("Integer", 1, Integer.class, new Class<?>[] { Number.class }),
@@ -60,15 +60,15 @@ public enum OType {
   ANY("Any", 16, null, new Class<?>[] {});
 
   // Don't change the order, the type discover get broken if you change the order.
-  protected static final OType[] TYPES = new OType[] { EMBEDDEDLIST, EMBEDDEDSET, EMBEDDEDMAP, LINK, STRING, DATETIME };
+  protected static final Type[] TYPES = new Type[] { EMBEDDEDLIST, EMBEDDEDSET, EMBEDDEDMAP, LINK, STRING, DATETIME };
 
-  protected static final OType[]              TYPES_BY_ID    = new OType[17];
+  protected static final Type[]              TYPES_BY_ID    = new Type[17];
   // Values previosly stored in javaTypes
-  protected static final Map<Class<?>, OType> TYPES_BY_CLASS = new HashMap<Class<?>, OType>();
+  protected static final Map<Class<?>, Type> TYPES_BY_CLASS = new HashMap<Class<?>, Type>();
 
   static {
-    for (OType oType : values()) {
-      TYPES_BY_ID[oType.id] = oType;
+    for (Type type : values()) {
+      TYPES_BY_ID[type.id] = type;
     }
     // This is made by hand because not all types should be add.
     TYPES_BY_CLASS.put(Boolean.class, BOOLEAN);
@@ -94,12 +94,12 @@ public enum OType {
     TYPES_BY_CLASS.put(Character.TYPE, STRING);
     TYPES_BY_CLASS.put(BigDecimal.class, DECIMAL);
     BYTE.castable.add(BOOLEAN);
-    SHORT.castable.addAll(Arrays.asList(new OType[] { BOOLEAN, BYTE }));
-    INTEGER.castable.addAll(Arrays.asList(new OType[] { BOOLEAN, BYTE, SHORT }));
-    LONG.castable.addAll(Arrays.asList(new OType[] { BOOLEAN, BYTE, SHORT, INTEGER }));
-    FLOAT.castable.addAll(Arrays.asList(new OType[] { BOOLEAN, BYTE, SHORT, INTEGER }));
-    DOUBLE.castable.addAll(Arrays.asList(new OType[] { BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT }));
-    DECIMAL.castable.addAll(Arrays.asList(new OType[] { BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE }));
+    SHORT.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE }));
+    INTEGER.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT }));
+    LONG.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER }));
+    FLOAT.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER }));
+    DOUBLE.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT }));
+    DECIMAL.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE }));
     EMBEDDEDLIST.castable.add(EMBEDDEDSET);
   }
 
@@ -107,14 +107,14 @@ public enum OType {
   protected final int        id;
   protected final Class<?>   javaDefaultType;
   protected final Class<?>[] allowAssignmentFrom;
-  protected final Set<OType> castable;
+  protected final Set<Type>  castable;
 
-  private OType(final String iName, final int iId, final Class<?> iJavaDefaultType, final Class<?>[] iAllowAssignmentBy) {
+  private Type(final String iName, final int iId, final Class<?> iJavaDefaultType, final Class<?>[] iAllowAssignmentBy) {
     name = iName;
     id = iId;
     javaDefaultType = iJavaDefaultType;
     allowAssignmentFrom = iAllowAssignmentBy;
-    castable = new HashSet<OType>();
+    castable = new HashSet<Type>();
     castable.add(this);
   }
 
@@ -125,7 +125,7 @@ public enum OType {
    *
    * @return The type if any, otherwise null
    */
-  public static OType getById(final byte iId) {
+  public static Type getById(final byte iId) {
     if (iId >= 0 && iId < TYPES_BY_ID.length)
       return TYPES_BY_ID[iId];
     return null;
@@ -147,11 +147,11 @@ public enum OType {
    *
    * @return OType instance if found, otherwise null
    */
-  public static OType getTypeByClass(final Class<?> iClass) {
+  public static Type getTypeByClass(final Class<?> iClass) {
     if (iClass == null)
       return null;
 
-    OType type = TYPES_BY_CLASS.get(iClass);
+    Type type = TYPES_BY_CLASS.get(iClass);
     if (type != null)
       return type;
     type = getTypeByClassInherit(iClass);
@@ -159,14 +159,14 @@ public enum OType {
     return type;
   }
 
-  private static OType getTypeByClassInherit(final Class<?> iClass) {
+  private static Type getTypeByClassInherit(final Class<?> iClass) {
     if (iClass.isArray())
       return EMBEDDEDLIST;
     int priority = 0;
     boolean comparedAtLeastOnce;
     do {
       comparedAtLeastOnce = false;
-      for (final OType type : TYPES) {
+      for (final Type type : TYPES) {
         if (type.allowAssignmentFrom.length > priority) {
           if (type.allowAssignmentFrom[priority].isAssignableFrom(iClass))
             return type;
@@ -179,15 +179,15 @@ public enum OType {
     return null;
   }
 
-  public static OType getTypeByValue(Object value) {
+  public static Type getTypeByValue(Object value) {
     if (value == null)
       return null;
     Class<?> clazz = value.getClass();
-    OType type = TYPES_BY_CLASS.get(clazz);
+    Type type = TYPES_BY_CLASS.get(clazz);
     if (type != null)
       return type;
 
-    final OType byType = getTypeByClassInherit(clazz);
+    final Type byType = getTypeByClassInherit(clazz);
 
     return byType;
   }
@@ -386,7 +386,7 @@ public enum OType {
                 result.add(new RID(database, iValue.toString()));
               } catch (Exception e) {
                 LogManager.instance()
-                    .debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+                    .debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
               }
             }
           }
@@ -395,7 +395,7 @@ public enum OType {
           try {
             return new RID(database, (String) iValue);
           } catch (Exception e) {
-            LogManager.instance().debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+            LogManager.instance().debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
           }
         }
       }
@@ -403,7 +403,7 @@ public enum OType {
       // PASS THROUGH
       throw e;
     } catch (Exception e) {
-      LogManager.instance().debug(OType.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+      LogManager.instance().debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
       return null;
     }
 
@@ -705,7 +705,7 @@ public enum OType {
     return javaDefaultType;
   }
 
-  public Set<OType> getCastable() {
+  public Set<Type> getCastable() {
     return castable;
   }
 

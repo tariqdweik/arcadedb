@@ -8,7 +8,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.database.async.OkCallback;
 import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -107,7 +107,7 @@ public class AsyncTest {
         }
       });
 
-      final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
+      final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
       type.createProperty("id", Integer.class);
       type.createProperty("name", String.class);
       type.createProperty("surname", String.class);

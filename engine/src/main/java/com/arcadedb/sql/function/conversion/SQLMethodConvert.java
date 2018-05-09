@@ -4,7 +4,7 @@
 package com.arcadedb.sql.function.conversion;
 
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.schema.OType;
+import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
 import com.arcadedb.utility.LogManager;
@@ -40,14 +40,14 @@ public class SQLMethodConvert extends OAbstractSQLMethod {
 
     if (destType.contains(".")) {
       try {
-        return OType.convert(iContext.getDatabase(), iThis, Class.forName(destType));
+        return Type.convert(iContext.getDatabase(), iThis, Class.forName(destType));
       } catch (ClassNotFoundException e) {
         LogManager.instance().error(this, "Class for destination type was not found", e);
       }
     } else {
-      final OType orientType = OType.valueOf(destType.toUpperCase(Locale.ENGLISH));
+      final Type orientType = Type.valueOf(destType.toUpperCase(Locale.ENGLISH));
       if (orientType != null) {
-        return OType.convert(iContext.getDatabase(), iThis, orientType.getDefaultJavaType());
+        return Type.convert(iContext.getDatabase(), iThis, orientType.getDefaultJavaType());
       }
     }
 

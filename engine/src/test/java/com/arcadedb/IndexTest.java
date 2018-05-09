@@ -8,9 +8,9 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.index.PIndex;
-import com.arcadedb.index.PIndexCursor;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -43,11 +43,11 @@ public class IndexTest {
     try {
       int total = 0;
 
-      final PIndex[] indexes = db.getSchema().getIndexes();
-      for (PIndex index : indexes) {
+      final Index[] indexes = db.getSchema().getIndexes();
+      for (Index index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexCursor iterator = index.iterator(true);
+        final IndexCursor iterator = index.iterator(true);
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -76,11 +76,11 @@ public class IndexTest {
     try {
       int total = 0;
 
-      final PIndex[] indexes = db.getSchema().getIndexes();
-      for (PIndex index : indexes) {
+      final Index[] indexes = db.getSchema().getIndexes();
+      for (Index index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexCursor iterator = index.iterator(false);
+        final IndexCursor iterator = index.iterator(false);
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -109,11 +109,11 @@ public class IndexTest {
     try {
       int total = 0;
 
-      final PIndex[] indexes = db.getSchema().getIndexes();
-      for (PIndex index : indexes) {
+      final Index[] indexes = db.getSchema().getIndexes();
+      for (Index index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexCursor iterator = index.iterator(true, new Object[] { 10 });
+        final IndexCursor iterator = index.iterator(true, new Object[] { 10 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -142,11 +142,11 @@ public class IndexTest {
     try {
       int total = 0;
 
-      final PIndex[] indexes = db.getSchema().getIndexes();
-      for (PIndex index : indexes) {
+      final Index[] indexes = db.getSchema().getIndexes();
+      for (Index index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexCursor iterator = index.iterator(false, new Object[] { 9 });
+        final IndexCursor iterator = index.iterator(false, new Object[] { 9 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -175,11 +175,11 @@ public class IndexTest {
     try {
       int total = 0;
 
-      final PIndex[] indexes = db.getSchema().getIndexes();
-      for (PIndex index : indexes) {
+      final Index[] indexes = db.getSchema().getIndexes();
+      for (Index index : indexes) {
         Assertions.assertNotNull(index);
 
-        final PIndexCursor iterator = index.range(new Object[] { 10 }, new Object[] { 19 });
+        final IndexCursor iterator = index.range(new Object[] { 10 }, new Object[] { 19 });
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
@@ -209,7 +209,7 @@ public class IndexTest {
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
-        final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
+        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 20000);
 

@@ -13,28 +13,28 @@ import com.arcadedb.serializer.BinarySerializer;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class PIndexLSMCursor implements PIndexCursor {
-  private final IndexLSM                index;
-  private final boolean                 ascendingOrder;
-  private final Object[]                fromKeys;
-  private final Object[]                toKeys;
-  private final PIndexLSMPageIterator[] pageIterators;
-  private       PIndexLSMPageIterator   currentIterator;
-  private       Object[]                currentKeys;
-  private       Object                  currentValue;
-  private       int                     totalPages;
-  private       byte[]                  keyTypes;
-  private final Object[][]              keys;
-  private       BinarySerializer        serializer;
-  private       BinaryComparator        comparator;
+public class IndexLSMCursor implements IndexCursor {
+  private final IndexLSM               index;
+  private final boolean                ascendingOrder;
+  private final Object[]               fromKeys;
+  private final Object[]               toKeys;
+  private final IndexLSMPageIterator[] pageIterators;
+  private       IndexLSMPageIterator   currentIterator;
+  private       Object[]               currentKeys;
+  private       Object                 currentValue;
+  private       int                    totalPages;
+  private       byte[]                 keyTypes;
+  private final Object[][]             keys;
+  private       BinarySerializer       serializer;
+  private       BinaryComparator       comparator;
 
   private int validIterators;
 
-  public PIndexLSMCursor(final IndexLSM index, final boolean ascendingOrder) throws IOException {
+  public IndexLSMCursor(final IndexLSM index, final boolean ascendingOrder) throws IOException {
     this(index, ascendingOrder, null, null);
   }
 
-  public PIndexLSMCursor(final IndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys)
+  public IndexLSMCursor(final IndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys)
       throws IOException {
     this.index = index;
     this.ascendingOrder = ascendingOrder;
@@ -48,7 +48,7 @@ public class PIndexLSMCursor implements PIndexCursor {
     this.comparator = this.serializer.getComparator();
 
     // CREATE ITERATORS, ONE PER PAGE
-    pageIterators = new PIndexLSMPageIterator[totalPages];
+    pageIterators = new IndexLSMPageIterator[totalPages];
 
     int pageId = ascendingOrder ? 0 : totalPages - 1;
 
@@ -92,7 +92,7 @@ public class PIndexLSMCursor implements PIndexCursor {
     // CHECK ALL THE ITERATORS (NULL=SKIP)
     validIterators = 0;
     for (int p = 0; p < totalPages; ++p) {
-      final PIndexLSMPageIterator it = pageIterators[p];
+      final IndexLSMPageIterator it = pageIterators[p];
       if (it != null) {
         if (it.hasNext()) {
           keys[p] = it.getKeys();
@@ -174,7 +174,7 @@ public class PIndexLSMCursor implements PIndexCursor {
 
   @Override
   public void close() {
-    for (PIndexLSMPageIterator it : pageIterators)
+    for (IndexLSMPageIterator it : pageIterators)
       if (it != null)
         it.close();
     Arrays.fill(pageIterators, null);

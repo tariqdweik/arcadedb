@@ -14,7 +14,7 @@ import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
-import com.arcadedb.index.PIndex;
+import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexLSM;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.FileUtils;
@@ -29,25 +29,25 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-public class PSchemaImpl implements PSchema {
+public class SchemaImpl implements Schema {
   public static final String DEFAULT_DATE_FORMAT     = "yyyy-MM-dd";
   public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
   public static final String DEFAULT_ENCODING        = "UTF-8";
 
-  private static final String                     SCHEMA_FILE_NAME = "/schema.json";
-  private final        DatabaseInternal           database;
-  private final        List<PaginatedComponent>   files            = new ArrayList<PaginatedComponent>();
-  private final        Map<String, PDocumentType> types            = new HashMap<String, PDocumentType>();
-  private final        Map<String, Bucket>        bucketMap        = new HashMap<String, Bucket>();
-  private final        Map<String, PIndex>        indexMap         = new HashMap<String, PIndex>();
-  private final        String                     databasePath;
-  private              Dictionary                 dictionary;
-  private              String                     dateFormat       = DEFAULT_DATE_FORMAT;
-  private              String                     dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
-  private              String                     encoding         = DEFAULT_ENCODING;
-  private              TimeZone                   timeZone         = TimeZone.getDefault();
+  private static final String                    SCHEMA_FILE_NAME = "/schema.json";
+  private final        DatabaseInternal          database;
+  private final        List<PaginatedComponent>  files            = new ArrayList<PaginatedComponent>();
+  private final        Map<String, DocumentType> types            = new HashMap<String, DocumentType>();
+  private final        Map<String, Bucket>       bucketMap        = new HashMap<String, Bucket>();
+  private final        Map<String, Index>        indexMap         = new HashMap<String, Index>();
+  private final        String                    databasePath;
+  private              Dictionary                dictionary;
+  private              String                    dateFormat       = DEFAULT_DATE_FORMAT;
+  private              String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
+  private              String                    encoding         = DEFAULT_ENCODING;
+  private              TimeZone                  timeZone         = TimeZone.getDefault();
 
-  public PSchemaImpl(final DatabaseInternal database, final String databasePath, final PaginatedFile.MODE mode) {
+  public SchemaImpl(final DatabaseInternal database, final String databasePath, final PaginatedFile.MODE mode) {
     this.database = database;
     this.databasePath = databasePath;
   }
@@ -223,35 +223,35 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PIndex[] getIndexes() {
-    final PIndex[] indexes = new PIndex[indexMap.size()];
+  public Index[] getIndexes() {
+    final Index[] indexes = new Index[indexMap.size()];
     int i = 0;
-    for (PIndex index : indexMap.values())
+    for (Index index : indexMap.values())
       indexes[i++] = index;
     return indexes;
   }
 
   @Override
-  public PIndex getIndexByName(final String indexName) {
-    final PIndex p = indexMap.get(indexName);
+  public Index getIndexByName(final String indexName) {
+    final Index p = indexMap.get(indexName);
     if (p == null)
       throw new SchemaException("Index with name '" + indexName + "' was not found");
     return p;
   }
 
   @Override
-  public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames) {
+  public Index[] createClassIndexes(final String typeName, final String[] propertyNames) {
     return createClassIndexes(typeName, propertyNames, IndexLSM.DEF_PAGE_SIZE);
   }
 
   @Override
-  public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
+  public Index[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
     return createClassIndexes(typeName, propertyNames, pageSize, propertyNames.length);
   }
 
-  public PIndex[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize,
+  public Index[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize,
       final int bfKeyDepth) {
-    return (PIndex[]) database.executeInWriteLock(new Callable<Object>() {
+    return (Index[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         try {
@@ -259,14 +259,14 @@ public class PSchemaImpl implements PSchema {
             throw new DatabaseMetadataException(
                 "Cannot create index on type '" + typeName + "' because there are no property defined");
 
-          final PDocumentType type = getType(typeName);
+          final DocumentType type = getType(typeName);
 
           // CHECK ALL THE PROPERTIES EXIST
           final byte[] keyTypes = new byte[propertyNames.length];
           int i = 0;
 
           for (String propertyName : propertyNames) {
-            final PProperty property = type.getPolymorphicProperty(propertyName);
+            final Property property = type.getPolymorphicProperty(propertyName);
             if (property == null)
               throw new SchemaException(
                   "Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
@@ -305,11 +305,11 @@ public class PSchemaImpl implements PSchema {
     });
   }
 
-  public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize) {
+  public Index createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize) {
     return createManualIndex(indexName, keyTypes, pageSize, keyTypes.length);
   }
 
-  public PIndex createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
+  public Index createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
     return (IndexLSM) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -347,12 +347,12 @@ public class PSchemaImpl implements PSchema {
     return database;
   }
 
-  public Collection<PDocumentType> getTypes() {
+  public Collection<DocumentType> getTypes() {
     return Collections.unmodifiableCollection(types.values());
   }
 
-  public PDocumentType getType(final String typeName) {
-    final PDocumentType t = types.get(typeName);
+  public DocumentType getType(final String typeName) {
+    final DocumentType t = types.get(typeName);
     if (t == null)
       throw new SchemaException("Type with name '" + typeName + "' was not found");
     return t;
@@ -360,7 +360,7 @@ public class PSchemaImpl implements PSchema {
 
   @Override
   public String getTypeNameByBucketId(final int bucketId) {
-    for (PDocumentType t : types.values()) {
+    for (DocumentType t : types.values()) {
       for (Bucket b : t.getBuckets(false)) {
         if (b.getId() == bucketId)
           return t.getName();
@@ -372,8 +372,8 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PDocumentType getTypeByBucketId(final int bucketId) {
-    for (PDocumentType t : types.values()) {
+  public DocumentType getTypeByBucketId(final int bucketId) {
+    for (DocumentType t : types.values()) {
       for (Bucket b : t.getBuckets(false)) {
         if (b.getId() == bucketId)
           return t;
@@ -388,16 +388,16 @@ public class PSchemaImpl implements PSchema {
     return types.containsKey(typeName);
   }
 
-  public PDocumentType createDocumentType(final String typeName) {
+  public DocumentType createDocumentType(final String typeName) {
     return createDocumentType(typeName, 1);
   }
 
-  public PDocumentType createDocumentType(final String typeName, final int buckets) {
+  public DocumentType createDocumentType(final String typeName, final int buckets) {
     return createDocumentType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
   }
 
-  public PDocumentType createDocumentType(final String typeName, final int buckets, final int pageSize) {
-    return (PDocumentType) database.executeInWriteLock(new Callable<Object>() {
+  public DocumentType createDocumentType(final String typeName, final int buckets, final int pageSize) {
+    return (DocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -405,7 +405,7 @@ public class PSchemaImpl implements PSchema {
 
         if (types.containsKey(typeName))
           throw new SchemaException("Type '" + typeName + "' already exists");
-        final PDocumentType c = new PDocumentType(PSchemaImpl.this, typeName);
+        final DocumentType c = new DocumentType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
@@ -419,18 +419,18 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PVertexType createVertexType(final String typeName) {
+  public VertexType createVertexType(final String typeName) {
     return createVertexType(typeName, 1);
   }
 
   @Override
-  public PVertexType createVertexType(final String typeName, final int buckets) {
+  public VertexType createVertexType(final String typeName, final int buckets) {
     return createVertexType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
   }
 
   @Override
-  public PVertexType createVertexType(String typeName, final int buckets, final int pageSize) {
-    return (PVertexType) database.executeInWriteLock(new Callable<Object>() {
+  public VertexType createVertexType(String typeName, final int buckets, final int pageSize) {
+    return (VertexType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -438,7 +438,7 @@ public class PSchemaImpl implements PSchema {
 
         if (types.containsKey(typeName))
           throw new SchemaException("Vertex type '" + typeName + "' already exists");
-        final PDocumentType c = new PVertexType(PSchemaImpl.this, typeName);
+        final DocumentType c = new VertexType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
@@ -454,18 +454,18 @@ public class PSchemaImpl implements PSchema {
   }
 
   @Override
-  public PEdgeType createEdgeType(final String typeName) {
+  public EdgeType createEdgeType(final String typeName) {
     return createEdgeType(typeName, 1);
   }
 
   @Override
-  public PEdgeType createEdgeType(final String typeName, final int buckets) {
+  public EdgeType createEdgeType(final String typeName, final int buckets) {
     return createEdgeType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
   }
 
   @Override
-  public PEdgeType createEdgeType(final String typeName, final int buckets, final int pageSize) {
-    return (PEdgeType) database.executeInWriteLock(new Callable<Object>() {
+  public EdgeType createEdgeType(final String typeName, final int buckets, final int pageSize) {
+    return (EdgeType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         if (typeName.indexOf(",") > -1)
@@ -473,7 +473,7 @@ public class PSchemaImpl implements PSchema {
 
         if (types.containsKey(typeName))
           throw new SchemaException("Edge type '" + typeName + "' already exists");
-        final PDocumentType c = new PEdgeType(PSchemaImpl.this, typeName);
+        final DocumentType c = new EdgeType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
@@ -492,9 +492,9 @@ public class PSchemaImpl implements PSchema {
     indexMap.put(newIndex.getName(), newIndex);
 
     // SCAN ALL THE TYPES TO FIND WHERE THE INDEX WAS DEFINED TO REPLACE IT
-    for (PDocumentType t : getTypes()) {
-      for (List<PDocumentType.IndexMetadata> metadata : t.getAllIndexesMetadata()) {
-        for (PDocumentType.IndexMetadata m : metadata) {
+    for (DocumentType t : getTypes()) {
+      for (List<DocumentType.IndexMetadata> metadata : t.getAllIndexesMetadata()) {
+        for (DocumentType.IndexMetadata m : metadata) {
           if (m.index.equals(oldIndex)) {
             m.index = newIndex;
             break;
@@ -534,15 +534,15 @@ public class PSchemaImpl implements PSchema {
     for (String typeName : types.keySet()) {
       final JSONObject schemaType = types.getJSONObject(typeName);
 
-      final PDocumentType type;
+      final DocumentType type;
 
       final String kind = (String) schemaType.get("type");
       if ("v".equals(kind)) {
-        type = new PVertexType(this, typeName);
+        type = new VertexType(this, typeName);
       } else if ("e".equals(kind)) {
-        type = new PEdgeType(this, typeName);
+        type = new EdgeType(this, typeName);
       } else if ("d".equals(kind)) {
-        type = new PDocumentType(this, typeName);
+        type = new DocumentType(this, typeName);
       } else
         throw new ConfigurationException("Type '" + kind + "' is not supported");
 
@@ -584,7 +584,7 @@ public class PSchemaImpl implements PSchema {
 
     // RESTORE THE INHERITANCE
     for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
-      final PDocumentType type = getType(entry.getKey());
+      final DocumentType type = getType(entry.getKey());
       for (String p : entry.getValue())
         type.addParent(getType(p));
     }
@@ -607,14 +607,14 @@ public class PSchemaImpl implements PSchema {
       final JSONObject types = new JSONObject();
       root.put("types", types);
 
-      for (PDocumentType t : this.types.values()) {
+      for (DocumentType t : this.types.values()) {
         final JSONObject type = new JSONObject();
         types.put(t.getName(), type);
 
         final String kind;
-        if (t instanceof PVertexType)
+        if (t instanceof VertexType)
           kind = "v";
-        else if (t instanceof PEdgeType)
+        else if (t instanceof EdgeType)
           kind = "e";
         else
           kind = "d";
@@ -637,8 +637,8 @@ public class PSchemaImpl implements PSchema {
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);
 
-        for (List<PDocumentType.IndexMetadata> list : t.getAllIndexesMetadata()) {
-          for (PDocumentType.IndexMetadata entry : list) {
+        for (List<DocumentType.IndexMetadata> list : t.getAllIndexesMetadata()) {
+          for (DocumentType.IndexMetadata entry : list) {
             final JSONObject index = new JSONObject();
             indexes.put(entry.index.getName(), index);
 

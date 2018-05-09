@@ -15,11 +15,11 @@ import java.util.Set;
 /**
  * Created by frank on 25/05/2017.
  */
-public abstract class OSQLFunctionFactoryTemplate implements OSQLFunctionFactory {
+public abstract class SQLFunctionFactoryTemplate implements SQLFunctionFactory {
 
   private final Map<String, Object> functions;
 
-  public OSQLFunctionFactoryTemplate() {
+  public SQLFunctionFactoryTemplate() {
     functions = new HashMap<>();
   }
 

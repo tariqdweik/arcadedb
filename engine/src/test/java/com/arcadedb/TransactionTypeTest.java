@@ -7,7 +7,7 @@ package com.arcadedb;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -216,7 +216,7 @@ public class TransactionTypeTest {
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
-        final PDocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
+        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
         database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" });
 

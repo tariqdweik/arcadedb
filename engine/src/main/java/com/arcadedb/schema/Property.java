@@ -4,13 +4,13 @@
 
 package com.arcadedb.schema;
 
-public class PProperty {
-  private final PDocumentType owner;
-  private final String        name;
-  private final Class         type;
-  private final int           id;
+public class Property {
+  private final DocumentType owner;
+  private final String       name;
+  private final Class        type;
+  private final int          id;
 
-  public PProperty(final PDocumentType owner, final String name, final Class type) {
+  public Property(final DocumentType owner, final String name, final Class type) {
     this.owner = owner;
     this.name = name;
     this.type = type;

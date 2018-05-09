@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * @author Johann Sorel (Geomatys)
  */
-public interface OSQLFunctionFactory {
+public interface SQLFunctionFactory {
 
   boolean hasFunction(String iName);
 

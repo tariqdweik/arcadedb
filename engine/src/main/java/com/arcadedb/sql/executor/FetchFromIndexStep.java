@@ -8,8 +8,8 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.index.PIndex;
-import com.arcadedb.index.PIndexCursor;
+import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.sql.parser.*;
 import com.arcadedb.sql.parser.PCollection;
 import com.arcadedb.utility.Pair;
@@ -22,7 +22,7 @@ import java.util.*;
  * Created by luigidellaquila on 23/07/16.
  */
 public class FetchFromIndexStep extends AbstractExecutionStep {
-  protected PIndex            index;
+  protected Index             index;
   protected BooleanExpression condition;
   private   BinaryCondition   additionalRangeCondition;
 
@@ -33,21 +33,21 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   private long cost  = 0;
   private long count = 0;
 
-  private boolean inited = false;
-  private PIndexCursor cursor;
-  private List<PIndexCursor> nextCursors = new ArrayList<>();
+  private boolean           inited      = false;
+  private IndexCursor       cursor;
+  private List<IndexCursor> nextCursors = new ArrayList<>();
 
 //  OMultiCollectionIterator<Map.Entry<Object, PIdentifiable>> customIterator;
 
   private Iterator                   nullKeyIterator;
   private Pair<Object, Identifiable> nextEntry = null;
 
-  public FetchFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
+  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
       CommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, true, ctx, profilingEnabled);
   }
 
-  public FetchFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc,
+  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc,
       CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
@@ -326,7 +326,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
       secondValue = convertToIndexDefinitionTypes(secondValue);
       thirdValue = convertToIndexDefinitionTypes(thirdValue);
-      PIndexCursor cursor;
+      IndexCursor cursor;
 //      if (index.supportsOrderedIterations()) {
       cursor = index.range(toBetweenIndexKey(index, secondValue), toBetweenIndexKey(index, thirdValue));
 //      } else if (additionalRangeCondition == null && allEqualities((OAndBlock) condition)) {
@@ -466,7 +466,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 //    return (Collection) rightValue;
 //  }
 
-  private Object[] toBetweenIndexKey(PIndex definition, Object rightValue) {
+  private Object[] toBetweenIndexKey(Index definition, Object rightValue) {
 //    if (definition.getFields().size() == 1 && rightValue instanceof Collection) {
 //      if (((Collection) rightValue).size() > 0) {
 //        rightValue = ((Collection) rightValue).iterator().next();
@@ -483,7 +483,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     throw new UnsupportedOperationException();
   }
 
-  private PIndexCursor createCursor(BinaryCompareOperator operator, Object value, CommandContext ctx)
+  private IndexCursor createCursor(BinaryCompareOperator operator, Object value, CommandContext ctx)
       throws IOException {
     boolean orderAsc = isOrderAsc();
     if (operator instanceof EqualsCompareOperator) {

@@ -10,17 +10,17 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.ModifiablePage;
-import com.arcadedb.schema.PSchemaImpl;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
 
-public class PIndexLSMCompactor {
+public class IndexLSMCompactor {
   private final IndexLSM index;
 
-  public PIndexLSMCompactor(final IndexLSM index) {
+  public IndexLSMCompactor(final IndexLSM index) {
     this.index = index;
   }
 
@@ -32,7 +32,7 @@ public class PIndexLSMCompactor {
 
     index.getDatabase().begin();
     final IndexLSM newIndex = index.copy();
-    ((PSchemaImpl) index.getDatabase().getSchema()).registerFile(newIndex);
+    ((SchemaImpl) index.getDatabase().getSchema()).registerFile(newIndex);
 
     final byte[] keyTypes = index.getKeyTypes();
 
@@ -51,7 +51,7 @@ public class PIndexLSMCompactor {
       else
         pagesToCompact = totalPages - pageIndex;
 
-      final PIndexLSMPageIterator[] iterators = new PIndexLSMPageIterator[pagesToCompact];
+      final IndexLSMPageIterator[] iterators = new IndexLSMPageIterator[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
         iterators[i] = index.newPageIterator(pageIndex + i, 0, true);
 
@@ -130,7 +130,7 @@ public class PIndexLSMCompactor {
 
     // SWAP OLD WITH NEW INDEX
     // TODO
-    ((PSchemaImpl) database.getSchema()).swapIndexes(index, newIndex);
+    ((SchemaImpl) database.getSchema()).swapIndexes(index, newIndex);
 
     database.commit();
 

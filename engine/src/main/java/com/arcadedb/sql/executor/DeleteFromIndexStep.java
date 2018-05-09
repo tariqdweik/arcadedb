@@ -7,8 +7,8 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.index.PIndex;
-import com.arcadedb.index.PIndexCursor;
+import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.sql.parser.*;
 import com.arcadedb.utility.Pair;
 
@@ -20,7 +20,7 @@ import java.util.Optional;
  * Created by luigidellaquila on 11/08/16.
  */
 public class DeleteFromIndexStep extends AbstractExecutionStep {
-  protected final PIndex            index;
+  protected final Index             index;
   private final   BinaryCondition   additional;
   private final   BooleanExpression ridCondition;
   private final   boolean           orderAsc;
@@ -29,17 +29,17 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
 
   BooleanExpression condition;
 
-  private boolean inited = false;
-  private PIndexCursor cursor;
+  private boolean     inited = false;
+  private IndexCursor cursor;
 
   private long cost = 0;
 
-  public DeleteFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
+  public DeleteFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
       BooleanExpression ridCondition, CommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, ridCondition, true, ctx, profilingEnabled);
   }
 
-  public DeleteFromIndexStep(PIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
+  public DeleteFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
       BooleanExpression ridCondition, boolean orderAsc, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;

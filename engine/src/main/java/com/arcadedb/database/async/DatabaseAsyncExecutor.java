@@ -11,7 +11,7 @@ import com.arcadedb.engine.RawRecordCallback;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.*;
-import com.arcadedb.schema.PDocumentType;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
@@ -349,7 +349,7 @@ public class DatabaseAsyncExecutor {
 
   public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
     try {
-      final PDocumentType type = database.getSchema().getType(typeName);
+      final DocumentType type = database.getSchema().getType(typeName);
 
       final List<Bucket> buckets = type.getBuckets(polymorphic);
       final CountDownLatch semaphore = new CountDownLatch(buckets.size());
@@ -388,7 +388,7 @@ public class DatabaseAsyncExecutor {
   }
 
   public void createRecord(final ModifiableDocument record) {
-    final PDocumentType type = database.getSchema().getType(record.getType());
+    final DocumentType type = database.getSchema().getType(record.getType());
 
     if (record.getIdentity() == null) {
       // NEW

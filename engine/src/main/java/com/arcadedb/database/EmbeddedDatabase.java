@@ -12,12 +12,12 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.graph.*;
-import com.arcadedb.index.PIndex;
+import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexLSM;
-import com.arcadedb.schema.PDocumentType;
-import com.arcadedb.schema.PSchema;
-import com.arcadedb.schema.PSchemaImpl;
-import com.arcadedb.schema.PVertexType;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.SchemaImpl;
+import com.arcadedb.schema.VertexType;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.executor.SQLEngine;
@@ -40,7 +40,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected final PageManager           pageManager;
   protected final BinarySerializer      serializer     = new BinarySerializer();
   protected final RecordFactory         recordFactory  = new RecordFactory();
-  protected final PSchemaImpl           schema;
+  protected final SchemaImpl            schema;
   protected final GraphEngine           graphEngine    = new GraphEngine();
   protected final TransactionManager    transactionManager;
   protected       DatabaseAsyncExecutor asynch         = null;
@@ -79,7 +79,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       open = true;
 
       try {
-        schema = new PSchemaImpl(this, databasePath, mode);
+        schema = new SchemaImpl(this, databasePath, mode);
 
         if (fileManager.getFiles().isEmpty())
           schema.create(mode);
@@ -257,7 +257,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       @Override
       public Object call() {
         checkDatabaseIsOpen();
-        final PDocumentType type = schema.getType(typeName);
+        final DocumentType type = schema.getType(typeName);
 
         long total = 0;
         for (Bucket b : type.getBuckets(polymorphic))
@@ -276,7 +276,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
         checkDatabaseIsOpen();
         try {
-          final PDocumentType type = schema.getType(typeName);
+          final DocumentType type = schema.getType(typeName);
 
           for (Bucket b : type.getBuckets(polymorphic)) {
             b.scan(new RawRecordCallback() {
@@ -327,7 +327,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
         checkDatabaseIsOpen();
         try {
-          final PDocumentType type = schema.getType(typeName);
+          final DocumentType type = schema.getType(typeName);
 
           final MultiIterator iter = new MultiIterator();
 
@@ -375,7 +375,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (record != null)
           return record;
 
-        final PDocumentType type = schema.getTypeByBucketId(rid.getBucketId());
+        final DocumentType type = schema.getTypeByBucketId(rid.getBucketId());
 
         if (loadContent) {
           final Binary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
@@ -403,15 +403,15 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       public Object call() throws Exception {
 
         checkDatabaseIsOpen();
-        final PDocumentType t = schema.getType(type);
+        final DocumentType t = schema.getType(type);
 
-        final List<PDocumentType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
+        final List<DocumentType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
         if (metadata == null || metadata.isEmpty())
           throw new IllegalArgumentException(
               "No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
         final List<RID> result = new ArrayList<>();
-        for (PDocumentType.IndexMetadata m : metadata)
+        for (DocumentType.IndexMetadata m : metadata)
           result.addAll(m.index.get(keys));
 
         return new CursorCollection<RID>(result);
@@ -472,7 +472,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot create a new record");
 
-        final PDocumentType type = schema.getType(record.getType());
+        final DocumentType type = schema.getType(record.getType());
 
         // NEW
         final Bucket bucket = type.getBucketToSave(false);
@@ -611,7 +611,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public PSchema getSchema() {
+  public Schema getSchema() {
     checkDatabaseIsOpen();
     return schema;
   }
@@ -631,8 +631,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (typeName == null)
       throw new IllegalArgumentException("Type is null");
 
-    final PDocumentType type = schema.getType(typeName);
-    if (!type.getClass().equals(PDocumentType.class))
+    final DocumentType type = schema.getType(typeName);
+    if (!type.getClass().equals(DocumentType.class))
       throw new IllegalArgumentException("Cannot create a document of type '" + typeName + "' because is not a document type");
 
     return new ModifiableDocument(this, typeName, null);
@@ -643,8 +643,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (typeName == null)
       throw new IllegalArgumentException("Type is null");
 
-    final PDocumentType type = schema.getType(typeName);
-    if (!type.getClass().equals(PVertexType.class))
+    final DocumentType type = schema.getType(typeName);
+    if (!type.getClass().equals(VertexType.class))
       throw new IllegalArgumentException("Cannot create a vertex of type '" + typeName + "' because is not a vertex type");
 
     return new ModifiableVertex(this, typeName, null);
@@ -721,12 +721,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public void indexDocument(final ModifiableDocument record, final PDocumentType type, final Bucket bucket) {
+  public void indexDocument(final ModifiableDocument record, final DocumentType type, final Bucket bucket) {
     // INDEX THE RECORD
-    final List<PDocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
+    final List<DocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
     if (metadata != null) {
-      for (PDocumentType.IndexMetadata entry : metadata) {
-        final PIndex index = entry.index;
+      for (DocumentType.IndexMetadata entry : metadata) {
+        final Index index = entry.index;
         final String[] keyNames = entry.propertyNames;
         final Object[] keyValues = new Object[keyNames.length];
         for (int i = 0; i < keyNames.length; ++i) {

@@ -17,8 +17,8 @@ import com.arcadedb.sql.function.text.SQLFunctionFormat;
  *
  * @author Johann Sorel (Geomatys)
  */
-public final class ODefaultSQLFunctionFactory extends OSQLFunctionFactoryTemplate {
-  public ODefaultSQLFunctionFactory() {
+public final class DefaultSQLFunctionFactory extends SQLFunctionFactoryTemplate {
+  public DefaultSQLFunctionFactory() {
     // MISC FUNCTIONS
     register(SQLFunctionAverage.NAME, SQLFunctionAverage.class);
     register(SQLFunctionCoalesce.NAME, new SQLFunctionCoalesce());

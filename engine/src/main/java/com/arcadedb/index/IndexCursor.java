@@ -6,7 +6,7 @@ package com.arcadedb.index;
 
 import java.io.IOException;
 
-public interface PIndexCursor {
+public interface IndexCursor {
   Object[] getKeys();
 
   Object getValue();
