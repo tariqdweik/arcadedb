@@ -24,7 +24,7 @@ public abstract class BaseGraphRemoteTest {
   protected static final String VERTEX2_TYPE_NAME = "V2";
   protected static final String EDGE1_TYPE_NAME   = "E1";
   protected static final String EDGE2_TYPE_NAME   = "E2";
-  protected static final String DB_PATH           = "target/database/graph";
+  protected static final String DB_PATH           = "target/databases/graph";
 
   protected static RID root;
 

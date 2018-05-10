@@ -2,10 +2,10 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.server.handler;
+package com.arcadedb.server.http.handler;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.server.HttpServer;
+import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.sql.executor.ResultSet;
 import io.undertow.server.HttpServerExchange;
 
@@ -13,7 +13,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Deque;
 
-public class CommandHandler extends BasicHandler {
+public class CommandHandler extends DatabaseAbstractHandler {
   public CommandHandler(final HttpServer httpServer) {
     super(httpServer);
   }

@@ -123,10 +123,10 @@
         </pluginManagement>
     </build>
     <modules>
+        <module>network</module>
         <module>console</module>
         <module>server</module>
         <module>remote</module>
-        <module>distributed</module>
         <module>engine</module>
         <module>package</module>
     </modules>

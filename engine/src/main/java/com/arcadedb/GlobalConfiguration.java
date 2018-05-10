@@ -89,7 +89,57 @@ public enum GlobalConfiguration {
 
   MVCC_RETRIES("arcadedb.mvccRetries", "Number of retries in case of MVCC exception", Integer.class, 50),
 
-  INDEX_COMPACTION_RAM("arcadedb.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300);
+  INDEX_COMPACTION_RAM("arcadedb.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300),
+
+  // REMOTE
+  NETWORK_SOCKET_BUFFER_SIZE("arcadedb.network.socketBufferSize", "TCP/IP Socket buffer size, if 0 use the OS default",
+      Integer.class, 0),
+
+  NETWORK_USE_SSL("arcadedb.ssl.enabled", "Use SSL for client connections", Boolean.class, false),
+
+  NETWORK_SSL_KEYSTORE("arcadedb.ssl.keyStore", "Use SSL for client connections", String.class, null),
+
+  NETWORK_SSL_KEYSTORE_PASSWORD("arcadedb.ssl.keyStorePass", "Use SSL for client connections", String.class, null),
+
+  NETWORK_SSL_TRUSTSTORE("arcadedb.ssl.trustStore", "Use SSL for client connections", String.class, null),
+
+  NETWORK_SSL_TRUSTSTORE_PASSWORD("arcadedb.ssl.trustStorePass", "Use SSL for client connections", String.class, null),
+
+  // SERVER
+  SERVER_DATABASE_DIRECTORY("arcadedb.server.databaseDirectory", "Directory containing the database", String.class, "../databases"),
+
+  // SERVER HTTP
+  SERVER_HTTP_INCOMING_HOST("arcadedb.server.httpIncomingHost", "TCP/IP host name used for incoming HTTP connections", String.class,
+      "localhost"),
+
+  SERVER_HTTP_INCOMING_PORT("arcadedb.server.httpIncomingPort", "TCP/IP port number used for incoming HTTP connections",
+      Integer.class, 2480),
+
+  SERVER_HTTP_AUTOINCREMENT_PORT("arcadedb.server.httpAutoIncrementPort",
+      "True to increment the TCP/IP port number used for incoming HTTP in case the configured is not available", Boolean.class,
+      true),
+
+  // SERVER REPLICATION
+  SERVER_REPLICATION_INCOMING_HOST("arcadedb.server.replicationIncomingHost",
+      "TCP/IP host name used for incoming replication connections", String.class, "localhost"),
+
+  SERVER_REPLICATION_INCOMING_PORT("arcadedb.server.replicationIncomingPort",
+      "TCP/IP port number used for incoming replication connections", Integer.class, 2424),
+
+  SERVER_REPLICATION_AUTOINCREMENT_PORT("arcadedb.server.replicationAutoIncrementPort",
+      "True to increment the TCP/IP port number used for incoming replication in case the configured is not available",
+      Boolean.class, true),
+
+  // SERVER ZOOKEEPER
+  SERVER_ZOOKEEPER_PORT("arcadedb.server.zookeeperIncomingPort", "TCP/IP port number used by zookeper", Integer.class,
+      2490),
+
+  SERVER_ZOOKEEPER_AUTOINCREMENT_PORT("arcadedb.server.zookeeperAutoIncrementPort",
+      "True to increment the TCP/IP port number used by zookeper in case the configured is not available", Boolean.class, true),;
+
+  // ZOOKEEPER CFG
+  public int     zooKeeperBindPort          = 2490;
+  public boolean zooKeeperAutoIncrementPort = true;
 
   /**
    * Place holder for the "undefined" value of setting.

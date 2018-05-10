@@ -2,18 +2,18 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.server.handler;
+package com.arcadedb.server.http.handler;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.RecordNotFoundException;
-import com.arcadedb.server.HttpServer;
+import com.arcadedb.server.http.HttpServer;
 import io.undertow.server.HttpServerExchange;
 
 import java.util.Deque;
 
-public class GetDocumentHandler extends BasicHandler {
+public class GetDocumentHandler extends DatabaseAbstractHandler {
   public GetDocumentHandler(final HttpServer httpServer) {
     super(httpServer);
   }

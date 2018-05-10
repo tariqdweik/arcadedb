@@ -45,13 +45,19 @@
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-engine</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.arcadeanalytics</groupId>
+            <artifactId>arcadedb-network</artifactId>
+            <version>${project.parent.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-server</artifactId>
-            <version>${parent.version}</version>
+            <version>1.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
 

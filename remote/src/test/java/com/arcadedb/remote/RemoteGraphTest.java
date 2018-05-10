@@ -4,11 +4,12 @@
 
 package com.arcadedb.remote;
 
+import com.arcadedb.ContextConfiguration;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.server.HttpServer;
-import com.arcadedb.server.HttpServerConfiguration;
+import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.AfterEach;
@@ -16,22 +17,29 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+
 public class RemoteGraphTest extends BaseGraphRemoteTest {
-  private HttpServer server;
+  private ArcadeDBServer server;
 
   @BeforeEach
   public void populate() {
     super.populate();
 
-    final HttpServerConfiguration config = new HttpServerConfiguration();
-    config.databaseDirectory = "target/database";
-    server = new HttpServer(config);
-    server.start();
+    final ContextConfiguration config = new ContextConfiguration();
+    config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "target/databases");
+    server = new ArcadeDBServer(config);
+    try {
+      server.start();
+    } catch (IOException e) {
+      e.printStackTrace();
+      Assertions.fail("Cannot start the server");
+    }
   }
 
   @AfterEach
   public void drop() {
-    server.close();
+    server.stop();
 
     final Database db = new DatabaseFactory(BaseGraphRemoteTest.DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
     db.drop();

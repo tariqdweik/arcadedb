@@ -70,22 +70,22 @@
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-console</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-engine</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-server</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-remote</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
 

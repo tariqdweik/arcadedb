@@ -15,7 +15,7 @@
         <relativePath>../</relativePath>
     </parent>
 
-    <artifactId>arcadedb-distributed</artifactId>
+    <artifactId>arcadedb-network</artifactId>
     <packaging>jar</packaging>
 
     <build>
@@ -45,14 +45,8 @@
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-engine</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.arcadeanalytics</groupId>
-            <artifactId>arcadedb-server</artifactId>
-            <version>${parent.version}</version>
-            <scope>test</scope>
         </dependency>
 
     </dependencies>
