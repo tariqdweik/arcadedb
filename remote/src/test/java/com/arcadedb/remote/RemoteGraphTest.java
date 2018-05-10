@@ -27,7 +27,7 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
     super.populate();
 
     final ContextConfiguration config = new ContextConfiguration();
-    config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "target/databases");
+    config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases");
     server = new ArcadeDBServer(config);
     try {
       server.start();

@@ -32,7 +32,7 @@ public abstract class BaseGraphServerTest {
   protected static final String VERTEX2_TYPE_NAME = "V2";
   protected static final String EDGE1_TYPE_NAME   = "E1";
   protected static final String EDGE2_TYPE_NAME   = "E2";
-  protected static final String DB_PATH           = "../databases/";
+  protected static final String DB_PATH           = "./target/databases/";
 
   protected static RID              root;
   private          ArcadeDBServer[] servers;
@@ -109,7 +109,7 @@ public abstract class BaseGraphServerTest {
     servers = new ArcadeDBServer[totalServers];
     for (int i = 0; i < totalServers; ++i) {
       final ContextConfiguration config = new ContextConfiguration();
-      config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "../databases" + (i == 0 ? "" : i));
+      config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + (i == 0 ? "" : i));
       servers[i] = new ArcadeDBServer(config);
 
       final int serverId = i;
@@ -177,7 +177,7 @@ public abstract class BaseGraphServerTest {
       if (servers[i] != null)
         servers[i].stop();
 
-      final Database db = new DatabaseFactory("../databases" + (i == 0 ? "" : i) + "/" + getDatabaseName(),
+      final Database db = new DatabaseFactory("./target/databases" + (i == 0 ? "" : i) + "/" + getDatabaseName(),
           PaginatedFile.MODE.READ_WRITE).acquire();
       db.drop();
     }

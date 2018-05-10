@@ -69,7 +69,7 @@ public class HAServer {
     do {
       final Properties startupProperties = new Properties();
       startupProperties.setProperty("clientPort", "" + port);
-      startupProperties.setProperty("dataDir", "./logs");
+      startupProperties.setProperty("dataDir", "./target/logs");
       //startupProperties.setProperty("standaloneEnabled", "false");
       startupProperties.setProperty("reconfigEnabled", "true");
       startupProperties.setProperty("tickTime", "2");
