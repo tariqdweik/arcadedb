@@ -22,11 +22,11 @@ public abstract class BasePage {
 
   protected final PageManager manager;
 
-  protected final    PageId pageId;
-  protected final    Binary content;
-  private final      int    size;
-  protected volatile int    version;
-  private            long   lastAccessed = System.currentTimeMillis();
+  protected final PageId pageId;
+  protected final Binary content;
+  private final   int    size;
+  protected       int    version;
+  private         long   lastAccessed = System.currentTimeMillis();
 
   protected BasePage(final PageManager manager, final PageId pageId, final int size, final byte[] buffer, final int version,
       final int contentSize) {
@@ -42,7 +42,6 @@ public abstract class BasePage {
     final ModifiablePage copy = new ModifiablePage(manager, pageId, size, Arrays.copyOf(array, array.length), version,
         content.size());
     // COPY THE CONTENT, SO CHANGES DOES NOT AFFECT IMMUTABLE COPY
-    copy.version = version;
     return copy;
   }
 
@@ -176,10 +175,6 @@ public abstract class BasePage {
    */
   public ByteBuffer getContent() {
     return content.getByteBuffer();
-  }
-
-  public Binary getBinaryBuffer() {
-    return content;
   }
 
   /**

@@ -31,8 +31,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
 
   public ModifiableEdge modify() {
     checkForLazyLoading();
-    // CREATE A SEPARATE OBJECT THAT POINTS TO THE SAME BUFFER TO AVOID CONCURRENCY ON THE BUFFER POSITION
-    return new ModifiableEdge(database, typeName, rid, buffer.slice());
+    return new ModifiableEdge(database, typeName, rid, buffer.copy());
   }
 
   @Override

@@ -29,8 +29,7 @@ public class ImmutableDocument extends BaseDocument {
   @Override
   public ModifiableDocument modify() {
     checkForLazyLoading();
-    // CREATE A SEPARATE OBJECT THAT POINTS TO THE SAME BUFFER TO AVOID CONCURRENCY ON THE BUFFER POSITION
-    return new ModifiableDocument(database, typeName, rid, buffer.slice());
+    return new ModifiableDocument(database, typeName, rid, buffer.copy());
   }
 
   @Override

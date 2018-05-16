@@ -5,10 +5,7 @@
 package com.arcadedb.database;
 
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.engine.BasePage;
-import com.arcadedb.engine.ModifiablePage;
-import com.arcadedb.engine.PageId;
-import com.arcadedb.engine.PageManager;
+import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.utility.LogManager;
@@ -31,10 +28,11 @@ public class TransactionContext {
   private final DatabaseInternal            database;
   private       Map<PageId, ModifiablePage> modifiedPages;
   private       Map<PageId, ModifiablePage> newPages;
-  private final Map<Integer, Integer>       newPageCounters = new HashMap<>();
-  private final Map<RID, Record>            cache           = new HashMap<>(1024);
-  private       boolean                     useWAL          = GlobalConfiguration.TX_WAL.getValueAsBoolean();
-  private       boolean                     sync            = GlobalConfiguration.TX_FLUSH.getValueAsBoolean();
+  private final Map<Integer, Integer>       newPageCounters       = new HashMap<>();
+  private final Map<RID, Record>            immutableRecordsCache = new HashMap<>(1024);
+  private final Map<RID, Record>            modifiedRecordsCache  = new HashMap<>(1024);
+  private       boolean                     useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
+  private       boolean                     sync                  = GlobalConfiguration.TX_FLUSH.getValueAsBoolean();
 
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
@@ -124,9 +122,13 @@ public class TransactionContext {
   }
 
   public Record getRecordFromCache(final RID rid) {
-    if (database.isReadYourWrites())
-      return cache.get(rid);
-    return null;
+    Record rec = null;
+    if (database.isReadYourWrites()) {
+      rec = modifiedRecordsCache.get(rid);
+      if (rec == null)
+        rec = immutableRecordsCache.get(rid);
+    }
+    return rec;
   }
 
   public void updateRecordInCache(final Record record) {
@@ -134,7 +136,27 @@ public class TransactionContext {
       final RID rid = record.getIdentity();
       if (rid == null)
         throw new IllegalArgumentException("Cannot update record in TX cache because it is not persistent: " + record);
-      cache.put(rid, record);
+
+      if (modifiedRecordsCache instanceof RecordInternal)
+        modifiedRecordsCache.put(rid, record);
+      else
+        immutableRecordsCache.put(rid, record);
+    }
+  }
+
+  public void removeImmutableRecordsOfSamePage(final RID rid) {
+    final int bucketId = rid.getBucketId();
+    final long pos = rid.getPosition();
+    final long pageNum = pos / Bucket.MAX_RECORDS_IN_PAGE;
+
+    // IMMUTABLE RECORD, AVOID IT'S POINTING TO THE OLD OFFSET IN A MODIFIED PAGE
+    for (Iterator<Record> it = immutableRecordsCache.values().iterator(); it.hasNext(); ) {
+      final Record r = it.next();
+
+      if (r.getIdentity().getBucketId() == bucketId && r.getIdentity().getPosition() / Bucket.MAX_RECORDS_IN_PAGE == pageNum) {
+        // SAME PAGE, REMOVE IT
+        it.remove();
+      }
     }
   }
 
@@ -143,7 +165,8 @@ public class TransactionContext {
       final RID rid = record.getIdentity();
       if (rid == null)
         throw new IllegalArgumentException("Cannot remove record in TX cache because it is not persistent: " + record);
-      cache.remove(rid);
+      modifiedRecordsCache.remove(rid);
+      immutableRecordsCache.remove(rid);
     }
   }
 
@@ -187,9 +210,12 @@ public class TransactionContext {
     if (page == null && newPages != null)
       page = newPages.get(pageId);
 
-    if (page == null)
+    if (page == null) {
       // NOT FOUND, DELEGATES TO THE DATABASE
       page = database.getPageManager().getPage(pageId, size, false);
+      if (page != null)
+        page = page.createImmutableCopy();
+    }
 
     return page;
   }
@@ -210,7 +236,7 @@ public class TransactionContext {
         // NOT FOUND, DELEGATES TO THE DATABASE
         final BasePage loadedPage = database.getPageManager().getPage(pageId, size, isNew);
         if (loadedPage != null) {
-          ModifiablePage modifiablePage = loadedPage.modify();
+          final ModifiablePage modifiablePage = loadedPage.modify();
           modifiedPages.put(pageId, modifiablePage);
           page = modifiablePage;
         }
@@ -315,6 +341,7 @@ public class TransactionContext {
     modifiedPages = null;
     newPages = null;
     newPageCounters.clear();
-    cache.clear();
+    modifiedRecordsCache.clear();
+    immutableRecordsCache.clear();
   }
 }

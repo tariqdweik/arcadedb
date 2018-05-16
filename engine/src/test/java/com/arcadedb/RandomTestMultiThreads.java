@@ -26,17 +26,17 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RandomTestMultiThreads {
-  private static final int CYCLES           = 20000;
-  private static final int STARTING_ACCOUNT = 100;
+  private static final int CYCLES           = 10000;
+  private static final int STARTING_ACCOUNT = 10000;
   private static final int PARALLEL         = Runtime.getRuntime().availableProcessors();
   private static final int WORKERS          = Runtime.getRuntime().availableProcessors() * 8;
 
-  private final AtomicLong                     total             = new AtomicLong();
-  private final AtomicLong                     totalTransactions = new AtomicLong();
-  private final AtomicLong                     mvccErrors        = new AtomicLong();
-  private final Random                         rnd               = new Random();
-  private final AtomicLong                     uuid              = new AtomicLong();
-  private final List<Pair<Integer, Exception>> otherErrors       = Collections.synchronizedList(new ArrayList<>());
+  private final AtomicLong                     total                   = new AtomicLong();
+  private final AtomicLong                     totalTransactionRecords = new AtomicLong();
+  private final AtomicLong                     mvccErrors              = new AtomicLong();
+  private final Random                         rnd                     = new Random();
+  private final AtomicLong                     uuid                    = new AtomicLong();
+  private final List<Pair<Integer, Exception>> otherErrors             = Collections.synchronizedList(new ArrayList<>());
 
   @Test
   public void testRandom() {
@@ -67,26 +67,26 @@ public class RandomTestMultiThreads {
                 break;
 
               try {
-                final int op = rnd.nextInt(25);
+                final int op = getRandom(100);
                 if (i % 5000 == 0)
                   LogManager.instance()
                       .info(this, "Operations %d/%d totalTransactionInCurrentTx=%d totalTransactions=%d (thread=%d)", i, CYCLES,
-                          totalTransactionInCurrentTx, totalTransactions.get(), threadId);
+                          totalTransactionInCurrentTx, totalTransactionRecords.get(), threadId);
 
                 LogManager.instance().debug(this, "Operation %d %d/%d (thread=%d)", op, i, CYCLES, threadId);
 
-                if (op >= 0 && op <= 5) {
-                  final int txOps = rnd.nextInt(10);
+                if (op >= 0 && op <= 19) {
+                  final int txOps = getRandom(10);
                   LogManager.instance().debug(this, "Creating %d transactions (thread=%d)...", txOps, threadId);
 
                   createTransactions(database, txOps);
                   totalTransactionInCurrentTx += txOps;
 
-                } else if (op >= 6 && op <= 10) {
+                } else if (op >= 20 && op <= 39) {
                   LogManager.instance().debug(this, "Querying Account by index records (thread=%d)...", threadId);
 
                   final Map<String, Object> map = new HashMap<>();
-                  map.put(":id", rnd.nextInt(10000) + 1);
+                  map.put(":id", getRandom(10000) + 1);
 
                   final ResultSet result = database.query("select from Account where id = :id", map);
                   while (result.hasNext()) {
@@ -94,22 +94,22 @@ public class RandomTestMultiThreads {
                     record.toString();
                   }
 
-                } else if (op >= 11 && op <= 14) {
+                } else if (op >= 40 && op <= 59) {
                   LogManager.instance().debug(this, "Querying Transaction by index records (thread=%d)...", threadId);
 
                   final Map<String, Object> map = new HashMap<>();
-                  map.put(":uuid", rnd.nextInt((int) (totalTransactions.get() + 1)) + 1);
+                  map.put(":uuid", getRandom((int) (totalTransactionRecords.get() + 1)) + 1);
 
                   final ResultSet result = database.query("select from Transaction where uuid = :uuid", map);
                   while (result.hasNext()) {
                     final Result record = result.next();
                     record.toString();
                   }
-                } else if (op == 15) {
+                } else if (op >= 60 && op <= 64) {
                   LogManager.instance().debug(this, "Scanning Account records (thread=%d)...", threadId);
 
                   final Map<String, Object> map = new HashMap<>();
-                  map.put(":limit", rnd.nextInt(100) + 1);
+                  map.put(":limit", getRandom(100) + 1);
 
                   final ResultSet result = database.query("select from Account limit :limit", map);
                   while (result.hasNext()) {
@@ -117,11 +117,11 @@ public class RandomTestMultiThreads {
                     record.toString();
                   }
 
-                } else if (op == 16) {
+                } else if (op >= 65 && op <= 69) {
                   LogManager.instance().debug(this, "Scanning Transaction records (thread=%d)...", threadId);
 
                   final Map<String, Object> map = new HashMap<>();
-                  map.put(":limit", rnd.nextInt((int) totalTransactions.get() + 1) + 1);
+                  map.put(":limit", getRandom((int) totalTransactionRecords.get() + 1) + 1);
 
                   final ResultSet result = database.query("select from Transaction limit :limit", map);
                   while (result.hasNext()) {
@@ -129,25 +129,49 @@ public class RandomTestMultiThreads {
                     record.toString();
                   }
 
-                } else if (op == 17) {
+                } else if (op >= 70 && op <= 74) {
                   LogManager.instance().debug(this, "Deleting records (thread=%d)...", threadId);
 
                   totalTransactionInCurrentTx -= deleteRecords(database, threadId);
-                } else if (op >= 18 && op <= 19) {
+                } else if (op >= 75 && op <= 84) {
 
                   LogManager.instance().debug(this, "Committing (thread=%d)...", threadId);
                   database.commit();
 
-                  totalTransactions.addAndGet(totalTransactionInCurrentTx);
+                  totalTransactionRecords.addAndGet(totalTransactionInCurrentTx);
                   totalTransactionInCurrentTx = 0;
 
                   database.begin();
-                } else if (op >= 20 && op <= 24) {
+                } else if (op >= 85 && op <= 94) {
 
                   LogManager.instance().debug(this, "Updating records (thread=%d)...", threadId);
 
                   updateRecords(database, threadId);
+                } else if (op >= 95 && op <= 95) {
+                  LogManager.instance().debug(this, "Counting Transaction records (thread=%d)...", threadId);
 
+                  final long newCounter = database.countType("Transaction", true);
+
+                  if (getRandom(50) == 0)
+                    LogManager.instance().info(this, "Found %d Transaction records, ram counter=%d (thread=%d)...", newCounter,
+                        totalTransactionRecords.get(), threadId);
+
+                  totalTransactionInCurrentTx -= deleteRecords(database, threadId);
+
+                } else if (op >= 96 && op <= 96) {
+                  LogManager.instance().debug(this, "Counting account records (thread=%d)...", threadId);
+
+                  final long newCounter = database.countType("Account", true);
+
+                  if (getRandom(50) == 0)
+                    LogManager.instance().info(this, "Found %d Account records (thread=%d)...", newCounter, threadId);
+
+                  totalTransactionInCurrentTx -= deleteRecords(database, threadId);
+                } else if (op >= 97 && op <= 99) {
+                  //JUST WAIT
+                  final long ms = getRandom(299) + 1;
+                  LogManager.instance().debug(this, "Sleeping %d ms (thread=%d)...", ms, threadId);
+                  Thread.sleep(ms);
                 }
 
               } catch (Exception e) {
@@ -207,28 +231,28 @@ public class RandomTestMultiThreads {
       final ModifiableDocument tx = database.newVertex("Transaction");
       tx.set("uuid", "" + uuid.getAndIncrement());
       tx.set("date", new Date());
-      tx.set("amount", rnd.nextInt(STARTING_ACCOUNT));
+      tx.set("amount", getRandom(STARTING_ACCOUNT));
       tx.save();
     }
   }
 
   private int updateRecords(final Database database, final int threadId) {
-    if (totalTransactions.get() == 0)
+    if (totalTransactionRecords.get() == 0)
       return 0;
 
     final Iterator<Record> iter = database.iterateType("Transaction", true);
 
     // JUMP A RANDOM NUMBER OF RECORD
-    final int jump = rnd.nextInt((int) totalTransactions.get() + 1 / 2);
+    final int jump = getRandom(((int) totalTransactionRecords.get() + 1) / 2);
     for (int i = 0; i < jump && iter.hasNext(); ++i)
       iter.next();
 
     int updated = 0;
 
-    while (iter.hasNext() && rnd.nextInt(10) != 0) {
+    while (iter.hasNext() && getRandom(10) != 0) {
       final Record next = iter.next();
 
-      if (rnd.nextInt(2) == 0) {
+      if (getRandom(2) == 0) {
         try {
           final ModifiableDocument doc = (ModifiableDocument) next.modify();
 
@@ -237,8 +261,10 @@ public class RandomTestMultiThreads {
             val = 0;
           doc.set("updated", val + 1);
 
-          if (rnd.nextInt(2) == 1)
+          if (getRandom(2) == 1)
             doc.set("longFieldUpdated", "This is a long field to test the break of pages");
+
+          doc.save();
 
           updated++;
 
@@ -253,22 +279,25 @@ public class RandomTestMultiThreads {
   }
 
   private int deleteRecords(final Database database, final int threadId) {
-    if (totalTransactions.get() == 0)
+    if (true)
+      return 0;
+
+    if (totalTransactionRecords.get() == 0)
       return 0;
 
     final Iterator<Record> iter = database.iterateType("Transaction", true);
 
     // JUMP A RANDOM NUMBER OF RECORD
-    final int jump = rnd.nextInt((int) totalTransactions.get() + 1 / 2);
+    final int jump = getRandom(((int) totalTransactionRecords.get() + 1) / 2);
     for (int i = 0; i < jump && iter.hasNext(); ++i)
       iter.next();
 
     int deleted = 0;
 
-    while (iter.hasNext() && rnd.nextInt(10) != 0) {
+    while (iter.hasNext() && getRandom(20) != 0) {
       final Record next = iter.next();
 
-      if (rnd.nextInt(2) == 0) {
+      if (getRandom(6) != 0) {
         try {
           database.deleteRecord(next);
           deleted++;
@@ -280,6 +309,14 @@ public class RandomTestMultiThreads {
     }
 
     return deleted;
+  }
+
+  private int getRandom(int bound) {
+    if (bound < 1) {
+      LogManager.instance().info(this, "Non positive bound: " + bound);
+      bound = 1;
+    }
+    return rnd.nextInt(bound);
   }
 
   private void populateDatabase() {
@@ -325,6 +362,8 @@ public class RandomTestMultiThreads {
         txType.createProperty("uuid", String.class);
         txType.createProperty("date", Date.class);
         txType.createProperty("amount", BigDecimal.class);
+        txType.createProperty("updated", Boolean.class);
+        txType.createProperty("longFieldUpdated", String.class);
 
         database.getSchema().createClassIndexes("Transaction", new String[] { "uuid" }, 500000);
 

@@ -406,8 +406,7 @@ public class Bucket extends PaginatedComponent {
     }
 
     try {
-      final ModifiablePage page = database.getTransaction()
-          .getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
+      final ModifiablePage page = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
       final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
       if (positionInPage >= recordCountInPage)
         throw new RecordNotFoundException("Record " + rid + " not found", rid);
@@ -428,7 +427,7 @@ public class Bucket extends PaginatedComponent {
 
       } else if (recordSize[0] == -1) {
 
-        // FOUND A PLACEHOLDER
+        // FOUND A RECORD POINTED FROM A PLACEHOLDER
         final RID placeHolderRID = new RID(database, id, page.readLong((int) (recordPositionInPage + recordSize[1])));
         if (updateRecordInternal(record, placeHolderRID, true))
           return true;
@@ -460,23 +459,34 @@ public class Bucket extends PaginatedComponent {
 
         final int delta = (int) (buffer.size() + bufferSizeLength - recordSize[0] - recordSize[1]);
 
-        if (page.getMaxContentSize() - pageOccupied >= delta) {
+        if (page.getMaxContentSize() - pageOccupied > delta) {
           // THERE IS SPACE LEFT IN THE PAGE, SHIFT ON THE RIGHT THE EXISTENT RECORDS
 
-          final int shiftOffset = (int) (recordPositionInPage + recordSize[0] + recordSize[1]);
-          final int newPos = recordPositionInPage + buffer.size() + bufferSizeLength;
+          if (positionInPage < recordCountInPage - 1) {
+            // NOT LAST RECORD IN PAGE, SHIFT NEXT RECORDS
+            final int nextRecordPositionInPage = (int) page
+                .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (positionInPage + 1) * INT_SERIALIZED_SIZE);
 
-          page.getBinaryBuffer().move(shiftOffset, newPos, pageSize - newPos);
+            final int newPos = nextRecordPositionInPage + delta;
 
-          for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
-            final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
-            page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, nextRecordPosInPage + delta);
+            page.move(nextRecordPositionInPage, newPos, pageOccupied - nextRecordPositionInPage);
 
-            assert nextRecordPosInPage + delta < page.getMaxContentSize();
+            // TODO: CALCULATE THE REAL SIZE TO COMPACT DELETED RECORDS/PLACEHOLDERS
+            for (int pos = positionInPage + 1; pos < recordCountInPage; ++pos) {
+              final int nextRecordPosInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE);
+
+              if (nextRecordPosInPage == 0)
+                page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, 0);
+              else
+                page.writeUnsignedInt(PAGE_RECORD_TABLE_OFFSET + pos * INT_SERIALIZED_SIZE, nextRecordPosInPage + delta);
+
+              assert nextRecordPosInPage + delta < page.getMaxContentSize();
+            }
           }
 
           recordSize[1] = page.writeNumber(recordPositionInPage, isPlaceHolder ? -1 * buffer.size() : buffer.size());
           final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
+
           page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
 
           LogManager.instance()
@@ -503,9 +513,8 @@ public class Bucket extends PaginatedComponent {
         final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
         page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
 
-        LogManager.instance()
-            .debug(this, "Updated record %s with the same size or less as before (page=%s threadId=%d)", rid, page,
-                Thread.currentThread().getId());
+        LogManager.instance().debug(this, "Updated record %s with the same size or less as before (page=%s threadId=%d)", rid, page,
+            Thread.currentThread().getId());
 
       }
 
@@ -528,8 +537,7 @@ public class Bucket extends PaginatedComponent {
     }
 
     try {
-      final ModifiablePage page = database.getTransaction()
-          .getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
+      final ModifiablePage page = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
       final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
       if (positionInPage >= recordCountInPage)
         throw new RecordNotFoundException("Record " + rid + " not found", rid);

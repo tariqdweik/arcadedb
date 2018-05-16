@@ -168,7 +168,7 @@ public class PageManager extends LockContext {
                 "Page id '" + pageId + "' does not exists (threadId=" + Thread.currentThread().getId() + ")");
         }
 
-        return page.createImmutableCopy();
+        return page;
       }
     });
   }
@@ -183,7 +183,11 @@ public class PageManager extends LockContext {
           "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + p
               .getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
     }
-    return p;
+
+    if (p != null)
+      return p.createImmutableCopy();
+
+    return null;
   }
 
   public void updatePages(final Map<PageId, ModifiablePage> newPages, final Map<PageId, ModifiablePage> modifiedPages)
@@ -215,6 +219,7 @@ public class PageManager extends LockContext {
       page.incrementVersion();
       page.flushMetadata();
 
+      // ADD THE PAGE IN THE WRITE CACHE. FROM THIS POINT THE PAGE IS NEVER MODIFIED DIRECTLY, SO IT CAN BE SHARED
       if (writeCache.put(page.pageId, page) == null)
         totalWriteCacheRAM.addAndGet(page.getPhysicalSize());
 

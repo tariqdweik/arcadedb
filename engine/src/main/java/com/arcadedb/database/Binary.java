@@ -422,6 +422,7 @@ public class Binary implements BinaryStructure {
   }
 
   public void move(final int startPosition, final int destPosition, final int length) {
+    checkForAllocation(0, destPosition + length);
     System.arraycopy(content, buffer.arrayOffset() + startPosition, content, buffer.arrayOffset() + destPosition, length);
   }
 

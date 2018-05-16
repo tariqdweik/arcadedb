@@ -545,6 +545,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
     getTransaction().updateRecordInCache(record);
+    getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
 
     if (begunHere)
       commit();
@@ -573,6 +574,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           bucket.deleteRecord(record.getIdentity());
 
         getTransaction().removeRecordFromCache(record);
+        getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
 
         if (begunHere)
           commit();

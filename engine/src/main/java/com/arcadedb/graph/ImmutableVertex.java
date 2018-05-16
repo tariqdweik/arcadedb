@@ -33,8 +33,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
 
   public ModifiableVertex modify() {
     checkForLazyLoading();
-    // CREATE A SEPARATE OBJECT THAT POINTS TO THE SAME BUFFER TO AVOID CONCURRENCY ON THE BUFFER POSITION
-    return new ModifiableVertex(database, typeName, rid, buffer.slice());
+    return new ModifiableVertex(database, typeName, rid, buffer.copy());
   }
 
   @Override

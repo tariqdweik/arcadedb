@@ -93,11 +93,6 @@ public class ModifiablePage extends BasePage implements TrackableContent {
     return writeBytes(index, content.getBytes());
   }
 
-  public void blank(final int index, final int length) {
-    checkBoundariesOnWrite(PAGE_HEADER_SIZE + index, length);
-    content.position(PAGE_HEADER_SIZE + index + length);
-  }
-
   public int getAvailableContentSize() {
     return getPhysicalSize() - getContentSize();
   }
@@ -109,6 +104,9 @@ public class ModifiablePage extends BasePage implements TrackableContent {
 
   @Override
   public void updateModifiedRange(final int start, final int end) {
+    if (start < 0 || end >= getPhysicalSize())
+      throw new IllegalArgumentException("Update range (" + start + "-" + end + ") out of bound (0-" + getPhysicalSize() + ")");
+
     if (start < modifiedRangeFrom)
       modifiedRangeFrom = start;
     if (end > modifiedRangeTo)
@@ -121,6 +119,13 @@ public class ModifiablePage extends BasePage implements TrackableContent {
 
   public void setWALFile(final WALFile WALFile) {
     this.walFile = WALFile;
+  }
+
+  public void move(int startPosition, int destPosition, final int length) {
+    startPosition += PAGE_HEADER_SIZE;
+    destPosition += PAGE_HEADER_SIZE;
+    updateModifiedRange(startPosition, destPosition + length);
+    content.move(startPosition, destPosition, length);
   }
 
   private void checkBoundariesOnWrite(final int start, final int length) {
