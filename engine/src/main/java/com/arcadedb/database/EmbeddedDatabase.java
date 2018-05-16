@@ -380,7 +380,6 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (loadContent) {
           final Binary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
           record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, type != null ? type.getName() : null, rid, buffer);
-          tx.updateRecordInCache(record);
           return record;
         }
 
@@ -388,8 +387,6 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, type.getName(), rid, type.getType());
         else
           record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, null, rid, Document.RECORD_TYPE);
-
-        tx.updateRecordInCache(record);
 
         return record;
       }

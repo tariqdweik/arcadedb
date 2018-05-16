@@ -158,6 +158,13 @@ public class TransactionContext {
         it.remove();
       }
     }
+
+    for (Iterator<Record> it = modifiedRecordsCache.values().iterator(); it.hasNext(); ) {
+      final BaseRecord r = (BaseRecord) it.next();
+      if (r.getIdentity().getBucketId() == bucketId && r.getIdentity().getPosition() / Bucket.MAX_RECORDS_IN_PAGE == pageNum) {
+        r.removeBuffer();
+      }
+    }
   }
 
   public void removeRecordFromCache(final Record record) {

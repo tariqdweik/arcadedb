@@ -146,7 +146,7 @@ public class BinarySerializer {
     final int properties = (int) buffer.getNumber();
 
     if (properties < 0)
-      throw new SerializationException("Error on deserialize record. It may be corrupted (properties=" + properties + "");
+      throw new SerializationException("Error on deserialize record. It may be corrupted (properties=" + properties + ")");
 
     final Map<String, Object> values = new LinkedHashMap<String, Object>(properties);
 

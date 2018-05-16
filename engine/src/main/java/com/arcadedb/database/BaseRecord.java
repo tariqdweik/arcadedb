@@ -25,6 +25,10 @@ public abstract class BaseRecord implements Record {
     return this;
   }
 
+  public void removeBuffer() {
+    buffer = null;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o)
