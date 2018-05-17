@@ -37,8 +37,8 @@ public class Dictionary extends PaginatedComponent {
   /**
    * Called at creation time.
    */
-  public Dictionary(final Database database, final String name, String filePath, final PaginatedFile.MODE mode,
-      final int pageSize) throws IOException {
+  public Dictionary(final Database database, final String name, String filePath, final PaginatedFile.MODE mode, final int pageSize)
+      throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
@@ -85,12 +85,16 @@ public class Dictionary extends PaginatedComponent {
       pos = (Integer) lock.executeInWriteLock(new Callable<Object>() {
         @Override
         public Object call() throws Exception {
-          addItemToPage(name);
+          Integer pos = dictionaryMap.get(name);
+          if (pos == null) {
+            addItemToPage(name);
 
-          dictionary.add(name);
-          dictionaryMap.put(name, itemCount - 1);
+            dictionary.add(name);
+            dictionaryMap.put(name, itemCount - 1);
 
-          return itemCount - 1;
+            return itemCount - 1;
+          }
+          return pos;
         }
       });
     }

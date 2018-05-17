@@ -187,7 +187,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       super.executeInWriteLock(new Callable<Object>() {
         @Override
         public Object call() {
-          asynch = new DatabaseAsyncExecutor(EmbeddedDatabase.this);
+          if (asynch == null)
+            asynch = new DatabaseAsyncExecutor(EmbeddedDatabase.this);
           return null;
         }
       });

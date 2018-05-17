@@ -15,7 +15,6 @@ import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -145,32 +144,27 @@ public class PageManager extends LockContext {
   }
 
   public BasePage getPage(final PageId pageId, final int pageSize, final boolean isNew) throws IOException {
-    return (BasePage) executeInLock(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        BasePage page = writeCache.get(pageId);
-        if (page != null)
-          cacheHits.incrementAndGet();
-        else {
-          page = readCache.get(pageId);
-          if (page == null) {
-            page = loadPage(pageId, pageSize);
-            if (!isNew)
-              cacheMiss.incrementAndGet();
+    BasePage page = writeCache.get(pageId);
+    if (page != null)
+      cacheHits.incrementAndGet();
+    else {
+      page = readCache.get(pageId);
+      if (page == null) {
+        page = loadPage(pageId, pageSize);
+        if (!isNew)
+          cacheMiss.incrementAndGet();
 
-          } else {
-            cacheHits.incrementAndGet();
-            page.updateLastAccesses();
-          }
-
-          if (page == null)
-            throw new IllegalArgumentException(
-                "Page id '" + pageId + "' does not exists (threadId=" + Thread.currentThread().getId() + ")");
-        }
-
-        return page;
+      } else {
+        cacheHits.incrementAndGet();
+        page.updateLastAccesses();
       }
-    });
+
+      if (page == null)
+        throw new IllegalArgumentException(
+            "Page id '" + pageId + "' does not exists (threadId=" + Thread.currentThread().getId() + ")");
+    }
+
+    return page;
   }
 
   public BasePage checkPageVersion(final ModifiablePage page, final boolean isNew) throws IOException {
