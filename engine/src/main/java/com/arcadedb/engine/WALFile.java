@@ -7,7 +7,6 @@ package com.arcadedb.engine;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.utility.LockContext;
-import com.arcadedb.utility.Pair;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -23,15 +22,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class WALFile extends LockContext {
   // TXID (long) + PAGES (int) + SEGMENT_SIZE (int)
-  private static final int TX_HEADER_SIZE =
-      Binary.LONG_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
+  private static final int TX_HEADER_SIZE = Binary.LONG_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
   // SEGMENT_SIZE (int) + MAGIC_NUMBER (long)
   private static final int TX_FOOTER_SIZE = Binary.INT_SERIALIZED_SIZE + Binary.LONG_SERIALIZED_SIZE;
 
-  // FILE_ID (int) + PAGE_NUMBER (int) + DELTA_FROM (int) + DELTA_TO (int) + EXISTS_PREVIOUS (byte) + CURR_PAGE_VERSION (int)+ CURR_PAGE_SIZE (int)
+  // FILE_ID (int) + PAGE_NUMBER (int) + DELTA_FROM (int) + DELTA_TO (int) + CURR_PAGE_VERSION (int)+ CURR_PAGE_SIZE (int)
   private static final int PAGE_HEADER_SIZE =
       Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE
-          + Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
+          + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
 
   private static final long MAGIC_NUMBER = 9371515385058702l;
 
@@ -61,7 +59,6 @@ public class WALFile extends LockContext {
     public int    pageNumber;
     public int    changesFrom;
     public int    changesTo;
-    public Binary previousContent;
     public Binary currentContent;
     public int    currentPageVersion;
     public int    currentPageSize;
@@ -162,21 +159,11 @@ public class WALFile extends LockContext {
 
         final int deltaSize = tx.pages[i].changesTo - tx.pages[i].changesFrom + 1;
 
-        final boolean hasPrevious = readByte(pos) == 1;
-        pos += Binary.BYTE_SERIALIZED_SIZE;
-
         tx.pages[i].currentPageVersion = readInt(pos);
         pos += Binary.INT_SERIALIZED_SIZE;
 
         tx.pages[i].currentPageSize = readInt(pos);
         pos += Binary.INT_SERIALIZED_SIZE;
-
-        if (hasPrevious) {
-          tx.pages[i].previousContent = new Binary(deltaSize);
-          channel.read(tx.pages[i].previousContent.getByteBuffer(), pos);
-
-          pos += deltaSize;
-        }
 
         final ByteBuffer buffer = ByteBuffer.allocate(deltaSize);
 
@@ -199,8 +186,8 @@ public class WALFile extends LockContext {
     }
   }
 
-  public void writeTransaction(final DatabaseInternal database, final List<Pair<BasePage, ModifiablePage>> pages,
-      final boolean sync, final WALFile file, final long txId) throws IOException {
+  public void writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync,
+      final WALFile file, final long txId) throws IOException {
     // WRITE TX HEADER (TXID, PAGES)
     byte[] buffer = new byte[TX_HEADER_SIZE];
     Binary pageBuffer = new Binary(buffer, TX_HEADER_SIZE);
@@ -209,13 +196,10 @@ public class WALFile extends LockContext {
 
     // COMPUTE TOTAL TXLOG SEGMENT SIZE
     int segmentSize = 0;
-    for (Pair<BasePage, ModifiablePage> entry : pages) {
-      final BasePage prevPage = entry.getFirst();
-      final ModifiablePage newPage = entry.getSecond();
-
+    for (ModifiablePage newPage : pages) {
       final int[] deltaRange = newPage.getModifiedRange();
       final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
-      segmentSize += PAGE_HEADER_SIZE + (deltaSize * (prevPage == null ? 1 : 2));
+      segmentSize += PAGE_HEADER_SIZE + deltaSize;
     }
 
     pageBuffer.putInt(segmentSize);
@@ -225,10 +209,7 @@ public class WALFile extends LockContext {
 
     // WRITE ALL PAGES SEGMENTS
     int currentPage = 0;
-    for (Pair<BasePage, ModifiablePage> entry : pages) {
-      final BasePage prevPage = entry.getFirst();
-      final ModifiablePage newPage = entry.getSecond();
-
+    for (ModifiablePage newPage : pages) {
       // SET THE WAL FILE TO NOTIFY LATER WHEN THE PAGE HAS BEEN FLUSHED
       newPage.setWALFile(file);
 
@@ -237,7 +218,7 @@ public class WALFile extends LockContext {
       assert deltaRange[0] > -1 && deltaRange[1] < newPage.getPhysicalSize();
 
       final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
-      final int pageSize = PAGE_HEADER_SIZE + (deltaSize * (prevPage == null ? 1 : 2));
+      final int pageSize = PAGE_HEADER_SIZE + deltaSize;
       buffer = new byte[pageSize];
       pageBuffer = new Binary(buffer, pageSize);
 
@@ -245,22 +226,11 @@ public class WALFile extends LockContext {
       pageBuffer.putInt(newPage.getPageId().getPageNumber());
       pageBuffer.putInt(deltaRange[0]);
       pageBuffer.putInt(deltaRange[1]);
-      pageBuffer.putByte((byte) (prevPage != null ? 1 : 0));
       pageBuffer.putInt(newPage.version + 1);
       pageBuffer.putInt(newPage.getContentSize());
-      if (prevPage != null) {
-        final ByteBuffer prevPageBuffer = prevPage.getContent();
-        prevPageBuffer.position(deltaRange[0]);
-        prevPageBuffer.get(buffer, PAGE_HEADER_SIZE, deltaSize);
-
-        final ByteBuffer newPageBuffer = newPage.getContent();
-        newPageBuffer.position(deltaRange[0]);
-        newPageBuffer.get(buffer, PAGE_HEADER_SIZE + deltaSize, deltaSize);
-      } else {
-        final ByteBuffer newPageBuffer = newPage.getContent();
-        newPageBuffer.position(deltaRange[0]);
-        newPageBuffer.get(buffer, PAGE_HEADER_SIZE, deltaSize);
-      }
+      final ByteBuffer newPageBuffer = newPage.getContent();
+      newPageBuffer.position(deltaRange[0]);
+      newPageBuffer.get(buffer, PAGE_HEADER_SIZE, deltaSize);
       pageBuffer.position(0);
 
       file.appendPage(pageBuffer.getByteBuffer());

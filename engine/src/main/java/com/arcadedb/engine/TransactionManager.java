@@ -6,7 +6,6 @@ package com.arcadedb.engine;
 
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.utility.LogManager;
-import com.arcadedb.utility.Pair;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -83,7 +82,7 @@ public class TransactionManager {
     }
   }
 
-  public void writeTransactionToWAL(final List<Pair<BasePage, ModifiablePage>> pages, final boolean sync) throws IOException {
+  public void writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync) throws IOException {
     while (true) {
       final WALFile file = activeWALFilePool[(int) (Thread.currentThread().getId() % activeWALFilePool.length)];
 

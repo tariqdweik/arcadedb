@@ -9,7 +9,6 @@ import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.utility.LogManager;
-import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
 import java.util.*;
@@ -63,15 +62,16 @@ public class TransactionContext {
     try {
 
       // CHECK THE VERSION FIRST
-      final List<Pair<BasePage, ModifiablePage>> pages = new ArrayList<>();
+      final List<ModifiablePage> pages = new ArrayList<>();
 
       for (final Iterator<ModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
         final ModifiablePage p = it.next();
 
         final int[] range = p.getModifiedRange();
-        if (range[1] > 0)
-          pages.add(new Pair<>(pageManager.checkPageVersion(p, false), p));
-        else
+        if (range[1] > 0) {
+          pageManager.checkPageVersion(p, false);
+          pages.add(p);
+        } else
           // PAGE NOT MODIFIED, REMOVE IT
           it.remove();
       }
@@ -81,7 +81,7 @@ public class TransactionContext {
           final int[] range = p.getModifiedRange();
           if (range[1] > 0) {
             pageManager.checkPageVersion(p, true);
-            pages.add(new Pair<>(null, p));
+            pages.add(p);
           }
         }
 
