@@ -279,9 +279,6 @@ public class RandomTestMultiThreads {
   }
 
   private int deleteRecords(final Database database, final int threadId) {
-    if (true)
-      return 0;
-
     if (totalTransactionRecords.get() == 0)
       return 0;
 
