@@ -4,7 +4,10 @@
 
 package com.arcadedb.index;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.Binary;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseOperationException;
@@ -35,7 +38,7 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  */
 public class IndexLSM extends PaginatedComponent implements Index {
   public static final String INDEX_EXT     = "pindex";
-  public static final int    DEF_PAGE_SIZE = 200000;
+  public static final int    DEF_PAGE_SIZE = 4 * 1024 * 1024;
 
   private          byte[]  keyTypes;
   private          byte    valueType;
@@ -60,8 +63,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at creation time.
    */
-  public IndexLSM(final Database database, final String name, String filePath, final PaginatedFile.MODE mode,
-      final byte[] keyTypes, final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
+  public IndexLSM(final Database database, final String name, String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
+      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), IndexLSM.INDEX_EXT, mode, pageSize);
     this.keyTypes = keyTypes;
     this.valueType = valueType;
@@ -280,6 +283,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   /**
    * DON'T CALL THIS
+   *
    * @param keys
    */
   @Override
