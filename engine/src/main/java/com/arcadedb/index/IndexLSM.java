@@ -35,7 +35,7 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  */
 public class IndexLSM extends PaginatedComponent implements Index {
   public static final String INDEX_EXT     = "pindex";
-  public static final int    DEF_PAGE_SIZE = 6553600;
+  public static final int    DEF_PAGE_SIZE = 200000;
 
   private          byte[]  keyTypes;
   private          byte    valueType;

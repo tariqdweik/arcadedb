@@ -16,7 +16,7 @@ import com.arcadedb.schema.DocumentType;
 import org.junit.jupiter.api.Assertions;
 
 public class PerformanceVertexIndexTest {
-  private static final int    TOT       = 1000000;
+  private static final int    TOT       = 10000000;
   private static final String TYPE_NAME = "Person";
   private static final int    PARALLEL  = 2;
 
@@ -46,7 +46,7 @@ public class PerformanceVertexIndexTest {
       }
 
       database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(true);
+      database.asynch().setTransactionSync(false);
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(PARALLEL);
       database.asynch().onError(new ErrorCallback() {
@@ -68,7 +68,7 @@ public class PerformanceVertexIndexTest {
 
         database.asynch().createRecord(record);
 
-        if (row % 100000 == 0)
+        if (row % 1000000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
       }
 
@@ -91,7 +91,7 @@ public class PerformanceVertexIndexTest {
         final Vertex record = (Vertex) records.next().getRecord();
         Assertions.assertEquals(id, record.get("id"));
 
-        if (id % 100000 == 0)
+        if (id % 1000000 == 0)
           System.out.println("Checked " + id + " lookups in " + (System.currentTimeMillis() - begin) + "ms");
       }
     } finally {
