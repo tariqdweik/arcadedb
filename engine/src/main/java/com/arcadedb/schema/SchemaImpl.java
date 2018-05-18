@@ -96,10 +96,20 @@ public class SchemaImpl implements Schema {
           LogManager.instance().error(this, "Error on opening bucket '%s' (error=%s)", e, file, e.toString());
         }
 
-      } else if (fileExt.equals(IndexLSM.INDEX_EXT)) {
+      } else if (fileExt.equals(IndexLSM.UNIQUE_INDEX_EXT)) {
         // INDEX
         try {
-          final IndexLSM index = new IndexLSM(database, fileName, file.getFilePath(), fileId, mode, pageSize);
+          final IndexLSM index = new IndexLSM(database, fileName, true, file.getFilePath(), fileId, mode, pageSize);
+          indexMap.put(fileName, index);
+          pf = index;
+        } catch (IOException e) {
+          LogManager.instance().error(this, "Error on opening index '%s' (error=%s)", e, file, e.toString());
+        }
+
+      } else if (fileExt.equals(IndexLSM.NOTUNIQUE_INDEX_EXT)) {
+        // INDEX
+        try {
+          final IndexLSM index = new IndexLSM(database, fileName, false, file.getFilePath(), fileId, mode, pageSize);
           indexMap.put(fileName, index);
           pf = index;
         } catch (IOException e) {
@@ -240,16 +250,16 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index[] createClassIndexes(final String typeName, final String[] propertyNames) {
-    return createClassIndexes(typeName, propertyNames, IndexLSM.DEF_PAGE_SIZE);
+  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames) {
+    return createClassIndexes(unique, typeName, propertyNames, IndexLSM.DEF_PAGE_SIZE);
   }
 
   @Override
-  public Index[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize) {
-    return createClassIndexes(typeName, propertyNames, pageSize, propertyNames.length);
+  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
+    return createClassIndexes(unique, typeName, propertyNames, pageSize, propertyNames.length);
   }
 
-  public Index[] createClassIndexes(final String typeName, final String[] propertyNames, final int pageSize,
+  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
       final int bfKeyDepth) {
     return (Index[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
@@ -285,7 +295,7 @@ public class SchemaImpl implements Schema {
               throw new DatabaseMetadataException(
                   "Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-            indexes[idx] = new IndexLSM(database, indexName, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE,
+            indexes[idx] = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE,
                 keyTypes, BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
 
             registerFile(indexes[idx]);
@@ -305,11 +315,12 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  public Index createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize) {
-    return createManualIndex(indexName, keyTypes, pageSize, keyTypes.length);
+  public Index createManualIndex(final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
+    return createManualIndex(unique, indexName, keyTypes, pageSize, keyTypes.length);
   }
 
-  public Index createManualIndex(final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
+  public Index createManualIndex(final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize,
+      final int bfKeyDepth) {
     return (IndexLSM) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
@@ -317,8 +328,8 @@ public class SchemaImpl implements Schema {
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          final IndexLSM index = new IndexLSM(database, indexName, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE,
-              keyTypes, BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
+          final IndexLSM index = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName,
+              PaginatedFile.MODE.READ_WRITE, keyTypes, BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
           registerFile(index);
           indexMap.put(indexName, index);
 

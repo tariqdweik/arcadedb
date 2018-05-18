@@ -50,7 +50,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected volatile boolean open            = false;
 
   protected static final Set<String>                               SUPPORTED_FILE_EXT = new HashSet<String>(
-      Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, IndexLSM.INDEX_EXT));
+      Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, IndexLSM.NOTUNIQUE_INDEX_EXT, IndexLSM.UNIQUE_INDEX_EXT));
   private                File                                      lockFile;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
 

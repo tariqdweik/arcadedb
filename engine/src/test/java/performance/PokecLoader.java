@@ -149,7 +149,7 @@ public class PokecLoader {
 
     db.getSchema().createEdgeType("E");
 
-    db.getSchema().createClassIndexes("V", new String[] { "id" }, IndexLSM.DEF_PAGE_SIZE * 10);
+    db.getSchema().createClassIndexes(true, "V", new String[] { "id" }, IndexLSM.DEF_PAGE_SIZE * 10);
     db.commit();
   }
 }

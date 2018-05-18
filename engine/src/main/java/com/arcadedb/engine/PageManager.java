@@ -179,7 +179,7 @@ public class PageManager extends LockContext {
     }
 
     if (p != null)
-      return p.createImmutableCopy();
+      return p.createImmutableView();
 
     return null;
   }
@@ -318,7 +318,7 @@ public class PageManager extends LockContext {
     LogManager.instance().debug(this, "Flushing page %s (threadId=%d)...", page, Thread.currentThread().getId());
 
     if (!flushOnlyAtClose) {
-      putPageInCache(page.createImmutableCopy());
+      putPageInCache(page.createImmutableView());
 
       final int written = file.write(page);
 

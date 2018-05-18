@@ -27,7 +27,7 @@ import static com.arcadedb.database.Binary.LONG_SERIALIZED_SIZE;
  * Record size is the lenght of the record or -1 if a placeholder is stored and -2 for the placeholder itself.
  */
 public class Bucket extends PaginatedComponent {
-  public static final String BUCKET_EXT          = "pbucket";
+  public static final String BUCKET_EXT          = "bucket";
   public static final int    MAX_RECORDS_IN_PAGE = 2048;
   public static final int    DEF_PAGE_SIZE       = 65536;
 

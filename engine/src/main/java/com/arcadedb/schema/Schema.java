@@ -36,11 +36,11 @@ public interface Schema {
 
   Index getIndexByName(String indexName);
 
-  Index[] createClassIndexes(String typeName, String[] propertyNames);
+  Index[] createClassIndexes(boolean unique, String typeName, String[] propertyNames);
 
-  Index[] createClassIndexes(String typeName, String[] propertyNames, int pageSize);
+  Index[] createClassIndexes(boolean unique, String typeName, String[] propertyNames, int pageSize);
 
-  Index createManualIndex(String indexName, byte[] keyTypes, int pageSize);
+  Index createManualIndex(boolean unique, String indexName, byte[] keyTypes, int pageSize);
 
   Dictionary getDictionary();
 

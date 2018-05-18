@@ -211,7 +211,7 @@ public class IndexTest {
 
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
-        database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 20000);
+        database.getSchema().createClassIndexes(true, TYPE_NAME, new String[] { "id" }, 20000);
 
         for (int i = 0; i < total; ++i) {
           final ModifiableDocument v = database.newDocument(TYPE_NAME);

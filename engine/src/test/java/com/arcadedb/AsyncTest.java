@@ -111,7 +111,7 @@ public class AsyncTest {
       type.createProperty("id", Integer.class);
       type.createProperty("name", String.class);
       type.createProperty("surname", String.class);
-      database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 20000);
+      database.getSchema().createClassIndexes(true, TYPE_NAME, new String[] { "id" }, 20000);
 
       database.commit();
 

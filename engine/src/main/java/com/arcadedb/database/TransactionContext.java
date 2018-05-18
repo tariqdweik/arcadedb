@@ -221,7 +221,7 @@ public class TransactionContext {
       // NOT FOUND, DELEGATES TO THE DATABASE
       page = database.getPageManager().getPage(pageId, size, false);
       if (page != null)
-        page = page.createImmutableCopy();
+        page = page.createImmutableView();
     }
 
     return page;

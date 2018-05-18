@@ -11,6 +11,7 @@ import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseOperationException;
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
@@ -37,13 +38,15 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
 public class IndexLSM extends PaginatedComponent implements Index {
-  public static final String INDEX_EXT     = "pindex";
-  public static final int    DEF_PAGE_SIZE = 4 * 1024 * 1024;
+  public static final String UNIQUE_INDEX_EXT    = "uidx";
+  public static final String NOTUNIQUE_INDEX_EXT = "nuidx";
+  public static final int    DEF_PAGE_SIZE       = 4 * 1024 * 1024;
 
   private          byte[]  keyTypes;
   private          byte    valueType;
   private          int     bfKeyDepth;
   private volatile boolean compacting = false;
+  private final    boolean unique;
 
   private AtomicLong statsBFFalsePositive = new AtomicLong();
   private AtomicLong statsAdjacentSteps   = new AtomicLong();
@@ -63,9 +66,11 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at creation time.
    */
-  public IndexLSM(final Database database, final String name, String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
-      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), IndexLSM.INDEX_EXT, mode, pageSize);
+  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode,
+      final byte[] keyTypes, final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(), unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode,
+        pageSize);
+    this.unique = unique;
     this.keyTypes = keyTypes;
     this.valueType = valueType;
     this.bfKeyDepth = bfKeyDepth;
@@ -76,10 +81,11 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at cloning time.
    */
-  public IndexLSM(final Database database, final String name, String filePath, final byte[] keyTypes, final byte valueType,
-      final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + IndexLSM.INDEX_EXT,
-        PaginatedFile.MODE.READ_WRITE, pageSize);
+  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final byte[] keyTypes,
+      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(),
+        "temp_" + (unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT), PaginatedFile.MODE.READ_WRITE, pageSize);
+    this.unique = unique;
     this.keyTypes = keyTypes;
     this.valueType = valueType;
     this.bfKeyDepth = bfKeyDepth;
@@ -90,10 +96,12 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at load time (1st page only).
    */
-  public IndexLSM(final Database database, final String name, String filePath, final int id, final PaginatedFile.MODE mode,
-      final int pageSize) throws IOException {
+  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final int id,
+      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
+
+    this.unique = unique;
 
     int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + getBFSize();
     final int len = currentPage.readByte(pos++);
@@ -107,7 +115,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
   public IndexLSM copy() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-    return new IndexLSM(database, newName, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize, bfKeyDepth);
+    return new IndexLSM(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize,
+        bfKeyDepth);
   }
 
   public void removeTempSuffix() {
@@ -165,15 +174,20 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       final int totalPages = getTotalPages();
 
-      for (int p = 0; p < totalPages; ++p) {
+      // SEARCH FROM THE LAST PAGE BACK
+      for (int p = totalPages - 1; p > -1; --p) {
         final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), p), pageSize);
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = getCount(currentPage);
 
         // SEARCH IN THE BF FIRST
         final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 0);
-        if (result != null && result.found)
+        if (result != null && result.found) {
           list.add((RID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition));
+
+          if (unique)
+            break;
+        }
       }
 
       LogManager.instance()
@@ -212,6 +226,10 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
       if (result.found) {
+        if (unique)
+          throw new DuplicatedKeyException(name, keys);
+
+        // TODO: MANAGE NOT-UNIQUE BY ADDING THE VALUE TO THE ENTRY'S VALUE CONTAINER
         // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE VALUE
         final Binary valueContent = database.getContext().temporaryBuffer1;
         valueContent.reset();

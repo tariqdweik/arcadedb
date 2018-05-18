@@ -37,7 +37,7 @@ public class PerformanceIndexTest {
         type.createProperty("notes1", String.class);
         type.createProperty("notes2", String.class);
 
-        database.getSchema().createClassIndexes(TYPE_NAME, new String[] { "id" }, 5000000);
+        database.getSchema().createClassIndexes(true, TYPE_NAME, new String[] { "id" }, 5000000);
         database.commit();
       }
     } finally {

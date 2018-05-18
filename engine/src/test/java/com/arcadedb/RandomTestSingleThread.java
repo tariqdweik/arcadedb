@@ -166,14 +166,14 @@ public class RandomTestSingleThread {
         accountType.createProperty("surname", String.class);
         accountType.createProperty("registered", Date.class);
 
-        database.getSchema().createClassIndexes("Account", new String[] { "id" });
+        database.getSchema().createClassIndexes(true, "Account", new String[] { "id" });
 
         final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
         txType.createProperty("uuid", String.class);
         txType.createProperty("date", Date.class);
         txType.createProperty("amount", BigDecimal.class);
 
-        database.getSchema().createClassIndexes("Transaction", new String[] { "uuid" });
+        database.getSchema().createClassIndexes(true, "Transaction", new String[] { "uuid" });
 
         final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
         edgeType.createProperty("date", Date.class);

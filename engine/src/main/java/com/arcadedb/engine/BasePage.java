@@ -66,7 +66,7 @@ public abstract class BasePage {
   /**
    * Creates an immutable copy. The content is not copied (the same byte[] is used), because after invoking this method the original page is never modified.
    */
-  public ImmutablePage createImmutableCopy() {
+  public ImmutablePage createImmutableView() {
     try {
       return (ImmutablePage) content.executeInLock(new Callable<Object>() {
         @Override

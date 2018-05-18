@@ -22,7 +22,7 @@ import java.util.concurrent.Callable;
  * <p>
  */
 public class Dictionary extends PaginatedComponent {
-  public static final String DICT_EXT      = "pdict";
+  public static final String DICT_EXT      = "dict";
   public static final int    DEF_PAGE_SIZE = 65536 * 5;
 
   private int itemCount;
