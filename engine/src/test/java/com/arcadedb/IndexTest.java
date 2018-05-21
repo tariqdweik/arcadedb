@@ -6,6 +6,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
@@ -98,8 +99,47 @@ public class IndexTest {
       // GET EACH ITEM TO CHECK IT HAVE BEEN DELETED
       for (int i = 0; i < TOT; ++i) {
         for (Index index : indexes)
-          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key "+i);
+          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
       }
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
+  public void testPutDuplicates() {
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    db.begin();
+    try {
+      int total = 0;
+
+      final Index[] indexes = db.getSchema().getIndexes();
+
+      for (int i = 0; i < TOT; ++i) {
+        int found = 0;
+
+        final Object[] key = new Object[] { i };
+
+        for (Index index : indexes) {
+
+          final List<RID> value = index.get(key);
+          if (!value.isEmpty()) {
+            try {
+              index.put(key, new RID(db, 10, 10));
+              Assertions.fail();
+            } catch (DuplicatedKeyException e) {
+              // OK
+            }
+            found++;
+            total++;
+          }
+        }
+
+        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
+
+      Assertions.assertEquals(TOT, total);
 
     } finally {
       db.close();

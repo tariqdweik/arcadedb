@@ -213,12 +213,12 @@ public class IndexLSM extends PaginatedComponent implements Index {
     if (rid == null)
       throw new IllegalArgumentException("RID is null");
 
-    internalPut(keys, rid);
+    internalPut(keys, rid, true);
   }
 
   @Override
   public void remove(final Object[] keys) {
-    internalPut(keys, null);
+    internalPut(keys, null, false);
   }
 
   public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage,
@@ -579,9 +579,15 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return pageSize / 15 / 8 * 8;
   }
 
-  private void internalPut(final Object[] keys, final RID rid) {
+  private void internalPut(final Object[] keys, final RID rid, final boolean checkForUnique) {
     if (keys.length != keyTypes.length)
       throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
+
+    if (unique && checkForUnique) {
+      final List<RID> result = get(keys);
+      if (!result.isEmpty())
+        throw new DuplicatedKeyException(name, keys);
+    }
 
     database.checkTransactionIsActive();
 
