@@ -120,46 +120,48 @@ public class IndexLSMCursor implements IndexCursor {
 
   @Override
   public Object next() {
-    Object[] minorKey = null;
-    int minorKeyIndex = -1;
+    do {
+      Object[] minorKey = null;
+      int minorKeyIndex = -1;
 
-    // FIND THE MINOR KEY
-    for (int p = 0; p < totalPages; ++p) {
-      if (minorKey == null) {
-        minorKey = keys[p];
-        minorKeyIndex = p;
-      } else {
-        if (keys[p] != null) {
-          if (IndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
-            minorKey = keys[p];
-            minorKeyIndex = p;
+      // FIND THE MINOR KEY
+      for (int p = 0; p < totalPages; ++p) {
+        if (minorKey == null) {
+          minorKey = keys[p];
+          minorKeyIndex = p;
+        } else {
+          if (keys[p] != null) {
+            if (IndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+              minorKey = keys[p];
+              minorKeyIndex = p;
+            }
           }
         }
       }
-    }
 
-    currentIterator = pageIterators[minorKeyIndex];
-    currentKeys = currentIterator.getKeys();
-    currentValue = currentIterator.getValue();
+      currentIterator = pageIterators[minorKeyIndex];
+      currentKeys = currentIterator.getKeys();
+      currentValue = currentIterator.getValue();
 
-    if (currentIterator.hasNext()) {
-      currentIterator.next();
-      keys[minorKeyIndex] = currentIterator.getKeys();
+      if (currentIterator.hasNext()) {
+        currentIterator.next();
+        keys[minorKeyIndex] = currentIterator.getKeys();
 
-      if (toKeys != null && (IndexLSM.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
+        if (toKeys != null && (IndexLSM.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
+          currentIterator.close();
+          currentIterator = null;
+          pageIterators[minorKeyIndex] = null;
+          keys[minorKeyIndex] = null;
+          --validIterators;
+        }
+      } else {
         currentIterator.close();
         currentIterator = null;
         pageIterators[minorKeyIndex] = null;
         keys[minorKeyIndex] = null;
         --validIterators;
       }
-    } else {
-      currentIterator.close();
-      currentIterator = null;
-      pageIterators[minorKeyIndex] = null;
-      keys[minorKeyIndex] = null;
-      --validIterators;
-    }
+    } while (currentValue == null && hasNext());
 
     return currentValue;
   }

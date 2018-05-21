@@ -240,9 +240,14 @@ public class BinarySerializer {
       break;
     }
     case BinaryTypes.TYPE_RID: {
-      final RID rid = ((Identifiable) value).getIdentity();
-      content.putInt(rid.getBucketId());
-      content.putLong(rid.getPosition());
+      if (value == null) {
+        content.putInt(-1);
+        content.putLong(-1);
+      } else {
+        final RID rid = ((Identifiable) value).getIdentity();
+        content.putInt(rid.getBucketId());
+        content.putLong(rid.getPosition());
+      }
       break;
     }
     default:

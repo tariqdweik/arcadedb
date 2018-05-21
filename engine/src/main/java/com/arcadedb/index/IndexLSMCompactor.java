@@ -98,6 +98,10 @@ public class IndexLSMCompactor {
         }
 
         final Object value = iterators[minorKeyIndex].getValue();
+        if( value == null )
+          // DELETED
+          continue;
+
         final ModifiablePage newPage = newIndex
             .appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, (RID) value);
         if (newPage != lastPage) {

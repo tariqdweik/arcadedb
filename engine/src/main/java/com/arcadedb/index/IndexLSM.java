@@ -183,7 +183,15 @@ public class IndexLSM extends PaginatedComponent implements Index {
         // SEARCH IN THE BF FIRST
         final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 0);
         if (result != null && result.found) {
-          list.add((RID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition));
+          final RID value = (RID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition);
+
+          if (value.getBucketId() == -1 && value.getPosition() == -1) {
+            // DELETED ITEM
+            list.clear();
+            break;
+          }
+
+          list.add(value);
 
           if (unique)
             break;
@@ -205,143 +213,12 @@ public class IndexLSM extends PaginatedComponent implements Index {
     if (rid == null)
       throw new IllegalArgumentException("RID is null");
 
-    if (keys.length != keyTypes.length)
-      throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
-
-    database.checkTransactionIsActive();
-
-    Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
-    if (txPageCounter == null)
-      txPageCounter = pageCount.get();
-
-    int pageNum = txPageCounter - 1;
-
-    try {
-      ModifiablePage currentPage = database.getTransaction()
-          .getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
-
-      TrackableBinary currentPageBuffer = currentPage.getTrackable();
-
-      int count = getCount(currentPage);
-
-      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
-      if (result.found) {
-        if (unique)
-          throw new DuplicatedKeyException(name, keys);
-
-        // TODO: MANAGE NOT-UNIQUE BY ADDING THE VALUE TO THE ENTRY'S VALUE CONTAINER
-        // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE VALUE
-        final Binary valueContent = database.getContext().temporaryBuffer1;
-        valueContent.reset();
-        database.getSerializer().serializeValue(valueContent, valueType, rid);
-        currentPageBuffer.putByteArray(result.valueBeginPosition, valueContent.toByteArray());
-        return;
-      }
-
-      // WRITE KEY/VALUE PAIRS FIRST
-      final Binary keyValueContent = database.getContext().temporaryBuffer1;
-      keyValueContent.reset();
-
-      for (int i = 0; i < keyTypes.length; ++i)
-        database.getSerializer().serializeValue(keyValueContent, keyTypes[i], keys[i]);
-      database.getSerializer().serializeValue(keyValueContent, valueType, rid);
-
-      int keyValueFreePosition = getKeyValueFreePosition(currentPage);
-
-      int keyIndex = result.keyIndex;
-      boolean newPage = false;
-      if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent
-          .size()) {
-        // NO SPACE LEFT, CREATE A NEW PAGE
-        newPage = true;
-        try {
-          currentPage = createNewPage();
-          currentPageBuffer = currentPage.getTrackable();
-          pageNum = currentPage.getPageId().getPageNumber();
-          count = 0;
-          keyIndex = 0;
-          keyValueFreePosition = currentPage.getMaxContentSize();
-
-        } catch (IOException e) {
-          throw new ConfigurationException("Cannot create a new index page", e);
-        }
-      }
-
-      keyValueFreePosition -= keyValueContent.size();
-
-      // WRITE KEY/VALUE PAIR CONTENT
-      currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
-
-      // SHIFT POINTERS ON THE RIGHT
-      final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
-      currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
-
-      currentPageBuffer.putInt(startPos, keyValueFreePosition);
-
-      // ADD THE ITEM IN THE BF
-      final BufferBloomFilter bf = new BufferBloomFilter(
-          currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
-          getBFSeed(currentPage));
-
-      // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
-      bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
-
-      setCount(currentPage, count + 1);
-      setKeyValueFreePosition(currentPage, keyValueFreePosition);
-
-      LogManager.instance()
-          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name,
-              currentPage.getPageId(), count + 1, newPage);
-
-    } catch (IOException e) {
-      throw new DatabaseOperationException(
-          "Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
-    }
+    internalPut(keys, rid);
   }
 
-  /**
-   * DON'T CALL THIS
-   *
-   * @param keys
-   */
   @Override
   public void remove(final Object[] keys) {
-    if (keys == null)
-      throw new IllegalArgumentException("keys is null");
-
-    if (keys.length != keyTypes.length)
-      throw new IllegalArgumentException("Cannot remove an entry in the index with a partial key");
-
-    try {
-      final int totalPages = getTotalPages();
-
-      for (int p = 0; p < totalPages; ++p) {
-        final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), p), pageSize);
-        final Binary currentPageBuffer = new Binary(currentPage.slice());
-        int count = getCount(currentPage);
-
-        // SEARCH IN THE BF FIRST
-        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 0);
-        if (result != null && result.found) {
-          final ModifiablePage modifiablePage = this.database.getTransaction()
-              .getPageToModify(new PageId(file.getFileId(), p), pageSize, false);
-
-          count--;
-
-          // SHIFT POINTERS TO THE LEFT
-          int keyIndex = result.keyIndex;
-          final int startPos = getHeaderSize(currentPage.getPageId().getPageNumber()) + (keyIndex * INT_SERIALIZED_SIZE);
-          currentPageBuffer.move(startPos, startPos - INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
-
-          setCount(modifiablePage, count);
-
-          LogManager.instance().debug(this, "Removed entry by key %s from index '%s'", Arrays.toString(keys), name);
-        }
-      }
-
-    } catch (IOException e) {
-      throw new DatabaseOperationException("Cannot remove key '" + Arrays.toString(keys) + "' in index '" + name + "'", e);
-    }
+    internalPut(keys, null);
   }
 
   public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage,
@@ -414,6 +291,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   public Map<String, Long> getStats() {
     final Map<String, Long> stats = new HashMap<>();
+    stats.put("pages", (long) getTotalPages());
     stats.put("BFFalsePositive", statsBFFalsePositive.get());
     stats.put("AdjacentSteps", statsAdjacentSteps.get());
     return stats;
@@ -433,6 +311,15 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return keyTypes;
   }
 
+  /**
+   * @param currentPage
+   * @param currentPageBuffer
+   * @param keys
+   * @param count
+   * @param purpose           0 = exists, 1 = ascending iterator, 2 = descending iterator
+   *
+   * @return
+   */
   protected LookupResult searchInPage(final BasePage currentPage, final Binary currentPageBuffer, final Object[] keys,
       final int count, final int purpose) {
     // SEARCH IN THE BF FIRST
@@ -690,5 +577,100 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   private int getBFSize() {
     return pageSize / 15 / 8 * 8;
+  }
+
+  private void internalPut(final Object[] keys, final RID rid) {
+    if (keys.length != keyTypes.length)
+      throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
+
+    database.checkTransactionIsActive();
+
+    Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
+    if (txPageCounter == null)
+      txPageCounter = pageCount.get();
+
+    int pageNum = txPageCounter - 1;
+
+    try {
+      ModifiablePage currentPage = database.getTransaction()
+          .getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
+
+      TrackableBinary currentPageBuffer = currentPage.getTrackable();
+
+      int count = getCount(currentPage);
+
+      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
+      if (result.found) {
+        if (unique)
+          throw new DuplicatedKeyException(name, keys);
+
+        // TODO: MANAGE NOT-UNIQUE BY ADDING THE VALUE TO THE ENTRY'S VALUE CONTAINER
+        // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE VALUE
+        final Binary valueContent = database.getContext().temporaryBuffer1;
+        valueContent.reset();
+        database.getSerializer().serializeValue(valueContent, valueType, rid);
+        currentPageBuffer.putByteArray(result.valueBeginPosition, valueContent.toByteArray());
+        return;
+      }
+
+      // WRITE KEY/VALUE PAIRS FIRST
+      final Binary keyValueContent = database.getContext().temporaryBuffer1;
+      keyValueContent.reset();
+
+      for (int i = 0; i < keyTypes.length; ++i)
+        database.getSerializer().serializeValue(keyValueContent, keyTypes[i], keys[i]);
+      database.getSerializer().serializeValue(keyValueContent, valueType, rid);
+
+      int keyValueFreePosition = getKeyValueFreePosition(currentPage);
+
+      int keyIndex = result.keyIndex;
+      boolean newPage = false;
+      if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent
+          .size()) {
+        // NO SPACE LEFT, CREATE A NEW PAGE
+        newPage = true;
+        try {
+          currentPage = createNewPage();
+          currentPageBuffer = currentPage.getTrackable();
+          pageNum = currentPage.getPageId().getPageNumber();
+          count = 0;
+          keyIndex = 0;
+          keyValueFreePosition = currentPage.getMaxContentSize();
+
+        } catch (IOException e) {
+          throw new ConfigurationException("Cannot create a new index page", e);
+        }
+      }
+
+      keyValueFreePosition -= keyValueContent.size();
+
+      // WRITE KEY/VALUE PAIR CONTENT
+      currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
+
+      // SHIFT POINTERS TO THE RIGHT
+      final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
+      currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
+
+      currentPageBuffer.putInt(startPos, keyValueFreePosition);
+
+      // ADD THE ITEM IN THE BF
+      final BufferBloomFilter bf = new BufferBloomFilter(
+          currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
+          getBFSeed(currentPage));
+
+      // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
+      bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
+
+      setCount(currentPage, count + 1);
+      setKeyValueFreePosition(currentPage, keyValueFreePosition);
+
+      LogManager.instance()
+          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name,
+              currentPage.getPageId(), count + 1, newPage);
+
+    } catch (IOException e) {
+      throw new DatabaseOperationException(
+          "Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
+    }
   }
 }
