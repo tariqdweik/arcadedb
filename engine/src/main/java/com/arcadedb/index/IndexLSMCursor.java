@@ -13,6 +13,9 @@ import com.arcadedb.serializer.BinarySerializer;
 import java.io.IOException;
 import java.util.Arrays;
 
+/**
+ * Index cursor doesn't remove the deleted entries.
+ */
 public class IndexLSMCursor implements IndexCursor {
   private final IndexLSM               index;
   private final boolean                ascendingOrder;

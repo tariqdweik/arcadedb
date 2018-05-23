@@ -68,7 +68,7 @@ public class IndexTest {
   }
 
   @Test
-  public void testRemove() {
+  public void testRemove() throws IOException {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
     db.begin();
     try {
@@ -96,11 +96,18 @@ public class IndexTest {
 
       Assertions.assertEquals(TOT, total);
 
-      // GET EACH ITEM TO CHECK IT HAVE BEEN DELETED
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
       for (int i = 0; i < TOT; ++i) {
         for (Index index : indexes)
           Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
       }
+
+      // NOT SUPPORTED
+//      for (Index index : indexes)
+//        Assertions.assertNull(index.iterator(true).next());
+//
+//      for (Index index : indexes)
+//        Assertions.assertNull(index.iterator(false).next());
 
     } finally {
       db.close();

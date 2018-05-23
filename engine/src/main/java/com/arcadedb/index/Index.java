@@ -15,12 +15,24 @@ public interface Index {
 
   void compact() throws IOException;
 
+  /**
+   * The returning iterator does not skip deleted entries.
+   */
   IndexCursor iterator(Object[] fromKeys) throws IOException;
 
+  /**
+   * The returning iterator does not skip deleted entries.
+   */
   IndexCursor iterator(boolean ascendingOrder) throws IOException;
 
+  /**
+   * The returning iterator does not skip deleted entries.
+   */
   IndexCursor iterator(boolean ascendingOrder, Object[] fromKeys) throws IOException;
 
+  /**
+   * The returning iterator does not skip deleted entries.
+   */
   IndexCursor range(Object[] beginKeys, Object[] endKeys) throws IOException;
 
   List<RID> get(Object[] keys);
