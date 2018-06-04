@@ -6,143 +6,239 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.server.ServerException;
+import com.arcadedb.database.Binary;
+import com.arcadedb.database.Database;
+import com.arcadedb.engine.ModifiablePage;
+import com.arcadedb.engine.PageId;
+import com.arcadedb.engine.PageManager;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.network.binary.ChannelBinaryClient;
+import com.arcadedb.network.binary.ConnectionException;
+import com.arcadedb.network.binary.NetworkProtocolException;
+import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
+import com.arcadedb.schema.SchemaImpl;
+import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ha.message.*;
+import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
 import com.arcadedb.utility.LogManager;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.admin.ZooKeeperAdmin;
-import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.server.ServerCnxnFactory;
-import org.apache.zookeeper.server.ServerConfig;
-import org.apache.zookeeper.server.ZooKeeperServer;
-import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 
+import java.io.FileWriter;
 import java.io.IOException;
-import java.net.BindException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 public class HAServer {
-  private final ContextConfiguration configuration;
-  private       ZooKeeperServer      zkServer;
-  private       ServerCnxnFactory    zooKeeperCnxnFactory;
-  private       boolean              zooKeeperStarted;
+  private final HAMessageFactory              messageFactory     = new HAMessageFactory(this);
+  private final ArcadeDBServer                server;
+  private final ContextConfiguration          configuration;
+  private final String                        clusterName;
+  private final List<HALeaderNetworkExecutor> replicaConnections = new ArrayList<>();
+  private       String                        leaderURL;
+  private       ChannelBinaryClient           leaderConnection;
+  private       HALeaderNetworkListener       listener;
 
-  public HAServer(final ContextConfiguration configuration) {
+  public HAServer(final ArcadeDBServer server, final ContextConfiguration configuration) {
+    this.server = server;
     this.configuration = configuration;
+    this.clusterName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
   }
 
-  public boolean isZooKeeperStarted() {
-    return zooKeeperStarted;
-  }
+  public void connect() throws IOException, InterruptedException {
+    listener = new HALeaderNetworkListener(this, new DefaultServerSocketFactory(),
+        configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST),
+        configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS));
 
-  public void stop() {
-    LogManager.instance().info(this, "- Shutting down ZooKeeper Server...");
+    final String localURL = listener.getHost() + ":" + listener.getPort();
 
-    if (zkServer != null)
-      if (zkServer.isRunning())
-        zkServer.shutdown();
-
-    if (zooKeeperCnxnFactory != null) {
-      try {
-        zooKeeperCnxnFactory.shutdown();
-        zooKeeperCnxnFactory.join();
-      } catch (InterruptedException e) {
-        // IGNORE IT
-      }
-    }
-
-    LogManager.instance().info(this, "- ZooKeeper is down");
-  }
-
-  public void start() throws IOException {
-    // IGNORE LOG4J WARNING
-    System.setProperty("log4j.defaultInitOverride", "true");
-
-    int port = configuration.getValueAsInteger(GlobalConfiguration.SERVER_ZOOKEEPER_PORT);
-
-    final boolean zooKeeperAutoIncrementPort = configuration
-        .getValueAsBoolean(GlobalConfiguration.SERVER_ZOOKEEPER_AUTOINCREMENT_PORT);
-
-    do {
-      final Properties startupProperties = new Properties();
-      startupProperties.setProperty("clientPort", "" + port);
-      startupProperties.setProperty("dataDir", "./target/logs");
-      //startupProperties.setProperty("standaloneEnabled", "false");
-      startupProperties.setProperty("reconfigEnabled", "true");
-      startupProperties.setProperty("tickTime", "2");
-
-      QuorumPeerConfig quorumConfiguration = new QuorumPeerConfig();
-      try {
-        quorumConfiguration.parseProperties(startupProperties);
-      } catch (Exception e) {
-        throw new ServerException("Error on starting ZooKeeper. Configuration not valid", e);
-      }
-
-      final ServerConfig config = new ServerConfig();
-      config.readFrom(quorumConfiguration);
-
-      FileTxnSnapLog txnLog = null;
-      try {
-
-        LogManager.instance().debug(this, "- Starting ZooKeeper service...");
-
-        zkServer = new ZooKeeperServer();
-
-        txnLog = new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir());
-        zkServer.setTxnLogFactory(txnLog);
-        zkServer.setTickTime(config.getTickTime());
-        zkServer.setMinSessionTimeout(config.getMinSessionTimeout());
-        zkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
-        zooKeeperCnxnFactory = ServerCnxnFactory.createFactory();
-        zooKeeperCnxnFactory.configure(config.getClientPortAddress(), config.getMaxClientCnxns());
-        zooKeeperCnxnFactory.startup(zkServer);
-
-        zooKeeperStarted = true;
-        LogManager.instance().info(this, "- ZooKeeper service started (port=%d)", port);
-        break;
-
-      } catch (BindException e) {
-        LogManager.instance().warn(this, "- ZooKeeper Port %d not available", port);
-        // RETRY
-        ++port;
-
-      } catch (InterruptedException e) {
-        LogManager.instance().warn(this, "Zookeeper service interrupted", e);
-        break;
-      } catch (Exception e) {
-        LogManager.instance().error(this, "Error on starting ZooKeeper", e);
-        break;
-      }
-    } while (zooKeeperAutoIncrementPort);
-
-    if (!zooKeeperStarted) {
-      stop();
-      return;
-    }
-  }
-
-  public byte[] reconfig(List<String> joiningServers, List<String> leavingServers) {
-    try {
-      final ZooKeeperAdmin admin = new ZooKeeperAdmin(
-          "localhost:" + configuration.getValueAsInteger(GlobalConfiguration.SERVER_ZOOKEEPER_PORT), 5000, new Watcher() {
-        @Override
-        public void process(WatchedEvent watchedEvent) {
-          LogManager.instance().info(this, "HA - Received event %s", watchedEvent);
+    final String serverList = configuration.getValueAsString(GlobalConfiguration.HA_SERVER_LIST).trim();
+    if (!serverList.isEmpty()) {
+      final String[] serverEntries = serverList.split(",");
+      for (String serverEntry : serverEntries) {
+        if (!localURL.equals(serverEntry) && connectTo(serverEntry)) {
+          break;
         }
-      });
-
-      return admin.reconfigure(joiningServers, leavingServers, null, 0, new Stat());
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } catch (KeeperException e) {
-      e.printStackTrace();
+      }
     }
-    return null;
+
+    if (leaderConnection != null) {
+      server.log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s)", clusterName, leaderURL);
+      initReplica();
+    } else {
+      server.log(this, Level.INFO, "Server started as Leader in HA mode (cluster=%s)", clusterName);
+    }
+  }
+
+  public void close() {
+    if (listener != null)
+      listener.close();
+
+    if (leaderConnection != null)
+      leaderConnection.close();
+  }
+
+  public ArcadeDBServer getServer() {
+    return server;
+  }
+
+  public boolean isLeader() {
+    return leaderConnection == null;
+  }
+
+  public Object getLeaderURL() {
+    return leaderURL;
+  }
+
+  public String getServerName() {
+    return server.getServerName();
+  }
+
+  public String getClusterName() {
+    return clusterName;
+  }
+
+  public void registerIncomingConnection(final HALeaderNetworkExecutor connection) {
+    replicaConnections.add(connection);
+  }
+
+  public HAMessageFactory getMessageFactory() {
+    return messageFactory;
+  }
+
+  private boolean connectTo(final String serverEntry) {
+    final String[] serverParts = serverEntry.split(":");
+    if (serverParts.length != 2)
+      throw new ConfigurationException(
+          "Found invalid server/port entry in " + GlobalConfiguration.HA_SERVER_LIST.getKey() + " setting: " + serverEntry);
+
+    try {
+      connectTo(serverParts[0], Integer.parseInt(serverParts[1]));
+
+      // OK, CONNECTED
+      return true;
+
+    } catch (ServerIsNotTheLeaderException e) {
+      // TODO: SET THIS LOG TO DEBUG
+      server.log(this, Level.INFO, "Remote server %s:%d is not the leader, connecting to %s", serverParts[0],
+          Integer.parseInt(serverParts[1]), e.getLeaderURL());
+
+    } catch (Exception e) {
+      server.log(this, Level.INFO, "Error on connecting to the remote server %s:%d", serverParts[0],
+          Integer.parseInt(serverParts[1]));
+    }
+    return false;
+  }
+
+  /**
+   * Connects to a remote server. The connection succeed only if the remote server is the leader.
+   */
+  private void connectTo(final String host, final int port) throws IOException {
+    server.log(this, Level.INFO, "Connecting to server %s:%d...", host, port);
+
+    final ChannelBinaryClient client = new ChannelBinaryClient(host, port, configuration);
+
+    // SEND SERVER INFO
+    client.writeShort((short) HALeaderNetworkExecutor.PROTOCOL_VERSION);
+    client.writeString(configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME));
+    client.writeString(configuration.getValueAsString(GlobalConfiguration.SERVER_NAME));
+    client.flush();
+
+    // READ RESPONSE
+    final boolean connectionAccepted = client.readBoolean();
+    if (!connectionAccepted) {
+      final String reason = client.readString();
+      client.close();
+      throw new ConnectionException(host + ":" + port, reason);
+    }
+
+    leaderURL = client.getURL();
+    leaderConnection = client;
+
+    server.log(this, Level.INFO, "Server leader %s:%d connected", host, port);
+  }
+
+  private void initReplica() throws IOException, InterruptedException {
+    final Binary buffer = new Binary(1024);
+
+    writeRequest(buffer, new DatabaseListRequest());
+    final DatabaseListResponse databaseList = (DatabaseListResponse) readResponse(buffer);
+
+    final Set<String> databases = databaseList.getDatabases();
+    for (String db : databases) {
+      writeRequest(buffer, new DatabaseStructureRequest(db));
+      final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) readResponse(buffer);
+
+      final Database database = server.getDatabase(db);
+
+      final FileWriter schemaFile = new FileWriter(database.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
+      try {
+        schemaFile.write(dbStructure.getSchemaJson());
+      } finally {
+        schemaFile.close();
+      }
+
+      final PageManager pageManager = database.getPageManager();
+
+      for (Map.Entry<Integer, String> f : dbStructure.getFileNames().entrySet()) {
+
+        final PaginatedFile file = database.getFileManager()
+            .getOrCreateFile(f.getKey(), database.getDatabasePath() + "/" + f.getValue());
+        final int pageSize = file.getPageSize();
+
+        int from = 0;
+
+        while (true) {
+          writeRequest(buffer, new FileContentRequest(db, f.getKey(), from));
+          final FileContentResponse fileChunk = (FileContentResponse) readResponse(buffer);
+
+          if (fileChunk.getPages() == 0)
+            break;
+
+          for (int i = 0; i < fileChunk.getPages(); ++i) {
+            final ModifiablePage page = new ModifiablePage(pageManager, new PageId(file.getFileId(), from + i), pageSize);
+            System.arraycopy(fileChunk.getPagesContent().getContent(), i * pageSize, page.getTrackable().getContent(), 0, pageSize);
+            page.loadMetadata();
+            pageManager.overridePage(page);
+          }
+
+          if (fileChunk.isLast())
+            break;
+
+          from += fileChunk.getPages();
+        }
+      }
+    }
+  }
+
+  private void writeRequest(final Binary buffer, final HAMessage req) throws IOException {
+    buffer.reset();
+    req.toStream(buffer);
+
+    buffer.flip();
+
+    leaderConnection.writeBytes(buffer.getContent(), buffer.size());
+    leaderConnection.flush();
+  }
+
+  private HAMessage readResponse(final Binary buffer) throws IOException {
+    final byte[] response = leaderConnection.readBytes();
+    final HAMessage message = messageFactory.getResponseMessage(response[0]);
+
+    if (message == null) {
+      LogManager.instance().info(this, "Error on reading response, message %d not valid", response[0]);
+      throw new NetworkProtocolException("Error on reading response, message " + response[0] + " not valid");
+    }
+
+    buffer.reset();
+    buffer.putByteArray(response);
+
+    buffer.flip();
+
+    message.fromStream(buffer);
+
+    return message;
   }
 }

@@ -17,10 +17,11 @@ public class PaginatedFile {
   }
 
   private final String      filePath;
+  private       String      fileName;
   private       FileChannel channel;
   private       int         fileId;
   private       int         pageSize;
-  private       String      fileName;
+  private       String      componentName;
   private final String      fileExtension;
   private       boolean     open;
 
@@ -38,12 +39,18 @@ public class PaginatedFile {
     if (fileIdPos > -1) {
       fileId = Integer.parseInt(filePrefix.substring(fileIdPos + 1));
       int pos = filePrefix.lastIndexOf("/");
-      fileName = filePrefix.substring(pos + 1, filePrefix.lastIndexOf("."));
+      componentName = filePrefix.substring(pos + 1, filePrefix.lastIndexOf("."));
     } else {
       fileId = -1;
       int pos = filePrefix.lastIndexOf("/");
-      fileName = filePrefix.substring(pos + 1);
+      componentName = filePrefix.substring(pos + 1);
     }
+
+    final int lastSlash = filePath.lastIndexOf("/");
+    if (lastSlash > -1)
+      fileName = filePath.substring(lastSlash + 1);
+    else
+      fileName = filePath;
 
     this.channel = new RandomAccessFile(filePath, mode == MODE.READ_WRITE ? "rw" : "r").getChannel();
     this.open = true;
@@ -65,6 +72,10 @@ public class PaginatedFile {
 
   public void flush() throws IOException {
     channel.force(true);
+  }
+
+  public String getFileName() {
+    return fileName;
   }
 
   /**
@@ -122,8 +133,8 @@ public class PaginatedFile {
     return filePath;
   }
 
-  public String getFileName() {
-    return fileName;
+  public String getComponentName() {
+    return componentName;
   }
 
   public String getFileExtension() {

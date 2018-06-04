@@ -1,21 +1,21 @@
 /*
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
-package com.arcadedb.server.ha;
+package com.arcadedb.server.ha.network;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 
-public abstract class OServerSocketFactory {
+public abstract class ServerSocketFactory {
 
-  private static OServerSocketFactory theFactory;
+  private static ServerSocketFactory theFactory;
 
-  public OServerSocketFactory() {
+  public ServerSocketFactory() {
   }
 
-  public static OServerSocketFactory getDefault() {
-    synchronized (OServerSocketFactory.class) {
+  public static ServerSocketFactory getDefault() {
+    synchronized (ServerSocketFactory.class) {
       if (theFactory == null) {
         theFactory = new DefaultServerSocketFactory();
       }

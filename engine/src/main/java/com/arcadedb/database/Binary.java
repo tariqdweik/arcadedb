@@ -35,6 +35,10 @@ public class Binary implements BinaryStructure {
     size = 0;
   }
 
+  public Binary(final byte[] buffer) {
+    this(buffer, buffer.length);
+  }
+
   public Binary(final byte[] buffer, final int contentSize) {
     this.content = buffer;
     this.buffer = ByteBuffer.wrap(content);

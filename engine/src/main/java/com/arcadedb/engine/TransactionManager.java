@@ -272,7 +272,7 @@ public class TransactionManager {
       for (int i = 0; i < activeWALFilePool.length; ++i) {
         final WALFile file = activeWALFilePool[i];
         try {
-          if (file.getSize() > MAX_LOG_FILE_SIZE) {
+          if (file != null && file.getSize() > MAX_LOG_FILE_SIZE) {
             LogManager.instance()
                 .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file,
                     MAX_LOG_FILE_SIZE);

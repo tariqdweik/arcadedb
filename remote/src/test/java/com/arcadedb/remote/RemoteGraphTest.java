@@ -31,7 +31,7 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
     server = new ArcadeDBServer(config);
     try {
       server.start();
-    } catch (IOException e) {
+    } catch (Exception e) {
       e.printStackTrace();
       Assertions.fail("Cannot start the server");
     }

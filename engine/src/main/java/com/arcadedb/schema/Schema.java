@@ -81,4 +81,6 @@ public interface Schema {
   void setDateFormat(String dateFormat);
 
   String getDateTimeFormat();
+
+  String getEncoding();
 }

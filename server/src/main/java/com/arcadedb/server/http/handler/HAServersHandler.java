@@ -30,9 +30,8 @@ public class HAServersHandler extends AbstractHandler {
       leavingServers.add("1");
       joiningServers.add("server.4=localhost:1234:1235;1236");
 
-      final byte[] config = httpServer.getServer().getZKServer().reconfig(joiningServers, leavingServers);
-
-      final String result = new String(config);
+      // TODO
+      final String result = new String("");
 
       System.out.println(result);
 

@@ -2,15 +2,15 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.server.ha;
+package com.arcadedb.server.ha.network;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 
-class DefaultServerSocketFactory extends OServerSocketFactory {
+public class DefaultServerSocketFactory extends ServerSocketFactory {
 
-  DefaultServerSocketFactory() {
+  public DefaultServerSocketFactory() {
   }
 
   public ServerSocket createServerSocket() throws IOException {

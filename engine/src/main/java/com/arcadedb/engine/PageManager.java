@@ -226,6 +226,17 @@ public class PageManager extends LockContext {
     }
   }
 
+  public void overridePage(final ModifiablePage page) throws IOException {
+    // ADD THE PAGE IN THE WRITE CACHE. FROM THIS POINT THE PAGE IS NEVER MODIFIED DIRECTLY, SO IT CAN BE SHARED
+    if (writeCache.put(page.pageId, page) == null)
+      totalWriteCacheRAM.addAndGet(page.getPhysicalSize());
+
+    flushPage(page);
+
+    LogManager.instance()
+        .debug(this, "Overwritten page %s (size=%d threadId=%d)", page, page.getPhysicalSize(), Thread.currentThread().getId());
+  }
+
   public List<Integer> tryLockFiles(final List<Integer> orderedModifiedFiles, final long timeout) {
     final List<Integer> lockedFiles = new ArrayList<>(orderedModifiedFiles.size());
     for (Integer fileId : orderedModifiedFiles) {

@@ -62,7 +62,7 @@ public class FileManager {
       try {
         f.close();
       } catch (IOException e) {
-        throw new DatabaseOperationException("Error on closing file '" + f.getFileName() + "'");
+        throw new DatabaseOperationException("Error on closing file '" + f.getComponentName() + "'");
       }
 
     files.clear();
@@ -74,7 +74,7 @@ public class FileManager {
   public void dropFile(final int fileId) throws IOException {
     PaginatedFile file = fileIdMap.remove(fileId);
     if (file != null) {
-      fileNameMap.remove(file.getFileName());
+      fileNameMap.remove(file.getComponentName());
       files.set(fileId, null);
     }
     file.drop();
@@ -130,16 +130,8 @@ public class FileManager {
     return getOrCreateFile(PaginatedFile.getFileNameFromPath(filePath), filePath, mode);
   }
 
-  public int newFileId() {
-    // LOOK FOR AN HOLE
-    for (int i = 0; i < files.size(); ++i) {
-      if (files.get(i) == null)
-        return i;
-    }
-    return files.size();
-  }
-
-  public PaginatedFile getOrCreateFile(final String fileName, final String filePath, final PaginatedFile.MODE mode) throws IOException {
+  public PaginatedFile getOrCreateFile(final String fileName, final String filePath, final PaginatedFile.MODE mode)
+      throws IOException {
     PaginatedFile file = fileNameMap.get(fileName);
     if (file != null)
       return file;
@@ -149,11 +141,30 @@ public class FileManager {
     return file;
   }
 
+  public PaginatedFile getOrCreateFile(final int fileId, final String filePath) throws IOException {
+    PaginatedFile file = fileIdMap.get(fileId);
+    if (file == null) {
+      file = new PaginatedFile(filePath, mode);
+      registerFile(file);
+    }
+
+    return file;
+  }
+
+  public int newFileId() {
+    // LOOK FOR AN HOLE
+    for (int i = 0; i < files.size(); ++i) {
+      if (files.get(i) == null)
+        return i;
+    }
+    return files.size();
+  }
+
   private void registerFile(final PaginatedFile file) {
     while (files.size() < file.getFileId() + 1)
       files.add(null);
     files.set(file.getFileId(), file);
-    fileNameMap.put(file.getFileName(), file);
+    fileNameMap.put(file.getComponentName(), file);
     fileIdMap.put(file.getFileId(), file);
     maxFilesOpened.incrementAndGet();
   }

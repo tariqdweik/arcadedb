@@ -4,6 +4,7 @@
 
 package com.arcadedb.server;
 
+import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
@@ -107,9 +108,20 @@ public abstract class BaseGraphServerTest {
 
     final int totalServers = getServers();
     servers = new ArcadeDBServer[totalServers];
+
+    int port = 2424;
+    String serverURLs = "";
+    for (int i = 0; i < totalServers; ++i) {
+      if (i > 0)
+        serverURLs += ",";
+      serverURLs += "localhost:" + (port++);
+    }
+
     for (int i = 0; i < totalServers; ++i) {
       final ContextConfiguration config = new ContextConfiguration();
+      config.setValue(GlobalConfiguration.SERVER_NAME, Constants.PRODUCT + "_" + i);
       config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + (i == 0 ? "" : i));
+      config.setValue(GlobalConfiguration.HA_SERVER_LIST, serverURLs);
       servers[i] = new ArcadeDBServer(config);
 
       final int serverId = i;
@@ -119,7 +131,7 @@ public abstract class BaseGraphServerTest {
         public void run() {
           try {
             servers[serverId].start();
-          } catch (IOException e) {
+          } catch (Exception e) {
             e.printStackTrace();
           }
           LogManager.instance().info(this, "Test Server-%d is down", serverId);

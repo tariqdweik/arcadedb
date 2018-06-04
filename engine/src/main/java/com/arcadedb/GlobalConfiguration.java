@@ -95,6 +95,8 @@ public enum GlobalConfiguration {
   NETWORK_SOCKET_BUFFER_SIZE("arcadedb.network.socketBufferSize", "TCP/IP Socket buffer size, if 0 use the OS default",
       Integer.class, 0),
 
+  NETWORK_SOCKET_TIMEOUT("arcadedb.network.socketTimeout", "TCP/IP Socket timeout (in ms)", Integer.class, 3000),
+
   NETWORK_USE_SSL("arcadedb.ssl.enabled", "Use SSL for client connections", Boolean.class, false),
 
   NETWORK_SSL_KEYSTORE("arcadedb.ssl.keyStore", "Use SSL for client connections", String.class, null),
@@ -106,6 +108,8 @@ public enum GlobalConfiguration {
   NETWORK_SSL_TRUSTSTORE_PASSWORD("arcadedb.ssl.trustStorePass", "Use SSL for client connections", String.class, null),
 
   // SERVER
+  SERVER_NAME("arcadedb.server.name", "Server name", String.class, Constants.PRODUCT + "_0"),
+
   SERVER_DATABASE_DIRECTORY("arcadedb.server.databaseDirectory", "Directory containing the database", String.class, "../databases"),
 
   // SERVER HTTP
@@ -119,23 +123,23 @@ public enum GlobalConfiguration {
       "True to increment the TCP/IP port number used for incoming HTTP in case the configured is not available", Boolean.class,
       true),
 
-  // SERVER REPLICATION
-  SERVER_REPLICATION_INCOMING_HOST("arcadedb.server.replicationIncomingHost",
-      "TCP/IP host name used for incoming replication connections", String.class, "localhost"),
+  // HA
+  HA_REPLICATION_INCOMING_HOST("arcadedb.ha.replicationIncomingHost", "TCP/IP host name used for incoming replication connections",
+      String.class, "localhost"),
 
-  SERVER_REPLICATION_INCOMING_PORT("arcadedb.server.replicationIncomingPort",
-      "TCP/IP port number used for incoming replication connections", Integer.class, 2424),
+  HA_REPLICATION_INCOMING_PORTS("arcadedb.ha.replicationIncomingPorts",
+      "TCP/IP port number used for incoming replication connections", String.class, "2424-2429"),
 
-  SERVER_REPLICATION_AUTOINCREMENT_PORT("arcadedb.server.replicationAutoIncrementPort",
-      "True to increment the TCP/IP port number used for incoming replication in case the configured is not available",
-      Boolean.class, true),
+  HA_CLUSTER_NAME("arcadedb.ha.clusterName",
+      "Cluster name. By default is 'arcadedb'. Useful in case of multiple clusters in the same network", String.class,
+      Constants.PRODUCT.toLowerCase()),
 
-  // SERVER ZOOKEEPER
-  SERVER_ZOOKEEPER_PORT("arcadedb.server.zookeeperIncomingPort", "TCP/IP port number used by zookeper", Integer.class,
-      2490),
+  HA_SERVER_LIST("arcadedb.ha.serverList",
+      "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424", String.class, ""),
 
-  SERVER_ZOOKEEPER_AUTOINCREMENT_PORT("arcadedb.server.zookeeperAutoIncrementPort",
-      "True to increment the TCP/IP port number used by zookeper in case the configured is not available", Boolean.class, true),;
+  HA_MULTICAST_PORT("arcadedb.ha.multicastPort", "UDP MultiCast port used for auto discovery of servers", Integer.class, 2434),
+
+  HA_MULTICAST_TIMEOUT("arcadedb.ha.multicastTimeout", "Timeout used to discover any active clusters", Integer.class, 2000),;
 
   // ZOOKEEPER CFG
   public int     zooKeeperBindPort          = 2490;

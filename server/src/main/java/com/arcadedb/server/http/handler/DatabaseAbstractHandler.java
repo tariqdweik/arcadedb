@@ -26,6 +26,6 @@ public abstract class DatabaseAbstractHandler extends AbstractHandler {
       return;
     }
 
-    execute(exchange, httpServer.getServer().getDatabase(databaseName.getFirst()));
+    execute(exchange, httpServer.getUndertow().getDatabase(databaseName.getFirst()));
   }
 }

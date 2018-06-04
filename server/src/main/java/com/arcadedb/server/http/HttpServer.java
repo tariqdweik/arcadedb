@@ -13,25 +13,25 @@ import com.arcadedb.server.http.handler.CommandHandler;
 import com.arcadedb.server.http.handler.CreateDocumentHandler;
 import com.arcadedb.server.http.handler.GetDocumentHandler;
 import com.arcadedb.server.http.handler.HAServersHandler;
-import com.arcadedb.utility.LogManager;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.RoutingHandler;
 
 import java.net.BindException;
+import java.util.logging.Level;
 
 public class HttpServer {
-  private       Undertow       server;
+  private       Undertow       undertow;
   private       JsonSerializer jsonSerializer = new JsonSerializer();
-  private final ArcadeDBServer mainServer;
+  private final ArcadeDBServer server;
 
-  public HttpServer(final ArcadeDBServer mainServer) {
-    this.mainServer = mainServer;
+  public HttpServer(final ArcadeDBServer server) {
+    this.server = server;
   }
 
   public void stop() {
-    if (server != null)
-      server.stop();
+    if (undertow != null)
+      undertow.stop();
   }
 
   public JsonSerializer getJsonSerializer() {
@@ -39,13 +39,13 @@ public class HttpServer {
   }
 
   public void start() {
-    final ContextConfiguration configuration = mainServer.getConfiguration();
+    final ContextConfiguration configuration = server.getConfiguration();
 
     final String host = configuration.getValueAsString(GlobalConfiguration.SERVER_HTTP_INCOMING_HOST);
     final boolean httpAutoIncrementPort = configuration.getValueAsBoolean(GlobalConfiguration.SERVER_HTTP_AUTOINCREMENT_PORT);
     int port = configuration.getValueAsInteger(GlobalConfiguration.SERVER_HTTP_INCOMING_PORT);
 
-    LogManager.instance().info(this, "- Starting HTTP Server (host=%s port=%d)...", host, port);
+    server.log(this, Level.INFO, "- Starting HTTP Server (host=%s port=%d)...", host, port);
 
     final HttpHandler routes = new RoutingHandler().post("/command/{database}/{command}", new CommandHandler(this))
         .get("/document/{database}/{rid}", new GetDocumentHandler(this))
@@ -53,18 +53,18 @@ public class HttpServer {
 
     do {
       try {
-        server = Undertow.builder().addHttpListener(port, host).setHandler(routes).build();
-        server.start();
+        undertow = Undertow.builder().addHttpListener(port, host).setHandler(routes).build();
+        undertow.start();
 
-        LogManager.instance().info(this, "- HTTP Server started (host=%s port=%d)", host, port);
+        server.log(this, Level.INFO, "- HTTP Server started (host=%s port=%d)", host, port);
         break;
 
       } catch (Exception e) {
-        server = null;
+        undertow = null;
 
         if (e.getCause() instanceof BindException) {
           // RETRY
-          LogManager.instance().warn(this, "- HTTP Port %s not available", port);
+          server.log(this, Level.WARNING, "- HTTP Port %s not available", port);
           ++port;
           continue;
         }
@@ -74,7 +74,7 @@ public class HttpServer {
     } while (httpAutoIncrementPort);
   }
 
-  public ArcadeDBServer getServer() {
-    return mainServer;
+  public ArcadeDBServer getUndertow() {
+    return server;
   }
 }

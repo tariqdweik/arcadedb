@@ -34,18 +34,18 @@ public class SchemaImpl implements Schema {
   public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
   public static final String DEFAULT_ENCODING        = "UTF-8";
 
-  private static final String                    SCHEMA_FILE_NAME = "/schema.json";
-  private final        DatabaseInternal          database;
-  private final        List<PaginatedComponent>  files            = new ArrayList<PaginatedComponent>();
-  private final        Map<String, DocumentType> types            = new HashMap<String, DocumentType>();
-  private final        Map<String, Bucket>       bucketMap        = new HashMap<String, Bucket>();
-  private final        Map<String, Index>        indexMap         = new HashMap<String, Index>();
-  private final        String                    databasePath;
-  private              Dictionary                dictionary;
-  private              String                    dateFormat       = DEFAULT_DATE_FORMAT;
-  private              String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
-  private              String                    encoding         = DEFAULT_ENCODING;
-  private              TimeZone                  timeZone         = TimeZone.getDefault();
+  public static final String                    SCHEMA_FILE_NAME = "schema.json";
+  private final       DatabaseInternal          database;
+  private final       List<PaginatedComponent>  files            = new ArrayList<PaginatedComponent>();
+  private final       Map<String, DocumentType> types            = new HashMap<String, DocumentType>();
+  private final       Map<String, Bucket>       bucketMap        = new HashMap<String, Bucket>();
+  private final       Map<String, Index>        indexMap         = new HashMap<String, Index>();
+  private final       String                    databasePath;
+  private             Dictionary                dictionary;
+  private             String                    dateFormat       = DEFAULT_DATE_FORMAT;
+  private             String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
+  private             String                    encoding         = DEFAULT_ENCODING;
+  private             TimeZone                  timeZone         = TimeZone.getDefault();
 
   public SchemaImpl(final DatabaseInternal database, final String databasePath, final PaginatedFile.MODE mode) {
     this.database = database;
@@ -69,7 +69,7 @@ public class SchemaImpl implements Schema {
 
   public void load(final PaginatedFile.MODE mode) throws IOException {
     for (PaginatedFile file : database.getFileManager().getFiles()) {
-      final String fileName = file.getFileName();
+      final String fileName = file.getComponentName();
       final int fileId = file.getFileId();
       final String fileExt = file.getFileExtension();
       final int pageSize = file.getPageSize();
@@ -225,6 +225,10 @@ public class SchemaImpl implements Schema {
         }
       }
     });
+  }
+
+  public String getEncoding() {
+    return encoding;
   }
 
   @Override
@@ -522,7 +526,7 @@ public class SchemaImpl implements Schema {
   protected void readConfiguration() throws IOException {
     types.clear();
 
-    final File file = new File(databasePath + SCHEMA_FILE_NAME);
+    final File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
     if (!file.exists())
       return;
 
@@ -603,7 +607,7 @@ public class SchemaImpl implements Schema {
 
   protected void saveConfiguration() {
     try {
-      final FileWriter file = new FileWriter(databasePath + SCHEMA_FILE_NAME);
+      final FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME);
 
       final JSONObject root = new JSONObject();
       root.put("version", Constants.VERSION);
@@ -663,7 +667,8 @@ public class SchemaImpl implements Schema {
       file.close();
 
     } catch (IOException e) {
-      LogManager.instance().error(this, "Error on saving schema configuration to file: %s", e, databasePath + SCHEMA_FILE_NAME);
+      LogManager.instance()
+          .error(this, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
     }
   }
 
