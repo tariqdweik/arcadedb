@@ -4,6 +4,7 @@
 
 package com.arcadedb.engine;
 
+import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.utility.LogManager;
 
@@ -15,6 +16,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TransactionManager {
   private static final long MAX_LOG_FILE_SIZE = 64 * 1024 * 1024;
@@ -82,7 +84,9 @@ public class TransactionManager {
     }
   }
 
-  public void writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync) throws IOException {
+  public Binary writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync) {
+    final AtomicReference<Binary> result = new AtomicReference<>();
+
     while (true) {
       final WALFile file = activeWALFilePool[(int) (Thread.currentThread().getId() % activeWALFilePool.length)];
 
@@ -90,19 +94,21 @@ public class TransactionManager {
         @Override
         public Object call() throws Exception {
           final long txId = transactionIds.getAndIncrement();
-          file.writeTransaction(database, pages, sync, file, txId);
+          result.set(file.writeTransaction(database, pages, sync, file, txId));
           return null;
         }
       }))
-        return;
+        break;
 
       try {
         Thread.sleep(10);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        return;
+        break;
       }
     }
+
+    return result.get();
   }
 
   public void notifyPageFlushed(final ModifiablePage page) {
@@ -259,7 +265,8 @@ public class TransactionManager {
     activeWALFilePool = new WALFile[Runtime.getRuntime().availableProcessors()];
     for (int i = 0; i < activeWALFilePool.length; ++i) {
       try {
-        activeWALFilePool[i] = new WALFile(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+        activeWALFilePool[i] = database.getWALFileFactory()
+            .newInstance(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
       } catch (FileNotFoundException e) {
         LogManager.instance().error(this, "Error on WAL file management for file '%s'", e,
             database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
@@ -276,7 +283,8 @@ public class TransactionManager {
             LogManager.instance()
                 .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file,
                     MAX_LOG_FILE_SIZE);
-            activeWALFilePool[i] = new WALFile(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+            activeWALFilePool[i] = database.getWALFileFactory()
+                .newInstance(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
             file.setActive(false);
             inactiveWALFilePool.add(file);
           }

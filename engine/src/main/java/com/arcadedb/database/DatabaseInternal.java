@@ -6,6 +6,7 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.TransactionManager;
+import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.schema.DocumentType;
 
@@ -43,4 +44,6 @@ public interface DatabaseInternal extends Database {
   void indexDocument(ModifiableDocument record, DocumentType type, Bucket bucket);
 
   void kill();
+
+  WALFileFactory getWALFileFactory();
 }

@@ -16,7 +16,7 @@ import java.net.URL;
 
 public class TwoServersTest extends BaseGraphServerTest {
   @Override
-  protected int getServers() {
+  protected int getServerCount() {
     return 2;
   }
 

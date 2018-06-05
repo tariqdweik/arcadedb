@@ -24,7 +24,7 @@ public class PerformanceInsertNoIndexTest {
   private void run() {
     PerformanceTest.clean();
 
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -42,7 +42,7 @@ public class PerformanceInsertNoIndexTest {
       database.close();
     }
 
-    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     long begin = System.currentTimeMillis();
 

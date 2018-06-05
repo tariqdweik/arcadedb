@@ -41,7 +41,7 @@ public class DatabaseListResponse implements HAResponseMessage<DatabaseListReque
 
   @Override
   public void build(final HAServer server, final DatabaseListRequest request) {
-    databases = server.getServer().getDatabases();
+    databases = server.getServer().getDatabaseNames();
   }
 
   @Override

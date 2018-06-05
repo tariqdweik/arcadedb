@@ -20,7 +20,7 @@ import java.util.concurrent.Callable;
 public interface Database {
   ResultSet command(String query, Map<String, Object> args);
 
-  interface PTransaction {
+  interface Transaction {
     void execute(Database database);
   }
 
@@ -40,7 +40,7 @@ public interface Database {
 
   boolean checkTransactionIsActive();
 
-  void transaction(PTransaction txBlock);
+  void transaction(Transaction txBlock);
 
   void setAutoTransaction(boolean autoTransaction);
 
@@ -80,7 +80,7 @@ public interface Database {
 
   FileManager getFileManager();
 
-  void transaction(PTransaction txBlock, int retries);
+  void transaction(Transaction txBlock, int retries);
 
   RecordFactory getRecordFactory();
 

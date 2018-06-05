@@ -43,6 +43,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected final SchemaImpl            schema;
   protected final GraphEngine           graphEngine    = new GraphEngine();
   protected final TransactionManager    transactionManager;
+  protected final WALFileFactory        walFactory;
   protected       DatabaseAsyncExecutor asynch         = null;
   private         boolean               readYourWrites = true;
 
@@ -55,10 +56,15 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode,
-      final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
+      final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks, final WALFileFactory walFactory) {
     try {
       this.mode = mode;
       this.callbacks = callbacks;
+      if (walFactory != null)
+        this.walFactory = walFactory;
+      else
+        this.walFactory = new WALFileFactoryEmbedded();
+
       if (path.endsWith("/"))
         databasePath = path.substring(0, path.length() - 1);
       else
@@ -211,6 +217,10 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       @Override
       public Object call() {
         checkDatabaseIsOpen();
+
+        // FORCE THE RESET OF TL
+        DatabaseContext.INSTANCE.init(EmbeddedDatabase.this);
+
         getTransaction().begin();
         return null;
       }
@@ -588,12 +598,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public void transaction(final PTransaction txBlock) {
+  public void transaction(final Transaction txBlock) {
     transaction(txBlock, GlobalConfiguration.MVCC_RETRIES.getValueAsInteger());
   }
 
   @Override
-  public void transaction(final PTransaction txBlock, final int retries) {
+  public void transaction(final Transaction txBlock, final int retries) {
     if (txBlock == null)
       throw new IllegalArgumentException("Transaction block is null");
 
@@ -779,6 +789,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       open = false;
       Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
     }
+  }
+
+  @Override
+  public WALFileFactory getWALFileFactory() {
+    return walFactory;
   }
 
   @Override

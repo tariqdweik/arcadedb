@@ -88,10 +88,6 @@ public class HAServer {
     return leaderConnection == null;
   }
 
-  public Object getLeaderURL() {
-    return leaderURL;
-  }
-
   public String getServerName() {
     return server.getServerName();
   }
@@ -173,43 +169,59 @@ public class HAServer {
 
       final Database database = server.getDatabase(db);
 
-      final FileWriter schemaFile = new FileWriter(database.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
-      try {
-        schemaFile.write(dbStructure.getSchemaJson());
-      } finally {
-        schemaFile.close();
+      installDatabase(buffer, db, dbStructure, database);
+    }
+  }
+
+  private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure,
+      final Database database) throws IOException {
+
+    // WRITE THE SCHEMA
+    final FileWriter schemaFile = new FileWriter(database.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
+    try {
+      schemaFile.write(dbStructure.getSchemaJson());
+    } finally {
+      schemaFile.close();
+    }
+
+    // WRITE ALL THE FILES
+    for (Map.Entry<Integer, String> f : dbStructure.getFileNames().entrySet()) {
+      installFile(buffer, db, database, f.getKey(), f.getValue());
+    }
+
+    // RELOAD THE SCHEMA
+    ((SchemaImpl) database.getSchema()).close();
+    ((SchemaImpl) database.getSchema()).load(PaginatedFile.MODE.READ_ONLY);
+  }
+
+  private void installFile(final Binary buffer, final String db, final Database database, final int fileId, final String fileName)
+      throws IOException {
+    final PageManager pageManager = database.getPageManager();
+
+    final PaginatedFile file = database.getFileManager().getOrCreateFile(fileId, database.getDatabasePath() + "/" + fileName);
+
+    final int pageSize = file.getPageSize();
+
+    int from = 0;
+
+    while (true) {
+      writeRequest(buffer, new FileContentRequest(db, fileId, from));
+      final FileContentResponse fileChunk = (FileContentResponse) readResponse(buffer);
+
+      if (fileChunk.getPages() == 0)
+        break;
+
+      for (int i = 0; i < fileChunk.getPages(); ++i) {
+        final ModifiablePage page = new ModifiablePage(pageManager, new PageId(file.getFileId(), from + i), pageSize);
+        System.arraycopy(fileChunk.getPagesContent().getContent(), i * pageSize, page.getTrackable().getContent(), 0, pageSize);
+        page.loadMetadata();
+        pageManager.overridePage(page);
       }
 
-      final PageManager pageManager = database.getPageManager();
+      if (fileChunk.isLast())
+        break;
 
-      for (Map.Entry<Integer, String> f : dbStructure.getFileNames().entrySet()) {
-
-        final PaginatedFile file = database.getFileManager()
-            .getOrCreateFile(f.getKey(), database.getDatabasePath() + "/" + f.getValue());
-        final int pageSize = file.getPageSize();
-
-        int from = 0;
-
-        while (true) {
-          writeRequest(buffer, new FileContentRequest(db, f.getKey(), from));
-          final FileContentResponse fileChunk = (FileContentResponse) readResponse(buffer);
-
-          if (fileChunk.getPages() == 0)
-            break;
-
-          for (int i = 0; i < fileChunk.getPages(); ++i) {
-            final ModifiablePage page = new ModifiablePage(pageManager, new PageId(file.getFileId(), from + i), pageSize);
-            System.arraycopy(fileChunk.getPagesContent().getContent(), i * pageSize, page.getTrackable().getContent(), 0, pageSize);
-            page.loadMetadata();
-            pageManager.overridePage(page);
-          }
-
-          if (fileChunk.isLast())
-            break;
-
-          from += fileChunk.getPages();
-        }
-      }
+      from += fileChunk.getPages();
     }
   }
 

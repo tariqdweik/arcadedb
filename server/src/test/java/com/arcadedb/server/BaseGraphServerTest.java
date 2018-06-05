@@ -33,7 +33,7 @@ public abstract class BaseGraphServerTest {
   protected static final String VERTEX2_TYPE_NAME = "V2";
   protected static final String EDGE1_TYPE_NAME   = "E1";
   protected static final String EDGE2_TYPE_NAME   = "E2";
-  protected static final String DB_PATH           = "./target/databases/";
+  protected static final String DB_PATH           = "./target/databases";
 
   protected static RID              root;
   private          ArcadeDBServer[] servers;
@@ -48,9 +48,9 @@ public abstract class BaseGraphServerTest {
   public void populate() {
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    FileUtils.deleteRecursively(new File(getDatabasePath()));
+    FileUtils.deleteRecursively(new File(getDatabasePath(0)));
 
-    new DatabaseFactory(getDatabasePath(), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
@@ -66,7 +66,7 @@ public abstract class BaseGraphServerTest {
       }
     });
 
-    final Database db = new DatabaseFactory(getDatabasePath(), PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
       final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
@@ -106,7 +106,7 @@ public abstract class BaseGraphServerTest {
       db.close();
     }
 
-    final int totalServers = getServers();
+    final int totalServers = getServerCount();
     servers = new ArcadeDBServer[totalServers];
 
     int port = 2424;
@@ -120,8 +120,10 @@ public abstract class BaseGraphServerTest {
     for (int i = 0; i < totalServers; ++i) {
       final ContextConfiguration config = new ContextConfiguration();
       config.setValue(GlobalConfiguration.SERVER_NAME, Constants.PRODUCT + "_" + i);
-      config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + (i == 0 ? "" : i));
+      config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + i);
       config.setValue(GlobalConfiguration.HA_SERVER_LIST, serverURLs);
+      config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
+
       servers[i] = new ArcadeDBServer(config);
 
       final int serverId = i;
@@ -139,7 +141,7 @@ public abstract class BaseGraphServerTest {
       }).start();
 
       try {
-        Thread.sleep(2000);
+        Thread.sleep(1000);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -178,7 +180,11 @@ public abstract class BaseGraphServerTest {
     }
   }
 
-  protected int getServers() {
+  protected ArcadeDBServer getServer(final int i) {
+    return servers[i];
+  }
+
+  protected int getServerCount() {
     return 1;
   }
 
@@ -189,8 +195,8 @@ public abstract class BaseGraphServerTest {
       if (servers[i] != null)
         servers[i].stop();
 
-      final Database db = new DatabaseFactory("./target/databases" + (i == 0 ? "" : i) + "/" + getDatabaseName(),
-          PaginatedFile.MODE.READ_WRITE).acquire();
+      final Database db = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE)
+          .open();
       db.drop();
     }
   }
@@ -199,8 +205,8 @@ public abstract class BaseGraphServerTest {
     return "graph";
   }
 
-  protected String getDatabasePath() {
-    return DB_PATH + "/" + getDatabaseName();
+  protected String getDatabasePath(final int serverId) {
+    return DB_PATH + serverId + "/" + getDatabaseName();
   }
 
   protected String readResponse(final HttpURLConnection connection) throws IOException {

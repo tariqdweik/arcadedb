@@ -29,7 +29,7 @@ public class PerformanceVertexIndexTest {
 
     long begin = System.currentTimeMillis();
 
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();

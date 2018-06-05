@@ -66,12 +66,12 @@ public class DatabaseAsyncExecutor {
             if (message == FORCE_COMMIT) {
               // COMMIT SPECIAL CASE
               try {
-                database.getTransaction().commit();
+                database.commit();
                 onOk();
               } catch (Exception e) {
                 onError(e);
               }
-              database.getTransaction().begin();
+              database.begin();
 
             } else if (message == FORCE_EXIT) {
 
@@ -176,8 +176,7 @@ public class DatabaseAsyncExecutor {
 
                 final VertexInternal modifiableSourceVertex;
                 if (outEdgesHeadChunk == null) {
-                  final ModifiableEdgeChunk outChunk = new ModifiableEdgeChunk(database,
-                      GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
+                  final ModifiableEdgeChunk outChunk = new ModifiableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
                   database.createRecordNoLock(outChunk, GraphEngine
                       .getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
                   outEdgesHeadChunk = outChunk.getIdentity();
@@ -373,11 +372,11 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  public void transaction(final Database.PTransaction txBlock) {
+  public void transaction(final Database.Transaction txBlock) {
     transaction(txBlock, GlobalConfiguration.MVCC_RETRIES.getValueAsInteger());
   }
 
-  public void transaction(final Database.PTransaction txBlock, final int retries) {
+  public void transaction(final Database.Transaction txBlock, final int retries) {
     try {
       executorThreads[(int) (transactionCounter.getAndIncrement() % executorThreads.length)].queue
           .put(new DatabaseAsyncTransaction(txBlock, retries));

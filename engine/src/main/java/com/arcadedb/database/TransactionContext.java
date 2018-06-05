@@ -44,7 +44,7 @@ public class TransactionContext {
     modifiedPages = new HashMap<>();
   }
 
-  public void commit() {
+  public Binary commit() {
     if (modifiedPages == null)
       throw new TransactionException("Transaction not begun");
 
@@ -52,10 +52,12 @@ public class TransactionContext {
     if (totalImpactedPages == 0) {
       // EMPTY TRANSACTION = NO CHANGES
       modifiedPages = null;
-      return;
+      return null;
     }
 
     final PageManager pageManager = database.getPageManager();
+
+    Binary result = null;
 
     // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
     final List<Integer> lockedFiles = lockFilesInOrder(pageManager);
@@ -86,7 +88,7 @@ public class TransactionContext {
         }
 
       if (useWAL)
-        database.getTransactionManager().writeTransactionToWAL(pages, sync);
+        result = database.getTransactionManager().writeTransactionToWAL(pages, sync);
 
       try {
         // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
@@ -119,6 +121,8 @@ public class TransactionContext {
     }
 
     reset();
+
+    return result;
   }
 
   public Record getRecordFromCache(final RID rid) {

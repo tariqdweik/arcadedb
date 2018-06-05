@@ -53,7 +53,7 @@ public class PokecLoader {
     else
       directory.mkdirs();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       createSchema(db);
       loadProfiles(db);

@@ -17,8 +17,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 public class RemoteGraphTest extends BaseGraphRemoteTest {
   private ArcadeDBServer server;
 
@@ -41,7 +39,7 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
   public void drop() {
     server.stop();
 
-    final Database db = new DatabaseFactory(BaseGraphRemoteTest.DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(BaseGraphRemoteTest.DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
   }
 

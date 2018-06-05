@@ -22,7 +22,7 @@ public class GraphTest extends BaseGraphTest {
 
   @Test
   public void checkVertices() {
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db2.begin();
     try {
 
@@ -81,7 +81,7 @@ public class GraphTest extends BaseGraphTest {
 
   @Test
   public void checkEdges() {
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db2.begin();
     try {
 
@@ -139,7 +139,7 @@ public class GraphTest extends BaseGraphTest {
 
   @Test
   public void updateVerticesAndEdges() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
 
@@ -181,7 +181,7 @@ public class GraphTest extends BaseGraphTest {
 
   @Test
   public void deleteVertices() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
 
@@ -249,7 +249,7 @@ public class GraphTest extends BaseGraphTest {
 
   @Test
   public void deleteEdges() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
 

@@ -23,7 +23,7 @@ public class PerformanceIndexTest {
 
     final int parallel = 2;
 
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
@@ -44,7 +44,7 @@ public class PerformanceIndexTest {
       database.close();
     }
 
-    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     long begin = System.currentTimeMillis();
 
@@ -89,7 +89,7 @@ public class PerformanceIndexTest {
     }
 
     begin = System.currentTimeMillis();
-    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_ONLY).open();
     try {
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {

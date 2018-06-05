@@ -186,7 +186,7 @@ public class WALFile extends LockContext {
     }
   }
 
-  public void writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync,
+  public Binary writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync,
       final WALFile file, final long txId) throws IOException {
     // WRITE TX HEADER (TXID, PAGES)
     byte[] buffer = new byte[TX_HEADER_SIZE];
@@ -259,6 +259,8 @@ public class WALFile extends LockContext {
       channel.force(false);
 
     database.executeCallbacks(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE);
+
+    return null;
   }
 
   public int getPagesToFlush() {
@@ -273,7 +275,7 @@ public class WALFile extends LockContext {
     return channel.size();
   }
 
-  public void appendPage(final ByteBuffer buffer) throws IOException {
+  protected void appendPage(final ByteBuffer buffer) throws IOException {
     pagesToFlush.incrementAndGet();
     append(buffer);
   }
@@ -316,7 +318,7 @@ public class WALFile extends LockContext {
     return bufferByte.get(0);
   }
 
-  private void append(final ByteBuffer buffer) throws IOException {
+  protected void append(final ByteBuffer buffer) throws IOException {
     buffer.rewind();
     channel.write(buffer, channel.size());
   }

@@ -34,13 +34,13 @@ public class IndexTest {
 
   @AfterEach
   public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
   }
 
   @Test
   public void testGet() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;
@@ -69,7 +69,7 @@ public class IndexTest {
 
   @Test
   public void testRemove() throws IOException {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;
@@ -116,7 +116,7 @@ public class IndexTest {
 
   @Test
   public void testPutDuplicates() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;
@@ -155,7 +155,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexAscending() throws IOException {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;
@@ -188,7 +188,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexDescending() throws IOException {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;
@@ -221,7 +221,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexAscendingPartial() throws IOException {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;
@@ -254,7 +254,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexDescendingPartial() throws IOException {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;
@@ -287,7 +287,7 @@ public class IndexTest {
 
   @Test
   public void testScanIndexRange() throws IOException {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       int total = 0;

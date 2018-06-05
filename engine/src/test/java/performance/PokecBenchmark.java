@@ -123,7 +123,7 @@ public class PokecBenchmark {
   }
 
   private PokecBenchmark() throws Exception {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
 
     try {

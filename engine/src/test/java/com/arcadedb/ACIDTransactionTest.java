@@ -43,13 +43,13 @@ public class ACIDTransactionTest {
 
   @AfterEach
   public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
   }
 
   @Test
   public void testCrashDuringTx() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
       final ModifiableDocument v = db.newDocument("V");
@@ -72,7 +72,7 @@ public class ACIDTransactionTest {
 
   @Test
   public void testIOExceptionDuringCommit() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
 
     try {
@@ -110,7 +110,7 @@ public class ACIDTransactionTest {
 
   @Test
   public void testIOExceptionAfterWALIsWritten() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
 
     try {
@@ -148,7 +148,7 @@ public class ACIDTransactionTest {
 
   @Test
   public void testAsyncIOExceptionAfterWALIsWrittenLastRecords() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     final AtomicInteger errors = new AtomicInteger(0);
 
@@ -207,7 +207,7 @@ public class ACIDTransactionTest {
 
   @Test
   public void testAsyncIOExceptionAfterWALIsWrittenManyRecords() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     final int TOT = 100000;
 
@@ -282,7 +282,7 @@ public class ACIDTransactionTest {
       }
     });
 
-    Database db = factory.acquire();
+    Database db = factory.open();
     Assertions.assertTrue(dbNotClosedCaught.get());
     return db;
   }

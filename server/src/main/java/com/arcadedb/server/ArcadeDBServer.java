@@ -6,13 +6,13 @@ package com.arcadedb.server;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.ThreadAffinityBucketSelectionStrategy;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.ha.HAServer;
+import com.arcadedb.server.ha.ReplicatedDatabase;
+import com.arcadedb.server.ha.ReplicatedWALFileFactory;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.utility.LogManager;
 
@@ -30,8 +30,8 @@ public class ArcadeDBServer {
   private final HttpServer httpServer;
   private       HAServer   haServer;
 
-  private       ConcurrentMap<String, Database> databases = new ConcurrentHashMap<>();
-  private final String                          serverName;
+  private       ConcurrentMap<String, EmbeddedDatabase> databases = new ConcurrentHashMap<>();
+  private final String                                  serverName;
 
   public ArcadeDBServer(final ContextConfiguration configuration) {
     this.configuration = configuration;
@@ -52,8 +52,10 @@ public class ArcadeDBServer {
 
     loadDatabases();
 
-    haServer = new HAServer(this, configuration);
-    haServer.connect();
+    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED)) {
+      haServer = new HAServer(this, configuration);
+      haServer.connect();
+    }
 
     httpServer.start();
 
@@ -96,25 +98,37 @@ public class ArcadeDBServer {
   }
 
   public synchronized Database getDatabase(final String databaseName) {
-    Database db = databases.get(databaseName);
+    EmbeddedDatabase db = databases.get(databaseName);
     if (db == null) {
-      db = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
-          PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).acquire();
+      final DatabaseFactory factory = new DatabaseFactory(
+          configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
+          PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
+
+      if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
+        factory.setWALFileFactory(new ReplicatedWALFileFactory());
+
+      db = factory.open();
 
       // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
       for (DocumentType t : db.getSchema().getTypes()) {
         t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
       }
 
-      final Database oldDb = databases.putIfAbsent(databaseName, db);
+      final EmbeddedDatabase oldDb = databases.putIfAbsent(databaseName, db);
 
       if (oldDb != null)
         db = oldDb;
     }
-    return db;
+
+    DatabaseInternal dbToProxy = db;
+
+    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
+      dbToProxy = new ReplicatedDatabase(this, db);
+
+    return new ServerDatabaseProxy(dbToProxy);
   }
 
-  public Set<String> getDatabases() {
+  public Set<String> getDatabaseNames() {
     return databases.keySet();
   }
 

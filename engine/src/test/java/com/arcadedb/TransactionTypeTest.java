@@ -32,7 +32,7 @@ public class TransactionTypeTest {
 
   @AfterEach
   public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
   }
 
@@ -44,7 +44,7 @@ public class TransactionTypeTest {
   public void testScan() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       db.scanType(TYPE_NAME, true, new DocumentCallback() {
@@ -79,7 +79,7 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByRID() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       db.scanType(TYPE_NAME,true,  new DocumentCallback() {
@@ -116,7 +116,7 @@ public class TransactionTypeTest {
   public void testLookupAllRecordsByKey() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       for (int i = 0; i < TOT; i++) {
@@ -153,7 +153,7 @@ public class TransactionTypeTest {
   public void testDeleteAllRecordsReuseSpace() throws IOException {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
       db.scanType(TYPE_NAME,true,  new DocumentCallback() {
@@ -175,7 +175,7 @@ public class TransactionTypeTest {
 
     populate();
 
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db2.begin();
     try {
       Assertions.assertEquals(TOT, db2.countType(TYPE_NAME, true));
@@ -189,7 +189,7 @@ public class TransactionTypeTest {
   public void testDeleteFail() {
 
     Assertions.assertThrows(DatabaseIsReadOnlyException.class, () -> {
-      final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+      final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
       db.begin();
       try {
         db.scanType(TYPE_NAME,true,  new DocumentCallback() {

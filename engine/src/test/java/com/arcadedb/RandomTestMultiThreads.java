@@ -48,7 +48,7 @@ public class RandomTestMultiThreads {
 
     long begin = System.currentTimeMillis();
 
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
 
       final Thread[] threads = new Thread[WORKERS];
@@ -317,7 +317,7 @@ public class RandomTestMultiThreads {
   }
 
   private void populateDatabase() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     long begin = System.currentTimeMillis();
 
@@ -342,7 +342,7 @@ public class RandomTestMultiThreads {
   }
 
   private void createSchema() {
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       if (!database.getSchema().existsType("Account")) {
         database.begin();

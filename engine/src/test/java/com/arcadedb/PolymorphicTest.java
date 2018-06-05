@@ -72,7 +72,7 @@ public class PolymorphicTest {
       }
     });
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
       final ModifiableVertex maserati = db.newVertex("Car");
@@ -113,13 +113,13 @@ public class PolymorphicTest {
 
   @AfterEach
   public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
   }
 
   @Test
   public void count() {
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db2.begin();
     try {
       // NON POLYMORPHIC COUNTING
@@ -153,7 +153,7 @@ public class PolymorphicTest {
 
   @Test
   public void scan() {
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db2.begin();
     try {
       Assertions.assertEquals(0, scanAndCountType(db2, "Vehicle", false));

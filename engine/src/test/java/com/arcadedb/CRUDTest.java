@@ -24,20 +24,20 @@ public class CRUDTest {
   @BeforeEach
   public void populate() {
     FileUtils.deleteRecursively(new File(DB_PATH));
-    Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     createAll(db);
     db.close();
   }
 
   @AfterEach
   public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
   }
 
   @Test
   public void testUpdate() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
 
@@ -73,7 +73,7 @@ public class CRUDTest {
 
   @Test
   public void testMultiUpdatesOverlap() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     try {
 
@@ -110,7 +110,7 @@ public class CRUDTest {
 
   @Test
   public void testMultiUpdatesAndDeleteOverlap() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
 
       for (int i = 0; i < 10; ++i) {
@@ -159,7 +159,7 @@ public class CRUDTest {
   }
 
   private void createAll(Database db) {
-    db.transaction(new Database.PTransaction() {
+    db.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))

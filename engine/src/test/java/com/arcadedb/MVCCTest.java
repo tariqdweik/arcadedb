@@ -40,7 +40,7 @@ public class MVCCTest {
 
       LogManager.instance().info(this, "Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
 
-      final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+      final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
       database.asynch().setParallelLevel(PARALLEL);
 
@@ -65,7 +65,7 @@ public class MVCCTest {
         final Random rnd = new Random();
 
         for (long txId = 0; txId < TOT_TX; ++txId) {
-          database.asynch().transaction(new Database.PTransaction() {
+          database.asynch().transaction(new Database.Transaction() {
             @Override
             public void execute(Database database) {
               Assertions.assertTrue(database.getTransaction().getModifiedPages() == 0);
@@ -107,7 +107,7 @@ public class MVCCTest {
   }
 
   private void populateDatabase() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     long begin = System.currentTimeMillis();
 
@@ -139,7 +139,7 @@ public class MVCCTest {
   }
 
   private void createSchema() {
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       if (!database.getSchema().existsType("Account")) {
         database.begin();

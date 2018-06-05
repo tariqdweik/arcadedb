@@ -143,7 +143,7 @@ public class Console {
     if (database != null)
       terminal.writer().print("Database already connected, to connect to a different database close the current one first\n");
     else if (!url.isEmpty())
-      database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).acquire();
+      database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
   }
 
   private void executeCommand(String line) {

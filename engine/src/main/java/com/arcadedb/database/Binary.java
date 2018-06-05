@@ -218,6 +218,12 @@ public class Binary implements BinaryStructure {
   }
 
   @Override
+  public void putBuffer(final ByteBuffer value) {
+    checkForAllocation(buffer.position(), value.limit());
+    buffer.put(value);
+  }
+
+  @Override
   public void putByteArray(final byte[] value, final int length) {
     checkForAllocation(buffer.position(), length);
     buffer.put(value, 0, length);

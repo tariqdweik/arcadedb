@@ -30,13 +30,13 @@ public class AsyncTest {
 
   @AfterAll
   public static void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
   }
 
   @Test
   public void testScan() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
@@ -58,7 +58,7 @@ public class AsyncTest {
 
   @Test
   public void testScanInterrupt() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).acquire();
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
@@ -83,7 +83,7 @@ public class AsyncTest {
   private static void populate(final int total) {
     FileUtils.deleteRecursively(new File(DB_PATH));
 
-    final Database database = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).acquire();
+    final Database database = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     database.begin();
     try {
 

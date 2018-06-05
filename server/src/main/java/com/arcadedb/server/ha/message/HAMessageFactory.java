@@ -23,6 +23,9 @@ public class HAMessageFactory {
     case FileContentRequest.ID:
       return new FileContentRequest();
 
+    case TxRequest.ID:
+      return new TxRequest();
+
     default:
       return null;
     }

@@ -124,6 +124,8 @@ public enum GlobalConfiguration {
       true),
 
   // HA
+  HA_ENABLED("arcadedb.ha.enabled", "True if HA is enabled for the current server", Boolean.class, false),
+
   HA_REPLICATION_INCOMING_HOST("arcadedb.ha.replicationIncomingHost", "TCP/IP host name used for incoming replication connections",
       String.class, "localhost"),
 
@@ -140,10 +142,6 @@ public enum GlobalConfiguration {
   HA_MULTICAST_PORT("arcadedb.ha.multicastPort", "UDP MultiCast port used for auto discovery of servers", Integer.class, 2434),
 
   HA_MULTICAST_TIMEOUT("arcadedb.ha.multicastTimeout", "Timeout used to discover any active clusters", Integer.class, 2000),;
-
-  // ZOOKEEPER CFG
-  public int     zooKeeperBindPort          = 2490;
-  public boolean zooKeeperAutoIncrementPort = true;
 
   /**
    * Place holder for the "undefined" value of setting.

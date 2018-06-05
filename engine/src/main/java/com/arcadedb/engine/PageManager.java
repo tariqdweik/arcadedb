@@ -227,6 +227,8 @@ public class PageManager extends LockContext {
   }
 
   public void overridePage(final ModifiablePage page) throws IOException {
+    readCache.remove(page.pageId);
+
     // ADD THE PAGE IN THE WRITE CACHE. FROM THIS POINT THE PAGE IS NEVER MODIFIED DIRECTLY, SO IT CAN BE SHARED
     if (writeCache.put(page.pageId, page) == null)
       totalWriteCacheRAM.addAndGet(page.getPhysicalSize());
