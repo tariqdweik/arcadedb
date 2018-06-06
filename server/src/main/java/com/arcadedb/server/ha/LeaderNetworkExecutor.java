@@ -17,15 +17,16 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.logging.Level;
 
-public class HALeaderNetworkExecutor extends Thread {
+public class LeaderNetworkExecutor extends Thread {
   public static final int PROTOCOL_VERSION = 0;
 
   private final    HAServer            server;
   private          ChannelBinaryServer channel;
   private volatile boolean             shutdown = false;
+  private final String remoteServerName;
 
-  public HALeaderNetworkExecutor(final HAServer ha, final Socket socket) throws IOException {
-    setName(Constants.PRODUCT + "-replication/" + socket.getInetAddress());
+  public LeaderNetworkExecutor(final HAServer ha, final Socket socket) throws IOException {
+    setName(Constants.PRODUCT + "-ha-leader/" + socket.getInetAddress());
 
     this.server = ha;
     this.channel = new ChannelBinaryServer(socket);
@@ -55,7 +56,7 @@ public class HALeaderNetworkExecutor extends Thread {
             "Cluster name '" + remoteClusterName + "' does not match");
       }
 
-      final String remoteServerName = this.channel.readString();
+      remoteServerName = this.channel.readString();
 
       ha.getServer().log(this, Level.INFO, "Remote server '%s' successfully connected", remoteServerName);
 
@@ -67,10 +68,15 @@ public class HALeaderNetworkExecutor extends Thread {
     }
   }
 
+  public String getRemoteServerName() {
+    return remoteServerName;
+  }
+
   @Override
   public void run() {
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
+
     while (!shutdown) {
       try {
         final byte[] requestBytes = channel.readBytes();
@@ -99,13 +105,12 @@ public class HALeaderNetworkExecutor extends Thread {
 
         server.getServer().log(this, Level.INFO, "Request %s -> %s", request, response);
 
-        // SEND THE RESPONSE BACK
+        // SEND THE RESPONSE BACK (USING THE SAME BUFFER)
         buffer.reset();
         response.toStream(buffer);
         buffer.flip();
 
-        channel.writeBytes(buffer.getContent(), buffer.size());
-        channel.flush();
+        sendRequest(buffer);
 
       } catch (EOFException | SocketException e) {
         server.getServer().log(this, Level.FINE, "Error on reading request", e);
@@ -115,6 +120,11 @@ public class HALeaderNetworkExecutor extends Thread {
       }
     }
 
+  }
+
+  public void sendRequest(final Binary buffer) throws IOException {
+    channel.writeBytes(buffer.getContent(), buffer.size());
+    channel.flush();
   }
 
   public void close() {

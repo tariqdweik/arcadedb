@@ -25,21 +25,19 @@ import com.arcadedb.utility.LogManager;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 public class HAServer {
-  private final HAMessageFactory              messageFactory     = new HAMessageFactory(this);
-  private final ArcadeDBServer                server;
-  private final ContextConfiguration          configuration;
-  private final String                        clusterName;
-  private final List<HALeaderNetworkExecutor> replicaConnections = new ArrayList<>();
-  private       String                        leaderURL;
-  private       ChannelBinaryClient           leaderConnection;
-  private       HALeaderNetworkListener       listener;
+  private final HAMessageFactory                   messageFactory     = new HAMessageFactory(this);
+  private final ArcadeDBServer                     server;
+  private final ContextConfiguration               configuration;
+  private final String                             clusterName;
+  private final Map<String, LeaderNetworkExecutor> replicaConnections = new HashMap<>();
+  private       ReplicaNetworkExecutor             leaderConnection;
+  private       LeaderNetworkListener              listener;
 
   public HAServer(final ArcadeDBServer server, final ContextConfiguration configuration) {
     this.server = server;
@@ -48,7 +46,7 @@ public class HAServer {
   }
 
   public void connect() throws IOException, InterruptedException {
-    listener = new HALeaderNetworkListener(this, new DefaultServerSocketFactory(),
+    listener = new LeaderNetworkListener(this, new DefaultServerSocketFactory(),
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST),
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS));
 
@@ -65,7 +63,8 @@ public class HAServer {
     }
 
     if (leaderConnection != null) {
-      server.log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s)", clusterName, leaderURL);
+      server.log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s)", clusterName,
+          leaderConnection.getURL());
       initReplica();
     } else {
       server.log(this, Level.INFO, "Server started as Leader in HA mode (cluster=%s)", clusterName);
@@ -96,12 +95,25 @@ public class HAServer {
     return clusterName;
   }
 
-  public void registerIncomingConnection(final HALeaderNetworkExecutor connection) {
-    replicaConnections.add(connection);
+  public void registerIncomingConnection(final String replicaServerName, final LeaderNetworkExecutor connection) {
+    replicaConnections.put(replicaServerName, connection);
   }
 
   public HAMessageFactory getMessageFactory() {
     return messageFactory;
+  }
+
+  public void sendRequestToReplicas(final Binary buffer, final HAMessage req) throws IOException {
+    buffer.reset();
+    req.toStream(buffer);
+
+    buffer.flip();
+
+    // SEND THE REQUEST TO ALL THE REPLICAS
+    for (LeaderNetworkExecutor replicaConnection : replicaConnections.values()) {
+      buffer.position(0);
+      replicaConnection.sendRequest(buffer);
+    }
   }
 
   private boolean connectTo(final String serverEntry) {
@@ -137,7 +149,7 @@ public class HAServer {
     final ChannelBinaryClient client = new ChannelBinaryClient(host, port, configuration);
 
     // SEND SERVER INFO
-    client.writeShort((short) HALeaderNetworkExecutor.PROTOCOL_VERSION);
+    client.writeShort((short) LeaderNetworkExecutor.PROTOCOL_VERSION);
     client.writeString(configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME));
     client.writeString(configuration.getValueAsString(GlobalConfiguration.SERVER_NAME));
     client.flush();
@@ -150,27 +162,29 @@ public class HAServer {
       throw new ConnectionException(host + ":" + port, reason);
     }
 
-    leaderURL = client.getURL();
-    leaderConnection = client;
+    server.log(this, Level.INFO, "Server connected to the server leader %s:%d", host, port);
 
-    server.log(this, Level.INFO, "Server leader %s:%d connected", host, port);
+    leaderConnection = new ReplicaNetworkExecutor(this, client);
   }
 
   private void initReplica() throws IOException, InterruptedException {
     final Binary buffer = new Binary(1024);
 
-    writeRequest(buffer, new DatabaseListRequest());
-    final DatabaseListResponse databaseList = (DatabaseListResponse) readResponse(buffer);
+    sendRequestToLeader(buffer, new DatabaseListRequest());
+    final DatabaseListResponse databaseList = (DatabaseListResponse) receiveResponseFromLeader(buffer);
 
     final Set<String> databases = databaseList.getDatabases();
     for (String db : databases) {
-      writeRequest(buffer, new DatabaseStructureRequest(db));
-      final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) readResponse(buffer);
+      sendRequestToLeader(buffer, new DatabaseStructureRequest(db));
+      final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveResponseFromLeader(buffer);
 
       final Database database = server.getDatabase(db);
 
       installDatabase(buffer, db, dbStructure, database);
     }
+
+    // START SEPARATE THREAD TO EXECUTE LEADER'S REQUESTS
+    leaderConnection.start();
   }
 
   private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure,
@@ -205,8 +219,8 @@ public class HAServer {
     int from = 0;
 
     while (true) {
-      writeRequest(buffer, new FileContentRequest(db, fileId, from));
-      final FileContentResponse fileChunk = (FileContentResponse) readResponse(buffer);
+      sendRequestToLeader(buffer, new FileContentRequest(db, fileId, from));
+      final FileContentResponse fileChunk = (FileContentResponse) receiveResponseFromLeader(buffer);
 
       if (fileChunk.getPages() == 0)
         break;
@@ -225,18 +239,17 @@ public class HAServer {
     }
   }
 
-  private void writeRequest(final Binary buffer, final HAMessage req) throws IOException {
+  private void sendRequestToLeader(final Binary buffer, final HAMessage req) throws IOException {
     buffer.reset();
     req.toStream(buffer);
 
     buffer.flip();
 
-    leaderConnection.writeBytes(buffer.getContent(), buffer.size());
-    leaderConnection.flush();
+    leaderConnection.sendRequest(buffer);
   }
 
-  private HAMessage readResponse(final Binary buffer) throws IOException {
-    final byte[] response = leaderConnection.readBytes();
+  private HAMessage receiveResponseFromLeader(final Binary buffer) throws IOException {
+    final byte[] response = leaderConnection.receiveResponse();
     final HAMessage message = messageFactory.getResponseMessage(response[0]);
 
     if (message == null) {

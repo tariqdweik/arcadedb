@@ -139,4 +139,8 @@ public class ArcadeDBServer {
   public String getServerName() {
     return serverName;
   }
+
+  public HAServer getHA() {
+    return haServer;
+  }
 }

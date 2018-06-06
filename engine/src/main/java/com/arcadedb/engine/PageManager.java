@@ -293,7 +293,7 @@ public class PageManager extends LockContext {
     }
   }
 
-  private void removePageFromCache(final PageId pageId) {
+  public void removePageFromCache(final PageId pageId) {
     final ImmutablePage page = readCache.remove(pageId);
     if (page != null)
       totalReadCacheRAM.addAndGet(-1 * page.getPhysicalSize());

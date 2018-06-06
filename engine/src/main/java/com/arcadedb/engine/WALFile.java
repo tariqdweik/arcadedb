@@ -31,7 +31,7 @@ public class WALFile extends LockContext {
       Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE
           + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
 
-  private static final long MAGIC_NUMBER = 9371515385058702l;
+  public static final long MAGIC_NUMBER = 9371515385058702l;
 
   private final    String        filePath;
   private          FileChannel   channel;
@@ -47,14 +47,14 @@ public class WALFile extends LockContext {
   private final ByteBuffer bufferInt  = ByteBuffer.allocate(Binary.INT_SERIALIZED_SIZE);
   private final ByteBuffer bufferByte = ByteBuffer.allocate(Binary.BYTE_SERIALIZED_SIZE);
 
-  public class WALTransaction {
+  public static class WALTransaction {
     public long      txId;
     public WALPage[] pages;
     public long      startPositionInLog;
     public long      endPositionInLog;
   }
 
-  public class WALPage {
+  public static class WALPage {
     public int    fileId;
     public int    pageNumber;
     public int    changesFrom;

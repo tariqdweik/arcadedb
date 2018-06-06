@@ -26,7 +26,7 @@ public class ReplicatedWALFile extends WALFile {
       final WALFile file, final long txId) throws IOException {
     changes.reset();
     super.writeTransaction(database, pages, sync, file, txId);
-    return changes.slice(changes.position());
+    return changes.copy();
   }
 
   @Override

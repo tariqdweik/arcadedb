@@ -213,10 +213,10 @@ public class TransactionManager {
     return map;
   }
 
-  private boolean applyChanges(final WALFile.WALTransaction tx) {
+  public boolean applyChanges(final WALFile.WALTransaction tx) {
     boolean changed = false;
 
-    LogManager.instance().info(this, "- applying changes from txId=%d", tx.txId);
+    LogManager.instance().debug(this, "- applying changes from txId=%d", tx.txId);
 
     for (WALFile.WALPage txPage : tx.pages) {
       final PaginatedFile file = database.getFileManager().getFile(txPage.fileId);
@@ -243,6 +243,8 @@ public class TransactionManager {
           file.write(modifiedPage);
           file.flush();
 
+          database.getPageManager().removePageFromCache(modifiedPage.pageId);
+
           final PaginatedComponent component = database.getSchema().getFileById(txPage.fileId);
           if (component != null) {
             final int newPageCount = (int) (file.getSize() / file.getPageSize());
@@ -251,7 +253,7 @@ public class TransactionManager {
           }
 
           changed = true;
-          LogManager.instance().info(this, "  - updating page %s v%d", pageId, modifiedPage.version);
+          LogManager.instance().debug(this, "  - updating page %s v%d", pageId, modifiedPage.version);
         }
 
       } catch (IOException e) {

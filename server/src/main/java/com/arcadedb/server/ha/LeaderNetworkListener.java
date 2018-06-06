@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.logging.Level;
 
-public class HALeaderNetworkListener extends Thread {
+public class LeaderNetworkListener extends Thread {
 
   public interface ClientConnected {
     void connected();
@@ -27,7 +27,7 @@ public class HALeaderNetworkListener extends Thread {
   private          int                 port;
   private          ClientConnected     callback;
 
-  public HALeaderNetworkListener(final HAServer ha, final ServerSocketFactory iSocketFactory, final String iHostName,
+  public LeaderNetworkListener(final HAServer ha, final ServerSocketFactory iSocketFactory, final String iHostName,
       final String iHostPortRange) {
     super(ha.getServerName() + " replication listen at " + iHostName + ":" + iHostPortRange);
 
@@ -54,9 +54,9 @@ public class HALeaderNetworkListener extends Thread {
             socket.setReceiveBufferSize(socketBufferSize);
           }
           // CREATE A NEW PROTOCOL INSTANCE
-          final HALeaderNetworkExecutor connection = new HALeaderNetworkExecutor(ha, socket);
+          final LeaderNetworkExecutor connection = new LeaderNetworkExecutor(ha, socket);
 
-          ha.registerIncomingConnection(connection);
+          ha.registerIncomingConnection(connection.getRemoteServerName(), connection);
 
           connection.start();
 
