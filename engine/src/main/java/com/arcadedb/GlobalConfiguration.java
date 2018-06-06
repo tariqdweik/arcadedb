@@ -130,18 +130,14 @@ public enum GlobalConfiguration {
       String.class, "localhost"),
 
   HA_REPLICATION_INCOMING_PORTS("arcadedb.ha.replicationIncomingPorts",
-      "TCP/IP port number used for incoming replication connections", String.class, "2424-2429"),
+      "TCP/IP port number used for incoming replication connections", String.class, "2424-2433"),
 
   HA_CLUSTER_NAME("arcadedb.ha.clusterName",
       "Cluster name. By default is 'arcadedb'. Useful in case of multiple clusters in the same network", String.class,
       Constants.PRODUCT.toLowerCase()),
 
   HA_SERVER_LIST("arcadedb.ha.serverList",
-      "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424", String.class, ""),
-
-  HA_MULTICAST_PORT("arcadedb.ha.multicastPort", "UDP MultiCast port used for auto discovery of servers", Integer.class, 2434),
-
-  HA_MULTICAST_TIMEOUT("arcadedb.ha.multicastTimeout", "Timeout used to discover any active clusters", Integer.class, 2000),;
+      "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424", String.class, ""),;
 
   /**
    * Place holder for the "undefined" value of setting.

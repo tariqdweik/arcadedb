@@ -468,7 +468,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public String toString() {
-    return "PBinary size=" + size + " pos=" + buffer.position();
+    return "Binary size=" + size + " pos=" + buffer.position();
   }
 
   /**
@@ -482,7 +482,7 @@ public class Binary implements BinaryStructure {
 
       final int newSize;
       if (offset + bytesToWrite > ALLOCATION_CHUNK) {
-        newSize = ALLOCATION_CHUNK * ((offset + bytesToWrite / ALLOCATION_CHUNK) + 1);
+        newSize = (((offset + bytesToWrite) / ALLOCATION_CHUNK) + 1) * ALLOCATION_CHUNK;
       } else
         newSize = ALLOCATION_CHUNK;
 

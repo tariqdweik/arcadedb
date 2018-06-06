@@ -300,7 +300,9 @@ public class IndexTest {
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
-          iterator.next();
+          Identifiable value = (Identifiable) iterator.next();
+          int fieldValue = (int) ((Document) value.getRecord()).get("id");
+          Assertions.assertTrue(fieldValue >= 10 && fieldValue <= 19);
 
           Assertions.assertNotNull(iterator.getKeys());
           Assertions.assertEquals(1, iterator.getKeys().length);

@@ -21,6 +21,7 @@ import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
+import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 
 import java.io.FileWriter;
@@ -218,6 +219,11 @@ public class HAServer {
 
     int from = 0;
 
+    server.log(this, Level.INFO, "Installing file '%s'...", fileName);
+
+    int pages = 0;
+    long fileSize = 0;
+
     while (true) {
       sendRequestToLeader(buffer, new FileContentRequest(db, fileId, from));
       final FileContentResponse fileChunk = (FileContentResponse) receiveResponseFromLeader(buffer);
@@ -230,6 +236,9 @@ public class HAServer {
         System.arraycopy(fileChunk.getPagesContent().getContent(), i * pageSize, page.getTrackable().getContent(), 0, pageSize);
         page.loadMetadata();
         pageManager.overridePage(page);
+
+        ++pages;
+        fileSize += pageSize;
       }
 
       if (fileChunk.isLast())
@@ -237,6 +246,8 @@ public class HAServer {
 
       from += fileChunk.getPages();
     }
+
+    server.log(this, Level.INFO, "File '%s' installed (pages=%d size=%s)", fileName, pages, FileUtils.getSizeAsString(fileSize));
   }
 
   private void sendRequestToLeader(final Binary buffer, final HAMessage req) throws IOException {

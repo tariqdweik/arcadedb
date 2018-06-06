@@ -14,6 +14,7 @@ import com.arcadedb.server.ha.message.TxRequest;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.logging.Level;
 
 public class ReplicaNetworkExecutor extends Thread {
@@ -61,6 +62,8 @@ public class ReplicaNetworkExecutor extends Thread {
       } catch (EOFException | SocketException e) {
         server.getServer().log(this, Level.FINE, "Error on reading request", e);
         close();
+      } catch (SocketTimeoutException e) {
+        // IGNORE IT
       } catch (IOException e) {
         server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
       }

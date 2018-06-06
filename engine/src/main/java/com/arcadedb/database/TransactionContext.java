@@ -114,6 +114,7 @@ public class TransactionContext {
       rollback();
       throw e;
     } catch (Exception e) {
+      LogManager.instance().info(this, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
       rollback();
       throw new TransactionException("Transaction error on commit", e);
     } finally {

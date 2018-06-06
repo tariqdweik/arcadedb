@@ -52,10 +52,15 @@ public class IndexLSMCursor implements IndexCursor {
 
     // CREATE ITERATORS, ONE PER PAGE
     pageIterators = new IndexLSMPageIterator[totalPages];
+    keys = new Object[totalPages][keyTypes.length];
+
+    validIterators = 0;
 
     int pageId = ascendingOrder ? 0 : totalPages - 1;
 
     while (ascendingOrder ? pageId < totalPages : pageId >= 0) {
+      keys[pageId] = null;
+
       if (fromKeys != null) {
         // SEEK FOR THE FROM RANGE
         final BasePage currentPage = index.getDatabase().getTransaction()
@@ -71,8 +76,14 @@ public class IndexLSMCursor implements IndexCursor {
           lookupResult = index
               .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
 
-        if (lookupResult != null)
+        if (lookupResult != null) {
           pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
+
+          if (toKeys == null || (IndexLSM.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
+            keys[pageId] = pageIterators[pageId].getKeys();
+            validIterators++;
+          }
+        }
 
       } else {
         if (ascendingOrder) {
@@ -83,36 +94,17 @@ public class IndexLSMCursor implements IndexCursor {
           pageIterators[pageId] = index.newPageIterator(pageId, index.getCount(currentPage), ascendingOrder);
         }
 
-        if (pageIterators[pageId].hasNext())
+        if (pageIterators[pageId].hasNext()) {
           pageIterators[pageId].next();
+
+          if (toKeys == null || (IndexLSM.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
+            keys[pageId] = pageIterators[pageId].getKeys();
+            validIterators++;
+          }
+        }
       }
 
       pageId += ascendingOrder ? 1 : -1;
-    }
-
-    keys = new Object[totalPages][keyTypes.length];
-
-    // CHECK ALL THE ITERATORS (NULL=SKIP)
-    validIterators = 0;
-    for (int p = 0; p < totalPages; ++p) {
-      final IndexLSMPageIterator it = pageIterators[p];
-      if (it != null) {
-        if (it.hasNext()) {
-          keys[p] = it.getKeys();
-
-          if (toKeys != null && (IndexLSM.compareKeys(comparator, keyTypes, keys[p], toKeys) > 0)) {
-            it.close();
-            pageIterators[p] = null;
-            keys[p] = null;
-          } else
-            validIterators++;
-        } else {
-          it.close();
-          pageIterators[p] = null;
-          keys[p] = null;
-        }
-      } else
-        keys[p] = null;
     }
   }
 

@@ -207,13 +207,13 @@ public class BinarySerializer {
       content.putByte((byte) ((Boolean) value ? 1 : 0));
       break;
     case BinaryTypes.TYPE_SHORT:
-      content.putNumber((Short) value);
+      content.putNumber(((Number) value).shortValue());
       break;
     case BinaryTypes.TYPE_INT:
-      content.putNumber((Integer) value);
+      content.putNumber(((Number) value).intValue());
       break;
     case BinaryTypes.TYPE_LONG:
-      content.putNumber((Long) value);
+      content.putNumber(((Number) value).longValue());
       break;
     case BinaryTypes.TYPE_FLOAT:
       final int fg = Float.floatToIntBits(((Number) value).floatValue());

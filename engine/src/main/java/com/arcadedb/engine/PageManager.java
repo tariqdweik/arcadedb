@@ -297,6 +297,10 @@ public class PageManager extends LockContext {
     final ImmutablePage page = readCache.remove(pageId);
     if (page != null)
       totalReadCacheRAM.addAndGet(-1 * page.getPhysicalSize());
+
+    final ModifiablePage page2 = writeCache.remove(pageId);
+    if (page2 != null)
+      totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
   }
 
   public boolean tryLockFile(final Integer fileId, final long timeout) {

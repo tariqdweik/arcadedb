@@ -13,6 +13,7 @@ import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import org.apache.log4j.PropertyConfigurator;
@@ -54,7 +55,11 @@ public abstract class BaseGraphServerTest {
       @Override
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
-        database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
+
+        VertexType v = database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
+        v.createProperty("id", Long.class);
+
+        database.getSchema().createClassIndexes(true, VERTEX1_TYPE_NAME, new String[] { "id" });
 
         Assertions.assertFalse(database.getSchema().existsType(VERTEX2_TYPE_NAME));
         database.getSchema().createVertexType(VERTEX2_TYPE_NAME, 3);
@@ -70,6 +75,7 @@ public abstract class BaseGraphServerTest {
     db.begin();
     try {
       final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
+      v1.set("id", 0);
       v1.set("name", VERTEX1_TYPE_NAME);
       v1.save();
 
@@ -195,10 +201,16 @@ public abstract class BaseGraphServerTest {
       if (servers[i] != null)
         servers[i].stop();
 
-      final Database db = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE)
-          .open();
-      db.drop();
+      if (dropDatabases()) {
+        final Database db = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE)
+            .open();
+        db.drop();
+      }
     }
+  }
+
+  protected boolean dropDatabases() {
+    return true;
   }
 
   protected String getDatabaseName() {
