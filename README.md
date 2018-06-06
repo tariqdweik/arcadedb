@@ -13,11 +13,13 @@ Super Fast Multi-Model DBMS
 - ArcadeDB manage everything as files and pages
 - ArcadeDB allows custom page size per bucket/index
 - ArcadeDB doesn't break record across pages, but rather create a placeholder pointing to the page that has the record. This allows the RID to be immutable without the complexity of managing splitted records
+- ArcadeDB has a Master/Slave replication model, no sharding. Instead OrientDB has a Multi-Master + sharding. For this reason, the ArcadeDB complexity is 100X less than OrientDB with some limitations that in practice are even less
+- ArcadeDB replicates the pages across servers, so all the databases are identical at binary level
+
 
 ## What Arcade does not support
 
 - ArcadeDB doesn't support storing records with a size major than the page size. You can always create a bucket with a larger page size, but this can be done only at creation time
-- ArcadeDB cannot be replicated in a distributed system (yet, it's in the roadmap)
 - ArcadeDB remote server supports only HTTP/JSON, no binary protocol is available
 - ArcadeDB doesn't provide a dirty manager, so it's up to the developer to mark the object to save by calling `.save()` method. This makes the code of ArcadeDB smaller without handling edge cases
 
@@ -25,7 +27,7 @@ Super Fast Multi-Model DBMS
 
 - ArcadeDB saves every type and property name in the dictionary to compress the record by storing only the names ids
 - ArcadeDB asynchronous API automatically balance the load on the available cores
-- ArcadeDB is much Faster
+- ArcadeDB is much Faster, on single server it's easy to see 10X-20X improvement in performance, with 3 nodes it's about 50X-200X. With 10 servers it's >500%
 - ArcadeDB uses much less RAM
 - ArcadeDB allows to execute operation in asynchronously way (by using `.async()`)
 - ArcadeDB is lighweight, the engine is <200Kb
