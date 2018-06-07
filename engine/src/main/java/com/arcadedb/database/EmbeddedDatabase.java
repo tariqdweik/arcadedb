@@ -21,7 +21,9 @@ import com.arcadedb.schema.VertexType;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.executor.SQLEngine;
+import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.Statement;
+import com.arcadedb.sql.parser.StatementCache;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.MultiIterator;
@@ -54,6 +56,10 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, IndexLSM.NOTUNIQUE_INDEX_EXT, IndexLSM.UNIQUE_INDEX_EXT));
   private                File                                      lockFile;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
+  private                StatementCache                            statementCache     = new StatementCache(this,
+      GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
+  private                ExecutionPlanCache                        executionPlanCache = new ExecutionPlanCache(this,
+      GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks, final WALFileFactory walFactory) {
@@ -174,6 +180,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           pageManager.close();
           fileManager.close();
           transactionManager.close();
+          statementCache.clear();
 
           lockFile.delete();
 
@@ -789,6 +796,16 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       open = false;
       Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
     }
+  }
+
+  @Override
+  public StatementCache getStatementCache() {
+    return statementCache;
+  }
+
+  @Override
+  public ExecutionPlanCache getExecutionPlanCache() {
+    return executionPlanCache;
   }
 
   @Override

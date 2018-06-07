@@ -20,17 +20,18 @@ import java.util.Map;
  *
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
-public class OStatementCache {
-
-  Map<String, Statement> map;
-  int                    mapSize;
+public class StatementCache {
+  private final Database               db;
+  private final Map<String, Statement> map;
+  private final int                    mapSize;
 
   /**
    * @param size the size of the cache
    */
-  public OStatementCache(int size) {
+  public StatementCache(final Database db, final int size) {
+    this.db = db;
     this.mapSize = size;
-    map = new LinkedHashMap<String, Statement>(size) {
+    this.map = new LinkedHashMap<String, Statement>(size) {
       protected boolean removeEldestEntry(final Map.Entry<String, Statement> eldest) {
         return super.size() > mapSize;
       }
@@ -40,30 +41,24 @@ public class OStatementCache {
   /**
    * @param statement an SQL statement
    *
-   * @return true if the corresponding executor is present in the cache
+   * @return the corresponding executor, taking it from the internal cache, if it exists
    */
-  public boolean contains(String statement) {
+  public Statement get(final String statement) {
+    Statement result;
     synchronized (map) {
-      return map.containsKey(statement);
+      //LRU
+      result = map.remove(statement);
+      if (result != null) {
+        map.put(statement, result);
+      }
     }
-  }
-
-  /**
-   * returns an already parsed SQL executor, taking it from the cache if it exists or creating a new one (parsing and then putting
-   * it into the cache) if it doesn't
-   *
-   * @param statement the SQL statement
-   * @param db        the current DB instance. If null, cache is ignored and a new executor is created through statement parsing
-   *
-   * @return a statement executor from the cache
-   */
-  public static Statement get(String statement, Database db) {
-//    if (db == null) {
-      return parse(statement, db);
-//    }
-//
-//    OStatementCache resource = db.getSharedContext().getStatementCache();
-//    return resource.get(statement);
+    if (result == null) {
+      result = parse(statement);
+      synchronized (map) {
+        map.put(statement, result);
+      }
+    }
+    return result;
   }
 
   /**
@@ -75,7 +70,7 @@ public class OStatementCache {
    *
    * @throws CommandSQLParsingException if the input parameter is not a valid SQL statement
    */
-  protected static Statement parse(String statement, Database db) throws CommandSQLParsingException {
+  protected Statement parse(final String statement) throws CommandSQLParsingException {
     try {
 
       InputStream is;
@@ -88,8 +83,7 @@ public class OStatementCache {
           is = new ByteArrayInputStream(statement.getBytes("UTF-8"));
 //          is = new ByteArrayInputStream(statement.getBytes(db.getStorage().getConfiguration().getCharset()));
         } catch (UnsupportedEncodingException e2) {
-          LogManager.instance()
-              .warn(null, "Unsupported charset for database " + db);
+          LogManager.instance().warn(null, "Unsupported charset for database " + db);
           is = new ByteArrayInputStream(statement.getBytes());
         }
       }
@@ -102,8 +96,7 @@ public class OStatementCache {
 //          osql = new SqlParser(is, db.getStorage().getConfiguration().getCharset());
           osql = new SqlParser(is, "UTF-8");
         } catch (UnsupportedEncodingException e2) {
-          LogManager.instance()
-              .warn(null, "Unsupported charset for database " + db );
+          LogManager.instance().warn(null, "Unsupported charset for database " + db);
           osql = new SqlParser(is);
         }
       }
@@ -125,6 +118,12 @@ public class OStatementCache {
 
   protected static void throwParsingException(TokenMgrError e, String statement) {
     throw new CommandSQLParsingException(statement, e);
+  }
+
+  public boolean contains(final String statement) {
+    synchronized (map) {
+      return map.containsKey(statement);
+    }
   }
 
   public void clear() {

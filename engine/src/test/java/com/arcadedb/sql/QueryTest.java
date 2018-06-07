@@ -6,6 +6,7 @@ package com.arcadedb.sql;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.sql.executor.Result;
@@ -78,6 +79,69 @@ public class QueryTest {
         ResultSet rs = db.query("SELECT FROM V WHERE name = :name AND surname = :surname", params);
 
         final AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          Result record = rs.next();
+          Assertions.assertNotNull(record);
+
+          Set<String> prop = new HashSet<>();
+          for (String p : record.getPropertyNames())
+            prop.add(p);
+
+          Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+          Assertions.assertEquals(123, (int) record.getProperty("id"));
+          Assertions.assertEquals("Jay", record.getProperty("name"));
+          Assertions.assertEquals("Miner123", record.getProperty("surname"));
+
+          total.incrementAndGet();
+        }
+
+        Assertions.assertEquals(1, total.get());
+      }
+    });
+  }
+
+  @Test
+  public void testCachedStatementAndExecutionPlan() {
+
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+      @Override
+      public void execute(Database db) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(":name", "Jay");
+        params.put(":surname", "Miner123");
+        ResultSet rs = db.query("SELECT FROM V WHERE name = :name AND surname = :surname", params);
+
+        AtomicInteger total = new AtomicInteger();
+        while (rs.hasNext()) {
+          Result record = rs.next();
+          Assertions.assertNotNull(record);
+
+          Set<String> prop = new HashSet<>();
+          for (String p : record.getPropertyNames())
+            prop.add(p);
+
+          Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+          Assertions.assertEquals(123, (int) record.getProperty("id"));
+          Assertions.assertEquals("Jay", record.getProperty("name"));
+          Assertions.assertEquals("Miner123", record.getProperty("surname"));
+
+          total.incrementAndGet();
+        }
+
+        Assertions.assertEquals(1, total.get());
+
+        // CHECK STATEMENT CACHE
+        Assertions.assertTrue(
+            ((DatabaseInternal) db).getStatementCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
+
+        // CHECK EXECUTION PLAN CACHE
+        Assertions.assertTrue(
+            ((DatabaseInternal) db).getExecutionPlanCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
+
+        // EXECUTE THE 2ND TIME
+        rs = db.query("SELECT FROM V WHERE name = :name AND surname = :surname", params);
+
+        total = new AtomicInteger();
         while (rs.hasNext()) {
           Result record = rs.next();
           Assertions.assertNotNull(record);

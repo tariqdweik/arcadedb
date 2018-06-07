@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Created by luigidellaquila on 21/11/16.
  */
-public interface OSimpleBooleanExpression {
+public interface SimpleBooleanExpression {
 
   /**
    * if the condition involved the current pattern (MATCH statement, eg. $matched.something = foo),

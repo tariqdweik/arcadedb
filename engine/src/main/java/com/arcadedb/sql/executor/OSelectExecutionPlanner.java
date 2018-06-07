@@ -5,6 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
@@ -52,9 +53,9 @@ public class OSelectExecutionPlanner {
   }
 
   public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
-    Database db = ctx.getDatabase();
+    DatabaseInternal db = ctx.getDatabase();
     if (!enableProfiling && statement.executinPlanCanBeCached()) {
-      ExecutionPlan plan = OExecutionPlanCache.get(statement.getOriginalStatement(), ctx, db);
+      ExecutionPlan plan = db.getExecutionPlanCache().get(statement.getOriginalStatement(), ctx);
       if (plan != null) {
         return (InternalExecutionPlan) plan;
       }
@@ -98,8 +99,8 @@ public class OSelectExecutionPlanner {
     handleProjectionsBlock(result, info, ctx, enableProfiling);
 
     if (!enableProfiling && statement.executinPlanCanBeCached() && result.canBeCached()
-        && OExecutionPlanCache.getLastInvalidation(db) < planningStart) {
-      OExecutionPlanCache.put(statement.getOriginalStatement(), result, ctx.getDatabase());
+        && db.getExecutionPlanCache().getLastInvalidation() < planningStart) {
+      db.getExecutionPlanCache().put(statement.getOriginalStatement(), result);
     }
     return result;
   }
@@ -205,7 +206,6 @@ public class OSelectExecutionPlanner {
     Map<String, Set<String>> clusterMap = new HashMap<>();
     clusterMap.put(LOCAL_NODE_NAME, new HashSet<>());
     clusterMap.get(LOCAL_NODE_NAME).add("*");
-
 
     Set<String> queryClusters = calculateTargetClusters(info, ctx);
     if (queryClusters == null || queryClusters.size() == 0) {//no target
@@ -1032,8 +1032,7 @@ public class OSelectExecutionPlanner {
     }
   }
 
-  private boolean clusterMatchesRidRange(String clusterName, AndBlock ridRangeConditions, Database database,
-      CommandContext ctx) {
+  private boolean clusterMatchesRidRange(String clusterName, AndBlock ridRangeConditions, Database database, CommandContext ctx) {
     int thisClusterId = database.getSchema().getBucketByName(clusterName).getId();
     for (BooleanExpression ridRangeCondition : ridRangeConditions.getSubBlocks()) {
       if (ridRangeCondition instanceof BinaryCondition) {
@@ -1215,8 +1214,7 @@ public class OSelectExecutionPlanner {
         throw new CommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
 //        }
       } else if (info.flattenedWhereClause.size() > 1) {
-        throw new CommandExecutionException(
-            "Index queries with this kind of condition are not supported yet: " + info.whereClause);
+        throw new CommandExecutionException("Index queries with this kind of condition are not supported yet: " + info.whereClause);
       } else {
         AndBlock andBlock = info.flattenedWhereClause.get(0);
         if (andBlock.getSubBlocks().size() == 1) {
@@ -1386,8 +1384,7 @@ public class OSelectExecutionPlanner {
     }
   }
 
-  public static void handleOrderBy(SelectExecutionPlan plan, QueryPlanningInfo info, CommandContext ctx,
-      boolean profilingEnabled) {
+  public static void handleOrderBy(SelectExecutionPlan plan, QueryPlanningInfo info, CommandContext ctx, boolean profilingEnabled) {
     int skipSize = info.skip == null ? 0 : info.skip.getValue(ctx);
     if (skipSize < 0) {
       throw new CommandExecutionException("Cannot execute a query with a negative SKIP");
@@ -1415,8 +1412,8 @@ public class OSelectExecutionPlanner {
    * @param ctx
    * @param profilingEnabled
    */
-  private void handleClassAsTarget(SelectExecutionPlan plan, Set<String> filterClusters, QueryPlanningInfo info,
-      CommandContext ctx, boolean profilingEnabled) {
+  private void handleClassAsTarget(SelectExecutionPlan plan, Set<String> filterClusters, QueryPlanningInfo info, CommandContext ctx,
+      boolean profilingEnabled) {
     handleClassAsTarget(plan, filterClusters, info.target, info, ctx, profilingEnabled);
   }
 
@@ -1499,14 +1496,14 @@ public class OSelectExecutionPlanner {
 //          }
 //          resultSubPlans.add(subPlan);
 //        } else {
-          FetchFromClassExecutionStep step = new FetchFromClassExecutionStep(clazz.getName(), filterClusters, ctx, true,
-              profilingEnabled);
-          SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
-          subPlan.chain(step);
-          if (!block.getSubBlocks().isEmpty()) {
-            subPlan.chain(new FilterStep(createWhereFrom(block), ctx, profilingEnabled));
-          }
-          resultSubPlans.add(subPlan);
+        FetchFromClassExecutionStep step = new FetchFromClassExecutionStep(clazz.getName(), filterClusters, ctx, true,
+            profilingEnabled);
+        SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
+        subPlan.chain(step);
+        if (!block.getSubBlocks().isEmpty()) {
+          subPlan.chain(new FilterStep(createWhereFrom(block), ctx, profilingEnabled));
+        }
+        resultSubPlans.add(subPlan);
 //        }
       } else {
         BinaryCondition blockCandidateFunction = null;
@@ -1732,7 +1729,7 @@ public class OSelectExecutionPlanner {
         throw new CommandExecutionException("Cannot find class " + targetClass);
       }
 //      if (clazz.count(false) != 0 || clazz.getSubclasses().size() == 0 || isDiamondHierarchy(clazz)) {
-        return null;
+      return null;
 //      }
 
 //      Collection<OClass> subclasses = clazz.getSubclasses();
@@ -1812,7 +1809,7 @@ public class OSelectExecutionPlanner {
 
   private boolean fullySorted(OrderBy orderBy, AndBlock conditions, Index idx) {
 //    if (!idx.supportsOrderedIterations())
-      return false;
+    return false;
 //
 //    List<String> orderItems = new ArrayList<>();
 //    String order = null;
@@ -1906,8 +1903,8 @@ public class OSelectExecutionPlanner {
       subPlan.chain(new FetchFromIndexStep(desc.idx, desc.keyCondition, desc.additionalRangeCondition, ctx, profilingEnabled));
       int[] filterClusterIds = null;
       if (filterClusters != null) {
-        filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getSchema().getBucketByName(name).getId()).mapToInt(i -> i)
-            .toArray();
+        filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getSchema().getBucketByName(name).getId())
+            .mapToInt(i -> i).toArray();
       }
       subPlan.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
       if (requiresMultipleIndexLookups(desc.keyCondition)) {
@@ -2127,6 +2124,7 @@ public class OSelectExecutionPlanner {
 //    return index.supportsOrderedIterations();
     return false;
   }
+
   /**
    * aggregates multiple index conditions that refer to the same key search
    *
@@ -2162,8 +2160,8 @@ public class OSelectExecutionPlanner {
     return result;
   }
 
-  private void handleClustersAsTarget(SelectExecutionPlan plan, QueryPlanningInfo info, List<Bucket> clusters,
-      CommandContext ctx, boolean profilingEnabled) {
+  private void handleClustersAsTarget(SelectExecutionPlan plan, QueryPlanningInfo info, List<Bucket> clusters, CommandContext ctx,
+      boolean profilingEnabled) {
 
     throw new UnsupportedOperationException();
 //
@@ -2261,8 +2259,7 @@ public class OSelectExecutionPlanner {
 //    }
   }
 
-  private void handleSubqueryAsTarget(SelectExecutionPlan plan, Statement subQuery, CommandContext ctx,
-      boolean profilingEnabled) {
+  private void handleSubqueryAsTarget(SelectExecutionPlan plan, Statement subQuery, CommandContext ctx, boolean profilingEnabled) {
     BasicCommandContext subCtx = new BasicCommandContext();
     subCtx.setDatabase(ctx.getDatabase());
     subCtx.setParent(ctx);

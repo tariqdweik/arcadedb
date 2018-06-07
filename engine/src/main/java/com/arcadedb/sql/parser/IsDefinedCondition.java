@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class IsDefinedCondition extends BooleanExpression implements OSimpleBooleanExpression {
+public class IsDefinedCondition extends BooleanExpression implements SimpleBooleanExpression {
 
   protected Expression expression;
 

@@ -7,6 +7,7 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.sql.executor.*;
 
 import java.util.ArrayList;
@@ -22,9 +23,9 @@ public class UpdateStatement extends Statement {
 
   protected boolean upsert = false;
 
-  protected boolean returnBefore = false;
-  protected boolean returnAfter  = false;
-  protected boolean returnCount  = false;
+  protected boolean    returnBefore = false;
+  protected boolean    returnAfter  = false;
+  protected boolean    returnCount  = false;
   protected Projection returnProjection;
 
   public WhereClause whereClause;
@@ -105,7 +106,8 @@ public class UpdateStatement extends Statement {
     return "UPDATE ";
   }
 
-  @Override public UpdateStatement copy() {
+  @Override
+  public UpdateStatement copy() {
     UpdateStatement result = null;
     try {
       result = getClass().getConstructor(Integer.TYPE).newInstance(-1);
@@ -126,12 +128,13 @@ public class UpdateStatement extends Statement {
     return result;
   }
 
-  @Override public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+  @Override
+  public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
     BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
-    ctx.setDatabase(db);
+    ctx.setDatabase((DatabaseInternal) db);
     Map<Object, Object> params = new HashMap<>();
     if (args != null) {
       for (int i = 0; i < args.length; i++) {
@@ -144,12 +147,13 @@ public class UpdateStatement extends Statement {
     return new LocalResultSet(executionPlan);
   }
 
-  @Override public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+  @Override
+  public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
     BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
-    ctx.setDatabase(db);
+    ctx.setDatabase((DatabaseInternal) db);
     ctx.setInputParameters(params);
     UpdateExecutionPlan executionPlan = createExecutionPlan(ctx, false);
     executionPlan.executeInternal();
@@ -161,7 +165,8 @@ public class UpdateStatement extends Statement {
     return planner.createExecutionPlan(ctx, enableProfiling);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -193,7 +198,8 @@ public class UpdateStatement extends Statement {
     return true;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     int result = target != null ? target.hashCode() : 0;
     result = 31 * result + (operations != null ? operations.hashCode() : 0);
     result = 31 * result + (upsert ? 1 : 0);

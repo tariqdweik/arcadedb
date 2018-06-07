@@ -17,6 +17,8 @@ import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ha.message.CheckpointRequest;
 import com.arcadedb.server.ha.message.TxRequest;
 import com.arcadedb.sql.executor.ResultSet;
+import com.arcadedb.sql.parser.ExecutionPlanCache;
+import com.arcadedb.sql.parser.StatementCache;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -117,6 +119,16 @@ public class ReplicatedDatabase implements DatabaseInternal {
   @Override
   public WALFileFactory getWALFileFactory() {
     return proxied.getWALFileFactory();
+  }
+
+  @Override
+  public StatementCache getStatementCache() {
+    return proxied.getStatementCache();
+  }
+
+  @Override
+  public ExecutionPlanCache getExecutionPlanCache() {
+    return proxied.getExecutionPlanCache();
   }
 
   @Override

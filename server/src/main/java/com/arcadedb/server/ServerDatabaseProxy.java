@@ -15,6 +15,8 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.ResultSet;
+import com.arcadedb.sql.parser.ExecutionPlanCache;
+import com.arcadedb.sql.parser.StatementCache;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -119,6 +121,18 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   public WALFileFactory getWALFileFactory() {
     checkForOpen();
     return proxied.getWALFileFactory();
+  }
+
+  @Override
+  public StatementCache getStatementCache() {
+    checkForOpen();
+    return proxied.getStatementCache();
+  }
+
+  @Override
+  public ExecutionPlanCache getExecutionPlanCache() {
+    checkForOpen();
+    return proxied.getExecutionPlanCache();
   }
 
   @Override

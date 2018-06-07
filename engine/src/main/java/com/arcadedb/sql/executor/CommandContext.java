@@ -3,7 +3,7 @@
  */
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 
 import java.util.Map;
 
@@ -75,6 +75,6 @@ public interface CommandContext {
    */
   void merge(CommandContext iContext);
 
-  public Database getDatabase();
+  DatabaseInternal getDatabase();
 
 }

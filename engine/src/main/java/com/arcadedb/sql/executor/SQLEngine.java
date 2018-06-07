@@ -7,7 +7,6 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.sql.function.DefaultSQLFunctionFactory;
-import com.arcadedb.sql.parser.OStatementCache;
 import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.MultiIterator;
@@ -57,15 +56,15 @@ public class SQLEngine {
     return INSTANCE;
   }
 
-  public SQLFunction getFunction(String name) {
+  public SQLFunction getFunction(final String name) {
     return functions.createFunction(name);
   }
 
-  public static SQLMethod getMethod(String name) {
+  public static SQLMethod getMethod(final String name) {
     return null;
   }
 
-  public static Statement parse(String query, EmbeddedDatabase pDatabase) {
-    return OStatementCache.get(query, pDatabase);
+  public static Statement parse(final String query, final EmbeddedDatabase database) {
+    return database.getStatementCache().get(query);
   }
 }

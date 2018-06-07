@@ -4,6 +4,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,8 +24,8 @@ public class BasicCommandContext implements CommandContext {
   public static final String TIMEOUT_STRATEGY      = "TIMEOUT_STARTEGY";
   public static final String INVALID_COMPARE_COUNT = "INVALID_COMPARE_COUNT";
 
-  protected Database database;
-  protected Object[] args;
+  protected DatabaseInternal database;
+  protected Object[]         args;
 
   protected boolean             recordMetrics = false;
   protected CommandContext      parent;
@@ -370,7 +371,7 @@ public class BasicCommandContext implements CommandContext {
     return this.uniqueResult.add(toAdd);
   }
 
-  public Database getDatabase() {
+  public DatabaseInternal getDatabase() {
     if (database != null) {
       return database;
     }
@@ -381,7 +382,7 @@ public class BasicCommandContext implements CommandContext {
   }
 
   public void setDatabase(Database database) {
-    this.database = database;
+    this.database = (DatabaseInternal) database;
   }
 
   public static int getLowerIndexOf(final String iText, final int iBeginOffset, final String... iToSearch) {

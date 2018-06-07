@@ -9,6 +9,8 @@ import com.arcadedb.engine.TransactionManager;
 import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.sql.parser.ExecutionPlanCache;
+import com.arcadedb.sql.parser.StatementCache;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -46,4 +48,8 @@ public interface DatabaseInternal extends Database {
   void kill();
 
   WALFileFactory getWALFileFactory();
+
+  StatementCache getStatementCache();
+
+  ExecutionPlanCache getExecutionPlanCache();
 }
