@@ -3,47 +3,52 @@
  */
 package com.arcadedb.server.ha.message;
 
-import com.arcadedb.server.ha.HAServer;
+import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.utility.LogManager;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class HAMessageFactory {
-  private final HAServer server;
+  private final List<Class<? extends HACommand>>      commands   = new ArrayList<>();
+  private final Map<Class<? extends HACommand>, Byte> commandMap = new HashMap<>();
 
-  public HAMessageFactory(final HAServer server) {
-    this.server = server;
+  public HAMessageFactory() {
+    registerCommand(DatabaseListRequest.class);
+    registerCommand(DatabaseListResponse.class);
+    registerCommand(DatabaseStructureRequest.class);
+    registerCommand(DatabaseStructureResponse.class);
+    registerCommand(FileContentRequest.class);
+    registerCommand(FileContentResponse.class);
+    registerCommand(CheckpointRequest.class);
+    registerCommand(CheckpointResponse.class);
+    registerCommand(TxRequest.class);
   }
 
-  public HARequestMessage getRequestMessage(final byte type) {
-    switch (type) {
-    case DatabaseListRequest.ID:
-      return new DatabaseListRequest();
+  public HACommand getCommand(final byte type) {
+    if (type > commands.size())
+      throw new IllegalArgumentException("Command with id " + type + " was not found");
 
-    case DatabaseStructureRequest.ID:
-      return new DatabaseStructureRequest();
-
-    case FileContentRequest.ID:
-      return new FileContentRequest();
-
-    case TxRequest.ID:
-      return new TxRequest();
-
-    default:
-      return null;
+    try {
+      return commands.get(type).newInstance();
+    } catch (Exception e) {
+      LogManager.instance().error(this, "Error on creating replication command", e);
+      throw new ConfigurationException("Error on creating replication command", e);
     }
   }
 
-  public HAResponseMessage getResponseMessage(final byte type) {
-    switch (type) {
-    case DatabaseListResponse.ID:
-      return new DatabaseListResponse();
+  public byte getCommandId(final HACommand command) {
+    Byte commandId = commandMap.get(command.getClass());
+    if (commandId == null)
+      throw new IllegalArgumentException("Command of class " + command.getClass() + " was not found");
 
-    case DatabaseStructureResponse.ID:
-      return new DatabaseStructureResponse();
+    return commandId;
+  }
 
-    case FileContentResponse.ID:
-      return new FileContentResponse();
-
-    default:
-      return null;
-    }
+  private void registerCommand(final Class<? extends HACommand> commandClass) {
+    commands.add(commandClass);
+    commandMap.put(commandClass, (byte) (commands.size() - 1));
   }
 }

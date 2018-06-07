@@ -4,12 +4,18 @@
 package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.database.Database;
+import com.arcadedb.engine.BasePage;
+import com.arcadedb.engine.PageId;
+import com.arcadedb.network.binary.NetworkProtocolException;
+import com.arcadedb.server.ha.HAServer;
 
-public class FileContentRequest implements HARequestMessage {
-  public final static byte   ID = 2;
-  private             String databaseName;
-  private             int    fileId;
-  private             int    from;
+import java.io.IOException;
+
+public class FileContentRequest implements HACommand {
+  private String databaseName;
+  private int    fileId;
+  private int    from;
 
   public FileContentRequest() {
   }
@@ -21,9 +27,38 @@ public class FileContentRequest implements HARequestMessage {
   }
 
   @Override
-  public void toStream(final Binary stream) {
-    stream.putByte(ID);
+  public HACommand execute(HAServer server) {
+    final Database db = server.getServer().getDatabase(databaseName);
+    final int pageSize = db.getFileManager().getFile(fileId).getPageSize();
 
+    try {
+      final int totalPages = (int) (db.getFileManager().getFile(fileId).getSize() / pageSize);
+
+      final Binary pagesContent = new Binary();
+
+      int pages = 0;
+
+      for (int i = from; i < totalPages && pages < 10; ++i) {
+        final PageId pageId = new PageId(fileId, i);
+        final BasePage page = db.getPageManager().getPage(pageId, pageSize, false);
+        pagesContent.putByteArray(page.getContent().array(), pageSize);
+
+        ++pages;
+      }
+
+      final boolean last = pages >= totalPages;
+
+      pagesContent.flip();
+
+      return new FileContentResponse(pagesContent, totalPages, last);
+
+    } catch (IOException e) {
+      throw new NetworkProtocolException("Cannot load pages");
+    }
+  }
+
+  @Override
+  public void toStream(final Binary stream) {
     stream.putString(databaseName);
     stream.putInt(fileId);
     stream.putInt(from);
@@ -31,29 +66,9 @@ public class FileContentRequest implements HARequestMessage {
 
   @Override
   public void fromStream(final Binary stream) {
-    // SKIP THE COMMAND ID
-    stream.getByte();
-
     databaseName = stream.getString();
     fileId = stream.getInt();
     from = stream.getInt();
-  }
-
-  public String getDatabaseName() {
-    return databaseName;
-  }
-
-  public int getFileId() {
-    return fileId;
-  }
-
-  public int getFrom() {
-    return from;
-  }
-
-  @Override
-  public byte getID() {
-    return ID;
   }
 
   @Override

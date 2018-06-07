@@ -29,6 +29,10 @@ public class ServerDatabaseProxy implements DatabaseInternal {
     this.proxied = proxied;
   }
 
+  public DatabaseInternal getProxied() {
+    return proxied;
+  }
+
   @Override
   public void close() {
     open = false;

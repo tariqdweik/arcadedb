@@ -49,7 +49,8 @@ public abstract class BaseGraphServerTest {
   public void populate() {
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    FileUtils.deleteRecursively(new File(getDatabasePath(0)));
+    for (int i = 0; i < getServerCount(); ++i)
+      FileUtils.deleteRecursively(new File(getDatabasePath(i)));
 
     new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override

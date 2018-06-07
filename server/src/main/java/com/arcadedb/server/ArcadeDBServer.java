@@ -30,7 +30,7 @@ public class ArcadeDBServer {
   private final HttpServer httpServer;
   private       HAServer   haServer;
 
-  private       ConcurrentMap<String, EmbeddedDatabase> databases = new ConcurrentHashMap<>();
+  private       ConcurrentMap<String, DatabaseInternal> databases = new ConcurrentHashMap<>();
   private final String                                  serverName;
 
   public ArcadeDBServer(final ContextConfiguration configuration) {
@@ -98,7 +98,7 @@ public class ArcadeDBServer {
   }
 
   public synchronized Database getDatabase(final String databaseName) {
-    EmbeddedDatabase db = databases.get(databaseName);
+    DatabaseInternal db = databases.get(databaseName);
     if (db == null) {
       final DatabaseFactory factory = new DatabaseFactory(
           configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
@@ -114,18 +114,16 @@ public class ArcadeDBServer {
         t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
       }
 
-      final EmbeddedDatabase oldDb = databases.putIfAbsent(databaseName, db);
+      if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
+        db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);
+
+      final DatabaseInternal oldDb = databases.putIfAbsent(databaseName, db);
 
       if (oldDb != null)
         db = oldDb;
     }
 
-    DatabaseInternal dbToProxy = db;
-
-    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
-      dbToProxy = new ReplicatedDatabase(this, db);
-
-    return new ServerDatabaseProxy(dbToProxy);
+    return new ServerDatabaseProxy(db);
   }
 
   public Set<String> getDatabaseNames() {

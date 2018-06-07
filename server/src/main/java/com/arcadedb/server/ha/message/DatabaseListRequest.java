@@ -4,27 +4,23 @@
 package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.server.ha.HAServer;
 
-public class DatabaseListRequest implements HARequestMessage {
-  public final static byte ID = 0;
-
+public class DatabaseListRequest implements HACommand {
   public DatabaseListRequest() {
   }
 
   @Override
+  public HACommand execute(final HAServer server) {
+    return new DatabaseListResponse(server.getServer().getDatabaseNames());
+  }
+
+  @Override
   public void toStream(final Binary stream) {
-    stream.putByte(ID);
   }
 
   @Override
   public void fromStream(final Binary stream) {
-    // SKIP THE COMMAND ID
-    stream.getByte();
-  }
-
-  @Override
-  public byte getID() {
-    return ID;
   }
 
   @Override

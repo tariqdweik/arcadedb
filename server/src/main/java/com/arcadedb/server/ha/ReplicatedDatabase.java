@@ -14,10 +14,12 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ha.message.CheckpointRequest;
 import com.arcadedb.server.ha.message.TxRequest;
 import com.arcadedb.sql.executor.ResultSet;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -25,10 +27,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class ReplicatedDatabase implements DatabaseInternal {
-  private final ArcadeDBServer   server;
-  private final EmbeddedDatabase proxied;
-  private       Binary           buffer        = new Binary(4096);
-  private       AtomicLong       messageNumber = new AtomicLong();
+  private final ArcadeDBServer      server;
+  private final EmbeddedDatabase    proxied;
+  private       Binary              buffer             = new Binary(4096);
+  private       AtomicLong          messageNumber      = new AtomicLong();
+  private       long                lastCheckpoint     = 0;
+  private       Long[]              lastMessage        = new Long[] { -1l, -1l, -1l };
+  private       Map<String, Long[]> replicaCheckpoints = new HashMap<>();
 
   public ReplicatedDatabase(final ArcadeDBServer server, final EmbeddedDatabase proxied) {
     this.server = server;
@@ -176,15 +181,27 @@ public class ReplicatedDatabase implements DatabaseInternal {
           server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
 
           try {
-            server.getHA().sendRequestToReplicas(buffer, new TxRequest(messageNumber.getAndIncrement(), getName(), changes));
+            server.getHA().sendCommandToReplicas(buffer, new TxRequest(messageNumber.getAndIncrement(), getName(), changes));
           } catch (IOException e) {
             server.log(this, Level.SEVERE, "Error on replicating transaction (error:%s)", e);
           }
+
+          if (System.currentTimeMillis() - lastCheckpoint > 1000)
+            executeCheckpoint();
         }
 
         return null;
       }
     });
+  }
+
+  private void executeCheckpoint() {
+    try {
+      server.getHA().sendCommandToReplicas(buffer, new CheckpointRequest(getName()));
+      lastCheckpoint = System.currentTimeMillis();
+    } catch (IOException e) {
+      server.log(this, Level.SEVERE, "Error on executing checkpoint (error:%s)", e);
+    }
   }
 
   @Override
@@ -309,5 +326,21 @@ public class ReplicatedDatabase implements DatabaseInternal {
   @Override
   public void setReadYourWrites(final boolean value) {
     proxied.setReadYourWrites(value);
+  }
+
+  public Long[] getLastMessage() {
+    return lastMessage;
+  }
+
+  public void updateLastMessage(final Long[] ids) {
+    lastMessage = ids;
+  }
+
+  public Long[] getReplicaCheckpoint(final String replicaName) {
+    return replicaCheckpoints.get(replicaName);
+  }
+
+  public void updateReplicaCheckpoint(final String replicaName, final Long[] values) {
+    replicaCheckpoints.put(replicaName, values);
   }
 }

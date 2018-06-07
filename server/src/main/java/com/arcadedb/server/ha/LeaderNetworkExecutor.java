@@ -7,9 +7,7 @@ import com.arcadedb.Constants;
 import com.arcadedb.database.Binary;
 import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.network.binary.ConnectionException;
-import com.arcadedb.network.binary.NetworkProtocolException;
-import com.arcadedb.server.ha.message.HARequestMessage;
-import com.arcadedb.server.ha.message.HAResponseMessage;
+import com.arcadedb.server.ha.message.HACommand;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -23,7 +21,7 @@ public class LeaderNetworkExecutor extends Thread {
   private final    HAServer            server;
   private          ChannelBinaryServer channel;
   private volatile boolean             shutdown = false;
-  private final String remoteServerName;
+  private final    String              remoteServerName;
 
   public LeaderNetworkExecutor(final HAServer ha, final Socket socket) throws IOException {
     setName(Constants.PRODUCT + "-ha-leader/" + socket.getInetAddress());
@@ -83,7 +81,7 @@ public class LeaderNetworkExecutor extends Thread {
 
         final byte requestId = requestBytes[0];
 
-        final HARequestMessage request = server.getMessageFactory().getRequestMessage(requestId);
+        final HACommand request = server.getMessageFactory().getCommand(requestId);
 
         if (request == null) {
           server.getServer().log(this, Level.INFO, "Error on reading request, command %d not valid", requestId);
@@ -95,22 +93,25 @@ public class LeaderNetworkExecutor extends Thread {
         buffer.putByteArray(requestBytes);
         buffer.flip();
 
+        // SKIP COMMAND ID
+        buffer.getByte();
+
         request.fromStream(buffer);
 
-        final HAResponseMessage response = server.getMessageFactory().getResponseMessage(request.getID());
-        if (response == null)
-          throw new NetworkProtocolException("Response message for request id " + request.getID() + " not found");
+        final HACommand response = request.execute(server);
+        if (response != null) {
+          // SEND THE RESPONSE BACK (USING THE SAME BUFFER)
+          buffer.reset();
 
-        response.build(server, request);
+          buffer.putByte(server.getMessageFactory().getCommandId(response));
+          response.toStream(buffer);
 
-        server.getServer().log(this, Level.INFO, "Request %s -> %s", request, response);
+          buffer.flip();
 
-        // SEND THE RESPONSE BACK (USING THE SAME BUFFER)
-        buffer.reset();
-        response.toStream(buffer);
-        buffer.flip();
+          server.getServer().log(this, Level.INFO, "Request %s -> %s", request, response);
 
-        sendRequest(buffer);
+          sendMessage(buffer);
+        }
 
       } catch (EOFException | SocketException e) {
         server.getServer().log(this, Level.FINE, "Error on reading request", e);
@@ -119,12 +120,17 @@ public class LeaderNetworkExecutor extends Thread {
         server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
       }
     }
-
   }
 
-  public void sendRequest(final Binary buffer) throws IOException {
+  public void sendMessage(final Binary buffer) throws IOException {
     channel.writeBytes(buffer.getContent(), buffer.size());
     channel.flush();
+  }
+
+  public HACommand receiveResponse() throws IOException {
+    final byte[] requestBytes = channel.readBytes();
+    final byte requestId = requestBytes[0];
+    return server.getMessageFactory().getCommand(requestId);
   }
 
   public void close() {

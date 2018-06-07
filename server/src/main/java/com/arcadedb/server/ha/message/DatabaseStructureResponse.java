@@ -4,25 +4,21 @@
 package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
-import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.network.binary.NetworkProtocolException;
-import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.server.ha.HAServer;
-import com.arcadedb.utility.FileUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DatabaseStructureResponse implements HAResponseMessage<DatabaseStructureRequest> {
-  public final static byte                 ID = DatabaseStructureRequest.ID;
-  private             String               schemaJson;
-  private             Map<Integer, String> fileNames;
+public class DatabaseStructureResponse implements HACommand {
+  private String               schemaJson;
+  private Map<Integer, String> fileNames;
 
   public DatabaseStructureResponse() {
+  }
+
+  public DatabaseStructureResponse(final String schemaJson, final Map<Integer, String> fileNames) {
+    this.schemaJson = schemaJson;
+    this.fileNames = fileNames;
   }
 
   public Map<Integer, String> getFileNames() {
@@ -35,8 +31,6 @@ public class DatabaseStructureResponse implements HAResponseMessage<DatabaseStru
 
   @Override
   public void toStream(final Binary stream) {
-    stream.putByte(ID);
-
     stream.putString(schemaJson);
 
     stream.putNumber(fileNames.size());
@@ -50,9 +44,6 @@ public class DatabaseStructureResponse implements HAResponseMessage<DatabaseStru
 
   @Override
   public void fromStream(final Binary stream) {
-    // SKIP THE COMMAND ID
-    stream.getByte();
-
     schemaJson = stream.getString();
 
     fileNames = new HashMap<>();
@@ -68,20 +59,8 @@ public class DatabaseStructureResponse implements HAResponseMessage<DatabaseStru
   }
 
   @Override
-  public void build(final HAServer server, final DatabaseStructureRequest request) {
-    final Database db = server.getServer().getDatabase(request.getDatabaseName());
-
-    final File file = new File(db.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
-    try {
-      schemaJson = FileUtils.readStreamAsString(new FileInputStream(file), db.getSchema().getEncoding());
-
-      fileNames = new HashMap<>();
-      for (PaginatedFile f : db.getFileManager().getFiles())
-        fileNames.put(f.getFileId(), f.getFileName());
-
-    } catch (IOException e) {
-      throw new NetworkProtocolException("Error on reading schema json file");
-    }
+  public HACommand execute(final HAServer server) {
+    return null;
   }
 
   @Override

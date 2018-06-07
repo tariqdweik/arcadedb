@@ -5,11 +5,8 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.Constants;
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.engine.WALFile;
 import com.arcadedb.network.binary.ChannelBinaryClient;
-import com.arcadedb.server.ha.message.HARequestMessage;
-import com.arcadedb.server.ha.message.TxRequest;
+import com.arcadedb.server.ha.message.HACommand;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -39,7 +36,7 @@ public class ReplicaNetworkExecutor extends Thread {
 
         final byte requestId = requestBytes[0];
 
-        final HARequestMessage request = server.getMessageFactory().getRequestMessage(requestId);
+        final HACommand request = server.getMessageFactory().getCommand(requestId);
 
         if (request == null) {
           server.getServer().log(this, Level.INFO, "Error on reading request, command %d not valid", requestId);
@@ -51,13 +48,17 @@ public class ReplicaNetworkExecutor extends Thread {
         buffer.putByteArray(requestBytes);
         buffer.flip();
 
+        // SKIP COMMAND ID
+        buffer.getByte();
+
         request.fromStream(buffer);
 
-        if (request instanceof TxRequest) {
-          server.getServer().log(this, Level.FINE, "Applying transaction (msgNum=%d)", ((TxRequest) request).getMessageNumber());
-          applyTx((TxRequest) request);
-        } else
-          server.getServer().log(this, Level.SEVERE, "Unknown request received from the leader %s", request);
+        server.getServer().log(this, Level.FINE, "Received request from the leader '%s'", request);
+
+        final HACommand response = request.execute(server);
+
+        if (response != null)
+          sendCommandToLeader(buffer, response);
 
       } catch (EOFException | SocketException e) {
         server.getServer().log(this, Level.FINE, "Error on reading request", e);
@@ -71,80 +72,18 @@ public class ReplicaNetworkExecutor extends Thread {
 
   }
 
-  private void applyTx(final TxRequest request) {
-    final WALFile.WALTransaction tx = getTx(request);
+  public void sendCommandToLeader(final Binary buffer, final HACommand response) throws IOException {
+    server.getServer().log(this, Level.FINE, "Sending response back to the leader '%s'...", response);
 
-    final DatabaseInternal db = (DatabaseInternal) server.getServer().getDatabase(request.getDatabaseName());
-    try {
-      db.getTransactionManager().applyChanges(tx);
-    } finally {
-      db.close();
-    }
-  }
+    buffer.reset();
 
-  private WALFile.WALTransaction getTx(final TxRequest request) {
+    buffer.putByte(server.getMessageFactory().getCommandId(response));
+    response.toStream(buffer);
 
-    final WALFile.WALTransaction tx = new WALFile.WALTransaction();
+    buffer.flip();
 
-    final Binary bufferChange = request.getBufferChange();
-
-    int pos = 0;
-    tx.txId = bufferChange.getLong(pos);
-    pos += Binary.LONG_SERIALIZED_SIZE;
-
-    final int pages = bufferChange.getInt(pos);
-    pos += Binary.INT_SERIALIZED_SIZE;
-
-    final int segmentSize = bufferChange.getInt(pos);
-    pos += Binary.INT_SERIALIZED_SIZE;
-
-    if (pos + segmentSize + Binary.LONG_SERIALIZED_SIZE > bufferChange.size())
-      // TRUNCATED FILE
-      throw new ReplicationException("Replicated transaction buffer is corrupted");
-
-    tx.pages = new WALFile.WALPage[pages];
-
-    for (int i = 0; i < pages; ++i) {
-      if (pos > bufferChange.size())
-        // INVALID
-        throw new ReplicationException("Replicated transaction buffer is corrupted");
-
-      tx.pages[i] = new WALFile.WALPage();
-
-      tx.pages[i].fileId = bufferChange.getInt(pos);
-      pos += Binary.INT_SERIALIZED_SIZE;
-
-      tx.pages[i].pageNumber = bufferChange.getInt(pos);
-      pos += Binary.INT_SERIALIZED_SIZE;
-
-      tx.pages[i].changesFrom = bufferChange.getInt(pos);
-      pos += Binary.INT_SERIALIZED_SIZE;
-
-      tx.pages[i].changesTo = bufferChange.getInt(pos);
-      pos += Binary.INT_SERIALIZED_SIZE;
-
-      final int deltaSize = tx.pages[i].changesTo - tx.pages[i].changesFrom + 1;
-
-      tx.pages[i].currentPageVersion = bufferChange.getInt(pos);
-      pos += Binary.INT_SERIALIZED_SIZE;
-
-      tx.pages[i].currentPageSize = bufferChange.getInt(pos);
-      pos += Binary.INT_SERIALIZED_SIZE;
-
-      final byte[] buffer = new byte[deltaSize];
-
-      tx.pages[i].currentContent = new Binary(buffer);
-      bufferChange.getByteArray(pos, buffer, 0, deltaSize);
-
-      pos += deltaSize;
-    }
-
-    final long mn = bufferChange.getLong(pos + Binary.INT_SERIALIZED_SIZE);
-    if (mn != WALFile.MAGIC_NUMBER)
-      // INVALID
-      throw new ReplicationException("Replicated transaction buffer is corrupted");
-
-    return tx;
+    channel.writeBytes(buffer.getContent(), buffer.size());
+    channel.flush();
   }
 
   public void close() {
@@ -155,11 +94,6 @@ public class ReplicaNetworkExecutor extends Thread {
 
   public String getURL() {
     return channel.getURL();
-  }
-
-  public void sendRequest(final Binary buffer) throws IOException {
-    channel.writeBytes(buffer.getContent(), buffer.size());
-    channel.flush();
   }
 
   public byte[] receiveResponse() throws IOException {

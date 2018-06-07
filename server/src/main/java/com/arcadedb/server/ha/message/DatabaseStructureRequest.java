@@ -4,10 +4,21 @@
 package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.database.Database;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.network.binary.NetworkProtocolException;
+import com.arcadedb.schema.SchemaImpl;
+import com.arcadedb.server.ha.HAServer;
+import com.arcadedb.utility.FileUtils;
 
-public class DatabaseStructureRequest implements HARequestMessage {
-  public final static byte   ID = 1;
-  private             String databaseName;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+public class DatabaseStructureRequest implements HACommand {
+  private String databaseName;
 
   public DatabaseStructureRequest() {
   }
@@ -17,26 +28,32 @@ public class DatabaseStructureRequest implements HARequestMessage {
   }
 
   @Override
+  public HACommand execute(final HAServer server) {
+    final Database db = server.getServer().getDatabase(databaseName);
+
+    final File file = new File(db.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
+    try {
+      final String schemaJson = FileUtils.readStreamAsString(new FileInputStream(file), db.getSchema().getEncoding());
+
+      final Map<Integer, String> fileNames = new HashMap<>();
+      for (PaginatedFile f : db.getFileManager().getFiles())
+        fileNames.put(f.getFileId(), f.getFileName());
+
+      return new DatabaseStructureResponse(schemaJson, fileNames);
+
+    } catch (IOException e) {
+      throw new NetworkProtocolException("Error on reading schema json file");
+    }
+  }
+
+  @Override
   public void toStream(final Binary stream) {
-    stream.putByte(ID);
     stream.putString(databaseName);
   }
 
   @Override
   public void fromStream(final Binary stream) {
-    // SKIP THE COMMAND ID
-    stream.getByte();
-
     databaseName = stream.getString();
-  }
-
-  public String getDatabaseName() {
-    return databaseName;
-  }
-
-  @Override
-  public byte getID() {
-    return ID;
   }
 
   @Override

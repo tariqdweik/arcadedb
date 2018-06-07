@@ -87,6 +87,7 @@ public class ReplicationServerTest extends BaseGraphServerTest {
     } catch (InterruptedException e) {
     }
 
+    // CHECK INDEXES ARE REPLICATED CORRECTLY
     for (int s = 0; s < getServerCount(); ++s) {
       db = getServer(s).getDatabase(getDatabaseName());
       db.begin();
@@ -100,7 +101,6 @@ public class ReplicationServerTest extends BaseGraphServerTest {
         for (int i = 0; i < indexes.size(); ++i) {
           for (IndexCursor it = indexes.get(i).index.iterator(true); it.hasNext(); ) {
             it.next();
-
             ++total;
           }
         }

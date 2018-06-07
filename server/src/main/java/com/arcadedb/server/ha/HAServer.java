@@ -19,6 +19,7 @@ import com.arcadedb.network.binary.NetworkProtocolException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ServerDatabaseProxy;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
 import com.arcadedb.utility.FileUtils;
@@ -32,7 +33,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 public class HAServer {
-  private final HAMessageFactory                   messageFactory     = new HAMessageFactory(this);
+  private final HAMessageFactory                   messageFactory     = new HAMessageFactory();
   private final ArcadeDBServer                     server;
   private final ContextConfiguration               configuration;
   private final String                             clusterName;
@@ -104,16 +105,38 @@ public class HAServer {
     return messageFactory;
   }
 
-  public void sendRequestToReplicas(final Binary buffer, final HAMessage req) throws IOException {
+  public Long[] getLastMessage(final String databaseName) {
+    final Database db = server.getDatabase(databaseName);
+    return ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).getLastMessage();
+  }
+
+  public void updateLastMessage(final String databaseName, final Long[] ids) {
+    final Database db = server.getDatabase(databaseName);
+    ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).updateLastMessage(ids);
+  }
+
+  public Long[] getReplicaCheckpoint(final String replicaName, final String databaseName) {
+    final Database db = server.getDatabase(databaseName);
+    return ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).getReplicaCheckpoint(replicaName);
+  }
+
+  public void updateReplicaCheckpoint(final String replicaName, final String databaseName, final Long[] ids) {
+    final Database db = server.getDatabase(databaseName);
+    ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).updateReplicaCheckpoint(replicaName, ids);
+  }
+
+  public void sendCommandToReplicas(final Binary buffer, final HACommand command) throws IOException {
     buffer.reset();
-    req.toStream(buffer);
+
+    buffer.putByte(messageFactory.getCommandId(command));
+    command.toStream(buffer);
 
     buffer.flip();
 
     // SEND THE REQUEST TO ALL THE REPLICAS
     for (LeaderNetworkExecutor replicaConnection : replicaConnections.values()) {
       buffer.position(0);
-      replicaConnection.sendRequest(buffer);
+      replicaConnection.sendMessage(buffer);
     }
   }
 
@@ -171,13 +194,13 @@ public class HAServer {
   private void initReplica() throws IOException, InterruptedException {
     final Binary buffer = new Binary(1024);
 
-    sendRequestToLeader(buffer, new DatabaseListRequest());
-    final DatabaseListResponse databaseList = (DatabaseListResponse) receiveResponseFromLeader(buffer);
+    leaderConnection.sendCommandToLeader(buffer, new DatabaseListRequest());
+    final DatabaseListResponse databaseList = (DatabaseListResponse) receiveCommandFromLeader(buffer);
 
     final Set<String> databases = databaseList.getDatabases();
     for (String db : databases) {
-      sendRequestToLeader(buffer, new DatabaseStructureRequest(db));
-      final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveResponseFromLeader(buffer);
+      leaderConnection.sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
+      final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
 
       final Database database = server.getDatabase(db);
 
@@ -219,14 +242,14 @@ public class HAServer {
 
     int from = 0;
 
-    server.log(this, Level.INFO, "Installing file '%s'...", fileName);
+    server.log(this, Level.FINE, "Installing file '%s'...", fileName);
 
     int pages = 0;
     long fileSize = 0;
 
     while (true) {
-      sendRequestToLeader(buffer, new FileContentRequest(db, fileId, from));
-      final FileContentResponse fileChunk = (FileContentResponse) receiveResponseFromLeader(buffer);
+      leaderConnection.sendCommandToLeader(buffer, new FileContentRequest(db, fileId, from));
+      final FileContentResponse fileChunk = (FileContentResponse) receiveCommandFromLeader(buffer);
 
       if (fileChunk.getPages() == 0)
         break;
@@ -247,21 +270,12 @@ public class HAServer {
       from += fileChunk.getPages();
     }
 
-    server.log(this, Level.INFO, "File '%s' installed (pages=%d size=%s)", fileName, pages, FileUtils.getSizeAsString(fileSize));
+    server.log(this, Level.FINE, "File '%s' installed (pages=%d size=%s)", fileName, pages, FileUtils.getSizeAsString(fileSize));
   }
 
-  private void sendRequestToLeader(final Binary buffer, final HAMessage req) throws IOException {
-    buffer.reset();
-    req.toStream(buffer);
-
-    buffer.flip();
-
-    leaderConnection.sendRequest(buffer);
-  }
-
-  private HAMessage receiveResponseFromLeader(final Binary buffer) throws IOException {
+  private HACommand receiveCommandFromLeader(final Binary buffer) throws IOException {
     final byte[] response = leaderConnection.receiveResponse();
-    final HAMessage message = messageFactory.getResponseMessage(response[0]);
+    final HACommand message = messageFactory.getCommand(response[0]);
 
     if (message == null) {
       LogManager.instance().info(this, "Error on reading response, message %d not valid", response[0]);
@@ -272,6 +286,9 @@ public class HAServer {
     buffer.putByteArray(response);
 
     buffer.flip();
+
+    // SKIP COMMAND ID
+    buffer.getByte();
 
     message.fromStream(buffer);
 

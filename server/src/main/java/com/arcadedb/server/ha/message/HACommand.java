@@ -4,8 +4,11 @@
 package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.server.ha.HAServer;
 
-public interface HAMessage {
+public interface HACommand {
+  HACommand execute(HAServer server);
+
   void toStream(Binary stream);
 
   void fromStream(Binary stream);
