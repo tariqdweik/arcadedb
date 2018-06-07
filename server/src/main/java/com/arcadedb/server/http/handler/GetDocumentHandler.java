@@ -22,7 +22,7 @@ public class GetDocumentHandler extends DatabaseAbstractHandler {
   public void execute(final HttpServerExchange exchange, final Database database) {
     try {
       final Deque<String> rid = exchange.getQueryParameters().get("rid");
-      if (rid.isEmpty()) {
+      if (rid == null || rid.isEmpty()) {
         exchange.setStatusCode(400);
         exchange.getResponseSender().send("{ \"error\" : \"Record id is null\"}");
         return;

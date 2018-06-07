@@ -13,23 +13,23 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Deque;
 
-public class CommandHandler extends DatabaseAbstractHandler {
-  public CommandHandler(final HttpServer httpServer) {
+public class SQLHandler extends DatabaseAbstractHandler {
+  public SQLHandler(final HttpServer httpServer) {
     super(httpServer);
   }
 
   @Override
   public void execute(final HttpServerExchange exchange, final Database database) throws UnsupportedEncodingException {
     final Deque<String> text = exchange.getQueryParameters().get("command");
-    if (text.isEmpty()) {
+    if (text == null || text.isEmpty()) {
       exchange.setStatusCode(400);
-      exchange.getResponseSender().send("{ \"error\" : \"Query text id is null\"}");
+      exchange.getResponseSender().send("{ \"error\" : \"Command text id is null\"}");
       return;
     }
 
     final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
 
-    final ResultSet qResult = database.command(command, null);
+    final ResultSet qResult = database.sql(command, null);
 
     final StringBuilder result = new StringBuilder();
     while (qResult.hasNext()) {

@@ -9,8 +9,8 @@ import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
 import com.arcadedb.engine.Dictionary;
-import com.arcadedb.exception.*;
 import com.arcadedb.exception.ConcurrentModificationException;
+import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexLSM;
@@ -814,17 +814,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public ResultSet query(String query, Map<String, Object> args) {
-    final Statement statement = SQLEngine.parse(query, this);
-    if (!statement.isIdempotent()) {
-      throw new CommandExecutionException("Cannot execute query on non idempotent statement: " + query);
-    }
-    final ResultSet original = statement.execute(this, args);
-    return original;
-  }
-
-  @Override
-  public ResultSet command(String query, Map<String, Object> args) {
+  public ResultSet sql(String query, Map<String, Object> args) {
     final Statement statement = SQLEngine.parse(query, this);
     final ResultSet original = statement.execute(this, args);
     return original;

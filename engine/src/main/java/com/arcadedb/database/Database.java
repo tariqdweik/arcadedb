@@ -18,8 +18,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface Database {
-  ResultSet command(String query, Map<String, Object> args);
-
   interface Transaction {
     void execute(Database database);
   }
@@ -88,7 +86,7 @@ public interface Database {
 
   PageManager getPageManager();
 
-  ResultSet query(String query, Map<String, Object> args);
+  ResultSet sql(String query, Map<String, Object> args);
 
   Object executeInReadLock(Callable<Object> callable);
 

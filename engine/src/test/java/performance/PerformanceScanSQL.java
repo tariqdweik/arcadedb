@@ -32,7 +32,7 @@ public class PerformanceScanSQL {
 
         final AtomicInteger row = new AtomicInteger();
 
-        final ResultSet rs = database.query("select from " + TYPE_NAME + " where id < 1l", null);
+        final ResultSet rs = database.sql("select from " + TYPE_NAME + " where id < 1l", null);
         while (rs.hasNext()) {
           Result record = rs.next();
           Assertions.assertNotNull(record);

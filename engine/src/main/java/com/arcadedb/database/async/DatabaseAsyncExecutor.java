@@ -12,12 +12,14 @@ import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.*;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,6 +32,7 @@ public class DatabaseAsyncExecutor {
   private       boolean          transactionUseWAL  = true;
   private       boolean          transactionSync    = false;
   private       AtomicLong       transactionCounter = new AtomicLong();
+  private       AtomicLong       sqlRoundRobinIndex = new AtomicLong();
 
   // SPECIAL COMMANDS
   private final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand();
@@ -144,6 +147,17 @@ public class DatabaseAsyncExecutor {
                   database.begin();
               }
 
+            } else if (message instanceof DatabaseAsyncSQL) {
+
+              final DatabaseAsyncSQL sql = (DatabaseAsyncSQL) message;
+
+              try {
+                final ResultSet resultset = database.sql(sql.command, sql.args);
+                sql.userCallback.onOk(resultset);
+              } catch (Exception e) {
+                sql.userCallback.onError(e);
+              }
+
             } else if (message instanceof DatabaseAsyncScanType) {
 
               final DatabaseAsyncScanType command = (DatabaseAsyncScanType) message;
@@ -246,10 +260,14 @@ public class DatabaseAsyncExecutor {
         }
       }
 
-      try {
+      try
+
+      {
         database.getTransaction().commit();
         onOk();
-      } catch (Exception e) {
+      } catch (Exception e)
+
+      {
         onError(e);
       }
     }
@@ -343,6 +361,16 @@ public class DatabaseAsyncExecutor {
         }
       }
       break;
+    }
+  }
+
+  public void sql(final String query, final Map<String, Object> args, final SQLCallback callback) {
+    try {
+      final int slot = (int) (sqlRoundRobinIndex.getAndIncrement() % executorThreads.length);
+      executorThreads[slot].queue.put(new DatabaseAsyncSQL(query, args, callback));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new DatabaseOperationException("Error on executing sql command");
     }
   }
 

@@ -106,7 +106,7 @@ public class Console {
       else if (line.startsWith("connect"))
         executeConnect(line);
       else {
-        executeCommand(line);
+        executeSQL(line);
       }
     }
 
@@ -146,12 +146,12 @@ public class Console {
       database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
   }
 
-  private void executeCommand(String line) {
+  private void executeSQL(String line) {
     checkDatabaseIsOpen();
 
     final long beginTime = System.currentTimeMillis();
 
-    final ResultSet result = database.command(line, null);
+    final ResultSet result = database.sql(line, null);
     final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
       @Override
       public void onMessage(String text, Object... args) {

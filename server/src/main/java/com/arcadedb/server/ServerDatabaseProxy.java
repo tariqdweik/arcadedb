@@ -136,12 +136,6 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   }
 
   @Override
-  public ResultSet command(String query, Map<String, Object> args) {
-    checkForOpen();
-    return proxied.command(query, args);
-  }
-
-  @Override
   public String getName() {
     checkForOpen();
     return proxied.getName();
@@ -319,9 +313,9 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   }
 
   @Override
-  public ResultSet query(final String query, final Map<String, Object> args) {
+  public ResultSet sql(final String query, final Map<String, Object> args) {
     checkForOpen();
-    return proxied.query(query, args);
+    return proxied.sql(query, args);
   }
 
   @Override

@@ -9,7 +9,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.serializer.JsonSerializer;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerException;
-import com.arcadedb.server.http.handler.CommandHandler;
+import com.arcadedb.server.http.handler.SQLHandler;
 import com.arcadedb.server.http.handler.CreateDocumentHandler;
 import com.arcadedb.server.http.handler.GetDocumentHandler;
 import com.arcadedb.server.http.handler.HAServersHandler;
@@ -47,7 +47,7 @@ public class HttpServer {
 
     server.log(this, Level.INFO, "- Starting HTTP Server (host=%s port=%d)...", host, port);
 
-    final HttpHandler routes = new RoutingHandler().post("/command/{database}/{command}", new CommandHandler(this))
+    final HttpHandler routes = new RoutingHandler().post("/sql/{database}/{command}", new SQLHandler(this))
         .get("/document/{database}/{rid}", new GetDocumentHandler(this))
         .post("/document/{database}", new CreateDocumentHandler(this)).post("/server", new HAServersHandler(this));
 

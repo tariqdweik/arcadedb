@@ -132,11 +132,6 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public ResultSet command(String query, Map<String, Object> args) {
-    return proxied.command(query, args);
-  }
-
-  @Override
   public String getName() {
     return proxied.getName();
   }
@@ -316,8 +311,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public ResultSet query(final String query, final Map<String, Object> args) {
-    return proxied.query(query, args);
+  public ResultSet sql(final String query, final Map<String, Object> args) {
+    return proxied.sql(query, args);
   }
 
   @Override
