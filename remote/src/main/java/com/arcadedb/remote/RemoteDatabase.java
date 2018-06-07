@@ -40,7 +40,7 @@ public class RemoteDatabase extends RWLockContext {
   }
 
   public ResultSet command(final String command) {
-    return (ResultSet) connect("command", command, new Callback() {
+    return (ResultSet) connect("sql", command, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) throws Exception {
         final ResultSet resultSet = new InternalResultSet();

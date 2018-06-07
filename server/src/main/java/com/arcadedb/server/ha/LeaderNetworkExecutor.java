@@ -108,7 +108,7 @@ public class LeaderNetworkExecutor extends Thread {
 
           buffer.flip();
 
-          server.getServer().log(this, Level.INFO, "Request %s -> %s", request, response);
+          server.getServer().log(this, Level.FINE, "Request %s -> %s", request, response);
 
           sendMessage(buffer);
         }
