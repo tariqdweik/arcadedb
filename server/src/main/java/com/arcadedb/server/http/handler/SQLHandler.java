@@ -27,11 +27,10 @@ public class SQLHandler extends DatabaseAbstractHandler {
       return;
     }
 
-    final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
-
-    final ResultSet qResult = database.sql(command, null);
-
     final StringBuilder result = new StringBuilder();
+
+    final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
+    final ResultSet qResult = database.sql(command, null);
     while (qResult.hasNext()) {
       if (result.length() > 0)
         result.append(",");
