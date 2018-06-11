@@ -25,6 +25,8 @@ public class RemoteDatabase extends RWLockContext {
     Object call(HttpURLConnection iArgument, JSONObject response) throws Exception;
   }
 
+  public static final int DEFAULT_PORT = 2480;
+
   private final String server;
   private final int    port;
   private final String name;

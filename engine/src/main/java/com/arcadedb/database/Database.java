@@ -18,8 +18,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface Database {
-  ResultSet query(String query, Map<String, Object> args);
-
   interface Transaction {
     void execute(Database database);
   }
@@ -87,6 +85,8 @@ public interface Database {
   BinarySerializer getSerializer();
 
   PageManager getPageManager();
+
+  ResultSet query(String query, Map<String, Object> args);
 
   ResultSet sql(String query, Map<String, Object> args);
 

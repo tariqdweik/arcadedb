@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Scanner;
 
 /**
- * This class has been copied under Console project to avoid complex dependencies.
+ * This class has been copied under Server project to avoid complex dependencies.
  */
 public abstract class BaseGraphServerTest {
   protected static final String VERTEX1_TYPE_NAME = "V1";

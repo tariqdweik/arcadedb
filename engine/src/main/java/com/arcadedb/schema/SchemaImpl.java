@@ -403,6 +403,19 @@ public class SchemaImpl implements Schema {
     return types.containsKey(typeName);
   }
 
+  public void dropType(final String typeName) {
+    database.executeInWriteLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        if (types.remove(typeName) == null)
+          throw new SchemaException("Type '" + typeName + "' not found");
+
+        saveConfiguration();
+        return null;
+      }
+    });
+  }
+
   public DocumentType createDocumentType(final String typeName) {
     return createDocumentType(typeName, Runtime.getRuntime().availableProcessors());
   }

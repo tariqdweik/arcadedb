@@ -48,6 +48,8 @@ public interface Schema {
 
   DocumentType getType(String typeName);
 
+  void dropType(String typeName);
+
   String getTypeNameByBucketId(int bucketId);
 
   DocumentType getTypeByBucketId(int bucketId);

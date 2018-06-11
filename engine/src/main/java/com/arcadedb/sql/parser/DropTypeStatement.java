@@ -13,6 +13,7 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
@@ -32,9 +33,9 @@ public class DropTypeStatement extends ODDLStatement {
   }
 
   @Override
-  public ResultSet executeDDL(CommandContext ctx) {
-    Schema schema = ctx.getDatabase().getSchema();
-    DocumentType clazz = schema.getType(name.getStringValue());
+  public ResultSet executeDDL(final CommandContext ctx) {
+    final Schema schema = ctx.getDatabase().getSchema();
+    final DocumentType clazz = schema.getType(name.getStringValue());
     if (clazz == null) {
       if (ifExists) {
         return new InternalResultSet();
@@ -54,15 +55,14 @@ public class DropTypeStatement extends ODDLStatement {
       }
     }
 
-    throw new UnsupportedOperationException();
-//    schema.dropClass(name.getStringValue());
-//
-//    OInternalResultSet rs = new OInternalResultSet();
-//    OResultInternal result = new OResultInternal();
-//    result.setProperty("operation", "drop class");
-//    result.setProperty("className", name.getStringValue());
-//    rs.add(result);
-//    return rs;
+    schema.dropType(name.getStringValue());
+
+    final InternalResultSet rs = new InternalResultSet();
+    final ResultInternal result = new ResultInternal();
+    result.setProperty("operation", "drop class");
+    result.setProperty("className", name.getStringValue());
+    rs.add(result);
+    return rs;
   }
 
   @Override
@@ -87,13 +87,13 @@ public class DropTypeStatement extends ODDLStatement {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
 
-    DropTypeStatement that = (DropTypeStatement) o;
+    final DropTypeStatement that = (DropTypeStatement) o;
 
     if (unsafe != that.unsafe)
       return false;

@@ -11,6 +11,7 @@ import com.arcadedb.database.Document;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
+import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.ResultSet;
 import org.jline.reader.*;
@@ -30,6 +31,7 @@ public class Console {
   private final        Terminal       terminal;
   private final        LineReader     lineReader;
   private final        TerminalParser parser = new TerminalParser();
+  private              RemoteDatabase remoteDatabase;
   private              Database       database;
   private              ConsoleOutput  output;
 
@@ -75,7 +77,12 @@ public class Console {
   }
 
   public void close() {
-    //terminal.close();
+    if (terminal != null)
+      terminal.writer().flush();
+
+    if (remoteDatabase != null)
+      remoteDatabase.close();
+
     if (database != null)
       database.close();
   }
@@ -138,20 +145,57 @@ public class Console {
     }
   }
 
-  private void executeConnect(String line) {
+  private void executeConnect(final String line) {
     final String url = line.substring("connect".length()).trim();
-    if (database != null)
+    if (database != null || remoteDatabase != null)
       terminal.writer().print("Database already connected, to connect to a different database close the current one first\n");
-    else if (!url.isEmpty())
-      database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
+    else if (!url.isEmpty()) {
+      if (url.startsWith("remote:")) {
+        final String conn = url.substring("remote:".length());
+
+        final String[] serverUserPassword = conn.split(" ");
+        if (serverUserPassword.length != 3)
+          throw new ConsoleException("URL username and password are missing");
+
+        final String[] serverParts = serverUserPassword[0].split("/");
+        if (serverParts.length != 2)
+          throw new ConsoleException("Remote URL '" + url + "' not valid");
+
+        String remoteServer;
+        int remotePort;
+
+        final int portPos = serverParts[0].indexOf(":");
+        if (portPos < 0) {
+          remoteServer = serverParts[0];
+          remotePort = RemoteDatabase.DEFAULT_PORT;
+        } else {
+          remoteServer = serverParts[0].substring(0, portPos);
+          remotePort = Integer.parseInt(serverParts[0].substring(portPos + 1));
+        }
+
+        remoteDatabase = new RemoteDatabase(remoteServer, remotePort, serverParts[1], serverUserPassword[1], serverUserPassword[2]);
+
+        terminal.writer().printf("\nConnected\n");
+        terminal.writer().flush();
+
+      } else
+        database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
+    } else
+      throw new ConsoleException("URL missing");
   }
 
-  private void executeSQL(String line) {
+  private void executeSQL(final String line) {
     checkDatabaseIsOpen();
 
     final long beginTime = System.currentTimeMillis();
 
-    final ResultSet result = database.sql(line, null);
+    final ResultSet result;
+
+    if (remoteDatabase != null)
+      result = remoteDatabase.command(line);
+    else
+      result = database.sql(line, null);
+
     final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
       @Override
       public void onMessage(String text, Object... args) {
@@ -218,6 +262,11 @@ public class Console {
         }
       });
 
+      if (remoteDatabase != null) {
+        executeSQL("select from metadata:schema");
+        return;
+      }
+
       final List<TableFormatter.PTableMapRow> rows = new ArrayList<>();
       for (DocumentType type : database.getSchema().getTypes()) {
         final TableFormatter.PTableMapRow row = new TableFormatter.PTableMapRow();
@@ -257,7 +306,7 @@ public class Console {
   }
 
   private void checkDatabaseIsOpen() {
-    if (database == null)
+    if (database == null && remoteDatabase == null)
       throw new RuntimeException("No active database. Open a database first\n");
   }
 }
