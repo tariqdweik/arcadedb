@@ -59,9 +59,11 @@ public class DatabaseAsyncExecutor {
       if (DatabaseContext.INSTANCE.get() == null)
         DatabaseContext.INSTANCE.init(database);
 
+      DatabaseContext.INSTANCE.get().asyncMode = true;
       database.getTransaction().setUseWAL(transactionUseWAL);
       database.getTransaction().setSync(transactionSync);
       database.getTransaction().begin();
+
       while (!forceShutdown) {
         try {
           final DatabaseAsyncCommand message = queue.poll(500, TimeUnit.MILLISECONDS);
@@ -153,9 +155,22 @@ public class DatabaseAsyncExecutor {
 
               try {
                 final ResultSet resultset = database.sql(sql.command, sql.args);
-                sql.userCallback.onOk(resultset);
+
+                count++;
+
+                if (count % commitEvery == 0) {
+                  database.getTransaction().commit();
+                }
+
+                if (sql.userCallback != null)
+                  sql.userCallback.onOk(resultset);
+
               } catch (Exception e) {
-                sql.userCallback.onError(e);
+                if (sql.userCallback != null)
+                  sql.userCallback.onError(e);
+              } finally {
+                if (!database.isTransactionActive())
+                  database.getTransaction().begin();
               }
 
             } else if (message instanceof DatabaseAsyncScanType) {

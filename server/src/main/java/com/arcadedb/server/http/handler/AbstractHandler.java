@@ -4,6 +4,7 @@
 
 package com.arcadedb.server.http.handler;
 
+import com.arcadedb.server.ServerSecurityException;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.utility.LogManager;
 import io.undertow.connector.PooledByteBuffer;
@@ -52,6 +53,10 @@ public abstract class AbstractHandler implements HttpHandler {
 
       execute(exchange);
 
+    } catch (ServerSecurityException e) {
+      LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      exchange.setStatusCode(403);
+      exchange.getResponseSender().send("{ \"error\" : \"Security error\", \"detail\":\"" + e.toString() + "\"}");
     } catch (Exception e) {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(500);

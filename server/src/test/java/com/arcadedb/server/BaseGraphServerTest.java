@@ -24,10 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Scanner;
+import java.util.*;
 
 public abstract class BaseGraphServerTest {
   protected static final String VERTEX1_TYPE_NAME = "V1";
@@ -159,6 +156,7 @@ public abstract class BaseGraphServerTest {
           connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/server").openConnection();
 
           connection.setRequestMethod("POST");
+          connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
 
           final String payload = "{\"add\":[\"Person\"],\"remove\":[\"Jay\"]}";
 

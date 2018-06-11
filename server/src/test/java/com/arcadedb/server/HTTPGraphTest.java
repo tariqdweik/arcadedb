@@ -13,14 +13,59 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Base64;
 
 public class HTTPGraphTest extends BaseGraphServerTest {
+  @Test
+  public void checkAuthenticationError() throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph/select%20from%20V1%20limit%201")
+        .openConnection();
+
+    connection.setRequestMethod("POST");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:wrong".getBytes()));
+
+    try {
+      connection.connect();
+
+      readResponse(connection);
+
+      Assertions.fail("Authentication was bypassed!");
+
+    } catch (IOException e) {
+      Assertions.assertTrue(e.toString().contains("403"));
+    } finally {
+      connection.disconnect();
+    }
+  }
+
+  @Test
+  public void checkNoAuthentication() throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph/select%20from%20V1%20limit%201")
+        .openConnection();
+
+    connection.setRequestMethod("POST");
+
+    try {
+      connection.connect();
+
+      readResponse(connection);
+
+      Assertions.fail("Authentication was bypassed!");
+
+    } catch (IOException e) {
+      Assertions.assertTrue(e.toString().contains("403"));
+    } finally {
+      connection.disconnect();
+    }
+  }
+
   @Test
   public void checkQuery() throws IOException {
     HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph/select%20from%20V1%20limit%201")
         .openConnection();
 
     connection.setRequestMethod("POST");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
     connection.connect();
 
     try {
@@ -45,6 +90,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
         "http://127.0.0.1:2480/document/graph/" + BaseGraphServerTest.root.getIdentity().toString().substring(1)).openConnection();
 
     connection.setRequestMethod("GET");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
     connection.connect();
 
     try {
@@ -68,6 +114,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/document/graph").openConnection();
 
     connection.setRequestMethod("POST");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
 
     final String payload = "{\"@type\":\"Person\",\"name\":\"Jay\",\"surname\":\"Miner\",\"age\":69}";
 

@@ -44,8 +44,19 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
   }
 
   @Test
+  public void checkWrongAuthorization() {
+    try {
+      final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph", "root", "wrong");
+      database.command("select from V1 limit 1");
+      Assertions.fail("Security was bypassed!");
+    } catch (RemoteException e) {
+      Assertions.assertTrue(e.toString().contains("403"));
+    }
+  }
+
+  @Test
   public void checkQuery() {
-    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph");
+    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph", "root", "root");
     try {
       ResultSet resultset = database.command("select from V1 limit 1");
 
@@ -61,7 +72,7 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
 
   @Test
   public void checkInsert() {
-    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph");
+    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph", "root", "root");
     try {
 
       for (int i = 0; i < 10000; ++i) {
@@ -81,7 +92,7 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
 
   @Test
   public void checkDelete() {
-    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph");
+    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph", "root", "root");
     try {
 
       for (int i = 0; i < 1000; ++i) {
@@ -103,7 +114,7 @@ public class RemoteGraphTest extends BaseGraphRemoteTest {
 
   @Test
   public void checkUpdate() {
-    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph");
+    final RemoteDatabase database = new RemoteDatabase("localhost", 2480, "graph", "root", "root");
     try {
 
       for (int i = 0; i < 1000; ++i) {

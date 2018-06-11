@@ -9,10 +9,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.serializer.JsonSerializer;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerException;
-import com.arcadedb.server.http.handler.CreateDocumentHandler;
-import com.arcadedb.server.http.handler.GetDocumentHandler;
-import com.arcadedb.server.http.handler.HAServersHandler;
-import com.arcadedb.server.http.handler.SQLHandler;
+import com.arcadedb.server.http.handler.*;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.RoutingHandler;
@@ -47,14 +44,13 @@ public class HttpServer {
 
     server.log(this, Level.INFO, "- Starting HTTP Server (host=%s port=%d)...", host, port);
 
-    final HttpHandler routes = new RoutingHandler().post("/sql/{database}/{command}", new SQLHandler(this))
-        .get("/document/{database}/{rid}", new GetDocumentHandler(this))
+    final HttpHandler routes = new RoutingHandler().get("/query/{database}/{command}", new QueryHandler(this))
+        .post("/sql/{database}/{command}", new SQLHandler(this)).get("/document/{database}/{rid}", new GetDocumentHandler(this))
         .post("/document/{database}", new CreateDocumentHandler(this)).post("/server", new HAServersHandler(this));
 
     do {
       try {
-        undertow = Undertow.builder().addHttpListener(port, host).setHandler(routes)
-            .build();
+        undertow = Undertow.builder().addHttpListener(port, host).setHandler(routes).build();
         undertow.start();
 
         server.log(this, Level.INFO, "- HTTP Server started (host=%s port=%d)", host, port);

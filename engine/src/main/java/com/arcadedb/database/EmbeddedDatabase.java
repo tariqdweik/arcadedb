@@ -491,7 +491,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         final DocumentType type = schema.getType(record.getType());
 
         // NEW
-        final Bucket bucket = type.getBucketToSave(false);
+        final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.get().asyncMode);
         record.setIdentity(bucket.createRecord(record));
         indexDocument(record, type, bucket);
 
@@ -816,6 +816,15 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   @Override
   public ResultSet sql(String query, Map<String, Object> args) {
     final Statement statement = SQLEngine.parse(query, this);
+    final ResultSet original = statement.execute(this, args);
+    return original;
+  }
+
+  @Override
+  public ResultSet query(String query, Map<String, Object> args) {
+    final Statement statement = SQLEngine.parse(query, this);
+    if (!statement.isIdempotent())
+      throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
     final ResultSet original = statement.execute(this, args);
     return original;
   }

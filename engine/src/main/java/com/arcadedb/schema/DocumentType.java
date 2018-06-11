@@ -7,6 +7,7 @@ package com.arcadedb.schema;
 import com.arcadedb.database.BucketSelectionStrategy;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RoundRobinBucketSelectionStrategy;
+import com.arcadedb.database.ThreadAffinityBucketSelectionStrategy;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
@@ -20,7 +21,7 @@ public class DocumentType {
   private final List<DocumentType>                     subTypes               = new ArrayList<>();
   private final List<Bucket>                           buckets                = new ArrayList<>();
   private       BucketSelectionStrategy                syncSelectionStrategy  = new RoundRobinBucketSelectionStrategy();
-  private       BucketSelectionStrategy                asyncSelectionStrategy = new RoundRobinBucketSelectionStrategy();
+  private       BucketSelectionStrategy                asyncSelectionStrategy = new ThreadAffinityBucketSelectionStrategy();
   private final Map<String, Property>                  properties             = new HashMap<>();
   private       Map<Integer, List<IndexMetadata>>      indexesByBucket        = new HashMap<>();
   private       Map<List<String>, List<IndexMetadata>> indexesByProperties    = new HashMap<>();

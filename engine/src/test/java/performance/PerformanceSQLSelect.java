@@ -13,12 +13,12 @@ import org.junit.jupiter.api.Assertions;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class PerformanceScanSQL {
+public class PerformanceSQLSelect {
   private static final String TYPE_NAME = "Person";
   private static final int    MAX_LOOPS = 10;
 
   public static void main(String[] args) throws Exception {
-    new PerformanceScanSQL().run();
+    new PerformanceSQLSelect().run();
   }
 
   private void run() {

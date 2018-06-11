@@ -13,6 +13,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Base64;
 
 public class TwoServersTest extends BaseGraphServerTest {
   @Override
@@ -26,6 +27,7 @@ public class TwoServersTest extends BaseGraphServerTest {
         .openConnection();
 
     connection.setRequestMethod("POST");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
     connection.connect();
 
     try {
@@ -50,6 +52,7 @@ public class TwoServersTest extends BaseGraphServerTest {
         "http://127.0.0.1:2480/document/graph/" + BaseGraphServerTest.root.getIdentity().toString().substring(1)).openConnection();
 
     connection.setRequestMethod("GET");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
     connection.connect();
 
     try {
@@ -77,6 +80,7 @@ public class TwoServersTest extends BaseGraphServerTest {
     final String payload = "{\"@type\":\"Person\",\"name\":\"Jay\",\"surname\":\"Miner\",\"age\":69}";
 
     connection.setRequestMethod("POST");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
     connection.setDoOutput(true);
 
     connection.connect();

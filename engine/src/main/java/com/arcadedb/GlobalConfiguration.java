@@ -127,6 +127,16 @@ public enum GlobalConfiguration {
       "True to increment the TCP/IP port number used for incoming HTTP in case the configured is not available", Boolean.class,
       true),
 
+  SERVER_SECURITY_ALGORITHM("arcadedb.server.securityAlgorithm", "Default encryption algorithm used for passwords hashing",
+      String.class, "PBKDF2WithHmacSHA256"),
+
+  SERVER_SECURITY_SALT_CACHE_SIZE("arcadedb.server.securitySaltCacheSize",
+      "Cache size of hashed salt passwords. The cache works as LRU. Use 0 to disable the cache", Integer.class, 64),
+
+  SERVER_SECURITY_SALT_ITERATIONS("arcadedb.server.saltIterations",
+      "Number of iterations to generate the salt or user password. Changing this setting does not affect stored passwords",
+      Integer.class, 65536),
+
   // HA
   HA_ENABLED("arcadedb.ha.enabled", "True if HA is enabled for the current server", Boolean.class, false),
 

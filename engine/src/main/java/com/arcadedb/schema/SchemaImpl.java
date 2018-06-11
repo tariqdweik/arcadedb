@@ -404,7 +404,7 @@ public class SchemaImpl implements Schema {
   }
 
   public DocumentType createDocumentType(final String typeName) {
-    return createDocumentType(typeName, 1);
+    return createDocumentType(typeName, Runtime.getRuntime().availableProcessors());
   }
 
   public DocumentType createDocumentType(final String typeName, final int buckets) {
@@ -435,7 +435,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public VertexType createVertexType(final String typeName) {
-    return createVertexType(typeName, 1);
+    return createVertexType(typeName, Runtime.getRuntime().availableProcessors());
   }
 
   @Override
@@ -470,7 +470,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public EdgeType createEdgeType(final String typeName) {
-    return createEdgeType(typeName, 1);
+    return createEdgeType(typeName, Runtime.getRuntime().availableProcessors());
   }
 
   @Override

@@ -316,6 +316,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public ResultSet query(final String query, final Map<String, Object> args) {
+    return proxied.query(query, args);
+  }
+
+  @Override
   public Object executeInReadLock(final Callable<Object> callable) {
     return proxied.executeInReadLock(callable);
   }

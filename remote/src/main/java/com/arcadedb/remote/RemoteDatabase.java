@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Base64;
 import java.util.Scanner;
 
 public class RemoteDatabase extends RWLockContext {
@@ -27,13 +28,17 @@ public class RemoteDatabase extends RWLockContext {
   private final String server;
   private final int    port;
   private final String name;
+  private final String userName;
+  private final String userPassword;
   private       String protocol = "http";
   private       String charset  = "UTF-8";
 
-  public RemoteDatabase(final String server, final int port, final String name) {
+  public RemoteDatabase(final String server, final int port, final String name, final String userName, final String userPassword) {
     this.server = server;
     this.port = port;
     this.name = name;
+    this.userName = userName;
+    this.userPassword = userPassword;
   }
 
   public void close() {
@@ -70,12 +75,9 @@ public class RemoteDatabase extends RWLockContext {
       connection = (HttpURLConnection) new URL(url).openConnection();
       try {
         connection.setRequestMethod("POST");
-//        connection.setRequestProperty("Content-Type", "application/json; charset=" + charset);
-//        connection.setDoInput(true);
-//        connection.setDoOutput(true);
-//        OutputStream os = connection.getOutputStream();
-//        os.write(payload.toString().getBytes("UTF-8"));
-//        os.close();
+
+        final String authorization = userName + ":" + userPassword;
+        connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString(authorization.getBytes()));
 
         connection.connect();
 

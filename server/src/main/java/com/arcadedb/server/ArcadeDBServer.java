@@ -32,6 +32,7 @@ public class ArcadeDBServer {
 
   private       ConcurrentMap<String, DatabaseInternal> databases = new ConcurrentHashMap<>();
   private final String                                  serverName;
+  private       ServerSecurity                          security;
 
   public ArcadeDBServer(final ContextConfiguration configuration) {
     this.configuration = configuration;
@@ -56,6 +57,8 @@ public class ArcadeDBServer {
       haServer = new HAServer(this, configuration);
       haServer.connect();
     }
+
+    security = new ServerSecurity(this, "config");
 
     httpServer.start();
 
@@ -86,10 +89,14 @@ public class ArcadeDBServer {
   public void stop() {
     log(this, Level.INFO, "Shutting down ArcadeDB Server...");
 
+    if (security != null)
+      security.close();
+
     if (haServer != null)
       haServer.close();
 
-    httpServer.stop();
+    if (httpServer != null)
+      httpServer.stop();
 
     for (Database db : databases.values())
       db.close();
@@ -140,5 +147,9 @@ public class ArcadeDBServer {
 
   public HAServer getHA() {
     return haServer;
+  }
+
+  public ServerSecurity getSecurity() {
+    return security;
   }
 }

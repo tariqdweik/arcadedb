@@ -319,6 +319,12 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   }
 
   @Override
+  public ResultSet query(final String query, final Map<String, Object> args) {
+    checkForOpen();
+    return proxied.query(query, args);
+  }
+
+  @Override
   public Object executeInReadLock(final Callable<Object> callable) {
     checkForOpen();
     return proxied.executeInReadLock(callable);

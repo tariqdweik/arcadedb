@@ -14,6 +14,7 @@ public class DatabaseContext extends ThreadLocal<DatabaseContext.PDatabaseContex
   }
 
   public static class PDatabaseContextTL {
+    public boolean            asyncMode = false;
     public TransactionContext transaction;
     public Binary             temporaryBuffer1 = new Binary(8196);
     public Binary             temporaryBuffer2 = new Binary(8196);
