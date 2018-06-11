@@ -4,23 +4,26 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.Database;
 import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Returns an OResult containing metadata regarding the database
+ * Returns an OResult containing metadata regarding the schema.
  *
  * @author Luigi Dell'Aquila (l.dellaquila - at - orientdb.com)
  */
-public class FetchFromDatabaseMetadataStep extends AbstractExecutionStep {
+public class FetchFromSchemaMetadataStep extends AbstractExecutionStep {
 
   boolean served = false;
   long    cost   = 0;
 
-  public FetchFromDatabaseMetadataStep(CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromSchemaMetadataStep(CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
@@ -41,12 +44,20 @@ public class FetchFromDatabaseMetadataStep extends AbstractExecutionStep {
           if (!served) {
             final ResultInternal result = new ResultInternal();
 
-            final Database db = ctx.getDatabase();
-            result.setProperty("name", db.getName());
-            result.setProperty("dateFormat", db.getSchema().getDateFormat());
-            result.setProperty("dateTimeFormat", db.getSchema().getDateTimeFormat());
-            result.setProperty("timezone", db.getSchema().getTimeZone().getDisplayName());
-            result.setProperty("encoding", db.getSchema().getEncoding());
+            final Schema schema = ctx.getDatabase().getSchema();
+
+            final List<ResultInternal> types = new ArrayList<>();
+
+            for (DocumentType type : schema.getTypes()) {
+              final ResultInternal r = new ResultInternal();
+              types.add(r);
+
+              r.setProperty("name", type.getName());
+//              r.setProperty("buckets", type.getBuckets(false));
+//              r.setProperty("properties", type.getPropertyNames());
+            }
+
+            result.setProperty("types", types);
 
             served = true;
             return result;

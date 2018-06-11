@@ -1294,27 +1294,13 @@ public class OSelectExecutionPlanner {
 
   private void handleMetadataAsTarget(SelectExecutionPlan plan, MetadataIdentifier metadata, CommandContext ctx,
       boolean profilingEnabled) {
-    Database db = ctx.getDatabase();
-    String schemaRecordIdAsString = null;
-    if (metadata.getName().toLowerCase().startsWith("metadata:")) {
-      throw new UnsupportedOperationException();
+    if (metadata.getName().equalsIgnoreCase("schema")) {
+      plan.chain(new FetchFromSchemaMetadataStep(ctx, profilingEnabled));
+    } else if (metadata.getName().equalsIgnoreCase("database")) {
+      plan.chain(new FetchFromDatabaseMetadataStep(ctx, profilingEnabled));
+    } else {
+      throw new UnsupportedOperationException("Invalid metadata: " + metadata.getName());
     }
-//    if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_SCHEMA)) {
-//      schemaRecordIdAsString = db.getStorage().getConfiguration().getSchemaRecordId();
-//      ORecordId schemaRid = new ORecordId(schemaRecordIdAsString);
-//      plan.chain(new FetchFromRidsStep(Collections.singleton(schemaRid), ctx, profilingEnabled));
-//    } else if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_INDEXMGR)) {
-//      schemaRecordIdAsString = db.getStorage().getConfiguration().getIndexMgrRecordId();
-//      ORecordId schemaRid = new ORecordId(schemaRecordIdAsString);
-//      plan.chain(new FetchFromRidsStep(Collections.singleton(schemaRid), ctx, profilingEnabled));
-//    } else if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_STORAGE)) {
-//      plan.chain(new FetchFromStorageMetadataStep(ctx, profilingEnabled));
-//    } else if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_DATABASE)) {
-//      plan.chain(new FetchFromDatabaseMetadataStep(ctx, profilingEnabled));
-//    } else {
-//      throw new UnsupportedOperationException("Invalid metadata: " + metadata.getName());
-//    }
-
   }
 
   private void handleRidsAsTarget(SelectExecutionPlan plan, List<Rid> rids, CommandContext ctx, boolean profilingEnabled) {
