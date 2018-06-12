@@ -28,6 +28,7 @@ import com.arcadedb.utility.LogManager;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -146,8 +147,8 @@ public class HAServer {
     ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).updateReplicaCheckpoint(replicaName, ids);
   }
 
-  public void sendCommandToReplicas(final Binary buffer, final HACommand command) throws IOException {
-    buffer.reset();
+  public void sendCommandToReplicas(final HACommand command) {
+    final Binary buffer = new Binary();
 
     buffer.putByte(messageFactory.getCommandId(command));
     command.toStream(buffer);
@@ -155,9 +156,16 @@ public class HAServer {
     buffer.flip();
 
     // SEND THE REQUEST TO ALL THE REPLICAS
-    for (LeaderNetworkExecutor replicaConnection : replicaConnections.values()) {
-      buffer.position(0);
-      replicaConnection.sendMessage(buffer);
+    for (Iterator<LeaderNetworkExecutor> it = replicaConnections.values().iterator(); it.hasNext(); ) {
+      final LeaderNetworkExecutor replicaConnection = it.next();
+
+      // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
+      try {
+        replicaConnection.enqueueMessage(buffer.slice(0));
+      } catch (ReplicationException e) {
+        // REMOVE THE REPLICA
+        it.remove();
+      }
     }
   }
 
@@ -165,9 +173,8 @@ public class HAServer {
     return replicaConnections.size();
   }
 
-  public void sendCommandToReplicasWithQuorum(final Binary buffer, final TxRequest tx, final int quorum, final long timeout)
-      throws IOException {
-    buffer.reset();
+  public void sendCommandToReplicasWithQuorum(final TxRequest tx, final int quorum, final long timeout) {
+    final Binary buffer = new Binary();
 
     buffer.putByte(messageFactory.getCommandId(tx));
     tx.toStream(buffer);
@@ -184,15 +191,25 @@ public class HAServer {
       quorumSemaphore = null;
 
     // SEND THE REQUEST TO ALL THE REPLICAS
-    for (LeaderNetworkExecutor replicaConnection : replicaConnections.values()) {
-      buffer.position(0);
-      replicaConnection.sendMessage(buffer);
+    for (Iterator<LeaderNetworkExecutor> it = replicaConnections.values().iterator(); it.hasNext(); ) {
+      final LeaderNetworkExecutor replicaConnection = it.next();
+
+      try {
+        replicaConnection.enqueueMessage(buffer.slice(0));
+      } catch (ReplicationException e) {
+        // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
+        it.remove();
+        if (quorumSemaphore != null)
+          quorumSemaphore.countDown();
+      }
     }
 
     if (quorumSemaphore != null) {
       try {
+
         if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS))
           throw new ReplicationException("Timeout waiting for quorum to be reached for request " + tx.getMessageNumber());
+
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new ReplicationException(

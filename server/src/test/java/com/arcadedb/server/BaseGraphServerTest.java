@@ -41,12 +41,6 @@ public abstract class BaseGraphServerTest {
   protected static RID              root;
   private          ArcadeDBServer[] servers;
 
-  static {
-//    Properties prop = new Properties();
-//    prop.setProperty("log4j.rootLogger", "WARN");
-//    PropertyConfigurator.configure(prop);
-  }
-
   @BeforeEach
   public void populate() {
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());

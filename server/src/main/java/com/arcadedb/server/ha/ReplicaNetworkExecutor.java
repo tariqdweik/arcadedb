@@ -20,7 +20,7 @@ public class ReplicaNetworkExecutor extends Thread {
   private volatile boolean             shutdown = false;
 
   public ReplicaNetworkExecutor(final HAServer ha, final ChannelBinaryClient channel) {
-    setName(Constants.PRODUCT + "-ha-replica/" + channel.getURL());
+    setName(Constants.PRODUCT + "-ha-replica2leader/" + channel.getURL());
     this.server = ha;
     this.channel = channel;
   }

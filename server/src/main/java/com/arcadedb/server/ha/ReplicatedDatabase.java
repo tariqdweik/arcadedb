@@ -32,7 +32,6 @@ import java.util.logging.Level;
 public class ReplicatedDatabase implements DatabaseInternal {
   private final ArcadeDBServer      server;
   private final EmbeddedDatabase    proxied;
-  private       Binary              buffer             = new Binary(4096);
   private       AtomicLong          messageNumber      = new AtomicLong();
   private       long                lastCheckpoint     = 0;
   private       Long[]              lastMessage        = new Long[] { -1l, -1l, -1l };
@@ -192,40 +191,35 @@ public class ReplicatedDatabase implements DatabaseInternal {
         if (changes != null) {
           server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
 
-          try {
+          final int activeServers = 1 + server.getHA().getOnlineReplicas();
 
-            final int activeServers = 1 + server.getHA().getOnlineReplicas();
-
-            final int reqQuorum;
-            switch (quorum) {
-            case NONE:
-              reqQuorum = 0;
-              break;
-            case ONE:
-              reqQuorum = 1;
-              break;
-            case TWO:
-              reqQuorum = 2;
-              break;
-            case THREE:
-              reqQuorum = 3;
-              break;
-            case MAJORITY:
-              reqQuorum = (activeServers / 2) + 1;
-              break;
-            case ALL:
-              reqQuorum = activeServers;
-              break;
-            default:
-              throw new IllegalArgumentException("Quorum " + quorum + " not managed");
-            }
-
-            server.getHA().sendCommandToReplicasWithQuorum(buffer,
-                new TxRequest(messageNumber.getAndIncrement(), getName(), changes, reqQuorum > 1), reqQuorum, timeout);
-
-          } catch (IOException e) {
-            server.log(this, Level.SEVERE, "Error on replicating transaction (error:%s)", e);
+          final int reqQuorum;
+          switch (quorum) {
+          case NONE:
+            reqQuorum = 0;
+            break;
+          case ONE:
+            reqQuorum = 1;
+            break;
+          case TWO:
+            reqQuorum = 2;
+            break;
+          case THREE:
+            reqQuorum = 3;
+            break;
+          case MAJORITY:
+            reqQuorum = (activeServers / 2) + 1;
+            break;
+          case ALL:
+            reqQuorum = activeServers;
+            break;
+          default:
+            throw new IllegalArgumentException("Quorum " + quorum + " not managed");
           }
+
+          server.getHA()
+              .sendCommandToReplicasWithQuorum(new TxRequest(messageNumber.getAndIncrement(), getName(), changes, reqQuorum > 1),
+                  reqQuorum, timeout);
 
           if (System.currentTimeMillis() - lastCheckpoint > 1000)
             executeCheckpoint();
@@ -237,12 +231,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   private void executeCheckpoint() {
-    try {
-      server.getHA().sendCommandToReplicas(buffer, new CheckpointRequest(getName()));
-      lastCheckpoint = System.currentTimeMillis();
-    } catch (IOException e) {
-      server.log(this, Level.SEVERE, "Error on executing checkpoint (error:%s)", e);
-    }
+    server.getHA().sendCommandToReplicas(new CheckpointRequest(getName()));
+    lastCheckpoint = System.currentTimeMillis();
   }
 
   @Override

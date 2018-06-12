@@ -4,10 +4,12 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.Constants;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ha.message.HACommand;
+import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -15,16 +17,24 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.logging.Level;
 
+/**
+ * This executor has an intermediate level of buffering managed with a queue. This avoids the Leader to be blocked in case the
+ * remote replica does not read messages and the socket remains full causing a block in the sending of messages for all the
+ * servers.
+ */
 public class LeaderNetworkExecutor extends Thread {
   public static final int PROTOCOL_VERSION = 0;
 
-  private final    HAServer            server;
-  private          ChannelBinaryServer channel;
-  private volatile boolean             shutdown = false;
-  private final    String              remoteServerName;
+  private final    HAServer                      server;
+  public final     PushPullBlockingQueue<Binary> queue    = new PushPullBlockingQueue<>(
+      GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+  private          ChannelBinaryServer           channel;
+  private volatile boolean                       shutdown = false;
+  private final    String                        remoteServerName;
+  private          Thread                        queueThread;
 
   public LeaderNetworkExecutor(final HAServer ha, final Socket socket) throws IOException {
-    setName(Constants.PRODUCT + "-ha-leader/" + socket.getInetAddress());
+    setName(Constants.PRODUCT + "-ha-leader2replica/" + socket.getInetAddress());
 
     this.server = ha;
     this.channel = new ChannelBinaryServer(socket);
@@ -66,12 +76,32 @@ public class LeaderNetworkExecutor extends Thread {
     }
   }
 
-  public String getRemoteServerName() {
-    return remoteServerName;
-  }
-
   @Override
   public void run() {
+    queueThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while (!shutdown) {
+          try {
+            final Binary msg = queue.take();
+
+            sendMessage(msg);
+
+          } catch (IOException e) {
+            server.getServer()
+                .log(this, Level.INFO, "Error on sending replication message to remote server '%s'", remoteServerName);
+            shutdown = true;
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+        }
+
+        queue.clear();
+      }
+    });
+    queueThread.start();
+
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
 
@@ -122,9 +152,35 @@ public class LeaderNetworkExecutor extends Thread {
     }
   }
 
-  public void sendMessage(final Binary buffer) throws IOException {
-    channel.writeBytes(buffer.getContent(), buffer.size());
-    channel.flush();
+  public void close() {
+    shutdown = true;
+
+    if (queueThread != null) {
+      try {
+        queueThread.interrupt();
+        queueThread.join();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        // IGNORE IT
+      }
+    }
+
+    if (channel != null)
+      channel.close();
+  }
+
+  public void enqueueMessage(final Binary buffer) {
+    if (!queue.offer(buffer)) {
+      // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
+      server.getServer().log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster", remoteServerName);
+      queue.clear();
+      close();
+      throw new ReplicationException("Error on replicating to server '" + remoteServerName + "'");
+    }
+  }
+
+  public String getRemoteServerName() {
+    return remoteServerName;
   }
 
   public HACommand receiveResponse() throws IOException {
@@ -133,9 +189,8 @@ public class LeaderNetworkExecutor extends Thread {
     return server.getMessageFactory().getCommand(requestId);
   }
 
-  public void close() {
-    shutdown = true;
-    if (channel != null)
-      channel.close();
+  private void sendMessage(final Binary msg) throws IOException {
+    channel.writeBytes(msg.getContent(), msg.size());
+    channel.flush();
   }
 }

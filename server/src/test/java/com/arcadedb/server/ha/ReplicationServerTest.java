@@ -16,9 +16,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class ReplicationServerTest extends BaseGraphServerTest {
-  private final int TXS             = 100;
-  private final int VERTICES_PER_TX = 10000;
+public abstract class ReplicationServerTest extends BaseGraphServerTest {
+  private final int TXS             = 10;
+  private final int VERTICES_PER_TX = 1000;
 
   public ReplicationServerTest() {
     GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS.setValue("2424-2500");
