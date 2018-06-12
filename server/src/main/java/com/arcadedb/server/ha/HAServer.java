@@ -30,16 +30,24 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class HAServer {
-  private final HAMessageFactory                   messageFactory     = new HAMessageFactory();
+  public enum QUORUM {
+    NONE, ONE, TWO, THREE, MAJORITY, ALL
+  }
+
+  private final HAMessageFactory                   messageFactory           = new HAMessageFactory();
   private final ArcadeDBServer                     server;
   private final ContextConfiguration               configuration;
   private final String                             clusterName;
-  private final Map<String, LeaderNetworkExecutor> replicaConnections = new HashMap<>();
+  private final Map<String, LeaderNetworkExecutor> replicaConnections       = new HashMap<>();
   private       ReplicaNetworkExecutor             leaderConnection;
   private       LeaderNetworkListener              listener;
+  private       Map<Long, CountDownLatch>          messagesWaitingForQuorum = new ConcurrentHashMap<>(1024);
 
   public HAServer(final ArcadeDBServer server, final ContextConfiguration configuration) {
     this.server = server;
@@ -79,6 +87,19 @@ public class HAServer {
 
     if (leaderConnection != null)
       leaderConnection.close();
+  }
+
+  public void receivedResponseForQuorum(final long messageNumber) {
+    final CountDownLatch semaphore = messagesWaitingForQuorum.get(messageNumber);
+    if (semaphore == null)
+      // QUORUM ALREADY REACHED OR TIMEOUT
+      return;
+
+    semaphore.countDown();
+
+    if (semaphore.getCount() == 0)
+      // LAST RESPONSE, REMOVE IT FROM THE MAP
+      messagesWaitingForQuorum.remove(messageNumber);
   }
 
   public ArcadeDBServer getServer() {
@@ -137,6 +158,46 @@ public class HAServer {
     for (LeaderNetworkExecutor replicaConnection : replicaConnections.values()) {
       buffer.position(0);
       replicaConnection.sendMessage(buffer);
+    }
+  }
+
+  public int getOnlineReplicas() {
+    return replicaConnections.size();
+  }
+
+  public void sendCommandToReplicasWithQuorum(final Binary buffer, final TxRequest tx, final int quorum, final long timeout)
+      throws IOException {
+    buffer.reset();
+
+    buffer.putByte(messageFactory.getCommandId(tx));
+    tx.toStream(buffer);
+
+    buffer.flip();
+
+    // TODO: USE A QUEUE TO AVOID THE SOCKET IS FULL AND BLOCK THE LEADER
+    final CountDownLatch quorumSemaphore;
+    if (quorum > 1) {
+      quorumSemaphore = new CountDownLatch(quorum - 1);
+      // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
+      messagesWaitingForQuorum.put(tx.getMessageNumber(), quorumSemaphore);
+    } else
+      quorumSemaphore = null;
+
+    // SEND THE REQUEST TO ALL THE REPLICAS
+    for (LeaderNetworkExecutor replicaConnection : replicaConnections.values()) {
+      buffer.position(0);
+      replicaConnection.sendMessage(buffer);
+    }
+
+    if (quorumSemaphore != null) {
+      try {
+        if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS))
+          throw new ReplicationException("Timeout waiting for quorum to be reached for request " + tx.getMessageNumber());
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new ReplicationException(
+            "Quorum not reached for request " + tx.getMessageNumber() + " because the thread was interrupted");
+      }
     }
   }
 

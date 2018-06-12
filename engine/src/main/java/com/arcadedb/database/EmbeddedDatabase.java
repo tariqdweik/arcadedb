@@ -4,6 +4,7 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
@@ -37,6 +38,7 @@ import java.util.concurrent.Callable;
 public class EmbeddedDatabase extends RWLockContext implements Database, DatabaseInternal {
   protected final String                name;
   protected final PaginatedFile.MODE    mode;
+  protected final ContextConfiguration  configuration;
   protected final String                databasePath;
   protected final FileManager           fileManager;
   protected final PageManager           pageManager;
@@ -61,10 +63,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   private                ExecutionPlanCache                        executionPlanCache = new ExecutionPlanCache(this,
       GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
 
-  protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode,
+  protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks, final WALFileFactory walFactory) {
     try {
       this.mode = mode;
+      this.configuration = configuration;
       this.callbacks = callbacks;
       if (walFactory != null)
         this.walFactory = walFactory;
@@ -863,6 +866,10 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         }
       }
     }
+  }
+
+  public ContextConfiguration getConfiguration() {
+    return configuration;
   }
 
   @Override

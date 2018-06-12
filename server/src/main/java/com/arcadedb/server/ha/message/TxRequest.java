@@ -13,15 +13,17 @@ import com.arcadedb.server.ha.ReplicationException;
  * Replicate a transaction. No response is expected.
  */
 public class TxRequest implements HACommand {
-  private long   messageNumber;
-  private String databaseName;
-  private Binary bufferChanges;
+  private long    messageNumber;
+  private boolean waitForQuorum;
+  private String  databaseName;
+  private Binary  bufferChanges;
 
   public TxRequest() {
   }
 
-  public TxRequest(final long messageNumber, final String dbName, final Binary bufferChanges) {
+  public TxRequest(final long messageNumber, final String dbName, final Binary bufferChanges, final boolean waitForQuorum) {
     this.messageNumber = messageNumber;
+    this.waitForQuorum = waitForQuorum;
     this.databaseName = dbName;
     this.bufferChanges = bufferChanges;
   }
@@ -29,6 +31,7 @@ public class TxRequest implements HACommand {
   @Override
   public void toStream(final Binary stream) {
     stream.putLong(messageNumber);
+    stream.putByte((byte) (waitForQuorum ? 1 : 0));
     stream.putString(databaseName);
     stream.putBytes(bufferChanges.getContent(), bufferChanges.size());
   }
@@ -36,6 +39,7 @@ public class TxRequest implements HACommand {
   @Override
   public void fromStream(final Binary stream) {
     messageNumber = stream.getLong();
+    waitForQuorum = stream.getByte() == 1;
     databaseName = stream.getString();
     bufferChanges = new Binary(stream.getBytes());
   }
@@ -55,7 +59,14 @@ public class TxRequest implements HACommand {
       db.close();
     }
 
+    if (waitForQuorum)
+      return new TxResponse(messageNumber);
+
     return null;
+  }
+
+  public long getMessageNumber() {
+    return messageNumber;
   }
 
   @Override

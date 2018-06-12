@@ -4,6 +4,7 @@
 
 package com.arcadedb.server.ha;
 
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
@@ -36,10 +37,14 @@ public class ReplicatedDatabase implements DatabaseInternal {
   private       long                lastCheckpoint     = 0;
   private       Long[]              lastMessage        = new Long[] { -1l, -1l, -1l };
   private       Map<String, Long[]> replicaCheckpoints = new HashMap<>();
+  private       HAServer.QUORUM     quorum;
+  private final long                timeout;
 
   public ReplicatedDatabase(final ArcadeDBServer server, final EmbeddedDatabase proxied) {
     this.server = server;
     this.proxied = proxied;
+    this.quorum = HAServer.QUORUM.valueOf(proxied.getConfiguration().getValueAsString(GlobalConfiguration.HA_QUORUM).toUpperCase());
+    this.timeout = proxied.getConfiguration().getValueAsLong(GlobalConfiguration.HA_QUORUM_TIMEOUT);
   }
 
   public EmbeddedDatabase getEmbeddedDatabase() {
@@ -188,7 +193,36 @@ public class ReplicatedDatabase implements DatabaseInternal {
           server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
 
           try {
-            server.getHA().sendCommandToReplicas(buffer, new TxRequest(messageNumber.getAndIncrement(), getName(), changes));
+
+            final int activeServers = 1 + server.getHA().getOnlineReplicas();
+
+            final int reqQuorum;
+            switch (quorum) {
+            case NONE:
+              reqQuorum = 0;
+              break;
+            case ONE:
+              reqQuorum = 1;
+              break;
+            case TWO:
+              reqQuorum = 2;
+              break;
+            case THREE:
+              reqQuorum = 3;
+              break;
+            case MAJORITY:
+              reqQuorum = (activeServers / 2) + 1;
+              break;
+            case ALL:
+              reqQuorum = activeServers;
+              break;
+            default:
+              throw new IllegalArgumentException("Quorum " + quorum + " not managed");
+            }
+
+            server.getHA().sendCommandToReplicasWithQuorum(buffer,
+                new TxRequest(messageNumber.getAndIncrement(), getName(), changes, reqQuorum > 1), reqQuorum, timeout);
+
           } catch (IOException e) {
             server.log(this, Level.SEVERE, "Error on replicating transaction (error:%s)", e);
           }

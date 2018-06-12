@@ -25,6 +25,7 @@ public class HAMessageFactory {
     registerCommand(CheckpointRequest.class);
     registerCommand(CheckpointResponse.class);
     registerCommand(TxRequest.class);
+    registerCommand(TxResponse.class);
   }
 
   public HACommand getCommand(final byte type) {
