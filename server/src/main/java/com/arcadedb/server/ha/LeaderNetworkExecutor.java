@@ -172,7 +172,6 @@ public class LeaderNetworkExecutor extends Thread {
   public void enqueueMessage(final Binary buffer) {
     if (!queue.offer(buffer)) {
       // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
-      server.getServer().log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster", remoteServerName);
       queue.clear();
       close();
       throw new ReplicationException("Error on replicating to server '" + remoteServerName + "'");

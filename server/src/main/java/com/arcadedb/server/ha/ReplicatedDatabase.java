@@ -15,14 +15,12 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.server.ArcadeDBServer;
-import com.arcadedb.server.ha.message.CheckpointRequest;
 import com.arcadedb.server.ha.message.TxRequest;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.StatementCache;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -30,14 +28,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class ReplicatedDatabase implements DatabaseInternal {
-  private final ArcadeDBServer      server;
-  private final EmbeddedDatabase    proxied;
-  private       AtomicLong          messageNumber      = new AtomicLong();
-  private       long                lastCheckpoint     = 0;
-  private       Long[]              lastMessage        = new Long[] { -1l, -1l, -1l };
-  private       Map<String, Long[]> replicaCheckpoints = new HashMap<>();
-  private       HAServer.QUORUM     quorum;
-  private final long                timeout;
+  private final ArcadeDBServer   server;
+  private final EmbeddedDatabase proxied;
+  private       AtomicLong       messageNumber = new AtomicLong();
+  private       Long[]           lastMessage   = new Long[] { -1l, -1l, -1l };
+  private       HAServer.QUORUM  quorum;
+  private final long             timeout;
 
   public ReplicatedDatabase(final ArcadeDBServer server, final EmbeddedDatabase proxied) {
     this.server = server;
@@ -220,19 +216,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
           server.getHA()
               .sendCommandToReplicasWithQuorum(new TxRequest(messageNumber.getAndIncrement(), getName(), changes, reqQuorum > 1),
                   reqQuorum, timeout);
-
-          if (System.currentTimeMillis() - lastCheckpoint > 1000)
-            executeCheckpoint();
         }
 
         return null;
       }
     });
-  }
-
-  private void executeCheckpoint() {
-    server.getHA().sendCommandToReplicas(new CheckpointRequest(getName()));
-    lastCheckpoint = System.currentTimeMillis();
   }
 
   @Override
@@ -370,13 +358,5 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
   public void updateLastMessage(final Long[] ids) {
     lastMessage = ids;
-  }
-
-  public Long[] getReplicaCheckpoint(final String replicaName) {
-    return replicaCheckpoints.get(replicaName);
-  }
-
-  public void updateReplicaCheckpoint(final String replicaName, final Long[] values) {
-    replicaCheckpoints.put(replicaName, values);
   }
 }

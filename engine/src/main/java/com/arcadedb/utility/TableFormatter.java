@@ -1,13 +1,11 @@
 /*
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
-package com.arcadedb.console;
+package com.arcadedb.utility;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.Record;
-import com.arcadedb.utility.MultiIterator;
-import com.arcadedb.utility.Pair;
 
 import java.text.SimpleDateFormat;
 import java.util.*;

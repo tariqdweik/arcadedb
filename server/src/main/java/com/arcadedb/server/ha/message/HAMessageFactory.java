@@ -22,8 +22,6 @@ public class HAMessageFactory {
     registerCommand(DatabaseStructureResponse.class);
     registerCommand(FileContentRequest.class);
     registerCommand(FileContentResponse.class);
-    registerCommand(CheckpointRequest.class);
-    registerCommand(CheckpointResponse.class);
     registerCommand(TxRequest.class);
     registerCommand(TxResponse.class);
   }

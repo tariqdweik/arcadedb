@@ -22,15 +22,15 @@ import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerDatabaseProxy;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
+import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
+import com.arcadedb.utility.RecordTableFormatter;
+import com.arcadedb.utility.TableFormatter;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -137,16 +137,6 @@ public class HAServer {
     ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).updateLastMessage(ids);
   }
 
-  public Long[] getReplicaCheckpoint(final String replicaName, final String databaseName) {
-    final Database db = server.getDatabase(databaseName);
-    return ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).getReplicaCheckpoint(replicaName);
-  }
-
-  public void updateReplicaCheckpoint(final String replicaName, final String databaseName, final Long[] ids) {
-    final Database db = server.getDatabase(databaseName);
-    ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).updateReplicaCheckpoint(replicaName, ids);
-  }
-
   public void sendCommandToReplicas(final HACommand command) {
     final Binary buffer = new Binary();
 
@@ -165,6 +155,7 @@ public class HAServer {
       } catch (ReplicationException e) {
         // REMOVE THE REPLICA
         it.remove();
+        onServerLeft(replicaConnection.getRemoteServerName());
       }
     }
   }
@@ -201,6 +192,8 @@ public class HAServer {
         it.remove();
         if (quorumSemaphore != null)
           quorumSemaphore.countDown();
+
+        onServerLeft(replicaConnection.getRemoteServerName());
       }
     }
 
@@ -216,6 +209,46 @@ public class HAServer {
             "Quorum not reached for request " + tx.getMessageNumber() + " because the thread was interrupted");
       }
     }
+  }
+
+  private void onServerLeft(String remoteServerName) {
+    server.log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster", remoteServerName);
+    printClusterConfiguration();
+  }
+
+  public void printClusterConfiguration() {
+    server.log(this, Level.INFO, "NEW CLUSTER CONFIGURATION");
+
+    final StringBuilder buffer = new StringBuilder();
+    final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
+      @Override
+      public void onMessage(final String text, final Object... args) {
+        buffer.append(String.format(text, args));
+      }
+    });
+
+    final List<RecordTableFormatter.PTableRecordRow> list = new ArrayList<>();
+
+    ResultInternal line = new ResultInternal();
+    list.add(new RecordTableFormatter.PTableRecordRow(line));
+
+    line.setProperty("SERVER", getServerName());
+    line.setProperty("ROLE", "Leader");
+    line.setProperty("STATUS", "ON");
+
+    for (LeaderNetworkExecutor c : replicaConnections.values()) {
+      line = new ResultInternal();
+      list.add(new RecordTableFormatter.PTableRecordRow(line));
+
+      line.setProperty("SERVER", c.getRemoteServerName());
+      line.setProperty("ROLE", "Replica");
+      line.setProperty("STATUS", "ON");
+    }
+
+    table.writeRows(list, -1);
+
+    server.log(this, Level.INFO, buffer.toString());
+
   }
 
   private boolean connectTo(final String serverEntry) {

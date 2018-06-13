@@ -14,6 +14,8 @@ import com.arcadedb.graph.Vertex;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.ResultSet;
+import com.arcadedb.utility.RecordTableFormatter;
+import com.arcadedb.utility.TableFormatter;
 import org.jline.reader.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
