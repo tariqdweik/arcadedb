@@ -47,6 +47,9 @@ public enum GlobalConfiguration {
     }
   }),
 
+  TEST("arcadedb.test", "Tells if it is running in test mode. This enables the calling of callbacks for testing purpose ",
+      Boolean.class, false),
+
   MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4 * 1024l * 1024l,
       new Callable<Object, Object>() {
         @Override

@@ -19,6 +19,8 @@ import com.arcadedb.utility.LogManager;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -30,9 +32,11 @@ public class ArcadeDBServer {
   private final HttpServer httpServer;
   private       HAServer   haServer;
 
-  private       ConcurrentMap<String, DatabaseInternal> databases = new ConcurrentHashMap<>();
+  private       ConcurrentMap<String, DatabaseInternal> databases          = new ConcurrentHashMap<>();
   private final String                                  serverName;
   private       ServerSecurity                          security;
+  private       List<TestCallback>                      testEventListeners = new ArrayList<>();
+  private final boolean                                 testEnabled        = GlobalConfiguration.TEST.getValueAsBoolean();
 
   public ArcadeDBServer(final ContextConfiguration configuration) {
     this.configuration = configuration;
@@ -49,6 +53,8 @@ public class ArcadeDBServer {
   }
 
   public void start() throws IOException, InterruptedException {
+    lifecycleEvent(TestCallback.TYPE.SERVER_STARTING,null);
+
     log(this, Level.INFO, "Starting ArcadeDB Server...");
 
     loadDatabases();
@@ -63,6 +69,8 @@ public class ArcadeDBServer {
     httpServer.start();
 
     log(this, Level.INFO, "ArcadeDB Server started");
+
+    lifecycleEvent(TestCallback.TYPE.SERVER_UP, null);
   }
 
   private void loadDatabases() {
@@ -87,6 +95,8 @@ public class ArcadeDBServer {
   }
 
   public void stop() {
+    lifecycleEvent(TestCallback.TYPE.SERVER_SHUTTING_DOWN, null);
+
     log(this, Level.INFO, "Shutting down ArcadeDB Server...");
 
     if (security != null)
@@ -102,6 +112,8 @@ public class ArcadeDBServer {
       db.close();
 
     log(this, Level.INFO, "ArcadeDB Server is down");
+
+    lifecycleEvent(TestCallback.TYPE.SERVER_DOWN, null);
   }
 
   public synchronized Database getDatabase(final String databaseName) {
@@ -151,5 +163,15 @@ public class ArcadeDBServer {
 
   public ServerSecurity getSecurity() {
     return security;
+  }
+
+  public void registerTestEventListener(final TestCallback callback) {
+    testEventListeners.add(callback);
+  }
+
+  public void lifecycleEvent(final TestCallback.TYPE type, final Object object) {
+    if (testEnabled)
+      for (TestCallback c : testEventListeners)
+        c.onEvent(type, object, this);
   }
 }

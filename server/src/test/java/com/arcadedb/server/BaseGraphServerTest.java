@@ -114,45 +114,7 @@ public abstract class BaseGraphServerTest {
       }
     }
 
-    final int totalServers = getServerCount();
-    servers = new ArcadeDBServer[totalServers];
-
-    int port = 2424;
-    String serverURLs = "";
-    for (int i = 0; i < totalServers; ++i) {
-      if (i > 0)
-        serverURLs += ",";
-      serverURLs += "localhost:" + (port++);
-    }
-
-    for (int i = 0; i < totalServers; ++i) {
-      final ContextConfiguration config = new ContextConfiguration();
-      config.setValue(GlobalConfiguration.SERVER_NAME, Constants.PRODUCT + "_" + i);
-      config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + i);
-      config.setValue(GlobalConfiguration.HA_SERVER_LIST, serverURLs);
-      config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
-
-      servers[i] = new ArcadeDBServer(config);
-
-      final int serverId = i;
-
-      new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            servers[serverId].start();
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-          LogManager.instance().info(this, "Test Server-%d is down", serverId);
-        }
-      }).start();
-
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
+    startServers();
 
 //      if (serverId > 0) {
 //        HttpURLConnection connection = null;
@@ -186,19 +148,6 @@ public abstract class BaseGraphServerTest {
 //          connection.disconnect();
 //        }
 //      }
-    }
-  }
-
-  protected boolean isPopulateDatabase() {
-    return true;
-  }
-
-  protected ArcadeDBServer getServer(final int i) {
-    return servers[i];
-  }
-
-  protected int getServerCount() {
-    return 1;
   }
 
   @AfterEach
@@ -214,6 +163,65 @@ public abstract class BaseGraphServerTest {
         db.drop();
       }
     }
+  }
+
+  protected void startServers() {
+    final int totalServers = getServerCount();
+    servers = new ArcadeDBServer[totalServers];
+
+    int port = 2424;
+    String serverURLs = "";
+    for (int i = 0; i < totalServers; ++i) {
+      if (i > 0)
+        serverURLs += ",";
+      serverURLs += "localhost:" + (port++);
+    }
+
+    for (int i = 0; i < totalServers; ++i) {
+      final ContextConfiguration config = new ContextConfiguration();
+      config.setValue(GlobalConfiguration.SERVER_NAME, Constants.PRODUCT + "_" + i);
+      config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + i);
+      config.setValue(GlobalConfiguration.HA_SERVER_LIST, serverURLs);
+      config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
+
+      servers[i] = new ArcadeDBServer(config);
+
+      final int serverId = i;
+
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            onBeforeStarting(servers[serverId]);
+            servers[serverId].start();
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+          LogManager.instance().info(this, "Test Server-%d is down", serverId);
+        }
+      }).start();
+
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  protected void onBeforeStarting(ArcadeDBServer server) {
+  }
+
+  protected boolean isPopulateDatabase() {
+    return true;
+  }
+
+  protected ArcadeDBServer getServer(final int i) {
+    return servers[i];
+  }
+
+  protected int getServerCount() {
+    return 1;
   }
 
   protected boolean dropDatabases() {

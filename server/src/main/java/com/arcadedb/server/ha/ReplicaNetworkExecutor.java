@@ -4,8 +4,10 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.Constants;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.network.binary.ChannelBinaryClient;
+import com.arcadedb.server.TestCallback;
 import com.arcadedb.server.ha.message.HACommand;
 
 import java.io.EOFException;
@@ -18,11 +20,13 @@ public class ReplicaNetworkExecutor extends Thread {
   private final    HAServer            server;
   private          ChannelBinaryClient channel;
   private volatile boolean             shutdown = false;
+  private final    boolean             testOn;
 
   public ReplicaNetworkExecutor(final HAServer ha, final ChannelBinaryClient channel) {
     setName(Constants.PRODUCT + "-ha-replica2leader/" + channel.getURL());
     this.server = ha;
     this.channel = channel;
+    this.testOn = GlobalConfiguration.TEST.getValueAsBoolean();
   }
 
   @Override
@@ -60,6 +64,9 @@ public class ReplicaNetworkExecutor extends Thread {
         if (response != null)
           sendCommandToLeader(buffer, response);
 
+        if (testOn)
+          server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_MSG_RECEIVED, request);
+
       } catch (EOFException | SocketException e) {
         server.getServer().log(this, Level.FINE, "Error on reading request", e);
         close();
@@ -69,7 +76,6 @@ public class ReplicaNetworkExecutor extends Thread {
         server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
       }
     }
-
   }
 
   public void sendCommandToLeader(final Binary buffer, final HACommand response) throws IOException {
@@ -98,5 +104,8 @@ public class ReplicaNetworkExecutor extends Thread {
 
   public byte[] receiveResponse() throws IOException {
     return channel.readBytes();
+  }
+
+  protected void onAfterMessageFromLeader() {
   }
 }

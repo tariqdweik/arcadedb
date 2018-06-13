@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 public abstract class ReplicationServerTest extends BaseGraphServerTest {
-  private final int TXS             = 10;
-  private final int VERTICES_PER_TX = 1000;
+  private final int TXS             = 100;
+  private final int VERTICES_PER_TX = 100;
 
   public ReplicationServerTest() {
     GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS.setValue("2424-2500");
@@ -88,31 +88,41 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     }
 
     // CHECK INDEXES ARE REPLICATED CORRECTLY
-    for (int s = 0; s < getServerCount(); ++s) {
-      db = getServer(s).getDatabase(getDatabaseName());
-      db.begin();
-      try {
-        Assertions.assertEquals(1 + TXS * VERTICES_PER_TX, db.countType(VERTEX1_TYPE_NAME, true),
-            "Check for vertex count for server" + s);
-
-        final List<DocumentType.IndexMetadata> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME)
-            .getIndexMetadataByProperties("id");
-        long total = 0;
-        for (int i = 0; i < indexes.size(); ++i) {
-          for (IndexCursor it = indexes.get(i).index.iterator(true); it.hasNext(); ) {
-            it.next();
-            ++total;
-          }
-        }
-
-        Assertions.assertEquals(1 + TXS * VERTICES_PER_TX, total, "Check for index count for server" + s);
-
-      } catch (Exception e) {
-        e.printStackTrace();
-        Assertions.fail("Error on checking on server" + s);
-      } finally {
-        db.close();
-      }
+    for (int s : getServerToCheck()) {
+      checkEntriesOnServer(s);
     }
+  }
+
+  private void checkEntriesOnServer(final int s) {
+    final Database db = getServer(s).getDatabase(getDatabaseName());
+    db.begin();
+    try {
+      Assertions
+          .assertEquals(1 + TXS * VERTICES_PER_TX, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);
+
+      final List<DocumentType.IndexMetadata> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
+      long total = 0;
+      for (int i = 0; i < indexes.size(); ++i) {
+        for (IndexCursor it = indexes.get(i).index.iterator(true); it.hasNext(); ) {
+          it.next();
+          ++total;
+        }
+      }
+
+      Assertions.assertEquals(1 + TXS * VERTICES_PER_TX, total, "Check for index count for server" + s);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      Assertions.fail("Error on checking on server" + s);
+    } finally {
+      db.close();
+    }
+  }
+
+  protected int[] getServerToCheck() {
+    final int[] result = new int[getServerCount()];
+    for (int i = 0; i < result.length; ++i)
+      result[i] = i;
+    return result;
   }
 }
