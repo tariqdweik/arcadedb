@@ -59,7 +59,7 @@ public class DatabaseStructureResponse implements HACommand {
   }
 
   @Override
-  public HACommand execute(final HAServer server) {
+  public HACommand execute(final HAServer server, String remoteServerName) {
     return null;
   }
 

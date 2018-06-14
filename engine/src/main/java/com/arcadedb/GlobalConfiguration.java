@@ -149,7 +149,7 @@ public enum GlobalConfiguration {
   HA_QUORUM_TIMEOUT("arcadedb.ha.quorumTimeout", "Timeout waiting for the quorum", Long.class, 10000),
 
   HA_REPLICATION_QUEUE_SIZE("arcadedb.ha.replicationQueueSize", "Queue size for replicating messages between servers",
-      Integer.class, 128),
+      Integer.class, 512),
 
   HA_REPLICATION_INCOMING_HOST("arcadedb.ha.replicationIncomingHost", "TCP/IP host name used for incoming replication connections",
       String.class, "localhost"),

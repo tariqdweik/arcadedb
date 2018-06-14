@@ -63,11 +63,9 @@ public class LeaderNetworkListener extends Thread {
           if (callback != null)
             callback.connected();
 
-          ha.printClusterConfiguration();
-
         } catch (Exception e) {
           if (active)
-            ha.getServer().log(this, Level.SEVERE, "Error on client connection", e);
+            ha.getServer().log(this, Level.WARNING, "Error on client connection", e);
         }
       }
     } finally {

@@ -45,15 +45,15 @@ public class TxRequest implements HACommand {
   }
 
   @Override
-  public HACommand execute(final HAServer server) {
+  public HACommand execute(final HAServer server, String remoteServerName) {
     final WALFile.WALTransaction tx = getTx();
 
     final DatabaseInternal db = (DatabaseInternal) server.getServer().getDatabase(databaseName);
+    if (!db.isOpen())
+      throw new ReplicationException("Database '" + databaseName + "' is closed");
+
     try {
       db.getTransactionManager().applyChanges(tx);
-
-      // UPDATE LAST COMMITTED MESSAGE NUMBER + TXID. CHECKPOINT WILL REGULARLY CHECK THE STATUS OF REPLICATION ASKING FOR THIS PAIR OF NUMBERS
-      server.updateLastMessage(databaseName, new Long[] { messageNumber, tx.txId, System.currentTimeMillis() });
 
     } finally {
       db.close();

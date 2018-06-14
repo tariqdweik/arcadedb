@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface Database {
+  boolean isOpen();
+
   interface Transaction {
     void execute(Database database);
   }

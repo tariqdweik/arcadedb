@@ -34,7 +34,7 @@ public class ReplicaNetworkExecutor extends Thread {
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
 
-    while (!shutdown) {
+    while (!shutdown || channel.inputHasData()) {
       try {
         final byte[] requestBytes = channel.readBytes();
 
@@ -59,13 +59,13 @@ public class ReplicaNetworkExecutor extends Thread {
 
         server.getServer().log(this, Level.FINE, "Received request from the leader '%s'", request);
 
-        final HACommand response = request.execute(server);
-
-        if (response != null)
-          sendCommandToLeader(buffer, response);
+        final HACommand response = request.execute(server, null);
 
         if (testOn)
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_MSG_RECEIVED, request);
+
+        if (response != null)
+          sendCommandToLeader(buffer, response);
 
       } catch (EOFException | SocketException e) {
         server.getServer().log(this, Level.FINE, "Error on reading request", e);
@@ -104,8 +104,5 @@ public class ReplicaNetworkExecutor extends Thread {
 
   public byte[] receiveResponse() throws IOException {
     return channel.readBytes();
-  }
-
-  protected void onAfterMessageFromLeader() {
   }
 }

@@ -19,7 +19,6 @@ import com.arcadedb.network.binary.NetworkProtocolException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.server.ArcadeDBServer;
-import com.arcadedb.server.ServerDatabaseProxy;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -45,15 +44,26 @@ public class HAServer {
   private final ArcadeDBServer                     server;
   private final ContextConfiguration               configuration;
   private final String                             clusterName;
-  private final Map<String, LeaderNetworkExecutor> replicaConnections       = new HashMap<>();
+  private final long                               startedOn;
+  private final Map<String, LeaderNetworkExecutor> replicaConnections       = new ConcurrentHashMap<>();
   private       ReplicaNetworkExecutor             leaderConnection;
   private       LeaderNetworkListener              listener;
-  private       Map<Long, CountDownLatch>          messagesWaitingForQuorum = new ConcurrentHashMap<>(1024);
+  private       Map<Long, QuorumMessages>          messagesWaitingForQuorum = new ConcurrentHashMap<>(1024);
+
+  private class QuorumMessages {
+    public final long           sentOn = System.currentTimeMillis();
+    public final CountDownLatch semaphore;
+
+    public QuorumMessages(final CountDownLatch quorumSemaphore) {
+      this.semaphore = quorumSemaphore;
+    }
+  }
 
   public HAServer(final ArcadeDBServer server, final ContextConfiguration configuration) {
     this.server = server;
     this.configuration = configuration;
     this.clusterName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
+    this.startedOn = System.currentTimeMillis();
   }
 
   public void connect() throws IOException, InterruptedException {
@@ -88,19 +98,28 @@ public class HAServer {
 
     if (leaderConnection != null)
       leaderConnection.close();
+
+    if (!replicaConnections.isEmpty()) {
+      for (LeaderNetworkExecutor r : replicaConnections.values()) {
+        r.close();
+      }
+    }
   }
 
-  public void receivedResponseForQuorum(final long messageNumber) {
-    final CountDownLatch semaphore = messagesWaitingForQuorum.get(messageNumber);
-    if (semaphore == null)
+  public void receivedResponseForQuorum(final String remoteServerName, final long messageNumber) {
+    final long receivedOn = System.currentTimeMillis();
+
+    final QuorumMessages msg = messagesWaitingForQuorum.get(messageNumber);
+    if (msg == null)
       // QUORUM ALREADY REACHED OR TIMEOUT
       return;
 
-    semaphore.countDown();
+    msg.semaphore.countDown();
 
-    if (semaphore.getCount() == 0)
-      // LAST RESPONSE, REMOVE IT FROM THE MAP
-      messagesWaitingForQuorum.remove(messageNumber);
+    // UPDATE LATENCY
+    final LeaderNetworkExecutor c = replicaConnections.get(remoteServerName);
+    if (c != null)
+      c.updateStats(msg.sentOn, receivedOn);
   }
 
   public ArcadeDBServer getServer() {
@@ -121,20 +140,11 @@ public class HAServer {
 
   public void registerIncomingConnection(final String replicaServerName, final LeaderNetworkExecutor connection) {
     replicaConnections.put(replicaServerName, connection);
+    printClusterConfiguration();
   }
 
   public HAMessageFactory getMessageFactory() {
     return messageFactory;
-  }
-
-  public Long[] getLastMessage(final String databaseName) {
-    final Database db = server.getDatabase(databaseName);
-    return ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).getLastMessage();
-  }
-
-  public void updateLastMessage(final String databaseName, final Long[] ids) {
-    final Database db = server.getDatabase(databaseName);
-    ((ReplicatedDatabase) ((ServerDatabaseProxy) db).getProxied()).updateLastMessage(ids);
   }
 
   public void sendCommandToReplicas(final HACommand command) {
@@ -146,16 +156,17 @@ public class HAServer {
     buffer.flip();
 
     // SEND THE REQUEST TO ALL THE REPLICAS
-    for (Iterator<LeaderNetworkExecutor> it = replicaConnections.values().iterator(); it.hasNext(); ) {
-      final LeaderNetworkExecutor replicaConnection = it.next();
-
+    final List<LeaderNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
+    for (LeaderNetworkExecutor replicaConnection : replicas) {
       // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
       try {
         replicaConnection.enqueueMessage(buffer.slice(0));
       } catch (ReplicationException e) {
         // REMOVE THE REPLICA
-        it.remove();
-        onServerLeft(replicaConnection.getRemoteServerName());
+        server.log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster",
+            replicaConnection.getRemoteServerName());
+
+        removeServer(replicaConnection.getRemoteServerName());
       }
     }
   }
@@ -172,48 +183,58 @@ public class HAServer {
 
     buffer.flip();
 
-    // TODO: USE A QUEUE TO AVOID THE SOCKET IS FULL AND BLOCK THE LEADER
-    final CountDownLatch quorumSemaphore;
-    if (quorum > 1) {
-      quorumSemaphore = new CountDownLatch(quorum - 1);
-      // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
-      messagesWaitingForQuorum.put(tx.getMessageNumber(), quorumSemaphore);
-    } else
-      quorumSemaphore = null;
+    final long txId = tx.getMessageNumber();
 
-    // SEND THE REQUEST TO ALL THE REPLICAS
-    for (Iterator<LeaderNetworkExecutor> it = replicaConnections.values().iterator(); it.hasNext(); ) {
-      final LeaderNetworkExecutor replicaConnection = it.next();
+    CountDownLatch quorumSemaphore = null;
 
-      try {
-        replicaConnection.enqueueMessage(buffer.slice(0));
-      } catch (ReplicationException e) {
-        // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
-        it.remove();
-        if (quorumSemaphore != null)
-          quorumSemaphore.countDown();
-
-        onServerLeft(replicaConnection.getRemoteServerName());
+    try {
+      if (quorum > 1) {
+        quorumSemaphore = new CountDownLatch(quorum - 1);
+        // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
+        messagesWaitingForQuorum.put(txId, new QuorumMessages(quorumSemaphore));
       }
-    }
 
-    if (quorumSemaphore != null) {
-      try {
+      // SEND THE REQUEST TO ALL THE REPLICAS
+      final List<LeaderNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
+      for (LeaderNetworkExecutor replicaConnection : replicas) {
+        try {
+          replicaConnection.enqueueMessage(buffer.slice(0));
+        } catch (ReplicationException e) {
+          server.log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster",
+              replicaConnection.getRemoteServerName());
 
-        if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS))
-          throw new ReplicationException("Timeout waiting for quorum to be reached for request " + tx.getMessageNumber());
+          // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
+          if (quorumSemaphore != null)
+            quorumSemaphore.countDown();
 
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new ReplicationException(
-            "Quorum not reached for request " + tx.getMessageNumber() + " because the thread was interrupted");
+          removeServer(replicaConnection.getRemoteServerName());
+        }
       }
+
+      if (quorumSemaphore != null) {
+        try {
+
+          if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS))
+            throw new ReplicationException("Timeout waiting for quorum to be reached for request " + txId);
+
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new ReplicationException("Quorum not reached for request " + txId + " because the thread was interrupted");
+        }
+      }
+    } finally {
+      // REQUEST IS OVER, REMOVE FROM THE QUORUM MAP
+      if (quorumSemaphore != null)
+        messagesWaitingForQuorum.remove(txId);
     }
   }
 
-  private void onServerLeft(String remoteServerName) {
-    server.log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster", remoteServerName);
-    printClusterConfiguration();
+  public void removeServer(final String remoteServerName) {
+    final LeaderNetworkExecutor c = replicaConnections.remove(remoteServerName);
+    if (c != null) {
+      server.log(this, Level.SEVERE, "Replica '%s' seems not active, removing it from the cluster", remoteServerName);
+      c.close();
+    }
   }
 
   public void printClusterConfiguration() {
@@ -234,7 +255,10 @@ public class HAServer {
 
     line.setProperty("SERVER", getServerName());
     line.setProperty("ROLE", "Leader");
-    line.setProperty("STATUS", "ON");
+    line.setProperty("STATUS", "UP");
+    line.setProperty("JOINED ON", new Date(startedOn));
+    line.setProperty("THROUGHPUT", "");
+    line.setProperty("LATENCY", "");
 
     for (LeaderNetworkExecutor c : replicaConnections.values()) {
       line = new ResultInternal();
@@ -242,13 +266,15 @@ public class HAServer {
 
       line.setProperty("SERVER", c.getRemoteServerName());
       line.setProperty("ROLE", "Replica");
-      line.setProperty("STATUS", "ON");
+      line.setProperty("STATUS", "UP");
+      line.setProperty("JOINED ON", new Date(c.getJoinedOn()));
+      line.setProperty("THROUGHPUT", c.getThroughputStats());
+      line.setProperty("LATENCY", c.getLatencyStats());
     }
 
     table.writeRows(list, -1);
 
-    server.log(this, Level.INFO, buffer.toString());
-
+    server.log(this, Level.INFO, buffer.toString() + "\n");
   }
 
   private boolean connectTo(final String serverEntry) {

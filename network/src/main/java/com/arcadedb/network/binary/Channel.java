@@ -59,6 +59,16 @@ public abstract class Channel {
     return bestAddress;
   }
 
+  public boolean inputHasData() {
+    if (inStream != null)
+      try {
+        return inStream.available() > 0;
+      } catch (IOException e) {
+        // RETURN FALSE
+      }
+    return false;
+  }
+
   public void flush() throws IOException {
     if (outStream != null)
       outStream.flush();

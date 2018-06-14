@@ -10,7 +10,11 @@ import com.arcadedb.server.TestCallback;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class ReplicationServerReplicaTimeoutTest extends ReplicationServerTest {
+  private final AtomicLong totalMessages = new AtomicLong();
+
   public ReplicationServerReplicaTimeoutTest() {
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
     GlobalConfiguration.TEST.setValue(true);
@@ -22,7 +26,7 @@ public class ReplicationServerReplicaTimeoutTest extends ReplicationServerTest {
   public void drop() {
     super.drop();
     GlobalConfiguration.TEST.setValue(false);
-    GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(128);
+    GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(512);
   }
 
   @Override
@@ -36,12 +40,14 @@ public class ReplicationServerReplicaTimeoutTest extends ReplicationServerTest {
       server.registerTestEventListener(new TestCallback() {
         @Override
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
-          // SLOW DOWN A SERVER
+          // SLOW DOWN A SERVER AFTER 5TH MESSAGE
           if (type == TYPE.REPLICA_MSG_RECEIVED) {
-            try {
-              Thread.sleep(1000);
-            } catch (InterruptedException e) {
-              e.printStackTrace();
+            if (totalMessages.incrementAndGet() > 5) {
+              try {
+                Thread.sleep(1000);
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
             }
           }
         }

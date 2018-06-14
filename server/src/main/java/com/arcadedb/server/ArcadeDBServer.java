@@ -99,14 +99,14 @@ public class ArcadeDBServer {
 
     log(this, Level.INFO, "Shutting down ArcadeDB Server...");
 
-    if (security != null)
-      security.close();
-
     if (haServer != null)
       haServer.close();
 
     if (httpServer != null)
       httpServer.stop();
+
+    if (security != null)
+      security.close();
 
     for (Database db : databases.values())
       db.close();

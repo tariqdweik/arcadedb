@@ -873,6 +873,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
+  public boolean isOpen() {
+    return open;
+  }
+
+  @Override
   public String toString() {
     return name;
   }

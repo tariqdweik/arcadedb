@@ -9,6 +9,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ha.message.HACommand;
+import com.arcadedb.utility.FileUtils;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.io.EOFException;
@@ -28,10 +29,18 @@ public class LeaderNetworkExecutor extends Thread {
   private final    HAServer                      server;
   public final     PushPullBlockingQueue<Binary> queue    = new PushPullBlockingQueue<>(
       GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+  private final    long                          joinedOn = System.currentTimeMillis();
   private          ChannelBinaryServer           channel;
   private volatile boolean                       shutdown = false;
   private final    String                        remoteServerName;
   private          Thread                        queueThread;
+
+  // STATS
+  private long totalMessages;
+  private long totalBytes;
+  private long latencyMin;
+  private long latencyMax;
+  private long latencyTotalTime;
 
   public LeaderNetworkExecutor(final HAServer ha, final Socket socket) throws IOException {
     setName(Constants.PRODUCT + "-ha-leader2replica/" + socket.getInetAddress());
@@ -81,23 +90,25 @@ public class LeaderNetworkExecutor extends Thread {
     queueThread = new Thread(new Runnable() {
       @Override
       public void run() {
-        while (!shutdown) {
-          try {
-            final Binary msg = queue.take();
+        try {
+          while (!shutdown || !queue.isEmpty()) {
+            try {
+              final Binary msg = queue.take();
 
-            sendMessage(msg);
+              sendMessage(msg);
 
-          } catch (IOException e) {
-            server.getServer()
-                .log(this, Level.INFO, "Error on sending replication message to remote server '%s'", remoteServerName);
-            shutdown = true;
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            break;
+            } catch (IOException e) {
+              server.getServer()
+                  .log(this, Level.INFO, "Error on sending replication message to remote server '%s'", e, remoteServerName);
+              shutdown = true;
+              return;
+            } catch (InterruptedException e) {
+              // IGNORE IT
+            }
           }
+        } finally {
+          queue.clear();
         }
-
-        queue.clear();
       }
     });
     queueThread.start();
@@ -128,7 +139,7 @@ public class LeaderNetworkExecutor extends Thread {
 
         request.fromStream(buffer);
 
-        final HACommand response = request.execute(server);
+        final HACommand response = request.execute(server, remoteServerName);
         if (response != null) {
           // SEND THE RESPONSE BACK (USING THE SAME BUFFER)
           buffer.reset();
@@ -144,8 +155,9 @@ public class LeaderNetworkExecutor extends Thread {
         }
 
       } catch (EOFException | SocketException e) {
-        server.getServer().log(this, Level.FINE, "Error on reading request", e);
+        server.getServer().log(this, Level.FINE, "Error on reading request from socket", e);
         close();
+        server.removeServer(remoteServerName);
       } catch (IOException e) {
         server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
       }
@@ -159,6 +171,7 @@ public class LeaderNetworkExecutor extends Thread {
       try {
         queueThread.interrupt();
         queueThread.join();
+        queueThread = null;
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         // IGNORE IT
@@ -170,12 +183,37 @@ public class LeaderNetworkExecutor extends Thread {
   }
 
   public void enqueueMessage(final Binary buffer) {
+    if (shutdown)
+      throw new ReplicationException("Error on replicating message because server is in shutdown mode");
+
     if (!queue.offer(buffer)) {
-      // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
-      queue.clear();
-      close();
-      throw new ReplicationException("Error on replicating to server '" + remoteServerName + "'");
+      // BACK-PRESSURE
+      server.getServer().log(this, Level.WARNING, "Applying back-pressure on replicating messages to server '%s' (latency=%s)...",
+          getRemoteServerName(), getLatencyStats());
+      try {
+        Thread.sleep(200);
+      } catch (InterruptedException e) {
+        // IGNORE IT
+        Thread.currentThread().interrupt();
+      }
+
+      if (!queue.offer(buffer)) {
+        try {
+          Thread.sleep(600);
+        } catch (InterruptedException e) {
+          // IGNORE IT
+          Thread.currentThread().interrupt();
+        }
+
+        if (!queue.offer(buffer)) {
+          // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
+          queue.clear();
+          close();
+          throw new ReplicationException("Error on replicating to server '" + remoteServerName + "'");
+        }
+      }
     }
+    totalBytes += buffer.size();
   }
 
   public String getRemoteServerName() {
@@ -186,6 +224,35 @@ public class LeaderNetworkExecutor extends Thread {
     final byte[] requestBytes = channel.readBytes();
     final byte requestId = requestBytes[0];
     return server.getMessageFactory().getCommand(requestId);
+  }
+
+  public long getJoinedOn() {
+    return joinedOn;
+  }
+
+  public void updateStats(final long sentOn, final long receivedOn) {
+    totalMessages++;
+
+    final long delta = receivedOn - sentOn;
+    latencyTotalTime += delta;
+
+    if (latencyMin == -1 || delta < latencyMin)
+      latencyMin = delta;
+    if (delta > latencyMax)
+      latencyMax = delta;
+  }
+
+  public String getLatencyStats() {
+    if (totalMessages == 0)
+      return "";
+    return "avg=" + (latencyTotalTime / totalMessages) + " (min=" + latencyMin + " max=" + latencyMax + ")";
+  }
+
+  public String getThroughputStats() {
+    if (totalBytes == 0)
+      return "";
+    return FileUtils.getSizeAsString(totalBytes) + " (" + FileUtils
+        .getSizeAsString((int) (((double) totalBytes / (System.currentTimeMillis() - joinedOn)) * 1000)) + "/s)";
   }
 
   private void sendMessage(final Binary msg) throws IOException {

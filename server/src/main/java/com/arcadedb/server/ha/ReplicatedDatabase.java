@@ -31,7 +31,6 @@ public class ReplicatedDatabase implements DatabaseInternal {
   private final ArcadeDBServer   server;
   private final EmbeddedDatabase proxied;
   private       AtomicLong       messageNumber = new AtomicLong();
-  private       Long[]           lastMessage   = new Long[] { -1l, -1l, -1l };
   private       HAServer.QUORUM  quorum;
   private final long             timeout;
 
@@ -352,11 +351,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
     proxied.setReadYourWrites(value);
   }
 
-  public Long[] getLastMessage() {
-    return lastMessage;
-  }
-
-  public void updateLastMessage(final Long[] ids) {
-    lastMessage = ids;
+  @Override
+  public boolean isOpen() {
+    return proxied.isOpen();
   }
 }

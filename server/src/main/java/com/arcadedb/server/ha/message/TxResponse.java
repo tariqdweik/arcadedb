@@ -30,13 +30,9 @@ public class TxResponse implements HACommand {
   }
 
   @Override
-  public HACommand execute(final HAServer server) {
-    server.receivedResponseForQuorum(messageNumber);
+  public HACommand execute(final HAServer server, final String remoteServerName) {
+    server.receivedResponseForQuorum(remoteServerName, messageNumber);
     return null;
-  }
-
-  public long getMessageNumber() {
-    return messageNumber;
   }
 
   @Override

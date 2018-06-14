@@ -12,9 +12,30 @@ public class ReplicationServerQuorumNoneTest extends ReplicationServerTest {
     GlobalConfiguration.HA_QUORUM.setValue("NONE");
   }
 
+  @Override
+  protected boolean isPrintingConfigurationAtEveryStep() {
+    return false;
+  }
+
+  @Override
+  protected int getTxs() {
+    return 200;
+  }
+
+  @Override
+  protected int getVerticesPerTx() {
+    return 5000;
+  }
+
   @AfterEach
   @Override
   public void drop() {
+    try {
+      Thread.sleep(5000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     super.drop();
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
   }

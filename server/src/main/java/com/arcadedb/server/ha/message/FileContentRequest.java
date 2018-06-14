@@ -27,7 +27,7 @@ public class FileContentRequest implements HACommand {
   }
 
   @Override
-  public HACommand execute(HAServer server) {
+  public HACommand execute(HAServer server, String remoteServerName) {
     final Database db = server.getServer().getDatabase(databaseName);
     final int pageSize = db.getFileManager().getFile(fileId).getPageSize();
 

@@ -20,7 +20,7 @@ public class DatabaseListResponse implements HACommand {
   }
 
   @Override
-  public HACommand execute(HAServer server) {
+  public HACommand execute(HAServer server, String remoteServerName) {
     return null;
   }
 

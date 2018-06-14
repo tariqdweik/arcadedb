@@ -11,7 +11,7 @@ public class DatabaseListRequest implements HACommand {
   }
 
   @Override
-  public HACommand execute(final HAServer server) {
+  public HACommand execute(final HAServer server, String remoteServerName) {
     return new DatabaseListResponse(server.getServer().getDatabaseNames());
   }
 

@@ -10,4 +10,19 @@ public class ReplicationServerQuorumMajorityTest extends ReplicationServerTest {
   public ReplicationServerQuorumMajorityTest() {
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
   }
+
+  @Override
+  protected boolean isPrintingConfigurationAtEveryStep() {
+    return false;
+  }
+
+  @Override
+  protected int getTxs() {
+    return 200;
+  }
+
+  @Override
+  protected int getVerticesPerTx() {
+    return 5000;
+  }
 }

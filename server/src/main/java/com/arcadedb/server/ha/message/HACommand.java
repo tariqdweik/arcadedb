@@ -7,7 +7,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.server.ha.HAServer;
 
 public interface HACommand {
-  HACommand execute(HAServer server);
+  HACommand execute(HAServer server, String remoteServerName);
 
   void toStream(Binary stream);
 

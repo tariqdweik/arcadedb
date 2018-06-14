@@ -17,15 +17,20 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 public abstract class ReplicationServerTest extends BaseGraphServerTest {
-  private final int TXS             = 100;
-  private final int VERTICES_PER_TX = 100;
-
   public ReplicationServerTest() {
     GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS.setValue("2424-2500");
   }
 
   protected int getServerCount() {
     return 3;
+  }
+
+  protected int getTxs() {
+    return 1000;
+  }
+
+  protected int getVerticesPerTx() {
+    return 1000;
   }
 
   @Test
@@ -53,12 +58,12 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     try {
       Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + 0);
 
-      LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", TXS, VERTICES_PER_TX);
+      LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
       long counter = 0;
 
-      for (int tx = 0; tx < TXS; ++tx) {
-        for (int i = 0; i < VERTICES_PER_TX; ++i) {
+      for (int tx = 0; tx < getTxs(); ++tx) {
+        for (int i = 0; i < getVerticesPerTx(); ++i) {
           final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
           v1.set("id", ++counter);
           v1.set("name", "distributed-test");
@@ -67,16 +72,19 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
         db.commit();
 
-        if (counter % 100000 == 0)
-          LogManager.instance().info(this, "- Progress %d/%d", counter, (TXS * VERTICES_PER_TX));
+        if (counter % 100000 == 0) {
+          LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+          if (isPrintingConfigurationAtEveryStep())
+            getServer(0).getHA().printClusterConfiguration();
+        }
 
         db.begin();
       }
 
       LogManager.instance().info(this, "Done");
 
-      Assertions
-          .assertEquals(1 + TXS * VERTICES_PER_TX, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + 0);
+      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true),
+          "Check for vertex count for server" + 0);
 
     } finally {
       db.close();
@@ -93,12 +101,16 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     }
   }
 
+  protected boolean isPrintingConfigurationAtEveryStep() {
+    return true;
+  }
+
   private void checkEntriesOnServer(final int s) {
     final Database db = getServer(s).getDatabase(getDatabaseName());
     db.begin();
     try {
-      Assertions
-          .assertEquals(1 + TXS * VERTICES_PER_TX, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);
+      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true),
+          "Check for vertex count for server" + s);
 
       final List<DocumentType.IndexMetadata> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
       long total = 0;
@@ -109,7 +121,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         }
       }
 
-      Assertions.assertEquals(1 + TXS * VERTICES_PER_TX, total, "Check for index count for server" + s);
+      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), total, "Check for index count for server" + s);
 
     } catch (Exception e) {
       e.printStackTrace();
