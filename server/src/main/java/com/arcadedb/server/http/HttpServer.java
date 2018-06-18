@@ -11,7 +11,6 @@ import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerException;
 import com.arcadedb.server.http.handler.*;
 import io.undertow.Undertow;
-import io.undertow.server.HttpHandler;
 import io.undertow.server.RoutingHandler;
 
 import java.net.BindException;
@@ -44,9 +43,14 @@ public class HttpServer {
 
     server.log(this, Level.INFO, "- Starting HTTP Server (host=%s port=%d)...", host, port);
 
-    final HttpHandler routes = new RoutingHandler().get("/query/{database}/{command}", new QueryHandler(this))
-        .post("/sql/{database}/{command}", new SQLHandler(this)).get("/document/{database}/{rid}", new GetDocumentHandler(this))
-        .post("/document/{database}", new CreateDocumentHandler(this)).post("/server", new HAServersHandler(this));
+    final RoutingHandler routes = new RoutingHandler();
+    routes.get("/query/{database}/{command}", new QueryHandler(this));
+    routes.post("/sql/{database}/{command}", new SQLHandler(this));
+    routes.get("/document/{database}/{rid}", new GetDocumentHandler(this));
+    routes.post("/document/{database}", new CreateDocumentHandler(this));
+    routes.post("/server", new HAServersHandler(this));
+    routes.post("/create/{database}", new CreateDatabaseHandler(this));
+    routes.post("/drop/{database}", new DropDatabaseHandler(this));
 
     do {
       try {

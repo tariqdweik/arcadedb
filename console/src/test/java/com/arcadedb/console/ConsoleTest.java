@@ -20,6 +20,7 @@ public class ConsoleTest {
   @BeforeEach
   public void populate() throws IOException {
     console = new Console(false);
+    Assertions.assertTrue(console.parse("create database " + DB_PATH));
   }
 
   @AfterEach

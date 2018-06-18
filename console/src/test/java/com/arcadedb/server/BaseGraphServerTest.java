@@ -41,18 +41,11 @@ public abstract class BaseGraphServerTest {
   protected static RID              root;
   private          ArcadeDBServer[] servers;
 
-  static {
-//    Properties prop = new Properties();
-//    prop.setProperty("log4j.rootLogger", "WARN");
-//    PropertyConfigurator.configure(prop);
-  }
-
   @BeforeEach
   public void populate() {
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    for (int i = 0; i < getServerCount(); ++i)
-      FileUtils.deleteRecursively(new File(getDatabasePath(i)));
+    deleteDatabaseFolders();
 
     new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
@@ -77,7 +70,6 @@ public abstract class BaseGraphServerTest {
     });
 
     if (isPopulateDatabase()) {
-
       final Database db = new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).open();
       db.begin();
       try {
@@ -120,6 +112,10 @@ public abstract class BaseGraphServerTest {
       }
     }
 
+    startServers();
+  }
+
+  protected void startServers() {
     final int totalServers = getServerCount();
     servers = new ArcadeDBServer[totalServers];
 
@@ -193,6 +189,11 @@ public abstract class BaseGraphServerTest {
 //        }
 //      }
     }
+  }
+
+  protected void deleteDatabaseFolders() {
+    for (int i = 0; i < getServerCount(); ++i)
+      FileUtils.deleteRecursively(new File(getDatabasePath(i)));
   }
 
   protected boolean isPopulateDatabase() {

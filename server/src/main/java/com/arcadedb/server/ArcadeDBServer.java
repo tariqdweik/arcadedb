@@ -53,7 +53,7 @@ public class ArcadeDBServer {
   }
 
   public void start() throws IOException, InterruptedException {
-    lifecycleEvent(TestCallback.TYPE.SERVER_STARTING,null);
+    lifecycleEvent(TestCallback.TYPE.SERVER_STARTING, null);
 
     log(this, Level.INFO, "Starting ArcadeDB Server...");
 
@@ -116,33 +116,45 @@ public class ArcadeDBServer {
     lifecycleEvent(TestCallback.TYPE.SERVER_DOWN, null);
   }
 
-  public synchronized Database getDatabase(final String databaseName) {
+  public Database getDatabase(final String databaseName) {
+    return getDatabase(databaseName, false);
+  }
+
+  public Database getOrCreateDatabase(final String databaseName) {
+    return getDatabase(databaseName, true);
+  }
+
+  public DatabaseInternal createDatabase(final String databaseName) {
     DatabaseInternal db = databases.get(databaseName);
-    if (db == null) {
-      final DatabaseFactory factory = new DatabaseFactory(
-          configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
-          PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
+    if (db != null)
+      throw new IllegalArgumentException("Database '" + databaseName + "' already exists");
 
-      if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
-        factory.setWALFileFactory(new ReplicatedWALFileFactory());
+    final DatabaseFactory factory = new DatabaseFactory(
+        configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
+        PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
 
-      db = factory.open();
+    if (factory.exists())
+      throw new IllegalArgumentException("Database '" + databaseName + "' already exists");
 
-      // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
-      for (DocumentType t : db.getSchema().getTypes()) {
-        t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
-      }
+    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
+      factory.setWALFileFactory(new ReplicatedWALFileFactory());
 
-      if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
-        db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);
+    db = factory.create();
 
-      final DatabaseInternal oldDb = databases.putIfAbsent(databaseName, db);
-
-      if (oldDb != null)
-        db = oldDb;
+    // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
+    for (DocumentType t : db.getSchema().getTypes()) {
+      t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
     }
 
-    return new ServerDatabaseProxy(db);
+    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
+      db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);
+
+    final DatabaseInternal oldDb = databases.putIfAbsent(databaseName, db);
+
+    if (oldDb != null)
+      db = oldDb;
+
+    return db;
   }
 
   public Set<String> getDatabaseNames() {
@@ -151,6 +163,10 @@ public class ArcadeDBServer {
 
   public void log(final Object requester, final Level level, final String message, final Object... args) {
     LogManager.instance().log(requester, level, "<" + getServerName() + "> " + message, null, false, args);
+  }
+
+  public void removeDatabase(final String databaseName) {
+    databases.remove(databaseName);
   }
 
   public String getServerName() {
@@ -173,5 +189,37 @@ public class ArcadeDBServer {
     if (testEnabled)
       for (TestCallback c : testEventListeners)
         c.onEvent(type, object, this);
+  }
+
+  private synchronized Database getDatabase(final String databaseName, final boolean createIfNotExists) {
+    DatabaseInternal db = databases.get(databaseName);
+    if (db == null) {
+      final DatabaseFactory factory = new DatabaseFactory(
+          configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
+          PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
+
+      if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
+        factory.setWALFileFactory(new ReplicatedWALFileFactory());
+
+      if (createIfNotExists)
+        db = factory.exists() ? factory.open() : factory.create();
+      else
+        db = factory.open();
+
+      // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
+      for (DocumentType t : db.getSchema().getTypes()) {
+        t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
+      }
+
+      if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
+        db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);
+
+      final DatabaseInternal oldDb = databases.putIfAbsent(databaseName, db);
+
+      if (oldDb != null)
+        db = oldDb;
+    }
+
+    return new ServerDatabaseProxy(db);
   }
 }

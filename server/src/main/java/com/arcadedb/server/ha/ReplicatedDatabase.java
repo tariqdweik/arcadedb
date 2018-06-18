@@ -327,6 +327,16 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public ResultSet sql(final String query, final Object... args) {
+    return proxied.sql(query, args);
+  }
+
+  @Override
+  public ResultSet query(final String query, final Object... args) {
+    return proxied.query(query, args);
+  }
+
+  @Override
   public ResultSet query(final String query, final Map<String, Object> args) {
     return proxied.query(query, args);
   }

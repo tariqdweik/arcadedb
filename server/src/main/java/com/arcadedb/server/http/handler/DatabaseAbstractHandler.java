@@ -22,7 +22,7 @@ public abstract class DatabaseAbstractHandler extends AbstractHandler {
   protected abstract void execute(HttpServerExchange exchange, Database database) throws Exception;
 
   @Override
-  public void execute(HttpServerExchange exchange) throws Exception {
+  public void execute(final HttpServerExchange exchange) throws Exception {
     final HeaderValues authorization = exchange.getRequestHeaders().get("Authorization");
     if (authorization == null || authorization.isEmpty()) {
       exchange.setStatusCode(403);
@@ -52,16 +52,29 @@ public abstract class DatabaseAbstractHandler extends AbstractHandler {
 
     authenticate(authPair[0], authPair[1]);
 
-    final Deque<String> databaseName = exchange.getQueryParameters().get("database");
-    if (databaseName.isEmpty()) {
-      exchange.setStatusCode(400);
-      exchange.getResponseSender().send("{ \"error\" : \"Database parameter is null\"}");
-      return;
+    final Database db;
+    if (openDatabase()) {
+      final Deque<String> databaseName = exchange.getQueryParameters().get("database");
+      if (databaseName.isEmpty()) {
+        exchange.setStatusCode(400);
+        exchange.getResponseSender().send("{ \"error\" : \"Database parameter is null\"}");
+        return;
+      }
+
+      db = httpServer.getServer().getDatabase(databaseName.getFirst());
+    } else
+      db = null;
+
+    try {
+      execute(exchange, db);
+    } finally {
+      if (db != null)
+        db.close();
     }
+  }
 
-    final Database db = httpServer.getServer().getDatabase(databaseName.getFirst());
-
-    execute(exchange, db);
+  protected boolean openDatabase() {
+    return true;
   }
 
   private void authenticate(final String userName, final String userPassword) {

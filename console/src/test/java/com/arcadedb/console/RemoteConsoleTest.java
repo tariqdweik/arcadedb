@@ -26,11 +26,21 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
     return false;
   }
 
+  @Override
+  protected String getDatabaseName() {
+    return "console";
+  }
+
   @BeforeEach
   public void populate() {
-    super.populate();
+    deleteDatabaseFolders();
+    startServers();
+
     try {
       console = new Console(false);
+      Assertions.assertTrue(console.parse("create database " + URL));
+
+      console.parse("close");
     } catch (IOException e) {
       Assertions.fail(e);
     }
@@ -55,7 +65,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @Test
   public void testConnectNoCredentials() throws IOException {
     try {
-      Assertions.assertTrue(console.parse("connect " + URL_NOCREDENTIALS + ";create class VVVV"));
+      Assertions.assertTrue(console.parse("connect " + URL_NOCREDENTIALS + ";create type VVVV"));
       Assertions.fail("Security was bypassed!");
     } catch (ConsoleException e) {
     }
@@ -64,16 +74,16 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @Test
   public void testConnectWrongPassword() throws IOException {
     try {
-      Assertions.assertTrue(console.parse("connect " + URL_WRONGPASSWD + ";create class VVVV"));
+      Assertions.assertTrue(console.parse("connect " + URL_WRONGPASSWD + ";create type VVVV"));
       Assertions.fail("Security was bypassed!");
     } catch (RemoteException e) {
     }
   }
 
   @Test
-  public void testCreateClass() throws IOException {
+  public void testCreateType() throws IOException {
     Assertions.assertTrue(console.parse("connect " + URL));
-    Assertions.assertTrue(console.parse("create type Person"));
+    Assertions.assertTrue(console.parse("create type Person2"));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -83,8 +93,8 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
       }
     });
     Assertions.assertTrue(console.parse("info types"));
-    Assertions.assertTrue(buffer.toString().contains("Person"));
-    Assertions.assertTrue(console.parse("drop type Person"));
+    Assertions.assertTrue(buffer.toString().contains("Person2"));
+    Assertions.assertTrue(console.parse("drop type Person2"));
   }
 
   @Test

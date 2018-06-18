@@ -250,36 +250,34 @@ public class SelectStatement extends Statement {
   }
 
   @Override
-  public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
-    BasicCommandContext ctx = new BasicCommandContext();
+  public ResultSet execute(final Database db, final Object[] args, final CommandContext parentCtx) {
+    final BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
-    Map<Object, Object> params = new HashMap<>();
+    final Map<Object, Object> params = new HashMap<>();
     if (args != null) {
       for (int i = 0; i < args.length; i++) {
         params.put(i, args[i]);
       }
     }
     ctx.setInputParameters(params);
-    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-
-    LocalResultSet result = new LocalResultSet(executionPlan);
+    final InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    final LocalResultSet result = new LocalResultSet(executionPlan);
     return result;
   }
 
   @Override
-  public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
-    BasicCommandContext ctx = new BasicCommandContext();
+  public ResultSet execute(final Database db, final Map params, final CommandContext parentCtx) {
+    final BasicCommandContext ctx = new BasicCommandContext();
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
-    InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-
-    LocalResultSet result = new LocalResultSet(executionPlan);
+    final InternalExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+    final LocalResultSet result = new LocalResultSet(executionPlan);
     return result;
   }
 

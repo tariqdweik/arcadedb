@@ -158,9 +158,13 @@ public abstract class BaseGraphServerTest {
         servers[i].stop();
 
       if (dropDatabases()) {
-        final Database db = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE)
-            .open();
-        db.drop();
+        final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(),
+            PaginatedFile.MODE.READ_WRITE);
+
+        if (factory.exists()) {
+          final Database db = factory.open();
+          db.drop();
+        }
       }
     }
   }

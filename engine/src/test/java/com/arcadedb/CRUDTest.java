@@ -24,7 +24,7 @@ public class CRUDTest {
   @BeforeEach
   public void populate() {
     FileUtils.deleteRecursively(new File(DB_PATH));
-    Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).create();
     createAll(db);
     db.close();
   }

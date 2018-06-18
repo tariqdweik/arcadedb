@@ -18,13 +18,13 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface Database {
-  boolean isOpen();
-
   interface Transaction {
     void execute(Database database);
   }
 
   String getName();
+
+  boolean isOpen();
 
   void drop();
 
@@ -88,9 +88,13 @@ public interface Database {
 
   PageManager getPageManager();
 
-  ResultSet query(String query, Map<String, Object> args);
-
   ResultSet sql(String query, Map<String, Object> args);
+
+  ResultSet sql(String query, Object... args);
+
+  ResultSet query(String query, Object... args);
+
+  ResultSet query(String query, Map<String, Object> args);
 
   Object executeInReadLock(Callable<Object> callable);
 

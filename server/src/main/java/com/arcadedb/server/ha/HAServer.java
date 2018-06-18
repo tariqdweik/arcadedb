@@ -339,7 +339,7 @@ public class HAServer {
       leaderConnection.sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
       final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
 
-      final Database database = server.getDatabase(db);
+      final Database database = server.getOrCreateDatabase(db);
 
       installDatabase(buffer, db, dbStructure, database);
     }

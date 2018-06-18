@@ -83,7 +83,7 @@ public class AsyncTest {
   private static void populate(final int total) {
     FileUtils.deleteRecursively(new File(DB_PATH));
 
-    final Database database = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database database = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).create();
     database.begin();
     try {
 

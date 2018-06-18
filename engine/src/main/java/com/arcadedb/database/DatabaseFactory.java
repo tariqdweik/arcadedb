@@ -7,7 +7,9 @@ package com.arcadedb.database;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFileFactory;
+import com.arcadedb.schema.SchemaImpl;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,9 +36,21 @@ public class DatabaseFactory {
       databasePath = path;
   }
 
+  public boolean exists() {
+    return new File(databasePath + "/" + SchemaImpl.SCHEMA_FILE_NAME).exists();
+  }
+
   public EmbeddedDatabase open() {
     final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks, walFileFactory);
     db.setAutoTransaction(autoTransaction);
+    db.open();
+    return db;
+  }
+
+  public EmbeddedDatabase create() {
+    final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks, walFileFactory);
+    db.setAutoTransaction(autoTransaction);
+    db.create();
     return db;
   }
 
@@ -44,7 +58,7 @@ public class DatabaseFactory {
     if (operation == null)
       throw new IllegalArgumentException("Operation block is null");
 
-    final Database db = open();
+    final Database db = exists() ? open() : create();
     try {
       db.transaction(new Database.Transaction() {
         @Override

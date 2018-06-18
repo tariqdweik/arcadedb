@@ -82,11 +82,15 @@ public class Console {
     if (terminal != null)
       terminal.writer().flush();
 
-    if (remoteDatabase != null)
+    if (remoteDatabase != null) {
       remoteDatabase.close();
+      remoteDatabase = null;
+    }
 
-    if (database != null)
+    if (database != null) {
       database.close();
+      database = null;
+    }
   }
 
   public void setOutput(final ConsoleOutput output) {
@@ -114,6 +118,10 @@ public class Console {
         executeClose();
       else if (line.startsWith("connect"))
         executeConnect(line);
+      else if (line.startsWith("create database"))
+        executeCreateDatabase(line);
+      else if (line.startsWith("drop database"))
+        executeDropDatabase(line);
       else {
         executeSQL(line);
       }
@@ -145,6 +153,11 @@ public class Console {
       database.close();
       database = null;
     }
+
+    if (remoteDatabase != null) {
+      remoteDatabase.close();
+      remoteDatabase = null;
+    }
   }
 
   private void executeConnect(final String line) {
@@ -153,29 +166,7 @@ public class Console {
       terminal.writer().print("Database already connected, to connect to a different database close the current one first\n");
     else if (!url.isEmpty()) {
       if (url.startsWith("remote:")) {
-        final String conn = url.substring("remote:".length());
-
-        final String[] serverUserPassword = conn.split(" ");
-        if (serverUserPassword.length != 3)
-          throw new ConsoleException("URL username and password are missing");
-
-        final String[] serverParts = serverUserPassword[0].split("/");
-        if (serverParts.length != 2)
-          throw new ConsoleException("Remote URL '" + url + "' not valid");
-
-        String remoteServer;
-        int remotePort;
-
-        final int portPos = serverParts[0].indexOf(":");
-        if (portPos < 0) {
-          remoteServer = serverParts[0];
-          remotePort = RemoteDatabase.DEFAULT_PORT;
-        } else {
-          remoteServer = serverParts[0].substring(0, portPos);
-          remotePort = Integer.parseInt(serverParts[0].substring(portPos + 1));
-        }
-
-        remoteDatabase = new RemoteDatabase(remoteServer, remotePort, serverParts[1], serverUserPassword[1], serverUserPassword[2]);
+        connectToRemoteServer(url);
 
         terminal.writer().printf("\nConnected\n");
         terminal.writer().flush();
@@ -184,6 +175,47 @@ public class Console {
         database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
     } else
       throw new ConsoleException("URL missing");
+  }
+
+  private void executeCreateDatabase(final String line) {
+    final String url = line.substring("create database".length()).trim();
+    if (database != null || remoteDatabase != null)
+      terminal.writer().print("Database already connected, to connect to a different database close the current one first\n");
+    else if (!url.isEmpty()) {
+      if (url.startsWith("remote:")) {
+        connectToRemoteServer(url);
+        remoteDatabase.create();
+
+        terminal.writer().printf("\nDatabase created\n");
+        terminal.writer().flush();
+
+      } else
+        database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).create();
+    } else
+      throw new ConsoleException("URL missing");
+  }
+
+  private void executeDropDatabase(final String line) {
+    final String url = line.substring("drop database".length()).trim();
+    if (database != null || remoteDatabase != null)
+      terminal.writer().print("Database already connected, to connect to a different database close the current one first\n");
+    else if (!url.isEmpty()) {
+      if (url.startsWith("remote:")) {
+        connectToRemoteServer(url);
+        remoteDatabase.drop();
+
+        terminal.writer().printf("\nDatabase dropped\n");
+        terminal.writer().flush();
+
+      } else {
+        database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
+        database.drop();
+      }
+    } else
+      throw new ConsoleException("URL missing");
+
+    remoteDatabase = null;
+    database = null;
   }
 
   private void executeSQL(final String line) {
@@ -196,7 +228,7 @@ public class Console {
     if (remoteDatabase != null)
       result = remoteDatabase.command(line);
     else
-      result = database.sql(line, null);
+      result = database.sql(line);
 
     final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
       @Override
@@ -310,5 +342,31 @@ public class Console {
   private void checkDatabaseIsOpen() {
     if (database == null && remoteDatabase == null)
       throw new RuntimeException("No active database. Open a database first\n");
+  }
+
+  private void connectToRemoteServer(final String url) {
+    final String conn = url.substring("remote:".length());
+
+    final String[] serverUserPassword = conn.split(" ");
+    if (serverUserPassword.length != 3)
+      throw new ConsoleException("URL username and password are missing");
+
+    final String[] serverParts = serverUserPassword[0].split("/");
+    if (serverParts.length != 2)
+      throw new ConsoleException("Remote URL '" + url + "' not valid");
+
+    String remoteServer;
+    int remotePort;
+
+    final int portPos = serverParts[0].indexOf(":");
+    if (portPos < 0) {
+      remoteServer = serverParts[0];
+      remotePort = RemoteDatabase.DEFAULT_PORT;
+    } else {
+      remoteServer = serverParts[0].substring(0, portPos);
+      remotePort = Integer.parseInt(serverParts[0].substring(portPos + 1));
+    }
+
+    remoteDatabase = new RemoteDatabase(remoteServer, remotePort, serverParts[1], serverUserPassword[1], serverUserPassword[2]);
   }
 }

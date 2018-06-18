@@ -40,13 +40,13 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected final PaginatedFile.MODE    mode;
   protected final ContextConfiguration  configuration;
   protected final String                databasePath;
-  protected final FileManager           fileManager;
-  protected final PageManager           pageManager;
+  protected       FileManager           fileManager;
+  protected       PageManager           pageManager;
   protected final BinarySerializer      serializer     = new BinarySerializer();
   protected final RecordFactory         recordFactory  = new RecordFactory();
-  protected final SchemaImpl            schema;
+  protected       SchemaImpl            schema;
   protected final GraphEngine           graphEngine    = new GraphEngine();
-  protected final TransactionManager    transactionManager;
+  protected       TransactionManager    transactionManager;
   protected final WALFileFactory        walFactory;
   protected       DatabaseAsyncExecutor asynch         = null;
   private         boolean               readYourWrites = true;
@@ -85,9 +85,35 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       else
         name = path;
 
+    } catch (Exception e) {
+      open = false;
+
+      if (e instanceof DatabaseOperationException)
+        throw (DatabaseOperationException) e;
+
+      throw new DatabaseOperationException("Error on creating new database instance", e);
+    }
+  }
+
+  protected void open() {
+    if (!new File(databasePath).exists())
+      throw new DatabaseOperationException("Database '" + databasePath + "' not exists");
+
+    openInternal();
+  }
+
+  protected void create() {
+    if (new File(databasePath).exists())
+      throw new DatabaseOperationException("Database '" + databasePath + "' already exists");
+
+    openInternal();
+  }
+
+  private void openInternal() {
+    try {
       DatabaseContext.INSTANCE.init(this);
 
-      fileManager = new FileManager(path, mode, SUPPORTED_FILE_EXT);
+      fileManager = new FileManager(databasePath, mode, SUPPORTED_FILE_EXT);
       transactionManager = new TransactionManager(this);
       pageManager = new PageManager(fileManager, transactionManager);
 
@@ -174,9 +200,10 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (asynch != null)
           asynch.close();
 
-        if (getTransaction().isActive())
+        final TransactionContext tx = getTransaction();
+        if (tx != null && tx.isActive())
           // ROLLBACK ANY PENDING OPERATION
-          getTransaction().rollback();
+          tx.rollback();
 
         try {
           schema.close();
@@ -218,7 +245,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   public TransactionContext getTransaction() {
-    return DatabaseContext.INSTANCE.get().transaction;
+    final DatabaseContext.PDatabaseContextTL dbContext = DatabaseContext.INSTANCE.get();
+    return dbContext != null ? dbContext.transaction : null;
   }
 
   @Override
@@ -817,8 +845,24 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public ResultSet sql(String query, Map<String, Object> args) {
+  public ResultSet sql(String query, final Object... args) {
     final Statement statement = SQLEngine.parse(query, this);
+    final ResultSet original = statement.execute(this, args);
+    return original;
+  }
+
+  @Override
+  public ResultSet sql(String query, final Map<String, Object> args) {
+    final Statement statement = SQLEngine.parse(query, this);
+    final ResultSet original = statement.execute(this, args);
+    return original;
+  }
+
+  @Override
+  public ResultSet query(String query, final Object... args) {
+    final Statement statement = SQLEngine.parse(query, this);
+    if (!statement.isIdempotent())
+      throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
     final ResultSet original = statement.execute(this, args);
     return original;
   }
@@ -880,6 +924,44 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   @Override
   public String toString() {
     return name;
+  }
+
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry) {
+    return executeWithRetries(callback, maxRetry, 0, null);
+  }
+
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry,
+      final int waitBetweenRetry) {
+    return executeWithRetries(callback, maxRetry, waitBetweenRetry, null);
+  }
+
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry,
+      final int waitBetweenRetry, final Record[] recordToReloadOnRetry) {
+    NeedRetryException lastException = null;
+    for (int retry = 0; retry < maxRetry; ++retry) {
+      try {
+        return callback.call(retry);
+      } catch (NeedRetryException e) {
+        // SAVE LAST EXCEPTION AND RETRY
+        lastException = e;
+
+        if (recordToReloadOnRetry != null) {
+          // RELOAD THE RECORDS
+          for (Record r : recordToReloadOnRetry)
+            ;
+          //r.reload();
+        }
+
+        if (waitBetweenRetry > 0)
+          try {
+            Thread.sleep(waitBetweenRetry);
+          } catch (InterruptedException ignore) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+      }
+    }
+    throw lastException;
   }
 
   protected void checkDatabaseIsOpen() {

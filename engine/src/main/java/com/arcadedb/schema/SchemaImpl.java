@@ -267,7 +267,7 @@ public class SchemaImpl implements Schema {
       final int bfKeyDepth) {
     return (Index[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         try {
           if (propertyNames.length == 0)
             throw new DatabaseMetadataException(
@@ -327,7 +327,7 @@ public class SchemaImpl implements Schema {
       final int bfKeyDepth) {
     return (IndexLSM) database.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         if (indexMap.containsKey(indexName))
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 

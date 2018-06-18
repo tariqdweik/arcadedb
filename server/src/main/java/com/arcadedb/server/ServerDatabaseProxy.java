@@ -42,7 +42,9 @@ public class ServerDatabaseProxy implements DatabaseInternal {
 
   @Override
   public void drop() {
-    throw new UnsupportedOperationException("Server proxied database instance cannot be drop");
+    checkForOpen();
+    proxied.drop();
+    open = false;
   }
 
   @Override
@@ -320,13 +322,25 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   @Override
   public ResultSet sql(final String query, final Map<String, Object> args) {
     checkForOpen();
+    return sql(query, args);
+  }
+
+  @Override
+  public ResultSet sql(final String query, final Object... args) {
+    checkForOpen();
     return proxied.sql(query, args);
+  }
+
+  @Override
+  public ResultSet query(final String query, final Object... args) {
+    checkForOpen();
+    return proxied.query(query, args);
   }
 
   @Override
   public ResultSet query(final String query, final Map<String, Object> args) {
     checkForOpen();
-    return proxied.query(query, args);
+    return query(query, args);
   }
 
   @Override

@@ -44,7 +44,7 @@ public class Statement extends SimpleNode {
   }
 
   @Override
-  public String toString(String prefix) {
+  public String toString(final String prefix) {
     StringBuilder builder = new StringBuilder();
     toString(null, builder);
     return builder.toString();
@@ -54,19 +54,19 @@ public class Statement extends SimpleNode {
 //    throw new UnsupportedOperationException("Unsupported command: " + getClass().getSimpleName());
 //  }
 
-  public ResultSet execute(Database db, Object[] args) {
+  public ResultSet execute(final Database db, final Object[] args) {
     return execute(db, args, null);
   }
 
-  public ResultSet execute(Database db, Object[] args, CommandContext parentContext) {
+  public ResultSet execute(final Database db, final Object[] args, final CommandContext parentContext) {
     throw new UnsupportedOperationException();
   }
 
-  public ResultSet execute(Database db, Map args) {
+  public ResultSet execute(final Database db, final Map args) {
     return execute(db, args, null);
   }
 
-  public ResultSet execute(Database db, Map args, CommandContext parentContext) {
+  public ResultSet execute(final Database db, final Map args, final CommandContext parentContext) {
     throw new UnsupportedOperationException();
   }
 
@@ -77,7 +77,7 @@ public class Statement extends SimpleNode {
    *
    * @return an execution plan
    */
-  public InternalExecutionPlan createExecutionPlan(CommandContext ctx) {
+  public InternalExecutionPlan createExecutionPlan(final CommandContext ctx) {
     return createExecutionPlan(ctx, false);
   }
 
@@ -89,7 +89,7 @@ public class Statement extends SimpleNode {
    *
    * @return an execution plan
    */
-  public InternalExecutionPlan createExecutionPlan(CommandContext ctx, boolean profile) {
+  public InternalExecutionPlan createExecutionPlan(final CommandContext ctx, final boolean profile) {
     throw new UnsupportedOperationException();
   }
 
@@ -105,7 +105,7 @@ public class Statement extends SimpleNode {
     return false;
   }
 
-  public static Statement deserializeFromOResult(Result doc) {
+  public static Statement deserializeFromOResult(final Result doc) {
     try {
       Statement result = (Statement) Class.forName(doc.getProperty("__class")).getConstructor(Integer.class).newInstance(-1);
       result.deserialize(doc);

@@ -261,4 +261,23 @@ public class FileUtils {
     }
     return fileData.toString();
   }
+
+  public static void writeFile(final File iFile, final String iContent) throws IOException {
+    final FileOutputStream fos = new FileOutputStream(iFile);
+    try {
+      final OutputStreamWriter os = new OutputStreamWriter(fos);
+      try {
+        final BufferedWriter writer = new BufferedWriter(os);
+        try {
+          writer.write(iContent);
+        } finally {
+          writer.close();
+        }
+      } finally {
+        os.close();
+      }
+    } finally {
+      fos.close();
+    }
+  }
 }

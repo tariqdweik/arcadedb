@@ -49,6 +49,15 @@ public interface ResultSet extends Spliterator<Result>, Iterator<Result>, AutoCl
     return false;
   }
 
+  default int countEntries() {
+    int tot = 0;
+
+    while (hasNext())
+      tot++;
+
+    return tot;
+  }
+
   default void forEachRemaining(Consumer<? super Result> action) {
     Spliterator.super.forEachRemaining(action);
   }

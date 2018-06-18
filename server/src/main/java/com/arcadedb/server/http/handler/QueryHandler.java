@@ -30,7 +30,7 @@ public class QueryHandler extends DatabaseAbstractHandler {
     final StringBuilder result = new StringBuilder();
 
     final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
-    final ResultSet qResult = database.sql(command, null);
+    final ResultSet qResult = database.query(command);
     while (qResult.hasNext()) {
       if (result.length() > 0)
         result.append(",");
