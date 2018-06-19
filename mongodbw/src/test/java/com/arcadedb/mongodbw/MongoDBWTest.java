@@ -13,8 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-
+import static com.mongodb.client.model.Filters.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -73,23 +72,20 @@ public class MongoDBWTest extends BaseGraphServerTest {
     assertEquals(obj, collection.find(BsonDocument.parse("{ name: { $gt: \"A\" } } ")).first());
 
     assertEquals(obj, collection.find(BsonDocument.parse("{ name: { $gte: \"A\" } } ")).first());
-  }
 
-  private boolean checkAreEquals(final Document first, final Document second) {
-    if (first.size() != second.size())
-      return false;
+    assertEquals(obj, collection.find(and(gt("name", "A"), lte("name", "Jay"))).first());
 
-    for (Map.Entry<String, Object> entry : first.entrySet()) {
-      final Object firstValue = entry.getValue();
-      final Object secondValue = second.get(entry.getKey());
+    assertEquals(obj,
+        collection.find(BsonDocument.parse("{ $or: [ { name: { $eq: 'Jay' } }, { lastName: 'Miner222'} ] }")).first());
 
-      if (firstValue == null) {
-        if (secondValue != null)
-          return false;
-      } else if (!firstValue.equals(secondValue))
-        return false;
-    }
+    assertEquals(obj, collection.find(BsonDocument.parse("{ $not: { name: { $eq: 'Jay2' } } }")).first());
 
-    return true;
+    assertEquals(obj, collection.find(BsonDocument.parse(
+        "{ $and: [ { name: { $eq: 'Jay' } }, { lastName: { $exists: true } }, { lastName: { $eq: 'Miner' } }, { lastName: { $ne: 'Miner22' } } ] }"))
+        .first());
+
+    assertEquals(obj,
+        collection.find(and(eq("name", "Jay"), exists("lastName"), eq("lastName", "Miner"), ne("lastName", "Miner22"))).first());
+
   }
 }

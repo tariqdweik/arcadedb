@@ -244,55 +244,7 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
       // EXECUTE A SQL QUERY
       final StringBuilder sql = new StringBuilder("select from " + collectionName + " where ");
 
-      for (Map.Entry<String, Object> entry : query.entrySet()) {
-        Object value = entry.getValue();
-        sql.append(entry.getKey());
-
-        if (value instanceof Document) {
-          // SPECIAL CONDITION
-          for (Map.Entry<String, Object> subEntry : ((Document) value).entrySet()) {
-            final String subOperator = subEntry.getKey();
-            final Object subValue = subEntry.getValue();
-
-            if (subOperator.equals("$in")) {
-              if (subValue instanceof Collection) {
-                sql.append(" IN ");
-                collection2String(sql, (Collection) subValue);
-              } else
-                throw new IllegalArgumentException("Operator $in was expecting a collection");
-            } else if (subOperator.equals("$nin")) {
-              if (subValue instanceof Collection) {
-                sql.append(" NOT IN ");
-                collection2String(sql, (Collection) subValue);
-              } else
-                throw new IllegalArgumentException("Operator $in was expecting a collection");
-            } else if (subOperator.equals("$eq")) {
-              sql.append(" = ");
-              value2String(sql, subValue);
-            } else if (subOperator.equals("$ne")) {
-              sql.append(" <> ");
-              value2String(sql, subValue);
-            } else if (subOperator.equals("$lt")) {
-              sql.append(" < ");
-              value2String(sql, subValue);
-            } else if (subOperator.equals("$lte")) {
-              sql.append(" <= ");
-              value2String(sql, subValue);
-            } else if (subOperator.equals("$gt")) {
-              sql.append(" > ");
-              value2String(sql, subValue);
-            } else if (subOperator.equals("$gte")) {
-              sql.append(" >= ");
-              value2String(sql, subValue);
-            } else
-              throw new IllegalArgumentException("Unknown operator " + subOperator);
-
-          }
-        } else {
-          sql.append(" = ");
-          value2String(sql, value);
-        }
-      }
+      buildExpression(sql, query);
 
       it = database.query(sql.toString());
     }
@@ -302,19 +254,132 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
     return result;
   }
 
-  private void collection2String(final StringBuilder buffer, final Collection coll) {
+  private void buildExpression(final StringBuilder buffer, final Document query) {
+    for (Map.Entry<String, Object> entry : query.entrySet()) {
+      final Object key = entry.getKey();
+      final Object value = entry.getValue();
+
+      if (key instanceof String && ((String) key).startsWith("$"))
+        buildExpression(buffer, (String) key, value);
+      else if (value instanceof Document) {
+        buildAnd(buffer, key, (Document) value);
+      } else if (value instanceof List) {
+        if (key.equals("$or")) {
+          buildOr(buffer, (List) value);
+        } else
+          throw new IllegalArgumentException("Invalid operator " + key);
+      } else {
+        buffer.append(entry.getKey());
+        buffer.append(" = ");
+        buildValue(buffer, value);
+      }
+    }
+  }
+
+  private void buildAnd(final StringBuilder sql, final Object key, final Object value) {
+    int expressionCount = 0;
+
+    sql.append("(");
+
+    if (value instanceof List) {
+      for (Document o : (List<Document>) value) {
+        if (expressionCount++ > 0)
+          sql.append(" AND ");
+
+        buildExpression(sql, o);
+      }
+    } else if (value instanceof Document) {
+      for (Map.Entry<String, Object> subEntry : ((Document) value).entrySet()) {
+        final String subKey = subEntry.getKey();
+        final Object subValue = subEntry.getValue();
+
+        if (expressionCount++ > 0)
+          sql.append(" AND ");
+
+        if (key != null)
+          sql.append(key);
+
+        buildExpression(sql, subKey, subValue);
+
+      }
+    }
+
+    sql.append(")");
+  }
+
+  private void buildExpression(final StringBuilder sql, final String key, final Object value) {
+    if (key.equals("$in")) {
+      if (value instanceof Collection) {
+        sql.append(" IN ");
+        buildCollection(sql, (Collection) value);
+      } else
+        throw new IllegalArgumentException("Operator $in was expecting a collection");
+    } else if (key.equals("$nin")) {
+      if (value instanceof Collection) {
+        sql.append(" NOT IN ");
+        buildCollection(sql, (Collection) value);
+      } else
+        throw new IllegalArgumentException("Operator $in was expecting a collection");
+    } else if (key.equals("$eq")) {
+      sql.append(" = ");
+      buildValue(sql, value);
+    } else if (key.equals("$ne")) {
+      sql.append(" <> ");
+      buildValue(sql, value);
+    } else if (key.equals("$lt")) {
+      sql.append(" < ");
+      buildValue(sql, value);
+    } else if (key.equals("$lte")) {
+      sql.append(" <= ");
+      buildValue(sql, value);
+    } else if (key.equals("$gt")) {
+      sql.append(" > ");
+      buildValue(sql, value);
+    } else if (key.equals("$gte")) {
+      sql.append(" >= ");
+      buildValue(sql, value);
+    } else if (key.equals("$exists")) {
+      sql.append(" IS DEFINED ");
+    } else if (key.equals("$or")) {
+      buildOr(sql, (List) value);
+    } else if (key.equals("$and")) {
+      buildAnd(sql, key, value);
+    } else if (key.equals("$not")) {
+      sql.append(" NOT ");
+      buildExpression(sql, (Document) value);
+    } else
+      throw new IllegalArgumentException("Unknown operator " + key);
+  }
+
+  private void buildOr(final StringBuilder buffer, final List list) {
+    buffer.append("(");
+
+    int i = 0;
+    for (Object o : list) {
+      if (i++ > 0)
+        buffer.append(" OR ");
+
+      if (o instanceof Document) {
+        buildExpression(buffer, (Document) o);
+      }
+    }
+
+    buffer.append(")");
+  }
+
+  private void buildCollection(final StringBuilder buffer, final Collection coll) {
     int i = 0;
     buffer.append('[');
     for (Iterator it = coll.iterator(); it.hasNext(); ) {
       if (i++ > 0)
         buffer.append(',');
 
-      value2String(buffer, it.next());
+      buildValue(buffer, it.next());
     }
     buffer.append(']');
   }
 
-  private void value2String(final StringBuilder buffer, final Object value) {
+  private void buildValue(final StringBuilder buffer, final Object value) {
     if (value instanceof String) {
       buffer.append('\'');
       buffer.append(value);
