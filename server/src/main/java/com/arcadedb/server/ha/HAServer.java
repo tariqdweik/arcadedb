@@ -19,6 +19,8 @@ import com.arcadedb.network.binary.NetworkProtocolException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ServerException;
+import com.arcadedb.server.ServerPlugin;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -35,7 +37,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-public class HAServer {
+public class HAServer implements ServerPlugin {
   public enum QUORUM {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }
@@ -66,7 +68,12 @@ public class HAServer {
     this.startedOn = System.currentTimeMillis();
   }
 
-  public void connect() throws IOException, InterruptedException {
+  @Override
+  public void configure(final ArcadeDBServer server, final ContextConfiguration configuration) {
+  }
+
+  @Override
+  public void startService() {
     listener = new LeaderNetworkListener(this, new DefaultServerSocketFactory(),
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST),
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS));
@@ -92,7 +99,8 @@ public class HAServer {
     }
   }
 
-  public void close() {
+  @Override
+  public void stopService() {
     if (listener != null)
       listener.close();
 
@@ -328,24 +336,28 @@ public class HAServer {
     leaderConnection = new ReplicaNetworkExecutor(this, client);
   }
 
-  private void initReplica() throws IOException, InterruptedException {
+  private void initReplica() {
     final Binary buffer = new Binary(1024);
 
-    leaderConnection.sendCommandToLeader(buffer, new DatabaseListRequest());
-    final DatabaseListResponse databaseList = (DatabaseListResponse) receiveCommandFromLeader(buffer);
+    try {
+      leaderConnection.sendCommandToLeader(buffer, new DatabaseListRequest());
+      final DatabaseListResponse databaseList = (DatabaseListResponse) receiveCommandFromLeader(buffer);
 
-    final Set<String> databases = databaseList.getDatabases();
-    for (String db : databases) {
-      leaderConnection.sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
-      final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
+      final Set<String> databases = databaseList.getDatabases();
+      for (String db : databases) {
+        leaderConnection.sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
+        final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
 
-      final Database database = server.getOrCreateDatabase(db);
+        final Database database = server.getOrCreateDatabase(db);
 
-      installDatabase(buffer, db, dbStructure, database);
+        installDatabase(buffer, db, dbStructure, database);
+      }
+
+      // START SEPARATE THREAD TO EXECUTE LEADER'S REQUESTS
+      leaderConnection.start();
+    } catch (Exception e) {
+      throw new ServerException("Cannot start HA service", e);
     }
-
-    // START SEPARATE THREAD TO EXECUTE LEADER'S REQUESTS
-    leaderConnection.start();
   }
 
   private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure,

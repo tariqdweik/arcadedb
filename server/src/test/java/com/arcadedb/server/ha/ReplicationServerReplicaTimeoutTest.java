@@ -23,8 +23,8 @@ public class ReplicationServerReplicaTimeoutTest extends ReplicationServerTest {
 
   @AfterEach
   @Override
-  public void drop() {
-    super.drop();
+  public void endTest() {
+    super.endTest();
     GlobalConfiguration.TEST.setValue(false);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(512);
   }

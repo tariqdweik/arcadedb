@@ -14,14 +14,13 @@ import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicatedDatabase;
 import com.arcadedb.server.ha.ReplicatedWALFileFactory;
 import com.arcadedb.server.http.HttpServer;
+import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
@@ -29,18 +28,18 @@ import java.util.logging.Level;
 public class ArcadeDBServer {
   private final ContextConfiguration configuration;
 
-  private final HttpServer httpServer;
-  private       HAServer   haServer;
+  private HAServer       haServer;
+  private ServerSecurity security;
+  private HttpServer     httpServer;
 
   private       ConcurrentMap<String, DatabaseInternal> databases          = new ConcurrentHashMap<>();
   private final String                                  serverName;
-  private       ServerSecurity                          security;
   private       List<TestCallback>                      testEventListeners = new ArrayList<>();
   private final boolean                                 testEnabled        = GlobalConfiguration.TEST.getValueAsBoolean();
+  private final Map<String, ServerPlugin>               plugins            = new HashMap<>();
 
   public ArcadeDBServer(final ContextConfiguration configuration) {
     this.configuration = configuration;
-    this.httpServer = new HttpServer(this);
     this.serverName = configuration.getValueAsString(GlobalConfiguration.SERVER_NAME);
   }
 
@@ -52,7 +51,7 @@ public class ArcadeDBServer {
     return configuration;
   }
 
-  public void start() throws IOException, InterruptedException {
+  public void start() {
     lifecycleEvent(TestCallback.TYPE.SERVER_STARTING, null);
 
     log(this, Level.INFO, "Starting ArcadeDB Server...");
@@ -61,14 +60,44 @@ public class ArcadeDBServer {
 
     if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED)) {
       haServer = new HAServer(this, configuration);
-      haServer.connect();
+      haServer.startService();
     }
 
     security = new ServerSecurity(this, "config");
+    security.startService();
 
-    httpServer.start();
+    httpServer = new HttpServer(this);
+    httpServer.startService();
 
-    log(this, Level.INFO, "ArcadeDB Server started");
+    final String registeredPlugins = GlobalConfiguration.SERVER_PLUGINS.getValueAsString();
+
+    if (registeredPlugins != null && !registeredPlugins.isEmpty()) {
+      final String[] pluginEntries = registeredPlugins.split(",");
+      for (String p : pluginEntries) {
+        try {
+          final String[] pluginPair = p.split(":");
+
+          final String pluginName = pluginPair[0];
+          final String pluginClass = pluginPair.length > 1 ? pluginPair[1] : pluginPair[0];
+
+          final Class<ServerPlugin> c = (Class<ServerPlugin>) Class.forName(pluginClass);
+          final ServerPlugin pluginInstance = c.newInstance();
+          pluginInstance.configure(this, configuration);
+
+          pluginInstance.startService();
+
+          plugins.put(pluginName, pluginInstance);
+
+          log(this, Level.INFO, "- Plugin %s started", pluginName);
+
+        } catch (Exception e) {
+          throw new ServerException("Error on loading plugin from class '" + p + ";", e);
+        }
+      }
+    }
+
+    log(this, Level.INFO, "ArcadeDB Server started (CPUs=%d MAXRAM=%s)", Runtime.getRuntime().availableProcessors(),
+        FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()));
 
     lifecycleEvent(TestCallback.TYPE.SERVER_UP, null);
   }
@@ -99,14 +128,23 @@ public class ArcadeDBServer {
 
     log(this, Level.INFO, "Shutting down ArcadeDB Server...");
 
+    for (Map.Entry<String, ServerPlugin> pEntry : plugins.entrySet()) {
+      log(this, Level.INFO, "- Stop %s plugin", pEntry.getKey());
+      try {
+        pEntry.getValue().stopService();
+      } catch (Exception e) {
+        log(this, Level.SEVERE, "Error on halting %s plugin (error=%s)", pEntry.getKey(), e);
+      }
+    }
+
     if (haServer != null)
-      haServer.close();
+      haServer.stopService();
 
     if (httpServer != null)
-      httpServer.stop();
+      httpServer.stopService();
 
     if (security != null)
-      security.close();
+      security.stopService();
 
     for (Database db : databases.values())
       db.close();

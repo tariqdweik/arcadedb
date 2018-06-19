@@ -42,7 +42,7 @@ public abstract class BaseGraphServerTest {
   private          ArcadeDBServer[] servers;
 
   @BeforeEach
-  public void populate() {
+  public void startTest() {
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
     for (int i = 0; i < getServerCount(); ++i)
@@ -151,7 +151,7 @@ public abstract class BaseGraphServerTest {
   }
 
   @AfterEach
-  public void drop() {
+  public void endTest() {
     LogManager.instance().info(this, "Cleaning test %s...", getClass().getName());
     for (int i = 0; i < servers.length; ++i) {
       if (servers[i] != null)
@@ -189,21 +189,8 @@ public abstract class BaseGraphServerTest {
       config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
 
       servers[i] = new ArcadeDBServer(config);
-
-      final int serverId = i;
-
-      new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            onBeforeStarting(servers[serverId]);
-            servers[serverId].start();
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-          LogManager.instance().info(this, "Test Server-%d is down", serverId);
-        }
-      }).start();
+      onBeforeStarting(servers[i]);
+      servers[i].start();
 
       try {
         Thread.sleep(1000);

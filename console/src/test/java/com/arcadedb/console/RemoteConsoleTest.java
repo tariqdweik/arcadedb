@@ -32,7 +32,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   }
 
   @BeforeEach
-  public void populate() {
+  public void startTest() {
     deleteDatabaseFolders();
     startServers();
 
@@ -47,8 +47,8 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   }
 
   @AfterEach
-  public void drop() {
-    super.drop();
+  public void endTest() {
+    super.endTest();
     console.close();
   }
 

@@ -4,6 +4,7 @@
 
 package com.arcadedb.server;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LRUCache;
@@ -26,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
-public class ServerSecurity {
+public class ServerSecurity implements ServerPlugin {
   public class ServerUser {
     public String      name;
     public String      password;
@@ -53,7 +54,7 @@ public class ServerSecurity {
   public static final  int                               SALT_SIZE  = 32;
   private static       Map<String, String>               SALT_CACHE = null;
 
-  public ServerSecurity(final ArcadeDBServer server, final String configPath) throws IOException {
+  public ServerSecurity(final ArcadeDBServer server, final String configPath) {
     this.server = server;
     this.configPath = configPath;
     this.algorithm = GlobalConfiguration.SERVER_SECURITY_ALGORITHM.getValueAsString();
@@ -70,17 +71,29 @@ public class ServerSecurity {
       server.log(this, Level.SEVERE, "Security algorithm '%s' not available (error=%s)", algorithm, e);
       throw new ServerSecurityException("Security algorithm '" + algorithm + "' not available", e);
     }
-
-    final File f = new File(configPath + "/" + FILE_NAME);
-    if (!f.exists()) {
-      createDefaultSecurity();
-      return;
-    }
-
-    loadConfiguration(f);
   }
 
-  public void close() {
+  @Override
+  public void configure(ArcadeDBServer arcadeDBServer, ContextConfiguration configuration) {
+  }
+
+  @Override
+  public void startService() {
+    try {
+      createDefaultSecurity();
+      final File f = new File(configPath + "/" + FILE_NAME);
+      if (!f.exists()) {
+        return;
+      }
+
+      loadConfiguration(f);
+    } catch (IOException e) {
+      throw new ServerException("Error on starting Security service", e);
+    }
+  }
+
+  @Override
+  public void stopService() {
     users.clear();
   }
 

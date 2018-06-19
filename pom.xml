@@ -129,6 +129,7 @@
         <module>server</module>
         <module>remote</module>
         <module>engine</module>
+        <module>mongodbw</module>
         <module>package</module>
     </modules>
     <dependencies>

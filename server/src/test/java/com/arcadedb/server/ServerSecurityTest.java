@@ -7,13 +7,12 @@ package com.arcadedb.server;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 public class ServerSecurityTest {
 
   @Test
-  public void checkQuery() throws IOException {
+  public void checkQuery() throws Exception {
     final ServerSecurity security = new ServerSecurity(null, "./target");
+    security.startService();
 
     Assertions.assertEquals("PBKDF2WithHmacSHA256$65536$ThisIsTheSalt$wIKUzWYH72cKJRnFZ0PTSevERtwZTNdN+W4/Fd7xBvw=",
         security.encode("ThisIsATest", "ThisIsTheSalt"));
@@ -24,6 +23,7 @@ public class ServerSecurityTest {
       Assertions.assertFalse(security.generateRandomSalt().contains("$"));
     }
 
+    security.stopService();
   }
 
   private void passwordShouldMatch(final ServerSecurity security, String password, String expectedHash) {

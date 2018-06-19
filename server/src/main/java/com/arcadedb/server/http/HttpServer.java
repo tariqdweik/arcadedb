@@ -9,6 +9,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.serializer.JsonSerializer;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerException;
+import com.arcadedb.server.ServerPlugin;
 import com.arcadedb.server.http.handler.*;
 import io.undertow.Undertow;
 import io.undertow.server.RoutingHandler;
@@ -16,7 +17,7 @@ import io.undertow.server.RoutingHandler;
 import java.net.BindException;
 import java.util.logging.Level;
 
-public class HttpServer {
+public class HttpServer implements ServerPlugin {
   private       Undertow       undertow;
   private       JsonSerializer jsonSerializer = new JsonSerializer();
   private final ArcadeDBServer server;
@@ -25,16 +26,18 @@ public class HttpServer {
     this.server = server;
   }
 
-  public void stop() {
+  @Override
+  public void stopService() {
     if (undertow != null)
       undertow.stop();
   }
 
-  public JsonSerializer getJsonSerializer() {
-    return jsonSerializer;
+  @Override
+  public void configure(ArcadeDBServer arcadeDBServer, ContextConfiguration configuration) {
   }
 
-  public void start() {
+  @Override
+  public void startService() {
     final ContextConfiguration configuration = server.getConfiguration();
 
     final String host = configuration.getValueAsString(GlobalConfiguration.SERVER_HTTP_INCOMING_HOST);
@@ -77,5 +80,9 @@ public class HttpServer {
 
   public ArcadeDBServer getServer() {
     return server;
+  }
+
+  public JsonSerializer getJsonSerializer() {
+    return jsonSerializer;
   }
 }

@@ -119,9 +119,12 @@ public enum GlobalConfiguration {
 
   SERVER_DATABASE_DIRECTORY("arcadedb.server.databaseDirectory", "Directory containing the database", String.class, "../databases"),
 
+  SERVER_PLUGINS("arcadedb.server.plugins",
+      "List of server plugins to install. The format to load a plugin is: `<pluginName>:<pluginFullClass>`", String.class, ""),
+
   // SERVER HTTP
   SERVER_HTTP_INCOMING_HOST("arcadedb.server.httpIncomingHost", "TCP/IP host name used for incoming HTTP connections", String.class,
-      "localhost"),
+      "0.0.0.0"),
 
   SERVER_HTTP_INCOMING_PORT("arcadedb.server.httpIncomingPort", "TCP/IP port number used for incoming HTTP connections",
       Integer.class, 2480),
@@ -130,6 +133,7 @@ public enum GlobalConfiguration {
       "True to increment the TCP/IP port number used for incoming HTTP in case the configured is not available", Boolean.class,
       true),
 
+  // SERVER SECURITY
   SERVER_SECURITY_ALGORITHM("arcadedb.server.securityAlgorithm", "Default encryption algorithm used for passwords hashing",
       String.class, "PBKDF2WithHmacSHA256"),
 

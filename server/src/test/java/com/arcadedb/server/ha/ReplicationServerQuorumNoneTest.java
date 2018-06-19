@@ -29,14 +29,14 @@ public class ReplicationServerQuorumNoneTest extends ReplicationServerTest {
 
   @AfterEach
   @Override
-  public void drop() {
+  public void endTest() {
     try {
       Thread.sleep(5000);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
 
-    super.drop();
+    super.endTest();
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
   }
 }

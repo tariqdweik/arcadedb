@@ -132,17 +132,26 @@ public class Console {
 
   private void executeBegin() {
     checkDatabaseIsOpen();
-    database.begin();
+    if (database != null)
+      database.begin();
+    else
+      remoteDatabase.command("begin");
   }
 
   private void executeCommit() {
     checkDatabaseIsOpen();
-    database.commit();
+    if (database != null)
+      database.commit();
+    else
+      remoteDatabase.command("commit");
   }
 
   private void executeRollback() {
     checkDatabaseIsOpen();
-    database.rollback();
+    if (database != null)
+      database.rollback();
+    else
+      remoteDatabase.command("rollback");
   }
 
   private void executeClose() {

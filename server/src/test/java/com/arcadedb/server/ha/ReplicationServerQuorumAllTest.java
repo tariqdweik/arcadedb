@@ -14,8 +14,8 @@ public class ReplicationServerQuorumAllTest extends ReplicationServerTest {
 
   @AfterEach
   @Override
-  public void drop() {
-    super.drop();
+  public void endTest() {
+    super.endTest();
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
   }
 }

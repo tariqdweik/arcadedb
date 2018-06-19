@@ -21,7 +21,6 @@ public class ImmutableDocument extends BaseDocument {
   @Override
   public Object get(final String name) {
     checkForLazyLoading();
-    buffer.position(propertiesStartingPosition);
     final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, name);
     return map.get(name);
   }
@@ -34,11 +33,13 @@ public class ImmutableDocument extends BaseDocument {
 
   @Override
   public JSONObject toJSON() {
+    checkForLazyLoading();
     return new JSONObject(database.getSerializer().deserializeProperties(database, buffer));
   }
 
   @Override
   public Map<String, Object> toMap() {
+    checkForLazyLoading();
     return database.getSerializer().deserializeProperties(database, buffer);
   }
 
@@ -76,9 +77,6 @@ public class ImmutableDocument extends BaseDocument {
   @Override
   public Set<String> getPropertyNames() {
     checkForLazyLoading();
-
-    buffer.position(propertiesStartingPosition); // SKIP RECORD BYTE
-
     return database.getSerializer().getPropertyNames(database, buffer);
   }
 
@@ -88,8 +86,11 @@ public class ImmutableDocument extends BaseDocument {
         throw new RuntimeException("Document cannot be loaded because RID is null");
 
       buffer = database.getSchema().getBucketById(rid.getBucketId()).getRecord(rid);
+      buffer.position(propertiesStartingPosition);
       return true;
     }
+
+    buffer.position(propertiesStartingPosition);
     return false;
   }
 }
