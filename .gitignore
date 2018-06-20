@@ -365,3 +365,4 @@ fabric.properties
 .idea/httpRequests
 
 *.iml
+**/config/security.json
