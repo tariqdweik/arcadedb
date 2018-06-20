@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 # resolve links - $0 may be a softlink
 PRG="$0"
 
@@ -63,4 +62,4 @@ exec "$JAVA" $JAVA_OPTS \
     $JAVA_OPTS_SCRIPT \
     $ARCADEDB_SETTINGS \
     -cp "$ARCADEDB_HOME/lib/*" \
-    $ARGS com.arcadedb.server.ArcadeDBServer
+    $ARGS "$@" com.arcadedb.server.ArcadeDBServer

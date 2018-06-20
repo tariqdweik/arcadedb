@@ -130,6 +130,7 @@
         <module>remote</module>
         <module>engine</module>
         <module>mongodbw</module>
+        <module>redisw</module>
         <module>package</module>
     </modules>
     <dependencies>

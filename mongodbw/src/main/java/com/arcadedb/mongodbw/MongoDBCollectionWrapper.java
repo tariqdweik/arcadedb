@@ -340,6 +340,9 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
       buildValue(sql, value);
     } else if (key.equals("$exists")) {
       sql.append(" IS DEFINED ");
+    } else if (key.equals("$size")) {
+      sql.append(".size() = ");
+      buildValue(sql, value);
     } else if (key.equals("$or")) {
       buildOr(sql, (List) value);
     } else if (key.equals("$and")) {

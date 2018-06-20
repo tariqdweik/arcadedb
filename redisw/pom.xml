@@ -15,7 +15,7 @@
         <relativePath>../</relativePath>
     </parent>
 
-    <artifactId>arcadedb-mongodbw</artifactId>
+    <artifactId>arcadedb-redisw</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -26,15 +26,10 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>de.bwaldvogel</groupId>
-            <artifactId>mongo-java-server</artifactId>
-            <version>1.8.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongo-java-driver</artifactId>
-            <version>3.6.0</version>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.9.0</version>
+            <type>jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>
