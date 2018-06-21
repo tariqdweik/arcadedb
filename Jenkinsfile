@@ -20,7 +20,7 @@ node {
 
         stage('build') {
             try {
-                sh "./mvnw clean install"
+                sh "./mvnw --fail-at-end clean install"
             } catch (err) {
                 throw err
             } finally {
