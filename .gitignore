@@ -366,3 +366,7 @@ fabric.properties
 
 *.iml
 **/config/security.json
+config/security.json
+mongodbw/config/security.json
+remote/config/security.json
+server/config/security.json
