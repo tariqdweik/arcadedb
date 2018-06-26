@@ -23,17 +23,19 @@ import java.util.logging.Level;
  * remote replica does not read messages and the socket remains full causing a block in the sending of messages for all the
  * servers.
  */
-public class LeaderNetworkExecutor extends Thread {
+public class Leader2ReplicaNetworkExecutor extends Thread {
   public static final int PROTOCOL_VERSION = 0;
 
   private final    HAServer                      server;
   public final     PushPullBlockingQueue<Binary> queue    = new PushPullBlockingQueue<>(
       GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
   private final    long                          joinedOn = System.currentTimeMillis();
+  private          long                          leftOn   = 0;
   private          ChannelBinaryServer           channel;
   private volatile boolean                       shutdown = false;
   private final    String                        remoteServerName;
   private          Thread                        queueThread;
+  private          boolean                       online   = false;
 
   // STATS
   private long totalMessages;
@@ -42,7 +44,7 @@ public class LeaderNetworkExecutor extends Thread {
   private long latencyMax;
   private long latencyTotalTime;
 
-  public LeaderNetworkExecutor(final HAServer ha, final Socket socket) throws IOException {
+  public Leader2ReplicaNetworkExecutor(final HAServer ha, final Socket socket) throws IOException {
     setName(Constants.PRODUCT + "-ha-leader2replica/" + socket.getInetAddress());
 
     this.server = ha;
@@ -85,6 +87,10 @@ public class LeaderNetworkExecutor extends Thread {
     }
   }
 
+  public void mergeFrom(final Leader2ReplicaNetworkExecutor previousConnection) {
+    queue.addAll(previousConnection.queue);
+  }
+
   @Override
   public void run() {
     queueThread = new Thread(new Runnable() {
@@ -92,8 +98,24 @@ public class LeaderNetworkExecutor extends Thread {
       public void run() {
         try {
           while (!shutdown || !queue.isEmpty()) {
+            if (!online) {
+              server.getServer()
+                  .log(this, Level.INFO, "Waiting on sending message to replica '%s' because still OFFLINE (buffered=%d)",
+                      remoteServerName, queue.size());
+              try {
+                Thread.sleep(200);
+                continue;
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+              }
+            }
+
             try {
               final Binary msg = queue.take();
+
+              server.getServer()
+                  .log(this, Level.FINE, "Sending message to replica '%s' (buffered=%d)...", remoteServerName, queue.size());
 
               sendMessage(msg);
 
@@ -106,6 +128,11 @@ public class LeaderNetworkExecutor extends Thread {
               // IGNORE IT
             }
           }
+
+          server.getServer()
+              .log(this, Level.FINE, "Replication thread to remote server '%s' is off (buffered=%d)", remoteServerName,
+                  queue.size());
+
         } finally {
           queue.clear();
         }
@@ -156,8 +183,7 @@ public class LeaderNetworkExecutor extends Thread {
 
       } catch (EOFException | SocketException e) {
         server.getServer().log(this, Level.FINE, "Error on reading request from socket", e);
-        close();
-        server.removeServer(remoteServerName);
+        server.setReplicaStatus(remoteServerName, false);
       } catch (IOException e) {
         server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
       }
@@ -167,24 +193,32 @@ public class LeaderNetworkExecutor extends Thread {
   public void close() {
     shutdown = true;
 
-    if (queueThread != null) {
-      try {
-        queueThread.interrupt();
-        queueThread.join();
-        queueThread = null;
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        // IGNORE IT
+    try {
+      if (queueThread != null) {
+        try {
+          queueThread.interrupt();
+          queueThread.join(5000);
+          queueThread = null;
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          // IGNORE IT
+        }
       }
-    }
 
-    if (channel != null)
-      channel.close();
+      if (channel != null)
+        channel.close();
+    } catch (Exception e) {
+      // IGNORE IT
+    }
   }
 
   public void enqueueMessage(final Binary buffer) {
     if (shutdown)
       throw new ReplicationException("Error on replicating message because server is in shutdown mode");
+
+    if (queue.size() > 1)
+      server.getServer().log(this, Level.FINE, "Buffering request to server '%s' (status=%s buffered=%d)", remoteServerName,
+          online ? "ONLINE" : "OFFLINE", queue.size());
 
     if (!queue.offer(buffer)) {
       // BACK-PRESSURE
@@ -208,7 +242,7 @@ public class LeaderNetworkExecutor extends Thread {
         if (!queue.offer(buffer)) {
           // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
           queue.clear();
-          close();
+          server.setReplicaStatus(remoteServerName, false);
           throw new ReplicationException("Error on replicating to server '" + remoteServerName + "'");
         }
       }
@@ -216,18 +250,29 @@ public class LeaderNetworkExecutor extends Thread {
     totalBytes += buffer.size();
   }
 
+  public void setStatus(final boolean online) {
+    if (this.online == online)
+      // NO STATUS CHANGE
+      return;
+
+    this.online = online;
+    this.server.getServer().log(this, Level.INFO, "Replica server '%s' is %s", remoteServerName, online ? "ONLINE" : "OFFLINE");
+    this.leftOn = online ? 0 : System.currentTimeMillis();
+
+    if (!online)
+      close();
+  }
+
   public String getRemoteServerName() {
     return remoteServerName;
   }
 
-  public HACommand receiveResponse() throws IOException {
-    final byte[] requestBytes = channel.readBytes();
-    final byte requestId = requestBytes[0];
-    return server.getMessageFactory().getCommand(requestId);
-  }
-
   public long getJoinedOn() {
     return joinedOn;
+  }
+
+  public long getLeftOn() {
+    return leftOn;
   }
 
   public void updateStats(final long sentOn, final long receivedOn) {
@@ -240,6 +285,10 @@ public class LeaderNetworkExecutor extends Thread {
       latencyMin = delta;
     if (delta > latencyMax)
       latencyMax = delta;
+  }
+
+  public boolean isOnline() {
+    return online;
   }
 
   public String getLatencyStats() {

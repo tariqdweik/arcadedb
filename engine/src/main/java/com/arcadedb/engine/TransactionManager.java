@@ -229,9 +229,8 @@ public class TransactionManager {
           continue;
 
         if (txPage.currentPageVersion > page.getVersion() + 1)
-          throw new WALException(
-              "Cannot apply changes to the database because version (" + txPage.currentPageVersion + ") does not match (" + page
-                  .getVersion() + ")");
+          throw new WALException("Cannot apply changes to the database because modified page version (" + txPage.currentPageVersion
+              + ") does not match with existent version (" + page.getVersion() + ")");
 
         if (txPage.currentPageVersion != page.getVersion()) {
           final ModifiablePage modifiedPage = page.modify();

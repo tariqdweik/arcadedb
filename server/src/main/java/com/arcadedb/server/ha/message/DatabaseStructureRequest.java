@@ -28,7 +28,7 @@ public class DatabaseStructureRequest implements HACommand {
   }
 
   @Override
-  public HACommand execute(final HAServer server, String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName) {
     final Database db = server.getServer().getDatabase(databaseName);
 
     final File file = new File(db.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);

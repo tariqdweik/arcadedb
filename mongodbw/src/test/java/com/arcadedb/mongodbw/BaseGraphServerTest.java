@@ -119,7 +119,7 @@ public abstract class BaseGraphServerTest {
   @AfterEach
   public void endTest() {
     LogManager.instance().info(this, "Cleaning test %s...", getClass().getName());
-    for (int i = 0; i < servers.length; ++i) {
+    for (int i = servers.length - 1; i > -1; --i) {
       if (servers[i] != null)
         servers[i].stop();
 

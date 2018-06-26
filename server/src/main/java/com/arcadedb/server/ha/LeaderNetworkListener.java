@@ -54,7 +54,7 @@ public class LeaderNetworkListener extends Thread {
             socket.setReceiveBufferSize(socketBufferSize);
           }
           // CREATE A NEW PROTOCOL INSTANCE
-          final LeaderNetworkExecutor connection = new LeaderNetworkExecutor(ha, socket);
+          final Leader2ReplicaNetworkExecutor connection = new Leader2ReplicaNetworkExecutor(ha, socket);
 
           ha.registerIncomingConnection(connection.getRemoteServerName(), connection);
 

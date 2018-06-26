@@ -24,6 +24,7 @@ public class HAMessageFactory {
     registerCommand(FileContentResponse.class);
     registerCommand(TxRequest.class);
     registerCommand(TxResponse.class);
+    registerCommand(ReplicaReadyRequest.class);
   }
 
   public HACommand getCommand(final byte type) {

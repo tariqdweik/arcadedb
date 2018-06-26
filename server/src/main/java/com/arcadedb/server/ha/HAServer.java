@@ -7,31 +7,24 @@ package com.arcadedb.server.ha;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
-import com.arcadedb.engine.ModifiablePage;
-import com.arcadedb.engine.PageId;
-import com.arcadedb.engine.PageManager;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConfigurationException;
-import com.arcadedb.network.binary.ChannelBinaryClient;
-import com.arcadedb.network.binary.ConnectionException;
-import com.arcadedb.network.binary.NetworkProtocolException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
-import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.server.ArcadeDBServer;
-import com.arcadedb.server.ServerException;
 import com.arcadedb.server.ServerPlugin;
-import com.arcadedb.server.ha.message.*;
+import com.arcadedb.server.TestCallback;
+import com.arcadedb.server.ha.message.HACommand;
+import com.arcadedb.server.ha.message.HAMessageFactory;
+import com.arcadedb.server.ha.message.TxRequest;
 import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
 import com.arcadedb.sql.executor.ResultInternal;
-import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.RecordTableFormatter;
 import com.arcadedb.utility.TableFormatter;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -42,15 +35,15 @@ public class HAServer implements ServerPlugin {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }
 
-  private final HAMessageFactory                   messageFactory           = new HAMessageFactory();
-  private final ArcadeDBServer                     server;
-  private final ContextConfiguration               configuration;
-  private final String                             clusterName;
-  private final long                               startedOn;
-  private final Map<String, LeaderNetworkExecutor> replicaConnections       = new ConcurrentHashMap<>();
-  private       ReplicaNetworkExecutor             leaderConnection;
-  private       LeaderNetworkListener              listener;
-  private       Map<Long, QuorumMessages>          messagesWaitingForQuorum = new ConcurrentHashMap<>(1024);
+  private final HAMessageFactory                           messageFactory           = new HAMessageFactory();
+  private final ArcadeDBServer                             server;
+  private final ContextConfiguration                       configuration;
+  private final String                                     clusterName;
+  private final long                                       startedOn;
+  private final Map<String, Leader2ReplicaNetworkExecutor> replicaConnections       = new ConcurrentHashMap<>();
+  private       Replica2LeaderNetworkExecutor              leaderConnection;
+  private       LeaderNetworkListener                      listener;
+  private       Map<Long, QuorumMessages>                  messagesWaitingForQuorum = new ConcurrentHashMap<>(1024);
 
   private class QuorumMessages {
     public final long           sentOn = System.currentTimeMillis();
@@ -58,6 +51,18 @@ public class HAServer implements ServerPlugin {
 
     public QuorumMessages(final CountDownLatch quorumSemaphore) {
       this.semaphore = quorumSemaphore;
+    }
+  }
+
+  private class RemovedServerInfo {
+    String serverName;
+    long   joinedOn;
+    long   leftOn;
+
+    public RemovedServerInfo(final String remoteServerName, final long joinedOn) {
+      this.serverName = remoteServerName;
+      this.joinedOn = joinedOn;
+      this.leftOn = System.currentTimeMillis();
     }
   }
 
@@ -84,19 +89,14 @@ public class HAServer implements ServerPlugin {
     if (!serverList.isEmpty()) {
       final String[] serverEntries = serverList.split(",");
       for (String serverEntry : serverEntries) {
-        if (!localURL.equals(serverEntry) && connectTo(serverEntry)) {
+        if (!localURL.equals(serverEntry) && connectToLeader(serverEntry)) {
           break;
         }
       }
     }
 
-    if (leaderConnection != null) {
-      server.log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s)", clusterName,
-          leaderConnection.getURL());
-      initReplica();
-    } else {
+    if (leaderConnection == null)
       server.log(this, Level.INFO, "Server started as Leader in HA mode (cluster=%s)", clusterName);
-    }
   }
 
   @Override
@@ -108,10 +108,25 @@ public class HAServer implements ServerPlugin {
       leaderConnection.close();
 
     if (!replicaConnections.isEmpty()) {
-      for (LeaderNetworkExecutor r : replicaConnections.values()) {
+      for (Leader2ReplicaNetworkExecutor r : replicaConnections.values()) {
         r.close();
       }
+      replicaConnections.clear();
     }
+  }
+
+  public void setReplicaStatus(final String remoteServerName, final boolean online) {
+    final Leader2ReplicaNetworkExecutor c = replicaConnections.get(remoteServerName);
+    if (c == null) {
+      server.log(this, Level.SEVERE, "Replica '%s' was not registered", remoteServerName);
+      return;
+    }
+
+    c.setStatus(online);
+
+    server.lifecycleEvent(online ? TestCallback.TYPE.REPLICA_ONLINE : TestCallback.TYPE.REPLICA_OFFLINE, remoteServerName);
+
+    printClusterConfiguration();
   }
 
   public void receivedResponseForQuorum(final String remoteServerName, final long messageNumber) {
@@ -125,7 +140,7 @@ public class HAServer implements ServerPlugin {
     msg.semaphore.countDown();
 
     // UPDATE LATENCY
-    final LeaderNetworkExecutor c = replicaConnections.get(remoteServerName);
+    final Leader2ReplicaNetworkExecutor c = replicaConnections.get(remoteServerName);
     if (c != null)
       c.updateStats(msg.sentOn, receivedOn);
   }
@@ -146,8 +161,12 @@ public class HAServer implements ServerPlugin {
     return clusterName;
   }
 
-  public void registerIncomingConnection(final String replicaServerName, final LeaderNetworkExecutor connection) {
-    replicaConnections.put(replicaServerName, connection);
+  public void registerIncomingConnection(final String replicaServerName, final Leader2ReplicaNetworkExecutor connection) {
+    final Leader2ReplicaNetworkExecutor previousConnection = replicaConnections.put(replicaServerName, connection);
+    if (previousConnection != null) {
+      // MERGE CONNECTIONS
+      connection.mergeFrom(previousConnection);
+    }
     printClusterConfiguration();
   }
 
@@ -164,23 +183,28 @@ public class HAServer implements ServerPlugin {
     buffer.flip();
 
     // SEND THE REQUEST TO ALL THE REPLICAS
-    final List<LeaderNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
-    for (LeaderNetworkExecutor replicaConnection : replicas) {
+    final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
+    for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
       // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
       try {
         replicaConnection.enqueueMessage(buffer.slice(0));
       } catch (ReplicationException e) {
         // REMOVE THE REPLICA
-        server.log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster",
+        server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE",
             replicaConnection.getRemoteServerName());
 
-        removeServer(replicaConnection.getRemoteServerName());
+        setReplicaStatus(replicaConnection.getRemoteServerName(), false);
       }
     }
   }
 
   public int getOnlineReplicas() {
-    return replicaConnections.size();
+    int total = 0;
+    for (Leader2ReplicaNetworkExecutor c : replicaConnections.values()) {
+      if (c.isOnline())
+        total++;
+    }
+    return total;
   }
 
   public void sendCommandToReplicasWithQuorum(final TxRequest tx, final int quorum, final long timeout) {
@@ -203,19 +227,19 @@ public class HAServer implements ServerPlugin {
       }
 
       // SEND THE REQUEST TO ALL THE REPLICAS
-      final List<LeaderNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
-      for (LeaderNetworkExecutor replicaConnection : replicas) {
+      final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
+      for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
         try {
           replicaConnection.enqueueMessage(buffer.slice(0));
         } catch (ReplicationException e) {
-          server.log(this, Level.SEVERE, "Replica '%s' does not respond, removing it from the cluster",
+          server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting as OFFLINE",
               replicaConnection.getRemoteServerName());
 
           // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
           if (quorumSemaphore != null)
             quorumSemaphore.countDown();
 
-          removeServer(replicaConnection.getRemoteServerName());
+          setReplicaStatus(replicaConnection.getRemoteServerName(), false);
         }
       }
 
@@ -238,8 +262,9 @@ public class HAServer implements ServerPlugin {
   }
 
   public void removeServer(final String remoteServerName) {
-    final LeaderNetworkExecutor c = replicaConnections.remove(remoteServerName);
+    final Leader2ReplicaNetworkExecutor c = replicaConnections.remove(remoteServerName);
     if (c != null) {
+      final RemovedServerInfo removedServer = new RemovedServerInfo(remoteServerName, c.getJoinedOn());
       server.log(this, Level.SEVERE, "Replica '%s' seems not active, removing it from the cluster", remoteServerName);
       c.close();
     }
@@ -265,17 +290,21 @@ public class HAServer implements ServerPlugin {
     line.setProperty("ROLE", "Leader");
     line.setProperty("STATUS", "UP");
     line.setProperty("JOINED ON", new Date(startedOn));
+    line.setProperty("LEFT ON", "");
     line.setProperty("THROUGHPUT", "");
     line.setProperty("LATENCY", "");
 
-    for (LeaderNetworkExecutor c : replicaConnections.values()) {
+    for (Leader2ReplicaNetworkExecutor c : replicaConnections.values()) {
       line = new ResultInternal();
       list.add(new RecordTableFormatter.PTableRecordRow(line));
 
+      final boolean online = c.isOnline();
+
       line.setProperty("SERVER", c.getRemoteServerName());
       line.setProperty("ROLE", "Replica");
-      line.setProperty("STATUS", "UP");
+      line.setProperty("STATUS", online ? "ONLINE" : "OFFLINE");
       line.setProperty("JOINED ON", new Date(c.getJoinedOn()));
+      line.setProperty("LEFT ON", online ? "" : new Date(c.getLeftOn()));
       line.setProperty("THROUGHPUT", c.getThroughputStats());
       line.setProperty("LATENCY", c.getLatencyStats());
     }
@@ -285,14 +314,14 @@ public class HAServer implements ServerPlugin {
     server.log(this, Level.INFO, buffer.toString() + "\n");
   }
 
-  private boolean connectTo(final String serverEntry) {
+  private boolean connectToLeader(final String serverEntry) {
     final String[] serverParts = serverEntry.split(":");
     if (serverParts.length != 2)
       throw new ConfigurationException(
           "Found invalid server/port entry in " + GlobalConfiguration.HA_SERVER_LIST.getKey() + " setting: " + serverEntry);
 
     try {
-      connectTo(serverParts[0], Integer.parseInt(serverParts[1]));
+      connectToLeader(serverParts[0], Integer.parseInt(serverParts[1]));
 
       // OK, CONNECTED
       return true;
@@ -303,8 +332,8 @@ public class HAServer implements ServerPlugin {
           Integer.parseInt(serverParts[1]), e.getLeaderURL());
 
     } catch (Exception e) {
-      server.log(this, Level.INFO, "Error on connecting to the remote server %s:%d", serverParts[0],
-          Integer.parseInt(serverParts[1]));
+      server.log(this, Level.INFO, "Error on connecting to the remote server %s:%d (error=%s)", serverParts[0],
+          Integer.parseInt(serverParts[1]), e);
     }
     return false;
   }
@@ -312,135 +341,10 @@ public class HAServer implements ServerPlugin {
   /**
    * Connects to a remote server. The connection succeed only if the remote server is the leader.
    */
-  private void connectTo(final String host, final int port) throws IOException {
-    server.log(this, Level.INFO, "Connecting to server %s:%d...", host, port);
+  private void connectToLeader(final String host, final int port) throws IOException {
+    leaderConnection = new Replica2LeaderNetworkExecutor(this, host, port, configuration);
 
-    final ChannelBinaryClient client = new ChannelBinaryClient(host, port, configuration);
-
-    // SEND SERVER INFO
-    client.writeShort((short) LeaderNetworkExecutor.PROTOCOL_VERSION);
-    client.writeString(configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME));
-    client.writeString(configuration.getValueAsString(GlobalConfiguration.SERVER_NAME));
-    client.flush();
-
-    // READ RESPONSE
-    final boolean connectionAccepted = client.readBoolean();
-    if (!connectionAccepted) {
-      final String reason = client.readString();
-      client.close();
-      throw new ConnectionException(host + ":" + port, reason);
-    }
-
-    server.log(this, Level.INFO, "Server connected to the server leader %s:%d", host, port);
-
-    leaderConnection = new ReplicaNetworkExecutor(this, client);
-  }
-
-  private void initReplica() {
-    final Binary buffer = new Binary(1024);
-
-    try {
-      leaderConnection.sendCommandToLeader(buffer, new DatabaseListRequest());
-      final DatabaseListResponse databaseList = (DatabaseListResponse) receiveCommandFromLeader(buffer);
-
-      final Set<String> databases = databaseList.getDatabases();
-      for (String db : databases) {
-        leaderConnection.sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
-        final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
-
-        final Database database = server.getOrCreateDatabase(db);
-
-        installDatabase(buffer, db, dbStructure, database);
-      }
-
-      // START SEPARATE THREAD TO EXECUTE LEADER'S REQUESTS
-      leaderConnection.start();
-    } catch (Exception e) {
-      throw new ServerException("Cannot start HA service", e);
-    }
-  }
-
-  private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure,
-      final Database database) throws IOException {
-
-    // WRITE THE SCHEMA
-    final FileWriter schemaFile = new FileWriter(database.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
-    try {
-      schemaFile.write(dbStructure.getSchemaJson());
-    } finally {
-      schemaFile.close();
-    }
-
-    // WRITE ALL THE FILES
-    for (Map.Entry<Integer, String> f : dbStructure.getFileNames().entrySet()) {
-      installFile(buffer, db, database, f.getKey(), f.getValue());
-    }
-
-    // RELOAD THE SCHEMA
-    ((SchemaImpl) database.getSchema()).close();
-    ((SchemaImpl) database.getSchema()).load(PaginatedFile.MODE.READ_ONLY);
-  }
-
-  private void installFile(final Binary buffer, final String db, final Database database, final int fileId, final String fileName)
-      throws IOException {
-    final PageManager pageManager = database.getPageManager();
-
-    final PaginatedFile file = database.getFileManager().getOrCreateFile(fileId, database.getDatabasePath() + "/" + fileName);
-
-    final int pageSize = file.getPageSize();
-
-    int from = 0;
-
-    server.log(this, Level.FINE, "Installing file '%s'...", fileName);
-
-    int pages = 0;
-    long fileSize = 0;
-
-    while (true) {
-      leaderConnection.sendCommandToLeader(buffer, new FileContentRequest(db, fileId, from));
-      final FileContentResponse fileChunk = (FileContentResponse) receiveCommandFromLeader(buffer);
-
-      if (fileChunk.getPages() == 0)
-        break;
-
-      for (int i = 0; i < fileChunk.getPages(); ++i) {
-        final ModifiablePage page = new ModifiablePage(pageManager, new PageId(file.getFileId(), from + i), pageSize);
-        System.arraycopy(fileChunk.getPagesContent().getContent(), i * pageSize, page.getTrackable().getContent(), 0, pageSize);
-        page.loadMetadata();
-        pageManager.overridePage(page);
-
-        ++pages;
-        fileSize += pageSize;
-      }
-
-      if (fileChunk.isLast())
-        break;
-
-      from += fileChunk.getPages();
-    }
-
-    server.log(this, Level.FINE, "File '%s' installed (pages=%d size=%s)", fileName, pages, FileUtils.getSizeAsString(fileSize));
-  }
-
-  private HACommand receiveCommandFromLeader(final Binary buffer) throws IOException {
-    final byte[] response = leaderConnection.receiveResponse();
-    final HACommand message = messageFactory.getCommand(response[0]);
-
-    if (message == null) {
-      LogManager.instance().info(this, "Error on reading response, message %d not valid", response[0]);
-      throw new NetworkProtocolException("Error on reading response, message " + response[0] + " not valid");
-    }
-
-    buffer.reset();
-    buffer.putByteArray(response);
-
-    buffer.flip();
-
-    // SKIP COMMAND ID
-    buffer.getByte();
-
-    message.fromStream(buffer);
-
-    return message;
+    // START SEPARATE THREAD TO EXECUTE LEADER'S REQUESTS
+    leaderConnection.start();
   }
 }

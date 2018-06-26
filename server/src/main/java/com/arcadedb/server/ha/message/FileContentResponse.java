@@ -40,7 +40,7 @@ public class FileContentResponse implements HACommand {
   @Override
   public void toStream(final Binary stream) {
     stream.putNumber(pages);
-    stream.putBytes(pagesContent.getContent());
+    stream.putBytes(pagesContent.getContent(), pagesContent.size());
     stream.putByte((byte) (last ? 1 : 0));
   }
 
@@ -48,7 +48,6 @@ public class FileContentResponse implements HACommand {
   public void fromStream(final Binary stream) {
     pages = (int) stream.getNumber();
     pagesContent = new Binary(stream.getBytes());
-    pagesContent.flip();
     last = stream.getByte() == 1;
   }
 

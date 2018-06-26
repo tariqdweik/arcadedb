@@ -40,7 +40,7 @@ public class FileContentRequest implements HACommand {
 
       for (int i = from; i < totalPages && pages < 10; ++i) {
         final PageId pageId = new PageId(fileId, i);
-        final BasePage page = db.getPageManager().getPage(pageId, pageSize, false);
+        final BasePage page = db.getPageManager().getPage(pageId, pageSize, false).createImmutableView();
         pagesContent.putByteArray(page.getContent().array(), pageSize);
 
         ++pages;
@@ -50,7 +50,7 @@ public class FileContentRequest implements HACommand {
 
       pagesContent.flip();
 
-      return new FileContentResponse(pagesContent, totalPages, last);
+      return new FileContentResponse(pagesContent, pages, last);
 
     } catch (IOException e) {
       throw new NetworkProtocolException("Cannot load pages");
