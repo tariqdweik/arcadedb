@@ -9,7 +9,7 @@ import com.arcadedb.server.ha.HAServer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DatabaseStructureResponse implements HACommand {
+public class DatabaseStructureResponse extends HAAbstractCommand {
   private String               schemaJson;
   private Map<Integer, String> fileNames;
 
@@ -59,7 +59,7 @@ public class DatabaseStructureResponse implements HACommand {
   }
 
   @Override
-  public HACommand execute(final HAServer server, String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
     return null;
   }
 

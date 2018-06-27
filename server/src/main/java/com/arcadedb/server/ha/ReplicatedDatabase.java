@@ -24,13 +24,11 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class ReplicatedDatabase implements DatabaseInternal {
   private final ArcadeDBServer   server;
   private final EmbeddedDatabase proxied;
-  private       AtomicLong       messageNumber = new AtomicLong();
   private       HAServer.QUORUM  quorum;
   private final long             timeout;
 
@@ -212,9 +210,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
             throw new IllegalArgumentException("Quorum " + quorum + " not managed");
           }
 
-          server.getHA()
-              .sendCommandToReplicasWithQuorum(new TxRequest(messageNumber.getAndIncrement(), getName(), changes, reqQuorum > 1),
-                  reqQuorum, timeout);
+          server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), changes, reqQuorum > 1), reqQuorum, timeout);
         }
 
         return null;

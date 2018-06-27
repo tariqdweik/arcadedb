@@ -3,19 +3,26 @@
  */
 package com.arcadedb.server.ha.message;
 
+import com.arcadedb.database.Binary;
 import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.utility.LogManager;
+import com.arcadedb.utility.Pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class HAMessageFactory {
+  private final ArcadeDBServer                        server;
   private final List<Class<? extends HACommand>>      commands   = new ArrayList<>();
   private final Map<Class<? extends HACommand>, Byte> commandMap = new HashMap<>();
 
-  public HAMessageFactory() {
+  public HAMessageFactory(final ArcadeDBServer server) {
+    this.server = server;
+
     registerCommand(ReplicaConnectRequest.class);
     registerCommand(ReplicaConnectFullResyncResponse.class);
     registerCommand(ReplicaConnectHotResyncResponse.class);
@@ -28,7 +35,40 @@ public class HAMessageFactory {
     registerCommand(ReplicaReadyRequest.class);
   }
 
-  public HACommand getCommand(final byte type) {
+  public Pair<Long, HACommand> parseCommand(final Binary buffer, final byte[] requestBytes) {
+    buffer.reset();
+    buffer.putByteArray(requestBytes);
+    buffer.flip();
+
+    final byte commandId = buffer.getByte();
+
+    final HACommand request = createCommandInstance(commandId);
+
+    if (request != null) {
+      final long messageNumber = buffer.getLong();
+      request.fromStream(buffer);
+      return new Pair<Long, HACommand>(messageNumber, request);
+    }
+
+    server.log(this, Level.SEVERE, "Error on reading request, command %d not valid", commandId);
+
+    return null;
+  }
+
+  public void fillCommand(final HACommand command, final Binary buffer, final long messageNumber) {
+    buffer.reset();
+    buffer.putByte(getCommandId(command));
+    buffer.putLong(messageNumber);
+    command.toStream(buffer);
+    buffer.flip();
+  }
+
+  private void registerCommand(final Class<? extends HACommand> commandClass) {
+    commands.add(commandClass);
+    commandMap.put(commandClass, (byte) (commands.size() - 1));
+  }
+
+  private HACommand createCommandInstance(final byte type) {
     if (type > commands.size())
       throw new IllegalArgumentException("Command with id " + type + " was not found");
 
@@ -40,16 +80,11 @@ public class HAMessageFactory {
     }
   }
 
-  public byte getCommandId(final HACommand command) {
-    Byte commandId = commandMap.get(command.getClass());
+  private byte getCommandId(final HACommand command) {
+    final Byte commandId = commandMap.get(command.getClass());
     if (commandId == null)
       throw new IllegalArgumentException("Command of class " + command.getClass() + " was not found");
 
     return commandId;
-  }
-
-  private void registerCommand(final Class<? extends HACommand> commandClass) {
-    commands.add(commandClass);
-    commandMap.put(commandClass, (byte) (commands.size() - 1));
   }
 }

@@ -3,25 +3,16 @@
  */
 package com.arcadedb.server.ha.message;
 
-import com.arcadedb.database.Binary;
 import com.arcadedb.server.ha.HAServer;
 
-public class ReplicaConnectHotResyncResponse implements HACommand {
+public class ReplicaConnectHotResyncResponse extends HAAbstractCommand {
 
   public ReplicaConnectHotResyncResponse() {
   }
 
   @Override
-  public HACommand execute(HAServer server, String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
     return null;
-  }
-
-  @Override
-  public void toStream(final Binary stream) {
-  }
-
-  @Override
-  public void fromStream(final Binary stream) {
   }
 
   @Override

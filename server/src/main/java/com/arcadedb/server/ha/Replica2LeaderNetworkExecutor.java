@@ -20,7 +20,7 @@ import com.arcadedb.server.ServerException;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.utility.Pair;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -59,34 +59,24 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       try {
         final byte[] requestBytes = channel.readBytes();
 
-        final byte requestId = requestBytes[0];
-
-        final HACommand request = server.getMessageFactory().getCommand(requestId);
+        final Pair<Long, HACommand> request = server.getMessageFactory().parseCommand(buffer, requestBytes);
 
         if (request == null) {
-          server.getServer().log(this, Level.INFO, "Error on reading request, command %d not valid", requestId);
           channel.clearInput();
           continue;
         }
 
-        buffer.reset();
-        buffer.putByteArray(requestBytes);
-        buffer.flip();
-
-        // SKIP COMMAND ID
-        buffer.getByte();
-
-        request.fromStream(buffer);
+        final long messageNumber = request.getFirst();
 
         server.getServer().log(this, Level.FINE, "Received request from the leader '%s'", request);
 
-        final HACommand response = request.execute(server, null);
+        final HACommand response = request.getSecond().execute(server, null, messageNumber);
 
         if (testOn)
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_MSG_RECEIVED, request);
 
         if (response != null)
-          sendCommandToLeader(buffer, response);
+          sendCommandToLeader(buffer, response, messageNumber);
 
       } catch (SocketTimeoutException e) {
         // IGNORE IT
@@ -122,15 +112,10 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     }
   }
 
-  public void sendCommandToLeader(final Binary buffer, final HACommand response) throws IOException {
+  public void sendCommandToLeader(final Binary buffer, final HACommand response, final long messageNumber) throws IOException {
     server.getServer().log(this, Level.FINE, "Sending response back to the leader '%s'...", response);
 
-    buffer.reset();
-
-    buffer.putByte(server.getMessageFactory().getCommandId(response));
-    response.toStream(buffer);
-
-    buffer.flip();
+    server.getMessageFactory().fillCommand(response, buffer, messageNumber);
 
     channel.writeBytes(buffer.getContent(), buffer.size());
     channel.flush();
@@ -185,7 +170,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     final Binary buffer = new Binary(1024);
 
     try {
-      sendCommandToLeader(buffer, new ReplicaConnectRequest());
+      sendCommandToLeader(buffer, new ReplicaConnectRequest(), -1);
       final HACommand response = receiveCommandFromLeader(buffer);
 
       if (response instanceof ReplicaConnectFullResyncResponse) {
@@ -198,7 +183,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         final Set<String> databases = databaseList.getDatabases();
         for (String db : databases) {
-          sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
+          sendCommandToLeader(buffer, new DatabaseStructureRequest(db), -1);
           final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
 
           final Database database = server.getServer().getOrCreateDatabase(db);
@@ -212,7 +197,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_HOT_RESYNC, null);
       }
 
-      sendCommandToLeader(buffer, new ReplicaReadyRequest());
+      sendCommandToLeader(buffer, new ReplicaReadyRequest(), -1);
 
     } catch (Exception e) {
       throw new ServerException("Cannot start HA service", e);
@@ -256,7 +241,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     long fileSize = 0;
 
     while (true) {
-      sendCommandToLeader(buffer, new FileContentRequest(db, fileId, from));
+      sendCommandToLeader(buffer, new FileContentRequest(db, fileId, from), -1);
       final FileContentResponse fileChunk = (FileContentResponse) receiveCommandFromLeader(buffer);
 
       if (fileChunk.getPages() == 0)
@@ -292,23 +277,11 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
   private HACommand receiveCommandFromLeader(final Binary buffer) throws IOException {
     final byte[] response = receiveResponse();
-    final HACommand message = server.getMessageFactory().getCommand(response[0]);
 
-    if (message == null) {
-      LogManager.instance().info(this, "Error on reading response, message %d not valid", response[0]);
+    final Pair<Long, HACommand> command = server.getMessageFactory().parseCommand(buffer, response);
+    if (command == null)
       throw new NetworkProtocolException("Error on reading response, message " + response[0] + " not valid");
-    }
 
-    buffer.reset();
-    buffer.putByteArray(response);
-
-    buffer.flip();
-
-    // SKIP COMMAND ID
-    buffer.getByte();
-
-    message.fromStream(buffer);
-
-    return message;
+    return command.getSecond();
   }
 }

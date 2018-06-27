@@ -365,8 +365,7 @@ fabric.properties
 .idea/httpRequests
 
 *.iml
-**/config/security.json
-config/security.json
-mongodbw/config/security.json
-remote/config/security.json
-server/config/security.json
+**/security.json
+security.json
+*.rlog
+

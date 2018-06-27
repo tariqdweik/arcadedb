@@ -11,6 +11,7 @@ import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ha.message.HACommand;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.FileUtils;
+import com.arcadedb.utility.Pair;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.io.EOFException;
@@ -164,34 +165,19 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       try {
         final byte[] requestBytes = channel.readBytes();
 
-        final byte requestId = requestBytes[0];
-
-        final HACommand request = server.getMessageFactory().getCommand(requestId);
+        final Pair<Long, HACommand> request = server.getMessageFactory().parseCommand(buffer, requestBytes);
 
         if (request == null) {
-          server.getServer().log(this, Level.INFO, "Error on reading request, command %d not valid", requestId);
           channel.clearInput();
           continue;
         }
 
-        buffer.reset();
-        buffer.putByteArray(requestBytes);
-        buffer.flip();
+        final long messageNumber = request.getFirst();
 
-        // SKIP COMMAND ID
-        buffer.getByte();
-
-        request.fromStream(buffer);
-
-        final HACommand response = request.execute(server, remoteServerName);
+        final HACommand response = request.getSecond().execute(server, remoteServerName, messageNumber);
         if (response != null) {
           // SEND THE RESPONSE BACK (USING THE SAME BUFFER)
-          buffer.reset();
-
-          buffer.putByte(server.getMessageFactory().getCommandId(response));
-          response.toStream(buffer);
-
-          buffer.flip();
+          server.getMessageFactory().fillCommand(response, buffer, messageNumber);
 
           server.getServer().log(this, Level.FINE, "Request %s -> %s", request, response);
 
