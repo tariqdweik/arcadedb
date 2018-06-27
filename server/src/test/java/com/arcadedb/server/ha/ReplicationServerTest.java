@@ -99,6 +99,11 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     for (int s : getServerToCheck()) {
       checkEntriesOnServer(s);
     }
+
+    onAfterTest();
+  }
+
+  protected void onAfterTest() {
   }
 
   protected boolean isPrintingConfigurationAtEveryStep() {

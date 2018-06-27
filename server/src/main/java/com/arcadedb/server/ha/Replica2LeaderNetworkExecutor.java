@@ -22,10 +22,8 @@ import com.arcadedb.server.ha.message.*;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 
-import java.io.EOFException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Set;
@@ -90,28 +88,36 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         if (response != null)
           sendCommandToLeader(buffer, response);
 
-      } catch (EOFException | SocketException e) {
-        server.getServer().log(this, Level.SEVERE, "Leader server is unreachable, reconnecting... (error=%s)", e.toString());
-
-        while (!shutdown) {
-          try {
-            connect();
-            break;
-          } catch (IOException e1) {
-            server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the leader", e);
-            try {
-              Thread.sleep(1000);
-            } catch (InterruptedException e2) {
-              Thread.currentThread().interrupt();
-              break;
-            }
-          }
-        }
-
       } catch (SocketTimeoutException e) {
         // IGNORE IT
-      } catch (IOException e) {
-        server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
+      } catch (Exception e) {
+        reconnect(e);
+      }
+    }
+  }
+
+  private void reconnect(final Exception e) {
+    if (!shutdown) {
+      if (channel != null)
+        channel.close();
+
+      server.getServer()
+          .log(this, Level.SEVERE, "Error on communication between current replica and the leader, reconnecting... (error=%s)",
+              e.toString());
+
+      while (!shutdown) {
+        try {
+          connect();
+          break;
+        } catch (IOException e1) {
+          server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the leader (error=%s)", e1);
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e2) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+        }
       }
     }
   }
@@ -171,6 +177,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     server.getServer()
         .log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s:%d)", clusterName, host, port);
+
     installDatabases();
   }
 
@@ -178,17 +185,31 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     final Binary buffer = new Binary(1024);
 
     try {
-      sendCommandToLeader(buffer, new DatabaseListRequest());
-      final DatabaseListResponse databaseList = (DatabaseListResponse) receiveCommandFromLeader(buffer);
+      sendCommandToLeader(buffer, new ReplicaConnectRequest());
+      final HACommand response = receiveCommandFromLeader(buffer);
 
-      final Set<String> databases = databaseList.getDatabases();
-      for (String db : databases) {
-        sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
-        final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
+      if (response instanceof ReplicaConnectFullResyncResponse) {
+        server.getServer().log(this, Level.INFO, "Asking for a full resync...");
 
-        final Database database = server.getServer().getOrCreateDatabase(db);
+        if (testOn)
+          server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_FULL_RESYNC, null);
 
-        installDatabase(buffer, db, dbStructure, database);
+        final ReplicaConnectFullResyncResponse databaseList = (ReplicaConnectFullResyncResponse) response;
+
+        final Set<String> databases = databaseList.getDatabases();
+        for (String db : databases) {
+          sendCommandToLeader(buffer, new DatabaseStructureRequest(db));
+          final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
+
+          final Database database = server.getServer().getOrCreateDatabase(db);
+
+          installDatabase(buffer, db, dbStructure, database);
+        }
+      } else {
+        server.getServer().log(this, Level.INFO, "Asking for a hot resync...");
+
+        if (testOn)
+          server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_HOT_RESYNC, null);
       }
 
       sendCommandToLeader(buffer, new ReplicaReadyRequest());

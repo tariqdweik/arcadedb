@@ -13,17 +13,16 @@ import org.junit.jupiter.api.Assertions;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class ReplicationServerReplicaRestartForceDbInstallTest extends ReplicationServerTest {
+public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest {
   private final    AtomicLong totalMessages = new AtomicLong();
   private volatile boolean    slowDown      = true;
   private          boolean    hotResync     = false;
   private          boolean    fullResync    = false;
 
-  public ReplicationServerReplicaRestartForceDbInstallTest() {
+  public ReplicationServerReplicaHotResyncTest() {
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
     GlobalConfiguration.TEST.setValue(true);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(10);
-    GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1 * 1024 * 1024);
   }
 
   @AfterEach
@@ -32,13 +31,12 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
     super.endTest();
     GlobalConfiguration.TEST.setValue(false);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(512);
-    GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1024 * 1024 * 1024);
   }
 
   @Override
   protected void onAfterTest() {
-    Assertions.assertFalse(hotResync);
-    Assertions.assertTrue(fullResync);
+    Assertions.assertTrue(hotResync);
+    Assertions.assertFalse(fullResync);
   }
 
   @Override
@@ -61,11 +59,9 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
             if (type == TYPE.REPLICA_HOT_RESYNC) {
               LogManager.instance().info(this, "TEST: Received hot resync request");
               hotResync = true;
-              GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1024 * 1024 * 1024);
             } else if (type == TYPE.REPLICA_FULL_RESYNC) {
               LogManager.instance().info(this, "TEST: Received full resync request");
               fullResync = true;
-              GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1024 * 1024 * 1024);
             }
           }
         }

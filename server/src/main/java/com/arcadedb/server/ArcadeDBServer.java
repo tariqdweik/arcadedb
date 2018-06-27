@@ -229,6 +229,15 @@ public class ArcadeDBServer {
         c.onEvent(type, object, this);
   }
 
+  public String getRootPath() {
+    return new File(".").getAbsolutePath();
+  }
+
+  @Override
+  public String toString() {
+    return getServerName();
+  }
+
   private synchronized Database getDatabase(final String databaseName, final boolean createIfNotExists) {
     DatabaseInternal db = databases.get(databaseName);
     if (db == null) {

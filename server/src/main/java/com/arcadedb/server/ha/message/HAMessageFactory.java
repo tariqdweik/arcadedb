@@ -16,8 +16,9 @@ public class HAMessageFactory {
   private final Map<Class<? extends HACommand>, Byte> commandMap = new HashMap<>();
 
   public HAMessageFactory() {
-    registerCommand(DatabaseListRequest.class);
-    registerCommand(DatabaseListResponse.class);
+    registerCommand(ReplicaConnectRequest.class);
+    registerCommand(ReplicaConnectFullResyncResponse.class);
+    registerCommand(ReplicaConnectHotResyncResponse.class);
     registerCommand(DatabaseStructureRequest.class);
     registerCommand(DatabaseStructureResponse.class);
     registerCommand(FileContentRequest.class);

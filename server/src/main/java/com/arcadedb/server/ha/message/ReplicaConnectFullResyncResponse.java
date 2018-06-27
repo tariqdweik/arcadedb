@@ -9,13 +9,13 @@ import com.arcadedb.server.ha.HAServer;
 import java.util.HashSet;
 import java.util.Set;
 
-public class DatabaseListResponse implements HACommand {
+public class ReplicaConnectFullResyncResponse implements HACommand {
   private Set<String> databases;
 
-  public DatabaseListResponse() {
+  public ReplicaConnectFullResyncResponse() {
   }
 
-  public DatabaseListResponse(final Set<String> databases) {
+  public ReplicaConnectFullResyncResponse(final Set<String> databases) {
     this.databases = databases;
   }
 
@@ -45,6 +45,6 @@ public class DatabaseListResponse implements HACommand {
 
   @Override
   public String toString() {
-    return "dbs=" + databases;
+    return "fullResync(dbs=" + databases + ")";
   }
 }

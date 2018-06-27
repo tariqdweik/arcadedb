@@ -6,13 +6,14 @@ package com.arcadedb.server.ha.message;
 import com.arcadedb.database.Binary;
 import com.arcadedb.server.ha.HAServer;
 
-public class DatabaseListRequest implements HACommand {
-  public DatabaseListRequest() {
+public class ReplicaConnectHotResyncResponse implements HACommand {
+
+  public ReplicaConnectHotResyncResponse() {
   }
 
   @Override
-  public HACommand execute(final HAServer server, String remoteServerName) {
-    return new DatabaseListResponse(server.getServer().getDatabaseNames());
+  public HACommand execute(HAServer server, String remoteServerName) {
+    return null;
   }
 
   @Override
@@ -25,6 +26,6 @@ public class DatabaseListRequest implements HACommand {
 
   @Override
   public String toString() {
-    return "dbs()";
+    return "hotResync";
   }
 }

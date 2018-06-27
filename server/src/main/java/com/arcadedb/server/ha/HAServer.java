@@ -35,15 +35,16 @@ public class HAServer implements ServerPlugin {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }
 
-  private final HAMessageFactory                           messageFactory           = new HAMessageFactory();
+  private final HAMessageFactory                           messageFactory              = new HAMessageFactory();
   private final ArcadeDBServer                             server;
   private final ContextConfiguration                       configuration;
   private final String                                     clusterName;
   private final long                                       startedOn;
-  private final Map<String, Leader2ReplicaNetworkExecutor> replicaConnections       = new ConcurrentHashMap<>();
+  private final Map<String, Leader2ReplicaNetworkExecutor> replicaConnections          = new ConcurrentHashMap<>();
   private       Replica2LeaderNetworkExecutor              leaderConnection;
   private       LeaderNetworkListener                      listener;
-  private       Map<Long, QuorumMessages>                  messagesWaitingForQuorum = new ConcurrentHashMap<>(1024);
+  private       Map<Long, QuorumMessages>                  messagesWaitingForQuorum    = new ConcurrentHashMap<>(1024);
+  private       long                                       lastConfigurationOutputHash = 0;
 
   private class QuorumMessages {
     public final long           sentOn = System.currentTimeMillis();
@@ -115,6 +116,10 @@ public class HAServer implements ServerPlugin {
     }
   }
 
+  public Leader2ReplicaNetworkExecutor getReplica(final String replicaName) {
+    return replicaConnections.get(replicaName);
+  }
+
   public void setReplicaStatus(final String remoteServerName, final boolean online) {
     final Leader2ReplicaNetworkExecutor c = replicaConnections.get(remoteServerName);
     if (c == null) {
@@ -122,11 +127,9 @@ public class HAServer implements ServerPlugin {
       return;
     }
 
-    c.setStatus(online);
+    c.setStatus(online ? Leader2ReplicaNetworkExecutor.STATUS.ONLINE : Leader2ReplicaNetworkExecutor.STATUS.OFFLINE);
 
     server.lifecycleEvent(online ? TestCallback.TYPE.REPLICA_ONLINE : TestCallback.TYPE.REPLICA_OFFLINE, remoteServerName);
-
-    printClusterConfiguration();
   }
 
   public void receivedResponseForQuorum(final String remoteServerName, final long messageNumber) {
@@ -201,7 +204,7 @@ public class HAServer implements ServerPlugin {
   public int getOnlineReplicas() {
     int total = 0;
     for (Leader2ReplicaNetworkExecutor c : replicaConnections.values()) {
-      if (c.isOnline())
+      if (c.getStatus() == Leader2ReplicaNetworkExecutor.STATUS.ONLINE)
         total++;
     }
     return total;
@@ -232,14 +235,12 @@ public class HAServer implements ServerPlugin {
         try {
           replicaConnection.enqueueMessage(buffer.slice(0));
         } catch (ReplicationException e) {
-          server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting as OFFLINE",
-              replicaConnection.getRemoteServerName());
+          server.log(this, Level.SEVERE, "Error on replicating message to replica '%s' (error=%s)",
+              replicaConnection.getRemoteServerName(), e);
 
           // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
           if (quorumSemaphore != null)
             quorumSemaphore.countDown();
-
-          setReplicaStatus(replicaConnection.getRemoteServerName(), false);
         }
       }
 
@@ -271,9 +272,7 @@ public class HAServer implements ServerPlugin {
   }
 
   public void printClusterConfiguration() {
-    server.log(this, Level.INFO, "NEW CLUSTER CONFIGURATION");
-
-    final StringBuilder buffer = new StringBuilder();
+    final StringBuilder buffer = new StringBuilder("NEW CLUSTER CONFIGURATION\n");
     final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
       @Override
       public void onMessage(final String text, final Object... args) {
@@ -288,7 +287,7 @@ public class HAServer implements ServerPlugin {
 
     line.setProperty("SERVER", getServerName());
     line.setProperty("ROLE", "Leader");
-    line.setProperty("STATUS", "UP");
+    line.setProperty("STATUS", "ONLINE");
     line.setProperty("JOINED ON", new Date(startedOn));
     line.setProperty("LEFT ON", "");
     line.setProperty("THROUGHPUT", "");
@@ -298,20 +297,37 @@ public class HAServer implements ServerPlugin {
       line = new ResultInternal();
       list.add(new RecordTableFormatter.PTableRecordRow(line));
 
-      final boolean online = c.isOnline();
+      final Leader2ReplicaNetworkExecutor.STATUS status = c.getStatus();
 
       line.setProperty("SERVER", c.getRemoteServerName());
       line.setProperty("ROLE", "Replica");
-      line.setProperty("STATUS", online ? "ONLINE" : "OFFLINE");
-      line.setProperty("JOINED ON", new Date(c.getJoinedOn()));
-      line.setProperty("LEFT ON", online ? "" : new Date(c.getLeftOn()));
+      line.setProperty("STATUS", status);
+      line.setProperty("JOINED ON", c.getJoinedOn() > 0 ? new Date(c.getJoinedOn()) : "");
+      line.setProperty("LEFT ON", c.getLeftOn() > 0 ? new Date(c.getLeftOn()) : "");
       line.setProperty("THROUGHPUT", c.getThroughputStats());
       line.setProperty("LATENCY", c.getLatencyStats());
     }
 
     table.writeRows(list, -1);
 
-    server.log(this, Level.INFO, buffer.toString() + "\n");
+    final String output = buffer.toString();
+
+    int hash = 7;
+    for (int i = 0; i < output.length(); i++)
+      hash = hash * 31 + output.charAt(i);
+
+    if (lastConfigurationOutputHash == hash)
+      // NO CHANGES, AVOID PRINTING CFG
+      return;
+
+    lastConfigurationOutputHash = hash;
+
+    server.log(this, Level.INFO, output + "\n");
+  }
+
+  @Override
+  public String toString() {
+    return getServerName();
   }
 
   private boolean connectToLeader(final String serverEntry) {
