@@ -8,6 +8,8 @@
 node {
     try {
 
+        cleanWs()
+
         stage('checkout') {
             checkout scm
         }
