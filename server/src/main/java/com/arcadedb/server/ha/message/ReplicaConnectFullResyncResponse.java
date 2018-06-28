@@ -9,7 +9,7 @@ import com.arcadedb.server.ha.HAServer;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ReplicaConnectFullResyncResponse implements HACommand {
+public class ReplicaConnectFullResyncResponse extends HAAbstractCommand {
   private Set<String> databases;
 
   public ReplicaConnectFullResyncResponse() {
@@ -20,7 +20,7 @@ public class ReplicaConnectFullResyncResponse implements HACommand {
   }
 
   @Override
-  public HACommand execute(HAServer server, String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
     return null;
   }
 

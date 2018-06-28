@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class HAServer implements ServerPlugin {
@@ -35,12 +36,13 @@ public class HAServer implements ServerPlugin {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }
 
-  private final HAMessageFactory                           messageFactory              = new HAMessageFactory();
+  private final HAMessageFactory                           messageFactory;
   private final ArcadeDBServer                             server;
   private final ContextConfiguration                       configuration;
   private final String                                     clusterName;
   private final long                                       startedOn;
   private final Map<String, Leader2ReplicaNetworkExecutor> replicaConnections          = new ConcurrentHashMap<>();
+  private final AtomicLong                                 messageNumber               = new AtomicLong();
   private       Replica2LeaderNetworkExecutor              leaderConnection;
   private       LeaderNetworkListener                      listener;
   private       Map<Long, QuorumMessages>                  messagesWaitingForQuorum    = new ConcurrentHashMap<>(1024);
@@ -69,6 +71,7 @@ public class HAServer implements ServerPlugin {
 
   public HAServer(final ArcadeDBServer server, final ContextConfiguration configuration) {
     this.server = server;
+    this.messageFactory = new HAMessageFactory(server);
     this.configuration = configuration;
     this.clusterName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
     this.startedOn = System.currentTimeMillis();
@@ -180,10 +183,9 @@ public class HAServer implements ServerPlugin {
   public void sendCommandToReplicas(final HACommand command) {
     final Binary buffer = new Binary();
 
-    buffer.putByte(messageFactory.getCommandId(command));
-    command.toStream(buffer);
+    final long messageNumber = this.messageNumber.incrementAndGet();
 
-    buffer.flip();
+    messageFactory.fillCommand(command, buffer, messageNumber);
 
     // SEND THE REQUEST TO ALL THE REPLICAS
     final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
@@ -201,24 +203,12 @@ public class HAServer implements ServerPlugin {
     }
   }
 
-  public int getOnlineReplicas() {
-    int total = 0;
-    for (Leader2ReplicaNetworkExecutor c : replicaConnections.values()) {
-      if (c.getStatus() == Leader2ReplicaNetworkExecutor.STATUS.ONLINE)
-        total++;
-    }
-    return total;
-  }
-
   public void sendCommandToReplicasWithQuorum(final TxRequest tx, final int quorum, final long timeout) {
     final Binary buffer = new Binary();
 
-    buffer.putByte(messageFactory.getCommandId(tx));
-    tx.toStream(buffer);
+    final long messageNumber = this.messageNumber.incrementAndGet();
 
-    buffer.flip();
-
-    final long txId = tx.getMessageNumber();
+    messageFactory.fillCommand(tx, buffer, messageNumber);
 
     CountDownLatch quorumSemaphore = null;
 
@@ -226,7 +216,7 @@ public class HAServer implements ServerPlugin {
       if (quorum > 1) {
         quorumSemaphore = new CountDownLatch(quorum - 1);
         // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
-        messagesWaitingForQuorum.put(txId, new QuorumMessages(quorumSemaphore));
+        messagesWaitingForQuorum.put(messageNumber, new QuorumMessages(quorumSemaphore));
       }
 
       // SEND THE REQUEST TO ALL THE REPLICAS
@@ -248,17 +238,17 @@ public class HAServer implements ServerPlugin {
         try {
 
           if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS))
-            throw new ReplicationException("Timeout waiting for quorum to be reached for request " + txId);
+            throw new ReplicationException("Timeout waiting for quorum to be reached for request " + messageNumber);
 
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          throw new ReplicationException("Quorum not reached for request " + txId + " because the thread was interrupted");
+          throw new ReplicationException("Quorum not reached for request " + messageNumber + " because the thread was interrupted");
         }
       }
     } finally {
       // REQUEST IS OVER, REMOVE FROM THE QUORUM MAP
       if (quorumSemaphore != null)
-        messagesWaitingForQuorum.remove(txId);
+        messagesWaitingForQuorum.remove(messageNumber);
     }
   }
 
@@ -269,6 +259,15 @@ public class HAServer implements ServerPlugin {
       server.log(this, Level.SEVERE, "Replica '%s' seems not active, removing it from the cluster", remoteServerName);
       c.close();
     }
+  }
+
+  public int getOnlineReplicas() {
+    int total = 0;
+    for (Leader2ReplicaNetworkExecutor c : replicaConnections.values()) {
+      if (c.getStatus() == Leader2ReplicaNetworkExecutor.STATUS.ONLINE)
+        total++;
+    }
+    return total;
   }
 
   public void printClusterConfiguration() {

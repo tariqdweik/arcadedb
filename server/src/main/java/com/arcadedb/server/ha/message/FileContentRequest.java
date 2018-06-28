@@ -12,7 +12,7 @@ import com.arcadedb.server.ha.HAServer;
 
 import java.io.IOException;
 
-public class FileContentRequest implements HACommand {
+public class FileContentRequest extends HAAbstractCommand {
   private String databaseName;
   private int    fileId;
   private int    from;
@@ -27,7 +27,7 @@ public class FileContentRequest implements HACommand {
   }
 
   @Override
-  public HACommand execute(HAServer server, String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
     final Database db = server.getServer().getDatabase(databaseName);
     final int pageSize = db.getFileManager().getFile(fileId).getPageSize();
 

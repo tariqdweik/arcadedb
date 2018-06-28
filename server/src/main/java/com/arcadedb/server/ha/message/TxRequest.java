@@ -12,8 +12,7 @@ import com.arcadedb.server.ha.ReplicationException;
 /**
  * Replicate a transaction. No response is expected.
  */
-public class TxRequest implements HACommand {
-  private long    messageNumber;
+public class TxRequest extends HAAbstractCommand {
   private boolean waitForQuorum;
   private String  databaseName;
   private Binary  bufferChanges;
@@ -21,8 +20,7 @@ public class TxRequest implements HACommand {
   public TxRequest() {
   }
 
-  public TxRequest(final long messageNumber, final String dbName, final Binary bufferChanges, final boolean waitForQuorum) {
-    this.messageNumber = messageNumber;
+  public TxRequest(final String dbName, final Binary bufferChanges, final boolean waitForQuorum) {
     this.waitForQuorum = waitForQuorum;
     this.databaseName = dbName;
     this.bufferChanges = bufferChanges;
@@ -30,7 +28,6 @@ public class TxRequest implements HACommand {
 
   @Override
   public void toStream(final Binary stream) {
-    stream.putLong(messageNumber);
     stream.putByte((byte) (waitForQuorum ? 1 : 0));
     stream.putString(databaseName);
     stream.putBytes(bufferChanges.getContent(), bufferChanges.size());
@@ -38,14 +35,13 @@ public class TxRequest implements HACommand {
 
   @Override
   public void fromStream(final Binary stream) {
-    messageNumber = stream.getLong();
     waitForQuorum = stream.getByte() == 1;
     databaseName = stream.getString();
     bufferChanges = new Binary(stream.getBytes());
   }
 
   @Override
-  public HACommand execute(final HAServer server, String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
     final WALFile.WALTransaction tx = getTx();
 
     final DatabaseInternal db = (DatabaseInternal) server.getServer().getDatabase(databaseName);
@@ -60,13 +56,9 @@ public class TxRequest implements HACommand {
     }
 
     if (waitForQuorum)
-      return new TxResponse(messageNumber);
+      return new TxResponse();
 
     return null;
-  }
-
-  public long getMessageNumber() {
-    return messageNumber;
   }
 
   @Override

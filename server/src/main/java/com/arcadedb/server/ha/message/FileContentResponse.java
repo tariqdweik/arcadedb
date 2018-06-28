@@ -6,7 +6,7 @@ package com.arcadedb.server.ha.message;
 import com.arcadedb.database.Binary;
 import com.arcadedb.server.ha.HAServer;
 
-public class FileContentResponse implements HACommand {
+public class FileContentResponse extends HAAbstractCommand {
   private Binary  pagesContent;
   private int     pages;
   private boolean last;
@@ -33,7 +33,7 @@ public class FileContentResponse implements HACommand {
   }
 
   @Override
-  public HACommand execute(HAServer server, String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
     return null;
   }
 

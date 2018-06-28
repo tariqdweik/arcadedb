@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DatabaseStructureRequest implements HACommand {
+public class DatabaseStructureRequest extends HAAbstractCommand {
   private String databaseName;
 
   public DatabaseStructureRequest() {
@@ -28,7 +28,7 @@ public class DatabaseStructureRequest implements HACommand {
   }
 
   @Override
-  public HACommand execute(final HAServer server, final String remoteServerName) {
+  public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
     final Database db = server.getServer().getDatabase(databaseName);
 
     final File file = new File(db.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
