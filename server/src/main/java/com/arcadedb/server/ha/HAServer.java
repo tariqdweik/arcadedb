@@ -182,17 +182,18 @@ public class HAServer implements ServerPlugin {
 
   public void sendCommandToReplicas(final HACommand command) {
     final Binary buffer = new Binary();
+    final Binary tempBuffer = new Binary();
 
     final long messageNumber = this.messageNumber.incrementAndGet();
 
-    messageFactory.fillCommand(command, buffer, messageNumber);
+    messageFactory.serializeCommand(command, buffer, tempBuffer, messageNumber);
 
     // SEND THE REQUEST TO ALL THE REPLICAS
     final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
     for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
       // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
       try {
-        replicaConnection.enqueueMessage(buffer.slice(0));
+        replicaConnection.enqueueMessage(messageNumber, buffer.slice(0));
       } catch (ReplicationException e) {
         // REMOVE THE REPLICA
         server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE",
@@ -205,10 +206,11 @@ public class HAServer implements ServerPlugin {
 
   public void sendCommandToReplicasWithQuorum(final TxRequest tx, final int quorum, final long timeout) {
     final Binary buffer = new Binary();
+    final Binary tempBuffer = new Binary();
 
     final long messageNumber = this.messageNumber.incrementAndGet();
 
-    messageFactory.fillCommand(tx, buffer, messageNumber);
+    messageFactory.serializeCommand(tx, buffer, tempBuffer, messageNumber);
 
     CountDownLatch quorumSemaphore = null;
 
@@ -223,7 +225,7 @@ public class HAServer implements ServerPlugin {
       final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
       for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
         try {
-          replicaConnection.enqueueMessage(buffer.slice(0));
+          replicaConnection.enqueueMessage(messageNumber, buffer.slice(0));
         } catch (ReplicationException e) {
           server.log(this, Level.SEVERE, "Error on replicating message to replica '%s' (error=%s)",
               replicaConnection.getRemoteServerName(), e);

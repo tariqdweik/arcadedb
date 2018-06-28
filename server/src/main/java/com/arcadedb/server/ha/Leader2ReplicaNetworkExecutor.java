@@ -35,20 +35,30 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
   public static final int PROTOCOL_VERSION = 0;
 
-  private final    HAServer                      server;
-  private final    String                        remoteServerName;
-  private final    PushPullBlockingQueue<Binary> queue                 = new PushPullBlockingQueue<>(
+  private class Message {
+    public final long   messageNumber;
+    public final Binary payload;
+
+    public Message(final long messageNumber, final Binary payload) {
+      this.messageNumber = messageNumber;
+      this.payload = payload;
+    }
+  }
+
+  private final    HAServer                       server;
+  private final    String                         remoteServerName;
+  private final    PushPullBlockingQueue<Message> queue                 = new PushPullBlockingQueue<>(
       GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
-  private final    String                        replicationPath;
-  private          long                          joinedOn;
-  private          long                          leftOn                = 0;
-  private          ChannelBinaryServer           channel;
-  private          Thread                        queueThread;
-  private          STATUS                        status                = STATUS.JOINING;
-  private volatile boolean                       hotRecovery           = true;
-  private          ReplicationLogFile            replicationLogFile;
-  private          Object                        lock                  = new Object();
-  private volatile boolean                       shutdownCommunication = false;
+  private final    String                         replicationPath;
+  private          long                           joinedOn;
+  private          long                           leftOn                = 0;
+  private          ChannelBinaryServer            channel;
+  private          Thread                         queueThread;
+  private          STATUS                         status                = STATUS.JOINING;
+  private volatile boolean                        hotRecovery           = true;
+  private          ReplicationLogFile             replicationLogFile;
+  private          Object                         lock                  = new Object();
+  private volatile boolean                        shutdownCommunication = false;
 
   // STATS
   private long totalMessages;
@@ -117,7 +127,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       public void run() {
         while (!shutdownCommunication || !queue.isEmpty()) {
           try {
-            final Binary msg = queue.poll(1000, TimeUnit.MILLISECONDS);
+            final Message msg = queue.poll(1000, TimeUnit.MILLISECONDS);
 
             if (msg == null || status == STATUS.JOINING)
               continue;
@@ -132,11 +142,11 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
               server.getServer()
                   .log(this, Level.FINE, "Sending message to replica '%s' (buffered=%d)...", remoteServerName, queue.size());
 
-              sendMessage(msg);
+              sendMessage(msg.payload);
               break;
 
             case OFFLINE:
-              writeToReplicationLog(msg);
+              writeToReplicationLog(msg.messageNumber, msg.payload);
               break;
             }
 
@@ -160,12 +170,13 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
+    final Binary tempBuffer = new Binary(1024);
 
     while (!shutdownCommunication) {
       try {
         final byte[] requestBytes = channel.readBytes();
 
-        final Pair<Long, HACommand> request = server.getMessageFactory().parseCommand(buffer, requestBytes);
+        final Pair<Long, HACommand> request = server.getMessageFactory().deserializeCommand(buffer, requestBytes);
 
         if (request == null) {
           channel.clearInput();
@@ -177,7 +188,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         final HACommand response = request.getSecond().execute(server, remoteServerName, messageNumber);
         if (response != null) {
           // SEND THE RESPONSE BACK (USING THE SAME BUFFER)
-          server.getMessageFactory().fillCommand(response, buffer, messageNumber);
+          server.getMessageFactory().serializeCommand(response, buffer, tempBuffer, messageNumber);
 
           server.getServer().log(this, Level.FINE, "Request %s -> %s", request, response);
 
@@ -242,7 +253,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     return replicationLogFile != null;
   }
 
-  public void enqueueMessage(final Binary buffer) {
+  public void enqueueMessage(final long messageNumber, final Binary buffer) {
     executeInLock(new Callable() {
       @Override
       public Object call(Object iArgument) {
@@ -251,7 +262,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         if (status == STATUS.OFFLINE) {
           // WRITE TO THE FILE
           if (hotRecovery)
-            writeToReplicationLog(buffer);
+            writeToReplicationLog(messageNumber, buffer);
 
           return null;
         }
@@ -262,7 +273,9 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
               .log(this, Level.FINE, "Buffering request to server '%s' (status=%s buffered=%d)", remoteServerName, status,
                   queue.size());
 
-        if (!queue.offer(buffer)) {
+        final Message message = new Message(messageNumber, buffer);
+
+        if (!queue.offer(message)) {
           // BACK-PRESSURE
           server.getServer()
               .log(this, Level.WARNING, "Applying back-pressure on replicating messages to server '%s' (latency=%s buffered=%d)...",
@@ -275,10 +288,10 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
             throw new ReplicationException("Error on replicating to server '" + remoteServerName + "'");
           }
 
-          if (!queue.offer(buffer)) {
+          if (!queue.offer(message)) {
             server.setReplicaStatus(remoteServerName, false);
 
-            persistMessagesInQueue(buffer);
+            persistMessagesInQueue(messageNumber, buffer);
 
             // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
             throw new ReplicationException("Replica '" + remoteServerName + "' is not reading replication messages");
@@ -324,7 +337,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     server.printClusterConfiguration();
   }
 
-  private void persistMessagesInQueue(final Binary currentMessage) {
+  private void persistMessagesInQueue(final long messageNumber, final Binary currentMessage) {
     executeInLock(new Callable() {
       @Override
       public Object call(Object iArgument) {
@@ -337,12 +350,13 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
           if (!queue.isEmpty() || currentMessage != null) {
             while (!queue.isEmpty()) {
-              writeToReplicationLog(queue.take());
+              final Message message = queue.take();
+              writeToReplicationLog(message.messageNumber, message.payload);
             }
 
             if (currentMessage != null)
               // WRITE CURRENT MESSAGE
-              writeToReplicationLog(currentMessage);
+              writeToReplicationLog(messageNumber, currentMessage);
 
             flushReplicationLog();
           }
@@ -369,7 +383,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
             for (int pos = 0; pos < replicationLogFile.getSize(); ) {
               final ReplicationLogFile.Entry entry = replicationLogFile.getEntry(pos);
 
-              enqueueMessage(entry.message);
+              enqueueMessage(entry.messageNumber, entry.payload);
               pos += entry.length;
 
               totalSentMessages.incrementAndGet();
@@ -440,7 +454,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     channel.flush();
   }
 
-  private void writeToReplicationLog(final Binary msg) {
+  private void writeToReplicationLog(final long messageNumber, final Binary msg) {
     if (!hotRecovery)
       // IGNORE IT
       return;
@@ -454,7 +468,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
             .log(this, Level.INFO, "Logging to file messages for replica '%s' because OFFLINE (buffered=%d fileSize=%s)",
                 remoteServerName, queue.size(), FileUtils.getSizeAsString(replicationLogFile.getSize()));
 
-        if (!replicationLogFile.append(msg)) {
+        if (!replicationLogFile.append(messageNumber, msg)) {
           server.getServer().log(this, Level.INFO,
               "No space left in replication file for replica '%s'. Full resync is needed in case the replica joins the cluster again (fileSize=%s)",
               remoteServerName, FileUtils.getSizeAsString(replicationLogFile.getSize()));
