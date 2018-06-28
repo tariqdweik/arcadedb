@@ -13,9 +13,11 @@ import net.jpountz.lz4.LZ4SafeDecompressor;
  * Compression implementation that uses the popular LZ4 algorithm.
  */
 public class LZ4Compression implements Compression {
-  private final LZ4Factory          factory;
-  private final LZ4Compressor       compressor;
-  private final LZ4SafeDecompressor decompressor;
+  private static final byte[]              EMPTY_BYTES  = new byte[0];
+  private static final Binary              EMPTY_BINARY = new Binary(EMPTY_BYTES);
+  private final        LZ4Factory          factory;
+  private final        LZ4Compressor       compressor;
+  private final        LZ4SafeDecompressor decompressor;
 
   public LZ4Compression() {
     this.factory = LZ4Factory.fastestInstance();
@@ -25,20 +27,26 @@ public class LZ4Compression implements Compression {
 
   @Override
   public Binary compress(final Binary data) {
-    final int maxCompressedLength = compressor.maxCompressedLength(data.size());
+    final int decompressedLength = data.size() - data.position();
+    final int maxCompressedLength = compressor.maxCompressedLength(decompressedLength);
     final byte[] compressed = new byte[maxCompressedLength];
-    final int compressedLength = compressor.compress(data.getContent(), 0, data.size(), compressed, 0, maxCompressedLength);
-
-    com.arcadedb.utility.LogManager.instance()
-        .info(this, "Compression buffer from %d to %d (%d%%)", data.size(), compressedLength, compressedLength * 100 / data.size());
+    final int compressedLength = compressor
+        .compress(data.getContent(), data.position(), data.size(), compressed, 0, maxCompressedLength);
 
     return new Binary(compressed, compressedLength);
   }
 
   @Override
-  public Binary decompress(final Binary data) {
-    final byte[] decompressed = new byte[data.size()];
-    final int decompressedLength = decompressor.decompress(data.getContent(), 0, data.size(), decompressed, 0);
-    return new Binary(decompressed, decompressedLength);
+  public Binary decompress(final Binary data, final int decompressedLength) {
+    if (decompressedLength == 0)
+      return EMPTY_BINARY;
+
+    final int compressedLength = data.size() - data.position();
+    if (compressedLength == 0)
+      return EMPTY_BINARY;
+
+    final byte[] decompressed = new byte[decompressedLength];
+    decompressor.decompress(data.getContent(), data.position(), compressedLength, decompressed, 0);
+    return new Binary(decompressed);
   }
 }

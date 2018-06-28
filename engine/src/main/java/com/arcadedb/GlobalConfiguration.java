@@ -169,7 +169,10 @@ public enum GlobalConfiguration {
       Constants.PRODUCT.toLowerCase()),
 
   HA_SERVER_LIST("arcadedb.ha.serverList",
-      "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424", String.class, ""),;
+      "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424", String.class, ""),
+
+  HA_COMPRESSION_THRESHOLD("arcadedb.ha.compressionThreshold",
+      "Minimum size of content in bytes to be compressed. 0 to disable compression", Long.class, 100),;
 
   /**
    * Place holder for the "undefined" value of setting.

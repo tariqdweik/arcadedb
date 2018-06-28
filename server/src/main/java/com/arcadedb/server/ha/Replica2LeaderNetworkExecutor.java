@@ -54,12 +54,13 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   public void run() {
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
+    final Binary tempBuffer = new Binary(1024);
 
     while (!shutdown || channel.inputHasData()) {
       try {
         final byte[] requestBytes = channel.readBytes();
 
-        final Pair<Long, HACommand> request = server.getMessageFactory().parseCommand(buffer, requestBytes);
+        final Pair<Long, HACommand> request = server.getMessageFactory().deserializeCommand(buffer, requestBytes);
 
         if (request == null) {
           channel.clearInput();
@@ -76,7 +77,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_MSG_RECEIVED, request);
 
         if (response != null)
-          sendCommandToLeader(buffer, response, messageNumber);
+          sendCommandToLeader(buffer, tempBuffer, response, messageNumber);
 
       } catch (SocketTimeoutException e) {
         // IGNORE IT
@@ -112,10 +113,11 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     }
   }
 
-  public void sendCommandToLeader(final Binary buffer, final HACommand response, final long messageNumber) throws IOException {
+  public void sendCommandToLeader(final Binary buffer, final Binary tempBuffer, final HACommand response, final long messageNumber)
+      throws IOException {
     server.getServer().log(this, Level.FINE, "Sending response back to the leader '%s'...", response);
 
-    server.getMessageFactory().fillCommand(response, buffer, messageNumber);
+    server.getMessageFactory().serializeCommand(response, buffer, tempBuffer, messageNumber);
 
     channel.writeBytes(buffer.getContent(), buffer.size());
     channel.flush();
@@ -168,9 +170,10 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
   private void installDatabases() {
     final Binary buffer = new Binary(1024);
+    final Binary tempBuffer = new Binary(1024);
 
     try {
-      sendCommandToLeader(buffer, new ReplicaConnectRequest(), -1);
+      sendCommandToLeader(buffer, tempBuffer, new ReplicaConnectRequest(), -1);
       final HACommand response = receiveCommandFromLeader(buffer);
 
       if (response instanceof ReplicaConnectFullResyncResponse) {
@@ -183,12 +186,12 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         final Set<String> databases = databaseList.getDatabases();
         for (String db : databases) {
-          sendCommandToLeader(buffer, new DatabaseStructureRequest(db), -1);
+          sendCommandToLeader(buffer, tempBuffer, new DatabaseStructureRequest(db), -1);
           final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeader(buffer);
 
           final Database database = server.getServer().getOrCreateDatabase(db);
 
-          installDatabase(buffer, db, dbStructure, database);
+          installDatabase(buffer, tempBuffer, db, dbStructure, database);
         }
       } else {
         server.getServer().log(this, Level.INFO, "Asking for a hot resync...");
@@ -197,15 +200,17 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_HOT_RESYNC, null);
       }
 
-      sendCommandToLeader(buffer, new ReplicaReadyRequest(), -1);
+      sendCommandToLeader(buffer, tempBuffer, new ReplicaReadyRequest(), -1);
 
     } catch (Exception e) {
+      server.getServer().log(this, Level.SEVERE, "Error on starting HA service (error=%s)", e);
+      e.printStackTrace();
       throw new ServerException("Cannot start HA service", e);
     }
   }
 
-  private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure,
-      final Database database) throws IOException {
+  private void installDatabase(final Binary buffer, final Binary tempBuffer, final String db,
+      final DatabaseStructureResponse dbStructure, final Database database) throws IOException {
 
     // WRITE THE SCHEMA
     final FileWriter schemaFile = new FileWriter(database.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
@@ -217,7 +222,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     // WRITE ALL THE FILES
     for (Map.Entry<Integer, String> f : dbStructure.getFileNames().entrySet()) {
-      installFile(buffer, db, database, f.getKey(), f.getValue());
+      installFile(buffer, tempBuffer, db, database, f.getKey(), f.getValue());
     }
 
     // RELOAD THE SCHEMA
@@ -225,8 +230,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     ((SchemaImpl) database.getSchema()).load(PaginatedFile.MODE.READ_ONLY);
   }
 
-  private void installFile(final Binary buffer, final String db, final Database database, final int fileId, final String fileName)
-      throws IOException {
+  private void installFile(final Binary buffer, final Binary tempBuffer, final String db, final Database database, final int fileId,
+      final String fileName) throws IOException {
     final PageManager pageManager = database.getPageManager();
 
     final PaginatedFile file = database.getFileManager().getOrCreateFile(fileId, database.getDatabasePath() + "/" + fileName);
@@ -241,7 +246,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     long fileSize = 0;
 
     while (true) {
-      sendCommandToLeader(buffer, new FileContentRequest(db, fileId, from), -1);
+      sendCommandToLeader(buffer, tempBuffer, new FileContentRequest(db, fileId, from), -1);
       final FileContentResponse fileChunk = (FileContentResponse) receiveCommandFromLeader(buffer);
 
       if (fileChunk.getPages() == 0)
@@ -278,7 +283,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   private HACommand receiveCommandFromLeader(final Binary buffer) throws IOException {
     final byte[] response = receiveResponse();
 
-    final Pair<Long, HACommand> command = server.getMessageFactory().parseCommand(buffer, response);
+    final Pair<Long, HACommand> command = server.getMessageFactory().deserializeCommand(buffer, response);
     if (command == null)
       throw new NetworkProtocolException("Error on reading response, message " + response[0] + " not valid");
 

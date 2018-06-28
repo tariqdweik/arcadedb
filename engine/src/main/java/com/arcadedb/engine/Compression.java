@@ -12,5 +12,5 @@ import com.arcadedb.database.Binary;
 public interface Compression {
   Binary compress(Binary data);
 
-  Binary decompress(Binary data);
+  Binary decompress(Binary requestBytes, int decompressedLength);
 }
