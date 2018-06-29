@@ -5,7 +5,6 @@
 package com.arcadedb.console;
 
 import com.arcadedb.remote.RemoteException;
-import com.arcadedb.server.BaseGraphServerTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

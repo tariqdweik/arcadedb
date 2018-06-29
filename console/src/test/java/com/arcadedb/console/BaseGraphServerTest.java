@@ -2,7 +2,7 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.server;
+package com.arcadedb.console;
 
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
@@ -14,6 +14,7 @@ import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.VertexType;
+import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.AfterEach;
