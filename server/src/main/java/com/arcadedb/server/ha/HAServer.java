@@ -259,7 +259,12 @@ public class HAServer implements ServerPlugin {
       final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
       for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
         try {
-          replicaConnection.enqueueMessage(buffer.slice(0));
+
+          if (!replicaConnection.enqueueMessage(buffer.slice(0))) {
+            if (quorumSemaphore != null)
+              quorumSemaphore.countDown();
+          }
+
         } catch (ReplicationException e) {
           server.log(this, Level.SEVERE, "Error on replicating message to replica '%s' (error=%s)", replicaConnection.getRemoteServerName(), e);
 

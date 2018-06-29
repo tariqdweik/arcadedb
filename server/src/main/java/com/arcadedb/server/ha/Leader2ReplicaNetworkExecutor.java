@@ -213,11 +213,13 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     }
   }
 
-  public void enqueueMessage(final Binary message) {
-    executeInLock(new Callable() {
+  public boolean enqueueMessage(final Binary message) {
+    if (status == STATUS.OFFLINE)
+      return false;
+
+    return (boolean) executeInLock(new Callable() {
       @Override
       public Object call(Object iArgument) {
-
         // WRITE DIRECTLY TO THE MESSAGE QUEUE
         if (queue.size() > 1)
           server.getServer().log(this, Level.FINE, "Buffering request to server '%s' (status=%s buffered=%d)", remoteServerName, status, queue.size());
@@ -236,17 +238,19 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           }
 
           if (!queue.offer(message)) {
+            queue.clear();
             server.setReplicaStatus(remoteServerName, false);
 
             // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
             throw new ReplicationException("Replica '" + remoteServerName + "' is not reading replication messages");
           }
         }
-        return null;
+
+        totalBytes += message.size();
+
+        return true;
       }
     });
-
-    totalBytes += message.size();
   }
 
   public void setStatus(final STATUS status) {
@@ -322,9 +326,9 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     channel.flush();
   }
 
-  protected void executeInLock(final Callable callback) {
+  protected Object executeInLock(final Callable callback) {
     synchronized (lock) {
-      callback.call(null);
+      return callback.call(null);
     }
   }
 }

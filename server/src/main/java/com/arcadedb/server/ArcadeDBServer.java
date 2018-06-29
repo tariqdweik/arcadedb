@@ -32,11 +32,12 @@ public class ArcadeDBServer {
   private ServerSecurity security;
   private HttpServer     httpServer;
 
-  private       ConcurrentMap<String, DatabaseInternal> databases          = new ConcurrentHashMap<>();
-  private final String                                  serverName;
-  private       List<TestCallback>                      testEventListeners = new ArrayList<>();
-  private final boolean                                 testEnabled        = GlobalConfiguration.TEST.getValueAsBoolean();
-  private final Map<String, ServerPlugin>               plugins            = new HashMap<>();
+  private          ConcurrentMap<String, DatabaseInternal> databases          = new ConcurrentHashMap<>();
+  private final    String                                  serverName;
+  private          List<TestCallback>                      testEventListeners = new ArrayList<>();
+  private final    boolean                                 testEnabled        = GlobalConfiguration.TEST.getValueAsBoolean();
+  private final    Map<String, ServerPlugin>               plugins            = new HashMap<>();
+  private volatile boolean                                 started            = false;
 
   public ArcadeDBServer(final ContextConfiguration configuration) {
     this.configuration = configuration;
@@ -51,7 +52,10 @@ public class ArcadeDBServer {
     return configuration;
   }
 
-  public void start() {
+  public synchronized void start() {
+    if (started)
+      return;
+
     lifecycleEvent(TestCallback.TYPE.SERVER_STARTING, null);
 
     log(this, Level.INFO, "Starting ArcadeDB Server...");
@@ -96,37 +100,23 @@ public class ArcadeDBServer {
       }
     }
 
+    started = true;
+
     log(this, Level.INFO, "ArcadeDB Server started (CPUs=%d MAXRAM=%s)", Runtime.getRuntime().availableProcessors(),
         FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()));
 
     lifecycleEvent(TestCallback.TYPE.SERVER_UP, null);
   }
 
-  private void loadDatabases() {
-    final File databaseDir = new File(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY));
-    if (!databaseDir.exists()) {
-      databaseDir.mkdirs();
+  public synchronized void stop() {
+    if (!started)
       return;
-    }
 
-    if (!databaseDir.isDirectory())
-      throw new ConfigurationException("Configured database directory '" + databaseDir + "' is not a directory on file system");
-
-    final File[] databaseDirectories = databaseDir.listFiles(new FileFilter() {
-      @Override
-      public boolean accept(File pathname) {
-        return pathname.isDirectory();
-      }
-    });
-
-    for (File f : databaseDirectories)
-      getDatabase(f.getName());
-  }
-
-  public void stop() {
     lifecycleEvent(TestCallback.TYPE.SERVER_SHUTTING_DOWN, null);
 
     log(this, Level.INFO, "Shutting down ArcadeDB Server...");
+
+    started = false;
 
     for (Map.Entry<String, ServerPlugin> pEntry : plugins.entrySet()) {
       log(this, Level.INFO, "- Stop %s plugin", pEntry.getKey());
@@ -148,6 +138,7 @@ public class ArcadeDBServer {
 
     for (Database db : databases.values())
       db.close();
+    databases.clear();
 
     log(this, Level.INFO, "ArcadeDB Server is down");
 
@@ -266,5 +257,26 @@ public class ArcadeDBServer {
     }
 
     return new ServerDatabaseProxy(db);
+  }
+
+  private void loadDatabases() {
+    final File databaseDir = new File(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY));
+    if (!databaseDir.exists()) {
+      databaseDir.mkdirs();
+      return;
+    }
+
+    if (!databaseDir.isDirectory())
+      throw new ConfigurationException("Configured database directory '" + databaseDir + "' is not a directory on file system");
+
+    final File[] databaseDirectories = databaseDir.listFiles(new FileFilter() {
+      @Override
+      public boolean accept(File pathname) {
+        return pathname.isDirectory();
+      }
+    });
+
+    for (File f : databaseDirectories)
+      getDatabase(f.getName());
   }
 }

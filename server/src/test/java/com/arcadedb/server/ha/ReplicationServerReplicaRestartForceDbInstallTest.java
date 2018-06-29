@@ -11,19 +11,20 @@ import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 
+import java.io.File;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ReplicationServerReplicaRestartForceDbInstallTest extends ReplicationServerTest {
-  private final    AtomicLong totalMessages = new AtomicLong();
-  private volatile boolean    slowDown      = true;
-  private          boolean    hotResync     = false;
-  private          boolean    fullResync    = false;
+  private final    AtomicLong totalMessages           = new AtomicLong();
+  private volatile boolean    firstTimeServerShutdown = true;
+  private volatile boolean    slowDown                = true;
+  private          boolean    hotResync               = false;
+  private          boolean    fullResync              = false;
 
   public ReplicationServerReplicaRestartForceDbInstallTest() {
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
     GlobalConfiguration.TEST.setValue(true);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(10);
-    GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1 * 1024 * 1024);
   }
 
   @AfterEach
@@ -32,7 +33,6 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
     super.endTest();
     GlobalConfiguration.TEST.setValue(false);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(512);
-    GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1024 * 1024 * 1024);
   }
 
   @Override
@@ -61,11 +61,9 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
             if (type == TYPE.REPLICA_HOT_RESYNC) {
               LogManager.instance().info(this, "TEST: Received hot resync request");
               hotResync = true;
-              GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1024 * 1024 * 1024);
             } else if (type == TYPE.REPLICA_FULL_RESYNC) {
               LogManager.instance().info(this, "TEST: Received full resync request");
               fullResync = true;
-              GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.setValue(1024 * 1024 * 1024);
             }
           }
         }
@@ -76,9 +74,18 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
         @Override
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           // SLOW DOWN A SERVER
-          if ("ArcadeDB_2".equals(object) && type == TYPE.REPLICA_OFFLINE) {
-            LogManager.instance().info(this, "TEST: Replica 2 is offline removing latency...");
+          if ("ArcadeDB_2".equals(object) && type == TYPE.REPLICA_OFFLINE && firstTimeServerShutdown) {
+            LogManager.instance().info(this, "TEST: Replica 2 is offline removing latency, delete the replication log file and restart the server...");
             slowDown = false;
+            getServer(2).stop();
+            firstTimeServerShutdown = false;
+            try {
+              Thread.sleep(5000);
+            } catch (InterruptedException e) {
+            }
+            Assertions.assertTrue(new File("./target/replication/replication_ArcadeDB_2.rlog").exists());
+            new File("./target/replication/replication_ArcadeDB_2.rlog").delete();
+            getServer(2).start();
           }
         }
       });
