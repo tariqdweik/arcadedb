@@ -8,7 +8,7 @@ public class ReplicationException extends RuntimeException {
     super(message);
   }
 
-  public ReplicationException(final String message, final Exception cause) {
+  public ReplicationException(final String message, final Throwable cause) {
     super(message, cause);
   }
 }

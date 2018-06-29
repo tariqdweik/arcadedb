@@ -234,7 +234,7 @@ public class TransactionManager {
 
         if (txPage.currentPageVersion != page.getVersion()) {
           final ModifiablePage modifiedPage = page.modify();
-          txPage.currentContent.position(0);
+          txPage.currentContent.rewind();
           modifiedPage.writeByteArray(txPage.changesFrom - BasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
           modifiedPage.version = txPage.currentPageVersion;
           modifiedPage.setContentSize(txPage.currentPageSize);

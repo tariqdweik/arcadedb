@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+/**
+ * Copy the changes to WAL in memory to be propagated to other servers. The content in RAM is compressed.
+ */
 public class ReplicatedWALFile extends WALFile {
   private Binary changes = new Binary(4096);
 
@@ -22,9 +25,9 @@ public class ReplicatedWALFile extends WALFile {
   }
 
   @Override
-  public Binary writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync,
-      final WALFile file, final long txId) throws IOException {
-    changes.reset();
+  public Binary writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync, final WALFile file, final long txId)
+      throws IOException {
+    changes.clear();
     super.writeTransaction(database, pages, sync, file, txId);
     return changes.copy();
   }

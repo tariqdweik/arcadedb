@@ -3,21 +3,43 @@
  */
 package com.arcadedb.server.ha.message;
 
+import com.arcadedb.database.Binary;
 import com.arcadedb.server.ha.HAServer;
-import com.arcadedb.server.ha.Leader2ReplicaNetworkExecutor;
 
 public class ReplicaConnectRequest extends HAAbstractCommand {
+  private long lastReplicationMessageNumber = -1;
+
+  public ReplicaConnectRequest() {
+  }
+
+  public ReplicaConnectRequest(final long lastReplicationMessageNumber) {
+    this.lastReplicationMessageNumber = lastReplicationMessageNumber;
+  }
+
   @Override
   public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
-    final Leader2ReplicaNetworkExecutor replica = server.getReplica(remoteServerName);
-    if (replica != null && replica.isHotResyncPossible())
-      return new ReplicaConnectHotResyncResponse();
+    if (lastReplicationMessageNumber > -1) {
+      final long lastPosition = server.getReplicationLogFile().findMessagePosition(lastReplicationMessageNumber);
+      if (lastPosition > -1)
+        return new ReplicaConnectHotResyncResponse(lastPosition);
+    }
 
+    // IN ANY OTHER CASE EXECUTE FULL SYNC
     return new ReplicaConnectFullResyncResponse(server.getServer().getDatabaseNames());
   }
 
   @Override
+  public void toStream(Binary stream) {
+    stream.putLong(lastReplicationMessageNumber);
+  }
+
+  @Override
+  public void fromStream(Binary stream) {
+    lastReplicationMessageNumber = stream.getLong();
+  }
+
+  @Override
   public String toString() {
-    return "dbs()";
+    return "connect(" + lastReplicationMessageNumber + ")";
   }
 }

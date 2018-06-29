@@ -49,8 +49,8 @@ public class PSerializerTest {
     final Binary buffer = new Binary(dBuffer);
     dBuffer.put(binary.toByteArray());
 
-    binary.position(0);
-    buffer.position(0);
+    binary.rewind();
+    buffer.rewind();
 
     Assertions.assertEquals(0, binary.getNumber());
     Assertions.assertEquals(0, buffer.getNumber());

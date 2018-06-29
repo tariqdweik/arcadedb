@@ -9,7 +9,7 @@ public class ReplicationLogException extends ReplicationException {
     super(s);
   }
 
-  public ReplicationLogException(String s, Exception e) {
+  public ReplicationLogException(String s, Throwable e) {
     super(s, e);
   }
 }

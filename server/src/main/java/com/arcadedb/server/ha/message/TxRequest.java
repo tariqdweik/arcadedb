@@ -5,6 +5,7 @@ package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.engine.CompressionFactory;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicationException;
@@ -15,6 +16,7 @@ import com.arcadedb.server.ha.ReplicationException;
 public class TxRequest extends HAAbstractCommand {
   private boolean waitForQuorum;
   private String  databaseName;
+  private int     uncompressedLength;
   private Binary  bufferChanges;
 
   public TxRequest() {
@@ -23,13 +25,17 @@ public class TxRequest extends HAAbstractCommand {
   public TxRequest(final String dbName, final Binary bufferChanges, final boolean waitForQuorum) {
     this.waitForQuorum = waitForQuorum;
     this.databaseName = dbName;
-    this.bufferChanges = bufferChanges;
+
+    bufferChanges.rewind();
+    this.uncompressedLength = bufferChanges.size();
+    this.bufferChanges = CompressionFactory.getDefault().compress(bufferChanges);
   }
 
   @Override
   public void toStream(final Binary stream) {
     stream.putByte((byte) (waitForQuorum ? 1 : 0));
     stream.putString(databaseName);
+    stream.putInt(uncompressedLength);
     stream.putBytes(bufferChanges.getContent(), bufferChanges.size());
   }
 
@@ -37,7 +43,8 @@ public class TxRequest extends HAAbstractCommand {
   public void fromStream(final Binary stream) {
     waitForQuorum = stream.getByte() == 1;
     databaseName = stream.getString();
-    bufferChanges = new Binary(stream.getBytes());
+    uncompressedLength = stream.getInt();
+    bufferChanges = CompressionFactory.getDefault().decompress(new Binary(stream.getBytes()), uncompressedLength);
   }
 
   @Override
@@ -67,7 +74,6 @@ public class TxRequest extends HAAbstractCommand {
   }
 
   private WALFile.WALTransaction getTx() {
-
     final WALFile.WALTransaction tx = new WALFile.WALTransaction();
 
     final Binary bufferChange = bufferChanges;

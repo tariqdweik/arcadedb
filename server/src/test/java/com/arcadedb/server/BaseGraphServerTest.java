@@ -41,12 +41,15 @@ public abstract class BaseGraphServerTest {
   protected static RID              root;
   private          ArcadeDBServer[] servers;
 
+  protected BaseGraphServerTest() {
+    GlobalConfiguration.SERVER_ROOT_PATH.setValue("./target");
+  }
+
   @BeforeEach
   public void startTest() {
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    for (int i = 0; i < getServerCount(); ++i)
-      FileUtils.deleteRecursively(new File(getDatabasePath(i)));
+    FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString()));
 
     new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
@@ -152,14 +155,13 @@ public abstract class BaseGraphServerTest {
 
   @AfterEach
   public void endTest() {
-    LogManager.instance().info(this, "Cleaning test %s...", getClass().getName());
+    LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
     for (int i = servers.length - 1; i > -1; --i) {
       if (servers[i] != null)
         servers[i].stop();
 
       if (dropDatabases()) {
-        final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(),
-            PaginatedFile.MODE.READ_WRITE);
+        final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE);
 
         if (factory.exists()) {
           final Database db = factory.open();

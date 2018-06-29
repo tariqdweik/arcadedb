@@ -107,7 +107,7 @@ public class PaginatedFile {
 //    // FLUSH ONLY THE UPDATED VERSION + DELTA
 //    buffer.position(range[1] + 1);
 //    buffer.flip();
-//    buffer.position(0); // ALWAYS WRITE FROM 0 TO INCLUDE PAGE VERSION
+//    buffer.rewind(); // ALWAYS WRITE FROM 0 TO INCLUDE PAGE VERSION
 //    final ByteBuffer delta = buffer.slice();
 //
 //    channel.write(delta, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));

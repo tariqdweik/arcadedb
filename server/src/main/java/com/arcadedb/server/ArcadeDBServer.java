@@ -167,8 +167,7 @@ public class ArcadeDBServer {
     if (db != null)
       throw new IllegalArgumentException("Database '" + databaseName + "' already exists");
 
-    final DatabaseFactory factory = new DatabaseFactory(
-        configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
+    final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
         PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
 
     if (factory.exists())
@@ -230,7 +229,7 @@ public class ArcadeDBServer {
   }
 
   public String getRootPath() {
-    return new File(".").getAbsolutePath();
+    return new File(configuration.getValueAsString(GlobalConfiguration.SERVER_ROOT_PATH)).getAbsolutePath();
   }
 
   @Override
@@ -241,8 +240,7 @@ public class ArcadeDBServer {
   private synchronized Database getDatabase(final String databaseName, final boolean createIfNotExists) {
     DatabaseInternal db = databases.get(databaseName);
     if (db == null) {
-      final DatabaseFactory factory = new DatabaseFactory(
-          configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
+      final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
           PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
 
       if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))

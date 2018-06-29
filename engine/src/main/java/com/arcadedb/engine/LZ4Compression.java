@@ -7,7 +7,7 @@ package com.arcadedb.engine;
 import com.arcadedb.database.Binary;
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
-import net.jpountz.lz4.LZ4SafeDecompressor;
+import net.jpountz.lz4.LZ4FastDecompressor;
 
 /**
  * Compression implementation that uses the popular LZ4 algorithm.
@@ -17,12 +17,12 @@ public class LZ4Compression implements Compression {
   private static final Binary              EMPTY_BINARY = new Binary(EMPTY_BYTES);
   private final        LZ4Factory          factory;
   private final        LZ4Compressor       compressor;
-  private final        LZ4SafeDecompressor decompressor;
+  private final        LZ4FastDecompressor decompressor;
 
   public LZ4Compression() {
     this.factory = LZ4Factory.fastestInstance();
     this.compressor = factory.fastCompressor();
-    this.decompressor = factory.safeDecompressor();
+    this.decompressor = factory.fastDecompressor();
   }
 
   @Override
@@ -46,7 +46,7 @@ public class LZ4Compression implements Compression {
       return EMPTY_BINARY;
 
     final byte[] decompressed = new byte[decompressedLength];
-    decompressor.decompress(data.getContent(), data.position(), compressedLength, decompressed, 0);
+    decompressor.decompress(data.getContent(), data.position(), decompressed, 0, decompressedLength);
     return new Binary(decompressed);
   }
 }

@@ -45,7 +45,7 @@ public class BinarySerializer {
 
   public Binary serializeDocument(final Database database, final Document document) {
     final Binary header = ((EmbeddedDatabase) database).getContext().temporaryBuffer1;
-    header.reset();
+    header.clear();
     header.putByte(document.getRecordType()); // RECORD TYPE
     return serializeProperties(database, document, header);
   }
@@ -56,7 +56,7 @@ public class BinarySerializer {
     final boolean serializeProperties;
     if (header == null) {
       header = ((EmbeddedDatabase) database).getContext().temporaryBuffer1;
-      header.reset();
+      header.clear();
       header.putByte(vertex.getRecordType()); // RECORD TYPE
       serializeProperties = true;
     } else {
@@ -97,7 +97,7 @@ public class BinarySerializer {
     final boolean serializeProperties;
     if (header == null) {
       header = ((EmbeddedDatabase) database).getContext().temporaryBuffer1;
-      header.reset();
+      header.clear();
       header.putByte(edge.getRecordType()); // RECORD TYPE
       serializeProperties = true;
     } else {
@@ -317,7 +317,7 @@ public class BinarySerializer {
     header.putNumber(propertyNames.size());
 
     final Binary content = ((EmbeddedDatabase) database).getContext().temporaryBuffer2;
-    content.reset();
+    content.clear();
 
     final Dictionary dictionary = database.getSchema().getDictionary();
 

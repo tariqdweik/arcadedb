@@ -65,7 +65,6 @@ public class WALFile extends LockContext {
   }
 
   public WALFile(final String filePath) throws FileNotFoundException {
-    super(true);
     this.filePath = filePath;
     this.channel = new RandomAccessFile(filePath, "rw").getChannel();
     this.open = true;
@@ -231,7 +230,7 @@ public class WALFile extends LockContext {
       final ByteBuffer newPageBuffer = newPage.getContent();
       newPageBuffer.position(deltaRange[0]);
       newPageBuffer.get(buffer, PAGE_HEADER_SIZE, deltaSize);
-      pageBuffer.position(0);
+      pageBuffer.rewind();
 
       file.appendPage(pageBuffer.getByteBuffer());
 
@@ -250,7 +249,7 @@ public class WALFile extends LockContext {
     pageBuffer.putInt(segmentSize);
     pageBuffer.putLong(MAGIC_NUMBER);
 
-    pageBuffer.reset();
+    pageBuffer.clear();
     file.append(pageBuffer.getByteBuffer());
 
     statsBytesWritten += TX_FOOTER_SIZE;
@@ -301,19 +300,19 @@ public class WALFile extends LockContext {
   }
 
   private long readLong(final long pos) throws IOException {
-    bufferLong.position(0);
+    bufferLong.rewind();
     channel.read(bufferLong, pos);
     return bufferLong.getLong(0);
   }
 
   private int readInt(final long pos) throws IOException {
-    bufferInt.position(0);
+    bufferInt.rewind();
     channel.read(bufferInt, pos);
     return bufferInt.getInt(0);
   }
 
   private byte readByte(final long pos) throws IOException {
-    bufferByte.position(0);
+    bufferByte.rewind();
     channel.read(bufferByte, pos);
     return bufferByte.get(0);
   }

@@ -39,6 +39,51 @@ public class ReplicatedDatabase implements DatabaseInternal {
     this.timeout = proxied.getConfiguration().getValueAsLong(GlobalConfiguration.HA_QUORUM_TIMEOUT);
   }
 
+  @Override
+  public void commit() {
+    proxied.executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        proxied.checkTransactionIsActive();
+        final Binary changes = proxied.getTransaction().commit();
+
+        if (changes != null) {
+          server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
+
+          final int activeServers = 1 + server.getHA().getOnlineReplicas();
+
+          final int reqQuorum;
+          switch (quorum) {
+          case NONE:
+            reqQuorum = 0;
+            break;
+          case ONE:
+            reqQuorum = 1;
+            break;
+          case TWO:
+            reqQuorum = 2;
+            break;
+          case THREE:
+            reqQuorum = 3;
+            break;
+          case MAJORITY:
+            reqQuorum = (activeServers / 2) + 1;
+            break;
+          case ALL:
+            reqQuorum = activeServers;
+            break;
+          default:
+            throw new IllegalArgumentException("Quorum " + quorum + " not managed");
+          }
+
+          server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), changes, reqQuorum > 1), reqQuorum, timeout);
+        }
+
+        return null;
+      }
+    });
+  }
+
   public EmbeddedDatabase getEmbeddedDatabase() {
     return proxied;
   }
@@ -174,51 +219,6 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public void commit() {
-    proxied.executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        proxied.checkTransactionIsActive();
-        final Binary changes = proxied.getTransaction().commit();
-
-        if (changes != null) {
-          server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
-
-          final int activeServers = 1 + server.getHA().getOnlineReplicas();
-
-          final int reqQuorum;
-          switch (quorum) {
-          case NONE:
-            reqQuorum = 0;
-            break;
-          case ONE:
-            reqQuorum = 1;
-            break;
-          case TWO:
-            reqQuorum = 2;
-            break;
-          case THREE:
-            reqQuorum = 3;
-            break;
-          case MAJORITY:
-            reqQuorum = (activeServers / 2) + 1;
-            break;
-          case ALL:
-            reqQuorum = activeServers;
-            break;
-          default:
-            throw new IllegalArgumentException("Quorum " + quorum + " not managed");
-          }
-
-          server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), changes, reqQuorum > 1), reqQuorum, timeout);
-        }
-
-        return null;
-      }
-    });
-  }
-
-  @Override
   public void rollback() {
     proxied.rollback();
   }
@@ -279,12 +279,12 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
-      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
+      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
+      final boolean bidirectional, final Object... properties) {
 
-    return proxied.newEdgeByKeys(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey,
-        destinationVertexValue, createVertexIfNotExist, edgeType, bidirectional, properties);
+    return proxied.newEdgeByKeys(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey, destinationVertexValue,
+        createVertexIfNotExist, edgeType, bidirectional, properties);
   }
 
   @Override

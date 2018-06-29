@@ -53,7 +53,7 @@ public class ModifiableEdgeChunk extends BaseRecord implements EdgeChunk, Record
   @Override
   public boolean add(final RID edgeRID, final RID vertexRID) {
     final Binary ridSerialized = ((EmbeddedDatabase) database).getContext().temporaryBuffer1;
-    ridSerialized.reset();
+    ridSerialized.clear();
 
     database.getSerializer().serializeValue(ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
     database.getSerializer().serializeValue(ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);

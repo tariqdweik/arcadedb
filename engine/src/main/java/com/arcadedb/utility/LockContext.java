@@ -9,38 +9,34 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class LockContext {
-  private final Lock lock;
-
-  public LockContext(final boolean multiThread) {
-    lock = multiThread ? new ReentrantLock() : null;
-  }
+  private final Lock lock = new ReentrantLock();
 
   protected void lock() {
-    if (lock != null)
-      lock.lock();
+    lock.lock();
   }
 
   protected void unlock() {
-    if (lock != null)
-      lock.unlock();
+    lock.unlock();
   }
 
-  public Object executeInLock(Callable<Object> callable) {
-    if (lock != null)
-      lock.lock();
+  protected RuntimeException manageExceptionInLock(final Throwable e) {
+    if (e instanceof RuntimeException)
+      throw (RuntimeException) e;
+
+    return new RuntimeException("Error in execution in lock", e);
+  }
+
+  public Object executeInLock(final Callable<Object> callable) {
+    lock.lock();
     try {
 
       return callable.call();
 
-    } catch (RuntimeException e) {
-      throw e;
-
     } catch (Throwable e) {
-      throw new RuntimeException("Error in execution in lock", e);
+      throw manageExceptionInLock(e);
 
     } finally {
-      if (lock != null)
-        lock.unlock();
+      lock.unlock();
     }
   }
 }

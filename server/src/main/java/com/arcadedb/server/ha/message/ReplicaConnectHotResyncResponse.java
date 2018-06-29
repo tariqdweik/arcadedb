@@ -6,8 +6,17 @@ package com.arcadedb.server.ha.message;
 import com.arcadedb.server.ha.HAServer;
 
 public class ReplicaConnectHotResyncResponse extends HAAbstractCommand {
+  private long positionInLog;
 
   public ReplicaConnectHotResyncResponse() {
+  }
+
+  public ReplicaConnectHotResyncResponse(final long positionInLog) {
+    this.positionInLog = positionInLog;
+  }
+
+  public long getPositionInLog() {
+    return positionInLog;
   }
 
   @Override

@@ -3,11 +3,10 @@
  */
 package com.arcadedb.server.ha.message;
 
-import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
-import com.arcadedb.engine.CompressionFactory;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ha.ReplicationMessage;
 import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 
@@ -21,7 +20,6 @@ public class HAMessageFactory {
   private final ArcadeDBServer                        server;
   private final List<Class<? extends HACommand>>      commands   = new ArrayList<>();
   private final Map<Class<? extends HACommand>, Byte> commandMap = new HashMap<>();
-  private final long                                  compressionThreshold;
 
   public HAMessageFactory(final ArcadeDBServer server) {
     this.server = server;
@@ -36,35 +34,18 @@ public class HAMessageFactory {
     registerCommand(TxRequest.class);
     registerCommand(TxResponse.class);
     registerCommand(ReplicaReadyRequest.class);
-
-    compressionThreshold = server.getConfiguration().getValueAsLong(GlobalConfiguration.HA_COMPRESSION_THRESHOLD);
   }
 
-  public void serializeCommand(final HACommand command, final Binary buffer, final Binary tempBuffer, final long messageNumber) {
-    tempBuffer.reset();
-    command.toStream(tempBuffer);
-    tempBuffer.flip();
-
-    buffer.reset();
+  public void serializeCommand(final HACommand command, final Binary buffer, final long messageNumber) {
+    buffer.clear();
     buffer.putByte(getCommandId(command));
     buffer.putLong(messageNumber);
-
-    if (compressionThreshold > 0 && tempBuffer.size() > compressionThreshold) {
-      // COMPRESS IT
-      buffer.putByte((byte) 1);
-      buffer.putInt(tempBuffer.size());
-      final Binary compressedBuffer = CompressionFactory.getDefault().compress(tempBuffer);
-      buffer.putByteArray(compressedBuffer.getContent(), compressedBuffer.size());
-    } else {
-      buffer.putByte((byte) 0);
-      buffer.putByteArray(tempBuffer.getContent(), tempBuffer.size());
-    }
-
+    command.toStream(buffer);
     buffer.flip();
   }
 
-  public Pair<Long, HACommand> deserializeCommand(Binary buffer, byte[] requestBytes) {
-    buffer.reset();
+  public Pair<ReplicationMessage, HACommand> deserializeCommand(final Binary buffer, final byte[] requestBytes) {
+    buffer.clear();
     buffer.putByteArray(requestBytes);
     buffer.flip();
 
@@ -74,13 +55,10 @@ public class HAMessageFactory {
 
     if (request != null) {
       final long messageNumber = buffer.getLong();
-      final boolean compressed = buffer.getByte() == 1;
-      if (compressed) {
-        final int uncompressedLength = buffer.getInt();
-        buffer = CompressionFactory.getDefault().decompress(buffer, uncompressedLength);
-      }
       request.fromStream(buffer);
-      return new Pair<Long, HACommand>(messageNumber, request);
+
+      buffer.rewind();
+      return new Pair<>(new ReplicationMessage(messageNumber, buffer), request);
     }
 
     server.log(this, Level.SEVERE, "Error on reading request, command %d not valid", commandId);

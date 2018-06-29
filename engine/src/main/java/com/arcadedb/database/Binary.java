@@ -59,9 +59,13 @@ public class Binary implements BinaryStructure {
     return copy;
   }
 
-  public void reset() {
+  public void clear() {
     size = 0;
     buffer.clear();
+    buffer.position(0);
+  }
+
+  public void rewind() {
     buffer.position(0);
   }
 
@@ -404,7 +408,7 @@ public class Binary implements BinaryStructure {
    * Creates a copy of this object referring to the same underlying buffer.
    */
   public Binary slice() {
-    buffer.position(0);
+    buffer.rewind();
     return new Binary(buffer.slice());
   }
 
