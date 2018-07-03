@@ -13,7 +13,7 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 
 public class PerformanceInsertNoIndexTest {
-  private static final int    TOT       = 100000000;
+  private static final int    TOT       = 10000000;
   private static final String TYPE_NAME = "Person";
   private static final int    PARALLEL  = 2;
 
@@ -52,7 +52,7 @@ public class PerformanceInsertNoIndexTest {
       database.asynch().setParallelLevel(PARALLEL);
       database.asynch().setTransactionUseWAL(false);
       database.asynch().setTransactionSync(false);
-      database.asynch().setCommitEvery(20000);
+      database.asynch().setCommitEvery(5000);
       database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {

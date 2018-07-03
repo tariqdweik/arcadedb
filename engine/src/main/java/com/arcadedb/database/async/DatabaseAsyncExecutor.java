@@ -435,7 +435,7 @@ public class DatabaseAsyncExecutor {
     if (record.getIdentity() == null) {
       // NEW
 
-      final Bucket bucket = type.getBucketToSave(true);
+      final Bucket bucket = type.getBucketToSave(false);
       final int slot = bucket.getId() % parallelLevel;
 
       try {
