@@ -93,11 +93,11 @@ public abstract class SoftThread extends Thread {
     this.dumpExceptions = dumpExceptions;
   }
 
-  protected void beforeExecution() throws InterruptedException {
+  protected void beforeExecution() {
     return;
   }
 
-  protected void afterExecution() throws InterruptedException {
+  protected void afterExecution() {
     return;
   }
 }

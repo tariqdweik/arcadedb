@@ -129,10 +129,7 @@ public class ArrayNumberSelector extends SimpleNode {
   }
 
   public boolean refersToParent() {
-    if (expressionValue != null && expressionValue.refersToParent()) {
-      return true;
-    }
-    return false;
+    return expressionValue != null && expressionValue.refersToParent();
   }
 
   public Result serialize() {

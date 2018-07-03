@@ -94,11 +94,9 @@ public class StressTesterCommandLineParser {
     settings.delay = getNumber(options.get(OPTION_DELAY), "delay");
     settings.concurrencyLevel = getNumber(options.get(OPTION_CONCURRENCY), "concurrency");
     settings.remoteIp = options.get(OPTION_REMOTE_IP);
-    settings.haMetrics = options.get(OPTION_HA_METRICS) != null ? Boolean.parseBoolean(options.get(OPTION_HA_METRICS)) : false;
+    settings.haMetrics = options.get(OPTION_HA_METRICS) != null && Boolean.parseBoolean(options.get(OPTION_HA_METRICS));
     settings.workloadCfg = options.get(OPTION_WORKLOAD);
-    settings.keepDatabaseAfterTest = options.get(OPTION_KEEP_DATABASE_AFTER_TEST) != null ?
-        Boolean.parseBoolean(options.get(OPTION_KEEP_DATABASE_AFTER_TEST)) :
-        false;
+    settings.keepDatabaseAfterTest = options.get(OPTION_KEEP_DATABASE_AFTER_TEST) != null && Boolean.parseBoolean(options.get(OPTION_KEEP_DATABASE_AFTER_TEST));
     settings.remotePort = 2424;
     settings.checkDatabase = Boolean.parseBoolean(options.get(OPTION_CHECK_DATABASE));
     if (options.get(OPTION_LOAD_BALANCING) != null)

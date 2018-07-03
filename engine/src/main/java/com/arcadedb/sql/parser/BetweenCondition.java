@@ -140,10 +140,7 @@ public class BetweenCondition extends BooleanExpression {
     if (second.needsAliases(aliases)) {
       return true;
     }
-    if (third.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return third.needsAliases(aliases);
   }
 
   @Override
@@ -180,10 +177,7 @@ public class BetweenCondition extends BooleanExpression {
       return false;
     if (second != null ? !second.equals(that.second) : that.second != null)
       return false;
-    if (third != null ? !third.equals(that.third) : that.third != null)
-      return false;
-
-    return true;
+    return third != null ? third.equals(that.third) : that.third == null;
   }
 
   @Override
@@ -228,10 +222,7 @@ public class BetweenCondition extends BooleanExpression {
     if (second != null && !second.isCacheable()) {
       return false;
     }
-    if (third != null && !third.isCacheable()) {
-      return false;
-    }
-    return true;
+    return third == null || third.isCacheable();
   }
 }
 /* JavaCC - OriginalChecksum=f94f4779c4a6c6d09539446045ceca89 (do not edit this line) */

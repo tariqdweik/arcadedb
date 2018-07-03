@@ -208,7 +208,7 @@ public class SchemaImpl implements Schema {
   public Bucket createBucket(final String bucketName, final int pageSize) {
     return (Bucket) database.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         if (bucketMap.containsKey(bucketName))
           throw new SchemaException("Cannot create bucket '" + bucketName + "' because already exists");
 
@@ -427,7 +427,7 @@ public class SchemaImpl implements Schema {
   public DocumentType createDocumentType(final String typeName, final int buckets, final int pageSize) {
     return (DocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         if (typeName.indexOf(",") > -1)
           throw new IllegalArgumentException("Type name '" + typeName + "' contains non valid characters");
 
@@ -460,7 +460,7 @@ public class SchemaImpl implements Schema {
   public VertexType createVertexType(String typeName, final int buckets, final int pageSize) {
     return (VertexType) database.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         if (typeName.indexOf(",") > -1)
           throw new IllegalArgumentException("Vertex type name '" + typeName + "' contains non valid characters");
 
@@ -495,7 +495,7 @@ public class SchemaImpl implements Schema {
   public EdgeType createEdgeType(final String typeName, final int buckets, final int pageSize) {
     return (EdgeType) database.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         if (typeName.indexOf(",") > -1)
           throw new IllegalArgumentException("Edge type name '" + typeName + "' contains non valid characters");
 

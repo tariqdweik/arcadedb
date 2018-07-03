@@ -239,10 +239,7 @@ public class SuffixIdentifier extends SimpleNode {
   }
 
   public boolean isEarlyCalculated() {
-    if (identifier != null && identifier.internalAlias) {
-      return true;
-    }
-    return false;
+    return identifier != null && identifier.internalAlias;
   }
 
   public void aggregate(Object value, CommandContext ctx) {
@@ -274,10 +271,7 @@ public class SuffixIdentifier extends SimpleNode {
       return false;
     if (identifier != null ? !identifier.equals(that.identifier) : that.identifier != null)
       return false;
-    if (recordAttribute != null ? !recordAttribute.equals(that.recordAttribute) : that.recordAttribute != null)
-      return false;
-
-    return true;
+    return recordAttribute != null ? recordAttribute.equals(that.recordAttribute) : that.recordAttribute == null;
   }
 
   @Override
@@ -293,10 +287,7 @@ public class SuffixIdentifier extends SimpleNode {
   }
 
   public boolean refersToParent() {
-    if (identifier != null && identifier.getStringValue().equalsIgnoreCase("$parent")) {
-      return true;
-    }
-    return false;
+    return identifier != null && identifier.getStringValue().equalsIgnoreCase("$parent");
   }
 
   public void setValue(Object target, Object value, CommandContext ctx) {
@@ -386,7 +377,7 @@ public class SuffixIdentifier extends SimpleNode {
   public void deserialize(Result fromResult) {
     if (fromResult.getProperty("identifier") != null) {
       identifier = new Identifier(-1);
-      identifier.deserialize(fromResult.getProperty("identifier"));
+      Identifier.deserialize(fromResult.getProperty("identifier"));
     }
     if (fromResult.getProperty("recordAttribute") != null) {
       recordAttribute = new RecordAttribute(-1);

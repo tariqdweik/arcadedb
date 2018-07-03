@@ -72,10 +72,7 @@ public class BucketList extends SimpleNode {
 
     BucketList that = (BucketList) o;
 
-    if (buckets != null ? !buckets.equals(that.buckets) : that.buckets != null)
-      return false;
-
-    return true;
+    return buckets != null ? buckets.equals(that.buckets) : that.buckets == null;
   }
 
   @Override
@@ -97,7 +94,7 @@ public class BucketList extends SimpleNode {
       List<Result> ser = fromResult.getProperty("buckets");
       for (Result item : ser) {
         Identifier id = new Identifier(-1);
-        id.deserialize(item);
+        Identifier.deserialize(item);
         buckets.add(id);
       }
     }

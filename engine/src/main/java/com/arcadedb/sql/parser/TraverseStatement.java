@@ -171,10 +171,7 @@ public class TraverseStatement extends Statement {
       return false;
     if (strategy != that.strategy)
       return false;
-    if (maxDepth != null ? !maxDepth.equals(that.maxDepth) : that.maxDepth != null)
-      return false;
-
-    return true;
+    return maxDepth != null ? maxDepth.equals(that.maxDepth) : that.maxDepth == null;
   }
 
   @Override

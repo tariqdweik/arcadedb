@@ -50,10 +50,7 @@ public class OrderByStep extends AbstractExecutionStep {
         if (currentBatchReturned >= nRecords) {
           return false;
         }
-        if (cachedResult.size() <= nextElement) {
-          return false;
-        }
-        return true;
+        return cachedResult.size() > nextElement;
       }
 
       @Override

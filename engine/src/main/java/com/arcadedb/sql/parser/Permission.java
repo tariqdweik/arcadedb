@@ -37,10 +37,7 @@ public class Permission extends SimpleNode {
 
     Permission that = (Permission) o;
 
-    if (permission != null ? !permission.equals(that.permission) : that.permission != null)
-      return false;
-
-    return true;
+    return permission != null ? permission.equals(that.permission) : that.permission == null;
   }
 
   @Override public int hashCode() {

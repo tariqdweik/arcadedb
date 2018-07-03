@@ -165,11 +165,7 @@ public class ContainsCondition extends BooleanExpression {
     if (!right.supportsBasicCalculation()) {
       return false;
     }
-    if (!condition.supportsBasicCalculation()) {
-      return false;
-    }
-
-    return true;
+    return condition.supportsBasicCalculation();
   }
 
   @Override
@@ -211,10 +207,7 @@ public class ContainsCondition extends BooleanExpression {
     if (right != null && right.needsAliases(aliases)) {
       return true;
     }
-    if (condition != null && condition.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return condition != null && condition.needsAliases(aliases);
   }
 
   @Override
@@ -248,10 +241,7 @@ public class ContainsCondition extends BooleanExpression {
     if (right != null && right.refersToParent()) {
       return true;
     }
-    if (condition != null && condition.refersToParent()) {
-      return true;
-    }
-    return false;
+    return condition != null && condition.refersToParent();
   }
 
   @Override
@@ -267,10 +257,7 @@ public class ContainsCondition extends BooleanExpression {
       return false;
     if (right != null ? !right.equals(that.right) : that.right != null)
       return false;
-    if (condition != null ? !condition.equals(that.condition) : that.condition != null)
-      return false;
-
-    return true;
+    return condition != null ? condition.equals(that.condition) : that.condition == null;
   }
 
   @Override
@@ -309,10 +296,7 @@ public class ContainsCondition extends BooleanExpression {
     if (right != null && !right.isCacheable()) {
       return false;
     }
-    if (condition != null && !condition.isCacheable()) {
-      return false;
-    }
-    return true;
+    return condition == null || condition.isCacheable();
   }
 
 }

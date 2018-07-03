@@ -268,7 +268,7 @@ public class BinarySerializer {
       value = content.getByte();
       break;
     case BinaryTypes.TYPE_BOOLEAN:
-      value = content.getByte() == 1 ? true : false;
+      value = content.getByte() == 1;
       break;
     case BinaryTypes.TYPE_SHORT:
       value = (short) content.getNumber();

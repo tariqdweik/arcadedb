@@ -114,10 +114,7 @@ public class DeleteVertexStatement extends Statement {
       return false;
     if (limit != null ? !limit.equals(that.limit) : that.limit != null)
       return false;
-    if (batch != null ? !batch.equals(that.batch) : that.batch != null)
-      return false;
-
-    return true;
+    return batch != null ? batch.equals(that.batch) : that.batch == null;
   }
 
   @Override public int hashCode() {

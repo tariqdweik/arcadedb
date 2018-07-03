@@ -95,7 +95,7 @@ public class Bucket extends PaginatedComponent {
     deleteRecordInternal(rid, false);
   }
 
-  public void scan(final RawRecordCallback callback) throws IOException {
+  public void scan(final RawRecordCallback callback) {
     final int txPageCount = getTotalPages();
 
     try {

@@ -47,10 +47,7 @@ public class MatchStep extends AbstractExecutionStep {
         if (nextResult == null) {
           fetchNext(ctx, nRecords);
         }
-        if (nextResult == null) {
-          return false;
-        }
-        return true;
+        return nextResult != null;
       }
 
       @Override

@@ -49,7 +49,7 @@ public class FetchFromRidsStep extends AbstractExecutionStep {
           if (nextRid == null) {
             continue;
           }
-          Identifiable nextDoc = (Identifiable) ctx.getDatabase().lookupByRID(nextRid, true);
+          Identifiable nextDoc = ctx.getDatabase().lookupByRID(nextRid, true);
           if (nextDoc == null) {
             continue;
           }

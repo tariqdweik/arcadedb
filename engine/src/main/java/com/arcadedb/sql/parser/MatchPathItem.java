@@ -160,10 +160,7 @@ public class MatchPathItem extends SimpleNode {
 
     if (method != null ? !method.equals(that.method) : that.method != null)
       return false;
-    if (filter != null ? !filter.equals(that.filter) : that.filter != null)
-      return false;
-
-    return true;
+    return filter != null ? filter.equals(that.filter) : that.filter == null;
   }
 
   @Override

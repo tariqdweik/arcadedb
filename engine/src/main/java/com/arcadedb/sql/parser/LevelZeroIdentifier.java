@@ -162,20 +162,14 @@ public class LevelZeroIdentifier extends SimpleNode {
     if (functionCall != null && functionCall.needsAliases(aliases)) {
       return true;
     }
-    if (collection != null && collection.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return collection != null && collection.needsAliases(aliases);
   }
 
   public boolean isAggregate() {
     if (functionCall != null && functionCall.isAggregate()) {
       return true;
     }
-    if (collection != null && collection.isAggregate()) {
-      return true;
-    }
-    return false;
+    return collection != null && collection.isAggregate();
   }
 
   public boolean isCount() {
@@ -189,10 +183,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     if (Boolean.TRUE.equals(self)) {
       return false;
     }
-    if (collection != null && collection.isEarlyCalculated()) {
-      return true;
-    }
-    return false;
+    return collection != null && collection.isEarlyCalculated();
   }
 
   public SimpleNode splitForAggregation(AggregateProjectionSplit aggregateProj) {
@@ -247,10 +238,7 @@ public class LevelZeroIdentifier extends SimpleNode {
       return false;
     if (self != null ? !self.equals(that.self) : that.self != null)
       return false;
-    if (collection != null ? !collection.equals(that.collection) : that.collection != null)
-      return false;
-
-    return true;
+    return collection != null ? collection.equals(that.collection) : that.collection == null;
   }
 
   @Override public int hashCode() {
@@ -268,10 +256,7 @@ public class LevelZeroIdentifier extends SimpleNode {
     if(functionCall!=null && functionCall.refersToParent()){
       return true;
     }
-    if(collection!=null && collection.refersToParent()){
-      return true;
-    }
-    return false;
+    return collection != null && collection.refersToParent();
   }
 
   public FunctionCall getFunctionCall() {

@@ -266,10 +266,7 @@ public class CreateIndexStatement extends ODDLStatement {
       return false;
     if (keyTypes != null ? !keyTypes.equals(that.keyTypes) : that.keyTypes != null)
       return false;
-    if (metadata != null ? !metadata.equals(that.metadata) : that.metadata != null)
-      return false;
-
-    return true;
+    return metadata != null ? metadata.equals(that.metadata) : that.metadata == null;
   }
 
   @Override
@@ -318,10 +315,7 @@ public class CreateIndexStatement extends ODDLStatement {
         return false;
       if (recordAttribute != null ? !recordAttribute.equals(property.recordAttribute) : property.recordAttribute != null)
         return false;
-      if (collate != null ? !collate.equals(property.collate) : property.collate != null)
-        return false;
-
-      return true;
+      return collate != null ? collate.equals(property.collate) : property.collate == null;
     }
 
     @Override

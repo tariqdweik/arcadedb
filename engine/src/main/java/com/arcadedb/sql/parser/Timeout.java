@@ -59,10 +59,7 @@ public class Timeout extends SimpleNode {
 
     if (val != null ? !val.equals(timeout.val) : timeout.val != null)
       return false;
-    if (failureStrategy != null ? !failureStrategy.equals(timeout.failureStrategy) : timeout.failureStrategy != null)
-      return false;
-
-    return true;
+    return failureStrategy != null ? failureStrategy.equals(timeout.failureStrategy) : timeout.failureStrategy == null;
   }
 
   @Override

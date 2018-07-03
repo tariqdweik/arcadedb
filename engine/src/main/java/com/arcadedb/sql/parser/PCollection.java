@@ -127,10 +127,7 @@ public class PCollection extends SimpleNode {
 
     PCollection that = (PCollection) o;
 
-    if (expressions != null ? !expressions.equals(that.expressions) : that.expressions != null)
-      return false;
-
-    return true;
+    return expressions != null ? expressions.equals(that.expressions) : that.expressions == null;
   }
 
   @Override

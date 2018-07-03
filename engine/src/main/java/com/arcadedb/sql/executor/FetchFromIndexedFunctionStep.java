@@ -46,10 +46,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
         if (localCount >= nRecords) {
           return false;
         }
-        if (!fullResult.hasNext()) {
-          return false;
-        }
-        return true;
+        return fullResult.hasNext();
       }
 
       @Override

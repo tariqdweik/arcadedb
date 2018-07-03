@@ -63,10 +63,7 @@ public class SleepStatement extends SimpleExecStatement {
 
     SleepStatement that = (SleepStatement) o;
 
-    if (millis != null ? !millis.equals(that.millis) : that.millis != null)
-      return false;
-
-    return true;
+    return millis != null ? millis.equals(that.millis) : that.millis == null;
   }
 
   @Override public int hashCode() {

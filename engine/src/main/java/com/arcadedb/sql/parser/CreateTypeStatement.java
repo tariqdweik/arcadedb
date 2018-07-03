@@ -172,11 +172,7 @@ public class CreateTypeStatement extends ODDLStatement {
       return false;
     if (totalBucketNo != null ? !totalBucketNo.equals(that.totalBucketNo) : that.totalBucketNo != null)
       return false;
-    if (ifNotExists != that.ifNotExists) {
-      return false;
-    }
-
-    return true;
+    return ifNotExists == that.ifNotExists;
   }
 
   @Override

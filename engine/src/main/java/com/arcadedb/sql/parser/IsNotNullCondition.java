@@ -81,10 +81,7 @@ public class IsNotNullCondition extends BooleanExpression {
   }
 
   @Override public boolean refersToParent() {
-    if (expression != null && expression.refersToParent()) {
-      return true;
-    }
-    return false;
+    return expression != null && expression.refersToParent();
   }
 
   @Override public boolean equals(Object o) {
@@ -95,10 +92,7 @@ public class IsNotNullCondition extends BooleanExpression {
 
     IsNotNullCondition that = (IsNotNullCondition) o;
 
-    if (expression != null ? !expression.equals(that.expression) : that.expression != null)
-      return false;
-
-    return true;
+    return expression != null ? expression.equals(that.expression) : that.expression == null;
   }
 
   @Override public int hashCode() {

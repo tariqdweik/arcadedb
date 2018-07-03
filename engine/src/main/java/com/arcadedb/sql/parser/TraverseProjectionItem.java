@@ -73,10 +73,7 @@ public class TraverseProjectionItem extends SimpleNode {
   }
 
   private boolean isValidIdentifiable(Object val) {
-    if (!(val instanceof Identifiable)) {
-      return false;
-    }
-    return true;
+    return val instanceof Identifiable;
   }
 
   private boolean isOResult(Object val) {
@@ -115,10 +112,7 @@ public class TraverseProjectionItem extends SimpleNode {
 
     if (base != null ? !base.equals(that.base) : that.base != null)
       return false;
-    if (modifier != null ? !modifier.equals(that.modifier) : that.modifier != null)
-      return false;
-
-    return true;
+    return modifier != null ? modifier.equals(that.modifier) : that.modifier == null;
   }
 
   @Override public int hashCode() {

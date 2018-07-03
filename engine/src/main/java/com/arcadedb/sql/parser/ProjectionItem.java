@@ -53,10 +53,7 @@ public class ProjectionItem extends SimpleNode {
     if (all) {
       return true;
     }
-    if (expression != null && "*".equals(expression.toString())) {
-      return true;
-    }
-    return false;
+    return expression != null && "*".equals(expression.toString());
   }
 
   public void setAll(boolean all) {
@@ -232,10 +229,7 @@ public class ProjectionItem extends SimpleNode {
       return false;
     if (nestedProjection != null ? !nestedProjection.equals(that.nestedProjection) : that.nestedProjection != null)
       return false;
-    if (aggregate != null ? !aggregate.equals(that.aggregate) : that.aggregate != null)
-      return false;
-
-    return true;
+    return aggregate != null ? aggregate.equals(that.aggregate) : that.aggregate == null;
   }
 
   @Override

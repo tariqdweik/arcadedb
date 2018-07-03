@@ -93,7 +93,7 @@ public class FunctionCall extends SimpleNode {
 
     if (record == null) {
       if (targetObjects instanceof Identifiable) {
-        record = (Identifiable) targetObjects;
+        record = targetObjects;
       } else if (targetObjects instanceof Result) {
         record = ((Result) targetObjects).toElement();
       } else {
@@ -370,10 +370,7 @@ public class FunctionCall extends SimpleNode {
 
     if (name != null ? !name.equals(that.name) : that.name != null)
       return false;
-    if (params != null ? !params.equals(that.params) : that.params != null)
-      return false;
-
-    return true;
+    return params != null ? params.equals(that.params) : that.params == null;
   }
 
   @Override
@@ -419,7 +416,7 @@ public class FunctionCall extends SimpleNode {
   public void deserialize(Result fromResult) {
     if (fromResult.getProperty("name") != null) {
       name = new Identifier(-1);
-      name.deserialize(fromResult.getProperty("name"));
+      Identifier.deserialize(fromResult.getProperty("name"));
     }
     if (fromResult.getProperty("params") != null) {
       params = new ArrayList<>();
@@ -445,10 +442,7 @@ public class FunctionCall extends SimpleNode {
   }
 
   public boolean isCacheable() {
-    if (isGraphFunction()) {
-      return true;
-    }
-    return false;//TODO
+    return isGraphFunction();
   }
 
   private boolean isGraphFunction() {
@@ -477,10 +471,7 @@ public class FunctionCall extends SimpleNode {
     if (string.equalsIgnoreCase("bothE")) {
       return true;
     }
-    if (string.equalsIgnoreCase("bothV")) {
-      return true;
-    }
-    return false;
+    return string.equalsIgnoreCase("bothV");
   }
 }
 /* JavaCC - OriginalChecksum=290d4e1a3f663299452e05f8db718419 (do not edit this line) */

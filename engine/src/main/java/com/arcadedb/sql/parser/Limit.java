@@ -79,10 +79,7 @@ public class Limit extends SimpleNode {
 
     if (num != null ? !num.equals(oLimit.num) : oLimit.num != null)
       return false;
-    if (inputParam != null ? !inputParam.equals(oLimit.inputParam) : oLimit.inputParam != null)
-      return false;
-
-    return true;
+    return inputParam != null ? inputParam.equals(oLimit.inputParam) : oLimit.inputParam == null;
   }
 
   @Override

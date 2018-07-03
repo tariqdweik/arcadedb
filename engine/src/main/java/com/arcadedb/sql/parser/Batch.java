@@ -75,10 +75,7 @@ public class Batch extends SimpleNode {
 
     if (num != null ? !num.equals(oBatch.num) : oBatch.num != null)
       return false;
-    if (inputParam != null ? !inputParam.equals(oBatch.inputParam) : oBatch.inputParam != null)
-      return false;
-
-    return true;
+    return inputParam != null ? inputParam.equals(oBatch.inputParam) : oBatch.inputParam == null;
   }
 
   @Override public int hashCode() {

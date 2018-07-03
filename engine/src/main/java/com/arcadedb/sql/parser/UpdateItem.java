@@ -96,10 +96,7 @@ public class UpdateItem extends SimpleNode {
       return false;
     if (leftModifier != null ? !leftModifier.equals(that.leftModifier) : that.leftModifier != null)
       return false;
-    if (right != null ? !right.equals(that.right) : that.right != null)
-      return false;
-
-    return true;
+    return right != null ? right.equals(that.right) : that.right == null;
   }
 
   @Override

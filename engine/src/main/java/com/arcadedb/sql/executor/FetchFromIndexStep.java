@@ -11,7 +11,6 @@ import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.sql.parser.*;
-import com.arcadedb.sql.parser.PCollection;
 import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
@@ -42,13 +41,12 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   private Iterator                   nullKeyIterator;
   private Pair<Object, Identifiable> nextEntry = null;
 
-  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition, CommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, true, ctx, profilingEnabled);
   }
 
-  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc,
-      CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc, CommandContext ctx,
+      boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
     this.indexName = index.getName();
@@ -57,8 +55,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     this.orderAsc = orderAsc;
   }
 
-  public FetchFromIndexStep(String indexName, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      boolean orderAsc, CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexStep(String indexName, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc, CommandContext ctx,
+      boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.indexName = indexName;
     this.condition = condition;
@@ -79,11 +77,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
           return false;
         }
         if (nextEntry == null) {
-          try {
-            fetchNextEntry();
-          } catch (IOException e) {
-            throw new CommandExecutionException(e);
-          }
+          fetchNextEntry();
         }
         return nextEntry != null;
       }
@@ -130,7 +124,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     };
   }
 
-  private void fetchNextEntry() throws IOException {
+  private void fetchNextEntry() {
     nextEntry = null;
     while (true) {
       if (cursor == null) {
@@ -483,8 +477,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     throw new UnsupportedOperationException();
   }
 
-  private IndexCursor createCursor(BinaryCompareOperator operator, Object value, CommandContext ctx)
-      throws IOException {
+  private IndexCursor createCursor(BinaryCompareOperator operator, Object value, CommandContext ctx) throws IOException {
     boolean orderAsc = isOrderAsc();
     if (operator instanceof EqualsCompareOperator) {
       if (value instanceof Object[]) {
@@ -520,8 +513,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);
         BinaryCompareOperator operator = binaryCond.getOperator();
-        if ((operator instanceof EqualsCompareOperator) || (operator instanceof GtOperator)
-            || (operator instanceof GeOperator)) {
+        if ((operator instanceof EqualsCompareOperator) || (operator instanceof GtOperator) || (operator instanceof GeOperator)) {
           result.add(binaryCond.getRight());
         } else if (additional != null) {
           result.add(additional.getRight());
@@ -555,8 +547,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);
         BinaryCompareOperator operator = binaryCond.getOperator();
-        if ((operator instanceof EqualsCompareOperator) || (operator instanceof LtOperator)
-            || (operator instanceof LeOperator)) {
+        if ((operator instanceof EqualsCompareOperator) || (operator instanceof LtOperator) || (operator instanceof LeOperator)) {
           result.add(binaryCond.getRight());
         } else if (additional != null) {
           result.add(additional.getRight());
@@ -590,22 +581,11 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     if (exp instanceof BinaryCondition) {
       BinaryCompareOperator operator = ((BinaryCondition) exp).getOperator();
       if (isGreaterOperator(operator)) {
-        if (isIncludeOperator(operator)) {
-          return true;
-        } else {
-          return false;
-        }
-      } else if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+        return isIncludeOperator(operator);
+      } else
+        return additionalOperator == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator));
     } else if (exp instanceof InCondition || exp instanceof ContainsAnyCondition) {
-      if (additional == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+      return additional == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator));
     } else {
       throw new UnsupportedOperationException("Cannot execute index query with " + exp);
     }
@@ -634,26 +614,15 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
   private boolean indexKeyToIncluded(AndBlock keyCondition, BinaryCondition additional) {
     BooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
-    BinaryCompareOperator additionalOperator = additional == null ? null : ((BinaryCondition) additional).getOperator();
+    BinaryCompareOperator additionalOperator = additional == null ? null : additional.getOperator();
     if (exp instanceof BinaryCondition) {
       BinaryCompareOperator operator = ((BinaryCondition) exp).getOperator();
       if (isLessOperator(operator)) {
-        if (isIncludeOperator(operator)) {
-          return true;
-        } else {
-          return false;
-        }
-      } else if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+        return isIncludeOperator(operator);
+      } else
+        return additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator));
     } else if (exp instanceof InCondition || exp instanceof ContainsAnyCondition) {
-      if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+      return additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator));
     } else {
       throw new UnsupportedOperationException("Cannot execute index query with " + exp);
     }
@@ -735,8 +704,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   @Override
   public ExecutionStep copy(CommandContext ctx) {
     FetchFromIndexStep result = new FetchFromIndexStep(indexName, this.condition == null ? null : this.condition.copy(),
-        this.additionalRangeCondition == null ? null : this.additionalRangeCondition.copy(), this.orderAsc, ctx,
-        this.profilingEnabled);
+        this.additionalRangeCondition == null ? null : this.additionalRangeCondition.copy(), this.orderAsc, ctx, this.profilingEnabled);
     return result;
   }
 }

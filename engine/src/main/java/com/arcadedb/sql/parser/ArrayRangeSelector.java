@@ -145,10 +145,7 @@ public class ArrayRangeSelector extends SimpleNode {
     if (fromSelector != null && fromSelector.needsAliases(aliases)) {
       return true;
     }
-    if (toSelector != null && toSelector.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return toSelector != null && toSelector.needsAliases(aliases);
   }
 
   public ArrayRangeSelector copy() {
@@ -183,10 +180,7 @@ public class ArrayRangeSelector extends SimpleNode {
       return false;
     if (fromSelector != null ? !fromSelector.equals(that.fromSelector) : that.fromSelector != null)
       return false;
-    if (toSelector != null ? !toSelector.equals(that.toSelector) : that.toSelector != null)
-      return false;
-
-    return true;
+    return toSelector != null ? toSelector.equals(that.toSelector) : that.toSelector == null;
   }
 
   @Override
@@ -213,10 +207,7 @@ public class ArrayRangeSelector extends SimpleNode {
     if (fromSelector != null && fromSelector.refersToParent()) {
       return true;
     }
-    if (toSelector != null && toSelector.refersToParent()) {
-      return true;
-    }
-    return false;
+    return toSelector != null && toSelector.refersToParent();
   }
 
   /**

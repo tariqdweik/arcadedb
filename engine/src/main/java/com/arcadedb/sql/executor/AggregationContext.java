@@ -10,7 +10,7 @@ package com.arcadedb.sql.executor;
 public interface AggregationContext {
 
 
-  public Object getFinalValue();
+  Object getFinalValue();
 
   void apply(Result next, CommandContext ctx);
 }

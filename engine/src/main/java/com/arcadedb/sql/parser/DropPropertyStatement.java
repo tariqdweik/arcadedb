@@ -130,10 +130,7 @@ public class DropPropertyStatement extends ODDLStatement {
     }
     if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
       return false;
-    if (propertyName != null ? !propertyName.equals(that.propertyName) : that.propertyName != null)
-      return false;
-
-    return true;
+    return propertyName != null ? propertyName.equals(that.propertyName) : that.propertyName == null;
   }
 
   @Override public int hashCode() {

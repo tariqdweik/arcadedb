@@ -107,10 +107,7 @@ public class ProfileStatement extends Statement {
 
     ProfileStatement that = (ProfileStatement) o;
 
-    if (statement != null ? !statement.equals(that.statement) : that.statement != null)
-      return false;
-
-    return true;
+    return statement != null ? statement.equals(that.statement) : that.statement == null;
   }
 
   @Override

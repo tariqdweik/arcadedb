@@ -88,10 +88,7 @@ public class IsDefinedCondition extends BooleanExpression implements SimpleBoole
 
   @Override
   public boolean refersToParent() {
-    if (expression != null && expression.refersToParent()) {
-      return true;
-    }
-    return false;
+    return expression != null && expression.refersToParent();
   }
 
   @Override
@@ -103,10 +100,7 @@ public class IsDefinedCondition extends BooleanExpression implements SimpleBoole
 
     IsDefinedCondition that = (IsDefinedCondition) o;
 
-    if (expression != null ? !expression.equals(that.expression) : that.expression != null)
-      return false;
-
-    return true;
+    return expression != null ? expression.equals(that.expression) : that.expression == null;
   }
 
   @Override

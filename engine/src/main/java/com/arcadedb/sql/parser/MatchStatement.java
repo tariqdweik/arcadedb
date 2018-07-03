@@ -424,10 +424,7 @@ public class MatchStatement extends Statement {
     if (limit != null ? !limit.equals(that.limit) : that.limit != null)
       return false;
 
-    if (returnDistinct != that.returnDistinct)
-      return false;
-
-    return true;
+    return returnDistinct == that.returnDistinct;
   }
 
   @Override

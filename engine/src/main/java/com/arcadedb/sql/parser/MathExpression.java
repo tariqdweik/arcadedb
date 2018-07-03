@@ -989,10 +989,7 @@ public class MathExpression extends SimpleNode {
 
     if (childExpressions != null ? !childExpressions.equals(that.childExpressions) : that.childExpressions != null)
       return false;
-    if (operators != null ? !operators.equals(that.operators) : that.operators != null)
-      return false;
-
-    return true;
+    return operators != null ? operators.equals(that.operators) : that.operators == null;
   }
 
   @Override

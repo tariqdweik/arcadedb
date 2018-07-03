@@ -90,10 +90,7 @@ public class PInteger extends PNumber {
 
     PInteger oInteger = (PInteger) o;
 
-    if (value != null ? !value.equals(oInteger.value) : oInteger.value != null)
-      return false;
-
-    return true;
+    return value != null ? value.equals(oInteger.value) : oInteger.value == null;
   }
 
   @Override

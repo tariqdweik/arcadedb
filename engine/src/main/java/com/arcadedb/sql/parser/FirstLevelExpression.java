@@ -28,10 +28,7 @@ public class FirstLevelExpression extends MathExpression {
 
   //never used, this class is never returned by the parser!
   public boolean isBaseIdentifier() {
-    if (value instanceof Identifier) {
-      return true;
-    }
-    return false;
+    return value instanceof Identifier;
   }
 
   //never used, this class is never returned by the parser!

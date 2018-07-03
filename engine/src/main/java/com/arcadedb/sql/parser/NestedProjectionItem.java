@@ -65,9 +65,7 @@ public class NestedProjectionItem extends SimpleNode {
       if (fieldString.equals(propertyName)) {
         return true;
       }
-      if (rightWildcard && propertyName.startsWith(fieldString)) {
-        return true;
-      }
+      return rightWildcard && propertyName.startsWith(fieldString);
     }
     return false;
   }
@@ -163,7 +161,7 @@ public class NestedProjectionItem extends SimpleNode {
     }
     if (fromResult.getProperty("alias") != null) {
       alias = new Identifier(-1);
-      alias.deserialize(fromResult.getProperty("alias"));
+      Identifier.deserialize(fromResult.getProperty("alias"));
     }
   }
 }

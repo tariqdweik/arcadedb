@@ -32,10 +32,7 @@ class IndexCondPair {
 
     if (mainCondition != null ? !mainCondition.equals(that.mainCondition) : that.mainCondition != null)
       return false;
-    if (additionalRange != null ? !additionalRange.equals(that.additionalRange) : that.additionalRange != null)
-      return false;
-
-    return true;
+    return additionalRange != null ? additionalRange.equals(that.additionalRange) : that.additionalRange == null;
   }
 
   @Override public int hashCode() {

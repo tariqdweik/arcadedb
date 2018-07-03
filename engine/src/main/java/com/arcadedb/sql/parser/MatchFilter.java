@@ -198,10 +198,7 @@ public class MatchFilter extends SimpleNode {
 
     MatchFilter that = (MatchFilter) o;
 
-    if (items != null ? !items.equals(that.items) : that.items != null)
-      return false;
-
-    return true;
+    return items != null ? items.equals(that.items) : that.items == null;
   }
 
   @Override

@@ -25,7 +25,7 @@ public class BucketIterator implements Iterator<Record> {
   Record   next                = null;
   int      currentRecordInPage = 0;
 
-  BucketIterator(Bucket bucket, Database db) throws IOException {
+  BucketIterator(Bucket bucket, Database db) {
     this.bucket = bucket;
     this.database = db;
     this.totalPages = bucket.pageCount.get();
@@ -42,18 +42,18 @@ public class BucketIterator implements Iterator<Record> {
             return null;
           }
           currentPage = database.getTransaction().getPage(new PageId(bucket.file.getFileId(), nextPageNumber), bucket.pageSize);
-          recordCountInCurrentPage = currentPage.readShort(bucket.PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+          recordCountInCurrentPage = currentPage.readShort(Bucket.PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
         }
 
         if (recordCountInCurrentPage > 0 && currentRecordInPage < recordCountInCurrentPage) {
           final int recordPositionInPage = currentPage
-              .readUnsignedShort(bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
+              .readUnsignedShort(Bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
 
           final int recordSize = currentPage.readUnsignedShort(recordPositionInPage);
 
           if (recordSize > 0) {
             // NOT DELETED
-            final RID rid = new RID(database, bucket.id, nextPageNumber * bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
+            final RID rid = new RID(database, bucket.id, nextPageNumber * Bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
 
             currentRecordInPage++;
 

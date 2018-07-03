@@ -93,11 +93,8 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
           fetchNextItem();
         }
 
-        if (nextItem != null) {
-          return true;
-        }
+        return nextItem != null;
 
-        return false;
       }
 
       @Override

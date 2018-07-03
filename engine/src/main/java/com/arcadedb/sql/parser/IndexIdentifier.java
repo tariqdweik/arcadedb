@@ -91,10 +91,7 @@ public class IndexIdentifier extends SimpleNode {
       return false;
     if (indexNameString != null ? !indexNameString.equals(that.indexNameString) : that.indexNameString != null)
       return false;
-    if (indexName != null ? !indexName.equals(that.indexName) : that.indexName != null)
-      return false;
-
-    return true;
+    return indexName != null ? indexName.equals(that.indexName) : that.indexName == null;
   }
 
   @Override

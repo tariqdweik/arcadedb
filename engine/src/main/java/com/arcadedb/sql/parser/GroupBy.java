@@ -62,10 +62,7 @@ public class GroupBy extends SimpleNode {
 
     GroupBy oGroupBy = (GroupBy) o;
 
-    if (items != null ? !items.equals(oGroupBy.items) : oGroupBy.items != null)
-      return false;
-
-    return true;
+    return items != null ? items.equals(oGroupBy.items) : oGroupBy.items == null;
   }
 
   @Override

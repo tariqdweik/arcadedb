@@ -177,10 +177,7 @@ public class OrBlock extends BooleanExpression {
 
     OrBlock oOrBlock = (OrBlock) o;
 
-    if (subBlocks != null ? !subBlocks.equals(oOrBlock.subBlocks) : oOrBlock.subBlocks != null)
-      return false;
-
-    return true;
+    return subBlocks != null ? subBlocks.equals(oOrBlock.subBlocks) : oOrBlock.subBlocks == null;
   }
 
   @Override

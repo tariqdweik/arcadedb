@@ -57,10 +57,7 @@ public class FromClause extends SimpleNode {
 
     FromClause that = (FromClause) o;
 
-    if (item != null ? !item.equals(that.item) : that.item != null)
-      return false;
-
-    return true;
+    return item != null ? item.equals(that.item) : that.item == null;
   }
 
   @Override public int hashCode() {

@@ -59,10 +59,7 @@ public class BeginStatement extends SimpleExecStatement {
 
     BeginStatement that = (BeginStatement) o;
 
-    if (isolation != null ? !isolation.equals(that.isolation) : that.isolation != null)
-      return false;
-
-    return true;
+    return isolation != null ? isolation.equals(that.isolation) : that.isolation == null;
   }
 
   @Override public int hashCode() {

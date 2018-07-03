@@ -134,7 +134,7 @@ public class UpdateStatement extends Statement {
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
-    ctx.setDatabase((DatabaseInternal) db);
+    ctx.setDatabase(db);
     Map<Object, Object> params = new HashMap<>();
     if (args != null) {
       for (int i = 0; i < args.length; i++) {
@@ -153,7 +153,7 @@ public class UpdateStatement extends Statement {
     if (parentCtx != null) {
       ctx.setParentWithoutOverridingChild(parentCtx);
     }
-    ctx.setDatabase((DatabaseInternal) db);
+    ctx.setDatabase(db);
     ctx.setInputParameters(params);
     UpdateExecutionPlan executionPlan = createExecutionPlan(ctx, false);
     executionPlan.executeInternal();
@@ -192,10 +192,7 @@ public class UpdateStatement extends Statement {
       return false;
     if (limit != null ? !limit.equals(that.limit) : that.limit != null)
       return false;
-    if (timeout != null ? !timeout.equals(that.timeout) : that.timeout != null)
-      return false;
-
-    return true;
+    return timeout != null ? timeout.equals(that.timeout) : that.timeout == null;
   }
 
   @Override

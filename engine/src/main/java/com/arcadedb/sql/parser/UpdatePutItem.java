@@ -57,10 +57,7 @@ public class UpdatePutItem extends SimpleNode {
       return false;
     if (key != null ? !key.equals(that.key) : that.key != null)
       return false;
-    if (value != null ? !value.equals(that.value) : that.value != null)
-      return false;
-
-    return true;
+    return value != null ? value.equals(that.value) : that.value == null;
   }
 
   @Override public int hashCode() {

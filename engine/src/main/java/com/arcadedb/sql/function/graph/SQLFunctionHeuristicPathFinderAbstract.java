@@ -78,7 +78,7 @@ public abstract class SQLFunctionHeuristicPathFinderAbstract extends SQLFunction
     final Set<Vertex> neighbors = new HashSet<Vertex>();
     if (node != null) {
       for (Vertex v : node.getVertices(paramDirection, paramEdgeTypeNames)) {
-        final Vertex ov = (Vertex) v;
+        final Vertex ov = v;
         if (ov != null)
           neighbors.add(ov);
       }

@@ -47,10 +47,7 @@ public abstract class AbstractUnrollStep extends AbstractExecutionStep {
         if (nextElement == null) {
           fetchNext(ctx, nRecords);
         }
-        if (nextElement == null) {
-          return false;
-        }
-        return true;
+        return nextElement != null;
       }
 
       @Override public Result next() {

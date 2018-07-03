@@ -83,10 +83,7 @@ public class IsNotDefinedCondition extends BooleanExpression {
 
   @Override
   public boolean refersToParent() {
-    if (expression != null && expression.refersToParent()) {
-      return true;
-    }
-    return false;
+    return expression != null && expression.refersToParent();
   }
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
@@ -103,10 +100,7 @@ public class IsNotDefinedCondition extends BooleanExpression {
 
     IsNotDefinedCondition that = (IsNotDefinedCondition) o;
 
-    if (expression != null ? !expression.equals(that.expression) : that.expression != null)
-      return false;
-
-    return true;
+    return expression != null ? expression.equals(that.expression) : that.expression == null;
   }
 
   @Override

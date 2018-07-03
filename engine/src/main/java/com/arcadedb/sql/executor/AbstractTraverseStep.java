@@ -49,10 +49,7 @@ public abstract class AbstractTraverseStep extends AbstractExecutionStep {
         if (results.isEmpty()) {
           fetchNextBlock(ctx, nRecords);
         }
-        if (results.isEmpty()) {
-          return false;
-        }
-        return true;
+        return !results.isEmpty();
       }
 
       @Override

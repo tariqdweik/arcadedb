@@ -162,11 +162,8 @@ public class Modifier extends SimpleNode {
       return true;
     }
 
-    if (next != null && next.needsAliases(aliases)) {
-      return true;
-    }
+    return next != null && next.needsAliases(aliases);
 
-    return false;
   }
 
   public Modifier copy() {
@@ -208,10 +205,7 @@ public class Modifier extends SimpleNode {
       return false;
     if (suffix != null ? !suffix.equals(oModifier.suffix) : oModifier.suffix != null)
       return false;
-    if (next != null ? !next.equals(oModifier.next) : oModifier.next != null)
-      return false;
-
-    return true;
+    return next != null ? next.equals(oModifier.next) : oModifier.next == null;
   }
 
   @Override
@@ -269,10 +263,7 @@ public class Modifier extends SimpleNode {
     if (methodCall != null && methodCall.refersToParent()) {
       return true;
     }
-    if (suffix != null && suffix.refersToParent()) {
-      return true;
-    }
-    return false;
+    return suffix != null && suffix.refersToParent();
   }
 
   protected void setValue(Result currentRecord, Object target, Object value, CommandContext ctx) {
@@ -434,11 +425,7 @@ public class Modifier extends SimpleNode {
     if (suffix != null && !suffix.isCacheable()) {
       return false;
     }
-    if (next != null && !next.isCacheable()) {
-      return false;
-    }
-
-    return true;
+    return next == null || next.isCacheable();
 
   }
 }

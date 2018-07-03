@@ -115,10 +115,7 @@ public class InsertBody extends SimpleNode {
       return false;
     if (setExpressions != null ? !setExpressions.equals(that.setExpressions) : that.setExpressions != null)
       return false;
-    if (content != null ? !content.equals(that.content) : that.content != null)
-      return false;
-
-    return true;
+    return content != null ? content.equals(that.content) : that.content == null;
   }
 
   @Override public int hashCode() {

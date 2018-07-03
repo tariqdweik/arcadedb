@@ -9,7 +9,7 @@ package com.arcadedb.sql.executor;
  */
 public interface InternalExecutionPlan extends ExecutionPlan {
 
-  public static final String JAVA_TYPE = "javaType";
+  String JAVA_TYPE = "javaType";
 
   void close();
 

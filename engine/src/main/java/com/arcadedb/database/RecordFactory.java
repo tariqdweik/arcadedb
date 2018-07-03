@@ -15,9 +15,9 @@ public class RecordFactory {
     case Vertex.RECORD_TYPE:
       return new ImmutableVertex(database, typeName, rid, null);
     case Edge.RECORD_TYPE:
-      return new ImmutableEdge(database, typeName, rid, (Binary) null);
+      return new ImmutableEdge(database, typeName, rid, null);
     case EdgeChunk.RECORD_TYPE:
-      return new ModifiableEdgeChunk(database, rid, (Binary) null);
+      return new ModifiableEdgeChunk(database, rid, null);
     }
     throw new DatabaseMetadataException("Cannot find record type '" + type + "'");
   }

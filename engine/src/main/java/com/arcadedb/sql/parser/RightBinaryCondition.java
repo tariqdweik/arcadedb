@@ -151,10 +151,7 @@ public class RightBinaryCondition extends SimpleNode {
   }
 
   public boolean needsAliases(Set<String> aliases) {
-    if (right != null && right.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return right != null && right.needsAliases(aliases);
   }
 
   public void extractSubQueries(SubQueryCollector collector) {
@@ -164,10 +161,7 @@ public class RightBinaryCondition extends SimpleNode {
   }
 
   public boolean refersToParent() {
-    if (right != null && right.refersToParent()) {
-      return true;
-    }
-    return false;
+    return right != null && right.refersToParent();
   }
 
   public Result serialize() {

@@ -164,10 +164,7 @@ public class Json extends SimpleNode {
 
     Json oJson = (Json) o;
 
-    if (items != null ? !items.equals(oJson.items) : oJson.items != null)
-      return false;
-
-    return true;
+    return items != null ? items.equals(oJson.items) : oJson.items == null;
   }
 
   @Override

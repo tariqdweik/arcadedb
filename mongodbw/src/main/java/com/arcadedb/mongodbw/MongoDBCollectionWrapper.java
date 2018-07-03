@@ -56,7 +56,7 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
     }
 
     public Document next() {
-      Document document = (Document) this.iterator.next();
+      Document document = this.iterator.next();
       return projectDocument(document, this.fieldSelector, this.idField);
     }
 
@@ -105,12 +105,12 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   @Override
-  public void addDocument(Document document) throws MongoServerException {
+  public void addDocument(Document document) {
 
   }
 
   @Override
-  public void removeDocument(Document document) throws MongoServerException {
+  public void removeDocument(Document document) {
 
   }
 
@@ -142,7 +142,7 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   @Override
-  public int insertDocuments(final List<Document> list) throws MongoServerException {
+  public int insertDocuments(final List<Document> list) {
     database.begin();
 
     int total = 0;
@@ -176,43 +176,42 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   @Override
-  public Document updateDocuments(final Document document, final Document document1, boolean b, boolean b1)
-      throws MongoServerException {
+  public Document updateDocuments(final Document document, final Document document1, boolean b, boolean b1) {
     return null;
   }
 
   @Override
-  public int deleteDocuments(final Document document, final int limit) throws MongoServerException {
+  public int deleteDocuments(final Document document, final int limit) {
     return 0;
   }
 
   @Override
-  public Document handleDistinct(Document document) throws MongoServerException {
+  public Document handleDistinct(Document document) {
     return null;
   }
 
   @Override
-  public Document getStats() throws MongoServerException {
+  public Document getStats() {
     return null;
   }
 
   @Override
-  public Document validate() throws MongoServerException {
+  public Document validate() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Document findAndModify(Document document) throws MongoServerException {
+  public Document findAndModify(Document document) {
     return null;
   }
 
   @Override
-  public int count(Document document, int i, int i1) throws MongoServerException {
+  public int count(Document document, int i, int i1) {
     return (int) database.countType(collectionName, false);
   }
 
   @Override
-  public int count() throws MongoServerException {
+  public int count() {
     return (int) database.countType(getCollectionName(), false);
   }
 
@@ -222,17 +221,16 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   @Override
-  public void drop() throws MongoServerException {
+  public void drop() {
     database.getSchema().dropType(collectionName);
   }
 
   @Override
-  public void renameTo(String s, String s1) throws MongoServerException {
+  public void renameTo(String s, String s1) {
     throw new UnsupportedOperationException();
   }
 
-  private Iterable<Document> queryDocuments(Document query, Document orderBy, int numberToSkip, int numberToReturn)
-      throws MongoServerException {
+  private Iterable<Document> queryDocuments(Document query, Document orderBy, int numberToSkip, int numberToReturn) {
     final List<Document> result = new ArrayList<>();
 
     Iterator it;
@@ -262,7 +260,7 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
       if (key instanceof String && ((String) key).startsWith("$"))
         buildExpression(buffer, (String) key, value);
       else if (value instanceof Document) {
-        buildAnd(buffer, key, (Document) value);
+        buildAnd(buffer, key, value);
       } else if (value instanceof List) {
         if (key.equals("$or")) {
           buildOr(buffer, (List) value);

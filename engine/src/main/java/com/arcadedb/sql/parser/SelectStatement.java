@@ -242,11 +242,7 @@ public class SelectStatement extends Statement {
       return false;
     }
 
-    if (whereClause != null && !whereClause.isCacheable()) {
-      return false;
-    }
-
-    return true;
+    return whereClause == null || whereClause.isCacheable();
   }
 
   @Override
@@ -348,10 +344,7 @@ public class SelectStatement extends Statement {
       return false;
     if (parallel != null ? !parallel.equals(that.parallel) : that.parallel != null)
       return false;
-    if (noCache != null ? !noCache.equals(that.noCache) : that.noCache != null)
-      return false;
-
-    return true;
+    return noCache != null ? noCache.equals(that.noCache) : that.noCache == null;
   }
 
   @Override
@@ -389,10 +382,7 @@ public class SelectStatement extends Statement {
     if (orderBy != null && orderBy.refersToParent()) {
       return true;
     }
-    if (letClause != null && letClause.refersToParent()) {
-      return true;
-    }
-    return false;
+    return letClause != null && letClause.refersToParent();
   }
 
   public Unwind getUnwind() {

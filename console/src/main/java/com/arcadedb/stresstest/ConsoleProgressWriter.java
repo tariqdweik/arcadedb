@@ -28,7 +28,7 @@ public class ConsoleProgressWriter extends SoftThread {
   }
 
   @Override
-  protected void execute() throws Exception {
+  protected void execute() {
     final String result = workload.getPartialResult();
     if (lastResult == null || !lastResult.equals(result))
       System.out.print("\r- Workload in progress " + result);

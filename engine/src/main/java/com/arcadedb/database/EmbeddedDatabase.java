@@ -168,7 +168,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public void drop() {
     super.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         checkDatabaseIsOpen();
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot drop database");
@@ -190,7 +190,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
     super.executeInWriteLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         if (!open)
           return null;
 
@@ -290,7 +290,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public long countBucket(final String bucketName) {
     return (Long) super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         checkDatabaseIsOpen();
         return schema.getBucketByName(bucketName).count();
       }
@@ -321,20 +321,17 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       public Object call() {
 
         checkDatabaseIsOpen();
-        try {
-          final DocumentType type = schema.getType(typeName);
 
-          for (Bucket b : type.getBuckets(polymorphic)) {
-            b.scan(new RawRecordCallback() {
-              @Override
-              public boolean onRecord(final RID rid, final Binary view) {
-                final Document record = (Document) recordFactory.newImmutableRecord(EmbeddedDatabase.this, typeName, rid, view);
-                return callback.onRecord(record);
-              }
-            });
-          }
-        } catch (IOException e) {
-          throw new DatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
+        final DocumentType type = schema.getType(typeName);
+
+        for (Bucket b : type.getBuckets(polymorphic)) {
+          b.scan(new RawRecordCallback() {
+            @Override
+            public boolean onRecord(final RID rid, final Binary view) {
+              final Document record = (Document) recordFactory.newImmutableRecord(EmbeddedDatabase.this, typeName, rid, view);
+              return callback.onRecord(record);
+            }
+          });
         }
         return null;
       }
@@ -348,18 +345,15 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       public Object call() {
 
         checkDatabaseIsOpen();
-        try {
-          final String type = schema.getTypeNameByBucketId(schema.getBucketByName(bucketName).getId());
-          schema.getBucketByName(bucketName).scan(new RawRecordCallback() {
-            @Override
-            public boolean onRecord(final RID rid, final Binary view) {
-              final Record record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, type, rid, view);
-              return callback.onRecord(record);
-            }
-          });
-        } catch (IOException e) {
-          throw new DatabaseOperationException("Error on executing scan of bucket '" + bucketName + "'", e);
-        }
+
+        final String type = schema.getTypeNameByBucketId(schema.getBucketByName(bucketName).getId());
+        schema.getBucketByName(bucketName).scan(new RawRecordCallback() {
+          @Override
+          public boolean onRecord(final RID rid, final Binary view) {
+            final Record record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, type, rid, view);
+            return callback.onRecord(record);
+          }
+        });
         return null;
       }
     });
@@ -443,7 +437,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public Cursor<RID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
     return (Cursor<RID>) super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
 
         checkDatabaseIsOpen();
         final DocumentType t = schema.getType(type);
@@ -508,7 +502,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
 
         final boolean begunHere = checkTransactionIsActive();
 
@@ -536,7 +530,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public void createRecord(final Record record, final String bucketName) {
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         createRecordNoLock(record, bucketName);
         return null;
       }
@@ -567,7 +561,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public void updateRecord(final Record record) {
     super.executeInReadLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         updateRecordNoLock(record);
         return null;
       }

@@ -110,10 +110,7 @@ public class NotInCondition extends BooleanExpression {
     if (left != null && !left.supportsBasicCalculation()) {
       return false;
     }
-    if (rightMathExpression != null && !rightMathExpression.supportsBasicCalculation()) {
-      return false;
-    }
-    return true;
+    return rightMathExpression == null || rightMathExpression.supportsBasicCalculation();
 
   }
 
@@ -150,21 +147,18 @@ public class NotInCondition extends BooleanExpression {
       return true;
     }
 
-    if (rightMathExpression != null && rightMathExpression.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return rightMathExpression != null && rightMathExpression.needsAliases(aliases);
   }
 
   @Override
   public NotInCondition copy() {
     NotInCondition result = new NotInCondition(-1);
-    result.operator = operator == null ? null : (BinaryCompareOperator) operator.copy();
+    result.operator = operator == null ? null : operator.copy();
     result.left = left == null ? null : left.copy();
     result.rightMathExpression = rightMathExpression == null ? null : rightMathExpression.copy();
     result.rightStatement = rightStatement == null ? null : rightStatement.copy();
     result.rightParam = rightParam == null ? null : rightParam.copy();
-    result.right = right == null ? null : right;
+    result.right = right;
     return result;
   }
 
@@ -191,10 +185,7 @@ public class NotInCondition extends BooleanExpression {
     if (rightStatement != null && rightStatement.refersToParent()) {
       return true;
     }
-    if (rightMathExpression != null && rightMathExpression.refersToParent()) {
-      return true;
-    }
-    return false;
+    return rightMathExpression != null && rightMathExpression.refersToParent();
   }
 
   @Override
@@ -218,10 +209,7 @@ public class NotInCondition extends BooleanExpression {
       return false;
     if (rightMathExpression != null ? !rightMathExpression.equals(that.rightMathExpression) : that.rightMathExpression != null)
       return false;
-    if (inputFinalValue != null ? !inputFinalValue.equals(that.inputFinalValue) : that.inputFinalValue != null)
-      return false;
-
-    return true;
+    return inputFinalValue != null ? inputFinalValue.equals(that.inputFinalValue) : that.inputFinalValue == null;
   }
 
   @Override
@@ -262,10 +250,7 @@ public class NotInCondition extends BooleanExpression {
       return false;
     }
 
-    if (rightMathExpression != null && !rightMathExpression.isCacheable()) {
-      return false;
-    }
-    return true;
+    return rightMathExpression == null || rightMathExpression.isCacheable();
   }
 
 }

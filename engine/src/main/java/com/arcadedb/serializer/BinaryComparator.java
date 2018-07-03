@@ -322,7 +322,7 @@ public class BinaryComparator {
         break;
 
       case BinaryTypes.TYPE_BOOLEAN:
-        v2 = (int) (((Boolean) value2) ? 1 : 0);
+        v2 = ((Boolean) value2) ? 1 : 0;
         break;
 
       case BinaryTypes.TYPE_STRING:

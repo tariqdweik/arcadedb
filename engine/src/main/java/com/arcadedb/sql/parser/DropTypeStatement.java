@@ -99,10 +99,7 @@ public class DropTypeStatement extends ODDLStatement {
       return false;
     if (ifExists != that.ifExists)
       return false;
-    if (name != null ? !name.equals(that.name) : that.name != null)
-      return false;
-
-    return true;
+    return name != null ? name.equals(that.name) : that.name == null;
   }
 
   @Override

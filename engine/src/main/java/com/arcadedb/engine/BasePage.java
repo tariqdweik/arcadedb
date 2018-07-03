@@ -70,7 +70,7 @@ public abstract class BasePage {
     try {
       return (ImmutablePage) content.executeInLock(new Callable<Object>() {
         @Override
-        public ImmutablePage call() throws Exception {
+        public ImmutablePage call() {
           return new ImmutablePage(manager, pageId, getPhysicalSize(), content.getByteBuffer().array(), version, content.size());
         }
       });

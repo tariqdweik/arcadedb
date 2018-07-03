@@ -35,8 +35,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   protected final Map<String, MongoCollection<Long>> collections = new ConcurrentHashMap();
   protected final Map<Channel, List<Document>>       lastResults = new ConcurrentHashMap();
 
-  public MongoDBDatabaseWrapper(final ArcadeDBServer server, final String databaseName, final MongoBackend backend)
-      throws MongoServerException {
+  public MongoDBDatabaseWrapper(final ArcadeDBServer server, final String databaseName, final MongoBackend backend) {
     this.server = server;
     this.database = server.getDatabase(databaseName);
     this.backend = backend;
@@ -95,17 +94,17 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   @Override
-  public void handleInsert(final MongoInsert mongoInsert) throws MongoServerException {
+  public void handleInsert(final MongoInsert mongoInsert) {
 
   }
 
   @Override
-  public void handleDelete(final MongoDelete mongoDelete) throws MongoServerException {
+  public void handleDelete(final MongoDelete mongoDelete) {
 
   }
 
   @Override
-  public void handleUpdate(final MongoUpdate mongoUpdate) throws MongoServerException {
+  public void handleUpdate(final MongoUpdate mongoUpdate) {
 
   }
 
@@ -115,29 +114,27 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   @Override
-  public MongoCollection<?> resolveCollection(final String collectionName, final boolean throwExceptionIfNotFound)
-      throws MongoServerException {
+  public MongoCollection<?> resolveCollection(final String collectionName, final boolean throwExceptionIfNotFound) {
     return null;
   }
 
   @Override
-  public void drop() throws MongoServerException {
+  public void drop() {
     database.drop();
   }
 
   @Override
-  public void dropCollection(final String collectionName) throws MongoServerException {
+  public void dropCollection(final String collectionName) {
     database.getSchema().dropType(collectionName);
   }
 
   @Override
-  public void moveCollection(MongoDatabase mongoDatabase, MongoCollection<?> mongoCollection, String s)
-      throws MongoServerException {
+  public void moveCollection(MongoDatabase mongoDatabase, MongoCollection<?> mongoCollection, String s) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public MongoCollection<?> unregisterCollection(final String collectionName) throws MongoServerException {
+  public MongoCollection<?> unregisterCollection(final String collectionName) {
     return null;
   }
 
@@ -235,7 +232,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   private synchronized void clearLastStatus(final Channel channel) {
-    List<Document> results = (List) this.lastResults.get(channel);
+    List<Document> results = this.lastResults.get(channel);
     if (results == null) {
       results = new LimitedList(10);
       this.lastResults.put(channel, results);

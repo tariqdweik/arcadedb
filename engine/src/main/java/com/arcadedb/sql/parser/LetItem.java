@@ -77,10 +77,7 @@ public class LetItem extends SimpleNode {
       return false;
     if (expression != null ? !expression.equals(oLetItem.expression) : oLetItem.expression != null)
       return false;
-    if (query != null ? !query.equals(oLetItem.query) : oLetItem.query != null)
-      return false;
-
-    return true;
+    return query != null ? query.equals(oLetItem.query) : oLetItem.query == null;
   }
 
   @Override
@@ -95,10 +92,7 @@ public class LetItem extends SimpleNode {
     if (expression != null && expression.refersToParent()) {
       return true;
     }
-    if (query != null && query.refersToParent()) {
-      return true;
-    }
-    return false;
+    return query != null && query.refersToParent();
   }
 
   public Identifier getVarName() {
@@ -138,7 +132,7 @@ public class LetItem extends SimpleNode {
   public void deserialize(Result fromResult) {
     if (fromResult.getProperty("varName") != null) {
       varName = new Identifier(-1);
-      varName.deserialize(fromResult.getProperty("varName"));
+      Identifier.deserialize(fromResult.getProperty("varName"));
     }
     if (fromResult.getProperty("expression") != null) {
       expression = new Expression(-1);

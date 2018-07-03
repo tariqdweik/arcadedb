@@ -125,7 +125,7 @@ public class IndexMatchCondition extends BooleanExpression {
   @Override
   public IndexMatchCondition copy() {
     IndexMatchCondition result = new IndexMatchCondition(-1);
-    result.operator = operator == null ? null : (BinaryCompareOperator) operator.copy();
+    result.operator = operator == null ? null : operator.copy();
     result.between = between;
 
     result.leftExpressions =
@@ -184,10 +184,7 @@ public class IndexMatchCondition extends BooleanExpression {
       return false;
     if (leftExpressions != null ? !leftExpressions.equals(that.leftExpressions) : that.leftExpressions != null)
       return false;
-    if (rightExpressions != null ? !rightExpressions.equals(that.rightExpressions) : that.rightExpressions != null)
-      return false;
-
-    return true;
+    return rightExpressions != null ? rightExpressions.equals(that.rightExpressions) : that.rightExpressions == null;
   }
 
   @Override

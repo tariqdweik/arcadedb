@@ -21,7 +21,7 @@ public class ODeleteVertexExecutionPlanner {
     this.fromClause = stm.getFromClause() == null ? null : stm.getFromClause().copy();
     this.whereClause = stm.getWhereClause() == null ? null : stm.getWhereClause().copy();
     this.returnBefore = stm.isReturnBefore();
-    this.limit = stm.getLimit() == null ? null : stm.getLimit();
+    this.limit = stm.getLimit();
   }
 
   public DeleteExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {

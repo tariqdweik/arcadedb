@@ -58,10 +58,7 @@ public class MatchPathItemFirst extends MatchPathItem {
     }
     MatchPathItemFirst that = (MatchPathItemFirst) o;
 
-    if (function != null ? !function.equals(that.function) : that.function != null)
-      return false;
-
-    return true;
+    return function != null ? function.equals(that.function) : that.function == null;
   }
 
   @Override

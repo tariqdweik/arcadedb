@@ -170,17 +170,14 @@ public class BinaryCondition extends BooleanExpression {
     if (left.needsAliases(aliases)) {
       return true;
     }
-    if (right.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return right.needsAliases(aliases);
   }
 
   @Override
   public BinaryCondition copy() {
     BinaryCondition result = new BinaryCondition(-1);
     result.left = left.copy();
-    result.operator = (BinaryCompareOperator) operator.copy();
+    result.operator = operator.copy();
     result.right = right.copy();
     return result;
   }
@@ -218,10 +215,7 @@ public class BinaryCondition extends BooleanExpression {
       return false;
     }
     BaseExpression base = (BaseExpression) left.mathExpression;
-    if (base.identifier == null || base.identifier.suffix == null || base.identifier.suffix.identifier == null) {
-      return false;
-    }
-    return true;
+    return base.identifier != null && base.identifier.suffix != null && base.identifier.suffix.identifier != null;
   }
 
   public Expression getLeft() {
@@ -261,10 +255,7 @@ public class BinaryCondition extends BooleanExpression {
       return false;
     if (operator != null ? !operator.equals(that.operator) : that.operator != null)
       return false;
-    if (right != null ? !right.equals(that.right) : that.right != null)
-      return false;
-
-    return true;
+    return right != null ? right.equals(that.right) : that.right == null;
   }
 
   @Override

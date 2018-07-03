@@ -150,11 +150,7 @@ public class CreatePropertyStatement extends ODDLStatement {
       return false;
     if (attributes != null ? !attributes.equals(that.attributes) : that.attributes != null)
       return false;
-    if (ifNotExists != that.ifNotExists) {
-      return false;
-    }
-
-    return true;
+    return ifNotExists == that.ifNotExists;
   }
 
   @Override

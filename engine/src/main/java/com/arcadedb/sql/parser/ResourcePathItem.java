@@ -51,10 +51,7 @@ public class ResourcePathItem extends SimpleNode {
       return false;
     if (identifier != null ? !identifier.equals(that.identifier) : that.identifier != null)
       return false;
-    if (name != null ? !name.equals(that.name) : that.name != null)
-      return false;
-
-    return true;
+    return name != null ? name.equals(that.name) : that.name == null;
   }
 
   @Override public int hashCode() {

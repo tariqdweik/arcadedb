@@ -77,10 +77,7 @@ public class ReturnStatement extends SimpleExecStatement {
 
     ReturnStatement that = (ReturnStatement) o;
 
-    if (expression != null ? !expression.equals(that.expression) : that.expression != null)
-      return false;
-
-    return true;
+    return expression != null ? expression.equals(that.expression) : that.expression == null;
   }
 
   @Override

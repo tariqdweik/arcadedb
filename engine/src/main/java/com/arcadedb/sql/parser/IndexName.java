@@ -47,10 +47,7 @@ public class IndexName extends SimpleNode {
 
     IndexName that = (IndexName) o;
 
-    if (value != null ? !value.equals(that.value) : that.value != null)
-      return false;
-
-    return true;
+    return value != null ? value.equals(that.value) : that.value == null;
   }
 
   @Override

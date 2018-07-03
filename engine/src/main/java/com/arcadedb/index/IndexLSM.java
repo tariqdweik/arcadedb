@@ -9,7 +9,6 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.*;
-import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.serializer.BinaryComparator;
@@ -66,10 +65,9 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at creation time.
    */
-  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode,
-      final byte[] keyTypes, final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode,
-        pageSize);
+  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
+      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(), unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, pageSize);
     this.unique = unique;
     this.keyTypes = keyTypes;
     this.valueType = valueType;
@@ -81,10 +79,10 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at cloning time.
    */
-  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final byte[] keyTypes,
-      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(),
-        "temp_" + (unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT), PaginatedFile.MODE.READ_WRITE, pageSize);
+  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final byte[] keyTypes, final byte valueType,
+      final int pageSize, final int bfKeyDepth) throws IOException {
+    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + (unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT),
+        PaginatedFile.MODE.READ_WRITE, pageSize);
     this.unique = unique;
     this.keyTypes = keyTypes;
     this.valueType = valueType;
@@ -96,8 +94,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at load time (1st page only).
    */
-  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final int id,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
+      final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
 
@@ -115,8 +113,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
   public IndexLSM copy() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-    return new IndexLSM(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize,
-        bfKeyDepth);
+    return new IndexLSM(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize, bfKeyDepth);
   }
 
   public void removeTempSuffix() {
@@ -160,11 +157,9 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return new IndexLSMCursor(this, true, fromKeys, toKeys);
   }
 
-  public IndexLSMPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder)
-      throws IOException {
+  public IndexLSMPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {
     final BasePage page = database.getTransaction().getPage(new PageId(file.getFileId(), pageId), pageSize);
-    return new IndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page),
-        ascendingOrder);
+    return new IndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page), ascendingOrder);
   }
 
   @Override
@@ -198,8 +193,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
         }
       }
 
-      LogManager.instance()
-          .debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, list.size());
+      LogManager.instance().debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, list.size());
 
       return list;
 
@@ -221,8 +215,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
     internalPut(keys, null, false);
   }
 
-  public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage,
-      TrackableBinary currentPageBuffer, final Object[] keys, final RID rid) {
+  public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage, TrackableBinary currentPageBuffer, final Object[] keys,
+      final RID rid) {
     if (currentPage == null) {
 
       Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
@@ -233,8 +227,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
         currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), txPageCounter - 1), pageSize, false);
         currentPageBuffer = currentPage.getTrackable();
       } catch (IOException e) {
-        throw new DatabaseOperationException(
-            "Cannot append key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
+        throw new DatabaseOperationException("Cannot append key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
       }
     }
 
@@ -252,20 +245,15 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
     int keyValueFreePosition = getKeyValueFreePosition(currentPage);
 
-    if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent
-        .size()) {
+    if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
       // NO SPACE LEFT, CREATE A NEW PAGE
-      try {
-        database.getTransaction().commit();
-        database.getTransaction().begin();
-        currentPage = createNewPage();
-        currentPageBuffer = currentPage.getTrackable();
-        pageNum = currentPage.getPageId().getPageNumber();
-        count = 0;
-        keyValueFreePosition = currentPage.getMaxContentSize();
-      } catch (IOException e) {
-        throw new ConfigurationException("Cannot create a new index page", e);
-      }
+      database.getTransaction().commit();
+      database.getTransaction().begin();
+      currentPage = createNewPage();
+      currentPageBuffer = currentPage.getTrackable();
+      pageNum = currentPage.getPageId().getPageNumber();
+      count = 0;
+      keyValueFreePosition = currentPage.getMaxContentSize();
     }
 
     keyValueFreePosition -= keyValueContent.size();
@@ -277,8 +265,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
     currentPageBuffer.putInt(startPos, keyValueFreePosition);
 
     // ADD THE ITEM IN THE BF
-    final BufferBloomFilter bf = new BufferBloomFilter(
-        currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
+    final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
         getBFSeed(currentPage));
 
     bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
@@ -320,13 +307,12 @@ public class IndexLSM extends PaginatedComponent implements Index {
    *
    * @return
    */
-  protected LookupResult searchInPage(final BasePage currentPage, final Binary currentPageBuffer, final Object[] keys,
-      final int count, final int purpose) {
+  protected LookupResult searchInPage(final BasePage currentPage, final Binary currentPageBuffer, final Object[] keys, final int count, final int purpose) {
     // SEARCH IN THE BF FIRST
     final int seed = getBFSeed(currentPage);
 
-    final BufferBloomFilter bf = new BufferBloomFilter(
-        currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(), seed);
+    final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
+        seed);
 
     LookupResult result = null;
     if (bf.mightContain(BinaryTypes.getHash(keys, bfKeyDepth))) {
@@ -360,14 +346,12 @@ public class IndexLSM extends PaginatedComponent implements Index {
    *
    * @return
    */
-  protected LookupResult lookupInPage(final int pageNum, final int count, final Binary currentPageBuffer, final Object[] keys,
-      final int purpose) {
+  protected LookupResult lookupInPage(final int pageNum, final int count, final Binary currentPageBuffer, final Object[] keys, final int purpose) {
     if (keyTypes.length == 0)
       throw new IllegalArgumentException("No key types found");
 
     if (keys.length > keyTypes.length)
-      throw new IllegalArgumentException(
-          "key is composed of " + keys.length + " items, while the index defined " + keyTypes.length + " items");
+      throw new IllegalArgumentException("key is composed of " + keys.length + " items, while the index defined " + keyTypes.length + " items");
 
     if (count == 0)
       // EMPTY NOT FOUND
@@ -386,8 +370,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       final int contentPos = currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE));
       if (contentPos < startIndexArray + (count * INT_SERIALIZED_SIZE))
-        throw new IndexException("Internal error: invalid content position " + contentPos + " is < of " + (startIndexArray + (count
-            * INT_SERIALIZED_SIZE)));
+        throw new IndexException("Internal error: invalid content position " + contentPos + " is < of " + (startIndexArray + (count * INT_SERIALIZED_SIZE)));
 
       currentPageBuffer.position(contentPos);
 
@@ -508,7 +491,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return size;
   }
 
-  private ModifiablePage createNewPage() throws IOException {
+  private ModifiablePage createNewPage() {
     // NEW FILE, CREATE HEADER PAGE
     Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
     if (txPageCounter == null)
@@ -541,8 +524,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return currentPage;
   }
 
-  protected static int compareKeys(final BinaryComparator comparator, final byte[] keyTypes, final Object[] keys1,
-      final Object[] keys2) {
+  protected static int compareKeys(final BinaryComparator comparator, final byte[] keyTypes, final Object[] keys1, final Object[] keys2) {
     final int minKeySize = Math.min(keys1.length, keys2.length);
 
     for (int k = 0; k < minKeySize; ++k) {
@@ -598,8 +580,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
     int pageNum = txPageCounter - 1;
 
     try {
-      ModifiablePage currentPage = database.getTransaction()
-          .getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
+      ModifiablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
 
       TrackableBinary currentPageBuffer = currentPage.getTrackable();
 
@@ -631,21 +612,16 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       int keyIndex = result.keyIndex;
       boolean newPage = false;
-      if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent
-          .size()) {
+      if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
         // NO SPACE LEFT, CREATE A NEW PAGE
         newPage = true;
-        try {
-          currentPage = createNewPage();
-          currentPageBuffer = currentPage.getTrackable();
-          pageNum = currentPage.getPageId().getPageNumber();
-          count = 0;
-          keyIndex = 0;
-          keyValueFreePosition = currentPage.getMaxContentSize();
 
-        } catch (IOException e) {
-          throw new ConfigurationException("Cannot create a new index page", e);
-        }
+        currentPage = createNewPage();
+        currentPageBuffer = currentPage.getTrackable();
+        pageNum = currentPage.getPageId().getPageNumber();
+        count = 0;
+        keyIndex = 0;
+        keyValueFreePosition = currentPage.getMaxContentSize();
       }
 
       keyValueFreePosition -= keyValueContent.size();
@@ -660,8 +636,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
       currentPageBuffer.putInt(startPos, keyValueFreePosition);
 
       // ADD THE ITEM IN THE BF
-      final BufferBloomFilter bf = new BufferBloomFilter(
-          currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
+      final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
           getBFSeed(currentPage));
 
       // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
@@ -671,12 +646,11 @@ public class IndexLSM extends PaginatedComponent implements Index {
       setKeyValueFreePosition(currentPage, keyValueFreePosition);
 
       LogManager.instance()
-          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name,
-              currentPage.getPageId(), count + 1, newPage);
+          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
+              count + 1, newPage);
 
     } catch (IOException e) {
-      throw new DatabaseOperationException(
-          "Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
+      throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
     }
   }
 }

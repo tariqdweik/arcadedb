@@ -47,10 +47,7 @@ public class JsonItem {
     if (aliases.contains(leftIdentifier.getStringValue())) {
       return true;
     }
-    if (right.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return right.needsAliases(aliases);
   }
 
   public boolean isAggregate() {
@@ -120,7 +117,7 @@ public class JsonItem {
   public void deserialize(Result fromResult) {
     if (fromResult.getProperty("leftIdentifier") != null) {
       leftIdentifier = new Identifier(-1);
-      leftIdentifier.deserialize(fromResult.getProperty("leftIdentifier"));
+      Identifier.deserialize(fromResult.getProperty("leftIdentifier"));
     }
     if (fromResult.getProperty("leftString") != null) {
       leftString = fromResult.getProperty("leftString");

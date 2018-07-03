@@ -137,7 +137,7 @@ public class SocketFactory {
     return input;
   }
 
-  private Socket configureSocket(Socket socket) throws SocketException {
+  private Socket configureSocket(Socket socket) {
     // Add possible timeouts?
     return socket;
   }
@@ -146,7 +146,7 @@ public class SocketFactory {
     return configureSocket(getBackingFactory().createSocket());
   }
 
-  public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
+  public Socket createSocket(String host, int port) throws IOException {
     return configureSocket(getBackingFactory().createSocket(host, port));
   }
 
@@ -154,7 +154,7 @@ public class SocketFactory {
     return configureSocket(getBackingFactory().createSocket(host, port));
   }
 
-  public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
+  public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException {
     return configureSocket(getBackingFactory().createSocket(host, port, localHost, localPort));
   }
 

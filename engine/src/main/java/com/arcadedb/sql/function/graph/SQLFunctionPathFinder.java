@@ -123,7 +123,7 @@ public abstract class SQLFunctionPathFinder extends SQLFunctionMathAbstract {
     final Set<Vertex> neighbors = new HashSet<Vertex>();
     if (node != null) {
       for (Vertex v : node.getVertices(paramDirection)) {
-        final Vertex ov = (Vertex) v;
+        final Vertex ov = v;
         if (ov != null && isNotSettled(ov))
           neighbors.add(ov);
       }

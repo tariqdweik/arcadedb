@@ -119,10 +119,7 @@ public class CreateVertexStatement extends Statement {
       return false;
     if (returnStatement != null ? !returnStatement.equals(that.returnStatement) : that.returnStatement != null)
       return false;
-    if (insertBody != null ? !insertBody.equals(that.insertBody) : that.insertBody != null)
-      return false;
-
-    return true;
+    return insertBody != null ? insertBody.equals(that.insertBody) : that.insertBody == null;
   }
 
   @Override public int hashCode() {

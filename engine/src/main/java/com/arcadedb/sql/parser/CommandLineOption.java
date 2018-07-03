@@ -39,10 +39,7 @@ public class CommandLineOption extends SimpleNode {
 
     CommandLineOption that = (CommandLineOption) o;
 
-    if (name != null ? !name.equals(that.name) : that.name != null)
-      return false;
-
-    return true;
+    return name != null ? name.equals(that.name) : that.name == null;
   }
 
   @Override public int hashCode() {

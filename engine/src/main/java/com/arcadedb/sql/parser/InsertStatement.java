@@ -151,10 +151,7 @@ public class InsertStatement extends Statement {
       return false;
     if (returnStatement != null ? !returnStatement.equals(that.returnStatement) : that.returnStatement != null)
       return false;
-    if (selectStatement != null ? !selectStatement.equals(that.selectStatement) : that.selectStatement != null)
-      return false;
-
-    return true;
+    return selectStatement != null ? selectStatement.equals(that.selectStatement) : that.selectStatement == null;
   }
 
   @Override public int hashCode() {

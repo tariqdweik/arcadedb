@@ -58,10 +58,7 @@ public class Unwind extends SimpleNode {
 
     Unwind oUnwind = (Unwind) o;
 
-    if (items != null ? !items.equals(oUnwind.items) : oUnwind.items != null)
-      return false;
-
-    return true;
+    return items != null ? items.equals(oUnwind.items) : oUnwind.items == null;
   }
 
   @Override
@@ -87,7 +84,7 @@ public class Unwind extends SimpleNode {
       items = new ArrayList<>();
       for (Result r : ser) {
         Identifier exp = new Identifier(-1);
-        exp.deserialize(r);
+        Identifier.deserialize(r);
         items.add(exp);
       }
     }

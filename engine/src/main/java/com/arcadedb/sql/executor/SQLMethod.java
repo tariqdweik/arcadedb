@@ -45,7 +45,7 @@ public interface SQLMethod extends Comparable<SQLMethod> {
    *
    * @return String , never null.
    */
-  public String getSyntax();
+  String getSyntax();
 
   /**
    * @return minimum number of arguments requiered by this method

@@ -152,31 +152,22 @@ public class ParallelExecStep extends AbstractExecutionStep {
     if (col < block * 3 + 2) {
       return false;
     }
-    if (subRow == blockSize / 2) {
-      return true;
-    }
-    return false;
+    return subRow == blockSize / 2;
   }
 
   private boolean isPlus(int col, int subRow, int block, int blockSize) {
     if (col == block * 3 + 1) {
-      if (subRow == blockSize / 2) {
-        return true;
-      }
+      return subRow == blockSize / 2;
     }
     return false;
   }
 
   private boolean isVerticalRow(int col, int subRow, int block, int blockSize) {
     if (col == block * 3 + 1) {
-      if (subRow > blockSize / 2) {
-        return true;
-      }
-    } else if (col < block * 3 + 1 && col % 3 == 1) {
-      return true;
-    }
+      return subRow > blockSize / 2;
+    } else
+      return col < block * 3 + 1 && col % 3 == 1;
 
-    return false;
   }
 
   private String head(int depth, int indent, int nItems) {

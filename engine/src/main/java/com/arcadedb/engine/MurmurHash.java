@@ -139,9 +139,9 @@ public final class MurmurHash {
 		case 2: h ^= (long)(data[(length&~7)+1]&0xff) << 8;
 		case 1: h ^= (long)(data[length&~7]&0xff);
 		        h *= m;
-		};
-	 
-		h ^= h >>> r;
+		}
+
+    h ^= h >>> r;
 		h *= m;
 		h ^= h >>> r;
 

@@ -84,7 +84,7 @@ public class Dictionary extends PaginatedComponent {
     if (pos == null && create) {
       pos = (Integer) lock.executeInWriteLock(new Callable<Object>() {
         @Override
-        public Object call() throws Exception {
+        public Object call() {
           Integer pos = dictionaryMap.get(name);
           if (pos == null) {
             addItemToPage(name);

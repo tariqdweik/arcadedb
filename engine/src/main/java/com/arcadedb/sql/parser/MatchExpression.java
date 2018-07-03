@@ -54,10 +54,7 @@ public class MatchExpression extends SimpleNode {
 
     if (origin != null ? !origin.equals(that.origin) : that.origin != null)
       return false;
-    if (items != null ? !items.equals(that.items) : that.items != null)
-      return false;
-
-    return true;
+    return items != null ? items.equals(that.items) : that.items == null;
   }
 
   @Override public int hashCode() {

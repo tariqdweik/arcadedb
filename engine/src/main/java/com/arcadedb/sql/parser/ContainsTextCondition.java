@@ -103,10 +103,7 @@ public class ContainsTextCondition extends BooleanExpression {
     if (!left.needsAliases(aliases)) {
       return true;
     }
-    if (!right.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return !right.needsAliases(aliases);
   }
 
   @Override
@@ -139,10 +136,7 @@ public class ContainsTextCondition extends BooleanExpression {
 
     if (left != null ? !left.equals(that.left) : that.left != null)
       return false;
-    if (right != null ? !right.equals(that.right) : that.right != null)
-      return false;
-
-    return true;
+    return right != null ? right.equals(that.right) : that.right == null;
   }
 
   @Override
@@ -173,10 +167,7 @@ public class ContainsTextCondition extends BooleanExpression {
     if (left != null && !left.isCacheable()) {
       return false;
     }
-    if (right != null && !right.isCacheable()) {
-      return false;
-    }
-    return true;
+    return right == null || right.isCacheable();
   }
 }
 /* JavaCC - OriginalChecksum=b588492ba2cbd0f932055f1f64bbbecd (do not edit this line) */

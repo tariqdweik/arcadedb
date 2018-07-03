@@ -87,7 +87,7 @@ public class ReplicationLogFile extends LockContext {
   public boolean appendMessage(final ReplicationMessage message) {
     return (boolean) executeInLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         try {
           if (message.messageNumber < lastMessageNumber) {
             server.getServer()
@@ -256,7 +256,7 @@ public class ReplicationLogFile extends LockContext {
     });
   }
 
-  public long getSize() throws IOException {
+  public long getSize() {
     return (long) executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {

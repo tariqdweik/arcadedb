@@ -100,10 +100,7 @@ public class ParenthesisBlock extends BooleanExpression {
 
     ParenthesisBlock that = (ParenthesisBlock) o;
 
-    if (subElement != null ? !subElement.equals(that.subElement) : that.subElement != null)
-      return false;
-
-    return true;
+    return subElement != null ? subElement.equals(that.subElement) : that.subElement == null;
   }
 
   @Override

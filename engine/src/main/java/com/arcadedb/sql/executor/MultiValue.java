@@ -39,11 +39,11 @@ public class MultiValue {
    * @return true if it's an array, a collection or a map, otherwise false
    */
   public static boolean isMultiValue(final Object iObject) {
-    return iObject == null ? false : isMultiValue(iObject.getClass());
+    return iObject != null && isMultiValue(iObject.getClass());
   }
 
   public static boolean isIterable(final Object iObject) {
-    return iObject == null ? false : iObject instanceof Iterable<?> ? true : iObject instanceof Iterator<?>;
+    return iObject != null && (iObject instanceof Iterable<?> || iObject instanceof Iterator<?>);
   }
 
   /**
@@ -632,7 +632,7 @@ public class MultiValue {
 
     } else {
       result = (T[]) Array.newInstance(iClass, 1);
-      result[0] = (T) (T) convert(iValue, iCallback);
+      result[0] = (T) convert(iValue, iCallback);
     }
 
     return result;

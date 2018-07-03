@@ -56,10 +56,7 @@ public class CommitStatement extends SimpleExecStatement {
 
     CommitStatement that = (CommitStatement) o;
 
-    if (retry != null ? !retry.equals(that.retry) : that.retry != null)
-      return false;
-
-    return true;
+    return retry != null ? retry.equals(that.retry) : that.retry == null;
   }
 
   @Override public int hashCode() {

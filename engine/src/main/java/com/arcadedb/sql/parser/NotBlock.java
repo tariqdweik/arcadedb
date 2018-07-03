@@ -143,10 +143,7 @@ public class NotBlock extends BooleanExpression {
 
     if (negate != oNotBlock.negate)
       return false;
-    if (sub != null ? !sub.equals(oNotBlock.sub) : oNotBlock.sub != null)
-      return false;
-
-    return true;
+    return sub != null ? sub.equals(oNotBlock.sub) : oNotBlock.sub == null;
   }
 
   @Override

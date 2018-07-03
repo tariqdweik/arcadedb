@@ -56,27 +56,27 @@ public class MongoDBMemoryCollectionWrapper extends AbstractMongoCollection<Long
       Integer position = (Integer) var7.next();
       Document document = this.getDocument(position.longValue());
       if (this.documentMatchesQuery(document, query)) {
-        ((List) matchedDocuments).add(document);
+        matchedDocuments.add(document);
       }
     }
 
-    this.sortDocumentsInMemory((List) matchedDocuments, orderBy);
+    this.sortDocumentsInMemory(matchedDocuments, orderBy);
     if (numberToSkip > 0) {
-      matchedDocuments = ((List) matchedDocuments).subList(numberToSkip, ((List) matchedDocuments).size());
+      matchedDocuments = ((List) matchedDocuments).subList(numberToSkip, matchedDocuments.size());
     }
 
-    if (numberToReturn > 0 && ((List) matchedDocuments).size() > numberToReturn) {
+    if (numberToReturn > 0 && matchedDocuments.size() > numberToReturn) {
       matchedDocuments = ((List) matchedDocuments).subList(0, numberToReturn);
     }
 
-    return (Iterable) matchedDocuments;
+    return matchedDocuments;
   }
 
   protected Iterable<Document> matchDocuments(Document query, Document orderBy, int numberToSkip, int numberToReturn)
       throws MongoServerException {
     List<Document> matchedDocuments = new ArrayList();
     boolean ascending = true;
-    if (orderBy != null && !orderBy.keySet().isEmpty() && ((String) orderBy.keySet().iterator().next()).equals("$natural")) {
+    if (orderBy != null && !orderBy.keySet().isEmpty() && orderBy.keySet().iterator().next().equals("$natural")) {
       int sortValue = (Integer) orderBy.get("$natural");
       if (sortValue == -1) {
         ascending = false;
@@ -88,33 +88,33 @@ public class MongoDBMemoryCollectionWrapper extends AbstractMongoCollection<Long
     while (var9.hasNext()) {
       Document document = (Document) var9.next();
       if (this.documentMatchesQuery(document, query)) {
-        ((List) matchedDocuments).add(document);
+        matchedDocuments.add(document);
       }
     }
 
-    if (orderBy != null && !orderBy.keySet().isEmpty() && !((String) orderBy.keySet().iterator().next()).equals("$natural")) {
-      ((List) matchedDocuments).sort(new DocumentComparator(orderBy));
+    if (orderBy != null && !orderBy.keySet().isEmpty() && !orderBy.keySet().iterator().next().equals("$natural")) {
+      matchedDocuments.sort(new DocumentComparator(orderBy));
     }
 
     if (numberToSkip > 0) {
-      if (numberToSkip >= ((List) matchedDocuments).size()) {
+      if (numberToSkip >= matchedDocuments.size()) {
         return Collections.emptyList();
       }
 
-      matchedDocuments = ((List) matchedDocuments).subList(numberToSkip, ((List) matchedDocuments).size());
+      matchedDocuments = ((List) matchedDocuments).subList(numberToSkip, matchedDocuments.size());
     }
 
-    if (numberToReturn > 0 && ((List) matchedDocuments).size() > numberToReturn) {
+    if (numberToReturn > 0 && matchedDocuments.size() > numberToReturn) {
       matchedDocuments = ((List) matchedDocuments).subList(0, numberToReturn);
     }
 
-    return (Iterable) matchedDocuments;
+    return matchedDocuments;
   }
 
   private Iterable<Document> iterateAllDocuments(boolean ascending) {
-    return (Iterable) (ascending ?
-        new MongoDBMemoryCollectionWrapper.DocumentIterable(this.documents) :
-        new MongoDBMemoryCollectionWrapper.ReverseDocumentIterable(this.documents));
+    return ascending ?
+        new DocumentIterable(this.documents) :
+        new ReverseDocumentIterable(this.documents);
   }
 
   public synchronized int count() {
@@ -140,7 +140,7 @@ public class MongoDBMemoryCollectionWrapper extends AbstractMongoCollection<Long
   }
 
   protected Document getDocument(Long position) {
-    return (Document) this.documents.get(position.intValue());
+    return this.documents.get(position.intValue());
   }
 
   public void drop() {
@@ -182,7 +182,7 @@ public class MongoDBMemoryCollectionWrapper extends AbstractMongoCollection<Long
     protected Document getNext() {
       while (true) {
         if (this.pos >= 0) {
-          Document document = (Document) this.documents.get(this.pos--);
+          Document document = this.documents.get(this.pos--);
           if (document == null) {
             continue;
           }
@@ -203,7 +203,7 @@ public class MongoDBMemoryCollectionWrapper extends AbstractMongoCollection<Long
     protected Document getNext() {
       while (true) {
         if (this.pos < this.documents.size()) {
-          Document document = (Document) this.documents.get(this.pos++);
+          Document document = this.documents.get(this.pos++);
           if (document == null) {
             continue;
           }

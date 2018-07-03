@@ -203,10 +203,7 @@ public class FromItem extends SimpleNode {
       return false;
     if (functionCall != null ? !functionCall.equals(oFromItem.functionCall) : oFromItem.functionCall != null)
       return false;
-    if (modifier != null ? !modifier.equals(oFromItem.modifier) : oFromItem.modifier != null)
-      return false;
-
-    return true;
+    return modifier != null ? modifier.equals(oFromItem.modifier) : oFromItem.modifier == null;
   }
 
   @Override
@@ -352,7 +349,7 @@ public class FromItem extends SimpleNode {
     }
     if (fromResult.getProperty("identifier") != null) {
       identifier = new Identifier(-1);
-      identifier.deserialize(fromResult.getProperty("identifier"));
+      Identifier.deserialize(fromResult.getProperty("identifier"));
     }
     if (fromResult.getProperty("functionCall") != null) {
       functionCall = new FunctionCall(-1);

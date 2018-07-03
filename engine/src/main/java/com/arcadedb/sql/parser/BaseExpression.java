@@ -223,10 +223,7 @@ public class BaseExpression extends MathExpression {
     if (number != null || inputParam != null || string != null) {
       return true;
     }
-    if (identifier != null && identifier.isEarlyCalculated()) {
-      return true;
-    }
-    return false;
+    return identifier != null && identifier.isEarlyCalculated();
   }
 
   @Override
@@ -246,26 +243,17 @@ public class BaseExpression extends MathExpression {
     if (this.identifier != null && this.identifier.needsAliases(aliases)) {
       return true;
     }
-    if (modifier != null && modifier.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return modifier != null && modifier.needsAliases(aliases);
   }
 
   @Override
   public boolean isAggregate() {
-    if (identifier != null && identifier.isAggregate()) {
-      return true;
-    }
-    return false;
+    return identifier != null && identifier.isAggregate();
   }
 
   @Override
   public boolean isCount() {
-    if (identifier != null && identifier.isCount()) {
-      return true;
-    }
-    return false;
+    return identifier != null && identifier.isCount();
   }
 
   public SimpleNode splitForAggregation(AggregateProjectionSplit aggregateProj) {
@@ -305,10 +293,7 @@ public class BaseExpression extends MathExpression {
     if (identifier != null && identifier.refersToParent()) {
       return true;
     }
-    if (modifier != null && modifier.refersToParent()) {
-      return true;
-    }
-    return false;
+    return modifier != null && modifier.refersToParent();
   }
 
   @Override
@@ -328,10 +313,7 @@ public class BaseExpression extends MathExpression {
       return false;
     if (string != null ? !string.equals(that.string) : that.string != null)
       return false;
-    if (modifier != null ? !modifier.equals(that.modifier) : that.modifier != null)
-      return false;
-
-    return true;
+    return modifier != null ? modifier.equals(that.modifier) : that.modifier == null;
   }
 
   @Override
@@ -534,7 +516,7 @@ public class BaseExpression extends MathExpression {
 
     // CHANGE THE INPUT STRING
     final StringBuilder buffer = new StringBuilder(textSize);
-    buffer.append(iText.substring(0, pos));
+    buffer.append(iText, 0, pos);
 
     boolean escaped = false;
     for (int i = pos; i < textSize; ++i) {

@@ -81,10 +81,7 @@ public class OrderBy extends SimpleNode {
 
     OrderBy oOrderBy = (OrderBy) o;
 
-    if (items != null ? !items.equals(oOrderBy.items) : oOrderBy.items != null)
-      return false;
-
-    return true;
+    return items != null ? items.equals(oOrderBy.items) : oOrderBy.items == null;
   }
 
   @Override public int hashCode() {

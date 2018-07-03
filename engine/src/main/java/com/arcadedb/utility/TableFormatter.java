@@ -306,7 +306,7 @@ public class TableFormatter {
       value = getPrettyFieldMultiValue(((Collection<?>) value).iterator(), multiValueMaxEntries);
     else if (value instanceof Record) {
       if (((Record) value).getIdentity() == null) {
-        value = ((Record) value).toString();
+        value = value.toString();
       } else {
         value = ((Record) value).getIdentity().toString();
       }

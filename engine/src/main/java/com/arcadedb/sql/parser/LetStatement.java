@@ -84,10 +84,7 @@ public class LetStatement extends SimpleExecStatement {
       return false;
     if (statement != null ? !statement.equals(that.statement) : that.statement != null)
       return false;
-    if (expression != null ? !expression.equals(that.expression) : that.expression != null)
-      return false;
-
-    return true;
+    return expression != null ? expression.equals(that.expression) : that.expression == null;
   }
 
   @Override

@@ -37,7 +37,7 @@ public class Profiler {
   }
 
   @Override
-  protected void finalize() throws Throwable {
+  protected void finalize() {
     if (!databases.isEmpty())
       System.err.println("PROTON: The following databases weren't closed properly: " + databases);
   }

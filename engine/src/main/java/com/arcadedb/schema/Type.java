@@ -94,12 +94,12 @@ public enum Type {
     TYPES_BY_CLASS.put(Character.TYPE, STRING);
     TYPES_BY_CLASS.put(BigDecimal.class, DECIMAL);
     BYTE.castable.add(BOOLEAN);
-    SHORT.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE }));
-    INTEGER.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT }));
-    LONG.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER }));
-    FLOAT.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER }));
-    DOUBLE.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT }));
-    DECIMAL.castable.addAll(Arrays.asList(new Type[] { BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE }));
+    SHORT.castable.addAll(Arrays.asList(BOOLEAN, BYTE));
+    INTEGER.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT));
+    LONG.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT, INTEGER));
+    FLOAT.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT, INTEGER));
+    DOUBLE.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT));
+    DECIMAL.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE));
     EMBEDDEDLIST.castable.add(EMBEDDEDSET);
   }
 
@@ -109,7 +109,7 @@ public enum Type {
   protected final Class<?>[] allowAssignmentFrom;
   protected final Set<Type>  castable;
 
-  private Type(final String iName, final int iId, final Class<?> iJavaDefaultType, final Class<?>[] iAllowAssignmentBy) {
+  Type(final String iName, final int iId, final Class<?> iJavaDefaultType, final Class<?>[] iAllowAssignmentBy) {
     name = iName;
     id = iId;
     javaDefaultType = iJavaDefaultType;
@@ -200,9 +200,7 @@ public enum Type {
       else if (object != null)
         empty = false;
     }
-    if (!empty)
-      return true;
-    return false;
+    return !empty;
   }
 
   public static boolean isSimpleType(final Object iObject) {
@@ -211,14 +209,11 @@ public enum Type {
 
     final Class<? extends Object> iType = iObject.getClass();
 
-    if (iType.isPrimitive() || Number.class.isAssignableFrom(iType) || String.class.isAssignableFrom(iType) || Boolean.class
-        .isAssignableFrom(iType) || Date.class.isAssignableFrom(iType) || (iType.isArray() && (iType.equals(byte[].class) || iType
-        .equals(char[].class) || iType.equals(int[].class) || iType.equals(long[].class) || iType.equals(double[].class) || iType
-        .equals(float[].class) || iType.equals(short[].class) || iType.equals(Integer[].class) || iType.equals(String[].class)
-        || iType.equals(Long[].class) || iType.equals(Short[].class) || iType.equals(Double[].class))))
-      return true;
+    return iType.isPrimitive() || Number.class.isAssignableFrom(iType) || String.class.isAssignableFrom(iType) || Boolean.class.isAssignableFrom(iType)
+        || Date.class.isAssignableFrom(iType) || (iType.isArray() && (iType.equals(byte[].class) || iType.equals(char[].class) || iType.equals(int[].class)
+        || iType.equals(long[].class) || iType.equals(double[].class) || iType.equals(float[].class) || iType.equals(short[].class) || iType
+        .equals(Integer[].class) || iType.equals(String[].class) || iType.equals(Long[].class) || iType.equals(Short[].class) || iType.equals(Double[].class)));
 
-    return false;
   }
 
   /**
@@ -309,7 +304,7 @@ public enum Type {
           return Double.parseDouble((String) iValue);
         else if (iValue instanceof Float)
           // THIS IS NECESSARY DUE TO A BUG/STRANGE BEHAVIOR OF JAVA BY LOSSING PRECISION
-          return Double.parseDouble((String) iValue.toString());
+          return Double.parseDouble(iValue.toString());
         else
           return ((Number) iValue).doubleValue();
 

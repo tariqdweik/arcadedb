@@ -144,10 +144,7 @@ public class UpdateOperations extends SimpleNode {
       return false;
     if (updateIncrementItems != null ? !updateIncrementItems.equals(that.updateIncrementItems) : that.updateIncrementItems != null)
       return false;
-    if (updateRemoveItems != null ? !updateRemoveItems.equals(that.updateRemoveItems) : that.updateRemoveItems != null)
-      return false;
-
-    return true;
+    return updateRemoveItems != null ? updateRemoveItems.equals(that.updateRemoveItems) : that.updateRemoveItems == null;
   }
 
   @Override public int hashCode() {

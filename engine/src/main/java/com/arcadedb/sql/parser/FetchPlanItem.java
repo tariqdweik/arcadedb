@@ -90,10 +90,7 @@ public class FetchPlanItem extends SimpleNode {
       return false;
     if (rightDepth != null ? !rightDepth.equals(that.rightDepth) : that.rightDepth != null)
       return false;
-    if (fieldChain != null ? !fieldChain.equals(that.fieldChain) : that.fieldChain != null)
-      return false;
-
-    return true;
+    return fieldChain != null ? fieldChain.equals(that.fieldChain) : that.fieldChain == null;
   }
 
   @Override

@@ -30,7 +30,7 @@ public class FileManager {
     public long totalOpenFiles;
   }
 
-  public FileManager(final String path, final PaginatedFile.MODE mode, final Set<String> supportedFileExt) throws IOException {
+  public FileManager(final String path, final PaginatedFile.MODE mode, final Set<String> supportedFileExt) {
     this.path = path;
     this.mode = mode;
 

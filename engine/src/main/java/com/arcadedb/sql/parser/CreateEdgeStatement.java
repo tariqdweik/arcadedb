@@ -146,10 +146,7 @@ public class CreateEdgeStatement extends Statement {
       return false;
     if (wait != null ? !wait.equals(that.wait) : that.wait != null)
       return false;
-    if (batch != null ? !batch.equals(that.batch) : that.batch != null)
-      return false;
-
-    return true;
+    return batch != null ? batch.equals(that.batch) : that.batch == null;
   }
 
   @Override public int hashCode() {

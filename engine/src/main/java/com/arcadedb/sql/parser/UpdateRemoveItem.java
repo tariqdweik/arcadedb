@@ -58,10 +58,7 @@ public class UpdateRemoveItem extends SimpleNode {
 
     if (left != null ? !left.equals(that.left) : that.left != null)
       return false;
-    if (right != null ? !right.equals(that.right) : that.right != null)
-      return false;
-
-    return true;
+    return right != null ? right.equals(that.right) : that.right == null;
   }
 
   @Override

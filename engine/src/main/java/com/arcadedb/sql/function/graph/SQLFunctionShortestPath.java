@@ -311,7 +311,7 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
           neighbors = ctx.current.getVertices(ctx.directionLeft, ctx.edgeTypeParam);
         }
         for (Vertex neighbor : neighbors) {
-          final Vertex v = (Vertex) neighbor;
+          final Vertex v = neighbor;
           final RID neighborIdentity = v.getIdentity();
 
           if (ctx.rightVisited.contains(neighborIdentity)) {
@@ -376,7 +376,7 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
           neighbors = ctx.currentRight.getVertices(ctx.directionRight, ctx.edgeTypeParam);
         }
         for (Vertex neighbor : neighbors) {
-          final Vertex v = (Vertex) neighbor;
+          final Vertex v = neighbor;
           final RID neighborIdentity = v.getIdentity();
 
           if (ctx.leftVisited.contains(neighborIdentity)) {

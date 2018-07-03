@@ -119,10 +119,7 @@ public class MatchesCondition extends BooleanExpression {
 
   @Override
   public boolean needsAliases(Set<String> aliases) {
-    if (expression.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return expression.needsAliases(aliases);
   }
 
   @Override
@@ -141,10 +138,7 @@ public class MatchesCondition extends BooleanExpression {
 
   @Override
   public boolean refersToParent() {
-    if (expression != null && expression.refersToParent()) {
-      return true;
-    }
-    return false;
+    return expression != null && expression.refersToParent();
   }
 
   @Override
@@ -160,10 +154,7 @@ public class MatchesCondition extends BooleanExpression {
       return false;
     if (right != null ? !right.equals(that.right) : that.right != null)
       return false;
-    if (rightParam != null ? !rightParam.equals(that.rightParam) : that.rightParam != null)
-      return false;
-
-    return true;
+    return rightParam != null ? rightParam.equals(that.rightParam) : that.rightParam == null;
   }
 
   @Override

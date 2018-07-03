@@ -94,10 +94,7 @@ public class NamedParameter extends InputParameter {
 
     if (paramNumber != that.paramNumber)
       return false;
-    if (paramName != null ? !paramName.equals(that.paramName) : that.paramName != null)
-      return false;
-
-    return true;
+    return paramName != null ? paramName.equals(that.paramName) : that.paramName == null;
   }
 
   @Override

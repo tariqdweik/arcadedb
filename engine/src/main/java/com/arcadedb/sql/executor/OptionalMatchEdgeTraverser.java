@@ -59,10 +59,7 @@ public class OptionalMatchEdgeTraverser extends MatchEdgeTraverser {
     if (elem == EMPTY_OPTIONAL) {
       return true;
     }
-    if (elem instanceof Result && EMPTY_OPTIONAL == ((Result) elem).getElement().orElse(null)) {
-      return true;
-    }
+    return elem instanceof Result && EMPTY_OPTIONAL == ((Result) elem).getElement().orElse(null);
 
-    return false;
   }
 }

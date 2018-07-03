@@ -47,7 +47,7 @@ public abstract class AbstractHandler implements HttpHandler {
   }
 
   @Override
-  public void handleRequest(HttpServerExchange exchange) throws Exception {
+  public void handleRequest(HttpServerExchange exchange) {
     try {
       exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
 

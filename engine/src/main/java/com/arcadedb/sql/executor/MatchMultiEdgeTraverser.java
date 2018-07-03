@@ -93,7 +93,7 @@ public class MatchMultiEdgeTraverser extends MatchEdgeTraverser {
 
     iCommandContext.setVariable("$current", oldCurrent);
     //    return (qR instanceof Iterable) ? (Iterable) qR : Collections.singleton((PIdentifiable) qR);
-    return (Iterable) result;
+    return result;
   }
 
   private ResultInternal toOResultInternal(Object x) {

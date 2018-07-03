@@ -98,10 +98,7 @@ public class ParenthesisExpression extends MathExpression {
   }
 
   public boolean needsAliases(Set<String> aliases) {
-    if (expression.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return expression.needsAliases(aliases);
   }
 
   public boolean isExpand() {
@@ -171,10 +168,7 @@ public class ParenthesisExpression extends MathExpression {
     if (expression != null && expression.refersToParent()) {
       return true;
     }
-    if (statement != null && statement.refersToParent()) {
-      return true;
-    }
-    return false;
+    return statement != null && statement.refersToParent();
   }
 
   @Override
@@ -190,10 +184,7 @@ public class ParenthesisExpression extends MathExpression {
 
     if (expression != null ? !expression.equals(that.expression) : that.expression != null)
       return false;
-    if (statement != null ? !statement.equals(that.statement) : that.statement != null)
-      return false;
-
-    return true;
+    return statement != null ? statement.equals(that.statement) : that.statement == null;
   }
 
   @Override

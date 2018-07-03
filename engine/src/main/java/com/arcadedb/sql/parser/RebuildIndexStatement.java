@@ -85,10 +85,7 @@ public class RebuildIndexStatement extends SimpleExecStatement {
 
     if (all != that.all)
       return false;
-    if (name != null ? !name.equals(that.name) : that.name != null)
-      return false;
-
-    return true;
+    return name != null ? name.equals(that.name) : that.name == null;
   }
 
   @Override public int hashCode() {

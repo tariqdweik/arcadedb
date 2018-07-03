@@ -43,7 +43,7 @@ public class ArcadeDBServer {
     this.serverName = configuration.getValueAsString(GlobalConfiguration.SERVER_NAME);
   }
 
-  public static void main(final String[] args) throws IOException, InterruptedException {
+  public static void main(final String[] args) {
     new ArcadeDBServer(new ContextConfiguration()).start();
   }
 

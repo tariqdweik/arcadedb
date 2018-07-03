@@ -60,10 +60,7 @@ public class FetchPlan extends SimpleNode {
 
     FetchPlan that = (FetchPlan) o;
 
-    if (items != null ? !items.equals(that.items) : that.items != null)
-      return false;
-
-    return true;
+    return items != null ? items.equals(that.items) : that.items == null;
   }
 
   @Override public int hashCode() {

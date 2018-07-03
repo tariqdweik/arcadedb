@@ -135,7 +135,6 @@ public class AndBlock extends BooleanExpression {
         if (first) {
           result.add(subAndItem);
         } else {
-          ;
           for (AndBlock oldResultItem : oldResult) {
             AndBlock block = new AndBlock(-1);
             block.subBlocks.addAll(oldResultItem.subBlocks);
@@ -187,10 +186,7 @@ public class AndBlock extends BooleanExpression {
 
     AndBlock andBlock = (AndBlock) o;
 
-    if (subBlocks != null ? !subBlocks.equals(andBlock.subBlocks) : andBlock.subBlocks != null)
-      return false;
-
-    return true;
+    return subBlocks != null ? subBlocks.equals(andBlock.subBlocks) : andBlock.subBlocks == null;
   }
 
   @Override

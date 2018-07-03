@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
 public class MethodCall extends SimpleNode {
 
   static Set<String> graphMethods = new HashSet<String>(
-      Arrays.asList(new String[] { "out", "in", "both", "outE", "inE", "bothE", "bothV", "outV", "inV" }));
+      Arrays.asList("out", "in", "both", "outE", "inE", "bothE", "bothV", "outV", "inV"));
 
   static Set<String> bidirectionalMethods = new HashSet<String>(
-      Arrays.asList(new String[] { "out", "in", "both", "oute", "ine", "inv", "outv" }));
+      Arrays.asList("out", "in", "both", "oute", "ine", "inv", "outv"));
 
   protected Identifier methodName;
   protected List<Expression> params = new ArrayList<Expression>();
@@ -183,10 +183,7 @@ public class MethodCall extends SimpleNode {
 
     if (methodName != null ? !methodName.equals(that.methodName) : that.methodName != null)
       return false;
-    if (params != null ? !params.equals(that.params) : that.params != null)
-      return false;
-
-    return true;
+    return params != null ? params.equals(that.params) : that.params == null;
   }
 
   @Override
@@ -229,7 +226,7 @@ public class MethodCall extends SimpleNode {
   public void deserialize(Result fromResult) {
     if (fromResult.getProperty("methodName") != null) {
       methodName = new Identifier(-1);
-      methodName.deserialize(fromResult.getProperty("methodName"));
+      Identifier.deserialize(fromResult.getProperty("methodName"));
     }
     if (fromResult.getProperty("params") != null) {
       List<Result> ser = fromResult.getProperty("params");
@@ -243,10 +240,7 @@ public class MethodCall extends SimpleNode {
   }
 
   public boolean isCacheable() {
-    if (isGraphFunction()) {
-      return true;
-    }
-    return false;//TODO
+    return isGraphFunction();
   }
 
   private boolean isGraphFunction() {

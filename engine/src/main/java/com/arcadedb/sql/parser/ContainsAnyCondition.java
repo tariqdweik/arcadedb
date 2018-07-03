@@ -171,10 +171,7 @@ public class ContainsAnyCondition extends BooleanExpression {
     if (right != null && !right.supportsBasicCalculation()) {
       return false;
     }
-    if (rightBlock != null && !rightBlock.supportsBasicCalculation()) {
-      return false;
-    }
-    return true;
+    return rightBlock == null || rightBlock.supportsBasicCalculation();
   }
 
   @Override
@@ -216,10 +213,7 @@ public class ContainsAnyCondition extends BooleanExpression {
     if (right != null && right.needsAliases(aliases)) {
       return true;
     }
-    if (rightBlock != null && rightBlock.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return rightBlock != null && rightBlock.needsAliases(aliases);
   }
 
   @Override
@@ -250,10 +244,7 @@ public class ContainsAnyCondition extends BooleanExpression {
     if (right != null && right.refersToParent()) {
       return true;
     }
-    if (rightBlock != null && rightBlock.refersToParent()) {
-      return true;
-    }
-    return false;
+    return rightBlock != null && rightBlock.refersToParent();
   }
 
   @Override
@@ -269,10 +260,7 @@ public class ContainsAnyCondition extends BooleanExpression {
       return false;
     if (right != null ? !right.equals(that.right) : that.right != null)
       return false;
-    if (rightBlock != null ? !rightBlock.equals(that.rightBlock) : that.rightBlock != null)
-      return false;
-
-    return true;
+    return rightBlock != null ? rightBlock.equals(that.rightBlock) : that.rightBlock == null;
   }
 
   @Override
@@ -313,10 +301,7 @@ public class ContainsAnyCondition extends BooleanExpression {
       return false;
     }
 
-    if (rightBlock != null && !rightBlock.isCacheable()) {
-      return false;
-    }
-    return true;
+    return rightBlock == null || rightBlock.isCacheable();
   }
 }
 /* JavaCC - OriginalChecksum=7992ab9e8e812c6d9358ede8b67b4506 (do not edit this line) */

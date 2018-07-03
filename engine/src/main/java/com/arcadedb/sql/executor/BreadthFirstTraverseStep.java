@@ -81,7 +81,7 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
 
   private void addNextEntryPoints(Object nextStep, int depth, List<RID> path, CommandContext ctx) {
     if (nextStep instanceof Record) {
-      addNextEntryPoints(((Record) nextStep), depth, path, ctx);
+      addNextEntryPoints(nextStep, depth, path, ctx);
     } else if (nextStep instanceof Iterable) {
       addNextEntryPoints(((Iterable) nextStep).iterator(), depth, path, ctx);
     } else if (nextStep instanceof Result) {
@@ -133,7 +133,7 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
 
       List<RID> newPath = new ArrayList<>();
       newPath.addAll(path);
-      newPath.add(((TraverseResult) nextStep).getIdentity().get());
+      newPath.add(nextStep.getIdentity().get());
       ((TraverseResult) nextStep).setMetadata("$path", newPath);
 
       List reverseStack = new ArrayList();
@@ -152,7 +152,7 @@ public class BreadthFirstTraverseStep extends AbstractTraverseStep {
 
       List<RID> newPath = new ArrayList<>();
       newPath.addAll(path);
-      newPath.add(((TraverseResult) nextStep).getIdentity().get());
+      newPath.add(nextStep.getIdentity().get());
       ((TraverseResult) nextStep).setMetadata("$path", newPath);
 
       List reverseStack = new ArrayList();

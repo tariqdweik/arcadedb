@@ -384,10 +384,7 @@ public class Expression extends SimpleNode {
     if (arrayConcatExpression != null && arrayConcatExpression.isAggregate()) {
       return true;
     }
-    if (json != null && json.isAggregate()) {
-      return true;
-    }
-    return false;
+    return json != null && json.isAggregate();
   }
 
   public Expression splitForAggregation(AggregateProjectionSplit aggregateSplit) {
@@ -472,10 +469,7 @@ public class Expression extends SimpleNode {
       return false;
     if (json != null ? !json.equals(that.json) : that.json != null)
       return false;
-    if (booleanValue != null ? !booleanValue.equals(that.booleanValue) : that.booleanValue != null)
-      return false;
-
-    return true;
+    return booleanValue != null ? booleanValue.equals(that.booleanValue) : that.booleanValue == null;
   }
 
   @Override
@@ -526,10 +520,7 @@ public class Expression extends SimpleNode {
     if (arrayConcatExpression != null && arrayConcatExpression.refersToParent()) {
       return true;
     }
-    if (json != null && json.refersToParent()) {
-      return true;
-    }
-    return false;
+    return json != null && json.refersToParent();
   }
 
   public Rid getRid() {

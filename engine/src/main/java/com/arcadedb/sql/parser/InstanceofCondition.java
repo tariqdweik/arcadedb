@@ -131,10 +131,7 @@ public class InstanceofCondition extends BooleanExpression {
 
   @Override
   public boolean needsAliases(Set<String> aliases) {
-    if (left.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return left.needsAliases(aliases);
   }
 
   @Override
@@ -153,10 +150,7 @@ public class InstanceofCondition extends BooleanExpression {
 
   @Override
   public boolean refersToParent() {
-    if (left != null && left.refersToParent()) {
-      return true;
-    }
-    return false;
+    return left != null && left.refersToParent();
   }
 
   @Override
@@ -172,10 +166,7 @@ public class InstanceofCondition extends BooleanExpression {
       return false;
     if (right != null ? !right.equals(that.right) : that.right != null)
       return false;
-    if (rightString != null ? !rightString.equals(that.rightString) : that.rightString != null)
-      return false;
-
-    return true;
+    return rightString != null ? rightString.equals(that.rightString) : that.rightString == null;
   }
 
   @Override

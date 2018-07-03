@@ -36,7 +36,7 @@ public class SQLFunctionIntersect extends SQLFunctionMultiValueAbstract<Object> 
         if (value instanceof Collection) {
           context = ((Collection) value).iterator();
         } else if (value instanceof Iterator) {
-          context = (Iterator) value;
+          context = value;
         } else if (value instanceof Iterable) {
           context = ((Iterable) value).iterator();
         } else {

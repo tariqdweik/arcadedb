@@ -112,10 +112,7 @@ public class Rid extends SimpleNode {
       return false;
     if (expression != null ? !expression.equals(oRid.expression) : oRid.expression != null)
       return false;
-    if (legacy != oRid.legacy)
-      return false;
-
-    return true;
+    return legacy == oRid.legacy;
   }
 
   @Override

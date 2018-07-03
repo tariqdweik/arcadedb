@@ -53,7 +53,7 @@ public class SQLFunctionMin extends SQLFunctionMathAbstract {
     if (aggregateResults() && min != null) {
       if (context == null)
         // FIRST TIME
-        context = (Comparable) min;
+        context = min;
       else {
         if (context instanceof Number && min instanceof Number) {
           final Number[] casted = Type.castComparableNumber((Number) context, (Number) min);
@@ -61,9 +61,9 @@ public class SQLFunctionMin extends SQLFunctionMathAbstract {
           min = casted[1];
         }
 
-        if (((Comparable<Object>) context).compareTo((Comparable) min) > 0)
+        if (((Comparable<Object>) context).compareTo(min) > 0)
           // MINOR
-          context = (Comparable) min;
+          context = min;
       }
 
       return null;

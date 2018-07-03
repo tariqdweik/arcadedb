@@ -332,10 +332,7 @@ public class WhereClause extends SimpleNode {
 
     if (baseExpression != null ? !baseExpression.equals(that.baseExpression) : that.baseExpression != null)
       return false;
-    if (flattened != null ? !flattened.equals(that.flattened) : that.flattened != null)
-      return false;
-
-    return true;
+    return flattened != null ? flattened.equals(that.flattened) : that.flattened == null;
   }
 
   @Override

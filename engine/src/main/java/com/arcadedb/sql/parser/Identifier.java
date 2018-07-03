@@ -155,10 +155,7 @@ public class Identifier extends SimpleNode {
       return false;
     if (internalAlias != that.internalAlias)
       return false;
-    if (value != null ? !value.equals(that.value) : that.value != null)
-      return false;
-
-    return true;
+    return value != null ? value.equals(that.value) : that.value == null;
   }
 
   @Override

@@ -147,10 +147,7 @@ public class TruncateTypeStatement extends ODDLStatement {
       return false;
     if (unsafe != that.unsafe)
       return false;
-    if (typeName != null ? !typeName.equals(that.typeName) : that.typeName != null)
-      return false;
-
-    return true;
+    return typeName != null ? typeName.equals(that.typeName) : that.typeName == null;
   }
 
   @Override public int hashCode() {

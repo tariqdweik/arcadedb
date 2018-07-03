@@ -119,7 +119,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     }
   }
 
-  private Pair<Object, Identifiable> loadNextEntry(CommandContext commandContext) throws IOException {
+  private Pair<Object, Identifiable> loadNextEntry(CommandContext commandContext) {
     while (cursor.hasNext()) {
       cursor.next();
 
@@ -319,18 +319,11 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     BooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
     if (exp instanceof BinaryCondition) {
       BinaryCompareOperator operator = ((BinaryCondition) exp).getOperator();
-      BinaryCompareOperator additionalOperator = additional == null ? null : ((BinaryCondition) additional).getOperator();
+      BinaryCompareOperator additionalOperator = additional == null ? null : additional.getOperator();
       if (isGreaterOperator(operator)) {
-        if (isIncludeOperator(operator)) {
-          return true;
-        } else {
-          return false;
-        }
-      } else if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+        return isIncludeOperator(operator);
+      } else
+        return additionalOperator == null || (isIncludeOperator(additionalOperator) && isGreaterOperator(additionalOperator));
     } else {
       throw new UnsupportedOperationException("Cannot execute index query with " + exp);
     }
@@ -361,18 +354,11 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     BooleanExpression exp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
     if (exp instanceof BinaryCondition) {
       BinaryCompareOperator operator = ((BinaryCondition) exp).getOperator();
-      BinaryCompareOperator additionalOperator = additional == null ? null : ((BinaryCondition) additional).getOperator();
+      BinaryCompareOperator additionalOperator = additional == null ? null : additional.getOperator();
       if (isLessOperator(operator)) {
-        if (isIncludeOperator(operator)) {
-          return true;
-        } else {
-          return false;
-        }
-      } else if (additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator))) {
-        return true;
-      } else {
-        return false;
-      }
+        return isIncludeOperator(operator);
+      } else
+        return additionalOperator == null || (isIncludeOperator(additionalOperator) && isLessOperator(additionalOperator));
     } else {
       throw new UnsupportedOperationException("Cannot execute index query with " + exp);
     }

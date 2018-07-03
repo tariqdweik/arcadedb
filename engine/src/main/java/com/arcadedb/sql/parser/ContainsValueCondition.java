@@ -118,11 +118,8 @@ public class ContainsValueCondition extends BooleanExpression {
     if (condition != null && condition.needsAliases(aliases)) {
       return true;
     }
-    if (expression != null && expression.needsAliases(aliases)) {
-      return true;
-    }
+    return expression != null && expression.needsAliases(aliases);
 
-    return false;
   }
 
   @Override
@@ -154,10 +151,7 @@ public class ContainsValueCondition extends BooleanExpression {
     if (condition != null && condition.refersToParent()) {
       return true;
     }
-    if (expression != null && condition.refersToParent()) {
-      return true;
-    }
-    return false;
+    return expression != null && condition.refersToParent();
   }
 
   @Override
@@ -175,10 +169,7 @@ public class ContainsValueCondition extends BooleanExpression {
       return false;
     if (condition != null ? !condition.equals(that.condition) : that.condition != null)
       return false;
-    if (expression != null ? !expression.equals(that.expression) : that.expression != null)
-      return false;
-
-    return true;
+    return expression != null ? expression.equals(that.expression) : that.expression == null;
   }
 
   @Override
@@ -218,11 +209,7 @@ public class ContainsValueCondition extends BooleanExpression {
     if (condition != null && !condition.isCacheable()) {
       return false;
     }
-    if (expression != null && !expression.isCacheable()) {
-      return false;
-    }
-
-    return true;
+    return expression == null || expression.isCacheable();
   }
 }
 /* JavaCC - OriginalChecksum=6fda752f10c8d8731f43efa706e39459 (do not edit this line) */

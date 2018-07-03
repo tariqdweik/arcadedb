@@ -73,10 +73,7 @@ public class Bucket extends SimpleNode {
 
     if (bucketName != null ? !bucketName.equals(oCluster.bucketName) : oCluster.bucketName != null)
       return false;
-    if (bucketNumber != null ? !bucketNumber.equals(oCluster.bucketNumber) : oCluster.bucketNumber != null)
-      return false;
-
-    return true;
+    return bucketNumber != null ? bucketNumber.equals(oCluster.bucketNumber) : oCluster.bucketNumber == null;
   }
 
   @Override

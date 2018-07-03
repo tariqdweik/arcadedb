@@ -133,7 +133,7 @@ public class OMatchExecutionPlanner {
       info.projection = new Projection(items, returnDistinct);
 
       info.projection = OSelectExecutionPlanner.translateDistinct(info.projection);
-      info.distinct = info.projection == null ? false : info.projection.isDistinct();
+      info.distinct = info.projection != null && info.projection.isDistinct();
       if (info.projection != null) {
         info.projection.setDistinct(false);
       }
@@ -239,9 +239,7 @@ public class OMatchExecutionPlanner {
     }
     // Add all the remaining aliases after all the suggested start points.
     for (String alias : pattern.aliasToNode.keySet()) {
-      if (!remainingStarts.contains(alias)) {
-        remainingStarts.add(alias);
-      }
+      remainingStarts.add(alias);
     }
 
     while (resultingSchedule.size() < pattern.numOfEdges) {

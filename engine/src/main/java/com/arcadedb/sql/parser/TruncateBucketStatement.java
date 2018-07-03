@@ -112,10 +112,7 @@ public class TruncateBucketStatement extends ODDLStatement {
       return false;
     if (bucketName != null ? !bucketName.equals(that.bucketName) : that.bucketName != null)
       return false;
-    if (bucketNumber != null ? !bucketNumber.equals(that.bucketNumber) : that.bucketNumber != null)
-      return false;
-
-    return true;
+    return bucketNumber != null ? bucketNumber.equals(that.bucketNumber) : that.bucketNumber == null;
   }
 
   @Override public int hashCode() {

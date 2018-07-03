@@ -80,10 +80,7 @@ public class ExplainStatement extends Statement {
 
     ExplainStatement that = (ExplainStatement) o;
 
-    if (statement != null ? !statement.equals(that.statement) : that.statement != null)
-      return false;
-
-    return true;
+    return statement != null ? statement.equals(that.statement) : that.statement == null;
   }
 
   @Override public int hashCode() {

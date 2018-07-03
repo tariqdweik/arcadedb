@@ -122,10 +122,7 @@ public class AlterBucketStatement extends ODDLStatement {
       return false;
     if (attributeName != null ? !attributeName.equals(that.attributeName) : that.attributeName != null)
       return false;
-    if (attributeValue != null ? !attributeValue.equals(that.attributeValue) : that.attributeValue != null)
-      return false;
-
-    return true;
+    return attributeValue != null ? attributeValue.equals(that.attributeValue) : that.attributeValue == null;
   }
 
   @Override

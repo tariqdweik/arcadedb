@@ -168,40 +168,28 @@ public class BaseIdentifier extends SimpleNode {
     if (levelZero != null && levelZero.needsAliases(aliases)) {
       return true;
     }
-    if (suffix != null && suffix.needsAliases(aliases)) {
-      return true;
-    }
-    return false;
+    return suffix != null && suffix.needsAliases(aliases);
   }
 
   public boolean isAggregate() {
     if (levelZero != null && levelZero.isAggregate()) {
       return true;
     }
-    if (suffix != null && suffix.isAggregate()) {
-      return true;
-    }
-    return false;
+    return suffix != null && suffix.isAggregate();
   }
 
   public boolean isCount() {
     if (levelZero != null && levelZero.isCount()) {
       return true;
     }
-    if (suffix != null && suffix.isCount()) {
-      return true;
-    }
-    return false;
+    return suffix != null && suffix.isCount();
   }
 
   public boolean isEarlyCalculated() {
     if (levelZero != null && levelZero.isEarlyCalculated()) {
       return true;
     }
-    if (suffix != null && suffix.isEarlyCalculated()) {
-      return true;
-    }
-    return false;
+    return suffix != null && suffix.isEarlyCalculated();
   }
 
   public SimpleNode splitForAggregation(AggregateProjectionSplit aggregateProj) {
@@ -262,10 +250,7 @@ public class BaseIdentifier extends SimpleNode {
 
     if (levelZero != null ? !levelZero.equals(that.levelZero) : that.levelZero != null)
       return false;
-    if (suffix != null ? !suffix.equals(that.suffix) : that.suffix != null)
-      return false;
-
-    return true;
+    return suffix != null ? suffix.equals(that.suffix) : that.suffix == null;
   }
 
   @Override
@@ -279,10 +264,7 @@ public class BaseIdentifier extends SimpleNode {
     if (levelZero != null && levelZero.refersToParent()) {
       return true;
     }
-    if (suffix != null && suffix.refersToParent()) {
-      return true;
-    }
-    return false;
+    return suffix != null && suffix.refersToParent();
   }
 
   public SuffixIdentifier getSuffix() {

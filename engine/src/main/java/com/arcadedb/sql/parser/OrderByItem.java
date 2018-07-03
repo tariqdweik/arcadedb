@@ -135,10 +135,7 @@ public class OrderByItem {
     if (alias != null && alias.equalsIgnoreCase("$parent")) {
       return true;
     }
-    if (modifier != null && modifier.refersToParent()) {
-      return true;
-    }
-    return false;
+    return modifier != null && modifier.refersToParent();
   }
 
   public Modifier getModifier() {

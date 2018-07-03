@@ -118,10 +118,7 @@ public class ArraySelector extends SimpleNode {
       return false;
     if (expression != null ? !expression.equals(that.expression) : that.expression != null)
       return false;
-    if (integer != null ? !integer.equals(that.integer) : that.integer != null)
-      return false;
-
-    return true;
+    return integer != null ? integer.equals(that.integer) : that.integer == null;
   }
 
   @Override public int hashCode() {
@@ -139,10 +136,7 @@ public class ArraySelector extends SimpleNode {
   }
 
   public boolean refersToParent() {
-    if (expression != null && expression.refersToParent()) {
-      return true;
-    }
-    return false;
+    return expression != null && expression.refersToParent();
   }
 
   public void setValue(Result currentRecord, Object target, Object value, CommandContext ctx) {

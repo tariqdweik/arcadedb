@@ -80,10 +80,7 @@ public class ConsoleStatement extends SimpleExecStatement {
 
     if (logLevel != null ? !logLevel.equals(that.logLevel) : that.logLevel != null)
       return false;
-    if (message != null ? !message.equals(that.message) : that.message != null)
-      return false;
-
-    return true;
+    return message != null ? message.equals(that.message) : that.message == null;
   }
 
   @Override public int hashCode() {

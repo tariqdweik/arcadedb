@@ -34,7 +34,7 @@ public class OSelectExecutionPlanner {
     info = new QueryPlanningInfo();
     info.projection = this.statement.getProjection() == null ? null : this.statement.getProjection().copy();
     info.projection = translateDistinct(info.projection);
-    info.distinct = info.projection == null ? false : info.projection.isDistinct();
+    info.distinct = info.projection != null && info.projection.isDistinct();
     if (info.projection != null) {
       info.projection.setDistinct(false);
     }
@@ -475,10 +475,7 @@ public class OSelectExecutionPlanner {
     if (function == null) {
       return false;
     }
-    if (function.getName().getStringValue().equalsIgnoreCase("distinct")) {
-      return true;
-    }
-    return false;
+    return function.getName().getStringValue().equalsIgnoreCase("distinct");
   }
 
   private boolean handleHardwiredOptimizations(SelectExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
@@ -536,12 +533,8 @@ public class OSelectExecutionPlanner {
    * @return
    */
   private boolean isMinimalQuery(QueryPlanningInfo info) {
-    if (info.projectionAfterOrderBy != null || info.globalLetClause != null || info.perRecordLetClause != null
-        || info.whereClause != null || info.flattenedWhereClause != null || info.groupBy != null || info.orderBy != null
-        || info.unwind != null || info.skip != null || info.limit != null) {
-      return false;
-    }
-    return true;
+    return info.projectionAfterOrderBy == null && info.globalLetClause == null && info.perRecordLetClause == null && info.whereClause == null
+        && info.flattenedWhereClause == null && info.groupBy == null && info.orderBy == null && info.unwind == null && info.skip == null && info.limit == null;
   }
 
   private boolean isCountStar(QueryPlanningInfo info) {
@@ -550,11 +543,7 @@ public class OSelectExecutionPlanner {
       return false;
     }
     ProjectionItem item = info.aggregateProjection.getItems().get(0);
-    if (!item.getExpression().toString().equalsIgnoreCase("count(*)")) {
-      return false;
-    }
-
-    return true;
+    return item.getExpression().toString().equalsIgnoreCase("count(*)");
   }
 
   private boolean isCount(Projection aggregateProjection, Projection projection) {
@@ -803,10 +792,7 @@ public class OSelectExecutionPlanner {
   }
 
   private static boolean isAggregate(ProjectionItem item) {
-    if (item.isAggregate()) {
-      return true;
-    }
-    return false;
+    return item.isAggregate();
   }
 
   private static ProjectionItem projectionFromAlias(Identifier oIdentifier) {
@@ -1878,7 +1864,7 @@ public class OSelectExecutionPlanner {
         }
       }
     }
-    return result == null || result.equals(OrderByItem.ASC) ? true : false;
+    return result == null || result.equals(OrderByItem.ASC);
   }
 
   private ExecutionStepInternal createParallelIndexFetch(List<IndexSearchDescriptor> indexSearchDescriptors,
@@ -2264,9 +2250,7 @@ public class OSelectExecutionPlanner {
     if (info.orderBy.getItems().size() == 1) {
       OrderByItem item = info.orderBy.getItems().get(0);
       String recordAttr = item.getRecordAttr();
-      if (recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && OrderByItem.DESC.equals(item.getType())) {
-        return true;
-      }
+      return recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && OrderByItem.DESC.equals(item.getType());
     }
     return false;
   }
@@ -2282,10 +2266,7 @@ public class OSelectExecutionPlanner {
     if (info.orderBy.getItems().size() == 1) {
       OrderByItem item = info.orderBy.getItems().get(0);
       String recordAttr = item.getRecordAttr();
-      if (recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && (item.getType() == null || OrderByItem.ASC
-          .equals(item.getType()))) {
-        return true;
-      }
+      return recordAttr != null && recordAttr.equalsIgnoreCase("@rid") && (item.getType() == null || OrderByItem.ASC.equals(item.getType()));
     }
     return false;
   }
@@ -2301,10 +2282,8 @@ public class OSelectExecutionPlanner {
       return true;
     } else if (info.target.getItem().getBucket() != null) {
       return true;
-    } else if (info.target.getItem().getBucketList() != null) {
-      return true;
-    }
-    return false;
+    } else
+      return info.target.getItem().getBucketList() != null;
   }
 
 }

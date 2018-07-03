@@ -83,10 +83,7 @@ public class PositionalParameter extends InputParameter {
 
     PositionalParameter that = (PositionalParameter) o;
 
-    if (paramNumber != that.paramNumber)
-      return false;
-
-    return true;
+    return paramNumber == that.paramNumber;
   }
 
   @Override

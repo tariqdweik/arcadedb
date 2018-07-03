@@ -143,10 +143,7 @@ public class AlterPropertyStatement extends ODDLStatement {
       return false;
     if (settingName != null ? !settingName.equals(that.settingName) : that.settingName != null)
       return false;
-    if (settingValue != null ? !settingValue.equals(that.settingValue) : that.settingValue != null)
-      return false;
-
-    return true;
+    return settingValue != null ? settingValue.equals(that.settingValue) : that.settingValue == null;
   }
 
   @Override
