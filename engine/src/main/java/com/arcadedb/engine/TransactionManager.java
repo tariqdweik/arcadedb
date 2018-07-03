@@ -74,13 +74,16 @@ public class TransactionManager {
         activeWALFilePool[i] = null;
       }
 
-      while (!cleanWALFiles()) {
+      for (int retry = 0; retry < 20 && !cleanWALFiles(); ++retry) {
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
           break;
         }
       }
+
+      if (!cleanWALFiles())
+        LogManager.instance().warn(this, "Error on removing all transaction files. Remained: %s", inactiveWALFilePool);
     }
   }
 
@@ -143,8 +146,7 @@ public class TransactionManager {
         try {
           activeWALFilePool[i] = new WALFile(database.getDatabasePath() + "/" + walFiles[i].getName());
         } catch (FileNotFoundException e) {
-          LogManager.instance()
-              .error(this, "Error on WAL file management for file '%s'", e, database.getDatabasePath() + walFiles[i].getName());
+          LogManager.instance().error(this, "Error on WAL file management for file '%s'", e, database.getDatabasePath() + walFiles[i].getName());
         }
       }
 
@@ -229,8 +231,9 @@ public class TransactionManager {
           continue;
 
         if (txPage.currentPageVersion > page.getVersion() + 1)
-          throw new WALException("Cannot apply changes to the database because modified page version (" + txPage.currentPageVersion
-              + ") does not match with existent version (" + page.getVersion() + ")");
+          throw new WALException(
+              "Cannot apply changes to the database because modified page version (" + txPage.currentPageVersion + ") does not match with existent version ("
+                  + page.getVersion() + ")");
 
         if (txPage.currentPageVersion != page.getVersion()) {
           final ModifiablePage modifiedPage = page.modify();
@@ -266,11 +269,10 @@ public class TransactionManager {
     activeWALFilePool = new WALFile[Runtime.getRuntime().availableProcessors()];
     for (int i = 0; i < activeWALFilePool.length; ++i) {
       try {
-        activeWALFilePool[i] = database.getWALFileFactory()
-            .newInstance(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+        activeWALFilePool[i] = database.getWALFileFactory().newInstance(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
       } catch (FileNotFoundException e) {
-        LogManager.instance().error(this, "Error on WAL file management for file '%s'", e,
-            database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+        LogManager.instance()
+            .error(this, "Error on WAL file management for file '%s'", e, database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
       }
     }
   }
@@ -281,11 +283,8 @@ public class TransactionManager {
         final WALFile file = activeWALFilePool[i];
         try {
           if (file != null && file.getSize() > MAX_LOG_FILE_SIZE) {
-            LogManager.instance()
-                .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file,
-                    MAX_LOG_FILE_SIZE);
-            activeWALFilePool[i] = database.getWALFileFactory()
-                .newInstance(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
+            LogManager.instance().debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file, MAX_LOG_FILE_SIZE);
+            activeWALFilePool[i] = database.getWALFileFactory().newInstance(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
             file.setActive(false);
             inactiveWALFilePool.add(file);
           }

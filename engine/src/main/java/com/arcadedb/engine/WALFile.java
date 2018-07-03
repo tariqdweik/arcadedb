@@ -28,8 +28,8 @@ public class WALFile extends LockContext {
 
   // FILE_ID (int) + PAGE_NUMBER (int) + DELTA_FROM (int) + DELTA_TO (int) + CURR_PAGE_VERSION (int)+ CURR_PAGE_SIZE (int)
   private static final int PAGE_HEADER_SIZE =
-      Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE
-          + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
+      Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE
+          + Binary.INT_SERIALIZED_SIZE;
 
   public static final long MAGIC_NUMBER = 9371515385058702l;
 
@@ -185,8 +185,9 @@ public class WALFile extends LockContext {
     }
   }
 
-  public Binary writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync,
-      final WALFile file, final long txId) throws IOException {
+  // TODO: SPLIT WRITE TX IN 2 PHASES: 1ST GENERATES THE BUFFER, 2ND, WRITE TO FILE AND SET FILE TO PAGES
+  public Binary writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync, final WALFile file, final long txId)
+      throws IOException {
     // WRITE TX HEADER (TXID, PAGES)
     byte[] buffer = new byte[TX_HEADER_SIZE];
     Binary pageBuffer = new Binary(buffer, TX_HEADER_SIZE);

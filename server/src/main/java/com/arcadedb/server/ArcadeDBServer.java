@@ -153,6 +153,10 @@ public class ArcadeDBServer {
     return getDatabase(databaseName, true);
   }
 
+  public boolean isStarted() {
+    return started;
+  }
+
   public DatabaseInternal createDatabase(final String databaseName) {
     DatabaseInternal db = databases.get(databaseName);
     if (db != null)

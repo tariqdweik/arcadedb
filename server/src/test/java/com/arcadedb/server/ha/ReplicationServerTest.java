@@ -110,7 +110,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     return true;
   }
 
-  private void checkEntriesOnServer(final int s) {
+  protected void checkEntriesOnServer(final int s) {
     final Database db = getServer(s).getDatabase(getDatabaseName());
     db.begin();
     try {

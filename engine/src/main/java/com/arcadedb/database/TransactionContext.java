@@ -32,6 +32,7 @@ public class TransactionContext {
   private final Map<RID, Record>            modifiedRecordsCache  = new HashMap<>(1024);
   private       boolean                     useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
   private       boolean                     sync                  = GlobalConfiguration.TX_FLUSH.getValueAsBoolean();
+  private       List<Integer>               lockedFiles;
 
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
@@ -48,78 +49,10 @@ public class TransactionContext {
     if (modifiedPages == null)
       throw new TransactionException("Transaction not begun");
 
-    final int totalImpactedPages = modifiedPages.size() + (newPages != null ? newPages.size() : 0);
-    if (totalImpactedPages == 0) {
-      // EMPTY TRANSACTION = NO CHANGES
-      modifiedPages = null;
-      return null;
-    }
+    final Binary result = commit1stPhase();
 
-    final PageManager pageManager = database.getPageManager();
-
-    Binary result = null;
-
-    // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
-    final List<Integer> lockedFiles = lockFilesInOrder(pageManager);
-    try {
-
-      // CHECK THE VERSION FIRST
-      final List<ModifiablePage> pages = new ArrayList<>();
-
-      for (final Iterator<ModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
-        final ModifiablePage p = it.next();
-
-        final int[] range = p.getModifiedRange();
-        if (range[1] > 0) {
-          pageManager.checkPageVersion(p, false);
-          pages.add(p);
-        } else
-          // PAGE NOT MODIFIED, REMOVE IT
-          it.remove();
-      }
-
-      if (newPages != null)
-        for (ModifiablePage p : newPages.values()) {
-          final int[] range = p.getModifiedRange();
-          if (range[1] > 0) {
-            pageManager.checkPageVersion(p, true);
-            pages.add(p);
-          }
-        }
-
-      if (useWAL)
-        result = database.getTransactionManager().writeTransactionToWAL(pages, sync);
-
-      try {
-        // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
-        // UPDATE PAGE COUNTER FIRST
-        if (newPages != null) {
-          for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
-            database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
-            database.getFileManager().setVirtualFileSize(entry.getKey(),
-                entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
-          }
-        }
-
-        LogManager.instance().debug(this, "Committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages,
-            Thread.currentThread().getId());
-
-        pageManager.updatePages(newPages, modifiedPages);
-
-      } catch (Exception e) {
-        throw new TransactionException("Unexpected transaction error. Unable to recover the transaction", e);
-      }
-
-    } catch (ConcurrentModificationException e) {
-      rollback();
-      throw e;
-    } catch (Exception e) {
-      LogManager.instance().info(this, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
-      rollback();
-      throw new TransactionException("Transaction error on commit", e);
-    } finally {
-      pageManager.unlockFilesInOrder(lockedFiles);
-    }
+    if (modifiedPages != null)
+      commit2ndPhase();
 
     reset();
 
@@ -199,8 +132,8 @@ public class TransactionContext {
   }
 
   public void rollback() {
-    LogManager.instance().debug(this, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages,
-        Thread.currentThread().getId());
+    LogManager.instance()
+        .debug(this, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
 
     reset();
   }
@@ -256,10 +189,6 @@ public class TransactionContext {
     }
 
     return page;
-  }
-
-  public void removeModifiedPage(final PageId pageId) {
-    modifiedPages.remove(pageId);
   }
 
   public ModifiablePage addPage(final PageId pageId, final int pageSize) {
@@ -327,10 +256,105 @@ public class TransactionContext {
    * Test only API.
    */
   public void kill() {
+    lockedFiles = null;
     modifiedPages = null;
     newPages = null;
-    newPages = null;
     newPageCounters.clear();
+  }
+
+  /**
+   * Locks the files in order, then checks all the pre-conditions.
+   *
+   * @return
+   */
+  public Binary commit1stPhase() {
+    if (lockedFiles != null)
+      throw new TransactionException("Cannot execute 1st phase commit because it was already started");
+
+    final int totalImpactedPages = modifiedPages.size() + (newPages != null ? newPages.size() : 0);
+    if (totalImpactedPages == 0) {
+      // EMPTY TRANSACTION = NO CHANGES
+      modifiedPages = null;
+      return null;
+    }
+
+    final PageManager pageManager = database.getPageManager();
+
+    Binary result = null;
+
+    // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
+    lockedFiles = lockFilesInOrder(pageManager);
+    try {
+
+      // CHECK THE VERSIONS FIRST
+      final List<ModifiablePage> pages = new ArrayList<>();
+
+      for (final Iterator<ModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
+        final ModifiablePage p = it.next();
+
+        final int[] range = p.getModifiedRange();
+        if (range[1] > 0) {
+          pageManager.checkPageVersion(p, false);
+          pages.add(p);
+        } else
+          // PAGE NOT MODIFIED, REMOVE IT
+          it.remove();
+      }
+
+      if (newPages != null)
+        for (ModifiablePage p : newPages.values()) {
+          final int[] range = p.getModifiedRange();
+          if (range[1] > 0) {
+            pageManager.checkPageVersion(p, true);
+            pages.add(p);
+          }
+        }
+
+      if (useWAL)
+        result = database.getTransactionManager().writeTransactionToWAL(pages, sync);
+
+      return result;
+
+    } catch (ConcurrentModificationException e) {
+      rollback();
+      throw e;
+    } catch (Exception e) {
+      LogManager.instance().info(this, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
+      rollback();
+      throw new TransactionException("Transaction error on commit", e);
+    }
+  }
+
+  public void commit2ndPhase() {
+    if (lockedFiles == null)
+      throw new TransactionException("Cannot execute 2nd phase commit without having started the 1st phase");
+
+    final PageManager pageManager = database.getPageManager();
+    try {
+      // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
+      // UPDATE PAGE COUNTER FIRST
+      if (newPages != null) {
+        for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
+          database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
+          database.getFileManager().setVirtualFileSize(entry.getKey(), entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
+        }
+      }
+
+      LogManager.instance().debug(this, "Committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
+
+      pageManager.updatePages(newPages, modifiedPages);
+
+    } catch (ConcurrentModificationException e) {
+      rollback();
+      throw e;
+    } catch (Exception e) {
+      LogManager.instance().info(this, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
+      rollback();
+      throw new TransactionException("Transaction error on commit", e);
+    } finally {
+      pageManager.unlockFilesInOrder(lockedFiles);
+      lockedFiles = null;
+    }
   }
 
   private List<Integer> lockFilesInOrder(final PageManager pageManager) {
@@ -350,6 +374,12 @@ public class TransactionContext {
   }
 
   private void reset() {
+    if (lockedFiles != null) {
+      final PageManager pageManager = database.getPageManager();
+      pageManager.unlockFilesInOrder(lockedFiles);
+      lockedFiles = null;
+    }
+
     modifiedPages = null;
     newPages = null;
     newPageCounters.clear();

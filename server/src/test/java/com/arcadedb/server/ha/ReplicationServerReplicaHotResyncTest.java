@@ -21,7 +21,6 @@ public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest
 
   public ReplicationServerReplicaHotResyncTest() {
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
-    GlobalConfiguration.TEST.setValue(true);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(10);
   }
 
@@ -29,7 +28,6 @@ public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest
   @Override
   public void endTest() {
     super.endTest();
-    GlobalConfiguration.TEST.setValue(false);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(512);
   }
 

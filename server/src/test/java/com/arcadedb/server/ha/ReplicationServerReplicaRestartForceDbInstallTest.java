@@ -23,7 +23,6 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
 
   public ReplicationServerReplicaRestartForceDbInstallTest() {
     GlobalConfiguration.HA_QUORUM.setValue("MAJORITY");
-    GlobalConfiguration.TEST.setValue(true);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(10);
   }
 
@@ -31,7 +30,6 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
   @Override
   public void endTest() {
     super.endTest();
-    GlobalConfiguration.TEST.setValue(false);
     GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(512);
   }
 

@@ -255,12 +255,16 @@ public class HAServer implements ServerPlugin {
         messagesWaitingForQuorum.put(messageNumber, new QuorumMessages(quorumSemaphore));
       }
 
+      int sent = 0;
+
       // SEND THE REQUEST TO ALL THE REPLICAS
       final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
       for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
         try {
 
-          if (!replicaConnection.enqueueMessage(buffer.slice(0))) {
+          if (replicaConnection.enqueueMessage(buffer.slice(0)))
+            ++sent;
+          else {
             if (quorumSemaphore != null)
               quorumSemaphore.countDown();
           }
@@ -273,6 +277,9 @@ public class HAServer implements ServerPlugin {
             quorumSemaphore.countDown();
         }
       }
+
+      if (sent < quorum - 1)
+        throw new ReplicationException("Quorum " + quorum + " not reached because only " + sent + " server(s) are online");
 
       if (quorumSemaphore != null) {
         try {
@@ -308,6 +315,10 @@ public class HAServer implements ServerPlugin {
         total++;
     }
     return total;
+  }
+
+  public int getConfiguredReplicas() {
+    return replicaConnections.size();
   }
 
   public void printClusterConfiguration() {

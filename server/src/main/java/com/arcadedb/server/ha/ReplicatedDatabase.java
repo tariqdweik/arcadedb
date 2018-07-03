@@ -8,6 +8,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
+import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.ModifiableVertex;
@@ -45,38 +46,57 @@ public class ReplicatedDatabase implements DatabaseInternal {
       @Override
       public Object call() {
         proxied.checkTransactionIsActive();
-        final Binary changes = proxied.getTransaction().commit();
 
-        if (changes != null) {
-          server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
+        final TransactionContext tx = proxied.getTransaction();
 
-          final int activeServers = 1 + server.getHA().getOnlineReplicas();
+        final Binary changes = tx.commit1stPhase();
+        try {
+          if (changes != null) {
+            server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
 
-          final int reqQuorum;
-          switch (quorum) {
-          case NONE:
-            reqQuorum = 0;
-            break;
-          case ONE:
-            reqQuorum = 1;
-            break;
-          case TWO:
-            reqQuorum = 2;
-            break;
-          case THREE:
-            reqQuorum = 3;
-            break;
-          case MAJORITY:
-            reqQuorum = (activeServers / 2) + 1;
-            break;
-          case ALL:
-            reqQuorum = activeServers;
-            break;
-          default:
-            throw new IllegalArgumentException("Quorum " + quorum + " not managed");
+            final int configuredServers = 1 + server.getHA().getConfiguredReplicas();
+
+            final int reqQuorum;
+            switch (quorum) {
+            case NONE:
+              reqQuorum = 0;
+              break;
+            case ONE:
+              reqQuorum = 1;
+              break;
+            case TWO:
+              reqQuorum = 2;
+              break;
+            case THREE:
+              reqQuorum = 3;
+              break;
+            case MAJORITY:
+              reqQuorum = (configuredServers / 2) + 1;
+              break;
+            case ALL:
+              reqQuorum = configuredServers;
+              break;
+            default:
+              throw new IllegalArgumentException("Quorum " + quorum + " not managed");
+            }
+
+            final int onlineServers = 1 + server.getHA().getOnlineReplicas();
+            if (reqQuorum > onlineServers)
+              // DON'T EVEN TRY
+              throw new ReplicationException("Quorum " + reqQuorum + " (" + quorum + ") not reached because only " + onlineServers + " server(s) are online");
+
+            server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), changes, reqQuorum > 1), reqQuorum, timeout);
+
+            // COMMIT 2ND PHASE ONLY IF THE QUORUM HAS BEEN REACHED
+            tx.commit2ndPhase();
           }
 
-          server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), changes, reqQuorum > 1), reqQuorum, timeout);
+        } catch (TransactionException e) {
+          tx.rollback();
+          throw e;
+        } catch (Exception e) {
+          tx.rollback();
+          throw new TransactionException("Error on commit distributed transaction", e);
         }
 
         return null;

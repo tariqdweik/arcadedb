@@ -42,6 +42,7 @@ public abstract class BaseGraphServerTest {
   private          ArcadeDBServer[] servers;
 
   protected BaseGraphServerTest() {
+    GlobalConfiguration.TEST.setValue(true);
     GlobalConfiguration.SERVER_ROOT_PATH.setValue("./target");
   }
 
@@ -49,7 +50,8 @@ public abstract class BaseGraphServerTest {
   public void startTest() {
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/databases"));
+    for (int i = 0; i < getServerCount(); ++i)
+      FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/databases" + i));
     FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
 
     new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
@@ -157,19 +159,22 @@ public abstract class BaseGraphServerTest {
   @AfterEach
   public void endTest() {
     LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
-    for (int i = servers.length - 1; i > -1; --i) {
-      if (servers[i] != null)
-        servers[i].stop();
+    if (servers != null)
+      for (int i = servers.length - 1; i > -1; --i) {
+        if (servers[i] != null)
+          servers[i].stop();
 
-      if (dropDatabases()) {
-        final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE);
+        if (dropDatabases()) {
+          final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE);
 
-        if (factory.exists()) {
-          final Database db = factory.open();
-          db.drop();
+          if (factory.exists()) {
+            final Database db = factory.open();
+            db.drop();
+          }
         }
       }
-    }
+
+    GlobalConfiguration.TEST.setValue(false);
   }
 
   protected void startServers() {
