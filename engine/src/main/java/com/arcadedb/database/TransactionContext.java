@@ -9,6 +9,7 @@ import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.utility.LogManager;
+import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
 import java.util.*;
@@ -49,14 +50,14 @@ public class TransactionContext {
     if (modifiedPages == null)
       throw new TransactionException("Transaction not begun");
 
-    final Binary result = commit1stPhase();
+    final Pair<Binary, List<ModifiablePage>> changes = commit1stPhase();
 
     if (modifiedPages != null)
-      commit2ndPhase();
+      commit2ndPhase(changes);
 
     reset();
 
-    return result;
+    return changes != null ? changes.getFirst() : null;
   }
 
   public Record getRecordFromCache(final RID rid) {
@@ -267,7 +268,7 @@ public class TransactionContext {
    *
    * @return
    */
-  public Binary commit1stPhase() {
+  public Pair<Binary, List<ModifiablePage>> commit1stPhase() {
     if (lockedFiles != null)
       throw new TransactionException("Cannot execute 1st phase commit because it was already started");
 
@@ -311,9 +312,9 @@ public class TransactionContext {
         }
 
       if (useWAL)
-        result = database.getTransactionManager().writeTransactionToWAL(pages, sync);
+        result = database.getTransactionManager().getTransactionBuffer(pages);
 
-      return result;
+      return new Pair(result, pages);
 
     } catch (ConcurrentModificationException e) {
       rollback();
@@ -325,12 +326,17 @@ public class TransactionContext {
     }
   }
 
-  public void commit2ndPhase() {
+  public void commit2ndPhase(final Pair<Binary, List<ModifiablePage>> changes) {
     if (lockedFiles == null)
       throw new TransactionException("Cannot execute 2nd phase commit without having started the 1st phase");
 
     final PageManager pageManager = database.getPageManager();
+
     try {
+      if (changes.getFirst() != null)
+        // WRITE TO THE WAL FIRST
+        database.getTransactionManager().writeTransactionToWAL(changes.getSecond(), sync, changes.getFirst());
+
       // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       // UPDATE PAGE COUNTER FIRST
       if (newPages != null) {

@@ -6,7 +6,6 @@ package com.arcadedb.database;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.schema.SchemaImpl;
 
 import java.io.File;
@@ -24,7 +23,6 @@ public class DatabaseFactory {
   private final ContextConfiguration                                       contextConfiguration = new ContextConfiguration();
   private final PaginatedFile.MODE                                         mode;
   private final String                                                     databasePath;
-  private       WALFileFactory                                             walFileFactory;
   private       boolean                                                    autoTransaction      = false;
   private       Map<DatabaseInternal.CALLBACK_EVENT, List<Callable<Void>>> callbacks            = new HashMap<>();
 
@@ -41,14 +39,14 @@ public class DatabaseFactory {
   }
 
   public EmbeddedDatabase open() {
-    final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks, walFileFactory);
+    final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks);
     db.setAutoTransaction(autoTransaction);
     db.open();
     return db;
   }
 
   public EmbeddedDatabase create() {
-    final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks, walFileFactory);
+    final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks);
     db.setAutoTransaction(autoTransaction);
     db.create();
     return db;
@@ -69,11 +67,6 @@ public class DatabaseFactory {
     } finally {
       db.close();
     }
-  }
-
-  public DatabaseFactory setWALFileFactory(final WALFileFactory walFileFactory) {
-    this.walFileFactory = walFileFactory;
-    return this;
   }
 
   public DatabaseFactory setAutoTransaction(final boolean enabled) {

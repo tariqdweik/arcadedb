@@ -8,6 +8,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
+import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
@@ -20,9 +21,11 @@ import com.arcadedb.server.ha.message.TxRequest;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.StatementCache;
+import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
@@ -34,6 +37,9 @@ public class ReplicatedDatabase implements DatabaseInternal {
   private final long             timeout;
 
   public ReplicatedDatabase(final ArcadeDBServer server, final EmbeddedDatabase proxied) {
+    if (!server.getConfiguration().getValueAsBoolean(GlobalConfiguration.TX_WAL))
+      throw new ConfigurationException("Cannot use replicated database if transaction WAL is disabled");
+
     this.server = server;
     this.proxied = proxied;
     this.quorum = HAServer.QUORUM.valueOf(proxied.getConfiguration().getValueAsString(GlobalConfiguration.HA_QUORUM).toUpperCase());
@@ -49,10 +55,13 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
         final TransactionContext tx = proxied.getTransaction();
 
-        final Binary changes = tx.commit1stPhase();
+        final Pair<Binary, List<ModifiablePage>> changes = tx.commit1stPhase();
+
+        final Binary bufferChanges = changes.getFirst();
+
         try {
           if (changes != null) {
-            server.log(this, Level.FINE, "Replicating transaction (size=%d)", changes.size());
+            server.log(this, Level.FINE, "Replicating transaction (size=%d)", bufferChanges.size());
 
             final int configuredServers = 1 + server.getHA().getConfiguredReplicas();
 
@@ -85,10 +94,10 @@ public class ReplicatedDatabase implements DatabaseInternal {
               // DON'T EVEN TRY
               throw new ReplicationException("Quorum " + reqQuorum + " (" + quorum + ") not reached because only " + onlineServers + " server(s) are online");
 
-            server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), changes, reqQuorum > 1), reqQuorum, timeout);
+            server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), bufferChanges, reqQuorum > 1), reqQuorum, timeout);
 
             // COMMIT 2ND PHASE ONLY IF THE QUORUM HAS BEEN REACHED
-            tx.commit2ndPhase();
+            tx.commit2ndPhase(changes);
           }
 
         } catch (TransactionException e) {

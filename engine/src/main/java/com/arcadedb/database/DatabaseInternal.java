@@ -20,7 +20,7 @@ import java.util.concurrent.Callable;
  */
 public interface DatabaseInternal extends Database {
   enum CALLBACK_EVENT {
-    TX_LAST_OP, TX_AFTER_WAL_WRITE, DB_NOT_CLOSED
+    TX_AFTER_WAL_WRITE, DB_NOT_CLOSED
   }
 
   void registerCallback(CALLBACK_EVENT event, Callable<Void> callback);

@@ -9,7 +9,7 @@ public class TransactionException extends RuntimeException {
     super(s);
   }
 
-  public TransactionException(String s, Exception e) {
+  public TransactionException(String s, Throwable e) {
     super(s, e);
   }
 }

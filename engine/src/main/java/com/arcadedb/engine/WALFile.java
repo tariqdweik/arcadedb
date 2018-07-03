@@ -185,15 +185,7 @@ public class WALFile extends LockContext {
     }
   }
 
-  // TODO: SPLIT WRITE TX IN 2 PHASES: 1ST GENERATES THE BUFFER, 2ND, WRITE TO FILE AND SET FILE TO PAGES
-  public Binary writeTransaction(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync, final WALFile file, final long txId)
-      throws IOException {
-    // WRITE TX HEADER (TXID, PAGES)
-    byte[] buffer = new byte[TX_HEADER_SIZE];
-    Binary pageBuffer = new Binary(buffer, TX_HEADER_SIZE);
-    pageBuffer.putLong(txId);
-    pageBuffer.putInt(pages.size());
-
+  public static Binary writeTransactionToBuffer(final List<ModifiablePage> pages, final long txId) {
     // COMPUTE TOTAL TXLOG SEGMENT SIZE
     int segmentSize = 0;
     for (ModifiablePage newPage : pages) {
@@ -202,65 +194,68 @@ public class WALFile extends LockContext {
       segmentSize += PAGE_HEADER_SIZE + deltaSize;
     }
 
-    pageBuffer.putInt(segmentSize);
-    file.append(pageBuffer.getByteBuffer());
+    final Binary bufferChanges = new Binary(TX_HEADER_SIZE + TX_FOOTER_SIZE + segmentSize);
+    bufferChanges.setAutoResizable(false);
 
-    statsBytesWritten += TX_HEADER_SIZE;
+    // WRITE TX HEADER (TXID, PAGES, SEGMENT-SIZE)
+    bufferChanges.putLong(txId);
+    bufferChanges.putInt(pages.size());
+    bufferChanges.putInt(segmentSize);
+
+    assert bufferChanges.position() == TX_HEADER_SIZE;
 
     // WRITE ALL PAGES SEGMENTS
-    int currentPage = 0;
     for (ModifiablePage newPage : pages) {
-      // SET THE WAL FILE TO NOTIFY LATER WHEN THE PAGE HAS BEEN FLUSHED
-      newPage.setWALFile(file);
-
       final int[] deltaRange = newPage.getModifiedRange();
 
       assert deltaRange[0] > -1 && deltaRange[1] < newPage.getPhysicalSize();
 
       final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
-      final int pageSize = PAGE_HEADER_SIZE + deltaSize;
-      buffer = new byte[pageSize];
-      pageBuffer = new Binary(buffer, pageSize);
 
-      pageBuffer.putInt(newPage.getPageId().getFileId());
-      pageBuffer.putInt(newPage.getPageId().getPageNumber());
-      pageBuffer.putInt(deltaRange[0]);
-      pageBuffer.putInt(deltaRange[1]);
-      pageBuffer.putInt(newPage.version + 1);
-      pageBuffer.putInt(newPage.getContentSize());
+      bufferChanges.putInt(newPage.getPageId().getFileId());
+      bufferChanges.putInt(newPage.getPageId().getPageNumber());
+      bufferChanges.putInt(deltaRange[0]);
+      bufferChanges.putInt(deltaRange[1]);
+      bufferChanges.putInt(newPage.version + 1);
+      bufferChanges.putInt(newPage.getContentSize());
+
+      bufferChanges.size(bufferChanges.position() + deltaSize);
+
       final ByteBuffer newPageBuffer = newPage.getContent();
       newPageBuffer.position(deltaRange[0]);
-      newPageBuffer.get(buffer, PAGE_HEADER_SIZE, deltaSize);
-      pageBuffer.rewind();
+      newPageBuffer.get(bufferChanges.getContent(), bufferChanges.position(), deltaSize);
 
-      file.appendPage(pageBuffer.getByteBuffer());
-
-      statsPagesWritten++;
-      statsBytesWritten += pageSize;
-
-      currentPage++;
-
-      if (currentPage == pages.size())
-        database.executeCallbacks(DatabaseInternal.CALLBACK_EVENT.TX_LAST_OP);
+      bufferChanges.position(bufferChanges.position() + deltaSize);
     }
 
     // WRITE TX FOOTER (MAGIC NUMBER)
-    buffer = new byte[TX_FOOTER_SIZE];
-    pageBuffer = new Binary(buffer, TX_FOOTER_SIZE);
-    pageBuffer.putInt(segmentSize);
-    pageBuffer.putLong(MAGIC_NUMBER);
+    bufferChanges.putInt(segmentSize);
+    bufferChanges.putLong(MAGIC_NUMBER);
 
-    pageBuffer.clear();
-    file.append(pageBuffer.getByteBuffer());
+    return bufferChanges;
+  }
 
-    statsBytesWritten += TX_FOOTER_SIZE;
+  public void writeTransactionToFile(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync, final WALFile file,
+      final Binary buffer) throws IOException {
+
+    buffer.rewind();
+    file.append(buffer.getByteBuffer());
+
+    // WRITE ALL PAGES SEGMENTS
+    for (ModifiablePage newPage : pages) {
+      // SET THE WAL FILE TO NOTIFY LATER WHEN THE PAGE HAS BEEN FLUSHED
+      newPage.setWALFile(file);
+
+      pagesToFlush.incrementAndGet();
+      statsPagesWritten++;
+    }
+
+    statsBytesWritten += buffer.size();
 
     if (sync)
       channel.force(false);
 
     database.executeCallbacks(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE);
-
-    return null;
   }
 
   public int getPagesToFlush() {
@@ -273,11 +268,6 @@ public class WALFile extends LockContext {
 
   public long getSize() throws IOException {
     return channel.size();
-  }
-
-  protected void appendPage(final ByteBuffer buffer) throws IOException {
-    pagesToFlush.incrementAndGet();
-    append(buffer);
   }
 
   public boolean isOpen() {

@@ -12,7 +12,6 @@ import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicatedDatabase;
-import com.arcadedb.server.ha.ReplicatedWALFileFactory;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
@@ -168,9 +167,6 @@ public class ArcadeDBServer {
     if (factory.exists())
       throw new IllegalArgumentException("Database '" + databaseName + "' already exists");
 
-    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
-      factory.setWALFileFactory(new ReplicatedWALFileFactory());
-
     db = factory.create();
 
     // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
@@ -237,9 +233,6 @@ public class ArcadeDBServer {
     if (db == null) {
       final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
           PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
-
-      if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
-        factory.setWALFileFactory(new ReplicatedWALFileFactory());
 
       if (createIfNotExists)
         db = factory.exists() ? factory.open() : factory.create();

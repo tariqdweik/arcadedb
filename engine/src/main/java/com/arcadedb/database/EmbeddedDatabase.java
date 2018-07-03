@@ -64,15 +64,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
-      final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks, final WALFileFactory walFactory) {
+      final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
     try {
       this.mode = mode;
       this.configuration = configuration;
       this.callbacks = callbacks;
-      if (walFactory != null)
-        this.walFactory = walFactory;
-      else
-        this.walFactory = new WALFileFactoryEmbedded();
+      this.walFactory = new WALFileFactoryEmbedded();
 
       if (path.endsWith("/"))
         databasePath = path.substring(0, path.length() - 1);
@@ -453,8 +450,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
         final List<DocumentType.IndexMetadata> metadata = t.getIndexMetadataByProperties(properties);
         if (metadata == null || metadata.isEmpty())
-          throw new IllegalArgumentException(
-              "No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
+          throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
         final List<RID> result = new ArrayList<>();
         for (DocumentType.IndexMetadata m : metadata)
@@ -714,9 +710,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     return new ModifiableVertex(this, typeName, null);
   }
 
-  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
-      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
+      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
+      final boolean bidirectional, final Object... properties) {
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -738,8 +734,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         for (int i = 0; i < sourceVertexKey.length; ++i)
           ((ModifiableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
       } else
-        throw new IllegalArgumentException(
-            "Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+        throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
       sourceVertex = (Vertex) v1Result.next().getRecord();
 
@@ -752,8 +747,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           ((ModifiableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
       } else
         throw new IllegalArgumentException(
-            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
-                .toString(destinationVertexValue));
+            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
       destinationVertex = (Vertex) v2Result.next().getRecord();
 
@@ -930,13 +924,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     return executeWithRetries(callback, maxRetry, 0, null);
   }
 
-  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry,
-      final int waitBetweenRetry) {
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry, final int waitBetweenRetry) {
     return executeWithRetries(callback, maxRetry, waitBetweenRetry, null);
   }
 
-  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry,
-      final int waitBetweenRetry, final Record[] recordToReloadOnRetry) {
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry, final int waitBetweenRetry,
+      final Record[] recordToReloadOnRetry) {
     NeedRetryException lastException = null;
     for (int retry = 0; retry < maxRetry; ++retry) {
       try {

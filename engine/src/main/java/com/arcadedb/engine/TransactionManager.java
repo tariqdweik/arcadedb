@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class TransactionManager {
   private static final long MAX_LOG_FILE_SIZE = 64 * 1024 * 1024;
@@ -87,17 +86,19 @@ public class TransactionManager {
     }
   }
 
-  public Binary writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync) {
-    final AtomicReference<Binary> result = new AtomicReference<>();
+  public Binary getTransactionBuffer(final List<ModifiablePage> pages) {
+    final long txId = transactionIds.getAndIncrement();
+    return WALFile.writeTransactionToBuffer(pages, txId);
+  }
 
+  public void writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync, final Binary bufferChanges) {
     while (true) {
       final WALFile file = activeWALFilePool[(int) (Thread.currentThread().getId() % activeWALFilePool.length)];
 
       if (file != null && file.acquire(new Callable<Object>() {
         @Override
         public Object call() throws Exception {
-          final long txId = transactionIds.getAndIncrement();
-          result.set(file.writeTransaction(database, pages, sync, file, txId));
+          file.writeTransactionToFile(database, pages, sync, file, bufferChanges);
           return null;
         }
       }))
@@ -110,8 +111,6 @@ public class TransactionManager {
         break;
       }
     }
-
-    return result.get();
   }
 
   public void notifyPageFlushed(final ModifiablePage page) {

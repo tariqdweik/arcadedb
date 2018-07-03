@@ -255,10 +255,12 @@ public class PageManager extends LockContext {
   }
 
   public void unlockFilesInOrder(final List<Integer> lockedFiles) {
-    for (Integer fileId : lockedFiles)
-      unlockFile(fileId);
+    if (lockedFiles != null) {
+      for (Integer fileId : lockedFiles)
+        unlockFile(fileId);
 
-    LogManager.instance().debug(this, "Unlocked files %s (threadId=%d)", lockedFiles, Thread.currentThread().getId());
+      LogManager.instance().debug(this, "Unlocked files %s (threadId=%d)", lockedFiles, Thread.currentThread().getId());
+    }
   }
 
   public PPageManagerStats getStats() {
