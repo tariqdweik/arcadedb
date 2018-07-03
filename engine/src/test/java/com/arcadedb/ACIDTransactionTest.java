@@ -71,44 +71,6 @@ public class ACIDTransactionTest {
   }
 
   @Test
-  public void testIOExceptionDuringCommit() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.begin();
-
-    try {
-      final ModifiableDocument v = db.newDocument("V");
-      v.set("id", 0);
-      v.set("name", "Crash");
-      v.set("surname", "Test");
-      v.save();
-
-      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_LAST_OP, new Callable<Void>() {
-        @Override
-        public Void call() throws IOException {
-          throw new IOException("Test IO Exception");
-        }
-      });
-
-      db.commit();
-
-      Assertions.fail("Expected commit to fail");
-
-    } catch (TransactionException e) {
-      Assertions.assertTrue(e.getCause() instanceof WALException);
-    }
-    ((DatabaseInternal) db).kill();
-
-    verifyWALFilesAreStillPresent();
-
-    final Database db2 = verifyDatabaseWasNotClosedProperly();
-    try {
-      Assertions.assertEquals(0, db2.countType("V", true));
-    } finally {
-      db2.close();
-    }
-  }
-
-  @Test
   public void testIOExceptionAfterWALIsWritten() {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
@@ -232,13 +194,6 @@ public class ACIDTransactionTest {
           if (total.incrementAndGet() > TOT - 10)
             throw new IOException("Test IO Exception");
           return null;
-        }
-      });
-
-      db.asynch().onError(new ErrorCallback() {
-        @Override
-        public void call(Exception exception) {
-          errors.incrementAndGet();
         }
       });
 
