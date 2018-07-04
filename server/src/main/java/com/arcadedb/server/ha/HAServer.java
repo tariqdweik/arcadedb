@@ -21,10 +21,7 @@ import com.arcadedb.utility.RecordTableFormatter;
 import com.arcadedb.utility.TableFormatter;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class HAServer implements ServerPlugin {
+
   public enum QUORUM {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }
@@ -51,6 +49,8 @@ public class HAServer implements ServerPlugin {
   private         Map<Long, QuorumMessages>                  messagesWaitingForQuorum    = new ConcurrentHashMap<>(1024);
   private         long                                       lastConfigurationOutputHash = 0;
   private final   Object                                     sendingLock                 = new Object();
+  private         String                                     serverAddress;
+  private         Set<String>                                serverAddressList           = new HashSet<>();
 
   private class QuorumMessages {
     public final long           sentOn = System.currentTimeMillis();
@@ -106,13 +106,18 @@ public class HAServer implements ServerPlugin {
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST),
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS));
 
-    final String localURL = listener.getHost() + ":" + listener.getPort();
+    serverAddress = listener.getHost() + ":" + listener.getPort();
 
-    final String serverList = configuration.getValueAsString(GlobalConfiguration.HA_SERVER_LIST).trim();
-    if (!serverList.isEmpty()) {
-      final String[] serverEntries = serverList.split(",");
+    final String cfgServerList = configuration.getValueAsString(GlobalConfiguration.HA_SERVER_LIST).trim();
+    if (!cfgServerList.isEmpty()) {
+      final String[] serverEntries = cfgServerList.split(",");
+
+      serverAddressList.clear();
+      for (String serverEntry : serverEntries)
+        serverAddressList.add(serverEntry);
+
       for (String serverEntry : serverEntries) {
-        if (!localURL.equals(serverEntry) && connectToLeader(serverEntry)) {
+        if (!serverAddress.equals(serverEntry) && connectToLeader(serverEntry)) {
           break;
         }
       }
@@ -182,6 +187,10 @@ public class HAServer implements ServerPlugin {
     return leaderConnection == null;
   }
 
+  public Replica2LeaderNetworkExecutor getLeader() {
+    return leaderConnection;
+  }
+
   public String getServerName() {
     return server.getServerName();
   }
@@ -201,6 +210,16 @@ public class HAServer implements ServerPlugin {
 
   public HAMessageFactory getMessageFactory() {
     return messageFactory;
+  }
+
+  public void setServerAddresses(final String serverAddress) {
+    if (serverAddress != null && !serverAddress.isEmpty()) {
+      serverAddressList.clear();
+
+      final String[] servers = serverAddress.split(",");
+      for (String s : servers)
+        serverAddressList.add(s);
+    }
   }
 
   public void sendCommandToReplicas(final HACommand command) {
@@ -321,6 +340,13 @@ public class HAServer implements ServerPlugin {
     return replicaConnections.size();
   }
 
+  public String getReplicaServerList() {
+    String list = getServerAddress();
+    for (Leader2ReplicaNetworkExecutor r : replicaConnections.values())
+      list += "," + r.getRemoteServerAddress();
+    return list;
+  }
+
   public void printClusterConfiguration() {
     final StringBuilder buffer = new StringBuilder("NEW CLUSTER CONFIGURATION\n");
     final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
@@ -336,6 +362,7 @@ public class HAServer implements ServerPlugin {
     list.add(new RecordTableFormatter.PTableRecordRow(line));
 
     line.setProperty("SERVER", getServerName());
+    line.setProperty("IP/PORT", getServerAddress());
     line.setProperty("ROLE", "Leader");
     line.setProperty("STATUS", "ONLINE");
     line.setProperty("JOINED ON", new Date(startedOn));
@@ -350,6 +377,7 @@ public class HAServer implements ServerPlugin {
       final Leader2ReplicaNetworkExecutor.STATUS status = c.getStatus();
 
       line.setProperty("SERVER", c.getRemoteServerName());
+      line.setProperty("IP/PORT", c.getRemoteServerAddress());
       line.setProperty("ROLE", "Replica");
       line.setProperty("STATUS", status);
       line.setProperty("JOINED ON", c.getJoinedOn() > 0 ? new Date(c.getJoinedOn()) : "");
@@ -373,6 +401,10 @@ public class HAServer implements ServerPlugin {
     lastConfigurationOutputHash = hash;
 
     server.log(this, Level.INFO, output + "\n");
+  }
+
+  public String getServerAddress() {
+    return serverAddress;
   }
 
   @Override
@@ -428,9 +460,15 @@ public class HAServer implements ServerPlugin {
       return true;
 
     } catch (ServerIsNotTheLeaderException e) {
-      // TODO: SET THIS LOG TO DEBUG
-      server
-          .log(this, Level.INFO, "Remote server %s:%d is not the leader, connecting to %s", serverParts[0], Integer.parseInt(serverParts[1]), e.getLeaderURL());
+      final String leaderAddress = e.getLeaderAddress();
+      server.log(this, Level.INFO, "Remote server %s:%d is not the leader, connecting to %s", serverParts[0], Integer.parseInt(serverParts[1]), leaderAddress);
+
+      final String[] leader = leaderAddress.split(":");
+      try {
+        connectToLeader(leader[0], Integer.parseInt(leader[1]));
+      } catch (IOException e1) {
+        server.log(this, Level.INFO, "Error on connecting to the leader server %s:%d (error=%s)", leader[0], Integer.parseInt(leader[1]), e);
+      }
 
     } catch (Exception e) {
       server.log(this, Level.INFO, "Error on connecting to the remote server %s:%d (error=%s)", serverParts[0], Integer.parseInt(serverParts[1]), e);

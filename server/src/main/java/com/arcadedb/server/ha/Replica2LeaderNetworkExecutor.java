@@ -15,6 +15,7 @@ import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.network.binary.ChannelBinaryClient;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.network.binary.NetworkProtocolException;
+import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.server.ServerException;
 import com.arcadedb.server.TestCallback;
@@ -33,12 +34,13 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   private final    HAServer             server;
   private final    String               host;
   private final    int                  port;
+  private          String               leaderServerName = "?";
   private final    ContextConfiguration configuration;
   private final    boolean              testOn;
   private          ChannelBinaryClient  channel;
-  private volatile boolean              shutdown = false;
+  private volatile boolean              shutdown         = false;
 
-  public Replica2LeaderNetworkExecutor(final HAServer ha, final String host, final int port, final ContextConfiguration configuration) throws IOException {
+  public Replica2LeaderNetworkExecutor(final HAServer ha, final String host, final int port, final ContextConfiguration configuration) {
     this.server = ha;
     this.testOn = GlobalConfiguration.TEST.getValueAsBoolean();
 
@@ -92,6 +94,14 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     }
   }
 
+  public String getRemoteServerName() {
+    return leaderServerName;
+  }
+
+  public String getRemoteAddress() {
+    return host + ":" + port;
+  }
+
   private void reconnect(final Exception e) {
     if (!shutdown) {
       if (channel != null)
@@ -103,7 +113,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         try {
           connect();
           break;
-        } catch (IOException e1) {
+        } catch (ConnectionException e1) {
           server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the leader (error=%s)", e1);
           try {
             Thread.sleep(1000);
@@ -139,34 +149,72 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     return channel.readBytes();
   }
 
-  private void connect() throws IOException {
+  @Override
+  public String toString() {
+    return leaderServerName;
+  }
+
+  private void connect() {
     server.getServer().log(this, Level.INFO, "Connecting to server %s:%d...", host, port);
 
-    channel = new ChannelBinaryClient(host, port, configuration);
+    try {
+      channel = new ChannelBinaryClient(host, port, configuration);
 
-    final String clusterName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
+      final String clusterName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
 
-    // SEND SERVER INFO
-    channel.writeShort((short) Leader2ReplicaNetworkExecutor.PROTOCOL_VERSION);
-    channel.writeString(clusterName);
-    channel.writeString(configuration.getValueAsString(GlobalConfiguration.SERVER_NAME));
-    channel.flush();
+      // SEND SERVER INFO
+      channel.writeLong(ReplicationProtocol.MAGIC_NUMBER);
+      channel.writeShort(ReplicationProtocol.PROTOCOL_VERSION);
+      channel.writeString(clusterName);
+      channel.writeString(configuration.getValueAsString(GlobalConfiguration.SERVER_NAME));
+      channel.writeString(server.getServerAddress());
+      channel.flush();
 
-    // READ RESPONSE
-    final boolean connectionAccepted = channel.readBoolean();
-    if (!connectionAccepted) {
-      final String reason = channel.readString();
-      channel.close();
-      throw new ConnectionException(host + ":" + port, reason);
+      // READ RESPONSE
+      final boolean connectionAccepted = channel.readBoolean();
+      if (!connectionAccepted) {
+        final String reason = channel.readString();
+
+        byte reasonCode = channel.readByte();
+
+        switch (reasonCode) {
+        case ReplicationProtocol.ERROR_CONNECT_NOLEADER:
+          final String leaderServerName = channel.readString();
+          final String leaderAddress = channel.readString();
+          server.getServer()
+              .log(this, Level.INFO, "Remote server is not a leader, connecting to the current leader '%s' (%s)", leaderServerName, leaderAddress);
+          channel.close();
+          throw new ServerIsNotTheLeaderException(
+              "Remote server is not a leader, connecting to the current leader '" + leaderServerName + "' (" + leaderAddress + ")", leaderAddress);
+
+        case ReplicationProtocol.ERROR_CONNECT_UNSUPPORTEDPROTOCOL:
+          server.getServer().log(this, Level.INFO, "Remote server does not support protocol %d", ReplicationProtocol.PROTOCOL_VERSION);
+          break;
+
+        case ReplicationProtocol.ERROR_CONNECT_WRONGCLUSTERNAME:
+          server.getServer().log(this, Level.INFO, "Remote server joined a different cluster than '%s'", clusterName);
+          break;
+        }
+
+        channel.close();
+        throw new ConnectionException(host + ":" + port, reason);
+      }
+
+      leaderServerName = channel.readString();
+      final String memberList = channel.readString();
+
+      server.setServerAddresses(memberList);
+
+      server.getServer().log(this, Level.INFO, "Server connected to the server leader %s:%d, members=%s", host, port, memberList);
+
+      setName(Constants.PRODUCT + "-ha-replica2leader/" + server.getServerName());
+
+      server.getServer().log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s:%d)", clusterName, host, port);
+
+      installDatabases();
+    } catch (IOException e) {
+      throw new ConnectionException(host + ":" + port, e.toString());
     }
-
-    server.getServer().log(this, Level.INFO, "Server connected to the server leader %s:%d", host, port);
-
-    setName(Constants.PRODUCT + "-ha-replica2leader/" + server.getServerName());
-
-    server.getServer().log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s:%d)", clusterName, host, port);
-
-    installDatabases();
   }
 
   private void installDatabases() {

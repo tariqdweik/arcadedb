@@ -32,10 +32,9 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     JOINING, OFFLINE, ONLINE
   }
 
-  public static final int PROTOCOL_VERSION = 0;
-
   private final    HAServer                      server;
   private final    String                        remoteServerName;
+  private final    String                        remoteServerAddress;
   private final    PushPullBlockingQueue<Binary> queue                 = new PushPullBlockingQueue<>(
       GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
   private          long                          joinedOn;
@@ -59,39 +58,62 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     this.channel = new ChannelBinaryServer(socket);
 
     try {
+      final long mn = channel.readLong();
+      if (mn != ReplicationProtocol.MAGIC_NUMBER) {
+        // INVALID PROTOCOL, WAIT (TO AVOID SPOOFING) AND CLOSE THE SOCKET
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          // IGNORE IT
+        }
+        close();
+        throw new ConnectionException(socket.getInetAddress().toString(), "Bad protocol");
+      }
+
       if (!ha.isLeader()) {
         this.channel.writeBoolean(false);
+        this.channel.writeByte(ReplicationProtocol.ERROR_CONNECT_NOLEADER);
         this.channel.writeString("Current server '" + ha.getServerName() + "' is not the leader");
+        this.channel.writeString(server.getLeader().getRemoteServerName());
+        this.channel.writeString(server.getLeader().getRemoteAddress());
         throw new ConnectionException(socket.getInetAddress().toString(), "Current server '" + ha.getServerName() + "' is not the leader");
       }
 
       final short remoteProtocolVersion = this.channel.readShort();
-      if (remoteProtocolVersion != PROTOCOL_VERSION) {
+      if (remoteProtocolVersion != ReplicationProtocol.PROTOCOL_VERSION) {
         this.channel.writeBoolean(false);
-        this.channel.writeString("Network protocol version " + remoteProtocolVersion + " is different than local server " + PROTOCOL_VERSION);
+        this.channel.writeByte(ReplicationProtocol.ERROR_CONNECT_UNSUPPORTEDPROTOCOL);
+        this.channel
+            .writeString("Network protocol version " + remoteProtocolVersion + " is different than local server " + ReplicationProtocol.PROTOCOL_VERSION);
         throw new ConnectionException(socket.getInetAddress().toString(),
-            "Network protocol version " + remoteProtocolVersion + " is different than local server " + PROTOCOL_VERSION);
+            "Network protocol version " + remoteProtocolVersion + " is different than local server " + ReplicationProtocol.PROTOCOL_VERSION);
       }
 
       final String remoteClusterName = this.channel.readString();
       if (!remoteClusterName.equals(ha.getClusterName())) {
         this.channel.writeBoolean(false);
+        this.channel.writeByte(ReplicationProtocol.ERROR_CONNECT_WRONGCLUSTERNAME);
         this.channel.writeString("Cluster name '" + remoteClusterName + "' does not match");
         throw new ConnectionException(socket.getInetAddress().toString(), "Cluster name '" + remoteClusterName + "' does not match");
       }
 
       remoteServerName = this.channel.readString();
+      remoteServerAddress = this.channel.readString();
 
-      setName(Constants.PRODUCT + "-ha-leader2replica/" + remoteServerName);
+      setName(Constants.PRODUCT + "-ha-leader2replica/" + remoteServerName + "(" + remoteServerAddress + ")");
 
-      ha.getServer().log(this, Level.INFO, "Remote server '%s' successfully connected", remoteServerName);
+      ha.getServer().log(this, Level.INFO, "Remote server '%s' (%s) successfully connected", remoteServerName, remoteServerAddress);
 
       // CONNECTED
       this.channel.writeBoolean(true);
 
+      this.channel.writeString(server.getServerName());
+      this.channel.writeString(this.server.getReplicaServerList());
+
     } finally {
       this.channel.flush();
     }
+
   }
 
   public void mergeFrom(final Leader2ReplicaNetworkExecutor previousConnection) {
@@ -282,6 +304,10 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
   public String getRemoteServerName() {
     return remoteServerName;
+  }
+
+  public String getRemoteServerAddress() {
+    return remoteServerAddress;
   }
 
   public long getJoinedOn() {

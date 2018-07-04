@@ -7,12 +7,12 @@ public class ServerIsNotTheLeaderException extends RuntimeException {
 
   private final String leaderURL;
 
-  public ServerIsNotTheLeaderException(String string, String leaderURL) {
-    super(string);
+  public ServerIsNotTheLeaderException(final String message,final  String leaderURL) {
+    super(message);
     this.leaderURL = leaderURL;
   }
 
-  public String getLeaderURL() {
+  public String getLeaderAddress() {
     return leaderURL;
   }
 }
