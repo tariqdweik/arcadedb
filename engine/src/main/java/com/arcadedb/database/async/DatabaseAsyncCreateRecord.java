@@ -7,12 +7,17 @@ package com.arcadedb.database.async;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.Bucket;
 
-public class DatabaseAsyncCreateRecord extends DatabaseAsyncCommand {
+public class DatabaseAsyncCreateRecord implements DatabaseAsyncCommand {
   public final Record record;
   public final Bucket bucket;
 
   public DatabaseAsyncCreateRecord(final Record record, final Bucket bucket) {
     this.record = record;
     this.bucket = bucket;
+  }
+
+  @Override
+  public String toString() {
+    return "CreateRecord(" + record + ")";
   }
 }

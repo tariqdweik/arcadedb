@@ -86,19 +86,18 @@ public class TransactionManager {
     }
   }
 
-  public Binary getTransactionBuffer(final List<ModifiablePage> pages) {
-    final long txId = transactionIds.getAndIncrement();
+  public Binary getTransactionBuffer(final long txId, final List<ModifiablePage> pages) {
     return WALFile.writeTransactionToBuffer(pages, txId);
   }
 
-  public void writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync, final Binary bufferChanges) {
+  public void writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync, final long txId, final Binary bufferChanges) {
     while (true) {
       final WALFile file = activeWALFilePool[(int) (Thread.currentThread().getId() % activeWALFilePool.length)];
 
       if (file != null && file.acquire(new Callable<Object>() {
         @Override
         public Object call() throws Exception {
-          file.writeTransactionToFile(database, pages, sync, file, bufferChanges);
+          file.writeTransactionToFile(database, pages, sync, file, txId, bufferChanges);
           return null;
         }
       }))
@@ -225,6 +224,9 @@ public class TransactionManager {
       final PageId pageId = new PageId(txPage.fileId, txPage.pageNumber);
       try {
         final BasePage page = database.getPageManager().getPage(pageId, file.getPageSize(), false);
+
+        LogManager.instance().debug(this, "-- checking page %s versionInLog=%d versionInDB=%d", pageId, txPage.currentPageVersion, page.getVersion());
+
         if (txPage.currentPageVersion < page.getVersion())
           // SKIP IT
           continue;
@@ -234,34 +236,51 @@ public class TransactionManager {
               "Cannot apply changes to the database because modified page version (" + txPage.currentPageVersion + ") does not match with existent version ("
                   + page.getVersion() + ")");
 
-        if (txPage.currentPageVersion != page.getVersion()) {
-          final ModifiablePage modifiedPage = page.modify();
-          txPage.currentContent.rewind();
-          modifiedPage.writeByteArray(txPage.changesFrom - BasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
-          modifiedPage.version = txPage.currentPageVersion;
-          modifiedPage.setContentSize(txPage.currentPageSize);
-          modifiedPage.flushMetadata();
-          file.write(modifiedPage);
-          file.flush();
+        // IF VERSION IS THE SAME OR MAJOR, OVERWRITE THE PAGE
+        final ModifiablePage modifiedPage = page.modify();
+        txPage.currentContent.rewind();
+        modifiedPage.writeByteArray(txPage.changesFrom - BasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
+        modifiedPage.version = txPage.currentPageVersion;
+        modifiedPage.setContentSize(txPage.currentPageSize);
+        modifiedPage.flushMetadata();
+        file.write(modifiedPage);
+        file.flush();
 
-          database.getPageManager().removePageFromCache(modifiedPage.pageId);
+        database.getPageManager().removePageFromCache(modifiedPage.pageId);
 
-          final PaginatedComponent component = database.getSchema().getFileById(txPage.fileId);
-          if (component != null) {
-            final int newPageCount = (int) (file.getSize() / file.getPageSize());
-            if (newPageCount > component.pageCount.get())
-              component.setPageCount(newPageCount);
-          }
-
-          changed = true;
-          LogManager.instance().debug(this, "  - updating page %s v%d", pageId, modifiedPage.version);
+        final PaginatedComponent component = database.getSchema().getFileById(txPage.fileId);
+        if (component != null) {
+          final int newPageCount = (int) (file.getSize() / file.getPageSize());
+          if (newPageCount > component.pageCount.get())
+            component.setPageCount(newPageCount);
         }
+
+        changed = true;
+        LogManager.instance().debug(this, "  - updating page %s v%d", pageId, modifiedPage.version);
 
       } catch (IOException e) {
         throw new WALException("Cannot load page " + pageId, e);
       }
     }
     return changed;
+  }
+
+  public void kill() {
+    if (task != null) {
+      task.cancel();
+      task.purge();
+    }
+
+    try {
+      taskExecuting.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      // IGNORE IT
+    }
+  }
+
+  public long getNextTransactionId() {
+    return transactionIds.getAndIncrement();
   }
 
   private void createFilePool() {
@@ -317,19 +336,5 @@ public class TransactionManager {
     }
 
     return inactiveWALFilePool.isEmpty();
-  }
-
-  public void kill() {
-    if (task != null) {
-      task.cancel();
-      task.purge();
-    }
-
-    try {
-      taskExecuting.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      // IGNORE IT
-    }
   }
 }

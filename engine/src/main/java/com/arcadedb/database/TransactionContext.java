@@ -34,6 +34,7 @@ public class TransactionContext {
   private       boolean                     useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
   private       boolean                     sync                  = GlobalConfiguration.TX_FLUSH.getValueAsBoolean();
   private       List<Integer>               lockedFiles;
+  private       long                        txId                  = -1;
 
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
@@ -54,8 +55,8 @@ public class TransactionContext {
 
     if (modifiedPages != null)
       commit2ndPhase(changes);
-
-    reset();
+    else
+      reset();
 
     return changes != null ? changes.getFirst() : null;
   }
@@ -311,8 +312,13 @@ public class TransactionContext {
           }
         }
 
-      if (useWAL)
-        result = database.getTransactionManager().getTransactionBuffer(pages);
+      if (useWAL) {
+        txId = database.getTransactionManager().getNextTransactionId();
+
+        LogManager.instance().debug(this, "Creating TX buffer %d (threadId=%d)", txId, Thread.currentThread().getId());
+
+        result = database.getTransactionManager().getTransactionBuffer(txId, pages);
+      }
 
       return new Pair(result, pages);
 
@@ -335,10 +341,13 @@ public class TransactionContext {
     try {
       if (changes.getFirst() != null)
         // WRITE TO THE WAL FIRST
-        database.getTransactionManager().writeTransactionToWAL(changes.getSecond(), sync, changes.getFirst());
+        database.getTransactionManager().writeTransactionToWAL(changes.getSecond(), sync, txId, changes.getFirst());
 
       // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       // UPDATE PAGE COUNTER FIRST
+      LogManager.instance()
+          .debug(this, "TX committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
+
       if (newPages != null) {
         for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
           database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
@@ -346,20 +355,15 @@ public class TransactionContext {
         }
       }
 
-      LogManager.instance().debug(this, "Committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
-
       pageManager.updatePages(newPages, modifiedPages);
 
     } catch (ConcurrentModificationException e) {
-      rollback();
       throw e;
     } catch (Exception e) {
       LogManager.instance().info(this, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
-      rollback();
       throw new TransactionException("Transaction error on commit", e);
     } finally {
-      pageManager.unlockFilesInOrder(lockedFiles);
-      lockedFiles = null;
+      reset();
     }
   }
 
@@ -391,5 +395,6 @@ public class TransactionContext {
     newPageCounters.clear();
     modifiedRecordsCache.clear();
     immutableRecordsCache.clear();
+    txId = -1;
   }
 }

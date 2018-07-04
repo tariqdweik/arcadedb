@@ -6,7 +6,7 @@ package com.arcadedb.database.async;
 
 import java.util.Map;
 
-public class DatabaseAsyncSQL extends DatabaseAsyncCommand {
+public class DatabaseAsyncSQL implements DatabaseAsyncCommand {
   public final String              command;
   public final Map<String, Object> args;
   public final SQLCallback         userCallback;
@@ -15,5 +15,10 @@ public class DatabaseAsyncSQL extends DatabaseAsyncCommand {
     this.command = command;
     this.args = args;
     this.userCallback = userCallback;
+  }
+
+  @Override
+  public String toString() {
+    return "SQL(" + command + ")";
   }
 }

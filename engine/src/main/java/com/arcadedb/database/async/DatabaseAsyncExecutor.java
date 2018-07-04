@@ -35,8 +35,18 @@ public class DatabaseAsyncExecutor {
   private       AtomicLong       sqlRoundRobinIndex = new AtomicLong();
 
   // SPECIAL COMMANDS
-  private final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand();
-  private final static DatabaseAsyncCommand FORCE_EXIT   = new DatabaseAsyncCommand();
+  private final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand() {
+    @Override
+    public String toString() {
+      return "FORCE_COMMIT";
+    }
+  };
+  private final static DatabaseAsyncCommand FORCE_EXIT   = new DatabaseAsyncCommand() {
+    @Override
+    public String toString() {
+      return "FORCE_EXIT";
+    }
+  };
 
   private OkCallback    onOkCallback;
   private ErrorCallback onErrorCallback;
@@ -68,6 +78,8 @@ public class DatabaseAsyncExecutor {
         try {
           final DatabaseAsyncCommand message = queue.poll(500, TimeUnit.MILLISECONDS);
           if (message != null) {
+            LogManager.instance().debug(this, "Received async message %s (threadId=%d)", message, Thread.currentThread().getId());
+
             if (message == FORCE_COMMIT) {
               // COMMIT SPECIAL CASE
               try {
@@ -143,7 +155,10 @@ public class DatabaseAsyncExecutor {
                   onOk();
                   database.getTransaction().begin();
                 }
+
               } catch (Exception e) {
+                LogManager.instance().error(this, "Error on executing async create operation (threadId=%d)", e, Thread.currentThread().getId());
+
                 onError(e);
                 if (!database.isTransactionActive())
                   database.begin();
@@ -173,9 +188,9 @@ public class DatabaseAsyncExecutor {
                   database.getTransaction().begin();
               }
 
-            } else if (message instanceof DatabaseAsyncScanType) {
+            } else if (message instanceof DatabaseAsyncScanBucket) {
 
-              final DatabaseAsyncScanType command = (DatabaseAsyncScanType) message;
+              final DatabaseAsyncScanBucket command = (DatabaseAsyncScanBucket) message;
 
               try {
                 command.bucket.scan(new RawRecordCallback() {
@@ -206,8 +221,8 @@ public class DatabaseAsyncExecutor {
                 final VertexInternal modifiableSourceVertex;
                 if (outEdgesHeadChunk == null) {
                   final ModifiableEdgeChunk outChunk = new ModifiableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                  database.createRecordNoLock(outChunk, GraphEngine
-                      .getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
+                  database.createRecordNoLock(outChunk,
+                      GraphEngine.getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
                   outEdgesHeadChunk = outChunk.getIdentity();
 
                   modifiableSourceVertex = (VertexInternal) command.sourceVertex.modify();
@@ -239,8 +254,8 @@ public class DatabaseAsyncExecutor {
                 final VertexInternal modifiableDestinationVertex;
                 if (inEdgesHeadChunk == null) {
                   final ModifiableEdgeChunk inChunk = new ModifiableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                  database.createRecordNoLock(inChunk, GraphEngine
-                      .getEdgesBucketName(database, command.destinationVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
+                  database.createRecordNoLock(inChunk,
+                      GraphEngine.getEdgesBucketName(database, command.destinationVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
                   inEdgesHeadChunk = inChunk.getIdentity();
 
                   modifiableDestinationVertex = (VertexInternal) command.destinationVertex.modify();
@@ -359,9 +374,7 @@ public class DatabaseAsyncExecutor {
         if (messages == 0)
           ++completed;
         else {
-          LogManager.instance()
-              .debug(this, "Waiting for completion async thread %s found %d messages still to be processed", executorThreads[i],
-                  messages);
+          LogManager.instance().debug(this, "Waiting for completion async thread %s found %d messages still to be processed", executorThreads[i], messages);
           break;
         }
       }
@@ -400,7 +413,7 @@ public class DatabaseAsyncExecutor {
         final int slot = b.getId() % parallelLevel;
 
         try {
-          executorThreads[slot].queue.put(new DatabaseAsyncScanType(semaphore, callback, b));
+          executorThreads[slot].queue.put(new DatabaseAsyncScanBucket(semaphore, callback, b));
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new DatabaseOperationException("Error on executing save");
@@ -410,8 +423,7 @@ public class DatabaseAsyncExecutor {
       semaphore.await();
 
     } catch (Exception e) {
-      throw new DatabaseOperationException(
-          "Error on executing parallel scan of type '" + database.getSchema().getType(typeName) + "'", e);
+      throw new DatabaseOperationException("Error on executing parallel scan of type '" + database.getSchema().getType(typeName) + "'", e);
     }
   }
 
@@ -421,8 +433,7 @@ public class DatabaseAsyncExecutor {
 
   public void transaction(final Database.Transaction txBlock, final int retries) {
     try {
-      executorThreads[(int) (transactionCounter.getAndIncrement() % executorThreads.length)].queue
-          .put(new DatabaseAsyncTransaction(txBlock, retries));
+      executorThreads[(int) (transactionCounter.getAndIncrement() % executorThreads.length)].queue.put(new DatabaseAsyncTransaction(txBlock, retries));
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new DatabaseOperationException("Error on executing transaction");
@@ -440,6 +451,7 @@ public class DatabaseAsyncExecutor {
 
       try {
         executorThreads[slot].queue.put(new DatabaseAsyncCreateRecord(record, bucket));
+
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new DatabaseOperationException("Error on executing create record");
@@ -468,9 +480,9 @@ public class DatabaseAsyncExecutor {
   /**
    * The current thread executes 2 lookups + create the edge. The creation of the 2 edge branches are delegated to asynchronous operations.
    */
-  public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
-      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+  public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
+      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
+      final boolean bidirectional, final Object... properties) {
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -492,8 +504,7 @@ public class DatabaseAsyncExecutor {
         for (int i = 0; i < sourceVertexKey.length; ++i)
           ((ModifiableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
       } else
-        throw new IllegalArgumentException(
-            "Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+        throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
       sourceVertex = (VertexInternal) v1Result.next().getRecord();
 
@@ -506,8 +517,7 @@ public class DatabaseAsyncExecutor {
           ((ModifiableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
       } else
         throw new IllegalArgumentException(
-            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
-                .toString(destinationVertexValue));
+            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
       destinationVertex = (VertexInternal) v2Result.next().getRecord();
 
@@ -576,8 +586,8 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private void newEdge(VertexInternal sourceVertex, final String edgeType, VertexInternal destinationVertex,
-      final boolean bidirectional, final Object... properties) {
+  private void newEdge(VertexInternal sourceVertex, final String edgeType, VertexInternal destinationVertex, final boolean bidirectional,
+      final Object... properties) {
     if (destinationVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 

@@ -7,6 +7,7 @@ package com.arcadedb.engine;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.utility.LockContext;
+import com.arcadedb.utility.LogManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -45,7 +46,6 @@ public class WALFile extends LockContext {
   // STATIC BUFFERS USED FOR RECOVERY
   private final ByteBuffer bufferLong = ByteBuffer.allocate(Binary.LONG_SERIALIZED_SIZE);
   private final ByteBuffer bufferInt  = ByteBuffer.allocate(Binary.INT_SERIALIZED_SIZE);
-  private final ByteBuffer bufferByte = ByteBuffer.allocate(Binary.BYTE_SERIALIZED_SIZE);
 
   public static class WALTransaction {
     public long      txId;
@@ -235,10 +235,11 @@ public class WALFile extends LockContext {
     return bufferChanges;
   }
 
-  public void writeTransactionToFile(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync, final WALFile file,
+  public void writeTransactionToFile(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync, final WALFile file, final long txId,
       final Binary buffer) throws IOException {
 
-    buffer.rewind();
+    LogManager.instance().debug(this, "Appending WAL for txId=%d (size=%d file=%s threadId=%d)", txId, buffer.size(), filePath, Thread.currentThread().getId());
+
     file.append(buffer.getByteBuffer());
 
     // WRITE ALL PAGES SEGMENTS
@@ -300,12 +301,6 @@ public class WALFile extends LockContext {
     bufferInt.rewind();
     channel.read(bufferInt, pos);
     return bufferInt.getInt(0);
-  }
-
-  private byte readByte(final long pos) throws IOException {
-    bufferByte.rewind();
-    channel.read(bufferByte, pos);
-    return bufferByte.get(0);
   }
 
   protected void append(final ByteBuffer buffer) throws IOException {

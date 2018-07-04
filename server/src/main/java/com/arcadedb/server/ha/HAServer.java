@@ -362,7 +362,7 @@ public class HAServer implements ServerPlugin {
     list.add(new RecordTableFormatter.PTableRecordRow(line));
 
     line.setProperty("SERVER", getServerName());
-    line.setProperty("IP/PORT", getServerAddress());
+    line.setProperty("HOST/PORT", getServerAddress());
     line.setProperty("ROLE", "Leader");
     line.setProperty("STATUS", "ONLINE");
     line.setProperty("JOINED ON", new Date(startedOn));
@@ -377,7 +377,7 @@ public class HAServer implements ServerPlugin {
       final Leader2ReplicaNetworkExecutor.STATUS status = c.getStatus();
 
       line.setProperty("SERVER", c.getRemoteServerName());
-      line.setProperty("IP/PORT", c.getRemoteServerAddress());
+      line.setProperty("HOST/PORT", c.getRemoteServerAddress());
       line.setProperty("ROLE", "Replica");
       line.setProperty("STATUS", status);
       line.setProperty("JOINED ON", c.getJoinedOn() > 0 ? new Date(c.getJoinedOn()) : "");

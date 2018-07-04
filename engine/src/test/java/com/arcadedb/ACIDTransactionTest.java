@@ -12,7 +12,9 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALException;
 import com.arcadedb.exception.TransactionException;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
+import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ACIDTransactionTest {
-  private static final int    TOT     = 10000;
   private static final String DB_PATH = "target/database/testdb";
 
   @BeforeEach
@@ -35,8 +36,13 @@ public class ACIDTransactionTest {
     new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
       @Override
       public void execute(Database database) {
-        if (!database.getSchema().existsType("V"))
-          database.getSchema().createDocumentType("V");
+        if (!database.getSchema().existsType("V")) {
+          final DocumentType v = database.getSchema().createDocumentType("V");
+
+          v.createProperty("id", Integer.class);
+          v.createProperty("name", String.class);
+          v.createProperty("surname", String.class);
+        }
       }
     });
   }
@@ -45,6 +51,52 @@ public class ACIDTransactionTest {
   public void drop() {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.drop();
+  }
+
+  @Test
+  public void testAsyncTX() {
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+
+    db.asynch().setTransactionSync(true);
+    db.asynch().setTransactionUseWAL(true);
+    db.asynch().setCommitEvery(1);
+
+    final int TOT = 1000;
+
+    final AtomicInteger total = new AtomicInteger(0);
+
+    try {
+      for (; total.get() < TOT; total.incrementAndGet()) {
+        final ModifiableDocument v = db.newDocument("V");
+        v.set("id", total.get());
+        v.set("name", "Crash");
+        v.set("surname", "Test");
+
+        db.asynch().createRecord(v);
+      }
+
+      db.asynch().waitCompletion();
+
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        // IGNORE IT
+      }
+
+    } catch (TransactionException e) {
+      Assertions.assertTrue(e.getCause() instanceof IOException);
+    }
+
+    ((DatabaseInternal) db).kill();
+
+    verifyWALFilesAreStillPresent();
+
+    final Database db2 = verifyDatabaseWasNotClosedProperly();
+    try {
+      Assertions.assertEquals(TOT, db2.countType("V", true));
+    } finally {
+      db2.close();
+    }
   }
 
   @Test
@@ -133,8 +185,10 @@ public class ACIDTransactionTest {
       ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
         @Override
         public Void call() throws IOException {
-          if (commits.incrementAndGet() > TOT - 1)
+          if (commits.incrementAndGet() > TOT - 1) {
+            LogManager.instance().info(this, "TEST: Causing IOException at commit %d...", commits.get());
             throw new IOException("Test IO Exception");
+          }
           return null;
         }
       });
@@ -149,6 +203,12 @@ public class ACIDTransactionTest {
       }
 
       db.asynch().waitCompletion();
+
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        // IGNORE IT
+      }
 
       Assertions.assertEquals(1, errors.get());
 
