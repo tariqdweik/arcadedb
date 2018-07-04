@@ -3,6 +3,8 @@
  */
 package com.arcadedb.server.ha;
 
+import com.arcadedb.network.binary.ChannelBinaryServer;
+import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ServerException;
 import com.arcadedb.server.ha.network.ServerSocketFactory;
 
@@ -27,8 +29,7 @@ public class LeaderNetworkListener extends Thread {
   private          int                 port;
   private          ClientConnected     callback;
 
-  public LeaderNetworkListener(final HAServer ha, final ServerSocketFactory iSocketFactory, final String iHostName,
-      final String iHostPortRange) {
+  public LeaderNetworkListener(final HAServer ha, final ServerSocketFactory iSocketFactory, final String iHostName, final String iHostPortRange) {
     super(ha.getServerName() + " replication listen at " + iHostName + ":" + iHostPortRange);
 
     this.ha = ha;
@@ -53,15 +54,8 @@ public class LeaderNetworkListener extends Thread {
             socket.setSendBufferSize(socketBufferSize);
             socket.setReceiveBufferSize(socketBufferSize);
           }
-          // CREATE A NEW PROTOCOL INSTANCE
-          final Leader2ReplicaNetworkExecutor connection = new Leader2ReplicaNetworkExecutor(ha, socket);
 
-          ha.registerIncomingConnection(connection.getRemoteServerName(), connection);
-
-          connection.start();
-
-          if (callback != null)
-            callback.connected();
+          handleConnection(socket);
 
         } catch (Exception e) {
           if (active)
@@ -120,8 +114,8 @@ public class LeaderNetworkListener extends Thread {
 
         if (serverSocket.isBound()) {
           ha.getServer().log(this, Level.INFO,
-              "Listening Replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr
-                  .getPort() + "} (protocol v." + protocolVersion + ")");
+              "Listening Replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr.getPort() + "} (protocol v."
+                  + protocolVersion + ")");
 
           port = tryPort;
           return;
@@ -137,11 +131,64 @@ public class LeaderNetworkListener extends Thread {
       }
     }
 
-    ha.getServer().log(this, Level.SEVERE, "Unable to listen for connections using the configured ports '%s' on host '%s'", null,
-        hostPortRange, hostName);
+    ha.getServer().log(this, Level.SEVERE, "Unable to listen for connections using the configured ports '%s' on host '%s'", null, hostPortRange, hostName);
 
-    throw new ServerException(
-        "Unable to listen for connections using the configured ports '" + hostPortRange + "' on host '" + hostName + "'");
+    throw new ServerException("Unable to listen for connections using the configured ports '" + hostPortRange + "' on host '" + hostName + "'");
+  }
+
+  private void handleConnection(final Socket socket) throws IOException {
+    final ChannelBinaryServer channel = new ChannelBinaryServer(socket);
+
+    final long mn = channel.readLong();
+    if (mn != ReplicationProtocol.MAGIC_NUMBER) {
+      // INVALID PROTOCOL, WAIT (TO AVOID SPOOFING) AND CLOSE THE SOCKET
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        // IGNORE IT
+      }
+      socket.close();
+      throw new ConnectionException(socket.getInetAddress().toString(), "Bad protocol");
+    }
+
+    final short remoteProtocolVersion = channel.readShort();
+    if (remoteProtocolVersion != ReplicationProtocol.PROTOCOL_VERSION) {
+      channel.writeBoolean(false);
+      channel.writeByte(ReplicationProtocol.ERROR_CONNECT_UNSUPPORTEDPROTOCOL);
+      channel.writeString("Network protocol version " + remoteProtocolVersion + " is different than local server " + ReplicationProtocol.PROTOCOL_VERSION);
+      channel.flush();
+      throw new ConnectionException(socket.getInetAddress().toString(),
+          "Network protocol version " + remoteProtocolVersion + " is different than local server " + ReplicationProtocol.PROTOCOL_VERSION);
+    }
+
+    final String remoteClusterName = channel.readString();
+    if (!remoteClusterName.equals(ha.getClusterName())) {
+      channel.writeBoolean(false);
+      channel.writeByte(ReplicationProtocol.ERROR_CONNECT_WRONGCLUSTERNAME);
+      channel.writeString("Cluster name '" + remoteClusterName + "' does not match");
+      channel.flush();
+      throw new ConnectionException(socket.getInetAddress().toString(), "Cluster name '" + remoteClusterName + "' does not match");
+    }
+
+    final short command = channel.readShort();
+
+    switch (command) {
+    case ReplicationProtocol.COMMAND_CONNECT:
+      // CREATE A NEW PROTOCOL INSTANCE
+      final Leader2ReplicaNetworkExecutor connection = new Leader2ReplicaNetworkExecutor(ha, channel);
+      ha.registerIncomingConnection(connection.getRemoteServerName(), connection);
+
+      connection.start();
+
+      if (callback != null)
+        callback.connected();
+
+      break;
+
+    case ReplicationProtocol.COMMAND_ELECTION:
+      ha.getServer().log(this, Level.SEVERE, "Election not implemented yet");
+      break;
+    }
   }
 
   private static int[] getPorts(final String iHostPortRange) {

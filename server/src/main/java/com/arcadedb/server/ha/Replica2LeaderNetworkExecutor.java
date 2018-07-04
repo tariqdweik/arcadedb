@@ -166,6 +166,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       channel.writeLong(ReplicationProtocol.MAGIC_NUMBER);
       channel.writeShort(ReplicationProtocol.PROTOCOL_VERSION);
       channel.writeString(clusterName);
+
+      channel.writeShort(ReplicationProtocol.COMMAND_CONNECT);
       channel.writeString(configuration.getValueAsString(GlobalConfiguration.SERVER_NAME));
       channel.writeString(server.getServerAddress());
       channel.flush();
@@ -205,7 +207,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
       server.setServerAddresses(memberList);
 
-      server.getServer().log(this, Level.INFO, "Server connected to the server leader %s:%d, members=%s", host, port, memberList);
+      server.getServer().log(this, Level.INFO, "Server connected to the Leader server %s:%d, members=[%s]", host, port, memberList);
 
       setName(Constants.PRODUCT + "-ha-replica2leader/" + server.getServerName());
 
