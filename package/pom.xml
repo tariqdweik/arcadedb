@@ -84,11 +84,6 @@
         </dependency>
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
-            <artifactId>arcadedb-remote</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-redisw</artifactId>
             <version>${project.parent.version}</version>
         </dependency>

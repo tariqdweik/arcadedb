@@ -148,7 +148,6 @@
         <module>network</module>
         <module>console</module>
         <module>server</module>
-        <module>remote</module>
         <module>engine</module>
         <module>mongodbw</module>
         <module>redisw</module>

@@ -322,7 +322,7 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   @Override
   public ResultSet sql(final String query, final Map<String, Object> args) {
     checkForOpen();
-    return sql(query, args);
+    return proxied.sql(query, args);
   }
 
   @Override
@@ -340,7 +340,7 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   @Override
   public ResultSet query(final String query, final Map<String, Object> args) {
     checkForOpen();
-    return query(query, args);
+    return proxied.query(query, args);
   }
 
   @Override

@@ -301,7 +301,9 @@ public class TransactionManager {
         final WALFile file = activeWALFilePool[i];
         try {
           if (file != null && file.getSize() > MAX_LOG_FILE_SIZE) {
-            LogManager.instance().debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop", file, MAX_LOG_FILE_SIZE);
+            LogManager.instance()
+                .debug(this, "WAL file '%s' reached maximum size (%d), set it as inactive, waiting for the drop (page2flush=%d)", file, MAX_LOG_FILE_SIZE,
+                    file.getPendingPagesToFlush());
             activeWALFilePool[i] = database.getWALFileFactory().newInstance(database.getDatabasePath() + "/txlog_" + logFileCounter.getAndIncrement() + ".wal");
             file.setActive(false);
             inactiveWALFilePool.add(file);

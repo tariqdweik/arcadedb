@@ -315,7 +315,7 @@ public class TransactionContext {
       if (useWAL) {
         txId = database.getTransactionManager().getNextTransactionId();
 
-        LogManager.instance().debug(this, "Creating TX buffer %d (threadId=%d)", txId, Thread.currentThread().getId());
+        LogManager.instance().debug(this, "Creating buffer for TX %d (threadId=%d)", txId, Thread.currentThread().getId());
 
         result = database.getTransactionManager().getTransactionBuffer(txId, pages);
       }

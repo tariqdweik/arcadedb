@@ -13,8 +13,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Deque;
 
-public class QueryHandler extends DatabaseAbstractHandler {
-  public QueryHandler(final HttpServer httpServer) {
+public class GetQueryHandler extends DatabaseAbstractHandler {
+  public GetQueryHandler(final HttpServer httpServer) {
     super(httpServer);
   }
 

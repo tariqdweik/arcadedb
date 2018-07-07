@@ -27,11 +27,15 @@ public class AnsiLogFormatter extends LogFormatter {
 
     final StringBuilder buffer = new StringBuilder(512);
     buffer.append(EOL);
-    buffer.append("$ANSI{cyan ");
+
+    if (AnsiCode.isSupportsColors())
+      buffer.append("$ANSI{cyan ");
     synchronized (dateFormat) {
       buffer.append(dateFormat.format(new Date()));
     }
-    buffer.append("}");
+
+    if (AnsiCode.isSupportsColors())
+      buffer.append("}");
 
     if (AnsiCode.isSupportsColors()) {
       if (level == SEVERE)
@@ -43,6 +47,9 @@ public class AnsiLogFormatter extends LogFormatter {
       else if (level == Level.CONFIG)
         buffer.append("$ANSI{green ");
       else if (level == Level.CONFIG)
+        buffer.append("$ANSI{white ");
+      else
+        // DEFAULT
         buffer.append("$ANSI{white ");
     }
 

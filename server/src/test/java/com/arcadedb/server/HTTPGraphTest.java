@@ -5,23 +5,27 @@
 package com.arcadedb.server;
 
 import com.arcadedb.utility.LogManager;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HTTPGraphTest extends BaseGraphServerTest {
   @Test
   public void checkAuthenticationError() throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph/select%20from%20V1%20limit%201")
-        .openConnection();
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph/select%20from%20V1%20limit%201").openConnection();
 
-    connection.setRequestMethod("POST");
+    connection.setRequestMethod("GET");
     connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:wrong".getBytes()));
 
     try {
@@ -40,10 +44,9 @@ public class HTTPGraphTest extends BaseGraphServerTest {
 
   @Test
   public void checkNoAuthentication() throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph/select%20from%20V1%20limit%201")
-        .openConnection();
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph/select%20from%20V1%20limit%201").openConnection();
 
-    connection.setRequestMethod("POST");
+    connection.setRequestMethod("GET");
 
     try {
       connection.connect();
@@ -60,12 +63,61 @@ public class HTTPGraphTest extends BaseGraphServerTest {
   }
 
   @Test
-  public void checkQuery() throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph/select%20from%20V1%20limit%201")
-        .openConnection();
+  public void checkQueryInGet() throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph/select%20from%20V1%20limit%201").openConnection();
+
+    connection.setRequestMethod("GET");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
+    connection.connect();
+
+    try {
+      final String response = readResponse(connection);
+
+      LogManager.instance().info(this, "Response: ", response);
+
+      Assertions.assertEquals(200, connection.getResponseCode());
+
+      Assertions.assertEquals("OK", connection.getResponseMessage());
+
+      Assertions.assertTrue(response.contains("V1"));
+
+    } finally {
+      connection.disconnect();
+    }
+  }
+
+  @Test
+  public void checkQueryInPost() throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph").openConnection();
 
     connection.setRequestMethod("POST");
     connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
+    formatPost(connection, "select from V1 limit 1", new HashMap<>());
+    connection.connect();
+
+    try {
+      final String response = readResponse(connection);
+
+      LogManager.instance().info(this, "Response: ", response);
+
+      Assertions.assertEquals(200, connection.getResponseCode());
+
+      Assertions.assertEquals("OK", connection.getResponseMessage());
+
+      Assertions.assertTrue(response.contains("V1"));
+
+    } finally {
+      connection.disconnect();
+    }
+  }
+
+  @Test
+  public void checkSQL() throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph").openConnection();
+
+    connection.setRequestMethod("POST");
+    connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
+    formatPost(connection, "select from V1 limit 1", new HashMap<>());
     connection.connect();
 
     try {
@@ -139,6 +191,25 @@ public class HTTPGraphTest extends BaseGraphServerTest {
 
     } finally {
       connection.disconnect();
+    }
+  }
+
+  private void formatPost(final HttpURLConnection connection, final String payloadCommand, final Map<String, Object> params) throws IOException {
+    connection.setDoOutput(true);
+    if (payloadCommand != null) {
+      final JSONObject jsonRequest = new JSONObject();
+      jsonRequest.put("command", payloadCommand);
+
+      if (params != null) {
+        final JSONObject jsonParams = new JSONObject(params);
+        jsonRequest.put("params", jsonParams);
+      }
+
+      final byte[] postData = jsonRequest.toString().getBytes(StandardCharsets.UTF_8);
+      connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
+      try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+        wr.write(postData);
+      }
     }
   }
 }

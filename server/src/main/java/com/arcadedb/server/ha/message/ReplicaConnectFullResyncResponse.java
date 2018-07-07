@@ -10,12 +10,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class ReplicaConnectFullResyncResponse extends HAAbstractCommand {
+  private long        lastMessageNumber;
   private Set<String> databases;
 
   public ReplicaConnectFullResyncResponse() {
   }
 
-  public ReplicaConnectFullResyncResponse(final Set<String> databases) {
+  public ReplicaConnectFullResyncResponse(final long lastMessageNumber, final Set<String> databases) {
     this.databases = databases;
   }
 
@@ -26,6 +27,7 @@ public class ReplicaConnectFullResyncResponse extends HAAbstractCommand {
 
   @Override
   public void toStream(final Binary stream) {
+    stream.putLong(lastMessageNumber);
     stream.putNumber(databases.size());
     for (String db : databases)
       stream.putString(db);
@@ -33,10 +35,15 @@ public class ReplicaConnectFullResyncResponse extends HAAbstractCommand {
 
   @Override
   public void fromStream(final Binary stream) {
+    lastMessageNumber = stream.getLong();
     databases = new HashSet<>();
     final int fileCount = (int) stream.getNumber();
     for (int i = 0; i < fileCount; ++i)
       databases.add(stream.getString());
+  }
+
+  public long getLastMessageNumber() {
+    return lastMessageNumber;
   }
 
   public Set<String> getDatabases() {
@@ -45,6 +52,6 @@ public class ReplicaConnectFullResyncResponse extends HAAbstractCommand {
 
   @Override
   public String toString() {
-    return "fullResync(dbs=" + databases + ")";
+    return "fullResync(lastMessageNumber=" + lastMessageNumber + " dbs=" + databases + ")";
   }
 }

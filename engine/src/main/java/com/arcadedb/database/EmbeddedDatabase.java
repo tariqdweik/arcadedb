@@ -54,14 +54,15 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected          boolean autoTransaction = false;
   protected volatile boolean open            = false;
 
-  protected static final Set<String>                               SUPPORTED_FILE_EXT = new HashSet<String>(
+  protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(
       Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, IndexLSM.NOTUNIQUE_INDEX_EXT, IndexLSM.UNIQUE_INDEX_EXT));
   private                File                                      lockFile;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
-  private                StatementCache                            statementCache     = new StatementCache(this,
+  private                StatementCache                            statementCache          = new StatementCache(this,
       GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
-  private                ExecutionPlanCache                        executionPlanCache = new ExecutionPlanCache(this,
+  private                ExecutionPlanCache                        executionPlanCache      = new ExecutionPlanCache(this,
       GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
+  private                DatabaseInternal                          wrappedDatabaseInstance = this;
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
@@ -111,13 +112,13 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       DatabaseContext.INSTANCE.init(this);
 
       fileManager = new FileManager(databasePath, mode, SUPPORTED_FILE_EXT);
-      transactionManager = new TransactionManager(this);
+      transactionManager = new TransactionManager(wrappedDatabaseInstance);
       pageManager = new PageManager(fileManager, transactionManager);
 
       open = true;
 
       try {
-        schema = new SchemaImpl(this, databasePath, mode);
+        schema = new SchemaImpl(wrappedDatabaseInstance, databasePath, mode);
 
         if (fileManager.getFiles().isEmpty())
           schema.create(mode);
@@ -228,7 +229,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         @Override
         public Object call() {
           if (asynch == null)
-            asynch = new DatabaseAsyncExecutor(EmbeddedDatabase.this);
+            asynch = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
           return null;
         }
       });
@@ -254,7 +255,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         checkDatabaseIsOpen();
 
         // FORCE THE RESET OF TL
-        DatabaseContext.INSTANCE.init(EmbeddedDatabase.this);
+        DatabaseContext.INSTANCE.init(wrappedDatabaseInstance);
 
         getTransaction().begin();
         return null;
@@ -328,7 +329,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           b.scan(new RawRecordCallback() {
             @Override
             public boolean onRecord(final RID rid, final Binary view) {
-              final Document record = (Document) recordFactory.newImmutableRecord(EmbeddedDatabase.this, typeName, rid, view);
+              final Document record = (Document) recordFactory.newImmutableRecord(wrappedDatabaseInstance, typeName, rid, view);
               return callback.onRecord(record);
             }
           });
@@ -350,7 +351,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         schema.getBucketByName(bucketName).scan(new RawRecordCallback() {
           @Override
           public boolean onRecord(final RID rid, final Binary view) {
-            final Record record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, type, rid, view);
+            final Record record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type, rid, view);
             return callback.onRecord(record);
           }
         });
@@ -419,14 +420,14 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
         if (loadContent) {
           final Binary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-          record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, type != null ? type.getName() : null, rid, buffer);
+          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type != null ? type.getName() : null, rid, buffer);
           return record;
         }
 
         if (type != null)
-          record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, type.getName(), rid, type.getType());
+          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type.getName(), rid, type.getType());
         else
-          record = recordFactory.newImmutableRecord(EmbeddedDatabase.this, null, rid, Document.RECORD_TYPE);
+          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, null, rid, Document.RECORD_TYPE);
 
         return record;
       }
@@ -519,7 +520,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         getTransaction().updateRecordInCache(record);
 
         if (begunHere)
-          commit();
+          wrappedDatabaseInstance.commit();
 
         return null;
       }
@@ -554,7 +555,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     getTransaction().updateRecordInCache(record);
 
     if (begunHere)
-      commit();
+      wrappedDatabaseInstance.commit();
   }
 
   @Override
@@ -584,7 +585,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
 
     if (begunHere)
-      commit();
+      wrappedDatabaseInstance.commit();
   }
 
   @Override
@@ -613,7 +614,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
 
         if (begunHere)
-          commit();
+          wrappedDatabaseInstance.commit();
 
         return null;
       }
@@ -639,9 +640,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
     for (int retry = 0; retry < retries; ++retry) {
       try {
-        begin();
-        txBlock.execute(this);
-        commit();
+        wrappedDatabaseInstance.begin();
+        txBlock.execute(wrappedDatabaseInstance);
+        wrappedDatabaseInstance.commit();
 
         // OK
         return;
@@ -689,7 +690,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (!type.getClass().equals(DocumentType.class))
       throw new IllegalArgumentException("Cannot create a document of type '" + typeName + "' because is not a document type");
 
-    return new ModifiableDocument(this, typeName, null);
+    return new ModifiableDocument(wrappedDatabaseInstance, typeName, null);
   }
 
   @Override
@@ -701,7 +702,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (!type.getClass().equals(VertexType.class))
       throw new IllegalArgumentException("Cannot create a vertex of type '" + typeName + "' because is not a vertex type");
 
-    return new ModifiableVertex(this, typeName, null);
+    return new ModifiableVertex(wrappedDatabaseInstance, typeName, null);
   }
 
   public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
@@ -767,7 +768,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public boolean checkTransactionIsActive() {
     checkDatabaseIsOpen();
     if (autoTransaction && !isTransactionActive()) {
-      begin();
+      wrappedDatabaseInstance.begin();
       return true;
     } else if (!getTransaction().isActive())
       throw new DatabaseOperationException("Transaction not begun");
@@ -834,33 +835,33 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public ResultSet sql(String query, final Object... args) {
-    final Statement statement = SQLEngine.parse(query, this);
-    final ResultSet original = statement.execute(this, args);
+    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
   }
 
   @Override
   public ResultSet sql(String query, final Map<String, Object> args) {
-    final Statement statement = SQLEngine.parse(query, this);
-    final ResultSet original = statement.execute(this, args);
+    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
   }
 
   @Override
   public ResultSet query(String query, final Object... args) {
-    final Statement statement = SQLEngine.parse(query, this);
+    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
-    final ResultSet original = statement.execute(this, args);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
   }
 
   @Override
   public ResultSet query(String query, Map<String, Object> args) {
-    final Statement statement = SQLEngine.parse(query, this);
+    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
-    final ResultSet original = statement.execute(this, args);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
   }
 
@@ -956,6 +957,14 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       throw new DatabaseIsClosedException(name);
 
     if (DatabaseContext.INSTANCE.get() == null)
-      DatabaseContext.INSTANCE.init(this);
+      DatabaseContext.INSTANCE.init(wrappedDatabaseInstance);
+  }
+
+  public DatabaseInternal getWrappedDatabaseInstance() {
+    return wrappedDatabaseInstance;
+  }
+
+  public void setWrappedDatabaseInstance(final DatabaseInternal wrappedDatabaseInstance) {
+    this.wrappedDatabaseInstance = wrappedDatabaseInstance;
   }
 }

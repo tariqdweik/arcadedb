@@ -131,13 +131,12 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public byte[] readBytes() throws IOException {
     if (debug)
-      LogManager.instance()
-          .info(this, "%s - Reading chunk of bytes. Reading chunk length as int (4 bytes)...", socket.getRemoteSocketAddress());
+      LogManager.instance().info(this, "%s - Reading chunk of bytes. Reading chunk length as int (4 bytes)...", socket.getRemoteSocketAddress());
 
     final int len = in.readInt();
     if (len > maxChunkSize) {
-      throw new IOException("Impossible to read a chunk of length:" + len + " max allowed chunk length:" + maxChunkSize
-          + " see NETWORK_BINARY_MAX_CONTENT_LENGTH settings ");
+      throw new IOException(
+          "Impossible to read a chunk of length:" + len + " max allowed chunk length:" + maxChunkSize + " see NETWORK_BINARY_MAX_CONTENT_LENGTH settings ");
     }
     updateMetricReceivedBytes(Binary.INT_SERIALIZED_SIZE + len);
 
@@ -217,8 +216,8 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeString(final String iContent) throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Writing string (4+%d=%d bytes): %s", socket.getRemoteSocketAddress(),
-          iContent != null ? iContent.length() : 0, iContent != null ? iContent.length() + 4 : 4, iContent);
+      LogManager.instance().info(this, "%s - Writing string (4+%d=%d bytes): %s", socket.getRemoteSocketAddress(), iContent != null ? iContent.length() : 0,
+          iContent != null ? iContent.length() + 4 : 4, iContent);
 
     if (iContent == null) {
       out.writeInt(-1);
@@ -240,8 +239,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
   public ChannelBinary writeBytes(final byte[] iContent, final int iLength) throws IOException {
     if (debug)
       LogManager.instance()
-          .info(this, "%s - Writing bytes (4+%d=%d bytes): %s", socket.getRemoteSocketAddress(), iLength, iLength + 4,
-              Arrays.toString(iContent));
+          .info(this, "%s - Writing bytes (4+%d=%d bytes): %s", socket.getRemoteSocketAddress(), iLength, iLength + 4, Arrays.toString(iContent));
 
     if (iContent == null) {
       out.writeInt(-1);
@@ -284,8 +282,8 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     updateMetricReceivedBytes(i);
 
     final String message = "Received unread response from " + socket.getRemoteSocketAddress()
-        + " probably corrupted data from the network connection. Cleared dirty data in the buffer (" + i + " bytes): ["
-        + dirtyBuffer + (i > dirtyBuffer.length() ? "..." : "") + "]";
+        + " probably corrupted data from the network connection. Cleared dirty data in the buffer (" + i + " bytes): [" + dirtyBuffer + (
+        i > dirtyBuffer.length() ? "..." : "") + "]";
     LogManager.instance().error(this, message, null);
     throw new IOException(message);
 
@@ -294,8 +292,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
   @Override
   public void flush() throws IOException {
     if (debug)
-      LogManager.instance()
-          .info(this, "%s - Flush", socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
+      LogManager.instance().info(this, "%s - Flush", socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
 
     updateMetricFlushes();
 
@@ -309,8 +306,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
   @Override
   public void close() {
     if (debug)
-      LogManager.instance()
-          .info(this, "%s - Closing socket...", socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
+      LogManager.instance().info(this, "%s - Closing socket...", socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
 
     try {
       if (in != null) {

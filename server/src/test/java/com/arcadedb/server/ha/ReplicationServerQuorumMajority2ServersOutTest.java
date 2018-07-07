@@ -30,7 +30,7 @@ public class ReplicationServerQuorumMajority2ServersOutTest extends ReplicationS
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           if (type == TYPE.REPLICA_MSG_RECEIVED) {
             if (messages.incrementAndGet() > 100) {
-              LogManager.instance().info(this, "TEST: Replica 1 is offline");
+              LogManager.instance().info(this, "TEST: Stopping Replica 1...");
               getServer(1).stop();
             }
           }
@@ -43,7 +43,7 @@ public class ReplicationServerQuorumMajority2ServersOutTest extends ReplicationS
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           if (type == TYPE.REPLICA_MSG_RECEIVED) {
             if (messages.incrementAndGet() > 200) {
-              LogManager.instance().info(this, "TEST: Replica 2 is offline");
+              LogManager.instance().info(this, "TEST: Stopping Replica 2...");
               getServer(2).stop();
             }
           }

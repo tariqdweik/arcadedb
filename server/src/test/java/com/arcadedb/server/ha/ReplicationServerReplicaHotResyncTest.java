@@ -50,7 +50,7 @@ public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest
                 LogManager.instance().info(this, "TEST: Slowing down response from replica server 2...");
                 Thread.sleep(10000);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                // IGNORE IT
               }
             }
           } else {

@@ -34,6 +34,7 @@ public class HAMessageFactory {
     registerCommand(TxRequest.class);
     registerCommand(TxResponse.class);
     registerCommand(ReplicaReadyRequest.class);
+    registerCommand(UpdateClusterConfiguration.class);
   }
 
   public void serializeCommand(final HACommand command, final Binary buffer, final long messageNumber) {

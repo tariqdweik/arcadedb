@@ -41,7 +41,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
   private int             scans;
 
   public OCRUDWorkload() {
-    connectionStrategy = RemoteDatabase.CONNECTION_STRATEGY.ROUND_ROBIN_REQUEST;
+    connectionStrategy = RemoteDatabase.CONNECTION_STRATEGY.ROUND_ROBIN;
   }
 
   @Override

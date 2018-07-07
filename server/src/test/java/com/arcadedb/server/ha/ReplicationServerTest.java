@@ -26,32 +26,16 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
   }
 
   protected int getTxs() {
-    return 1000;
+    return 500;
   }
 
   protected int getVerticesPerTx() {
-    return 1000;
+    return 500;
   }
 
   @Test
   public void testReplication() {
-    for (int s = 0; s < getServerCount(); ++s) {
-      Database db = getServer(s).getDatabase(getDatabaseName());
-      db.begin();
-      try {
-        Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);
-        Assertions.assertEquals(2, db.countType(VERTEX2_TYPE_NAME, true), "Check for vertex count for server" + s);
-
-        Assertions.assertEquals(1, db.countType(EDGE1_TYPE_NAME, true), "Check for edge count for server" + s);
-        Assertions.assertEquals(2, db.countType(EDGE2_TYPE_NAME, true), "Check for edge count for server" + s);
-
-      } catch (Exception e) {
-        e.printStackTrace();
-        Assertions.fail("Error on checking on server" + s);
-      } finally {
-        db.close();
-      }
-    }
+    checkDatabases();
 
     Database db = getServer(0).getDatabase(getDatabaseName());
     db.begin();
@@ -83,8 +67,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
       LogManager.instance().info(this, "Done");
 
-      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true),
-          "Check for vertex count for server" + 0);
+      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + 0);
 
     } finally {
       db.close();
@@ -103,6 +86,26 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     onAfterTest();
   }
 
+  protected void checkDatabases() {
+    for (int s = 0; s < getServerCount(); ++s) {
+      Database db = getServer(s).getDatabase(getDatabaseName());
+      db.begin();
+      try {
+        Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);
+        Assertions.assertEquals(2, db.countType(VERTEX2_TYPE_NAME, true), "Check for vertex count for server" + s);
+
+        Assertions.assertEquals(1, db.countType(EDGE1_TYPE_NAME, true), "Check for edge count for server" + s);
+        Assertions.assertEquals(2, db.countType(EDGE2_TYPE_NAME, true), "Check for edge count for server" + s);
+
+      } catch (Exception e) {
+        e.printStackTrace();
+        Assertions.fail("Error on checking on server" + s);
+      } finally {
+        db.close();
+      }
+    }
+  }
+
   protected void onAfterTest() {
   }
 
@@ -114,8 +117,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     final Database db = getServer(s).getDatabase(getDatabaseName());
     db.begin();
     try {
-      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true),
-          "Check for vertex count for server" + s);
+      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);
 
       final List<DocumentType.IndexMetadata> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
       long total = 0;

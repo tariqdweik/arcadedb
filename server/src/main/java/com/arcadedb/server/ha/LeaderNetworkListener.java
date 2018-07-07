@@ -7,6 +7,7 @@ import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ServerException;
 import com.arcadedb.server.ha.network.ServerSocketFactory;
+import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
 import java.net.*;
@@ -59,7 +60,7 @@ public class LeaderNetworkListener extends Thread {
 
         } catch (Exception e) {
           if (active)
-            ha.getServer().log(this, Level.WARNING, "Error on client connection", e);
+            ha.getServer().log(this, Level.WARNING, "Error on client connection (error=%s)", e);
         }
       }
     } finally {
@@ -170,24 +171,59 @@ public class LeaderNetworkListener extends Thread {
       throw new ConnectionException(socket.getInetAddress().toString(), "Cluster name '" + remoteClusterName + "' does not match");
     }
 
+    final String remoteServerName = channel.readString();
+    final String remoteServerAddress = channel.readString();
+    final String remoteServerHTTPAddress = channel.readString();
+
     final short command = channel.readShort();
 
     switch (command) {
-    case ReplicationProtocol.COMMAND_CONNECT:
+    case ReplicationProtocol.COMMAND_CONNECT: {
       // CREATE A NEW PROTOCOL INSTANCE
-      final Leader2ReplicaNetworkExecutor connection = new Leader2ReplicaNetworkExecutor(ha, channel);
+      final Leader2ReplicaNetworkExecutor connection = new Leader2ReplicaNetworkExecutor(ha, channel, remoteServerName, remoteServerAddress,
+          remoteServerHTTPAddress);
+
       ha.registerIncomingConnection(connection.getRemoteServerName(), connection);
 
       connection.start();
 
       if (callback != null)
         callback.connected();
-
       break;
+    }
 
-    case ReplicationProtocol.COMMAND_ELECTION:
-      ha.getServer().log(this, Level.SEVERE, "Election not implemented yet");
+    case ReplicationProtocol.COMMAND_VOTE_FOR_ME: {
+      final long voteTurn = channel.readLong();
+      final long lastReplicationMessage = channel.readLong();
+
+      final long localServerLastMessageNumber = ha.getReplicationLogFile().getLastMessageNumber();
+
+      if (lastReplicationMessage >= localServerLastMessageNumber && (ha.lastElectionVote == null || ha.lastElectionVote.getFirst() < voteTurn)) {
+        ha.getServer().log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, giving my vote", remoteServerName,
+            lastReplicationMessage, localServerLastMessageNumber, voteTurn);
+        channel.writeByte((byte) 1);
+      } else {
+        ha.getServer().log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but I already voted for '%s'",
+            remoteServerName, lastReplicationMessage, localServerLastMessageNumber, voteTurn,
+            ha.lastElectionVote != null ? ha.lastElectionVote.getSecond() : "-");
+        ha.lastElectionVote = new Pair<>(voteTurn, remoteServerName);
+        channel.writeByte((byte) 0);
+      }
+      channel.flush();
       break;
+    }
+
+    case ReplicationProtocol.COMMAND_ELECTION_COMPLETED: {
+      final long voteTurn = channel.readLong();
+
+      ha.lastElectionVote = new Pair<>(voteTurn, remoteServerName);
+      channel.close();
+
+      ha.getServer().log(this, Level.INFO, "Received new leadership from server '%s' (turn=%d)", remoteServerName, voteTurn);
+
+      ha.connectToLeader(remoteServerAddress);
+      break;
+    }
     }
   }
 

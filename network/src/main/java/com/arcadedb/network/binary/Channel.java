@@ -105,7 +105,7 @@ public abstract class Channel {
 
   @Override
   public String toString() {
-    return socket != null ? socket.getRemoteSocketAddress().toString() : "Not connected";
+    return socket != null ? socket.getRemoteSocketAddress().toString() + "@" + hashCode() : "Not connected";
   }
 
   public String getLocalSocketAddress() {

@@ -18,7 +18,6 @@ import com.arcadedb.utility.LogManager;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -61,16 +60,16 @@ public class ArcadeDBServer {
 
     loadDatabases();
 
-    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED)) {
-      haServer = new HAServer(this, configuration);
-      haServer.startService();
-    }
-
     security = new ServerSecurity(this, "config");
     security.startService();
 
     httpServer = new HttpServer(this);
     httpServer.startService();
+
+    if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED)) {
+      haServer = new HAServer(this, configuration);
+      haServer.startService();
+    }
 
     final String registeredPlugins = GlobalConfiguration.SERVER_PLUGINS.getValueAsString();
 
@@ -221,6 +220,10 @@ public class ArcadeDBServer {
 
   public String getRootPath() {
     return new File(configuration.getValueAsString(GlobalConfiguration.SERVER_ROOT_PATH)).getAbsolutePath();
+  }
+
+  public HttpServer getHttpServer() {
+    return httpServer;
   }
 
   @Override

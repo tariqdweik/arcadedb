@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.File;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ReplicationServerReplicaRestartForceDbInstallTest extends ReplicationServerTest {
@@ -52,7 +53,7 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
                 LogManager.instance().info(this, "TEST: Slowing down response from replica server 2...");
                 Thread.sleep(10000);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                // IGNORE IT
               }
             }
           } else {
@@ -73,17 +74,25 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           // SLOW DOWN A SERVER
           if ("ArcadeDB_2".equals(object) && type == TYPE.REPLICA_OFFLINE && firstTimeServerShutdown) {
-            LogManager.instance().info(this, "TEST: Replica 2 is offline removing latency, delete the replication log file and restart the server...");
+            LogManager.instance().info(this, "TEST: Stopping Replica 2, removing latency, delete the replication log file and restart the server...");
             slowDown = false;
-            getServer(2).stop();
             firstTimeServerShutdown = false;
-            try {
-              Thread.sleep(5000);
-            } catch (InterruptedException e) {
-            }
-            Assertions.assertTrue(new File("./target/replication/replication_ArcadeDB_2.rlog").exists());
-            new File("./target/replication/replication_ArcadeDB_2.rlog").delete();
-            getServer(2).start();
+
+            executeAsynchronously(new Callable() {
+              @Override
+              public Object call() {
+                getServer(2).stop();
+                GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.setValue(512);
+                try {
+                  Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                }
+                Assertions.assertTrue(new File("./target/replication/replication_ArcadeDB_2.rlog").exists());
+                new File("./target/replication/replication_ArcadeDB_2.rlog").delete();
+                getServer(2).start();
+                return null;
+              }
+            });
           }
         }
       });

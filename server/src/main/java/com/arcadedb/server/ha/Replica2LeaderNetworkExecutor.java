@@ -34,11 +34,14 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   private final    HAServer             server;
   private final    String               host;
   private final    int                  port;
-  private          String               leaderServerName = "?";
+  private          String               leaderServerName  = "?";
+  private          String               leaderServerHTTPAddress;
   private final    ContextConfiguration configuration;
   private final    boolean              testOn;
   private          ChannelBinaryClient  channel;
-  private volatile boolean              shutdown         = false;
+  private volatile boolean              shutdown          = false;
+  private          Object               channelOutputLock = new Object();
+  private          Object               channelInputLock  = new Object();
 
   public Replica2LeaderNetworkExecutor(final HAServer ha, final String host, final int port, final ContextConfiguration configuration) {
     this.server = ha;
@@ -58,7 +61,10 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     while (!shutdown || channel.inputHasData()) {
       try {
-        final byte[] requestBytes = channel.readBytes();
+        final byte[] requestBytes = receiveResponse();
+
+        if (shutdown)
+          return;
 
         final Pair<ReplicationMessage, HACommand> request = server.getMessageFactory().deserializeCommand(buffer, requestBytes);
 
@@ -69,14 +75,20 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         final ReplicationMessage message = request.getFirst();
 
-        server.getServer().log(this, Level.FINE, "Received request from the leader '%s'", request);
+        server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
 
-        if (!server.getReplicationLogFile().checkForMessage(message.messageNumber)) {
-          server.getServer().log(this, Level.WARNING, "Message %d already applied on local server. Skip this", message.messageNumber);
+        final long lastMessage = server.getReplicationLogFile().getLastMessageNumber();
+
+        if (message.messageNumber <= lastMessage) {
+          server.getServer().log(this, Level.FINE, "Message %d already applied on local server (last=%d). Skip this", message.messageNumber, lastMessage);
           continue;
         }
 
-        final HACommand response = request.getSecond().execute(server, null, message.messageNumber);
+        if (!server.getReplicationLogFile().checkMessageOrder(message))
+          // SKIP
+          continue;
+
+        final HACommand response = request.getSecond().execute(server, leaderServerName, message.messageNumber);
 
         server.getReplicationLogFile().appendMessage(message);
 
@@ -107,32 +119,39 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       if (channel != null)
         channel.close();
 
-      server.getServer().log(this, Level.SEVERE, "Error on communication between current replica and the leader, reconnecting... (error=%s)", e.toString());
+      if (server.getLeader() != this) {
+        // LEADER ALREADY ELECTED
+        server.getServer().log(this, Level.SEVERE, "Removing connection to the previous Leader ('%s'). New Leader is: %s", getRemoteServerName(),
+            server.getLeader().getRemoteServerName());
+        close();
+        return;
+      }
 
-      while (!shutdown) {
+      server.getServer()
+          .log(this, Level.SEVERE, "Error on communication between current replica and the Leader ('%s'), reconnecting... (error=%s)", getRemoteServerName(),
+              e.toString());
+
+      if (!shutdown) {
         try {
           connect();
-          break;
         } catch (ConnectionException e1) {
-          server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the leader (error=%s)", e1);
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException e2) {
-            Thread.currentThread().interrupt();
-            break;
-          }
+          server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the Leader ('%s'), start election (error=%s)", getRemoteServerName(), e1);
+          close();
+          server.startElection();
         }
       }
     }
   }
 
   public void sendCommandToLeader(final Binary buffer, final HACommand response, final long messageNumber) throws IOException {
-    server.getServer().log(this, Level.FINE, "Sending response back to the leader '%s'...", response);
+    server.getServer().log(this, Level.FINE, "Sending message (response to %d) to the Leader '%s'...", messageNumber, response);
 
     server.getMessageFactory().serializeCommand(response, buffer, messageNumber);
 
-    channel.writeBytes(buffer.getContent(), buffer.size());
-    channel.flush();
+    synchronized (channelOutputLock) {
+      channel.writeBytes(buffer.getContent(), buffer.size());
+      channel.flush();
+    }
   }
 
   public void close() {
@@ -141,12 +160,14 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       channel.close();
   }
 
-  public String getURL() {
-    return channel.getURL();
+  public void kill() {
+    shutdown = true;
+    interrupt();
+    close();
   }
 
-  public byte[] receiveResponse() throws IOException {
-    return channel.readBytes();
+  public String getRemoteHTTPAddress() {
+    return leaderServerHTTPAddress;
   }
 
   @Override
@@ -154,64 +175,61 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     return leaderServerName;
   }
 
+  private byte[] receiveResponse() throws IOException {
+    synchronized (channelInputLock) {
+      return channel.readBytes();
+    }
+  }
+
   private void connect() {
-    server.getServer().log(this, Level.INFO, "Connecting to server %s:%d...", host, port);
+    server.getServer().log(this, Level.FINE, "Connecting to server %s:%d...", host, port);
 
     try {
-      channel = new ChannelBinaryClient(host, port, configuration);
-
-      final String clusterName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
-
-      // SEND SERVER INFO
-      channel.writeLong(ReplicationProtocol.MAGIC_NUMBER);
-      channel.writeShort(ReplicationProtocol.PROTOCOL_VERSION);
-      channel.writeString(clusterName);
-
-      channel.writeShort(ReplicationProtocol.COMMAND_CONNECT);
-      channel.writeString(configuration.getValueAsString(GlobalConfiguration.SERVER_NAME));
-      channel.writeString(server.getServerAddress());
+      channel = server.createNetworkConnection(host, port, ReplicationProtocol.COMMAND_CONNECT);
       channel.flush();
 
       // READ RESPONSE
-      final boolean connectionAccepted = channel.readBoolean();
-      if (!connectionAccepted) {
-        final String reason = channel.readString();
+      synchronized (channelInputLock) {
+        final boolean connectionAccepted = channel.readBoolean();
+        if (!connectionAccepted) {
+          final String reason = channel.readString();
 
-        byte reasonCode = channel.readByte();
+          byte reasonCode = channel.readByte();
 
-        switch (reasonCode) {
-        case ReplicationProtocol.ERROR_CONNECT_NOLEADER:
-          final String leaderServerName = channel.readString();
-          final String leaderAddress = channel.readString();
-          server.getServer()
-              .log(this, Level.INFO, "Remote server is not a leader, connecting to the current leader '%s' (%s)", leaderServerName, leaderAddress);
+          switch (reasonCode) {
+          case ReplicationProtocol.ERROR_CONNECT_NOLEADER:
+            final String leaderServerName = channel.readString();
+            final String leaderAddress = channel.readString();
+            server.getServer()
+                .log(this, Level.INFO, "Remote server is not a Leader, connecting to the current Leader '%s' (%s)", leaderServerName, leaderAddress);
+            channel.close();
+            throw new ServerIsNotTheLeaderException(
+                "Remote server is not a Leader, connecting to the current Leader '" + leaderServerName + "' (" + leaderAddress + ")", leaderAddress);
+
+          case ReplicationProtocol.ERROR_CONNECT_UNSUPPORTEDPROTOCOL:
+            server.getServer().log(this, Level.INFO, "Remote server does not support protocol %d", ReplicationProtocol.PROTOCOL_VERSION);
+            break;
+
+          case ReplicationProtocol.ERROR_CONNECT_WRONGCLUSTERNAME:
+            server.getServer().log(this, Level.INFO, "Remote server joined a different cluster than '%s'", server.getClusterName());
+            break;
+          }
+
           channel.close();
-          throw new ServerIsNotTheLeaderException(
-              "Remote server is not a leader, connecting to the current leader '" + leaderServerName + "' (" + leaderAddress + ")", leaderAddress);
-
-        case ReplicationProtocol.ERROR_CONNECT_UNSUPPORTEDPROTOCOL:
-          server.getServer().log(this, Level.INFO, "Remote server does not support protocol %d", ReplicationProtocol.PROTOCOL_VERSION);
-          break;
-
-        case ReplicationProtocol.ERROR_CONNECT_WRONGCLUSTERNAME:
-          server.getServer().log(this, Level.INFO, "Remote server joined a different cluster than '%s'", clusterName);
-          break;
+          throw new ConnectionException(host + ":" + port, reason);
         }
 
-        channel.close();
-        throw new ConnectionException(host + ":" + port, reason);
+        leaderServerName = channel.readString();
+        leaderServerHTTPAddress = channel.readString();
+        final String memberList = channel.readString();
+        server.setServerAddresses(memberList);
       }
 
-      leaderServerName = channel.readString();
-      final String memberList = channel.readString();
-
-      server.setServerAddresses(memberList);
-
-      server.getServer().log(this, Level.INFO, "Server connected to the Leader server %s:%d, members=[%s]", host, port, memberList);
+      server.getServer().log(this, Level.INFO, "Server connected to the Leader server %s:%d, members=[%s]", host, port, server.getServerList());
 
       setName(Constants.PRODUCT + "-ha-replica2leader/" + server.getServerName());
 
-      server.getServer().log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s:%d)", clusterName, host, port);
+      server.getServer().log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s:%d)", server.getClusterName(), host, port);
 
       installDatabases();
     } catch (IOException e) {
@@ -222,10 +240,11 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   private void installDatabases() {
     final Binary buffer = new Binary(1024);
 
-    try {
-      final ReplicationMessage lastMessage = server.getReplicationLogFile().getLastMessage();
+    final ReplicationMessage lastMessage = server.getReplicationLogFile().getLastMessage();
+    long lastLogNumber = lastMessage != null ? lastMessage.messageNumber + 1 : -1;
 
-      sendCommandToLeader(buffer, new ReplicaConnectRequest(lastMessage != null ? lastMessage.messageNumber + 1 : -1), -1);
+    try {
+      sendCommandToLeader(buffer, new ReplicaConnectRequest(lastLogNumber), -1);
       final HACommand response = receiveCommandFromLeaderDuringJoining(buffer);
 
       if (response instanceof ReplicaConnectFullResyncResponse) {
@@ -234,9 +253,10 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         if (testOn)
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_FULL_RESYNC, null);
 
-        final ReplicaConnectFullResyncResponse databaseList = (ReplicaConnectFullResyncResponse) response;
+        final ReplicaConnectFullResyncResponse fullSync = (ReplicaConnectFullResyncResponse) response;
 
-        final Set<String> databases = databaseList.getDatabases();
+        final Set<String> databases = fullSync.getDatabases();
+
         for (String db : databases) {
           sendCommandToLeader(buffer, new DatabaseStructureRequest(db), -1);
           final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeaderDuringJoining(buffer);
@@ -245,6 +265,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
           installDatabase(buffer, db, dbStructure, database);
         }
+
       } else {
         server.getServer().log(this, Level.INFO, "Receiving hot resync...");
 
@@ -256,7 +277,6 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     } catch (Exception e) {
       server.getServer().log(this, Level.SEVERE, "Error on starting HA service (error=%s)", e);
-      e.printStackTrace();
       throw new ServerException("Cannot start HA service", e);
     }
   }

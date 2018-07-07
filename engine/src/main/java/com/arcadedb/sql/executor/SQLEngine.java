@@ -4,7 +4,7 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.EmbeddedDatabase;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.sql.function.DefaultSQLFunctionFactory;
 import com.arcadedb.sql.parser.Statement;
@@ -64,7 +64,7 @@ public class SQLEngine {
     return null;
   }
 
-  public static Statement parse(final String query, final EmbeddedDatabase database) {
+  public static Statement parse(final String query, final DatabaseInternal database) {
     return database.getStatementCache().get(query);
   }
 }

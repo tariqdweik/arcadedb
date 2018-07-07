@@ -23,10 +23,10 @@ public class TwoServersTest extends BaseGraphServerTest {
 
   @Test
   public void checkQuery() throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/sql/graph/select%20from%20V1%20limit%201")
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph/select%20from%20V1%20limit%201")
         .openConnection();
 
-    connection.setRequestMethod("POST");
+    connection.setRequestMethod("GET");
     connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
     connection.connect();
 

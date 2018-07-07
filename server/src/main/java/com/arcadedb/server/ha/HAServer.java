@@ -8,12 +8,14 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.network.binary.ChannelBinaryClient;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerPlugin;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.server.ha.message.HACommand;
 import com.arcadedb.server.ha.message.HAMessageFactory;
+import com.arcadedb.server.ha.message.UpdateClusterConfiguration;
 import com.arcadedb.server.ha.network.DefaultServerSocketFactory;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.utility.Pair;
@@ -42,6 +44,7 @@ public class HAServer implements ServerPlugin {
   private final   long                                       startedOn;
   private final   Map<String, Leader2ReplicaNetworkExecutor> replicaConnections          = new ConcurrentHashMap<>();
   private final   AtomicLong                                 messageNumber               = new AtomicLong(-1);
+  private         long                                       electionTurn                = 0;
   protected final String                                     replicationPath;
   protected       ReplicationLogFile                         replicationLogFile;
   private         Replica2LeaderNetworkExecutor              leaderConnection;
@@ -51,6 +54,7 @@ public class HAServer implements ServerPlugin {
   private final   Object                                     sendingLock                 = new Object();
   private         String                                     serverAddress;
   private         Set<String>                                serverAddressList           = new HashSet<>();
+  protected       Pair<Long, String>                         lastElectionVote;
 
   private class QuorumMessages {
     public final long           sentOn = System.currentTimeMillis();
@@ -124,7 +128,7 @@ public class HAServer implements ServerPlugin {
     }
 
     if (leaderConnection == null)
-      server.log(this, Level.INFO, "Server started as Leader in HA mode (cluster=%s)", clusterName);
+      server.log(this, Level.INFO, "Server started as $ANSI{green Leader} in HA mode (cluster=%s)", clusterName);
   }
 
   @Override
@@ -132,14 +136,120 @@ public class HAServer implements ServerPlugin {
     if (listener != null)
       listener.close();
 
-    if (leaderConnection != null)
-      leaderConnection.close();
+    final Replica2LeaderNetworkExecutor lc = leaderConnection;
+    if (lc != null) {
+      lc.close();
+      leaderConnection = null;
+    }
 
     if (!replicaConnections.isEmpty()) {
       for (Leader2ReplicaNetworkExecutor r : replicaConnections.values()) {
         r.close();
       }
       replicaConnections.clear();
+    }
+  }
+
+  public void startElection() {
+    final long lastReplicationMessage = replicationLogFile.getLastMessageNumber();
+
+    server.log(this, Level.INFO, "Starting election of local server asking for votes from %s (lastReplicationMessage=%d)", serverAddressList,
+        lastReplicationMessage);
+
+    final Replica2LeaderNetworkExecutor lc = leaderConnection;
+    if (lc != null) {
+      // CLOSE ANY LEADER CONNECTION STILL OPEN
+      lc.kill();
+      leaderConnection = null;
+    }
+
+    final String localServerAddress = getServerAddress();
+
+    while (true) {
+      final int majorityOfVotes = (serverAddressList.size()) / 2 + 1;
+
+      int totalVotes = 1;
+
+      ++electionTurn;
+
+      for (String serverAddress : serverAddressList) {
+        if (serverAddress.equals(localServerAddress))
+          // SKIP LOCAL SERVER
+          continue;
+
+        try {
+
+          final String[] parts = serverAddress.split(":");
+
+          final ChannelBinaryClient channel = createNetworkConnection(parts[0], Integer.parseInt(parts[1]), ReplicationProtocol.COMMAND_VOTE_FOR_ME);
+          channel.writeLong(electionTurn);
+          channel.writeLong(lastReplicationMessage);
+          channel.flush();
+
+          final boolean vote = channel.readBoolean();
+          if (vote) {
+            ++totalVotes;
+            server.log(this, Level.INFO, "Received the vote from server %s (turn=%d totalVotes=%d majority=%d)", serverAddress, electionTurn, totalVotes,
+                majorityOfVotes);
+
+            if (totalVotes >= majorityOfVotes)
+              // AVOID CONTACTING OTHER SERVERS
+              break;
+
+          } else
+            server.log(this, Level.INFO, "Did not receive the vote from server %s (turn=%d totalVotes=%d majority=%d)", serverAddress, electionTurn, totalVotes,
+                majorityOfVotes);
+
+          channel.close();
+        } catch (Exception e) {
+          server.log(this, Level.INFO, "Error contacting server %s for election", serverAddress);
+        }
+      }
+
+      if (totalVotes >= majorityOfVotes) {
+        server.log(this, Level.INFO, "Current server elected as new $ANSI{green Leader} (turn=%d totalVotes=%d majority=%d)", electionTurn, totalVotes,
+            majorityOfVotes);
+        sendNewLeadershipToOtherNodes();
+
+        break;
+      }
+
+      try {
+        Thread.sleep(200 + new Random().nextInt(200));
+      } catch (InterruptedException e) {
+        // INTERRUPTED
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
+  }
+
+  private void sendNewLeadershipToOtherNodes() {
+    lastElectionVote = new Pair<>(electionTurn, getServerName());
+
+    final String localServerAddress = getServerAddress();
+
+    messageNumber.set(replicationLogFile.getLastMessageNumber());
+
+    server.log(this, Level.INFO, "Contacting all the servers for the new leadership (turn=%d)...", electionTurn);
+
+    for (String serverAddress : serverAddressList) {
+      if (serverAddress.equals(localServerAddress))
+        // SKIP LOCAL SERVER
+        continue;
+
+      try {
+        final String[] parts = serverAddress.split(":");
+
+        server.log(this, Level.INFO, "- Sending new Leader to server '%s'...", serverAddress);
+
+        final ChannelBinaryClient channel = createNetworkConnection(parts[0], Integer.parseInt(parts[1]), ReplicationProtocol.COMMAND_ELECTION_COMPLETED);
+        channel.writeLong(electionTurn);
+        channel.flush();
+
+      } catch (Exception e) {
+        server.log(this, Level.INFO, "Error contacting server %s for election", serverAddress);
+      }
     }
   }
 
@@ -205,6 +315,9 @@ public class HAServer implements ServerPlugin {
       // MERGE CONNECTIONS
       connection.mergeFrom(previousConnection);
     }
+
+    sendCommandToReplicas(new UpdateClusterConfiguration(getServerList()));
+
     printClusterConfiguration();
   }
 
@@ -223,88 +336,103 @@ public class HAServer implements ServerPlugin {
   }
 
   public void sendCommandToReplicas(final HACommand command) {
+    if (!isLeader())
+      throw new ServerIsNotTheLeaderException("Cannot execute command", getLeader().getRemoteServerName());
+
     final Binary buffer = new Binary();
 
+    // SEND THE REQUEST TO ALL THE REPLICAS
+    final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
+
     // ASSURE THE TX ARE WRITTEN IN SEQUENCE INTO THE LOGFILE
-    final long messageNumber;
     synchronized (sendingLock) {
-      messageNumber = this.messageNumber.incrementAndGet();
+      final long messageNumber = this.messageNumber.incrementAndGet();
 
       messageFactory.serializeCommand(command, buffer, messageNumber);
 
       // WRITE THE MESSAGE INTO THE LOG FIRST
       replicationLogFile.appendMessage(new ReplicationMessage(messageNumber, buffer));
-    }
 
-    // SEND THE REQUEST TO ALL THE REPLICAS
-    final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
-    for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
-      // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
-      try {
-        replicaConnection.enqueueMessage(buffer.slice(0));
-      } catch (ReplicationException e) {
-        // REMOVE THE REPLICA
-        server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE", replicaConnection.getRemoteServerName());
+      server.log(this, Level.FINE, "Sending request %d (%s) to %s", messageNumber, command, replicas);
 
-        setReplicaStatus(replicaConnection.getRemoteServerName(), false);
+      for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
+        // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
+        try {
+          replicaConnection.enqueueMessage(buffer.slice(0));
+        } catch (ReplicationException e) {
+          // REMOVE THE REPLICA
+          server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE", replicaConnection.getRemoteServerName());
+          setReplicaStatus(replicaConnection.getRemoteServerName(), false);
+        }
       }
     }
   }
 
   public void sendCommandToReplicasWithQuorum(final HACommand command, final int quorum, final long timeout) {
+    if (!isLeader())
+      throw new ServerIsNotTheLeaderException("Cannot execute command", getLeader().getRemoteServerName());
+
     final Binary buffer = new Binary();
 
-    // ASSURE THE TX ARE WRITTEN IN SEQUENCE INTO THE LOGFILE
-    final long messageNumber;
-    synchronized (sendingLock) {
-      messageNumber = this.messageNumber.incrementAndGet();
-
-      messageFactory.serializeCommand(command, buffer, messageNumber);
-
-      // WRITE THE MESSAGE INTO THE LOG FIRST
-      replicationLogFile.appendMessage(new ReplicationMessage(messageNumber, buffer));
-    }
+    long messageNumber = -1;
 
     CountDownLatch quorumSemaphore = null;
-
     try {
-      if (quorum > 1) {
-        quorumSemaphore = new CountDownLatch(quorum - 1);
-        // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
-        messagesWaitingForQuorum.put(messageNumber, new QuorumMessages(quorumSemaphore));
-      }
-
       int sent = 0;
 
-      // SEND THE REQUEST TO ALL THE REPLICAS
-      final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
-      for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
-        try {
+      // ASSURE THE TX ARE WRITTEN IN SEQUENCE INTO THE LOGFILE
+      synchronized (sendingLock) {
+        messageNumber = this.messageNumber.incrementAndGet();
 
-          if (replicaConnection.enqueueMessage(buffer.slice(0)))
-            ++sent;
-          else {
+        messageFactory.serializeCommand(command, buffer, messageNumber);
+
+        // WRITE THE MESSAGE INTO THE LOG FIRST
+        replicationLogFile.appendMessage(new ReplicationMessage(messageNumber, buffer));
+
+        if (quorum > 1) {
+          quorumSemaphore = new CountDownLatch(quorum - 1);
+          // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
+          messagesWaitingForQuorum.put(messageNumber, new QuorumMessages(quorumSemaphore));
+        }
+
+        // SEND THE REQUEST TO ALL THE REPLICAS
+        final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
+
+        server.log(this, Level.FINE, "Sending request %d to %s (quorum=%d)", messageNumber, replicas, quorum);
+
+        for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
+          try {
+
+            if (replicaConnection.enqueueMessage(buffer.slice(0)))
+              ++sent;
+            else {
+              if (quorumSemaphore != null)
+                quorumSemaphore.countDown();
+            }
+
+          } catch (ReplicationException e) {
+            server.log(this, Level.SEVERE, "Error on replicating message %d to replica '%s' (error=%s)", messageNumber, replicaConnection.getRemoteServerName(),
+                e);
+
+            // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
             if (quorumSemaphore != null)
               quorumSemaphore.countDown();
           }
-
-        } catch (ReplicationException e) {
-          server.log(this, Level.SEVERE, "Error on replicating message to replica '%s' (error=%s)", replicaConnection.getRemoteServerName(), e);
-
-          // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
-          if (quorumSemaphore != null)
-            quorumSemaphore.countDown();
         }
       }
 
-      if (sent < quorum - 1)
+      if (sent < quorum - 1) {
+        server.log(this, Level.WARNING, "Quorum " + quorum + " not reached because only " + sent + " server(s) are online");
         throw new ReplicationException("Quorum " + quorum + " not reached because only " + sent + " server(s) are online");
+      }
 
       if (quorumSemaphore != null) {
         try {
 
-          if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS))
+          if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS)) {
+            server.log(this, Level.WARNING, "Timeout waiting for quorum to be reached for request " + messageNumber);
             throw new ReplicationException("Timeout waiting for quorum to be reached for request " + messageNumber);
+          }
 
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
@@ -340,10 +468,20 @@ public class HAServer implements ServerPlugin {
     return replicaConnections.size();
   }
 
-  public String getReplicaServerList() {
+  public String getServerList() {
     String list = getServerAddress();
     for (Leader2ReplicaNetworkExecutor r : replicaConnections.values())
       list += "," + r.getRemoteServerAddress();
+    return list;
+  }
+
+  public String getReplicaServersHTTPAddressesList() {
+    String list = "";
+    for (Leader2ReplicaNetworkExecutor r : replicaConnections.values()) {
+      if (!list.isEmpty())
+        list += ",";
+      list += r.getRemoteServerHTTPAddress();
+    }
     return list;
   }
 
@@ -425,7 +563,7 @@ public class HAServer implements ServerPlugin {
 
           // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
           try {
-            server.log(this, Level.INFO, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
+            server.log(this, Level.FINE, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
 
             replica.sendMessage(entry.getFirst().payload);
 
@@ -448,10 +586,10 @@ public class HAServer implements ServerPlugin {
     }
   }
 
-  private boolean connectToLeader(final String serverEntry) {
+  protected boolean connectToLeader(final String serverEntry) {
     final String[] serverParts = serverEntry.split(":");
     if (serverParts.length != 2)
-      throw new ConfigurationException("Found invalid server/port entry in " + GlobalConfiguration.HA_SERVER_LIST.getKey() + " setting: " + serverEntry);
+      throw new ConfigurationException("Found invalid server/port entry in server address '" + serverEntry + "'");
 
     try {
       connectToLeader(serverParts[0], Integer.parseInt(serverParts[1]));
@@ -461,17 +599,14 @@ public class HAServer implements ServerPlugin {
 
     } catch (ServerIsNotTheLeaderException e) {
       final String leaderAddress = e.getLeaderAddress();
-      server.log(this, Level.INFO, "Remote server %s:%d is not the leader, connecting to %s", serverParts[0], Integer.parseInt(serverParts[1]), leaderAddress);
+      server.log(this, Level.INFO, "Remote server %s:%d is not the Leader, connecting to %s", serverParts[0], Integer.parseInt(serverParts[1]), leaderAddress);
 
       final String[] leader = leaderAddress.split(":");
-      try {
-        connectToLeader(leader[0], Integer.parseInt(leader[1]));
-      } catch (IOException e1) {
-        server.log(this, Level.INFO, "Error on connecting to the leader server %s:%d (error=%s)", leader[0], Integer.parseInt(leader[1]), e);
-      }
+
+      connectToLeader(leader[0], Integer.parseInt(leader[1]));
 
     } catch (Exception e) {
-      server.log(this, Level.INFO, "Error on connecting to the remote server %s:%d (error=%s)", serverParts[0], Integer.parseInt(serverParts[1]), e);
+      server.log(this, Level.INFO, "Error on connecting to the remote Leader server %s:%d (error=%s)", serverParts[0], Integer.parseInt(serverParts[1]), e);
     }
     return false;
   }
@@ -479,10 +614,34 @@ public class HAServer implements ServerPlugin {
   /**
    * Connects to a remote server. The connection succeed only if the remote server is the leader.
    */
-  private void connectToLeader(final String host, final int port) throws IOException {
+  private void connectToLeader(final String host, final int port) {
+    final Replica2LeaderNetworkExecutor lc = leaderConnection;
+    if (lc != null) {
+      // CLOSE ANY LEADER CONNECTION STILL OPEN
+      lc.kill();
+      leaderConnection = null;
+    }
+
     leaderConnection = new Replica2LeaderNetworkExecutor(this, host, port, configuration);
 
     // START SEPARATE THREAD TO EXECUTE LEADER'S REQUESTS
     leaderConnection.start();
+  }
+
+  protected ChannelBinaryClient createNetworkConnection(final String host, final int port, final short commandId) throws IOException {
+    final ChannelBinaryClient channel = new ChannelBinaryClient(host, port, this.configuration);
+
+    final String clusterName = this.configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
+
+    // SEND SERVER INFO
+    channel.writeLong(ReplicationProtocol.MAGIC_NUMBER);
+    channel.writeShort(ReplicationProtocol.PROTOCOL_VERSION);
+    channel.writeString(clusterName);
+    channel.writeString(getServerName());
+    channel.writeString(getServerAddress());
+    channel.writeString(server.getHttpServer().getListeningAddress());
+
+    channel.writeShort(commandId);
+    return channel;
   }
 }

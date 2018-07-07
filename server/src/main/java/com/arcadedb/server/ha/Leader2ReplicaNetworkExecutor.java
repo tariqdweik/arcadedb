@@ -34,6 +34,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
   private final    HAServer                      server;
   private final    String                        remoteServerName;
   private final    String                        remoteServerAddress;
+  private final    String                        remoteServerHTTPAddress;
   private final    PushPullBlockingQueue<Binary> queue                 = new PushPullBlockingQueue<>(
       GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
   private          long                          joinedOn;
@@ -42,6 +43,8 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
   private          Thread                        queueThread;
   private          STATUS                        status                = STATUS.JOINING;
   private          Object                        lock                  = new Object();
+  private          Object                        channelOutputLock     = new Object();
+  private          Object                        channelInputLock      = new Object();
   private volatile boolean                       shutdownCommunication = false;
 
   // STATS
@@ -51,36 +54,41 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
   private long latencyMax;
   private long latencyTotalTime;
 
-  public Leader2ReplicaNetworkExecutor(final HAServer ha, final ChannelBinaryServer channel) throws IOException {
+  public Leader2ReplicaNetworkExecutor(final HAServer ha, final ChannelBinaryServer channel, final String remoteServerName, final String remoteServerAddress,
+      final String remoteServerHTTPAddress) throws IOException {
     this.server = ha;
-    setName(Constants.PRODUCT + "-ha-leader2replica/?");
+    this.remoteServerName = remoteServerName;
+    this.remoteServerAddress = remoteServerAddress;
+    this.remoteServerHTTPAddress = remoteServerHTTPAddress;
     this.channel = channel;
 
-    try {
-      remoteServerName = this.channel.readString();
-      remoteServerAddress = this.channel.readString();
+    setName(Constants.PRODUCT + "-ha-leader2replica/?");
 
-      if (!ha.isLeader()) {
-        this.channel.writeBoolean(false);
-        this.channel.writeByte(ReplicationProtocol.ERROR_CONNECT_NOLEADER);
-        this.channel.writeString("Current server '" + ha.getServerName() + "' is not the leader");
-        this.channel.writeString(server.getLeader().getRemoteServerName());
-        this.channel.writeString(server.getLeader().getRemoteAddress());
-        throw new ConnectionException(channel.socket.getInetAddress().toString(), "Current server '" + ha.getServerName() + "' is not the leader");
+    synchronized (channelOutputLock) {
+      try {
+        if (!ha.isLeader()) {
+          this.channel.writeBoolean(false);
+          this.channel.writeByte(ReplicationProtocol.ERROR_CONNECT_NOLEADER);
+          this.channel.writeString("Current server '" + ha.getServerName() + "' is not the Leader");
+          this.channel.writeString(server.getLeader().getRemoteServerName());
+          this.channel.writeString(server.getLeader().getRemoteAddress());
+          throw new ConnectionException(channel.socket.getInetAddress().toString(), "Current server '" + ha.getServerName() + "' is not the Leader");
+        }
+
+        setName(Constants.PRODUCT + "-ha-leader2replica/" + remoteServerName + "(" + remoteServerAddress + ")");
+
+        // CONNECTED
+        this.channel.writeBoolean(true);
+
+        this.channel.writeString(server.getServerName());
+        this.channel.writeString(server.getServer().getHttpServer().getListeningAddress());
+        this.channel.writeString(this.server.getServerList());
+
+        ha.getServer().log(this, Level.INFO, "Remote Replica server '%s' (%s) successfully connected", remoteServerName, remoteServerAddress);
+
+      } finally {
+        this.channel.flush();
       }
-
-      setName(Constants.PRODUCT + "-ha-leader2replica/" + remoteServerName + "(" + remoteServerAddress + ")");
-
-      ha.getServer().log(this, Level.INFO, "Remote server '%s' (%s) successfully connected", remoteServerName, remoteServerAddress);
-
-      // CONNECTED
-      this.channel.writeBoolean(true);
-
-      this.channel.writeString(server.getServerName());
-      this.channel.writeString(this.server.getReplicaServerList());
-
-    } finally {
-      this.channel.flush();
     }
   }
 
@@ -99,7 +107,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         while (!shutdownCommunication || !queue.isEmpty()) {
           try {
             if (lastMessage == null)
-              lastMessage = queue.poll(1000, TimeUnit.MILLISECONDS);
+              lastMessage = queue.poll(500, TimeUnit.MILLISECONDS);
 
             if (lastMessage == null)
               continue;
@@ -143,7 +151,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
     while (!shutdownCommunication) {
       try {
-        final Pair<ReplicationMessage, HACommand> request = server.getMessageFactory().deserializeCommand(buffer, channel.readBytes());
+        final Pair<ReplicationMessage, HACommand> request = server.getMessageFactory().deserializeCommand(buffer, readRequest());
 
         if (request == null) {
           channel.clearInput();
@@ -157,7 +165,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           // SEND THE RESPONSE BACK (USING THE SAME BUFFER)
           server.getMessageFactory().serializeCommand(response, buffer, message.messageNumber);
 
-          server.getServer().log(this, Level.FINE, "Request %s -> %s", request, response);
+          server.getServer().log(this, Level.FINE, "Request %s -> %s to '%s'", request.getSecond(), response, remoteServerName);
 
           sendMessage(buffer);
 
@@ -175,6 +183,12 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
         close();
       }
+    }
+  }
+
+  private byte[] readRequest() throws IOException {
+    synchronized (channelInputLock) {
+      return channel.readBytes();
     }
   }
 
@@ -229,6 +243,8 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           }
 
           if (!queue.offer(message)) {
+            server.getServer().log(this, Level.FINE, "Timeout on writing request to server '%s', setting it offline...", getRemoteServerName());
+
             queue.clear();
             server.setReplicaStatus(remoteServerName, false);
 
@@ -279,6 +295,10 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     return remoteServerAddress;
   }
 
+  public String getRemoteServerHTTPAddress() {
+    return remoteServerHTTPAddress;
+  }
+
   public long getJoinedOn() {
     return joinedOn;
   }
@@ -317,10 +337,18 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
   }
 
   public void sendMessage(final Binary msg) throws IOException {
-    channel.writeBytes(msg.getContent(), msg.size());
-    channel.flush();
+    synchronized (channelOutputLock) {
+      channel.writeBytes(msg.getContent(), msg.size());
+      channel.flush();
+    }
   }
 
+  @Override
+  public String toString() {
+    return remoteServerName;
+  }
+
+  // DO I NEED THIS?
   protected Object executeInLock(final Callable callback) {
     synchronized (lock) {
       return callback.call(null);

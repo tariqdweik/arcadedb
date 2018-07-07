@@ -13,6 +13,7 @@ import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
@@ -44,10 +45,14 @@ public class ReplicatedDatabase implements DatabaseInternal {
     this.proxied = proxied;
     this.quorum = HAServer.QUORUM.valueOf(proxied.getConfiguration().getValueAsString(GlobalConfiguration.HA_QUORUM).toUpperCase());
     this.timeout = proxied.getConfiguration().getValueAsLong(GlobalConfiguration.HA_QUORUM_TIMEOUT);
+    this.proxied.setWrappedDatabaseInstance(this);
   }
 
   @Override
   public void commit() {
+    if (!server.getHA().isLeader())
+      throw new ServerIsNotTheLeaderException("Cannot execute command", server.getHA().getLeader().getRemoteServerName());
+
     proxied.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -57,10 +62,10 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
         final Pair<Binary, List<ModifiablePage>> changes = tx.commit1stPhase();
 
-        final Binary bufferChanges = changes.getFirst();
-
         try {
           if (changes != null) {
+            final Binary bufferChanges = changes.getFirst();
+
             server.log(this, Level.FINE, "Replicating transaction (size=%d)", bufferChanges.size());
 
             final int configuredServers = 1 + server.getHA().getConfiguredReplicas();
@@ -346,23 +351,34 @@ public class ReplicatedDatabase implements DatabaseInternal {
     return proxied.getPageManager();
   }
 
+  public boolean equals(final Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+
+    final ReplicatedDatabase pDatabase = (ReplicatedDatabase) o;
+
+    return getDatabasePath() != null ? getDatabasePath().equals(pDatabase.getDatabasePath()) : pDatabase.getDatabasePath() == null;
+  }
+
   @Override
-  public ResultSet sql(final String query, final Map<String, Object> args) {
+  public ResultSet sql(String query, final Object... args) {
     return proxied.sql(query, args);
   }
 
   @Override
-  public ResultSet sql(final String query, final Object... args) {
+  public ResultSet sql(String query, final Map<String, Object> args) {
     return proxied.sql(query, args);
   }
 
   @Override
-  public ResultSet query(final String query, final Object... args) {
+  public ResultSet query(String query, final Object... args) {
     return proxied.query(query, args);
   }
 
   @Override
-  public ResultSet query(final String query, final Map<String, Object> args) {
+  public ResultSet query(String query, Map<String, Object> args) {
     return proxied.query(query, args);
   }
 

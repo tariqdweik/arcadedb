@@ -135,7 +135,7 @@ public class Console {
     if (database != null)
       database.begin();
     else
-      remoteDatabase.command("begin");
+      remoteDatabase.sql("begin");
   }
 
   private void executeCommit() {
@@ -143,7 +143,7 @@ public class Console {
     if (database != null)
       database.commit();
     else
-      remoteDatabase.command("commit");
+      remoteDatabase.sql("commit");
   }
 
   private void executeRollback() {
@@ -151,7 +151,7 @@ public class Console {
     if (database != null)
       database.rollback();
     else
-      remoteDatabase.command("rollback");
+      remoteDatabase.sql("rollback");
   }
 
   private void executeClose() {
@@ -235,7 +235,7 @@ public class Console {
     final ResultSet result;
 
     if (remoteDatabase != null)
-      result = remoteDatabase.command(line);
+      result = remoteDatabase.sql(line);
     else
       result = database.sql(line);
 

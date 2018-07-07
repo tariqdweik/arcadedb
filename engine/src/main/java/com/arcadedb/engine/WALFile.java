@@ -84,6 +84,10 @@ public class WALFile extends LockContext {
     return getTransaction(0);
   }
 
+  public int getPendingPagesToFlush() {
+    return pagesToFlush.get();
+  }
+
   /**
    * If the WAL is still active, execute the callback. This avoids to close a file where a thread is still writing to it.
    *
@@ -211,6 +215,10 @@ public class WALFile extends LockContext {
       assert deltaRange[0] > -1 && deltaRange[1] < newPage.getPhysicalSize();
 
       final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
+
+      LogManager.instance()
+          .debug(WALFile.class, "Writing page %s v%d range %d-%d into buffer (txId=%d threadId=%d)", newPage.getPageId(), newPage.version + 1, deltaRange[0],
+              deltaRange[1], txId, Thread.currentThread().getId());
 
       bufferChanges.putInt(newPage.getPageId().getFileId());
       bufferChanges.putInt(newPage.getPageId().getPageNumber());

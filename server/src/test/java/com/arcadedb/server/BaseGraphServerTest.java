@@ -24,9 +24,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.Callable;
 
 /**
  * This class has been copied under Console project to avoid complex dependencies.
@@ -246,5 +245,19 @@ public abstract class BaseGraphServerTest {
     }
 
     return buffer.toString();
+  }
+
+  protected void executeAsynchronously(final Callable callback) {
+    final Timer task = new Timer();
+    task.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          callback.call();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }, 1);
   }
 }

@@ -21,6 +21,7 @@ public class HttpServer implements ServerPlugin {
   private       Undertow       undertow;
   private       JsonSerializer jsonSerializer = new JsonSerializer();
   private final ArcadeDBServer server;
+  private       String         listeningAddress;
 
   public HttpServer(final ArcadeDBServer server) {
     this.server = server;
@@ -40,18 +41,20 @@ public class HttpServer implements ServerPlugin {
   public void startService() {
     final ContextConfiguration configuration = server.getConfiguration();
 
-    final String host = configuration.getValueAsString(GlobalConfiguration.SERVER_HTTP_INCOMING_HOST);
     final boolean httpAutoIncrementPort = configuration.getValueAsBoolean(GlobalConfiguration.SERVER_HTTP_AUTOINCREMENT_PORT);
+
+    final String host = configuration.getValueAsString(GlobalConfiguration.SERVER_HTTP_INCOMING_HOST);
     int port = configuration.getValueAsInteger(GlobalConfiguration.SERVER_HTTP_INCOMING_PORT);
 
     server.log(this, Level.INFO, "- Starting HTTP Server (host=%s port=%d)...", host, port);
 
     final RoutingHandler routes = new RoutingHandler();
-    routes.get("/query/{database}/{command}", new QueryHandler(this));
-    routes.post("/sql/{database}/{command}", new SQLHandler(this));
+    routes.get("/query/{database}/{command}", new GetQueryHandler(this));
+    routes.post("/query/{database}", new PostQueryHandler(this));
+    routes.post("/sql/{database}", new SQLHandler(this));
     routes.get("/document/{database}/{rid}", new GetDocumentHandler(this));
     routes.post("/document/{database}", new CreateDocumentHandler(this));
-    routes.post("/server", new HAServersHandler(this));
+    routes.post("/server", new ServersHandler(this));
     routes.post("/create/{database}", new CreateDatabaseHandler(this));
     routes.post("/drop/{database}", new DropDatabaseHandler(this));
 
@@ -61,6 +64,7 @@ public class HttpServer implements ServerPlugin {
         undertow.start();
 
         server.log(this, Level.INFO, "- HTTP Server started (host=%s port=%d)", host, port);
+        listeningAddress = host + ":" + port;
         break;
 
       } catch (Exception e) {
@@ -84,5 +88,9 @@ public class HttpServer implements ServerPlugin {
 
   public JsonSerializer getJsonSerializer() {
     return jsonSerializer;
+  }
+
+  public String getListeningAddress() {
+    return listeningAddress;
   }
 }

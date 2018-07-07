@@ -12,8 +12,8 @@ import org.json.JSONObject;
 
 import java.util.Map;
 
-public class SQLHandler extends DatabaseAbstractHandler {
-  public SQLHandler(final HttpServer httpServer) {
+public class PostQueryHandler extends DatabaseAbstractHandler {
+  public PostQueryHandler(final HttpServer httpServer) {
     super(httpServer);
   }
 
@@ -55,7 +55,7 @@ public class SQLHandler extends DatabaseAbstractHandler {
 
       final StringBuilder result = new StringBuilder();
 
-      final ResultSet qResult = database.sql(command, params);
+      final ResultSet qResult = database.query(command, params);
       while (qResult.hasNext()) {
         if (result.length() > 0)
           result.append(",");

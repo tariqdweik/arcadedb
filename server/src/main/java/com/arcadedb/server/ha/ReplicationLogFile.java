@@ -4,14 +4,12 @@
 
 package com.arcadedb.server.ha;
 
-import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.utility.LockContext;
 import com.arcadedb.utility.Pair;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -34,8 +32,6 @@ public class ReplicationLogFile extends LockContext {
   private final        ByteBuffer bufferFooter       = ByteBuffer.allocate(BUFFER_FOOTER_SIZE);
 
   private static final long MAGIC_NUMBER = 93719829258702l;
-
-  private long maxSize = GlobalConfiguration.HA_REPLICATION_FILE_MAXSIZE.getValueAsLong();
 
   private long lastMessageNumber = -1;
 
@@ -80,8 +76,8 @@ public class ReplicationLogFile extends LockContext {
     new File(filePath).delete();
   }
 
-  public boolean checkForMessage(final long messageNumber) {
-    return messageNumber > lastMessageNumber;
+  public long getLastMessageNumber() {
+    return lastMessageNumber;
   }
 
   public boolean appendMessage(final ReplicationMessage message) {
@@ -89,16 +85,8 @@ public class ReplicationLogFile extends LockContext {
       @Override
       public Object call() {
         try {
-          if (message.messageNumber < lastMessageNumber) {
-            server.getServer()
-                .log(this, Level.WARNING, "Wrong sequence in message numbers. Last was %d and now receiving %d. Avoid storage this entry", lastMessageNumber,
-                    message.messageNumber);
+          if (!checkMessageOrder(message))
             return false;
-          }
-
-          if (message.messageNumber != lastMessageNumber + 1)
-            server.getServer()
-                .log(this, Level.WARNING, "Found a jump in message numbers. Last was %d and now receiving %d", lastMessageNumber, message.messageNumber);
 
           // UPDATE LAST MESSAGE NUMBER
           lastMessageNumber = message.messageNumber;
@@ -153,14 +141,14 @@ public class ReplicationLogFile extends LockContext {
 
           if (messageNumber > messageNumberToFind)
             // NOT IN LOG ANYMORE
-            return -1;
+            return -1l;
 
           final int contentLength = bufferHeader.getInt();
 
           pos += BUFFER_HEADER_SIZE + contentLength + BUFFER_FOOTER_SIZE;
         }
 
-        return -1;
+        return -1l;
       }
     });
   }
@@ -202,6 +190,23 @@ public class ReplicationLogFile extends LockContext {
             pos + BUFFER_HEADER_SIZE + contentLength + BUFFER_FOOTER_SIZE);
       }
     });
+  }
+
+  public boolean checkMessageOrder(final ReplicationMessage message) {
+    if (lastMessageNumber > -1) {
+      if (message.messageNumber < lastMessageNumber) {
+        server.getServer().log(this, Level.WARNING, "Wrong sequence in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
+            lastMessageNumber, message.messageNumber, Thread.currentThread().getId());
+        return false;
+      }
+
+      if (message.messageNumber != lastMessageNumber + 1) {
+        server.getServer().log(this, Level.WARNING, "Found a jump in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
+            lastMessageNumber, message.messageNumber, Thread.currentThread().getId());
+        return false;
+      }
+    }
+    return true;
   }
 
   public ReplicationMessage getLastMessage() {
@@ -277,4 +282,5 @@ public class ReplicationLogFile extends LockContext {
 
     return new ReplicationLogException("Error in replication log", e);
   }
+
 }
