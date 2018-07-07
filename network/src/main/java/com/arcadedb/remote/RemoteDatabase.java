@@ -4,6 +4,7 @@
 
 package com.arcadedb.remote;
 
+import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
@@ -207,12 +208,16 @@ public class RemoteDatabase extends RWLockContext {
           if (connection.getResponseCode() != 200) {
             String detail = "?";
             String reason = "?";
+            String exception = null;
+            String exceptionArg = null;
             String responsePayload = null;
             try {
-              responsePayload = FileUtils.readStreamAsString(connection.getInputStream(), charset);
+              responsePayload = FileUtils.readStreamAsString(connection.getErrorStream(), charset);
               final JSONObject response = new JSONObject(responsePayload);
               reason = response.getString("error");
               detail = response.getString("detail");
+              exception = response.getString("exception");
+              exceptionArg = response.getString("exceptionArg");
             } catch (Exception e) {
               lastException = e;
               LogManager.instance().warn(this, "Bad payload received, retrying... (payload=%s, error=%s)", responsePayload, e.toString());
@@ -222,6 +227,12 @@ public class RemoteDatabase extends RWLockContext {
             String cmd = payloadCommand;
             if (cmd == null)
               cmd = "-";
+
+            if (exception != null) {
+              if (exception.equals(ServerIsNotTheLeaderException.class.getName())) {
+                throw new ServerIsNotTheLeaderException(detail, exceptionArg);
+              }
+            }
 
             throw new RemoteException(
                 "Error on executing remote command '" + cmd + "' (httpErrorCode=" + connection.getResponseCode() + " httpErrorDescription=" + connection
@@ -241,7 +252,7 @@ public class RemoteDatabase extends RWLockContext {
 
       } catch (RemoteException e) {
         throw e;
-      } catch (IOException e) {
+      } catch (IOException | ServerIsNotTheLeaderException e) {
         lastException = e;
 
         if (!reloadClusterConfiguration())

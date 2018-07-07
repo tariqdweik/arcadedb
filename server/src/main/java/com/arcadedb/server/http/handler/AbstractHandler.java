@@ -4,6 +4,7 @@
 
 package com.arcadedb.server.http.handler;
 
+import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ServerSecurityException;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.utility.LogManager;
@@ -75,11 +76,19 @@ public abstract class AbstractHandler implements HttpHandler {
     } catch (ServerSecurityException e) {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(403);
-      exchange.getResponseSender().send("{ \"error\" : \"Security error\", \"detail\":\"" + e.toString() + "\"}");
+      exchange.getResponseSender()
+          .send("{ \"error\" : \"Security error\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");
+    } catch (ServerIsNotTheLeaderException e) {
+      LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      exchange.setStatusCode(400);
+      exchange.getResponseSender().send(
+          "{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName()
+              + "\", \"exceptionArg\": \"" + e.getLeaderAddress() + "\"}");
     } catch (Exception e) {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(500);
-      exchange.getResponseSender().send("{ \"error\" : \"Internal error\", \"detail\":\"" + e.toString() + "\"}");
+      exchange.getResponseSender()
+          .send("{ \"error\" : \"Internal error\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");
     } finally {
       LogManager.instance().setContext(null);
     }
