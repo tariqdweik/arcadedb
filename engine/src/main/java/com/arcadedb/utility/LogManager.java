@@ -88,10 +88,6 @@ public class LogManager {
   public void log(final Object iRequester, final Level iLevel, String iMessage, final Throwable iException, boolean extractDBData,
       final Object... iAdditionalArgs) {
     if (iMessage != null) {
-      final String context = CONTEXT_INSTANCE.get();
-      if (context != null)
-        iMessage = "<" + CONTEXT_INSTANCE.get() + "> " + iMessage;
-
       final String requesterName;
       if (iRequester instanceof Class<?>) {
         requesterName = ((Class<?>) iRequester).getName();
@@ -114,6 +110,10 @@ public class LogManager {
       }
 
       if (log == null) {
+        final String context = CONTEXT_INSTANCE.get();
+        if (context != null)
+          iMessage = "<" + CONTEXT_INSTANCE.get() + "> " + iMessage;
+
         // USE SYSERR
         try {
           System.err.println(String.format(iMessage, iAdditionalArgs));
@@ -123,6 +123,10 @@ public class LogManager {
       } else if (log.isLoggable(iLevel)) {
         // USE THE LOG
         try {
+          final String context = CONTEXT_INSTANCE.get();
+          if (context != null)
+            iMessage = "<" + CONTEXT_INSTANCE.get() + "> " + iMessage;
+
           final String msg = String.format(iMessage, iAdditionalArgs);
           if (iException != null)
             log.log(iLevel, msg, iException);
