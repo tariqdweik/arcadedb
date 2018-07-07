@@ -41,7 +41,7 @@ public class RemoteDatabase extends RWLockContext {
   private final String                      userName;
   private final String                      userPassword;
   private       CONNECTION_STRATEGY         connectionStrategy        = CONNECTION_STRATEGY.ROUND_ROBIN;
-  private       Pair<String, Integer>       masterServer;
+  private       Pair<String, Integer>       leaderServer;
   private final List<Pair<String, Integer>> replicaServerList         = new ArrayList<>();
   private       int                         currentReplicaServerIndex = -1;
 
@@ -157,24 +157,24 @@ public class RemoteDatabase extends RWLockContext {
     return name;
   }
 
-  private Object serverCommand(final String operation, final String payloadCommand, final Map<String, Object> params, final boolean requiresMaster,
+  private Object serverCommand(final String operation, final String payloadCommand, final Map<String, Object> params, final boolean requiresLeader,
       final Callback callback) {
-    return httpCommand(null, operation, payloadCommand, params, requiresMaster, callback);
+    return httpCommand(null, operation, payloadCommand, params, requiresLeader, callback);
   }
 
-  private Object databaseCommand(final String operation, final String payloadCommand, final Map<String, Object> params, final boolean requiresMaster,
+  private Object databaseCommand(final String operation, final String payloadCommand, final Map<String, Object> params, final boolean requiresLeader,
       final Callback callback) {
-    return httpCommand(name, operation, payloadCommand, params, requiresMaster, callback);
+    return httpCommand(name, operation, payloadCommand, params, requiresLeader, callback);
   }
 
   private Object httpCommand(final String extendedURL, final String operation, final String payloadCommand, final Map<String, Object> params,
-      final boolean requiresMaster, final Callback callback) {
+      final boolean requiresLeader, final Callback callback) {
 
     Exception lastException = null;
 
-    final int maxRetry = requiresMaster ? 3 : replicaServerList.size() + 1;
+    final int maxRetry = requiresLeader ? 3 : replicaServerList.size() + 1;
 
-    Pair<String, Integer> connectToServer = requiresMaster ? masterServer : new Pair<>(currentServer, currentPort);
+    Pair<String, Integer> connectToServer = requiresLeader ? leaderServer : new Pair<>(currentServer, currentPort);
 
     for (int retry = 0; retry < maxRetry; ++retry) {
       String url = protocol + "://" + connectToServer.getFirst() + ":" + connectToServer.getSecond() + "/" + operation;
@@ -244,21 +244,17 @@ public class RemoteDatabase extends RWLockContext {
       } catch (IOException e) {
         lastException = e;
 
-        if (requiresMaster) {
-          // USE A REPLICA SERVER TO READ THE NEW CLUSTER CFG
-          connectToServer = getNextReplicaAddress();
-          currentServer = connectToServer.getFirst();
-          currentPort = connectToServer.getSecond();
-          requestClusterConfiguration();
+        if (!reloadClusterConfiguration())
+          throw new RemoteException("Error on executing remote operation " + operation + ", no server available", e);
 
-          connectToServer = masterServer;
-          LogManager.instance().info(this, "Updated master server %s:%d...", connectToServer.getFirst(), connectToServer.getSecond());
-
+        if (requiresLeader) {
+          connectToServer = leaderServer;
         } else
           connectToServer = getNextReplicaAddress();
 
-        LogManager.instance()
-            .warn(this, "Remote server seems unreachable, switching to server %s:%d...", connectToServer.getFirst(), connectToServer.getSecond());
+        if (connectToServer == null)
+          LogManager.instance()
+              .warn(this, "Remote server seems unreachable, switching to server %s:%d...", connectToServer.getFirst(), connectToServer.getSecond());
 
       } catch (Exception e) {
         throw new RemoteException("Error on executing remote operation " + operation, e);
@@ -284,14 +280,17 @@ public class RemoteDatabase extends RWLockContext {
     serverCommand("server", null, null, false, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) {
-        if (!response.has("masterServer")) {
-          masterServer = new Pair<>(originalServer, originalPort);
+        LogManager.instance().info(this, "Configuring remote database: %s", response);
+
+        if (!response.has("leaderServer")) {
+          leaderServer = new Pair<>(originalServer, originalPort);
+          replicaServerList.clear();
           return null;
         }
 
-        final String cfgMasterServer = (String) response.get("masterServer");
-        final String[] masterServerParts = cfgMasterServer.split(":");
-        masterServer = new Pair<>(masterServerParts[0], Integer.parseInt(masterServerParts[1]));
+        final String cfgLeaderServer = (String) response.get("leaderServer");
+        final String[] leaderServerParts = cfgLeaderServer.split(":");
+        leaderServer = new Pair<>(leaderServerParts[0], Integer.parseInt(leaderServerParts[1]));
 
         final String cfgReplicaServers = (String) response.get("replicaServers");
 
@@ -306,20 +305,50 @@ public class RemoteDatabase extends RWLockContext {
             final String sHost = serverParts[0];
             final int sPort = Integer.parseInt(serverParts[1]);
 
-            if (!(sHost.equals(currentServer) && sPort == currentPort))
-              replicaServerList.add(new Pair(sHost, sPort));
+            replicaServerList.add(new Pair(sHost, sPort));
           }
         }
+
+        LogManager.instance().info(this, "Remote Database configured with leader=%s and replicas=%s", leaderServer, replicaServerList);
+
         return null;
       }
     });
   }
 
   private Pair<String, Integer> getNextReplicaAddress() {
+    if (replicaServerList.isEmpty())
+      return leaderServer;
+
     ++currentReplicaServerIndex;
     if (currentReplicaServerIndex > replicaServerList.size() - 1)
       currentReplicaServerIndex = 0;
 
     return replicaServerList.get(currentReplicaServerIndex);
+  }
+
+  private boolean reloadClusterConfiguration() {
+    final Pair<String, Integer> oldLeader = leaderServer;
+
+    // ASK TO REPLICA FIRST
+    for (int replicaIdx = 0; replicaIdx < replicaServerList.size(); ++replicaIdx) {
+      Pair<String, Integer> connectToServer = replicaServerList.get(replicaIdx);
+
+      currentServer = connectToServer.getFirst();
+      currentPort = connectToServer.getSecond();
+      requestClusterConfiguration();
+
+      if (leaderServer != null)
+        return true;
+    }
+
+    if (oldLeader != null) {
+      // ASK TO THE OLD LEADER
+      currentServer = oldLeader.getFirst();
+      currentPort = oldLeader.getSecond();
+      requestClusterConfiguration();
+    }
+
+    return leaderServer != null;
   }
 }

@@ -158,39 +158,6 @@ public abstract class BaseGraphServerTest {
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
-
-//      if (serverId > 0) {
-//        HttpURLConnection connection = null;
-//        try {
-//          connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/server").openConnection();
-//
-//          connection.setRequestMethod("POST");
-//          connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
-//
-//          final String payload = "{\"add\":[\"Person\"],\"remove\":[\"Jay\"]}";
-//
-//          connection.setRequestMethod("POST");
-//          connection.setDoOutput(true);
-//
-//          connection.connect();
-//
-//          PrintWriter pw = new PrintWriter(new OutputStreamWriter(connection.getOutputStream()));
-//          pw.write(payload);
-//          pw.close();
-//
-//          final String response = readResponse(connection);
-//
-//          Assertions.assertEquals(200, connection.getResponseCode());
-//          Assertions.assertEquals("OK", connection.getResponseMessage());
-//
-//          LogManager.instance().info(this, "Response: ", response);
-//
-//        } catch (IOException e) {
-//          e.printStackTrace();
-//        } finally {
-//          connection.disconnect();
-//        }
-//      }
     }
   }
 

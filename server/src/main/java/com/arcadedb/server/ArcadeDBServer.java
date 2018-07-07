@@ -143,6 +143,8 @@ public class ArcadeDBServer {
     log(this, Level.INFO, "ArcadeDB Server is down");
 
     lifecycleEvent(TestCallback.TYPE.SERVER_DOWN, null);
+
+    LogManager.instance().setContext(null);
   }
 
   public Database getDatabase(final String databaseName) {

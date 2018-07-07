@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class HAServer implements ServerPlugin {
-
   public enum QUORUM {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }
@@ -54,6 +53,7 @@ public class HAServer implements ServerPlugin {
   private final   Object                                     sendingLock                 = new Object();
   private         String                                     serverAddress;
   private         Set<String>                                serverAddressList           = new HashSet<>();
+  private         String                                     replicasHTTPAddresses;
   protected       Pair<Long, String>                         lastElectionVote;
 
   private class QuorumMessages {
@@ -297,6 +297,10 @@ public class HAServer implements ServerPlugin {
     return leaderConnection == null;
   }
 
+  public String getLeaderName() {
+    return leaderConnection == null ? getServerName() : leaderConnection.getRemoteServerName();
+  }
+
   public Replica2LeaderNetworkExecutor getLeader() {
     return leaderConnection;
   }
@@ -316,7 +320,7 @@ public class HAServer implements ServerPlugin {
       connection.mergeFrom(previousConnection);
     }
 
-    sendCommandToReplicas(new UpdateClusterConfiguration(getServerList()));
+    sendCommandToReplicas(new UpdateClusterConfiguration(getServerList(), getReplicaServersHTTPAddressesList()));
 
     printClusterConfiguration();
   }
@@ -446,6 +450,14 @@ public class HAServer implements ServerPlugin {
     }
   }
 
+  public void setReplicasHTTPAddresses(final String replicasHTTPAddresses) {
+    this.replicasHTTPAddresses = replicasHTTPAddresses;
+  }
+
+  public String getReplicasHTTPAddresses() {
+    return replicasHTTPAddresses;
+  }
+
   public void removeServer(final String remoteServerName) {
     final Leader2ReplicaNetworkExecutor c = replicaConnections.remove(remoteServerName);
     if (c != null) {
@@ -476,13 +488,17 @@ public class HAServer implements ServerPlugin {
   }
 
   public String getReplicaServersHTTPAddressesList() {
-    String list = "";
-    for (Leader2ReplicaNetworkExecutor r : replicaConnections.values()) {
-      if (!list.isEmpty())
-        list += ",";
-      list += r.getRemoteServerHTTPAddress();
+    if (isLeader()) {
+      String list = "";
+      for (Leader2ReplicaNetworkExecutor r : replicaConnections.values()) {
+        if (!list.isEmpty())
+          list += ",";
+        list += r.getRemoteServerHTTPAddress();
+      }
+      return list;
     }
-    return list;
+
+    return replicasHTTPAddresses;
   }
 
   public void printClusterConfiguration() {

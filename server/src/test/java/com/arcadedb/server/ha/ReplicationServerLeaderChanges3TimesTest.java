@@ -9,9 +9,11 @@ import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.remote.RemoteException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
+import com.arcadedb.server.ha.message.TxRequest;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
+import com.arcadedb.utility.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -19,10 +21,11 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ReplicationServerLeaderRestartTest extends ReplicationServerTest {
+public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerTest {
   private final AtomicInteger messages = new AtomicInteger();
+  private       int           restarts = 0;
 
-  public ReplicationServerLeaderRestartTest() {
+  public ReplicationServerLeaderChanges3TimesTest() {
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
   }
 
@@ -92,34 +95,43 @@ public class ReplicationServerLeaderRestartTest extends ReplicationServerTest {
     }
 
     onAfterTest();
+
+    Assertions.assertTrue(restarts >= getServerCount());
   }
 
   @Override
   protected void onBeforeStarting(final ArcadeDBServer server) {
-    if (server.getServerName().equals("ArcadeDB_2"))
-      server.registerTestEventListener(new TestCallback() {
-        @Override
-        public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
-          if (type == TYPE.REPLICA_MSG_RECEIVED) {
-            if (messages.incrementAndGet() > 10 && getServer(0).isStarted()) {
-              LogManager.instance().info(this, "TEST: Stopping the Leader...");
+    server.registerTestEventListener(new TestCallback() {
+      @Override
+      public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
+        if (type == TYPE.REPLICA_MSG_RECEIVED) {
+          if (!(((Pair) object).getSecond() instanceof TxRequest))
+            return;
 
-              executeAsynchronously(new Callable() {
-                @Override
-                public Object call() {
-                  getServer(0).stop();
-                  try {
-                    Thread.sleep(5000);
-                  } catch (InterruptedException e) {
-                  }
-                  getServer(0).start();
-                  return null;
-                }
-              });
-            }
+          final String leaderName = server.getHA().getLeaderName();
+
+          if (messages.incrementAndGet() / (getServerCount() - 1) > ((restarts * getTxs()) / getServerCount()) + 10 && getServer(leaderName).isStarted()) {
+            for (int i = 0; i < getServerCount(); ++i)
+              if (!getServer(i).isStarted())
+                // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
+                return;
+
+            LogManager.instance().info(this, "TEST: Stopping the Leader %s (messages=%d txs=%d) ...", leaderName, messages.get(), getTxs());
+
+            getServer(leaderName).stop();
+            restarts++;
+
+            executeAsynchronously(new Callable() {
+              @Override
+              public Object call() {
+                getServer(leaderName).start();
+                return null;
+              }
+            });
           }
         }
-      });
+      }
+    });
   }
 
   @Override
@@ -129,7 +141,7 @@ public class ReplicationServerLeaderRestartTest extends ReplicationServerTest {
 
   @Override
   protected int getTxs() {
-    return 3000;
+    return 500;
   }
 
   @Override

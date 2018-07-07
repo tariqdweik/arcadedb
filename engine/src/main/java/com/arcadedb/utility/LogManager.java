@@ -91,8 +91,6 @@ public class LogManager {
       final String context = CONTEXT_INSTANCE.get();
       if (context != null)
         iMessage = "<" + CONTEXT_INSTANCE.get() + "> " + iMessage;
-      else
-        iMessage = "<?>" + iMessage;
 
       final String requesterName;
       if (iRequester instanceof Class<?>) {

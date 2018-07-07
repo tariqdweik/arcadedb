@@ -9,6 +9,8 @@ import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.http.HttpServer;
 import io.undertow.server.HttpServerExchange;
 
+import java.util.logging.Level;
+
 public class ServersHandler extends AbstractHandler {
   public ServersHandler(final HttpServer httpServer) {
     super(httpServer);
@@ -23,10 +25,12 @@ public class ServersHandler extends AbstractHandler {
       if (ha == null) {
         exchange.getResponseSender().send("{}");
       } else {
-        final String masterServer = ha.isLeader() ? ha.getServer().getHttpServer().getListeningAddress() : ha.getLeader().getRemoteHTTPAddress();
+        final String leaderServer = ha.isLeader() ? ha.getServer().getHttpServer().getListeningAddress() : ha.getLeader().getRemoteHTTPAddress();
         final String replicaServers = ha.getReplicaServersHTTPAddressesList();
 
-        exchange.getResponseSender().send("{ \"masterServer\": \"" + masterServer + "\", \"replicaServers\" : \"" + replicaServers + "\"}");
+        httpServer.getServer().log(this, Level.INFO, "Returning configuration leaderServer=%s replicaServers=[%s]", leaderServer, replicaServers);
+
+        exchange.getResponseSender().send("{ \"leaderServer\": \"" + leaderServer + "\", \"replicaServers\" : \"" + replicaServers + "\"}");
       }
 
     } catch (RecordNotFoundException e) {
