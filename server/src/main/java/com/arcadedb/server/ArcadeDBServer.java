@@ -51,6 +51,8 @@ public class ArcadeDBServer {
   }
 
   public synchronized void start() {
+    LogManager.instance().setContext(getServerName());
+
     if (started)
       return;
 
@@ -189,7 +191,10 @@ public class ArcadeDBServer {
   }
 
   public void log(final Object requester, final Level level, final String message, final Object... args) {
-    LogManager.instance().log(requester, level, "<" + getServerName() + "> " + message, null, false, args);
+    if (!serverName.equals(LogManager.instance().getContext()))
+      LogManager.instance().setContext(serverName);
+
+    LogManager.instance().log(requester, level, message, null, false, args);
   }
 
   public void removeDatabase(final String databaseName) {

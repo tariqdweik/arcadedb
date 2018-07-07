@@ -17,16 +17,20 @@ import java.util.logging.*;
  * @author Luca Garulli
  */
 public class LogManager {
-  private static final String     DEFAULT_LOG                  = "com.arcadedb";
-  private static final String     ENV_INSTALL_CUSTOM_FORMATTER = "arcadedb.installCustomFormatter";
-  private static final LogManager instance                     = new LogManager();
-  private              boolean    debug                        = false;
-  private              boolean    info                         = true;
-  private              boolean    warn                         = true;
-  private              boolean    error                        = true;
-  private              Level      minimumLevel                 = Level.SEVERE;
+  private static final String                        DEFAULT_LOG                  = "com.arcadedb";
+  private static final String                        ENV_INSTALL_CUSTOM_FORMATTER = "arcadedb.installCustomFormatter";
+  private static final LogManager                    instance                     = new LogManager();
+  private              boolean                       debug                        = false;
+  private              boolean                       info                         = true;
+  private              boolean                       warn                         = true;
+  private              boolean                       error                        = true;
+  private              Level                         minimumLevel                 = Level.SEVERE;
+  private final        ConcurrentMap<String, Logger> loggersCache                 = new ConcurrentHashMap<String, Logger>();
 
-  private final ConcurrentMap<String, Logger> loggersCache = new ConcurrentHashMap<String, Logger>();
+  static class LogContext extends ThreadLocal<String> {
+  }
+
+  public static LogContext CONTEXT_INSTANCE = new LogContext();
 
   protected LogManager() {
     installCustomFormatter();
@@ -34,6 +38,14 @@ public class LogManager {
 
   public static LogManager instance() {
     return instance;
+  }
+
+  public String getContext() {
+    return CONTEXT_INSTANCE.get();
+  }
+
+  public void setContext(final String context) {
+    CONTEXT_INSTANCE.set(context);
   }
 
   public void installCustomFormatter() {
@@ -76,6 +88,12 @@ public class LogManager {
   public void log(final Object iRequester, final Level iLevel, String iMessage, final Throwable iException, boolean extractDBData,
       final Object... iAdditionalArgs) {
     if (iMessage != null) {
+      final String context = CONTEXT_INSTANCE.get();
+      if (context != null)
+        iMessage = "<" + CONTEXT_INSTANCE.get() + "> " + iMessage;
+      else
+        iMessage = "<?>" + iMessage;
+
       final String requesterName;
       if (iRequester instanceof Class<?>) {
         requesterName = ((Class<?>) iRequester).getName();
@@ -152,8 +170,7 @@ public class LogManager {
       log(iRequester, Level.SEVERE, iMessage, iException, true, iAdditionalArgs);
   }
 
-  public void errorNoDb(final Object iRequester, final String iMessage, final Throwable iException,
-      final Object... iAdditionalArgs) {
+  public void errorNoDb(final Object iRequester, final String iMessage, final Throwable iException, final Object... iAdditionalArgs) {
     if (isErrorEnabled())
       log(iRequester, Level.SEVERE, iMessage, iException, false, iAdditionalArgs);
   }

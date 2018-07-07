@@ -21,6 +21,7 @@ import com.arcadedb.server.ServerException;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.utility.FileUtils;
+import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 
 import java.io.FileWriter;
@@ -56,6 +57,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
   @Override
   public void run() {
+    LogManager.instance().setContext(server.getServer().getServerName());
+
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
 

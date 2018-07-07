@@ -36,6 +36,8 @@ public abstract class AbstractHandler implements HttpHandler {
 
   @Override
   public void handleRequest(HttpServerExchange exchange) {
+    LogManager.instance().setContext(httpServer.getServer().getServerName());
+
     try {
       exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
 
@@ -78,6 +80,8 @@ public abstract class AbstractHandler implements HttpHandler {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(500);
       exchange.getResponseSender().send("{ \"error\" : \"Internal error\", \"detail\":\"" + e.toString() + "\"}");
+    } finally {
+      LogManager.instance().setContext(null);
     }
   }
 

@@ -23,6 +23,7 @@ public class TransactionManager {
   private final DatabaseInternal database;
   private       WALFile[]        activeWALFilePool;
   private final List<WALFile>    inactiveWALFilePool = new ArrayList<>();
+  private final String           logContext;
 
   private final Timer          task;
   private       CountDownLatch taskExecuting = new CountDownLatch(0);
@@ -38,6 +39,8 @@ public class TransactionManager {
 
     createFilePool();
 
+    this.logContext = LogManager.instance().getContext();
+
     task = new Timer();
     task.schedule(new TimerTask() {
       @Override
@@ -45,6 +48,9 @@ public class TransactionManager {
         if (activeWALFilePool != null) {
           taskExecuting = new CountDownLatch(1);
           try {
+            if (logContext != null)
+              LogManager.instance().setContext(logContext);
+
             checkWALFiles();
             cleanWALFiles();
           } finally {

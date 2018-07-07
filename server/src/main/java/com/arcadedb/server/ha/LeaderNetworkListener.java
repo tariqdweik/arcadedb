@@ -7,6 +7,7 @@ import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ServerException;
 import com.arcadedb.server.ha.network.ServerSocketFactory;
+import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
@@ -44,6 +45,8 @@ public class LeaderNetworkListener extends Thread {
 
   @Override
   public void run() {
+    LogManager.instance().setContext(ha.getServerName());
+
     try {
       while (active) {
         try {

@@ -16,13 +16,14 @@ import java.util.concurrent.TimeUnit;
  */
 public class PageManagerFlushThread extends Thread {
   private final    PageManager                        pageManager;
-  public final     ArrayBlockingQueue<ModifiablePage> queue   = new ArrayBlockingQueue<>(
-      GlobalConfiguration.PAGE_FLUSH_QUEUE.getValueAsInteger());
+  public final     ArrayBlockingQueue<ModifiablePage> queue   = new ArrayBlockingQueue<>(GlobalConfiguration.PAGE_FLUSH_QUEUE.getValueAsInteger());
+  private final    String                             logContext;
   private volatile boolean                            running = true;
 
   public PageManagerFlushThread(final PageManager pageManager) {
     super("AsynchFlush");
     this.pageManager = pageManager;
+    this.logContext = LogManager.instance().getContext();
   }
 
   public void asyncFlush(final ModifiablePage page) throws InterruptedException {
@@ -32,6 +33,9 @@ public class PageManagerFlushThread extends Thread {
 
   @Override
   public void run() {
+    if (logContext != null)
+      LogManager.instance().setContext(logContext);
+
     while (running || !queue.isEmpty()) {
       try {
         flushStream();

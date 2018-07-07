@@ -66,6 +66,7 @@ public class PageManager extends LockContext {
     maxRAM = GlobalConfiguration.MAX_PAGE_RAM.getValueAsLong() * 1024;
     if (maxRAM < 0)
       throw new ConfigurationException(GlobalConfiguration.MAX_PAGE_RAM.getKey() + " configuration is invalid (" + maxRAM + ")");
+
     flushThread = new PageManagerFlushThread(this);
     flushThread.start();
   }

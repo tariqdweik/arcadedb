@@ -12,6 +12,7 @@ import com.arcadedb.server.ha.message.HACommand;
 import com.arcadedb.server.ha.message.ReplicaConnectHotResyncResponse;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.FileUtils;
+import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
@@ -100,9 +101,11 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
   @Override
   public void run() {
+    LogManager.instance().setContext(server.getServerName());
     queueThread = new Thread(new Runnable() {
       @Override
       public void run() {
+        LogManager.instance().setContext(server.getServerName());
         Binary lastMessage = null;
         while (!shutdownCommunication || !queue.isEmpty()) {
           try {
