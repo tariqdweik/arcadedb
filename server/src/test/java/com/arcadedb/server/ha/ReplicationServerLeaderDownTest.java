@@ -66,7 +66,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
 
         db.commit();
 
-        if (counter % 10000 == 0) {
+        if (counter % 1000 == 0) {
           LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
           if (isPrintingConfigurationAtEveryStep())
             getServer(0).getHA().printClusterConfiguration();
@@ -128,7 +128,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
 
   @Override
   protected int getTxs() {
-    return 200;
+    return 1000;
   }
 
   @Override
