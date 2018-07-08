@@ -206,9 +206,10 @@ public class LeaderNetworkListener extends Thread {
             lastReplicationMessage, localServerLastMessageNumber, voteTurn);
         channel.writeByte((byte) 1);
       } else {
-        ha.getServer().log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but I already voted for '%s'",
-            remoteServerName, lastReplicationMessage, localServerLastMessageNumber, voteTurn,
-            ha.lastElectionVote != null ? ha.lastElectionVote.getSecond() : "-");
+        ha.getServer()
+            .log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but cannot give my vote (votedFor='%s')",
+                remoteServerName, lastReplicationMessage, localServerLastMessageNumber, voteTurn,
+                ha.lastElectionVote != null ? ha.lastElectionVote.getSecond() : "-");
         ha.lastElectionVote = new Pair<>(voteTurn, remoteServerName);
         channel.writeByte((byte) 0);
       }

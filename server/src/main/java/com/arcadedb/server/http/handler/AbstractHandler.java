@@ -79,7 +79,7 @@ public abstract class AbstractHandler implements HttpHandler {
       exchange.getResponseSender()
           .send("{ \"error\" : \"Security error\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");
     } catch (ServerIsNotTheLeaderException e) {
-      LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      LogManager.instance().debug(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(400);
       exchange.getResponseSender().send(
           "{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName()

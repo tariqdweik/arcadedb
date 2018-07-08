@@ -215,12 +215,13 @@ public class RemoteDatabase extends RWLockContext {
               responsePayload = FileUtils.readStreamAsString(connection.getErrorStream(), charset);
               final JSONObject response = new JSONObject(responsePayload);
               reason = response.getString("error");
-              detail = response.getString("detail");
-              exception = response.getString("exception");
-              exceptionArg = response.getString("exceptionArg");
+              detail = response.has("detail") ? response.getString("detail") : null;
+              exception = response.has("exception") ? response.getString("exception") : null;
+              exceptionArg = response.has("exceptionArg") ? response.getString("exceptionArg") : null;
             } catch (Exception e) {
               lastException = e;
-              LogManager.instance().warn(this, "Bad payload received, retrying... (payload=%s, error=%s)", responsePayload, e.toString());
+              // TODO CHECK IF THE COMMAND NEEDS TO BE RE-EXECUTED OR NOT
+              LogManager.instance().warn(this, "Error on executing command, retrying... (payload=%s, error=%s)", responsePayload, e.toString());
               continue;
             }
 
