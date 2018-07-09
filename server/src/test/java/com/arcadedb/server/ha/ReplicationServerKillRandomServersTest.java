@@ -12,7 +12,6 @@ import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 import java.util.Timer;
@@ -26,7 +25,7 @@ public class ReplicationServerKillRandomServersTest extends ReplicationServerTes
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
   }
 
-  @Test
+  //@Test
   public void testReplication() {
     checkDatabases();
 

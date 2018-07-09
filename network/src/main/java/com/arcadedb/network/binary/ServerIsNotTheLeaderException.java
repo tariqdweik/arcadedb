@@ -3,7 +3,9 @@
  */
 package com.arcadedb.network.binary;
 
-public class ServerIsNotTheLeaderException extends RuntimeException {
+import com.arcadedb.exception.NeedRetryException;
+
+public class ServerIsNotTheLeaderException extends NeedRetryException {
 
   private final String leaderURL;
 

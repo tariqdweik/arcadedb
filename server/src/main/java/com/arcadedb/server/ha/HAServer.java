@@ -9,6 +9,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.network.binary.ChannelBinaryClient;
+import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerPlugin;
@@ -36,25 +37,30 @@ public class HAServer implements ServerPlugin {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }
 
-  private final   HAMessageFactory                           messageFactory;
-  private final   ArcadeDBServer                             server;
-  private final   ContextConfiguration                       configuration;
-  private final   String                                     clusterName;
-  private final   long                                       startedOn;
-  private         int                                        configuredReplicas;
-  private final   Map<String, Leader2ReplicaNetworkExecutor> replicaConnections          = new ConcurrentHashMap<>();
-  private final   AtomicLong                                 messageNumber               = new AtomicLong(-1);
-  protected final String                                     replicationPath;
-  protected       ReplicationLogFile                         replicationLogFile;
-  private         Replica2LeaderNetworkExecutor              leaderConnection;
-  private         LeaderNetworkListener                      listener;
-  private         Map<Long, QuorumMessages>                  messagesWaitingForQuorum    = new ConcurrentHashMap<>(1024);
-  private         long                                       lastConfigurationOutputHash = 0;
-  private final   Object                                     sendingLock                 = new Object();
-  private         String                                     serverAddress;
-  private         Set<String>                                serverAddressList           = new HashSet<>();
-  private         String                                     replicasHTTPAddresses;
-  protected       Pair<Long, String>                         lastElectionVote;
+  public enum ELECTION_STATUS {
+    DONE, VOTING_FOR_ME, VOTING_FOR_OTHERS, LEADER_WAITING_FOR_QUORUM
+  }
+
+  private final    HAMessageFactory                           messageFactory;
+  private final    ArcadeDBServer                             server;
+  private final    ContextConfiguration                       configuration;
+  private final    String                                     clusterName;
+  private final    long                                       startedOn;
+  private          int                                        configuredReplicas;
+  private final    Map<String, Leader2ReplicaNetworkExecutor> replicaConnections          = new ConcurrentHashMap<>();
+  private final    AtomicLong                                 messageNumber               = new AtomicLong(-1);
+  protected final  String                                     replicationPath;
+  protected        ReplicationLogFile                         replicationLogFile;
+  private          Replica2LeaderNetworkExecutor              leaderConnection;
+  private          LeaderNetworkListener                      listener;
+  private          Map<Long, QuorumMessages>                  messagesWaitingForQuorum    = new ConcurrentHashMap<>(1024);
+  private          long                                       lastConfigurationOutputHash = 0;
+  private final    Object                                     sendingLock                 = new Object();
+  private          String                                     serverAddress;
+  private          Set<String>                                serverAddressList           = new HashSet<>();
+  private          String                                     replicasHTTPAddresses;
+  protected        Pair<Long, String>                         lastElectionVote;
+  private volatile ELECTION_STATUS                            electionStatus              = ELECTION_STATUS.DONE;
 
   private class QuorumMessages {
     public final long           sentOn = System.currentTimeMillis();
@@ -167,6 +173,8 @@ public class HAServer implements ServerPlugin {
 
     final String localServerAddress = getServerAddress();
 
+    setElectionStatus(ELECTION_STATUS.VOTING_FOR_ME);
+
     while (leaderConnection == null) {
       final int majorityOfVotes = (serverAddressList.size()) / 2 + 1;
 
@@ -242,6 +250,8 @@ public class HAServer implements ServerPlugin {
     final String localServerAddress = getServerAddress();
 
     messageNumber.set(replicationLogFile.getLastMessageNumber());
+
+    setElectionStatus(ELECTION_STATUS.LEADER_WAITING_FOR_QUORUM);
 
     server.log(this, Level.INFO, "Contacting all the servers for the new leadership (turn=%d)...", lastElectionVote.getFirst());
 
@@ -334,9 +344,24 @@ public class HAServer implements ServerPlugin {
 
     configuredReplicas = replicaConnections.size();
 
+    if (electionStatus == ELECTION_STATUS.LEADER_WAITING_FOR_QUORUM) {
+      if (1 + getOnlineReplicas() > (1 + configuredReplicas) / 2 + 1)
+        // ELECTION COMPLETED
+        setElectionStatus(ELECTION_STATUS.DONE);
+    }
+
     sendCommandToReplicas(new UpdateClusterConfiguration(getServerList(), getReplicaServersHTTPAddressesList()));
 
     printClusterConfiguration();
+  }
+
+  public ELECTION_STATUS getElectionStatus() {
+    return electionStatus;
+  }
+
+  protected void setElectionStatus(final ELECTION_STATUS status) {
+    server.log(this, Level.INFO, "Change election status from %s to %s", this.electionStatus, status);
+    this.electionStatus = status;
   }
 
   public HAMessageFactory getMessageFactory() {
@@ -354,8 +379,7 @@ public class HAServer implements ServerPlugin {
   }
 
   public void sendCommandToReplicas(final HACommand command) {
-    if (!isLeader())
-      throw new ServerIsNotTheLeaderException("Cannot execute command", getLeader().getRemoteServerName());
+    checkCurrentNodeIsTheLeader();
 
     final Binary buffer = new Binary();
 
@@ -387,75 +411,99 @@ public class HAServer implements ServerPlugin {
   }
 
   public void sendCommandToReplicasWithQuorum(final HACommand command, final int quorum, final long timeout) {
-    if (!isLeader())
-      throw new ServerIsNotTheLeaderException("Cannot execute command", getLeader().getRemoteServerName());
+    checkCurrentNodeIsTheLeader();
+
+    if (quorum > 1 + getOnlineReplicas()) {
+      waitAndRetryDuringElection(quorum);
+      checkCurrentNodeIsTheLeader();
+    }
 
     final Binary buffer = new Binary();
 
     long messageNumber = -1;
 
     CountDownLatch quorumSemaphore = null;
+
     try {
-      int sent = 0;
+      while (true) {
+        int sent = 0;
 
-      // ASSURE THE TX ARE WRITTEN IN SEQUENCE INTO THE LOGFILE
-      synchronized (sendingLock) {
-        messageNumber = this.messageNumber.incrementAndGet();
+        // ASSURE THE TX ARE WRITTEN IN SEQUENCE INTO THE LOGFILE
+        synchronized (sendingLock) {
+          if (messageNumber == -1)
+            messageNumber = this.messageNumber.incrementAndGet();
 
-        messageFactory.serializeCommand(command, buffer, messageNumber);
+          buffer.clear();
+          messageFactory.serializeCommand(command, buffer, messageNumber);
 
-        // WRITE THE MESSAGE INTO THE LOG FIRST
-        replicationLogFile.appendMessage(new ReplicationMessage(messageNumber, buffer));
+          // WRITE THE MESSAGE INTO THE LOG FIRST
+          replicationLogFile.appendMessage(new ReplicationMessage(messageNumber, buffer));
 
-        if (quorum > 1) {
-          quorumSemaphore = new CountDownLatch(quorum - 1);
-          // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
-          messagesWaitingForQuorum.put(messageNumber, new QuorumMessages(quorumSemaphore));
-        }
+          if (quorum > 1) {
+            quorumSemaphore = new CountDownLatch(quorum - 1);
+            // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
+            messagesWaitingForQuorum.put(messageNumber, new QuorumMessages(quorumSemaphore));
+          }
 
-        // SEND THE REQUEST TO ALL THE REPLICAS
-        final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
+          // SEND THE REQUEST TO ALL THE REPLICAS
+          final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
 
-        server.log(this, Level.FINE, "Sending request %d to %s (quorum=%d)", messageNumber, replicas, quorum);
+          server.log(this, Level.FINE, "Sending request %d to %s (quorum=%d)", messageNumber, replicas, quorum);
 
-        for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
-          try {
+          for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
+            try {
 
-            if (replicaConnection.enqueueMessage(buffer.slice(0)))
-              ++sent;
-            else {
+              if (replicaConnection.enqueueMessage(buffer.slice(0)))
+                ++sent;
+              else {
+                if (quorumSemaphore != null)
+                  quorumSemaphore.countDown();
+              }
+
+            } catch (ReplicationException e) {
+              server
+                  .log(this, Level.SEVERE, "Error on replicating message %d to replica '%s' (error=%s)", messageNumber, replicaConnection.getRemoteServerName(),
+                      e);
+
+              // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
               if (quorumSemaphore != null)
                 quorumSemaphore.countDown();
             }
-
-          } catch (ReplicationException e) {
-            server.log(this, Level.SEVERE, "Error on replicating message %d to replica '%s' (error=%s)", messageNumber, replicaConnection.getRemoteServerName(),
-                e);
-
-            // REMOVE THE REPLICA AND EXCLUDE IT FROM THE QUORUM
-            if (quorumSemaphore != null)
-              quorumSemaphore.countDown();
           }
         }
-      }
 
-      if (sent < quorum - 1) {
-        server.log(this, Level.WARNING, "Quorum " + quorum + " not reached because only " + sent + " server(s) are online");
-        throw new ReplicationException("Quorum " + quorum + " not reached because only " + sent + " server(s) are online");
-      }
+        if (sent < quorum - 1) {
+          checkCurrentNodeIsTheLeader();
 
-      if (quorumSemaphore != null) {
-        try {
-
-          if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS)) {
-            server.log(this, Level.WARNING, "Timeout waiting for quorum to be reached for request " + messageNumber);
-            throw new ReplicationException("Timeout waiting for quorum to be reached for request " + messageNumber);
-          }
-
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new ReplicationException("Quorum not reached for request " + messageNumber + " because the thread was interrupted");
+          server.log(this, Level.WARNING, "Quorum " + quorum + " not reached because only " + sent + " server(s) are online");
+          throw new QuorumNotReachedException("Quorum " + quorum + " not reached because only " + sent + " server(s) are online");
         }
+
+        if (quorumSemaphore != null) {
+          try {
+            if (!quorumSemaphore.await(timeout, TimeUnit.MILLISECONDS)) {
+
+              checkCurrentNodeIsTheLeader();
+
+              if (quorum > 1 + getOnlineReplicas())
+                if (waitAndRetryDuringElection(quorum))
+                  continue;
+
+              checkCurrentNodeIsTheLeader();
+
+              server.log(this, Level.WARNING, "Timeout waiting for quorum to be reached for request " + messageNumber);
+              throw new QuorumNotReachedException("Timeout waiting for quorum to be reached for request " + messageNumber);
+            }
+
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new QuorumNotReachedException("Quorum not reached for request " + messageNumber + " because the thread was interrupted");
+          }
+        }
+
+        // OK
+        break;
+
       }
     } finally {
       // REQUEST IS OVER, REMOVE FROM THE QUORUM MAP
@@ -587,34 +635,33 @@ public class HAServer implements ServerPlugin {
     // SEND THE REQUEST TO ALL THE REPLICAS
     final Leader2ReplicaNetworkExecutor replica = replicaConnections.get(replicaName);
 
+    if (replica == null)
+      throw new ReplicationException("Server '" + getServerName() + "' cannot sync replica '" + replicaName + "' because it is offline");
+
     synchronized (sendingLock) {
 
       final AtomicInteger totalSentMessages = new AtomicInteger();
-      try {
-        for (long pos = fromMessageNumber; pos < replicationLogFile.getSize(); ) {
-          final Pair<ReplicationMessage, Long> entry = replicationLogFile.getMessage(pos);
 
-          // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
-          try {
-            server.log(this, Level.FINE, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
+      for (long pos = fromMessageNumber; pos < replicationLogFile.getSize(); ) {
+        final Pair<ReplicationMessage, Long> entry = replicationLogFile.getMessage(pos);
 
-            replica.sendMessage(entry.getFirst().payload);
+        // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
+        try {
+          server.log(this, Level.FINE, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
 
-            totalSentMessages.incrementAndGet();
+          replica.sendMessage(entry.getFirst().payload);
 
-            pos = entry.getSecond();
+          totalSentMessages.incrementAndGet();
 
-          } catch (ReplicationException e) {
-            // REMOVE THE REPLICA
-            server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE", replica.getRemoteServerName());
-            setReplicaStatus(replica.getRemoteServerName(), false);
-          }
+          pos = entry.getSecond();
+
+        } catch (Exception e) {
+          // REMOVE THE REPLICA
+          server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE", replica.getRemoteServerName());
+          setReplicaStatus(replica.getRemoteServerName(), false);
         }
-
-      } catch (IOException e) {
-        server.log(this, Level.SEVERE, "Error on recovering messages for replica '%s' (error=%s)", replicaName, e);
-        throw new ReplicationException("Error on recovering messages for replica '" + replicaName + "'", e);
       }
+
       server.log(this, Level.INFO, "Recovering completed. Sent %d message(s) to replica '%s'", totalSentMessages.get(), replicaName);
     }
   }
@@ -681,5 +728,30 @@ public class HAServer implements ServerPlugin {
 
     channel.writeShort(commandId);
     return channel;
+  }
+
+  private boolean waitAndRetryDuringElection(final int quorum) {
+    if (electionStatus == ELECTION_STATUS.DONE)
+      // BLOCK HERE THE REQUEST, THE QUORUM CANNOT BE REACHED AT PRIORI
+      throw new QuorumNotReachedException("Quorum " + quorum + " not reached because only " + getOnlineReplicas() + " server(s) are online");
+
+    server.log(this, Level.INFO, "Waiting during election (quorum=%d onlineReplicas=%d)", quorum, getOnlineReplicas());
+
+    for (int retry = 0; retry < 10 && electionStatus != ELECTION_STATUS.DONE; ++retry) {
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        break;
+      }
+    }
+
+    server.log(this, Level.INFO, "Waiting is over (electionStatus=%s quorum=%d onlineReplicas=%d)", electionStatus, quorum, getOnlineReplicas());
+
+    return electionStatus == ELECTION_STATUS.DONE;
+  }
+
+  private void checkCurrentNodeIsTheLeader() {
+    if (!isLeader())
+      throw new ServerIsNotTheLeaderException("Cannot execute command", getLeader().getRemoteServerName());
   }
 }

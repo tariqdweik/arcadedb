@@ -9,6 +9,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
@@ -94,17 +95,15 @@ public class ReplicatedDatabase implements DatabaseInternal {
               throw new IllegalArgumentException("Quorum " + quorum + " not managed");
             }
 
-            final int onlineServers = 1 + server.getHA().getOnlineReplicas();
-            if (reqQuorum > onlineServers)
-              // DON'T EVEN TRY
-              throw new ReplicationException("Quorum " + reqQuorum + " (" + quorum + ") not reached because only " + onlineServers + " server(s) are online");
-
             server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), bufferChanges, reqQuorum > 1), reqQuorum, timeout);
 
             // COMMIT 2ND PHASE ONLY IF THE QUORUM HAS BEEN REACHED
             tx.commit2ndPhase(changes);
           }
 
+        } catch (NeedRetryException e) {
+          tx.rollback();
+          throw e;
         } catch (TransactionException e) {
           tx.rollback();
           throw e;

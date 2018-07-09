@@ -4,6 +4,7 @@
 
 package com.arcadedb.server.http.handler;
 
+import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ServerSecurityException;
 import com.arcadedb.server.http.HttpServer;
@@ -84,6 +85,11 @@ public abstract class AbstractHandler implements HttpHandler {
       exchange.getResponseSender().send(
           "{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName()
               + "\", \"exceptionArg\": \"" + e.getLeaderAddress() + "\"}");
+    } catch (NeedRetryException e) {
+      LogManager.instance().debug(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      exchange.setStatusCode(503);
+      exchange.getResponseSender()
+          .send("{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");
     } catch (Exception e) {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(500);

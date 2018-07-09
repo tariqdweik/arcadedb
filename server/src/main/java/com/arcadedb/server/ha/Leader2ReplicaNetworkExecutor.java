@@ -76,6 +76,14 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           throw new ConnectionException(channel.socket.getInetAddress().toString(), "Current server '" + ha.getServerName() + "' is not the Leader");
         }
 
+        final HAServer.ELECTION_STATUS electionStatus = ha.getElectionStatus();
+        if (electionStatus != HAServer.ELECTION_STATUS.DONE && electionStatus != HAServer.ELECTION_STATUS.LEADER_WAITING_FOR_QUORUM) {
+          this.channel.writeBoolean(false);
+          this.channel.writeByte(ReplicationProtocol.ERROR_CONNECT_ELECTION_PENDING);
+          this.channel.writeString("Election for the Leader is pending");
+          throw new ConnectionException(channel.socket.getInetAddress().toString(), "Election for Leader is pending");
+        }
+
         setName(Constants.PRODUCT + "-ha-leader2replica/" + remoteServerName + "(" + remoteServerAddress + ")");
 
         // CONNECTED
@@ -341,8 +349,14 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
   public void sendMessage(final Binary msg) throws IOException {
     synchronized (channelOutputLock) {
-      channel.writeBytes(msg.getContent(), msg.size());
-      channel.flush();
+      final ChannelBinaryServer c = channel;
+      if (c == null) {
+        close();
+        return;
+      }
+
+      c.writeBytes(msg.getContent(), msg.size());
+      c.flush();
     }
   }
 

@@ -4,6 +4,8 @@
 
 package com.arcadedb.remote;
 
+import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -232,12 +234,24 @@ public class RemoteDatabase extends RWLockContext {
             if (exception != null) {
               if (exception.equals(ServerIsNotTheLeaderException.class.getName())) {
                 throw new ServerIsNotTheLeaderException(detail, exceptionArg);
+              } else if (exception.equals(QuorumNotReachedException.class.getName())) {
+                lastException = new QuorumNotReachedException(detail);
+                continue;
               }
             }
 
+            final String httpErrorDescription = connection.getResponseMessage();
+
+            // TEMPORARY FIX FOR AN ISSUE WITH THE CLIENT/SERVER COMMUNICATION WHERE THE PAYLOAD ARRIVES AS EMPTY
+            if (connection.getResponseCode() == 400 && "Bad Request".equals(httpErrorDescription) && "Command text is null".equals(reason)) {
+              // RETRY
+              LogManager.instance().debug(this, "Empty payload received, retrying (retry=%d/%d)...", retry, maxRetry);
+              continue;
+            }
+
             throw new RemoteException(
-                "Error on executing remote command '" + cmd + "' (httpErrorCode=" + connection.getResponseCode() + " httpErrorDescription=" + connection
-                    .getResponseMessage() + " reason=" + reason + " detail=" + detail + ")");
+                "Error on executing remote command '" + cmd + "' (httpErrorCode=" + connection.getResponseCode() + " httpErrorDescription="
+                    + httpErrorDescription + " reason=" + reason + " detail=" + detail + " exception=" + exception + ")");
           }
 
           final JSONObject response = new JSONObject(FileUtils.readStreamAsString(connection.getInputStream(), charset));
@@ -268,6 +282,9 @@ public class RemoteDatabase extends RWLockContext {
           LogManager.instance()
               .warn(this, "Remote server seems unreachable, switching to server %s:%d...", connectToServer.getFirst(), connectToServer.getSecond());
 
+      } catch (NeedRetryException e) {
+        // RETRY IT
+        continue;
       } catch (Exception e) {
         throw new RemoteException("Error on executing remote operation " + operation, e);
       }
@@ -355,6 +372,9 @@ public class RemoteDatabase extends RWLockContext {
     }
 
     if (oldLeader != null) {
+      // RESET LEADER SERVER TO AVOID LOOP
+      leaderServer = null;
+
       // ASK TO THE OLD LEADER
       currentServer = oldLeader.getFirst();
       currentPort = oldLeader.getSecond();

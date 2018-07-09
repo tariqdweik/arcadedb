@@ -209,6 +209,11 @@ public class Replica2LeaderNetworkExecutor extends Thread {
             throw new ServerIsNotTheLeaderException(
                 "Remote server is not a Leader, connecting to the current Leader '" + leaderServerName + "' (" + leaderAddress + ")", leaderAddress);
 
+          case ReplicationProtocol.ERROR_CONNECT_ELECTION_PENDING:
+            server.getServer().log(this, Level.INFO, "An election for the Leader server is pending");
+            channel.close();
+            throw new ReplicationException("An election for the Leader server is pending");
+
           case ReplicationProtocol.ERROR_CONNECT_UNSUPPORTEDPROTOCOL:
             server.getServer().log(this, Level.INFO, "Remote server does not support protocol %d", ReplicationProtocol.PROTOCOL_VERSION);
             break;

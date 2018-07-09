@@ -265,7 +265,8 @@ public class TransactionManager {
         LogManager.instance().debug(this, "  - updating page %s v%d", pageId, modifiedPage.version);
 
       } catch (IOException e) {
-        throw new WALException("Cannot load page " + pageId, e);
+        LogManager.instance().error(this, "Error on applying changes to page %s", e, pageId);
+        throw new WALException("Cannot apply changes to page " + pageId, e);
       }
     }
     return changed;

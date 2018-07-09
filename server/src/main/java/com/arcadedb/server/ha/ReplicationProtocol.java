@@ -14,6 +14,7 @@ public class ReplicationProtocol extends Thread {
 
   // CONNECT ERROR
   public static final byte ERROR_CONNECT_NOLEADER            = 0;
-  public static final byte ERROR_CONNECT_UNSUPPORTEDPROTOCOL = 1;
-  public static final byte ERROR_CONNECT_WRONGCLUSTERNAME    = 2;
+  public static final byte ERROR_CONNECT_ELECTION_PENDING    = 1;
+  public static final byte ERROR_CONNECT_UNSUPPORTEDPROTOCOL = 2;
+  public static final byte ERROR_CONNECT_WRONGCLUSTERNAME    = 3;
 }

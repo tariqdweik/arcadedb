@@ -9,7 +9,7 @@ public class NeedRetryException extends RuntimeException {
     super(s);
   }
 
-  public NeedRetryException(String s, Exception e) {
+  public NeedRetryException(String s, Throwable e) {
     super(s, e);
   }
 }
