@@ -6,7 +6,7 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
-import com.arcadedb.exception.TransactionException;
+import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.utility.LogManager;
@@ -56,9 +56,8 @@ public class ReplicationServerQuorumMajority2ServersOutTest extends ReplicationS
     try {
       super.testReplication();
       Assertions.fail("Replication is supposed to fail without enough online servers");
-    } catch (TransactionException e) {
-      Throwable sub = e.getCause();
-      Assertions.assertTrue(sub.toString().contains("Quorum") && sub.toString().contains("not reached"));
+    } catch (QuorumNotReachedException e) {
+      // CATCH IT
     }
   }
 

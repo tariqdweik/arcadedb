@@ -69,7 +69,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
             server.log(this, Level.FINE, "Replicating transaction (size=%d)", bufferChanges.size());
 
-            final int configuredServers = 1 + server.getHA().getConfiguredReplicas();
+            final int configuredServers = server.getHA().getConfiguredServers();
 
             final int reqQuorum;
             switch (quorum) {

@@ -46,7 +46,7 @@ public class HAServer implements ServerPlugin {
   private final    ContextConfiguration                       configuration;
   private final    String                                     clusterName;
   private final    long                                       startedOn;
-  private          int                                        configuredReplicas;
+  private          int                                        configuredServers           = 1;
   private final    Map<String, Leader2ReplicaNetworkExecutor> replicaConnections          = new ConcurrentHashMap<>();
   private final    AtomicLong                                 messageNumber               = new AtomicLong(-1);
   protected final  String                                     replicationPath;
@@ -342,10 +342,13 @@ public class HAServer implements ServerPlugin {
       connection.mergeFrom(previousConnection);
     }
 
-    configuredReplicas = replicaConnections.size();
+    final int totReplicas = replicaConnections.size();
+    if (1 + totReplicas > configuredServers)
+      // UPDATE SERVER COUNT
+      configuredServers = 1 + totReplicas;
 
     if (electionStatus == ELECTION_STATUS.LEADER_WAITING_FOR_QUORUM) {
-      if (1 + getOnlineReplicas() > (1 + configuredReplicas) / 2 + 1)
+      if (1 + getOnlineReplicas() > configuredServers / 2 + 1)
         // ELECTION COMPLETED
         setElectionStatus(ELECTION_STATUS.DONE);
     }
@@ -375,7 +378,10 @@ public class HAServer implements ServerPlugin {
       final String[] servers = serverAddress.split(",");
       for (String s : servers)
         serverAddressList.add(s);
-    }
+
+      this.configuredServers = serverAddressList.size();
+    } else
+      this.configuredServers = 1;
   }
 
   public void sendCommandToReplicas(final HACommand command) {
@@ -514,7 +520,6 @@ public class HAServer implements ServerPlugin {
 
   public void setReplicasHTTPAddresses(final String replicasHTTPAddresses) {
     this.replicasHTTPAddresses = replicasHTTPAddresses;
-    this.configuredReplicas = replicasHTTPAddresses.split(",").length;
   }
 
   public String getReplicasHTTPAddresses() {
@@ -529,7 +534,7 @@ public class HAServer implements ServerPlugin {
       c.close();
     }
 
-    configuredReplicas = replicaConnections.size();
+    configuredServers = 1 + replicaConnections.size();
   }
 
   public int getOnlineReplicas() {
@@ -541,8 +546,8 @@ public class HAServer implements ServerPlugin {
     return total;
   }
 
-  public int getConfiguredReplicas() {
-    return configuredReplicas;
+  public int getConfiguredServers() {
+    return configuredServers;
   }
 
   public String getServerList() {
