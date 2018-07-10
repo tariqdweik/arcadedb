@@ -233,7 +233,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         server.setServerAddresses(memberList);
       }
 
-      server.getServer().log(this, Level.INFO, "Server connected to the Leader server %s:%d, members=[%s]", host, port, server.getServerList());
+      server.getServer().log(this, Level.INFO, "Server connected to the Leader server %s:%d, members=[%s]", host, port, server.getServerAddressList());
 
       setName(Constants.PRODUCT + "-ha-replica2leader/" + server.getServerName());
 

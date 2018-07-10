@@ -12,20 +12,22 @@ import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
+import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class ReplicationServerKillRandomServersTest extends ReplicationServerTest {
+public class HAByzanthineTest extends ReplicationServerTest {
   private int   restarts = 0;
   private Timer timer;
 
-  public ReplicationServerKillRandomServersTest() {
+  public HAByzanthineTest() {
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
   }
 
-  //@Test
+  @Test
   public void testReplication() {
     checkDatabases();
 
@@ -42,8 +44,6 @@ public class ReplicationServerKillRandomServersTest extends ReplicationServerTes
 
         Assertions.assertNotNull(onlineServer);
 
-        final String leaderName = onlineServer.getHA().getLeaderName();
-
         for (int i = 0; i < getServerCount(); ++i)
           if (!getServer(i).isStarted()) {
             // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
@@ -51,11 +51,13 @@ public class ReplicationServerKillRandomServersTest extends ReplicationServerTes
             return;
           }
 
-        LogManager.instance().info(this, "TEST: Stopping the Leader %s...", leaderName);
+        int serverId = new Random().nextInt(getServerCount());
 
-        getServer(leaderName).stop();
+        LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);
+
+        getServer(serverId).stop();
         restarts++;
-        getServer(leaderName).start();
+        getServer(serverId).start();
       }
     }, 30000, 30000);
 
@@ -65,9 +67,7 @@ public class ReplicationServerKillRandomServersTest extends ReplicationServerTes
     final RemoteDatabase db = new RemoteDatabase(server1AddressParts[0], Integer.parseInt(server1AddressParts[1]), getDatabaseName(), "root", "root");
 
     db.begin();
-    try
-
-    {
+    try {
       LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
       long counter = 0;
@@ -100,7 +100,7 @@ public class ReplicationServerKillRandomServersTest extends ReplicationServerTes
         if (counter % 1000 == 0) {
           LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
           if (isPrintingConfigurationAtEveryStep())
-            getServer(0).getHA().printClusterConfiguration();
+            getLeaderServer().getHA().printClusterConfiguration();
         }
 
         db.begin();
@@ -131,12 +131,12 @@ public class ReplicationServerKillRandomServersTest extends ReplicationServerTes
 
   @Override
   protected boolean isPrintingConfigurationAtEveryStep() {
-    return false;
+    return true;
   }
 
   @Override
   protected int getTxs() {
-    return 50000;
+    return 2000;
   }
 
   @Override

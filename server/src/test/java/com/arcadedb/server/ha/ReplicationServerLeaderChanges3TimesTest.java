@@ -72,7 +72,7 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
         if (counter % 1000 == 0) {
           LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
           if (isPrintingConfigurationAtEveryStep())
-            getServer(0).getHA().printClusterConfiguration();
+            getLeaderServer().getHA().printClusterConfiguration();
         }
 
         db.begin();

@@ -353,7 +353,7 @@ public class HAServer implements ServerPlugin {
         setElectionStatus(ELECTION_STATUS.DONE);
     }
 
-    sendCommandToReplicas(new UpdateClusterConfiguration(getServerList(), getReplicaServersHTTPAddressesList()));
+    sendCommandToReplicas(new UpdateClusterConfiguration(getServerAddressList(), getReplicaServersHTTPAddressesList()));
 
     printClusterConfiguration();
   }
@@ -550,7 +550,15 @@ public class HAServer implements ServerPlugin {
     return configuredServers;
   }
 
-  public String getServerList() {
+  public List<String> getConfiguredServerNames() {
+    final List<String> list = new ArrayList<>(configuredServers);
+    list.add(getLeaderName());
+    for (Leader2ReplicaNetworkExecutor r : replicaConnections.values())
+      list.add(r.getRemoteServerName());
+    return list;
+  }
+
+  public String getServerAddressList() {
     String list = getServerAddress();
     for (Leader2ReplicaNetworkExecutor r : replicaConnections.values())
       list += "," + r.getRemoteServerAddress();

@@ -91,7 +91,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
 
         this.channel.writeString(server.getServerName());
         this.channel.writeString(server.getServer().getHttpServer().getListeningAddress());
-        this.channel.writeString(this.server.getServerList());
+        this.channel.writeString(this.server.getServerAddressList());
 
         ha.getServer().log(this, Level.INFO, "Remote Replica server '%s' (%s) successfully connected", remoteServerName, remoteServerAddress);
 

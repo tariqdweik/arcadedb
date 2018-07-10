@@ -235,4 +235,14 @@ public abstract class BaseGraphServerTest {
       }
     }, 1);
   }
+
+  protected ArcadeDBServer getLeaderServer() {
+    for (int i = 0; i < getServerCount(); ++i)
+      if (getServer(i).isStarted()) {
+        final ArcadeDBServer onlineServer = getServer(i);
+        final String leaderName = onlineServer.getHA().getLeaderName();
+        return getServer(leaderName);
+      }
+    return null;
+  }
 }

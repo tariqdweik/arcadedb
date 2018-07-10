@@ -59,7 +59,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         if (counter % 100000 == 0) {
           LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
           if (isPrintingConfigurationAtEveryStep())
-            getServer(0).getHA().printClusterConfiguration();
+            getLeaderServer().getHA().printClusterConfiguration();
         }
 
         db.begin();
