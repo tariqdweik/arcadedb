@@ -56,7 +56,11 @@ public class ArcadeDBServer {
     if (started)
       return;
 
-    lifecycleEvent(TestCallback.TYPE.SERVER_STARTING, null);
+    try {
+      lifecycleEvent(TestCallback.TYPE.SERVER_STARTING, null);
+    } catch (Exception e) {
+      throw new ServerException("Error on starting the server '" + serverName + "'");
+    }
 
     log(this, Level.INFO, "Starting ArcadeDB Server...");
 
@@ -105,14 +109,23 @@ public class ArcadeDBServer {
     log(this, Level.INFO, "ArcadeDB Server started (CPUs=%d MAXRAM=%s)", Runtime.getRuntime().availableProcessors(),
         FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()));
 
-    lifecycleEvent(TestCallback.TYPE.SERVER_UP, null);
+    try {
+      lifecycleEvent(TestCallback.TYPE.SERVER_UP, null);
+    } catch (Exception e) {
+      stop();
+      throw new ServerException("Error on starting the server '" + serverName + "'");
+    }
   }
 
   public synchronized void stop() {
     if (!started)
       return;
 
-    lifecycleEvent(TestCallback.TYPE.SERVER_SHUTTING_DOWN, null);
+    try {
+      lifecycleEvent(TestCallback.TYPE.SERVER_SHUTTING_DOWN, null);
+    } catch (Exception e) {
+      throw new ServerException("Error on stopping the server '" + serverName + "'");
+    }
 
     log(this, Level.INFO, "Shutting down ArcadeDB Server...");
 
@@ -142,7 +155,11 @@ public class ArcadeDBServer {
 
     log(this, Level.INFO, "ArcadeDB Server is down");
 
-    lifecycleEvent(TestCallback.TYPE.SERVER_DOWN, null);
+    try {
+      lifecycleEvent(TestCallback.TYPE.SERVER_DOWN, null);
+    } catch (Exception e) {
+      throw new ServerException("Error on stopping the server '" + serverName + "'");
+    }
 
     LogManager.instance().setContext(null);
   }
@@ -219,7 +236,7 @@ public class ArcadeDBServer {
     testEventListeners.add(callback);
   }
 
-  public void lifecycleEvent(final TestCallback.TYPE type, final Object object) {
+  public void lifecycleEvent(final TestCallback.TYPE type, final Object object) throws Exception {
     if (testEnabled)
       for (TestCallback c : testEventListeners)
         c.onEvent(type, object, this);

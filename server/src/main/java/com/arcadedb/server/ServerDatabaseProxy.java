@@ -4,6 +4,7 @@
 
 package com.arcadedb.server;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.*;
@@ -45,6 +46,12 @@ public class ServerDatabaseProxy implements DatabaseInternal {
     checkForOpen();
     proxied.drop();
     open = false;
+  }
+
+  @Override
+  public ContextConfiguration getConfiguration() {
+    checkForOpen();
+    return proxied.getConfiguration();
   }
 
   @Override

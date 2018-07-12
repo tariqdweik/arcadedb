@@ -62,7 +62,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
 
-    while (!shutdown || channel.inputHasData()) {
+    while (!shutdown || channel != null && channel.inputHasData()) {
       try {
         final byte[] requestBytes = receiveResponse();
 
@@ -119,11 +119,10 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
   private void reconnect(final Exception e) {
     if (!shutdown) {
-      if (channel != null)
-        channel.close();
+      closeChannel();
 
       if (server.getLeader() != this) {
-        // LEADER ALREADY ELECTED
+        // LEADER ALREADY CONNECTED (RE-ELECTED?)
         server.getServer().log(this, Level.SEVERE, "Removing connection to the previous Leader ('%s'). New Leader is: %s", getRemoteServerName(),
             server.getLeader().getRemoteServerName());
         close();
@@ -139,7 +138,6 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           connect();
         } catch (ConnectionException e1) {
           server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the Leader ('%s'), start election (error=%s)", getRemoteServerName(), e1);
-          close();
           server.startElection();
         }
       }
@@ -152,21 +150,35 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     server.getMessageFactory().serializeCommand(response, buffer, messageNumber);
 
     synchronized (channelOutputLock) {
-      channel.writeBytes(buffer.getContent(), buffer.size());
-      channel.flush();
+      final ChannelBinaryClient c = channel;
+      if (c == null)
+        throw new ReplicationException("Error on sending command back to the leader (cause=socket closed)");
+
+      c.writeBytes(buffer.getContent(), buffer.size());
+      c.flush();
     }
   }
 
   public void close() {
     shutdown = true;
-    if (channel != null)
-      channel.close();
+    closeChannel();
   }
 
   public void kill() {
     shutdown = true;
     interrupt();
     close();
+  }
+
+  /**
+   * Test purpose only.
+   */
+  public void closeChannel() {
+    final ChannelBinaryClient c = channel;
+    if (c != null) {
+      c.close();
+      channel = null;
+    }
   }
 
   public String getRemoteHTTPAddress() {
@@ -275,7 +287,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         }
 
       } else {
-        server.getServer().log(this, Level.INFO, "Receiving hot resync...");
+        server.getServer().log(this, Level.INFO, "Receiving hot resync (from=%d)...", lastLogNumber);
 
         if (testOn)
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_HOT_RESYNC, null);

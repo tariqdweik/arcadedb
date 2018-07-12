@@ -203,6 +203,17 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     }
   }
 
+  /**
+   * Test purpose only.
+   */
+  public void closeChannel() {
+    final ChannelBinaryServer c = channel;
+    if (c != null) {
+      c.close();
+      channel = null;
+    }
+  }
+
   public void close() {
     shutdownCommunication = true;
 
@@ -218,11 +229,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         }
       }
 
-      final ChannelBinaryServer c = channel;
-      if (c != null) {
-        c.close();
-        channel = null;
-      }
+      closeChannel();
 
     } catch (Exception e) {
       // IGNORE IT
@@ -241,6 +248,9 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           server.getServer().log(this, Level.FINE, "Buffering request to server '%s' (status=%s buffered=%d)", remoteServerName, status, queue.size());
 
         if (!queue.offer(message)) {
+          if (status == STATUS.OFFLINE)
+            return false;
+
           // BACK-PRESSURE
           server.getServer()
               .log(this, Level.WARNING, "Applying back-pressure on replicating messages to server '%s' (latency=%s buffered=%d)...", getRemoteServerName(),
@@ -252,6 +262,9 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
             Thread.currentThread().interrupt();
             throw new ReplicationException("Error on replicating to server '" + remoteServerName + "'");
           }
+
+          if (status == STATUS.OFFLINE)
+            return false;
 
           if (!queue.offer(message)) {
             server.getServer().log(this, Level.FINE, "Timeout on writing request to server '%s', setting it offline...", getRemoteServerName());

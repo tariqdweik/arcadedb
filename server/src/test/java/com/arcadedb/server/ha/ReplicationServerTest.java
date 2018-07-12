@@ -44,6 +44,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
       LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
+      final long total = getTxs() * getVerticesPerTx();
       long counter = 0;
 
       for (int tx = 0; tx < getTxs(); ++tx) {
@@ -56,7 +57,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
         db.commit();
 
-        if (counter % 100000 == 0) {
+        if (counter % (total / 10) == 0) {
           LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
           if (isPrintingConfigurationAtEveryStep())
             getLeaderServer().getHA().printClusterConfiguration();

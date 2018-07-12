@@ -9,6 +9,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.network.binary.ChannelBinaryClient;
+import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ArcadeDBServer;
@@ -159,15 +160,12 @@ public class HAServer implements ServerPlugin {
   public void startElection() {
     final long lastReplicationMessage = replicationLogFile.getLastMessageNumber();
 
-    long electionTurn = lastElectionVote == null ? 1 : lastElectionVote.getFirst();
-
-    server.log(this, Level.INFO, "Starting election of local server asking for votes from %s (turn=%d lastReplicationMessage=%d)", serverAddressList,
-        electionTurn, lastReplicationMessage);
+    long electionTurn = lastElectionVote == null ? 1 : lastElectionVote.getFirst() + 1;
 
     Replica2LeaderNetworkExecutor lc = leaderConnection;
     if (lc != null) {
       // CLOSE ANY LEADER CONNECTION STILL OPEN
-      lc.kill();
+      lc.close();
       leaderConnection = null;
     }
 
@@ -176,13 +174,16 @@ public class HAServer implements ServerPlugin {
     setElectionStatus(ELECTION_STATUS.VOTING_FOR_ME);
 
     while (leaderConnection == null) {
-      final int majorityOfVotes = (serverAddressList.size()) / 2 + 1;
+      final int majorityOfVotes = (configuredServers / 2) + 1;
 
       int totalVotes = 1;
 
-      ++electionTurn;
-
       lastElectionVote = new Pair<>(electionTurn, getServerName());
+
+      server.log(this, Level.INFO, "Starting election of local server asking for votes from %s (turn=%d lastReplicationMessage=%d)", serverAddressList,
+          electionTurn, lastReplicationMessage);
+
+      final HashMap<String, Integer> otherLeaders = new HashMap<>();
 
       for (String serverAddress : serverAddressList) {
         if (serverAddress.equals(localServerAddress))
@@ -208,9 +209,16 @@ public class HAServer implements ServerPlugin {
               // AVOID CONTACTING OTHER SERVERS
               break;
 
-          } else
-            server.log(this, Level.INFO, "Did not receive the vote from server %s (turn=%d totalVotes=%d majority=%d)", serverAddress, electionTurn, totalVotes,
-                majorityOfVotes);
+          } else {
+            final String otherLeaderName = channel.readString();
+            server
+                .log(this, Level.INFO, "Did not receive the vote from server %s (turn=%d totalVotes=%d majority=%d itsLeader=%s)", serverAddress, electionTurn,
+                    totalVotes, majorityOfVotes, otherLeaderName);
+            if (!otherLeaderName.isEmpty()) {
+              final Integer counter = otherLeaders.get(otherLeaderName);
+              otherLeaders.put(otherLeaderName, counter == null ? 1 : counter + 1);
+            }
+          }
 
           channel.close();
         } catch (Exception e) {
@@ -226,15 +234,27 @@ public class HAServer implements ServerPlugin {
         break;
       }
 
+      // TRY TO CONNECT TO THE EXISTENT LEADER
+      server.log(this, Level.INFO, "Other leaders found %s (turn=%d totalVotes=%d majority=%d)", otherLeaders, electionTurn, totalVotes, majorityOfVotes);
+      for (Map.Entry<String, Integer> entry : otherLeaders.entrySet()) {
+        if (entry.getValue() >= majorityOfVotes) {
+          server.log(this, Level.INFO, "Trying to connect to the existing leader '%s' (turn=%d totalVotes=%d majority=%d)", entry.getKey(), electionTurn,
+              entry.getValue(), majorityOfVotes);
+          if (connectToLeader(entry.getKey()))
+            break;
+        }
+      }
+
       try {
-        final long timeout = 200 + new Random().nextInt(200);
-        server.log(this, Level.INFO, "Not able to be elected as Leader, waiting %dms and retry", timeout);
+        final long timeout = 1000 + new Random().nextInt(1000);
+        server.log(this, Level.INFO, "Not able to be elected as Leader, waiting %dms and retry (turn=%d totalVotes=%d majority=%d)", timeout, electionTurn,
+            totalVotes, majorityOfVotes);
         Thread.sleep(timeout);
 
         lc = leaderConnection;
         if (lc != null) {
           // I AM A REPLICA, NO LEADER ELECTION IS NEEDED
-          server.log(this, Level.INFO, "Abort election process, a Leader (%s) has been already found", lc.getRemoteServerName());
+          server.log(this, Level.INFO, "Abort election process, a Leader (%s) has been already found (turn=%d)", lc.getRemoteServerName(), electionTurn);
           break;
         }
 
@@ -243,6 +263,8 @@ public class HAServer implements ServerPlugin {
         Thread.currentThread().interrupt();
         break;
       }
+
+      ++electionTurn;
     }
   }
 
@@ -288,7 +310,11 @@ public class HAServer implements ServerPlugin {
 
     c.setStatus(online ? Leader2ReplicaNetworkExecutor.STATUS.ONLINE : Leader2ReplicaNetworkExecutor.STATUS.OFFLINE);
 
-    server.lifecycleEvent(online ? TestCallback.TYPE.REPLICA_ONLINE : TestCallback.TYPE.REPLICA_OFFLINE, remoteServerName);
+    try {
+      server.lifecycleEvent(online ? TestCallback.TYPE.REPLICA_ONLINE : TestCallback.TYPE.REPLICA_OFFLINE, remoteServerName);
+    } catch (Exception e) {
+      // IGNORE IT
+    }
   }
 
   public void receivedResponseForQuorum(final String remoteServerName, final long messageNumber) {
@@ -727,6 +753,12 @@ public class HAServer implements ServerPlugin {
   }
 
   protected ChannelBinaryClient createNetworkConnection(final String host, final int port, final short commandId) throws IOException {
+    try {
+      server.lifecycleEvent(TestCallback.TYPE.NETWORK_CONNECTION, host + ":" + port);
+    } catch (Exception e) {
+      throw new ConnectionException(host + ":" + port, e);
+    }
+
     final ChannelBinaryClient channel = new ChannelBinaryClient(host, port, this.configuration);
 
     final String clusterName = this.configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);

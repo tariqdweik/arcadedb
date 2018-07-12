@@ -205,14 +205,16 @@ public class LeaderNetworkListener extends Thread {
         ha.getServer().log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, giving my vote", remoteServerName,
             lastReplicationMessage, localServerLastMessageNumber, voteTurn);
         channel.writeByte((byte) 1);
+        ha.lastElectionVote = new Pair<>(voteTurn, remoteServerName);
         ha.setElectionStatus(HAServer.ELECTION_STATUS.VOTING_FOR_OTHERS);
       } else {
         ha.getServer()
             .log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but cannot give my vote (votedFor='%s')",
                 remoteServerName, lastReplicationMessage, localServerLastMessageNumber, voteTurn,
                 ha.lastElectionVote != null ? ha.lastElectionVote.getSecond() : "-");
-        ha.lastElectionVote = new Pair<>(voteTurn, remoteServerName);
         channel.writeByte((byte) 0);
+        final Replica2LeaderNetworkExecutor leader = ha.getLeader();
+        channel.writeString(leader != null ? leader.getRemoteAddress() : ha.getServerAddress());
       }
       channel.flush();
       break;

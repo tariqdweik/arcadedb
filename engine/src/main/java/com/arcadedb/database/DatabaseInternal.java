@@ -4,6 +4,7 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.TransactionManager;
 import com.arcadedb.engine.WALFileFactory;
@@ -22,6 +23,8 @@ public interface DatabaseInternal extends Database {
   enum CALLBACK_EVENT {
     TX_AFTER_WAL_WRITE, DB_NOT_CLOSED
   }
+
+  ContextConfiguration getConfiguration();
 
   void registerCallback(CALLBACK_EVENT event, Callable<Void> callback);
 

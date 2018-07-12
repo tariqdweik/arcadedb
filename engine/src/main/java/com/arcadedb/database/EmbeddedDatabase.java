@@ -901,6 +901,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     }
   }
 
+  @Override
   public ContextConfiguration getConfiguration() {
     return configuration;
   }

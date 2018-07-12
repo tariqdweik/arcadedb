@@ -19,11 +19,11 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class HAByzanthineTest extends ReplicationServerTest {
+public class HARandomCrashTest extends ReplicationServerTest {
   private int   restarts = 0;
   private Timer timer;
 
-  public HAByzanthineTest() {
+  public HARandomCrashTest() {
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
   }
 
@@ -115,7 +115,7 @@ public class HAByzanthineTest extends ReplicationServerTest {
     }
 
     try {
-      Thread.sleep(1000);
+      Thread.sleep(5000);
     } catch (InterruptedException e) {
     }
 
@@ -126,17 +126,17 @@ public class HAByzanthineTest extends ReplicationServerTest {
 
     onAfterTest();
 
-    Assertions.assertTrue(restarts >= getServerCount());
+    Assertions.assertTrue(restarts >= getServerCount(), "Restarts " + restarts);
   }
 
   @Override
   protected boolean isPrintingConfigurationAtEveryStep() {
-    return true;
+    return false;
   }
 
   @Override
   protected int getTxs() {
-    return 2000;
+    return 5000;
   }
 
   @Override

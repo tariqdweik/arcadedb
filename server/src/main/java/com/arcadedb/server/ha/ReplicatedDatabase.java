@@ -4,6 +4,7 @@
 
 package com.arcadedb.server.ha;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
@@ -219,6 +220,10 @@ public class ReplicatedDatabase implements DatabaseInternal {
   @Override
   public String getDatabasePath() {
     return proxied.getDatabasePath();
+  }
+  @Override
+  public ContextConfiguration getConfiguration() {
+    return proxied.getConfiguration();
   }
 
   @Override

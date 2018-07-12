@@ -4,6 +4,7 @@
 
 package com.arcadedb.engine;
 
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.utility.LogManager;
@@ -12,6 +13,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -31,8 +33,9 @@ public class TransactionManager {
   private final AtomicLong transactionIds = new AtomicLong();
   private final AtomicLong logFileCounter = new AtomicLong();
 
-  private AtomicLong statsPagesWritten = new AtomicLong();
-  private AtomicLong statsBytesWritten = new AtomicLong();
+  private       AtomicLong statsPagesWritten = new AtomicLong();
+  private       AtomicLong statsBytesWritten = new AtomicLong();
+  private final boolean    sync;
 
   public TransactionManager(final DatabaseInternal database) {
     this.database = database;
@@ -40,6 +43,7 @@ public class TransactionManager {
     createFilePool();
 
     this.logContext = LogManager.instance().getContext();
+    this.sync = database.getConfiguration().getValueAsBoolean(GlobalConfiguration.TX_FLUSH);
 
     task = new Timer();
     task.schedule(new TimerTask() {
@@ -250,7 +254,9 @@ public class TransactionManager {
         modifiedPage.setContentSize(txPage.currentPageSize);
         modifiedPage.flushMetadata();
         file.write(modifiedPage);
-        file.flush();
+
+        if (sync)
+          file.flush();
 
         database.getPageManager().removePageFromCache(modifiedPage.pageId);
 
@@ -265,7 +271,10 @@ public class TransactionManager {
         LogManager.instance().debug(this, "  - updating page %s v%d", pageId, modifiedPage.version);
 
       } catch (IOException e) {
-        LogManager.instance().error(this, "Error on applying changes to page %s", e, pageId);
+        if (!(e instanceof ClosedByInterruptException))
+          // NORMAL EXCEPTION IN CASE THE CONNECTION/THREAD IS CLOSED (=INTERRUPTED)
+          LogManager.instance().error(this, "Error on applying changes to page %s", e, pageId);
+
         throw new WALException("Cannot apply changes to page " + pageId, e);
       }
     }
