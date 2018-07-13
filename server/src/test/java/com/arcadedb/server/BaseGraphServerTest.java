@@ -20,9 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -47,6 +45,8 @@ public abstract class BaseGraphServerTest {
 
   @BeforeEach
   public void startTest() {
+    checkArcadeIsTotallyDown();
+
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
     for (int i = 0; i < getServerCount(); ++i)
@@ -140,7 +140,18 @@ public abstract class BaseGraphServerTest {
         }
       }
 
+    checkArcadeIsTotallyDown();
+
     GlobalConfiguration.TEST.setValue(false);
+  }
+
+  protected void checkArcadeIsTotallyDown() {
+    final ByteArrayOutputStream os = new ByteArrayOutputStream();
+    final PrintWriter output = new PrintWriter(new BufferedOutputStream(os));
+    new Exception().printStackTrace(output);
+    output.flush();
+    final String out = os.toString();
+    Assertions.assertFalse(out.contains("ArcadeDB"), "Some thread is still up & running: \n" + out);
   }
 
   protected void startServers() {

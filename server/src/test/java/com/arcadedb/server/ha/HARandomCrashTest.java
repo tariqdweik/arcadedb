@@ -59,7 +59,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
         restarts++;
         getServer(serverId).start();
       }
-    }, 30000, 30000);
+    }, 20000, 15000);
 
     final String server1Address = getServer(0).getHttpServer().getListeningAddress();
     final String[] server1AddressParts = server1Address.split(":");
@@ -71,6 +71,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
       LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
       long counter = 0;
+      final int maxRetry = 10;
 
       for (int tx = 0; tx < getTxs(); ++tx) {
         for (int i = 0; i < getVerticesPerTx(); ++i) {
@@ -90,7 +91,11 @@ public class HARandomCrashTest extends ReplicationServerTest {
               break;
             } catch (RemoteException e) {
               // IGNORE IT
-              LogManager.instance().error(this, "Error on creating vertex %d, retrying...", e, counter);
+              LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
+              try {
+                Thread.sleep(500);
+              } catch (InterruptedException e1) {
+              }
             }
           }
         }

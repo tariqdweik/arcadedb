@@ -43,6 +43,7 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
       LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
       long counter = 0;
+      final int maxRetry = 10;
 
       for (int tx = 0; tx < getTxs(); ++tx) {
         for (int i = 0; i < getVerticesPerTx(); ++i) {
@@ -62,7 +63,11 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
               break;
             } catch (RemoteException e) {
               // IGNORE IT
-              LogManager.instance().error(this, "Error on creating vertex %d, retrying...", e, counter);
+              LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
+              try {
+                Thread.sleep(500);
+              } catch (InterruptedException e1) {
+              }
             }
           }
         }

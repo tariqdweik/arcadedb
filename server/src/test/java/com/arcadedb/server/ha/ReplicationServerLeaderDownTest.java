@@ -41,9 +41,11 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
 
       long counter = 0;
 
+      final int maxRetry = 10;
+
       for (int tx = 0; tx < getTxs(); ++tx) {
         for (int i = 0; i < getVerticesPerTx(); ++i) {
-          for (int retry = 0; retry < 3; ++retry) {
+          for (int retry = 0; retry < maxRetry; ++retry) {
             try {
               ResultSet resultSet = db.sql("CREATE VERTEX " + VERTEX1_TYPE_NAME + " SET id = ?, name = ?", ++counter, "distributed-test");
 
@@ -59,7 +61,11 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
               break;
             } catch (RemoteException e) {
               // IGNORE IT
-              LogManager.instance().error(this, "Error on creating vertex %d, retrying...", e, counter);
+              LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
+              try {
+                Thread.sleep(500);
+              } catch (InterruptedException e1) {
+              }
             }
           }
         }

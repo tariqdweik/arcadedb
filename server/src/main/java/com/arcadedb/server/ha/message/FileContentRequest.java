@@ -53,7 +53,7 @@ public class FileContentRequest extends HAAbstractCommand {
       return new FileContentResponse(pagesContent, pages, last);
 
     } catch (IOException e) {
-      throw new NetworkProtocolException("Cannot load pages");
+      throw new NetworkProtocolException("Cannot load pages", e);
     }
   }
 
