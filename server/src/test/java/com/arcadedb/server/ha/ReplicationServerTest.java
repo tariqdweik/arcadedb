@@ -138,11 +138,4 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       db.close();
     }
   }
-
-  protected int[] getServerToCheck() {
-    final int[] result = new int[getServerCount()];
-    for (int i = 0; i < result.length; ++i)
-      result[i] = i;
-    return result;
-  }
 }

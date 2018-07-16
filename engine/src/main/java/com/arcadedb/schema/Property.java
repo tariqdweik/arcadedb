@@ -4,6 +4,8 @@
 
 package com.arcadedb.schema;
 
+import java.util.Objects;
+
 public class Property {
   private final DocumentType owner;
   private final String       name;
@@ -26,6 +28,21 @@ public class Property {
   }
 
   public int getId() {
+    return id;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    final Property property = (Property) o;
+    return id == property.id && Objects.equals(name, property.name) && Objects.equals(type, property.type);
+  }
+
+  @Override
+  public int hashCode() {
     return id;
   }
 }

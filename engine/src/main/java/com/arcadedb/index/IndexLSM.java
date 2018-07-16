@@ -324,7 +324,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return result;
   }
 
-  protected int getTotalPages() {
+  public int getTotalPages() {
     final Integer txPageCounter = database.getTransaction().getPageCounter(id);
     if (txPageCounter != null)
       return txPageCounter;
