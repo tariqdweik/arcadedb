@@ -44,14 +44,13 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
         Assertions.assertNotNull(onlineServer);
 
-        for (int i = 0; i < getServerCount(); ++i)
-          if (!getServer(i).isStarted()) {
-            // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
-            LogManager.instance().info(this, "TEST: Not all the servers are ONLINE, skip this crash...");
-            return;
-          }
-
         int serverId = new Random().nextInt(getServerCount());
+
+        if (1 + getServer(serverId).getHA().getOnlineReplicas() < getServerCount()) {
+          // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
+          LogManager.instance().info(this, "TEST: Not all the servers are ONLINE, skip this crash...");
+          return;
+        }
 
         LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);
 

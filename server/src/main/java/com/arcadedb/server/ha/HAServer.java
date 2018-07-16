@@ -62,6 +62,7 @@ public class HAServer implements ServerPlugin {
   private          String                                     replicasHTTPAddresses;
   protected        Pair<Long, String>                         lastElectionVote;
   private volatile ELECTION_STATUS                            electionStatus              = ELECTION_STATUS.DONE;
+  private          boolean                                    started;
 
   private class QuorumMessages {
     public final long           sentOn = System.currentTimeMillis();
@@ -99,6 +100,11 @@ public class HAServer implements ServerPlugin {
 
   @Override
   public void startService() {
+    if (started)
+      return;
+
+    started = true;
+
     final String fileName = replicationPath + "/replication_" + server.getServerName() + ".rlog";
     try {
       replicationLogFile = new ReplicationLogFile(this, fileName);
@@ -140,6 +146,7 @@ public class HAServer implements ServerPlugin {
 
   @Override
   public void stopService() {
+    started = false;
     if (listener != null)
       listener.close();
 
@@ -173,7 +180,7 @@ public class HAServer implements ServerPlugin {
 
     setElectionStatus(ELECTION_STATUS.VOTING_FOR_ME);
 
-    while (leaderConnection == null) {
+    while (leaderConnection == null && started) {
       final int majorityOfVotes = (configuredServers / 2) + 1;
 
       int totalVotes = 1;
