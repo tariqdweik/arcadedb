@@ -40,9 +40,9 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     Database db = getServer(0).getDatabase(getDatabaseName());
     db.begin();
     try {
-      Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + 0);
+      Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + 0);
 
-      LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
+      LogManager.instance().info(this, "TEST: Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
       final long total = getTxs() * getVerticesPerTx();
       long counter = 0;
@@ -58,7 +58,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         db.commit();
 
         if (counter % (total / 10) == 0) {
-          LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+          LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
           if (isPrintingConfigurationAtEveryStep())
             getLeaderServer().getHA().printClusterConfiguration();
         }
@@ -111,14 +111,14 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
   }
 
   protected boolean isPrintingConfigurationAtEveryStep() {
-    return true;
+    return false;
   }
 
   protected void checkEntriesOnServer(final int s) {
     final Database db = getServer(s).getDatabase(getDatabaseName());
     db.begin();
     try {
-      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);
+      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + s);
 
       final List<DocumentType.IndexMetadata> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
       long total = 0;
@@ -129,11 +129,11 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         }
       }
 
-      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), total, "Check for index count for server" + s);
+      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), total, "TEST: Check for index count for server" + s);
 
     } catch (Exception e) {
       e.printStackTrace();
-      Assertions.fail("Error on checking on server" + s);
+      Assertions.fail("TEST: Error on checking on server" + s);
     } finally {
       db.close();
     }

@@ -705,6 +705,7 @@ public class HAServer implements ServerPlugin {
           // REMOVE THE REPLICA
           server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE", replica.getRemoteServerName());
           setReplicaStatus(replica.getRemoteServerName(), false);
+          break;
         }
       }
 

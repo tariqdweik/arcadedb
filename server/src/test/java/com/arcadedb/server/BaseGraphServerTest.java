@@ -256,4 +256,15 @@ public abstract class BaseGraphServerTest {
       }
     return null;
   }
+
+  protected boolean areAllServersOnline() {
+    final int onlineReplicas = getLeaderServer().getHA().getOnlineReplicas();
+    if (1 + onlineReplicas < getServerCount()) {
+      // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
+      LogManager.instance().info(this, "TEST: Not all the servers are ONLINE (%d), skip this crash...", onlineReplicas);
+      getLeaderServer().getHA().printClusterConfiguration();
+      return false;
+    }
+    return true;
+  }
 }

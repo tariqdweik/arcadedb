@@ -282,12 +282,12 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   }
 
   @Override
-  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
-      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
+      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
+      final boolean bidirectional, final Object... properties) {
     checkForOpen();
-    return proxied.newEdgeByKeys(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey,
-        destinationVertexValue, createVertexIfNotExist, edgeType, bidirectional, properties);
+    return proxied.newEdgeByKeys(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey, destinationVertexValue,
+        createVertexIfNotExist, edgeType, bidirectional, properties);
   }
 
   @Override
@@ -372,6 +372,11 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   public void setReadYourWrites(final boolean value) {
     checkForOpen();
     proxied.setReadYourWrites(value);
+  }
+
+  @Override
+  public String toString() {
+    return proxied.toString();
   }
 
   protected void checkForOpen() {
