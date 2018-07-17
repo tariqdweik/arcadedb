@@ -36,6 +36,7 @@ public class ArcadeDBServer {
   private final    boolean                                 testEnabled        = GlobalConfiguration.TEST.getValueAsBoolean();
   private final    Map<String, ServerPlugin>               plugins            = new HashMap<>();
   private volatile boolean                                 started            = false;
+  private          ServerMetrics                           serverMetrics      = new NoServerMetrics();
 
   public ArcadeDBServer(final ContextConfiguration configuration) {
     this.configuration = configuration;
@@ -63,6 +64,13 @@ public class ArcadeDBServer {
     }
 
     log(this, Level.INFO, "Starting ArcadeDB Server...");
+
+    // START METRICS & CONNECTED JMX REPORTER
+    if (configuration.getValueAsBoolean(GlobalConfiguration.SERVER_METRICS)) {
+      serverMetrics.stop();
+      serverMetrics = new JMXServerMetrics();
+      log(this, Level.INFO, "- JMX Metrics Started...");
+    }
 
     loadDatabases();
 
@@ -153,6 +161,10 @@ public class ArcadeDBServer {
       db.close();
     databases.clear();
 
+    log(this, Level.INFO, "- Stop JMX Metrics");
+    serverMetrics.stop();
+    serverMetrics = new NoServerMetrics();
+
     log(this, Level.INFO, "ArcadeDB Server is down");
 
     try {
@@ -162,6 +174,10 @@ public class ArcadeDBServer {
     }
 
     LogManager.instance().setContext(null);
+  }
+
+  public ServerMetrics getServerMetrics() {
+    return serverMetrics;
   }
 
   public Database getDatabase(final String databaseName) {

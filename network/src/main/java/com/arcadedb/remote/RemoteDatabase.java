@@ -309,7 +309,7 @@ public class RemoteDatabase extends RWLockContext {
     serverCommand("server", null, null, false, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) {
-        LogManager.instance().info(this, "Configuring remote database: %s", response);
+        LogManager.instance().debug(this, "Configuring remote database: %s", response);
 
         if (!response.has("leaderServer")) {
           leaderServer = new Pair<>(originalServer, originalPort);

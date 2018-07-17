@@ -29,6 +29,8 @@ public class CreateDatabaseHandler extends DatabaseAbstractHandler {
       return;
     }
 
+    httpServer.getServer().getServerMetrics().meter("http.create-database").mark();
+
     httpServer.getServer().createDatabase(databaseName.getFirst());
 
     exchange.setStatusCode(200);

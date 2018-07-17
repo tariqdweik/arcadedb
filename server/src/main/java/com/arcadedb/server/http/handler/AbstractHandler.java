@@ -6,6 +6,7 @@ package com.arcadedb.server.http.handler;
 
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
+import com.arcadedb.server.ServerMetrics;
 import com.arcadedb.server.ServerSecurityException;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.utility.LogManager;
@@ -72,7 +73,13 @@ public abstract class AbstractHandler implements HttpHandler {
 
       authenticate(authPair[0], authPair[1]);
 
-      execute(exchange);
+      final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.request");
+      try {
+        execute(exchange);
+
+      } finally {
+        timer.stop();
+      }
 
     } catch (ServerSecurityException e) {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());

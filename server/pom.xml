@@ -15,6 +15,10 @@
         <relativePath>../</relativePath>
     </parent>
 
+    <properties>
+        <metrics.version>4.0.0</metrics.version>
+    </properties>
+
     <artifactId>arcadedb-server</artifactId>
     <packaging>jar</packaging>
 
@@ -58,6 +62,16 @@
             <groupId>io.undertow</groupId>
             <artifactId>undertow-core</artifactId>
             <version>2.0.1.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>${metrics.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jmx</artifactId>
+            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

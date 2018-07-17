@@ -17,6 +17,8 @@ public class DropDatabaseHandler extends DatabaseAbstractHandler {
   public void execute(final HttpServerExchange exchange, final Database database) {
     database.drop();
 
+    httpServer.getServer().getServerMetrics().meter("http.drop-database").mark();
+
     httpServer.getServer().removeDatabase( database.getName() );
 
     exchange.setStatusCode(200);

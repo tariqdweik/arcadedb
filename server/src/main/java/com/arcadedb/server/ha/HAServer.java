@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class HAServer implements ServerPlugin {
+
   public enum QUORUM {
     NONE, ONE, TWO, THREE, MAJORITY, ALL
   }

@@ -6,6 +6,7 @@ package com.arcadedb.server.http.handler;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
+import com.arcadedb.server.ServerMetrics;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.sql.executor.ResultSet;
@@ -59,13 +60,23 @@ public class SQLHandler extends DatabaseAbstractHandler {
         params = new Object[] { paramMap };
     }
 
+//    httpServer.getServer().getServerMetrics().meter("http.sql").mark();
+
     final StringBuilder result = new StringBuilder();
 
-    final ResultSet qResult = database.sql(command, params);
-    while (qResult.hasNext()) {
-      if (result.length() > 0)
-        result.append(",");
-      result.append(httpServer.getJsonSerializer().serializeResult(qResult.next()).toString());
+    final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.sql");
+    try {
+
+      final ResultSet qResult = database.sql(command, params);
+
+      while (qResult.hasNext()) {
+        if (result.length() > 0)
+          result.append(",");
+        result.append(httpServer.getJsonSerializer().serializeResult(qResult.next()).toString());
+      }
+
+    } finally {
+      timer.stop();
     }
 
     exchange.setStatusCode(200);

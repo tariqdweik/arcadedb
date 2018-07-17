@@ -26,6 +26,8 @@ public class GetDocumentHandler extends DatabaseAbstractHandler {
       return;
     }
 
+    httpServer.getServer().getServerMetrics().meter("http.get-record").mark();
+
     final String[] ridParts = rid.getFirst().split(":");
 
     final Document record = (Document) database.lookupByRID(new RID(database, Integer.parseInt(ridParts[0]), Long.parseLong(ridParts[1])), true);
