@@ -4,6 +4,7 @@
 
 package com.arcadedb.server;
 
+import com.arcadedb.Constants;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
@@ -15,7 +16,7 @@ public class JMXServerMetrics implements ServerMetrics {
 
   public JMXServerMetrics() {
     metricsRegistry = new MetricRegistry();
-    jmxReporter = JmxReporter.forRegistry(metricsRegistry).build();
+    jmxReporter = JmxReporter.forRegistry(metricsRegistry).inDomain(Constants.PRODUCT).build();
     jmxReporter.start();
   }
 

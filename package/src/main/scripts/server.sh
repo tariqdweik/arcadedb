@@ -55,11 +55,16 @@ if [ -z "$JAVA_OPTS_SCRIPT" ] ; then
     JAVA_OPTS_SCRIPT="-Djna.nosys=true -XX:+HeapDumpOnOutOfMemoryError -Djava.awt.headless=true -Dfile.encoding=UTF8 -Drhino.opt.level=9"
 fi
 
+if [ -z "$ARCADEDB_JMX" ] ; then
+    ARCADEDB_JMX="-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.rmi.port=9998"
+fi
+
 echo $$ > $ARCADEDB_PID
 
 exec "$JAVA" $JAVA_OPTS \
     $ARCADEDB_OPTS_MEMORY \
     $JAVA_OPTS_SCRIPT \
+    $ARCADEDB_JMX \
     $ARCADEDB_SETTINGS \
     -cp "$ARCADEDB_HOME/lib/*" \
     $ARGS "$@" com.arcadedb.server.ArcadeDBServer
