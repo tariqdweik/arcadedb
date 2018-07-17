@@ -1,5 +1,6 @@
-[[introduction]]
-=== Introducing ArcadeDB
+[[Introduction]]
+
+== Introduction
 
 include::what-is-arcadedb.adoc[]
-include::diagrams.adoc[]
+include::run.adoc[]

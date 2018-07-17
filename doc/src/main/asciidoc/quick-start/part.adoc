@@ -1,4 +1,4 @@
 
-== Getting Started With ArcadeDB
-
 include::introduction/chapter.adoc[]
+include::api/chapter.adoc[]
+include::comparison/chapter.adoc[]
