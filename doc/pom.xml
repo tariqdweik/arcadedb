@@ -31,6 +31,11 @@
                 <version>9.4.11.v20180605</version>
                 <configuration>
                     <webAppSourceDirectory>${project.basedir}/target/generated-docs</webAppSourceDirectory>
+                    <webApp>
+                        <contextPath>/</contextPath>
+                        <!--<descriptor>${project.basedir}/src/over/here/web.xml</descriptor>-->
+                        <!--<jettyEnvXml>${project.basedir}/src/over/here/jetty-env.xml</jettyEnvXml>-->
+                    </webApp>
                 </configuration>
             </plugin>
             <plugin>
@@ -58,7 +63,7 @@
                         <icons>font</icons>
                         <sectanchors>true</sectanchors>
                         <!-- set the idprefix to blank -->
-                        <idprefix/>
+                        <!--<idprefix/>-->
                         <idseparator>-</idseparator>
                         <docinfo1>true</docinfo1>
                     </attributes>
