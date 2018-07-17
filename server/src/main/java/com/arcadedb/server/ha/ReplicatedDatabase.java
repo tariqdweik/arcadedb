@@ -221,6 +221,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
   public String getDatabasePath() {
     return proxied.getDatabasePath();
   }
+
   @Override
   public ContextConfiguration getConfiguration() {
     return proxied.getConfiguration();
@@ -409,5 +410,10 @@ public class ReplicatedDatabase implements DatabaseInternal {
   @Override
   public boolean isOpen() {
     return proxied.isOpen();
+  }
+
+  @Override
+  public String toString() {
+    return proxied.toString();
   }
 }

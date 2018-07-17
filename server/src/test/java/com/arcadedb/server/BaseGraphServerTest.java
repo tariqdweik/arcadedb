@@ -8,6 +8,7 @@ import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseComparator;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedFile;
@@ -124,25 +125,30 @@ public abstract class BaseGraphServerTest {
 
   @AfterEach
   public void endTest() {
-    LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
-    if (servers != null)
-      for (int i = servers.length - 1; i > -1; --i) {
-        if (servers[i] != null)
-          servers[i].stop();
+    try {
+      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
+      checkDatabasesAreIdentical();
+    } finally {
+      LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
+      if (servers != null)
+        for (int i = servers.length - 1; i > -1; --i) {
+          if (servers[i] != null)
+            servers[i].stop();
 
-        if (dropDatabases()) {
-          final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE);
+          if (dropDatabases()) {
+            final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE);
 
-          if (factory.exists()) {
-            final Database db = factory.open();
-            db.drop();
+            if (factory.exists()) {
+              final Database db = factory.open();
+              db.drop();
+            }
           }
         }
-      }
 
-    checkArcadeIsTotallyDown();
+      checkArcadeIsTotallyDown();
 
-    GlobalConfiguration.TEST.setValue(false);
+      GlobalConfiguration.TEST.setValue(false);
+    }
   }
 
   protected void checkArcadeIsTotallyDown() {
@@ -255,5 +261,35 @@ public abstract class BaseGraphServerTest {
         return getServer(leaderName);
       }
     return null;
+  }
+
+  protected boolean areAllServersOnline() {
+    final int onlineReplicas = getLeaderServer().getHA().getOnlineReplicas();
+    if (1 + onlineReplicas < getServerCount()) {
+      // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
+      LogManager.instance().info(this, "TEST: Not all the servers are ONLINE (%d), skip this crash...", onlineReplicas);
+      getLeaderServer().getHA().printClusterConfiguration();
+      return false;
+    }
+    return true;
+  }
+
+  protected int[] getServerToCheck() {
+    final int[] result = new int[getServerCount()];
+    for (int i = 0; i < result.length; ++i)
+      result[i] = i;
+    return result;
+  }
+
+  protected void checkDatabasesAreIdentical() {
+    final int[] servers2Check = getServerToCheck();
+
+    for (int i = 1; i < servers2Check.length; ++i) {
+      final Database db1 = getServer(servers2Check[0]).getDatabase(getDatabaseName());
+      final Database db2 = getServer(servers2Check[i]).getDatabase(getDatabaseName());
+
+      LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
+      new DatabaseComparator().compare(db1, db2);
+    }
   }
 }

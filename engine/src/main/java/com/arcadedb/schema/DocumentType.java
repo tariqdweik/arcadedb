@@ -102,12 +102,10 @@ public class DocumentType {
 
   public Property createProperty(final String propertyName, final Class<?> propertyType) {
     if (properties.containsKey(propertyName))
-      throw new SchemaException(
-          "Cannot create the property '" + propertyName + "' in type '" + name + "' because it already exists");
+      throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name + "' because it already exists");
 
     if (getPolymorphicPropertyNames().contains(propertyName))
-      throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name
-          + "' because it was already defined in a parent class");
+      throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name + "' because it was already defined in a parent class");
 
     final Property property = new Property(this, propertyName, propertyType);
 
@@ -209,6 +207,152 @@ public class DocumentType {
     return name;
   }
 
+  public boolean isTheSameAs(final Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+
+    final DocumentType that = (DocumentType) o;
+    if (!Objects.equals(name, that.name))
+      return false;
+
+    if (parentTypes.size() != that.parentTypes.size())
+      return false;
+
+    final Set<String> set = new HashSet<>();
+    for (DocumentType t : parentTypes)
+      set.add(t.name);
+
+    for (DocumentType t : that.parentTypes)
+      set.remove(t.name);
+
+    if (!set.isEmpty())
+      return false;
+
+    if (subTypes.size() != that.subTypes.size())
+      return false;
+
+    set.clear();
+
+    for (DocumentType t : subTypes)
+      set.add(t.name);
+
+    for (DocumentType t : that.subTypes)
+      set.remove(t.name);
+
+    if (!set.isEmpty())
+      return false;
+
+    if (buckets.size() != that.buckets.size())
+      return false;
+
+    set.clear();
+
+    for (Bucket t : buckets)
+      set.add(t.getName());
+
+    for (Bucket t : that.buckets)
+      set.remove(t.getName());
+
+    if (!set.isEmpty())
+      return false;
+
+    if (properties.size() != that.properties.size())
+      return false;
+
+    set.clear();
+
+    for (Property p : properties.values())
+      set.add(p.getName());
+
+    for (Property p : that.properties.values())
+      set.remove(p.getName());
+
+    if (!set.isEmpty())
+      return false;
+
+    for (Property p1 : properties.values()) {
+      final Property p2 = that.properties.get(p1.getName());
+      if (!p1.equals(p2))
+        return false;
+    }
+
+    if (indexesByBucket.size() != that.indexesByBucket.size())
+      return false;
+
+    for (Map.Entry<Integer, List<IndexMetadata>> entry1 : indexesByBucket.entrySet()) {
+      final List<IndexMetadata> value2 = that.indexesByBucket.get(entry1.getKey());
+      if (value2 == null)
+        return false;
+      if (entry1.getValue().size() != value2.size())
+        return false;
+
+      for (int i = 0; i < value2.size(); ++i) {
+        final IndexMetadata m1 = entry1.getValue().get(i);
+        final IndexMetadata m2 = value2.get(i);
+
+        if (m1.bucketId != m2.bucketId)
+          return false;
+        if (!m1.index.getName().equals(m2.index.getName()))
+          return false;
+        if (m1.propertyNames.length != m2.propertyNames.length)
+          return false;
+
+        for (int p = 0; p < m1.propertyNames.length; ++p) {
+          if (!m1.propertyNames[p].equals(m2.propertyNames[p]))
+            return false;
+        }
+      }
+    }
+
+    if (indexesByProperties.size() != that.indexesByProperties.size())
+      return false;
+
+    for (Map.Entry<List<String>, List<IndexMetadata>> entry1 : indexesByProperties.entrySet()) {
+      final List<IndexMetadata> value2 = that.indexesByProperties.get(entry1.getKey());
+      if (value2 == null)
+        return false;
+      if (entry1.getValue().size() != value2.size())
+        return false;
+
+      for (int i = 0; i < value2.size(); ++i) {
+        final IndexMetadata m1 = entry1.getValue().get(i);
+        final IndexMetadata m2 = value2.get(i);
+
+        if (m1.bucketId != m2.bucketId)
+          return false;
+        if (!m1.index.getName().equals(m2.index.getName()))
+          return false;
+        if (m1.propertyNames.length != m2.propertyNames.length)
+          return false;
+
+        for (int p = 0; p < m1.propertyNames.length; ++p) {
+          if (!m1.propertyNames[p].equals(m2.propertyNames[p]))
+            return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    DocumentType that = (DocumentType) o;
+
+    return name.equals(that.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name);
+  }
+
   protected void addIndexInternal(final Index index, final Bucket bucket, final String[] propertyNames) {
     final IndexMetadata metadata = new IndexMetadata(index, bucket.getId(), propertyNames);
 
@@ -232,8 +376,9 @@ public class DocumentType {
   protected void addBucketInternal(final Bucket bucket) {
     for (DocumentType cl : schema.getTypes()) {
       if (cl.hasBucket(bucket.getName()))
-        throw new SchemaException("Cannot add the bucket '" + bucket.getName() + "' to the type '" + name
-            + "', because the bucket is already associated to the type '" + cl.getName() + "'");
+        throw new SchemaException(
+            "Cannot add the bucket '" + bucket.getName() + "' to the type '" + name + "', because the bucket is already associated to the type '" + cl.getName()
+                + "'");
     }
 
     buckets.add(bucket);

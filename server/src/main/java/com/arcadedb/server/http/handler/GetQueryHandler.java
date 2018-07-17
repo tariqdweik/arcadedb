@@ -5,6 +5,7 @@
 package com.arcadedb.server.http.handler;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.server.ServerMetrics;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.sql.executor.ResultSet;
 import io.undertow.server.HttpServerExchange;
@@ -29,12 +30,19 @@ public class GetQueryHandler extends DatabaseAbstractHandler {
 
     final StringBuilder result = new StringBuilder();
 
-    final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
-    final ResultSet qResult = database.query(command);
-    while (qResult.hasNext()) {
-      if (result.length() > 0)
-        result.append(",");
-      result.append(httpServer.getJsonSerializer().serializeResult(qResult.next()).toString());
+    final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.query");
+    try {
+
+      final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
+      final ResultSet qResult = database.query(command);
+      while (qResult.hasNext()) {
+        if (result.length() > 0)
+          result.append(",");
+        result.append(httpServer.getJsonSerializer().serializeResult(qResult.next()).toString());
+      }
+
+    } finally {
+      timer.stop();
     }
 
     exchange.setStatusCode(200);

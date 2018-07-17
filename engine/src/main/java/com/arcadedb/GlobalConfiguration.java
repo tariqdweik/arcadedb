@@ -110,6 +110,8 @@ public enum GlobalConfiguration {
   // SERVER
   SERVER_NAME("arcadedb.server.name", "Server name", String.class, Constants.PRODUCT + "_0"),
 
+  SERVER_METRICS("arcadedb.serverMetrics", "True to enable metrics", Boolean.class, true),
+
   SERVER_ROOT_PATH("arcadedb.server.rootPath", "Root path in the file system where the server is looking for files. By default is the current directory",
       String.class, "."),
 

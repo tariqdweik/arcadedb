@@ -24,7 +24,7 @@ import static com.arcadedb.database.Binary.LONG_SERIALIZED_SIZE;
 /**
  * PAGE CONTENT = [version(long:8),recordCountInPage(short:2),recordOffsetsInPage(2048*uint=8192)]
  * <p>
- * Record size is the lenght of the record or -1 if a placeholder is stored and -2 for the placeholder itself.
+ * Record size is the length of the record or -1 if a placeholder is stored and -2 for the placeholder itself.
  */
 public class Bucket extends PaginatedComponent {
   public static final String BUCKET_EXT          = "bucket";
@@ -33,22 +33,20 @@ public class Bucket extends PaginatedComponent {
 
   protected static final int PAGE_RECORD_COUNT_IN_PAGE_OFFSET = 0;
   protected static final int PAGE_RECORD_TABLE_OFFSET         = PAGE_RECORD_COUNT_IN_PAGE_OFFSET + Binary.SHORT_SERIALIZED_SIZE;
-  protected static final int CONTENT_HEADER_SIZE              =
-      PAGE_RECORD_TABLE_OFFSET + (MAX_RECORDS_IN_PAGE * INT_SERIALIZED_SIZE);
+  protected static final int CONTENT_HEADER_SIZE              = PAGE_RECORD_TABLE_OFFSET + (MAX_RECORDS_IN_PAGE * INT_SERIALIZED_SIZE);
 
   /**
    * Called at creation time.
    */
-  public Bucket(final Database database, final String name, final String filePath, final PaginatedFile.MODE mode,
-      final int pageSize) throws IOException {
+  public Bucket(final Database database, final String name, final String filePath, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), BUCKET_EXT, mode, pageSize);
   }
 
   /**
    * Called at load time.
    */
-  public Bucket(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
-      final int pageSize) throws IOException {
+  public Bucket(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
+      throws IOException {
     super(database, name, filePath, id, mode, pageSize);
   }
 
@@ -105,8 +103,7 @@ public class Bucket extends PaginatedComponent {
 
         if (recordCountInPage > 0) {
           for (int recordIdInPage = 0; recordIdInPage < recordCountInPage; ++recordIdInPage) {
-            final int recordPositionInPage = (int) page
-                .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
+            final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
             final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
 
             if (recordSize[0] > 0) {
@@ -124,8 +121,7 @@ public class Bucket extends PaginatedComponent {
               // PLACEHOLDER
               final RID rid = new RID(database, id, pageId * MAX_RECORDS_IN_PAGE + recordIdInPage);
 
-              final Binary view = getRecordInternal(
-                  new RID(database, id, page.readLong((int) (recordPositionInPage + recordSize[1]))), true);
+              final Binary view = getRecordInternal(new RID(database, id, page.readLong((int) (recordPositionInPage + recordSize[1]))), true);
 
               if (!callback.onRecord(rid, view))
                 return;
@@ -159,6 +155,11 @@ public class Bucket extends PaginatedComponent {
     return ((Bucket) obj).id == this.id;
   }
 
+  @Override
+  public int hashCode() {
+    return id;
+  }
+
   public long count() {
     long total = 0;
 
@@ -171,8 +172,7 @@ public class Bucket extends PaginatedComponent {
 
         if (recordCountInPage > 0) {
           for (int recordIdInPage = 0; recordIdInPage < recordCountInPage; ++recordIdInPage) {
-            final int recordPositionInPage = (int) page
-                .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
+            final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + recordIdInPage * INT_SERIALIZED_SIZE);
             final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
 
             if (recordSize[0] > 0 || recordSize[0] == -1)
@@ -192,8 +192,9 @@ public class Bucket extends PaginatedComponent {
 
     final int totalPages = getTotalPages();
 
-    LogManager.instance().info(this, "- Checking bucket '%s' (totalPages=%d spaceOnDisk=%s pageSize=%s)...", name, totalPages,
-        FileUtils.getSizeAsString(totalPages * pageSize), FileUtils.getSizeAsString(pageSize));
+    LogManager.instance()
+        .info(this, "- Checking bucket '%s' (totalPages=%d spaceOnDisk=%s pageSize=%s)...", name, totalPages, FileUtils.getSizeAsString(totalPages * pageSize),
+            FileUtils.getSizeAsString(pageSize));
 
     long totalRecords = 0;
     long totalActiveRecords = 0;
@@ -214,8 +215,7 @@ public class Bucket extends PaginatedComponent {
         int pageMaxOffset = 0;
 
         for (int positionInPage = 0; positionInPage < recordCountInPage; ++positionInPage) {
-          final int recordPositionInPage = (int) page
-              .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
+          final int recordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + positionInPage * INT_SERIALIZED_SIZE);
           final long recordSize[] = page.readNumberAndSize(recordPositionInPage);
 
           totalRecords++;
@@ -242,10 +242,8 @@ public class Bucket extends PaginatedComponent {
 
         totalMaxOffset += pageMaxOffset;
 
-        LogManager.instance()
-            .debug(this, "-- Page %d records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) maxOffset=%d", pageId,
-                recordCountInPage, pageActiveRecords, pageDeletedRecords, pagePlaceholderRecords, pageSurrogateRecords,
-                pageMaxOffset);
+        LogManager.instance().debug(this, "-- Page %d records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) maxOffset=%d", pageId, recordCountInPage,
+            pageActiveRecords, pageDeletedRecords, pagePlaceholderRecords, pageSurrogateRecords, pageMaxOffset);
 
       } catch (IOException e) {
         LogManager.instance().info(this, "- Unknown error on checking page %d: %s", pageId, e.toString());
@@ -255,8 +253,8 @@ public class Bucket extends PaginatedComponent {
     final float avgPageUsed = totalPages > 0 ? (float) (totalMaxOffset / totalPages) * 100f / pageSize : 0;
 
     LogManager.instance()
-        .info(this, "-- Total records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) avgPageUsed=%.2f%%", totalRecords,
-            totalActiveRecords, totalDeletedRecords, totalPlaceholderRecords, totalSurrogateRecords, avgPageUsed);
+        .info(this, "-- Total records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) avgPageUsed=%.2f%%", totalRecords, totalActiveRecords,
+            totalDeletedRecords, totalPlaceholderRecords, totalSurrogateRecords, avgPageUsed);
 
     stats.put("pageSize", (long) pageSize);
     stats.put("totalRecords", totalRecords);
@@ -343,8 +341,7 @@ public class Bucket extends PaginatedComponent {
           createNewPage = true;
         else if (recordCountInPage > 0) {
           // GET FIRST EMPTY POSITION
-          final int lastRecordPositionInPage = (int) lastPage
-              .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
+          final int lastRecordPositionInPage = (int) lastPage.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
           final long[] lastRecordSize = lastPage.readNumberAndSize(lastRecordPositionInPage);
 
           if (lastRecordSize[0] > 0)
@@ -371,8 +368,7 @@ public class Bucket extends PaginatedComponent {
         recordCountInPage = 0;
       }
 
-      final RID rid = new RID(database, file.getFileId(),
-          lastPage.getPageId().getPageNumber() * MAX_RECORDS_IN_PAGE + recordCountInPage);
+      final RID rid = new RID(database, file.getFileId(), lastPage.getPageId().getPageNumber() * MAX_RECORDS_IN_PAGE + recordCountInPage);
 
       final byte[] array = buffer.toByteArray();
 
@@ -383,8 +379,7 @@ public class Bucket extends PaginatedComponent {
 
       lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
 
-      LogManager.instance().debug(this, "Created record %s (page=%s records=%d threadId=%d)", rid, lastPage, recordCountInPage,
-          Thread.currentThread().getId());
+      LogManager.instance().debug(this, "Created record %s (page=%s records=%d threadId=%d)", rid, lastPage, recordCountInPage, Thread.currentThread().getId());
 
       return rid;
 
@@ -442,8 +437,7 @@ public class Bucket extends PaginatedComponent {
       if (buffer.size() > recordSize[0]) {
         // MAKE ROOM IN THE PAGE IF POSSIBLE
 
-        final int lastRecordPositionInPage = (int) page
-            .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
+        final int lastRecordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (recordCountInPage - 1) * INT_SERIALIZED_SIZE);
         final long lastRecordSize[] = page.readNumberAndSize(lastRecordPositionInPage);
 
         if (lastRecordSize[0] == -1) {
@@ -464,8 +458,7 @@ public class Bucket extends PaginatedComponent {
 
           if (positionInPage < recordCountInPage - 1) {
             // NOT LAST RECORD IN PAGE, SHIFT NEXT RECORDS
-            final int nextRecordPositionInPage = (int) page
-                .readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (positionInPage + 1) * INT_SERIALIZED_SIZE);
+            final int nextRecordPositionInPage = (int) page.readUnsignedInt(PAGE_RECORD_TABLE_OFFSET + (positionInPage + 1) * INT_SERIALIZED_SIZE);
 
             final int newPos = nextRecordPositionInPage + delta;
 
@@ -490,8 +483,7 @@ public class Bucket extends PaginatedComponent {
           page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
 
           LogManager.instance()
-              .debug(this, "Updated record %s by allocating new space on the same page (page=%s threadId=%d)", rid, page,
-                  Thread.currentThread().getId());
+              .debug(this, "Updated record %s by allocating new space on the same page (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
 
         } else {
           if (isPlaceHolder)
@@ -504,8 +496,7 @@ public class Bucket extends PaginatedComponent {
           final int bytesWritten = page.writeNumber(recordPositionInPage, -1);
           page.writeLong(recordPositionInPage + bytesWritten, realRID.getPosition());
           LogManager.instance()
-              .debug(this, "Updated record %s by allocating new space with a placeholder (page=%s threadId=%d)", rid, page,
-                  Thread.currentThread().getId());
+              .debug(this, "Updated record %s by allocating new space with a placeholder (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
         }
       } else {
 
@@ -513,8 +504,8 @@ public class Bucket extends PaginatedComponent {
         final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
         page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
 
-        LogManager.instance().debug(this, "Updated record %s with the same size or less as before (page=%s threadId=%d)", rid, page,
-            Thread.currentThread().getId());
+        LogManager.instance()
+            .debug(this, "Updated record %s with the same size or less as before (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
 
       }
 

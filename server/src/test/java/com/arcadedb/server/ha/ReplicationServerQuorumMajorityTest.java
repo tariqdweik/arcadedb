@@ -12,11 +12,6 @@ public class ReplicationServerQuorumMajorityTest extends ReplicationServerTest {
   }
 
   @Override
-  protected boolean isPrintingConfigurationAtEveryStep() {
-    return false;
-  }
-
-  @Override
   protected int getTxs() {
     return 200;
   }

@@ -10,14 +10,14 @@ import org.junit.jupiter.api.Test;
 public class ServerSecurityTest {
 
   @Test
-  public void checkQuery() throws Exception {
+  public void checkQuery() {
     final ServerSecurity security = new ServerSecurity(null, "./target");
     security.startService();
 
-    Assertions.assertEquals("PBKDF2WithHmacSHA256$65536$ThisIsTheSalt$wIKUzWYH72cKJRnFZ0PTSevERtwZTNdN+W4/Fd7xBvw=",
-        security.encode("ThisIsATest", "ThisIsTheSalt"));
-    Assertions.assertEquals("PBKDF2WithHmacSHA256$65536$ThisIsTheSalt$wIKUzWYH72cKJRnFZ0PTSevERtwZTNdN+W4/Fd7xBvw=",
-        security.encode("ThisIsATest", "ThisIsTheSalt"));
+    Assertions
+        .assertEquals("PBKDF2WithHmacSHA256$65536$ThisIsTheSalt$wIKUzWYH72cKJRnFZ0PTSevERtwZTNdN+W4/Fd7xBvw=", security.encode("ThisIsATest", "ThisIsTheSalt"));
+    Assertions
+        .assertEquals("PBKDF2WithHmacSHA256$65536$ThisIsTheSalt$wIKUzWYH72cKJRnFZ0PTSevERtwZTNdN+W4/Fd7xBvw=", security.encode("ThisIsATest", "ThisIsTheSalt"));
 
     for (int i = 0; i < 1000000; ++i) {
       Assertions.assertFalse(security.generateRandomSalt().contains("$"));

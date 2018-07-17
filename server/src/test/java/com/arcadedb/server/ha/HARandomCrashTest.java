@@ -5,9 +5,9 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.database.Database;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.remote.RemoteException;
-import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
@@ -35,23 +35,10 @@ public class HARandomCrashTest extends ReplicationServerTest {
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
-        ArcadeDBServer onlineServer = null;
-        for (int i = 0; i < getServerCount(); ++i)
-          if (getServer(i).isStarted()) {
-            onlineServer = getServer(i);
-            break;
-          }
-
-        Assertions.assertNotNull(onlineServer);
-
-        for (int i = 0; i < getServerCount(); ++i)
-          if (!getServer(i).isStarted()) {
-            // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
-            LogManager.instance().info(this, "TEST: Not all the servers are ONLINE, skip this crash...");
-            return;
-          }
-
         int serverId = new Random().nextInt(getServerCount());
+
+        if (!areAllServersOnline())
+          return;
 
         LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);
 
@@ -68,7 +55,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
     db.begin();
     try {
-      LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
+      LogManager.instance().info(this, "TEST: Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
       long counter = 0;
       final int maxRetry = 10;
@@ -91,7 +78,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
               break;
             } catch (RemoteException e) {
               // IGNORE IT
-              LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
+              LogManager.instance().error(this, "TEST: Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
               try {
                 Thread.sleep(500);
               } catch (InterruptedException e1) {
@@ -103,7 +90,17 @@ public class HARandomCrashTest extends ReplicationServerTest {
         db.commit();
 
         if (counter % 1000 == 0) {
-          LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+          LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+
+          for (int i = 0; i < getServerCount(); ++i) {
+            final Database database = getServer(i).getDatabase(getDatabaseName());
+            try {
+              LogManager.instance().info(this, "TEST: -- DB '%s' - %d records", database, database.countType(VERTEX1_TYPE_NAME, false));
+            } catch (Exception e) {
+              LogManager.instance().error(this, "TEST: -- ERROR ON RETRIEVING COUNT FROM DATABASE '%s'", e, database);
+            }
+          }
+
           if (isPrintingConfigurationAtEveryStep())
             getLeaderServer().getHA().printClusterConfiguration();
         }
@@ -132,11 +129,6 @@ public class HARandomCrashTest extends ReplicationServerTest {
     onAfterTest();
 
     Assertions.assertTrue(restarts >= getServerCount(), "Restarts " + restarts);
-  }
-
-  @Override
-  protected boolean isPrintingConfigurationAtEveryStep() {
-    return false;
   }
 
   @Override

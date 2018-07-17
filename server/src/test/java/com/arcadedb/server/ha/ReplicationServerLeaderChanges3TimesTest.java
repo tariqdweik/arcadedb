@@ -140,11 +140,6 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
   }
 
   @Override
-  protected boolean isPrintingConfigurationAtEveryStep() {
-    return false;
-  }
-
-  @Override
   protected int getTxs() {
     return 500;
   }

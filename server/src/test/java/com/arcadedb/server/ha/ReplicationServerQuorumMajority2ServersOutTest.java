@@ -62,10 +62,7 @@ public class ReplicationServerQuorumMajority2ServersOutTest extends ReplicationS
   }
 
   protected int[] getServerToCheck() {
-    final int[] result = new int[getServerCount()];
-    for (int i = 0; i < result.length; ++i)
-      result[i] = i;
-    return result;
+    return new int[]{};
   }
 
   protected void checkEntriesOnServer(final int s) {
@@ -80,11 +77,6 @@ public class ReplicationServerQuorumMajority2ServersOutTest extends ReplicationS
     } finally {
       db.close();
     }
-  }
-
-  @Override
-  protected boolean isPrintingConfigurationAtEveryStep() {
-    return false;
   }
 
   @Override

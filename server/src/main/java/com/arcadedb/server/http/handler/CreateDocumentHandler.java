@@ -30,6 +30,8 @@ public class CreateDocumentHandler extends DatabaseAbstractHandler {
       return;
     }
 
+    httpServer.getServer().getServerMetrics().meter("http.create-record").mark();
+
     final ModifiableDocument document = database.newDocument(type);
     document.save();
 

@@ -69,7 +69,7 @@ public abstract class PaginatedComponent {
     database.getFileManager().dropFile(file.getFileId());
   }
 
-  protected int getTotalPages() {
+  public int getTotalPages() {
     final Integer txPageCounter = database.getTransaction().getPageCounter(id);
     if (txPageCounter != null)
       return txPageCounter;
