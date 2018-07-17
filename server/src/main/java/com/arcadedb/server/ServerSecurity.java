@@ -77,6 +77,8 @@ public class ServerSecurity implements ServerPlugin {
   public void configure(ArcadeDBServer arcadeDBServer, ContextConfiguration configuration) {
   }
 
+  // tag::contains[]
+
   @Override
   public void startService() {
     try {
@@ -91,6 +93,7 @@ public class ServerSecurity implements ServerPlugin {
       throw new ServerException("Error on starting Security service", e);
     }
   }
+  // end::contains[]
 
   @Override
   public void stopService() {

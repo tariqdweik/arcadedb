@@ -152,6 +152,7 @@
         <module>mongodbw</module>
         <module>redisw</module>
         <module>package</module>
+        <module>doc</module>
     </modules>
     <dependencies>
         <dependency>

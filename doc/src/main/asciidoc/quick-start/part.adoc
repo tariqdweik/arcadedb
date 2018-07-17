@@ -1,0 +1,4 @@
+
+== Getting Started With ArcadeDB
+
+include::introduction/chapter.adoc[]
