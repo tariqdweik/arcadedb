@@ -1,5 +1,4 @@
 [[Introduction]]
-
 == Introduction
 
 include::what-is-arcadedb.adoc[]

@@ -1,3 +1,4 @@
+[[waht_is_arcadedb]]
 === What is ArcadeDB?
 
 ArcadeDB is the new generation of DBMS that runs on pretty much every hardware/software configuration. ArcadeDB is Multi-Model, that means it can work with graphs, documents and other forms of data. ArcadeDB is the fastest DBMS in all the benchmarks we have measured against RocksDB, MongoDB, Cassandra, OrientDB and Neo4j.
