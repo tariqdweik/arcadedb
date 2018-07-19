@@ -1,0 +1,41 @@
+==== Java API Tutorial
+
+In order to work with a database, the reference to the database to use must be taken. You can create a new database from scratch or open an existent one. Most of the API works in both synchronous and asynchronous modes. The asynchronous API are available from the `<db>.asynch()` object.
+
+To start from scratch, let's create a new database. The `READ_WRITE` mode factory is required, where we can execute the `.create()` method.
+
+Example:
+
+```java
+Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).create();
+```
+
+The database instance `db` is ready to be used. If you want to open an existent database, use the `open()` method instead:
+
+```java
+Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).open();
+```
+
+Note that in this case we open the database in `MODE.READ_ONLY` to avoid any changes to the database. This is the suggested method if you're going to execute reads and queries only. By letting know to ArcadeDB that you're not changing the database, in a distributed high-available configuration a REPLICA server could be used.
+
+Either if you create or open a database, remember to always embrace any operation to the database in a `try/finally` block, where in the finally section you close the used database. Example:
+
+```java
+Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
+try {
+  // YOUR CODE
+} finally {
+  db.close();
+}
+```
+
+In this way you never forget a database instance open. We provided a useful method to use the database without expressely open/close it, via the `.execute()` method. Example:
+
+```java
+new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+  @Override
+  public void execute(Database db) {
+    // YOUR CODE
+  }
+});
+```
