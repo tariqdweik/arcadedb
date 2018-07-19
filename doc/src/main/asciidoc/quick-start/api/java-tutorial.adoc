@@ -16,9 +16,9 @@ The database instance `db` is ready to be used. If you want to open an existent 
 Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).open();
 ```
 
-Note that in this case we open the database in `MODE.READ_ONLY` to avoid any changes to the database. This is the suggested method if you're going to execute reads and queries only. By letting know to ArcadeDB that you're not changing the database, in a distributed high-available configuration a REPLICA server could be used.
+Note that in this case we open the database in `MODE.READ_ONLY` to avoid any changes to the database. This is the suggested method if you're going to execute reads and queries only. By letting know to ArcadeDB that you're not changing the database, in a distributed high-available configuration a REPLICA server could be used instead of the busy MASTER.
 
-Either if you create or open a database, remember to always embrace any operation to the database in a `try/finally` block, where in the finally section you close the used database. Example:
+Either if you create or open a database, remember to always embrace any operation to the database in a `try/finally` block, where in the `finally` section you close the used database. Example:
 
 ```java
 Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
@@ -29,7 +29,7 @@ try {
 }
 ```
 
-In this way you never forget a database instance open. We provided a useful method to use the database without expressely open/close it, via the `.execute()` method. Example:
+In this way you never forget a database instance open. We provided also a useful method to use the database without expressely open/close it, via the `.execute()` method. Example:
 
 ```java
 new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
@@ -38,4 +38,59 @@ new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).execute(new
     // YOUR CODE
   }
 });
+```
+
+Once you have your database instance (in this tutorial the variable `db` is used), you can create/update/delete records and execute queries.
+
+Every change in the database must be executed inside a transaction. ArcadeDB is a fully transactional DBMS, ACID compliant. The usage of transactions is like with Relational DBMS: `.begin()` starts a new transaction and `.commit()` commit all the changes in the database. In case you want to rollback the transaction, you can call `.rollback()`. In order to use transaction properly, use a `try/catch/finally` block in this way:
+
+```java
+Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
+try {
+  db.begin();
+  // YOUR CHANGES HERE
+  db.commit();
+} catch (Exception e) {
+  db.rollback();
+} finally {
+  db.close();
+}
+```
+
+Example of creating a new type with a record in it:
+
+```java
+Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
+try {
+  db.begin();
+  
+  db.getSchema().createDocumentType("Customer");
+  ModifiableDocument customer = database.newDocument("Customer");
+  customer.set("name", "Jay");
+  customer.set("surname", "Miner");
+
+  db.commit();
+} catch (Exception e) {
+  db.rollback();
+} finally {
+  db.close();
+}
+```
+
+
+---
+
+Example of executing a prepared query:
+
+```java
+Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).open();
+try {
+  ResultSet resultset = database.query("sql", "select from V where age > ? and city = ?", 18, "Melbourne");
+  while (resultset.hasNext()) {
+    Result record = resultset.next();
+    System.out.println( "Found record, name = " + record.getProperty("name"));
+  }
+} finally {
+  db.close();
+}
 ```

@@ -3,6 +3,14 @@
 
 ===== Create a new database
 
+In order to create a new database, an `READ_WRITE` mode factory must be created where we can call the `.create()` method.
+
+Syntax:
+
+```java
+Resultset <db>.query( String language, String command, Object... args )
+```
+
 ```
 Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).create();
 try {
@@ -109,51 +117,39 @@ database.command("sql", insert into V set name = 'Jay', surname = 'Miner'", null
 
 ==== Asynchronous API
 
-The Asynchronous API schedule the operation to be executed as soon as possible, but by a different thread. ArcadeDB optimizes the usage of asynchronous threads to be equals to the number of cores found in the machine (but it is still configurable). Use Asynchronous API if the response of the operation can be managed in asynchronous way.
+The Asynchronous API schedule the operation to be executed as soon as possible, but by a different thread. ArcadeDB optimizes the usage of asynchronous threads to be equals to the number of cores found in the machine (but it is still configurable). Use Asynchronous API if the response of the operation can be managed in asynchronous way and if you want to avodi developing Multi-Threads application by yourself.
 
 ===== Execute a SQL query (idempotent)
 
 ```java
-Database database = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
-try {
-  database.asynch().query("sql", "select from V", null, null, new SQLCallback() {
-    @Override
-    public void onOk(ResultSet resultset) {
-      while (resultset.hasNext()) {
-        Result record = resultset.next();
-        System.out.println( "Found record, name = " + record.getProperty("name"));
-      }
+database.asynch().query("sql", "select from V", null, null, new SQLCallback() {
+  @Override
+  public void onOk(ResultSet resultset) {
+    while (resultset.hasNext()) {
+      Result record = resultset.next();
+      System.out.println( "Found record, name = " + record.getProperty("name"));
     }
+  }
 
-    @Override
-      public void onError(Exception exception) {
-      System.err.println("Error on executing the query: " + exception );
-    }
-  });
-
-} finally {
-  database.close();
-}
+  @Override
+    public void onError(Exception exception) {
+    System.err.println("Error on executing the query: " + exception );
+  }
+});
 ```
 
 ===== Execute a SQL command (non idempotent)
 
 ```java
-Database database = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
-try {
-  database.asynch().command("sql", "insert into V set name = 'Jay', surname = 'Miner'", null, new SQLCallback() {
-		@Override
-		public void onOk(ResultSet resultset) {
-			System.out.println("Created new record: " + resultset.next() );
-		}
+database.asynch().command("sql", "insert into V set name = 'Jay', surname = 'Miner'", null, new SQLCallback() {
+	@Override
+	public void onOk(ResultSet resultset) {
+		System.out.println("Created new record: " + resultset.next() );
+	}
 
-		@Override
-		public void onError(Exception exception) {
-			System.err.println("Error on creating new record: " + exception );
-		}
-	});
-
-} finally {
-  database.close();
-}
+	@Override
+	public void onError(Exception exception) {
+		System.err.println("Error on creating new record: " + exception );
+	}
+});
 ```
