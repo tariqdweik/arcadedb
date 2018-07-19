@@ -41,7 +41,7 @@ public class FunctionTest {
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", 10);
-        ResultSet rs = db.sql("SELECT count(*) as count FROM V WHERE id < :id", params);
+        ResultSet rs = db.command("SQL", "SELECT count(*) as count FROM V WHERE id < :id", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {
@@ -63,7 +63,7 @@ public class FunctionTest {
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", 10);
-        ResultSet rs = db.sql("SELECT avg(id) as avg FROM V WHERE id < :id", params);
+        ResultSet rs = db.command("SQL", "SELECT avg(id) as avg FROM V WHERE id < :id", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {
@@ -84,7 +84,7 @@ public class FunctionTest {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
-        ResultSet rs = db.sql("SELECT max(id) as max FROM V", params);
+        ResultSet rs = db.command("SQL", "SELECT max(id) as max FROM V", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {
@@ -105,7 +105,7 @@ public class FunctionTest {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
-        ResultSet rs = db.sql("SELECT min(id) as min FROM V", params);
+        ResultSet rs = db.command("SQL", "SELECT min(id) as min FROM V", params);
 
         final AtomicInteger counter = new AtomicInteger();
         while (rs.hasNext()) {

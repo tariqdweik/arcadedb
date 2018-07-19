@@ -64,7 +64,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
         for (int i = 0; i < getVerticesPerTx(); ++i) {
           for (int retry = 0; retry < 3; ++retry) {
             try {
-              ResultSet resultSet = db.sql("CREATE VERTEX " + VERTEX1_TYPE_NAME + " SET id = ?, name = ?", ++counter, "distributed-test");
+              ResultSet resultSet = db.command("SQL", "CREATE VERTEX " + VERTEX1_TYPE_NAME + " SET id = ?, name = ?", ++counter, "distributed-test");
 
               Assertions.assertTrue(resultSet.hasNext());
               final Result result = resultSet.next();

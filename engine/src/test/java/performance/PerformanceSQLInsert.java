@@ -37,7 +37,7 @@ public class PerformanceSQLInsert {
       final long begin = System.currentTimeMillis();
 
       for (int i = 0; i < MAX_LOOPS; ++i) {
-        database.asynch().sql("insert into " + TYPE_NAME + " set name = 'Luca'", null, new SQLCallback() {
+        database.asynch().command("SQL", "insert into " + TYPE_NAME + " set name = 'Luca'", null, new SQLCallback() {
           @Override
           public void onOk(ResultSet resultset) {
             oks.incrementAndGet();

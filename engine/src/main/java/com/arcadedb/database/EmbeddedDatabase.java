@@ -834,21 +834,21 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public ResultSet sql(String query, final Object... args) {
+  public ResultSet command(String language, String query, final Object... args) {
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
   }
 
   @Override
-  public ResultSet sql(String query, final Map<String, Object> args) {
+  public ResultSet command(String language, String query, final Map<String, Object> args) {
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
   }
 
   @Override
-  public ResultSet query(String query, final Object... args) {
+  public ResultSet query(String language, String query, final Object... args) {
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
@@ -857,7 +857,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public ResultSet query(String query, Map<String, Object> args) {
+  public ResultSet query(String language, String query, Map<String, Object> args) {
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");

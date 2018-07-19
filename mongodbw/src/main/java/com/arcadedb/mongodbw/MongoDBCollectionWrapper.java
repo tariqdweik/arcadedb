@@ -244,7 +244,7 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
 
       buildExpression(sql, query);
 
-      it = database.query(sql.toString());
+      it = database.query("SQL", sql.toString());
     }
 
     fillResultSet(numberToSkip, numberToReturn, result, it);

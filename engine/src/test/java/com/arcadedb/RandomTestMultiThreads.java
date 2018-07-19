@@ -88,7 +88,7 @@ public class RandomTestMultiThreads {
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":id", getRandom(10000) + 1);
 
-                  final ResultSet result = database.sql("select from Account where id = :id", map);
+                  final ResultSet result = database.command("SQL", "select from Account where id = :id", map);
                   while (result.hasNext()) {
                     final Result record = result.next();
                     record.toString();
@@ -100,7 +100,7 @@ public class RandomTestMultiThreads {
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":uuid", getRandom((int) (totalTransactionRecords.get() + 1)) + 1);
 
-                  final ResultSet result = database.sql("select from Transaction where uuid = :uuid", map);
+                  final ResultSet result = database.command("SQL", "select from Transaction where uuid = :uuid", map);
                   while (result.hasNext()) {
                     final Result record = result.next();
                     record.toString();
@@ -111,7 +111,7 @@ public class RandomTestMultiThreads {
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":limit", getRandom(100) + 1);
 
-                  final ResultSet result = database.sql("select from Account limit :limit", map);
+                  final ResultSet result = database.command("SQL", "select from Account limit :limit", map);
                   while (result.hasNext()) {
                     final Result record = result.next();
                     record.toString();
@@ -123,7 +123,7 @@ public class RandomTestMultiThreads {
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":limit", getRandom((int) totalTransactionRecords.get() + 1) + 1);
 
-                  final ResultSet result = database.sql("select from Transaction limit :limit", map);
+                  final ResultSet result = database.command("SQL", "select from Transaction limit :limit", map);
                   while (result.hasNext()) {
                     final Result record = result.next();
                     record.toString();

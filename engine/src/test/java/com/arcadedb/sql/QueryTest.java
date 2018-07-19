@@ -43,7 +43,7 @@ public class QueryTest {
     new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
       @Override
       public void execute(Database db) {
-        ResultSet rs = db.sql("SELECT FROM V", new HashMap<>());
+        ResultSet rs = db.command("SQL", "SELECT FROM V", new HashMap<>());
 
         final AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -76,7 +76,7 @@ public class QueryTest {
         Map<String, Object> params = new HashMap<>();
         params.put(":name", "Jay");
         params.put(":surname", "Miner123");
-        ResultSet rs = db.sql("SELECT FROM V WHERE name = :name AND surname = :surname", params);
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE name = :name AND surname = :surname", params);
 
         final AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -109,7 +109,7 @@ public class QueryTest {
         Map<String, Object> params = new HashMap<>();
         params.put(":name", "Jay");
         params.put(":surname", "Miner123");
-        ResultSet rs = db.sql("SELECT FROM V WHERE name = :name AND surname = :surname", params);
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE name = :name AND surname = :surname", params);
 
         AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -139,7 +139,7 @@ public class QueryTest {
             ((DatabaseInternal) db).getExecutionPlanCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
 
         // EXECUTE THE 2ND TIME
-        rs = db.sql("SELECT FROM V WHERE name = :name AND surname = :surname", params);
+        rs = db.command("SQL", "SELECT FROM V WHERE name = :name AND surname = :surname", params);
 
         total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -170,7 +170,7 @@ public class QueryTest {
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", TOT - 11);
-        ResultSet rs = db.sql("SELECT FROM V WHERE id > :id", params);
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE id > :id", params);
 
         final AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -191,7 +191,7 @@ public class QueryTest {
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", TOT - 11);
-        ResultSet rs = db.sql("SELECT FROM V WHERE id >= :id", params);
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE id >= :id", params);
 
         final AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -212,7 +212,7 @@ public class QueryTest {
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", 10);
-        ResultSet rs = db.sql("SELECT FROM V WHERE id < :id", params);
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE id < :id", params);
 
         final AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -233,7 +233,7 @@ public class QueryTest {
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", 10);
-        ResultSet rs = db.sql("SELECT FROM V WHERE id <= :id", params);
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE id <= :id", params);
 
         final AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {
@@ -254,7 +254,7 @@ public class QueryTest {
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
         params.put(":id", 10);
-        ResultSet rs = db.sql("SELECT FROM V WHERE NOT( id > :id )", params);
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE NOT( id > :id )", params);
 
         final AtomicInteger total = new AtomicInteger();
         while (rs.hasNext()) {

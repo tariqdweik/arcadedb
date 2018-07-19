@@ -77,7 +77,7 @@ public class RemoteDatabase extends RWLockContext {
     close();
   }
 
-  public ResultSet sql(final String command, final Object... args) {
+  public ResultSet command(final String language, final String command, final Object... args) {
     Map<String, Object> params = null;
     if (args != null && args.length > 0) {
       if (args.length == 1 && args[0] instanceof Map)
@@ -106,7 +106,7 @@ public class RemoteDatabase extends RWLockContext {
     });
   }
 
-  public ResultSet query(final String command, final Object... args) {
+  public ResultSet query(final String language, final String command, final Object... args) {
     Map<String, Object> params = null;
     if (args != null && args.length > 0) {
       if (args.length == 1 && args[0] instanceof Map)
@@ -136,15 +136,15 @@ public class RemoteDatabase extends RWLockContext {
   }
 
   public void begin() {
-    sql("begin");
+    command("SQL", "begin");
   }
 
   public void commit() {
-    sql("commit");
+    command("SQL", "commit");
   }
 
   public void rollback() {
-    sql("rollback");
+    command("SQL", "rollback");
   }
 
   public CONNECTION_STRATEGY getConnectionStrategy() {

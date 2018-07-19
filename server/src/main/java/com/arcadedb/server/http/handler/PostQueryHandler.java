@@ -59,7 +59,7 @@ public class PostQueryHandler extends DatabaseAbstractHandler {
     final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.query");
     try {
 
-      final ResultSet qResult = database.query(command, params);
+      final ResultSet qResult = database.query("SQL", command, params);
       while (qResult.hasNext()) {
         if (result.length() > 0)
           result.append(",");

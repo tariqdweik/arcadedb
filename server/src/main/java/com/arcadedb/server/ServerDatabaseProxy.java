@@ -327,27 +327,27 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   }
 
   @Override
-  public ResultSet sql(final String query, final Map<String, Object> args) {
+  public ResultSet command(final String language, final String query, final Map<String, Object> args) {
     checkForOpen();
-    return proxied.sql(query, args);
+    return proxied.command(language, query, args);
   }
 
   @Override
-  public ResultSet sql(final String query, final Object... args) {
+  public ResultSet command(final String language, final String query, final Object... args) {
     checkForOpen();
-    return proxied.sql(query, args);
+    return proxied.command(language, query, args);
   }
 
   @Override
-  public ResultSet query(final String query, final Object... args) {
+  public ResultSet query(final String language, final String query, final Object... args) {
     checkForOpen();
-    return proxied.query(query, args);
+    return proxied.query(language, query, args);
   }
 
   @Override
-  public ResultSet query(final String query, final Map<String, Object> args) {
+  public ResultSet query(final String language, final String query, final Map<String, Object> args) {
     checkForOpen();
-    return proxied.query(query, args);
+    return proxied.query(language, query, args);
   }
 
   @Override

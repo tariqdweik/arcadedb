@@ -201,7 +201,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
 
   public void readOperation(final Database database, final long n) {
     final String query = String.format("SELECT FROM %s WHERE name = ?", CLASS_NAME);
-    final ResultSet result = database.sql(query, "value" + n);
+    final ResultSet result = database.command("SQL", query, "value" + n);
     final int tot = result.countEntries();
     if (tot != 1) {
       throw new RuntimeException(String.format("The query [%s] result size is %d. Expected size is 1.", query, tot));
@@ -210,7 +210,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
 
   public void scanOperation(final Database database) {
     final String query = String.format("SELECT count(*) FROM %s WHERE notexistent is null", CLASS_NAME);
-    final ResultSet result = database.sql(query);
+    final ResultSet result = database.command("SQL", query);
     final int tot = result.countEntries();
     if (tot != 1) {
       throw new RuntimeException(String.format("The query [%s] result size is %d. Expected size is 1.", query, tot));

@@ -67,7 +67,7 @@ public class SQLHandler extends DatabaseAbstractHandler {
     final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.sql");
     try {
 
-      final ResultSet qResult = database.sql(command, params);
+      final ResultSet qResult = database.command("SQL", command, params);
 
       while (qResult.hasNext()) {
         if (result.length() > 0)

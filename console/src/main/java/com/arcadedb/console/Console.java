@@ -135,7 +135,7 @@ public class Console {
     if (database != null)
       database.begin();
     else
-      remoteDatabase.sql("begin");
+      remoteDatabase.command("SQL", "begin");
   }
 
   private void executeCommit() {
@@ -143,7 +143,7 @@ public class Console {
     if (database != null)
       database.commit();
     else
-      remoteDatabase.sql("commit");
+      remoteDatabase.command("SQL", "commit");
   }
 
   private void executeRollback() {
@@ -151,7 +151,7 @@ public class Console {
     if (database != null)
       database.rollback();
     else
-      remoteDatabase.sql("rollback");
+      remoteDatabase.command("SQL", "rollback");
   }
 
   private void executeClose() {
@@ -235,9 +235,9 @@ public class Console {
     final ResultSet result;
 
     if (remoteDatabase != null)
-      result = remoteDatabase.sql(line);
+      result = remoteDatabase.command("SQL", line);
     else
-      result = database.sql(line);
+      result = database.command("SQL", line);
 
     final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
       @Override

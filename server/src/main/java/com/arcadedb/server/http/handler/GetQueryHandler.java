@@ -34,7 +34,7 @@ public class GetQueryHandler extends DatabaseAbstractHandler {
     try {
 
       final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
-      final ResultSet qResult = database.query(command);
+      final ResultSet qResult = database.query("SQL", command);
       while (qResult.hasNext()) {
         if (result.length() > 0)
           result.append(",");

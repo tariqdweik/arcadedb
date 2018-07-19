@@ -27,12 +27,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class DatabaseAsyncExecutor {
   private final DatabaseInternal database;
   private       AsyncThread[]    executorThreads;
-  private       int              parallelLevel      = 1;
-  private       int              commitEvery        = GlobalConfiguration.ASYNC_TX_BATCH_SIZE.getValueAsInteger();
-  private       boolean          transactionUseWAL  = true;
-  private       boolean          transactionSync    = false;
-  private       AtomicLong       transactionCounter = new AtomicLong();
-  private       AtomicLong       sqlRoundRobinIndex = new AtomicLong();
+  private       int              parallelLevel          = 1;
+  private       int              commitEvery            = GlobalConfiguration.ASYNC_TX_BATCH_SIZE.getValueAsInteger();
+  private       boolean          transactionUseWAL      = true;
+  private       boolean          transactionSync        = false;
+  private       AtomicLong       transactionCounter     = new AtomicLong();
+  private       AtomicLong       commandRoundRobinIndex = new AtomicLong();
 
   // SPECIAL COMMANDS
   private final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand() {
@@ -169,7 +169,7 @@ public class DatabaseAsyncExecutor {
               final DatabaseAsyncSQL sql = (DatabaseAsyncSQL) message;
 
               try {
-                final ResultSet resultset = database.sql(sql.command, sql.args);
+                final ResultSet resultset = database.command("SQL", sql.command, sql.args);
 
                 count++;
 
@@ -392,9 +392,9 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  public void sql(final String query, final Map<String, Object> args, final SQLCallback callback) {
+  public void command(String language, final String query, final Map<String, Object> args, final SQLCallback callback) {
     try {
-      final int slot = (int) (sqlRoundRobinIndex.getAndIncrement() % executorThreads.length);
+      final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
       executorThreads[slot].queue.put(new DatabaseAsyncSQL(query, args, callback));
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
