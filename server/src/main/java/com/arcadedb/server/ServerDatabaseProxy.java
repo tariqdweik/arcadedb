@@ -32,13 +32,15 @@ public class ServerDatabaseProxy implements DatabaseInternal {
     this.proxied = proxied;
   }
 
-  public DatabaseInternal getProxied() {
-    return proxied;
+  @Override
+  public DatabaseInternal getEmbedded() {
+    return proxied.getEmbedded();
   }
 
   @Override
   public void close() {
     open = false;
+    DatabaseContext.INSTANCE.remove();
   }
 
   @Override

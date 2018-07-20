@@ -8,6 +8,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.EdgeType;
@@ -114,7 +115,7 @@ public class MVCCTest {
     try {
       database.asynch().setParallelLevel(PARALLEL);
       database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(true);
+      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
       database.asynch().setCommitEvery(20000);
       database.asynch().onError(new ErrorCallback() {
         @Override

@@ -9,6 +9,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.index.IndexLSM;
 import com.arcadedb.schema.DocumentType;
@@ -22,25 +23,23 @@ import java.io.*;
  */
 public class PokecLoader {
 
-  private static final String  DB_PATH                 = "target/database/pokec";
-  private static final String  POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt";
-  private static final String  POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
-  private static final int     PARALLEL_LEVEL          = 2;
-  private static final boolean IMPORT_PROPERTIES       = true;
-  private static final boolean USE_WAL                 = false;
-  private static final boolean USE_WAL_SYNC            = false;
-  private static final int     COMMIT_EVERY            = 100;
+  private static final String             DB_PATH                 = "target/database/pokec";
+  private static final String             POKEC_PROFILES_FILE     = "/personal/Downloads/soc-pokec-profiles.txt";
+  private static final String             POKEC_RELATIONSHIP_FILE = "/personal/Downloads/soc-pokec-relationships.txt";
+  private static final int                PARALLEL_LEVEL          = 2;
+  private static final boolean            IMPORT_PROPERTIES       = true;
+  private static final boolean            USE_WAL                 = false;
+  private static final WALFile.FLUSH_TYPE USE_WAL_SYNC            = WALFile.FLUSH_TYPE.NO;
+  private static final int                COMMIT_EVERY            = 100;
 
-  private static String[] COLUMNS = new String[] { "id", "public", "completion_percentage", "gender", "region", "last_login",
-      "registration", "age", "body", "I_am_working_in_field", "spoken_languages", "hobbies", "I_most_enjoy_good_food", "pets",
-      "body_type", "my_eyesight", "eye_color", "hair_color", "hair_type", "completed_level_of_education", "favourite_color",
-      "relation_to_smoking", "relation_to_alcohol", "sign_in_zodiac", "on_pokec_i_am_looking_for", "love_is_for_me",
-      "relation_to_casual_sex", "my_partner_should_be", "marital_status", "children", "relation_to_children", "I_like_movies",
-      "I_like_watching_movie", "I_like_music", "I_mostly_like_listening_to_music", "the_idea_of_good_evening",
-      "I_like_specialties_from_kitchen", "fun	I_am_going_to_concerts", "my_active_sports", "my_passive_sports", "profession",
-      "I_like_books", "life_style", "music", "cars", "politics", "relationships", "art_culture", "hobbies_interests",
-      "science_technologies", "computers_internet", "education", "sport", "movies", "travelling", "health", "companies_brands",
-      "more" };
+  private static String[] COLUMNS = new String[] { "id", "public", "completion_percentage", "gender", "region", "last_login", "registration", "age", "body",
+      "I_am_working_in_field", "spoken_languages", "hobbies", "I_most_enjoy_good_food", "pets", "body_type", "my_eyesight", "eye_color", "hair_color",
+      "hair_type", "completed_level_of_education", "favourite_color", "relation_to_smoking", "relation_to_alcohol", "sign_in_zodiac",
+      "on_pokec_i_am_looking_for", "love_is_for_me", "relation_to_casual_sex", "my_partner_should_be", "marital_status", "children", "relation_to_children",
+      "I_like_movies", "I_like_watching_movie", "I_like_music", "I_mostly_like_listening_to_music", "the_idea_of_good_evening",
+      "I_like_specialties_from_kitchen", "fun	I_am_going_to_concerts", "my_active_sports", "my_passive_sports", "profession", "I_like_books", "life_style",
+      "music", "cars", "politics", "relationships", "art_culture", "hobbies_interests", "science_technologies", "computers_internet", "education", "sport",
+      "movies", "travelling", "health", "companies_brands", "more" };
 
   public static void main(String[] args) throws Exception {
     new PokecLoader();
@@ -111,7 +110,7 @@ public class PokecLoader {
 
     db.begin();
     db.getTransaction().setUseWAL(USE_WAL);
-    db.getTransaction().setSync(USE_WAL_SYNC);
+    db.getTransaction().setWALFlush(USE_WAL_SYNC);
 
     for (int i = 0; buffered.ready(); ++i) {
       final String line = buffered.readLine();
@@ -120,16 +119,14 @@ public class PokecLoader {
       final int id1 = Integer.parseInt(profiles[0]);
       final int id2 = Integer.parseInt(profiles[1]);
 
-      db.asynch()
-          .newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false,
-              "E", true);
+      db.asynch().newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false, "E", true);
 
       if (i % 20000 == 0) {
         LogManager.instance().info(this, "Committing %d edges...", i);
         db.commit();
         db.begin();
         db.getTransaction().setUseWAL(USE_WAL);
-        db.getTransaction().setSync(USE_WAL_SYNC);
+        db.getTransaction().setWALFlush(USE_WAL_SYNC);
       }
     }
     db.commit();

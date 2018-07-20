@@ -62,11 +62,11 @@ public class ReplicationServerQuorumMajority2ServersOutTest extends ReplicationS
   }
 
   protected int[] getServerToCheck() {
-    return new int[]{};
+    return new int[] {};
   }
 
   protected void checkEntriesOnServer(final int s) {
-    final Database db = getServer(s).getDatabase(getDatabaseName());
+    final Database db = getServerDatabase(s, getDatabaseName());
     db.begin();
     try {
       Assertions.assertTrue(1 + getTxs() * getVerticesPerTx() > db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);

@@ -8,6 +8,8 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseContext;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.engine.ModifiablePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.engine.PageManager;
@@ -318,6 +320,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     // RELOAD THE SCHEMA
     ((SchemaImpl) database.getSchema()).close();
+    DatabaseContext.INSTANCE.init((DatabaseInternal) database);
     ((SchemaImpl) database.getSchema()).load(PaginatedFile.MODE.READ_ONLY);
   }
 

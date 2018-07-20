@@ -69,9 +69,10 @@ public enum GlobalConfiguration {
 
   FLUSH_ONLY_AT_CLOSE("arcadedb.flushOnlyAtClose", "Never flushes pages on disk until the database closing", Boolean.class, false),
 
-  TX_FLUSH("arcadedb.txFlush", "Flushes the pages on disk at commit time", Boolean.class, false),
-
   TX_WAL("arcadedb.txWAL", "Uses the WAL", Boolean.class, true),
+
+  TX_WAL_FLUSH("arcadedb.txWalFlush", "Flushes the WAL on disk at commit time. It can be 0 = no flush, 1 = flush without metadata and 2 = full flush (fsync)",
+      Integer.class, 0),
 
   FREE_PAGE_RAM("arcadedb.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 

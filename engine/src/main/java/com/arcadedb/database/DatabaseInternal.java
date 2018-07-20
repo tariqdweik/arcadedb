@@ -24,6 +24,8 @@ public interface DatabaseInternal extends Database {
     TX_AFTER_WAL_WRITE, DB_NOT_CLOSED
   }
 
+  DatabaseInternal getEmbedded();
+
   ContextConfiguration getConfiguration();
 
   void registerCallback(CALLBACK_EVENT event, Callable<Void> callback);

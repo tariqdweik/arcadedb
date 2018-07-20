@@ -25,19 +25,20 @@ import java.util.*;
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class TransactionContext {
-  private final DatabaseInternal            database;
+  protected     DatabaseInternal            database;
   private       Map<PageId, ModifiablePage> modifiedPages;
   private       Map<PageId, ModifiablePage> newPages;
   private final Map<Integer, Integer>       newPageCounters       = new HashMap<>();
   private final Map<RID, Record>            immutableRecordsCache = new HashMap<>(1024);
   private final Map<RID, Record>            modifiedRecordsCache  = new HashMap<>(1024);
   private       boolean                     useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
-  private       boolean                     sync                  = GlobalConfiguration.TX_FLUSH.getValueAsBoolean();
+  private       WALFile.FLUSH_TYPE          walFlush;
   private       List<Integer>               lockedFiles;
   private       long                        txId                  = -1;
 
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
+    this.walFlush = WALFile.getWALFlushType(database.getConfiguration().getValueAsInteger(GlobalConfiguration.TX_WAL_FLUSH));
   }
 
   public void begin() {
@@ -117,20 +118,12 @@ public class TransactionContext {
     }
   }
 
-  public boolean isUseWAL() {
-    return useWAL;
-  }
-
   public void setUseWAL(final boolean useWAL) {
     this.useWAL = useWAL;
   }
 
-  public boolean isSync() {
-    return sync;
-  }
-
-  public void setSync(final boolean sync) {
-    this.sync = sync;
+  public void setWALFlush(final WALFile.FLUSH_TYPE flush) {
+    this.walFlush = flush;
   }
 
   public void rollback() {
@@ -341,7 +334,7 @@ public class TransactionContext {
     try {
       if (changes.getFirst() != null)
         // WRITE TO THE WAL FIRST
-        database.getTransactionManager().writeTransactionToWAL(changes.getSecond(), sync, txId, changes.getFirst());
+        database.getTransactionManager().writeTransactionToWAL(changes.getSecond(), walFlush, txId, changes.getFirst());
 
       // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       // UPDATE PAGE COUNTER FIRST

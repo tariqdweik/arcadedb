@@ -195,13 +195,17 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (!open)
           return null;
 
+        open = false;
+
         if (asynch != null)
           asynch.close();
 
-        final TransactionContext tx = getTransaction();
-        if (tx != null && tx.isActive())
-          // ROLLBACK ANY PENDING OPERATION
-          tx.rollback();
+        final DatabaseContext.PDatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
+        if (dbContext != null && dbContext.transaction != null) {
+          if (dbContext.transaction != null && dbContext.transaction.isActive())
+            // ROLLBACK ANY PENDING OPERATION
+            dbContext.transaction.rollback();
+        }
 
         try {
           schema.close();
@@ -212,10 +216,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
           lockFile.delete();
 
-          DatabaseContext.INSTANCE.init(EmbeddedDatabase.this);
-
         } finally {
-          open = false;
+          DatabaseContext.INSTANCE.remove();
           Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
         }
         return null;
@@ -243,8 +245,17 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   public TransactionContext getTransaction() {
-    final DatabaseContext.PDatabaseContextTL dbContext = DatabaseContext.INSTANCE.get();
-    return dbContext != null ? dbContext.transaction : null;
+    final DatabaseContext.PDatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
+    if (dbContext != null) {
+      final TransactionContext tx = dbContext.transaction;
+      if (tx != null) {
+        final DatabaseInternal txDb = tx.database;
+        if (txDb == null || txDb.getEmbedded() != this)
+          throw new TransactionException("Invalid transactional context");
+        return tx;
+      }
+    }
+    return null;
   }
 
   @Override
@@ -280,8 +291,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     super.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        checkTransactionIsActive();
-        getTransaction().rollback();
+        try {
+          checkTransactionIsActive();
+          getTransaction().rollback();
+        } catch (TransactionException e) {
+          // ALREADY ROLLBACKED
+        }
         return null;
       }
     });
@@ -513,7 +528,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         final DocumentType type = schema.getType(record.getType());
 
         // NEW
-        final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.get().asyncMode);
+        final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.getContext(databasePath).asyncMode);
         record.setIdentity(bucket.createRecord(record));
         indexDocument(record, type, bucket);
 
@@ -678,6 +693,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public PageManager getPageManager() {
+    checkDatabaseIsOpen();
     return pageManager;
   }
 
@@ -756,6 +772,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public FileManager getFileManager() {
+    checkDatabaseIsOpen();
     return fileManager;
   }
 
@@ -819,22 +836,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public StatementCache getStatementCache() {
-    return statementCache;
-  }
-
-  @Override
-  public ExecutionPlanCache getExecutionPlanCache() {
-    return executionPlanCache;
-  }
-
-  @Override
-  public WALFileFactory getWALFileFactory() {
-    return walFactory;
-  }
-
-  @Override
   public ResultSet command(String language, String query, final Object... args) {
+    checkDatabaseIsOpen();
+
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
@@ -842,6 +846,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public ResultSet command(String language, String query, final Map<String, Object> args) {
+    checkDatabaseIsOpen();
+
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
@@ -849,6 +855,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public ResultSet query(String language, String query, final Object... args) {
+    checkDatabaseIsOpen();
+
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
@@ -858,6 +866,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public ResultSet query(String language, String query, Map<String, Object> args) {
+    checkDatabaseIsOpen();
+
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
@@ -877,7 +887,22 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   public DatabaseContext.PDatabaseContextTL getContext() {
-    return DatabaseContext.INSTANCE.get();
+    return DatabaseContext.INSTANCE.getContext(databasePath);
+  }
+
+  @Override
+  public StatementCache getStatementCache() {
+    return statementCache;
+  }
+
+  @Override
+  public ExecutionPlanCache getExecutionPlanCache() {
+    return executionPlanCache;
+  }
+
+  @Override
+  public WALFileFactory getWALFileFactory() {
+    return walFactory;
   }
 
   @Override
@@ -899,6 +924,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         }
       }
     }
+  }
+
+  @Override
+  public DatabaseInternal getEmbedded() {
+    return this;
   }
 
   @Override

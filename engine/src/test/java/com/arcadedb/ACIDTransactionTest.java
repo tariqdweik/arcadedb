@@ -11,6 +11,7 @@ import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALException;
+import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
@@ -57,7 +58,7 @@ public class ACIDTransactionTest {
   public void testAsyncTX() {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
-    db.asynch().setTransactionSync(true);
+    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1);
 
@@ -166,7 +167,7 @@ public class ACIDTransactionTest {
 
     final AtomicInteger errors = new AtomicInteger(0);
 
-    db.asynch().setTransactionSync(true);
+    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1);
     db.asynch().onError(new ErrorCallback() {
@@ -237,7 +238,7 @@ public class ACIDTransactionTest {
 
     final AtomicInteger errors = new AtomicInteger(0);
 
-    db.asynch().setTransactionSync(true);
+    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1000000);
     db.asynch().onError(new ErrorCallback() {

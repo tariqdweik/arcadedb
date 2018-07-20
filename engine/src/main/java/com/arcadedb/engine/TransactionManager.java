@@ -4,7 +4,6 @@
 
 package com.arcadedb.engine;
 
-import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.utility.LogManager;
@@ -34,9 +33,8 @@ public class TransactionManager {
   private final AtomicLong transactionIds = new AtomicLong();
   private final AtomicLong logFileCounter = new AtomicLong();
 
-  private       AtomicLong statsPagesWritten = new AtomicLong();
-  private       AtomicLong statsBytesWritten = new AtomicLong();
-  private final boolean    sync;
+  private AtomicLong statsPagesWritten = new AtomicLong();
+  private AtomicLong statsBytesWritten = new AtomicLong();
 
   public TransactionManager(final DatabaseInternal database) {
     this.database = database;
@@ -44,7 +42,6 @@ public class TransactionManager {
     createFilePool();
 
     this.logContext = LogManager.instance().getContext();
-    this.sync = database.getConfiguration().getValueAsBoolean(GlobalConfiguration.TX_FLUSH);
 
     task = new Timer();
     task.schedule(new TimerTask() {
@@ -101,7 +98,7 @@ public class TransactionManager {
     return WALFile.writeTransactionToBuffer(pages, txId);
   }
 
-  public void writeTransactionToWAL(final List<ModifiablePage> pages, final boolean sync, final long txId, final Binary bufferChanges) {
+  public void writeTransactionToWAL(final List<ModifiablePage> pages, final WALFile.FLUSH_TYPE sync, final long txId, final Binary bufferChanges) {
     while (true) {
       final WALFile file = activeWALFilePool[(int) (Thread.currentThread().getId() % activeWALFilePool.length)];
 
@@ -255,9 +252,6 @@ public class TransactionManager {
         modifiedPage.setContentSize(txPage.currentPageSize);
         modifiedPage.flushMetadata();
         file.write(modifiedPage);
-
-        if (sync)
-          file.flush();
 
         database.getPageManager().removePageFromCache(modifiedPage.pageId);
 

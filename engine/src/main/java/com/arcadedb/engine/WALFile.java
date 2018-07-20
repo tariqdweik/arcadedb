@@ -6,6 +6,7 @@ package com.arcadedb.engine;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.utility.LockContext;
 import com.arcadedb.utility.LogManager;
 
@@ -22,6 +23,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WALFile extends LockContext {
+  public enum FLUSH_TYPE {
+    NO, YES_NO_METADATA, YES_FULL
+  }
+
   // TXID (long) + PAGES (int) + SEGMENT_SIZE (int)
   private static final int TX_HEADER_SIZE = Binary.LONG_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
   // SEGMENT_SIZE (int) + MAGIC_NUMBER (long)
@@ -243,8 +248,8 @@ public class WALFile extends LockContext {
     return bufferChanges;
   }
 
-  public void writeTransactionToFile(final DatabaseInternal database, final List<ModifiablePage> pages, final boolean sync, final WALFile file, final long txId,
-      final Binary buffer) throws IOException {
+  public void writeTransactionToFile(final DatabaseInternal database, final List<ModifiablePage> pages, final FLUSH_TYPE sync, final WALFile file,
+      final long txId, final Binary buffer) throws IOException {
 
     LogManager.instance().debug(this, "Appending WAL for txId=%d (size=%d file=%s threadId=%d)", txId, buffer.size(), filePath, Thread.currentThread().getId());
 
@@ -261,8 +266,10 @@ public class WALFile extends LockContext {
 
     statsBytesWritten += buffer.size();
 
-    if (sync)
+    if (sync == FLUSH_TYPE.YES_NO_METADATA)
       channel.force(false);
+    else if (sync == FLUSH_TYPE.YES_FULL)
+      channel.force(true);
 
     database.executeCallbacks(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE);
   }
@@ -297,6 +304,19 @@ public class WALFile extends LockContext {
     map.put("pagesWritten", statsPagesWritten);
     map.put("bytesWritten", statsBytesWritten);
     return map;
+  }
+
+  public static FLUSH_TYPE getWALFlushType(final int txFlushType) {
+    switch (txFlushType) {
+    case 0:
+      return WALFile.FLUSH_TYPE.NO;
+    case 1:
+      return WALFile.FLUSH_TYPE.YES_NO_METADATA;
+    case 2:
+      return WALFile.FLUSH_TYPE.YES_FULL;
+    default:
+      throw new ConfigurationException("Invalid TX_WAL_FLUSH setting " + txFlushType);
+    }
   }
 
   private long readLong(final long pos) throws IOException {

@@ -7,10 +7,7 @@ package com.arcadedb.server;
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseComparator;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.RID;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
@@ -202,6 +199,10 @@ public abstract class BaseGraphServerTest {
     return servers[i];
   }
 
+  protected Database getServerDatabase(final int i, final String name) {
+    return servers[i].getDatabase(name);
+  }
+
   protected ArcadeDBServer getServer(final String name) {
     for (ArcadeDBServer s : servers) {
       if (s.getServerName().equals(name))
@@ -285,8 +286,8 @@ public abstract class BaseGraphServerTest {
     final int[] servers2Check = getServerToCheck();
 
     for (int i = 1; i < servers2Check.length; ++i) {
-      final Database db1 = getServer(servers2Check[0]).getDatabase(getDatabaseName());
-      final Database db2 = getServer(servers2Check[i]).getDatabase(getDatabaseName());
+      final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
+      final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());
 
       LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
       new DatabaseComparator().compare(db1, db2);

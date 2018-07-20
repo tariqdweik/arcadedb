@@ -10,6 +10,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.schema.DocumentType;
@@ -46,7 +47,7 @@ public class PerformanceVertexIndexTest {
       }
 
       database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(false);
+      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.NO);
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(PARALLEL);
       database.asynch().onError(new ErrorCallback() {

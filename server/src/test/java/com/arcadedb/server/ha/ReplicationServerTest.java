@@ -37,7 +37,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
   public void testReplication() {
     checkDatabases();
 
-    Database db = getServer(0).getDatabase(getDatabaseName());
+    Database db = getServerDatabase(0, getDatabaseName());
     db.begin();
     try {
       Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + 0);
@@ -89,7 +89,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
   protected void checkDatabases() {
     for (int s = 0; s < getServerCount(); ++s) {
-      Database db = getServer(s).getDatabase(getDatabaseName());
+      Database db = getServerDatabase(s, getDatabaseName());
       db.begin();
       try {
         Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + s);
@@ -115,7 +115,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
   }
 
   protected void checkEntriesOnServer(final int s) {
-    final Database db = getServer(s).getDatabase(getDatabaseName());
+    final Database db = getServerDatabase(s, getDatabaseName());
     db.begin();
     try {
       Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + s);

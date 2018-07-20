@@ -6,6 +6,7 @@ package com.arcadedb.engine;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.EmbeddedDatabase;
+import com.arcadedb.database.TransactionContext;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,13 +22,13 @@ public abstract class PaginatedComponent {
   protected final int              pageSize;
   protected final AtomicInteger    pageCount = new AtomicInteger();
 
-  protected PaginatedComponent(final Database database, final String name, String filePath, final int id, final String ext,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  protected PaginatedComponent(final Database database, final String name, String filePath, final int id, final String ext, final PaginatedFile.MODE mode,
+      final int pageSize) throws IOException {
     this(database, name, filePath + "." + id + "." + pageSize + "." + ext, id, mode, pageSize);
   }
 
-  protected PaginatedComponent(final Database database, final String name, String filePath, final int id,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  protected PaginatedComponent(final Database database, final String name, String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
+      throws IOException {
     this.database = (EmbeddedDatabase) database;
     this.name = name;
     this.id = id;
@@ -70,9 +71,12 @@ public abstract class PaginatedComponent {
   }
 
   public int getTotalPages() {
-    final Integer txPageCounter = database.getTransaction().getPageCounter(id);
-    if (txPageCounter != null)
-      return txPageCounter;
+    final TransactionContext tx = database.getTransaction();
+    if (tx != null) {
+      final Integer txPageCounter = tx.getPageCounter(id);
+      if (txPageCounter != null)
+        return txPageCounter;
+    }
     return pageCount.get();
   }
 }

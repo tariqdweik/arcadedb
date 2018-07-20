@@ -593,15 +593,14 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
         // TODO: MANAGE NOT-UNIQUE BY ADDING THE VALUE TO THE ENTRY'S VALUE CONTAINER
         // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE VALUE
-        final Binary valueContent = database.getContext().temporaryBuffer1;
-        valueContent.clear();
+        final Binary valueContent = database.getContext().getTemporaryBuffer1();
         database.getSerializer().serializeValue(valueContent, valueType, rid);
         currentPageBuffer.putByteArray(result.valueBeginPosition, valueContent.toByteArray());
         return;
       }
 
       // WRITE KEY/VALUE PAIRS FIRST
-      final Binary keyValueContent = database.getContext().temporaryBuffer1;
+      final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
       keyValueContent.clear();
 
       for (int i = 0; i < keyTypes.length; ++i)

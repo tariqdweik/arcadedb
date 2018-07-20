@@ -118,7 +118,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
     });
   }
 
-  public EmbeddedDatabase getEmbeddedDatabase() {
+  @Override
+  public EmbeddedDatabase getEmbedded() {
     return proxied;
   }
 

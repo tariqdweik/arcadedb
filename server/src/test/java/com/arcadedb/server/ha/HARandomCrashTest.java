@@ -93,7 +93,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
           LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
 
           for (int i = 0; i < getServerCount(); ++i) {
-            final Database database = getServer(i).getDatabase(getDatabaseName());
+            final Database database = getServerDatabase(i, getDatabaseName());
             try {
               LogManager.instance().info(this, "TEST: -- DB '%s' - %d records", database, database.countType(VERTEX1_TYPE_NAME, false));
             } catch (Exception e) {

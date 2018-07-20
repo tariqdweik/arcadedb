@@ -8,6 +8,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.RawRecordCallback;
+import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.*;
@@ -25,14 +26,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class DatabaseAsyncExecutor {
-  private final DatabaseInternal database;
-  private       AsyncThread[]    executorThreads;
-  private       int              parallelLevel          = 1;
-  private       int              commitEvery            = GlobalConfiguration.ASYNC_TX_BATCH_SIZE.getValueAsInteger();
-  private       boolean          transactionUseWAL      = true;
-  private       boolean          transactionSync        = false;
-  private       AtomicLong       transactionCounter     = new AtomicLong();
-  private       AtomicLong       commandRoundRobinIndex = new AtomicLong();
+  private final DatabaseInternal   database;
+  private       AsyncThread[]      executorThreads;
+  private       int                parallelLevel          = 1;
+  private       int                commitEvery            = GlobalConfiguration.ASYNC_TX_BATCH_SIZE.getValueAsInteger();
+  private       boolean            transactionUseWAL      = true;
+  private       WALFile.FLUSH_TYPE transactionSync        = WALFile.FLUSH_TYPE.NO;
+  private       AtomicLong         transactionCounter     = new AtomicLong();
+  private       AtomicLong         commandRoundRobinIndex = new AtomicLong();
 
   // SPECIAL COMMANDS
   private final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand() {
@@ -66,12 +67,11 @@ public class DatabaseAsyncExecutor {
 
     @Override
     public void run() {
-      if (DatabaseContext.INSTANCE.get() == null)
-        DatabaseContext.INSTANCE.init(database);
+      DatabaseContext.INSTANCE.init(database);
 
-      DatabaseContext.INSTANCE.get().asyncMode = true;
+      DatabaseContext.INSTANCE.getContext(database.getDatabasePath()).asyncMode = true;
       database.getTransaction().setUseWAL(transactionUseWAL);
-      database.getTransaction().setSync(transactionSync);
+      database.getTransaction().setWALFlush(transactionSync);
       database.getTransaction().begin();
 
       while (!forceShutdown) {
@@ -337,13 +337,9 @@ public class DatabaseAsyncExecutor {
     return transactionUseWAL;
   }
 
-  public void setTransactionSync(final boolean transactionSync) {
+  public void setTransactionSync(final WALFile.FLUSH_TYPE transactionSync) {
     this.transactionSync = transactionSync;
     createThreads(parallelLevel);
-  }
-
-  public boolean isTransactionSync() {
-    return transactionSync;
   }
 
   public void onOk(final OkCallback callback) {

@@ -9,6 +9,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 
@@ -51,7 +52,7 @@ public class PerformanceInsertNoIndexTest {
       database.setReadYourWrites(false);
       database.asynch().setParallelLevel(PARALLEL);
       database.asynch().setTransactionUseWAL(false);
-      database.asynch().setTransactionSync(false);
+      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.NO);
       database.asynch().setCommitEvery(5000);
       database.asynch().onError(new ErrorCallback() {
         @Override
