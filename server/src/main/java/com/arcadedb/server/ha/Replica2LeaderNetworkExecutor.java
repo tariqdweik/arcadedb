@@ -263,7 +263,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     final Binary buffer = new Binary(1024);
 
     final ReplicationMessage lastMessage = server.getReplicationLogFile().getLastMessage();
-    long lastLogNumber = lastMessage != null ? lastMessage.messageNumber + 1 : -1;
+    long lastLogNumber = lastMessage != null ? lastMessage.messageNumber : -1;
 
     try {
       sendCommandToLeader(buffer, new ReplicaConnectRequest(lastLogNumber), -1);
