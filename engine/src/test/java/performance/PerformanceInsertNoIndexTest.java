@@ -14,9 +14,9 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 
 public class PerformanceInsertNoIndexTest {
-  private static final int    TOT       = 10000000;
+  private static final int    TOT       = 20000000;
   private static final String TYPE_NAME = "Person";
-  private static final int    PARALLEL  = 2;
+  private static final int    PARALLEL  = Runtime.getRuntime().availableProcessors() - 1;
 
   public static void main(String[] args) {
     new PerformanceInsertNoIndexTest().run();

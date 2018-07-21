@@ -1,4 +1,4 @@
-==== Run ArcadeDB
+=== Run ArcadeDB
 
 You can run ArcadeDB on the cloud or on-premise. You can embed it or use it remotely as with any other DBMS (client/server mode).
 

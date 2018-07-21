@@ -1,3 +1,4 @@
+image::arcadedb-logo.png[]
 
 include::introduction/chapter.adoc[]
 include::api/chapter.adoc[]

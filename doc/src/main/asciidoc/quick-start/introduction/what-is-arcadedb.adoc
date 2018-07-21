@@ -3,15 +3,15 @@
 
 ArcadeDB is the new generation of DBMS that runs on pretty much every hardware/software configuration. ArcadeDB is Multi-Model, that means it can work with graphs, documents and other forms of data. ArcadeDB is the fastest DBMS in all the benchmarks we have measured against RocksDB, MongoDB, Cassandra, OrientDB and Neo4j.
 
-=== How can it be so fast?
+==== How can it be so fast?
 
 ArcadeDB is written in LLJ ("Low-Level-Java"), that means it's written in Java (Java7+), but without using high-level API. The result is that ArcadeDB does not use the Heap (and therefore the Garbage Collection), but still runs on pretty much every sw/hw configuration. Furthermore the kernel is built to be efficient on multi-core CPUs by using novel Mechanical Symphaty techniques.
 
-=== Cloud DBMS
+==== Cloud DBMS
 
 ArcadeDB was born on the cloud. Even though you can run ArcadeDB as embedded and in an on-premise setup, if your application is on the Cloud, you can spin an ArcadeDB cluster in a few seconds from the online dashboard.
 
-=== Is ArcadeDB FREE?
+==== Is ArcadeDB FREE?
 
 ArcadeDB Community Edition is FREE for any usage, while the Enterprise Edition is released under a Commercial license.
 
