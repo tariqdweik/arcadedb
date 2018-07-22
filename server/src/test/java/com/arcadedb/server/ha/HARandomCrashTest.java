@@ -98,6 +98,8 @@ public class HARandomCrashTest extends ReplicationServerTest {
               LogManager.instance().info(this, "TEST: -- DB '%s' - %d records", database, database.countType(VERTEX1_TYPE_NAME, false));
             } catch (Exception e) {
               LogManager.instance().error(this, "TEST: -- ERROR ON RETRIEVING COUNT FROM DATABASE '%s'", e, database);
+            } finally {
+              database.close();
             }
           }
 

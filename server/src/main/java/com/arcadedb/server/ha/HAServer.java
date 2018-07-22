@@ -48,7 +48,7 @@ public class HAServer implements ServerPlugin {
   private final    ContextConfiguration                       configuration;
   private final    String                                     clusterName;
   private final    long                                       startedOn;
-  private          int                                        configuredServers           = 1;
+  private volatile int                                        configuredServers           = 1;
   private final    Map<String, Leader2ReplicaNetworkExecutor> replicaConnections          = new ConcurrentHashMap<>();
   private final    AtomicLong                                 messageNumber               = new AtomicLong(-1);
   protected final  String                                     replicationPath;
@@ -130,6 +130,10 @@ public class HAServer implements ServerPlugin {
     if (!cfgServerList.isEmpty()) {
       final String[] serverEntries = cfgServerList.split(",");
 
+      configuredServers = serverEntries.length;
+
+      server.log(this, Level.FINE, "Connecting to servers %s (cluster=%s configuredServers=%d)", cfgServerList, clusterName, configuredServers);
+
       serverAddressList.clear();
       for (String serverEntry : serverEntries)
         serverAddressList.add(serverEntry);
@@ -141,8 +145,22 @@ public class HAServer implements ServerPlugin {
       }
     }
 
-    if (leaderConnection == null)
-      server.log(this, Level.INFO, "Server started as $ANSI{green Leader} in HA mode (cluster=%s)", clusterName);
+    if (leaderConnection == null) {
+      final int majorityOfVotes = (configuredServers / 2) + 1;
+      server.log(this, Level.INFO, "Unable to find any Leader, start election (cluster=%s configuredServers=%d majorityOfVotes=%d)", clusterName,
+          configuredServers, majorityOfVotes);
+
+      // START ELECTION IN BACKGROUND
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          startElection();
+        }
+      }).start();
+
+//      server.log(this, Level.INFO, "Server started as $ANSI{green Leader} in HA mode (cluster=%s configuredServers=%d majorityOfVotes=%d)", clusterName,
+//          configuredServers, majorityOfVotes);
+    }
   }
 
   @Override
@@ -188,8 +206,9 @@ public class HAServer implements ServerPlugin {
 
       lastElectionVote = new Pair<>(electionTurn, getServerName());
 
-      server.log(this, Level.INFO, "Starting election of local server asking for votes from %s (turn=%d lastReplicationMessage=%d)", serverAddressList,
-          electionTurn, lastReplicationMessage);
+      server.log(this, Level.INFO,
+          "Starting election of local server asking for votes from %s (turn=%d lastReplicationMessage=%d configuredServers=%d majorityOfVotes=%d)",
+          serverAddressList, electionTurn, lastReplicationMessage, configuredServers, majorityOfVotes);
 
       final HashMap<String, Integer> otherLeaders = new HashMap<>();
 
@@ -556,7 +575,17 @@ public class HAServer implements ServerPlugin {
     this.replicasHTTPAddresses = replicasHTTPAddresses;
   }
 
-  public String getReplicasHTTPAddresses() {
+  public String getReplicaServersHTTPAddressesList() {
+    if (isLeader()) {
+      String list = "";
+      for (Leader2ReplicaNetworkExecutor r : replicaConnections.values()) {
+        if (!list.isEmpty())
+          list += ",";
+        list += r.getRemoteServerHTTPAddress();
+      }
+      return list;
+    }
+
     return replicasHTTPAddresses;
   }
 
@@ -593,24 +622,13 @@ public class HAServer implements ServerPlugin {
   }
 
   public String getServerAddressList() {
-    String list = getServerAddress();
-    for (Leader2ReplicaNetworkExecutor r : replicaConnections.values())
-      list += "," + r.getRemoteServerAddress();
-    return list;
-  }
-
-  public String getReplicaServersHTTPAddressesList() {
-    if (isLeader()) {
-      String list = "";
-      for (Leader2ReplicaNetworkExecutor r : replicaConnections.values()) {
-        if (!list.isEmpty())
-          list += ",";
-        list += r.getRemoteServerHTTPAddress();
-      }
-      return list;
+    final StringBuilder list = new StringBuilder();
+    for (String s : serverAddressList) {
+      if (list.length() > 0)
+        list.append(',');
+      list.append(s);
     }
-
-    return replicasHTTPAddresses;
+    return list.toString();
   }
 
   public void printClusterConfiguration() {

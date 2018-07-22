@@ -228,8 +228,12 @@ public class LeaderNetworkListener extends Thread {
 
       ha.getServer().log(this, Level.INFO, "Received new leadership from server '%s' (turn=%d)", remoteServerName, voteTurn);
 
-      ha.connectToLeader(remoteServerAddress);
-      ha.setElectionStatus(HAServer.ELECTION_STATUS.DONE);
+      if (ha.connectToLeader(remoteServerAddress))
+        // ELECTION FINISHED, THE SERVER IS A REPLICA
+        ha.setElectionStatus(HAServer.ELECTION_STATUS.DONE);
+      else
+        // CANNOT CONTACT THE ELECTED LEADER, START ELECTION AGAIN
+        ha.startElection();
       break;
     }
     }

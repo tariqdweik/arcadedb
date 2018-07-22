@@ -107,7 +107,7 @@ public class HASplitBrainTest extends ReplicationServerTest {
 
   @Override
   protected int getTxs() {
-    return 4000;
+    return 3000;
   }
 
   @Override

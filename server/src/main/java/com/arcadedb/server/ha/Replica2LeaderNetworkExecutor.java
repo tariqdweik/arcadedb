@@ -138,7 +138,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       if (!shutdown) {
         try {
           connect();
-        } catch (ConnectionException e1) {
+        } catch (Exception e1) {
           server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the Leader ('%s'), start election (error=%s)", getRemoteServerName(), e1);
           server.startElection();
         }
@@ -255,6 +255,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
       installDatabases();
     } catch (IOException e) {
+      shutdown = true;
       throw new ConnectionException(host + ":" + port, e.toString());
     }
   }
@@ -298,6 +299,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       sendCommandToLeader(buffer, new ReplicaReadyRequest(), -1);
 
     } catch (Exception e) {
+      shutdown = true;
       server.getServer().log(this, Level.SEVERE, "Error on starting HA service (error=%s)", e);
       throw new ServerException("Cannot start HA service", e);
     }
