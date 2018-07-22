@@ -54,6 +54,7 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
                 Thread.sleep(10000);
               } catch (InterruptedException e) {
                 // IGNORE IT
+                Thread.currentThread().interrupt();
               }
             }
           } else {
@@ -86,6 +87,7 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
                 try {
                   Thread.sleep(1000);
                 } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
                 }
                 Assertions.assertTrue(new File("./target/replication/replication_ArcadeDB_2.rlog").exists());
                 new File("./target/replication/replication_ArcadeDB_2.rlog").delete();

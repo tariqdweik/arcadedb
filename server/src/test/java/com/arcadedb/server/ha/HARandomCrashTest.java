@@ -82,6 +82,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
               try {
                 Thread.sleep(500);
               } catch (InterruptedException e1) {
+                Thread.currentThread().interrupt();
               }
             }
           }
@@ -121,6 +122,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
     try {
       Thread.sleep(5000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
     // CHECK INDEXES ARE REPLICATED CORRECTLY
@@ -135,7 +137,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
   @Override
   protected int getTxs() {
-    return 5000;
+    return 3000;
   }
 
   @Override

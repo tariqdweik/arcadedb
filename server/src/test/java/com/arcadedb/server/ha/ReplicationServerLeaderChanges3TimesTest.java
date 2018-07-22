@@ -67,6 +67,7 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
               try {
                 Thread.sleep(500);
               } catch (InterruptedException e1) {
+                Thread.currentThread().interrupt();
               }
             }
           }
@@ -92,6 +93,7 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
     // CHECK INDEXES ARE REPLICATED CORRECTLY

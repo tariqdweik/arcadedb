@@ -65,6 +65,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
               try {
                 Thread.sleep(500);
               } catch (InterruptedException e1) {
+                Thread.currentThread().interrupt();
               }
             }
           }
@@ -90,6 +91,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
     // CHECK INDEXES ARE REPLICATED CORRECTLY

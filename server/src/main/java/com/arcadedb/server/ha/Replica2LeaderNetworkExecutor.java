@@ -80,6 +80,12 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         final ReplicationMessage message = request.getFirst();
 
+        if (message.messageNumber < 0) {
+          server.getServer().log(this, Level.SEVERE, "Error on receiving message %d, closing connection", message.messageNumber);
+          close();
+          return;
+        }
+
         server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
 
         final long lastMessage = server.getReplicationLogFile().getLastMessageNumber();
@@ -120,6 +126,9 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   }
 
   private void reconnect(final Exception e) {
+    if (Thread.currentThread().isInterrupted())
+      shutdown = true;
+
     if (!shutdown) {
       closeChannel();
 
@@ -242,8 +251,12 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         }
 
         leaderServerName = channel.readString();
+        final long leaderElectedAtTurn = channel.readLong();
         leaderServerHTTPAddress = channel.readString();
         final String memberList = channel.readString();
+
+        server.lastElectionVote = new Pair<>(leaderElectedAtTurn, leaderServerName);
+
         server.setServerAddresses(memberList);
       }
 
@@ -254,7 +267,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       server.getServer().log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s:%d)", server.getClusterName(), host, port);
 
       installDatabases();
-    } catch (IOException e) {
+    } catch (Exception e) {
       shutdown = true;
       throw new ConnectionException(host + ":" + port, e.toString());
     }

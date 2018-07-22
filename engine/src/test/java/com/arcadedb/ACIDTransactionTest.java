@@ -81,6 +81,7 @@ public class ACIDTransactionTest {
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         // IGNORE IT
       }
 
@@ -208,6 +209,7 @@ public class ACIDTransactionTest {
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         // IGNORE IT
       }
 

@@ -90,6 +90,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         this.channel.writeBoolean(true);
 
         this.channel.writeString(server.getServerName());
+        this.channel.writeLong(server.lastElectionVote != null ? server.lastElectionVote.getFirst() : 1);
         this.channel.writeString(server.getServer().getHttpServer().getListeningAddress());
         this.channel.writeString(this.server.getServerAddressList());
 

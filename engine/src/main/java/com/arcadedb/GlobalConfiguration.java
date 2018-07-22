@@ -96,7 +96,7 @@ public enum GlobalConfiguration {
   // NETWORK
   NETWORK_SOCKET_BUFFER_SIZE("arcadedb.network.socketBufferSize", "TCP/IP Socket buffer size, if 0 use the OS default", Integer.class, 0),
 
-  NETWORK_SOCKET_TIMEOUT("arcadedb.network.socketTimeout", "TCP/IP Socket timeout (in ms)", Integer.class, 3000),
+  NETWORK_SOCKET_TIMEOUT("arcadedb.network.socketTimeout", "TCP/IP Socket timeout (in ms)", Integer.class, 30000),
 
   NETWORK_USE_SSL("arcadedb.ssl.enabled", "Use SSL for client connections", Boolean.class, false),
 

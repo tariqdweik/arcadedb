@@ -77,6 +77,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
     // CHECK INDEXES ARE REPLICATED CORRECTLY

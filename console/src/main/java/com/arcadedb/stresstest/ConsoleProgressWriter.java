@@ -36,6 +36,7 @@ public class ConsoleProgressWriter extends SoftThread {
     try {
       Thread.sleep(300);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       softShutdown();
     }
   }

@@ -41,6 +41,7 @@ public class PageManagerFlushThread extends Thread {
         flushStream();
 
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         running = false;
         return;
       } catch (Exception e) {

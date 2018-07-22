@@ -77,6 +77,7 @@ public class PageManager extends LockContext {
         flushThread.close();
         flushThread.join();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
       }
     }
 
@@ -108,6 +109,7 @@ public class PageManager extends LockContext {
         flushThread.close();
         flushThread.join();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
       }
     }
 

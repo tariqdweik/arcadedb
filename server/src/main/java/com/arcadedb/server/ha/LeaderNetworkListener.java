@@ -149,6 +149,7 @@ public class LeaderNetworkListener extends Thread {
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         // IGNORE IT
       }
       socket.close();

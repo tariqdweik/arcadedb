@@ -28,6 +28,7 @@ public class ReplicationServerQuorumNoneTest extends ReplicationServerTest {
     try {
       Thread.sleep(5000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       e.printStackTrace();
     }
 

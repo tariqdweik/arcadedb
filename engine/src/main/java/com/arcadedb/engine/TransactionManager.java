@@ -85,6 +85,7 @@ public class TransactionManager {
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           break;
         }
       }
@@ -266,8 +267,10 @@ public class TransactionManager {
         LogManager.instance().debug(this, "  - updating page %s v%d", pageId, modifiedPage.version);
 
       } catch (IOException e) {
-        if (!(e instanceof ClosedByInterruptException) && !(e instanceof ClosedChannelException))
+        if (e instanceof ClosedByInterruptException || e instanceof ClosedChannelException)
           // NORMAL EXCEPTION IN CASE THE CONNECTION/THREAD IS CLOSED (=INTERRUPTED)
+          Thread.currentThread().interrupt();
+        else
           LogManager.instance().error(this, "Error on applying changes to page %s", e, pageId);
 
         throw new WALException("Cannot apply changes to page " + pageId, e);

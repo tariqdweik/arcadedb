@@ -35,6 +35,7 @@ public class SleepStatement extends SimpleExecStatement {
       item.setProperty("result", "OK");
       item.setProperty("millis", millis.getValue().intValue());
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       item.setProperty("result", "failure");
       item.setProperty("errorType", e.getClass().getSimpleName());
       item.setProperty("errorMessage", e.getMessage());
