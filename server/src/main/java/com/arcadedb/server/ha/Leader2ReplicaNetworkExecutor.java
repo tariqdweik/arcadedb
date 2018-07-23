@@ -142,7 +142,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
             }
 
           } catch (IOException e) {
-            server.getServer().log(this, Level.INFO, "Error on sending replication message to remote server '%s'", e, remoteServerName);
+            server.getServer().log(this, Level.INFO, "Error on sending replication message to remote server '%s' (error=%s)", remoteServerName, e);
             shutdownCommunication = true;
             return;
           } catch (InterruptedException e) {

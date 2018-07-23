@@ -63,7 +63,7 @@ public class LeaderNetworkListener extends Thread {
 
         } catch (Exception e) {
           if (active)
-            ha.getServer().log(this, Level.WARNING, "Error on client connection (error=%s)", e);
+            ha.getServer().log(this, Level.WARNING, "Error on connection from another server (error=%s)", e);
         }
       }
     } finally {

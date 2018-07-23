@@ -703,9 +703,11 @@ public class HAServer implements ServerPlugin {
     if (replica == null)
       throw new ReplicationException("Server '" + getServerName() + "' cannot sync replica '" + replicaName + "' because it is offline");
 
-    synchronized (sendingLock) {
+    final AtomicInteger totalSentMessages = new AtomicInteger();
 
-      final AtomicInteger totalSentMessages = new AtomicInteger();
+    long min = -1, max = -1;
+
+    synchronized (sendingLock) {
 
       for (long pos = fromMessageNumber; pos < replicationLogFile.getSize(); ) {
         final Pair<ReplicationMessage, Long> entry = replicationLogFile.getMessage(pos);
@@ -713,6 +715,10 @@ public class HAServer implements ServerPlugin {
         // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
         try {
           server.log(this, Level.FINE, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
+
+          if (min == -1)
+            min = entry.getFirst().messageNumber;
+          max = entry.getFirst().messageNumber;
 
           replica.sendMessage(entry.getFirst().payload);
 
@@ -727,9 +733,9 @@ public class HAServer implements ServerPlugin {
           break;
         }
       }
-
-      server.log(this, Level.INFO, "Recovering completed. Sent %d message(s) to replica '%s'", totalSentMessages.get(), replicaName);
     }
+
+    server.log(this, Level.INFO, "Recovering completed. Sent %d message(s) to replica '%s' (%d-%d)", totalSentMessages.get(), replicaName, min, max);
   }
 
   protected boolean connectToLeader(final String serverEntry) {
