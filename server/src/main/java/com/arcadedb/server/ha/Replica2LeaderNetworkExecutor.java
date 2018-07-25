@@ -64,7 +64,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
 
-    while (!shutdown || channel != null && channel.inputHasData()) {
+    while (!shutdown) {
       try {
         final byte[] requestBytes = receiveResponse();
 
