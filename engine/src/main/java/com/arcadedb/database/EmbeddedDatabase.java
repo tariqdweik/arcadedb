@@ -32,6 +32,7 @@ import com.arcadedb.utility.RWLockContext;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -167,7 +168,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void drop() {
-    super.executeInWriteLock(new Callable<Object>() {
+    executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         checkDatabaseIsOpen();
@@ -189,7 +190,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       asynch.close();
     }
 
-    super.executeInWriteLock(new Callable<Object>() {
+    executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         if (!open)
@@ -227,7 +228,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   public DatabaseAsyncExecutor asynch() {
     if (asynch == null) {
-      super.executeInWriteLock(new Callable<Object>() {
+      executeInWriteLock(new Callable<Object>() {
         @Override
         public Object call() {
           if (asynch == null)
@@ -260,7 +261,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void begin() {
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         checkDatabaseIsOpen();
@@ -276,7 +277,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void commit() {
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         checkTransactionIsActive();
@@ -288,7 +289,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void rollback() {
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         try {
@@ -304,7 +305,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public long countBucket(final String bucketName) {
-    return (Long) super.executeInReadLock(new Callable<Object>() {
+    return (Long) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         checkDatabaseIsOpen();
@@ -315,7 +316,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public long countType(final String typeName, final boolean polymorphic) {
-    return (Long) super.executeInReadLock(new Callable<Object>() {
+    return (Long) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         checkDatabaseIsOpen();
@@ -332,7 +333,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
 
@@ -356,7 +357,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void scanBucket(final String bucketName, final RecordCallback callback) {
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
 
@@ -377,7 +378,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public Iterator<Record> iterateType(final String typeName, final boolean polymorphic) {
-    return (Iterator<Record>) super.executeInReadLock(new Callable<Object>() {
+    return (Iterator<Record>) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
 
@@ -419,7 +420,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public Record lookupByRID(final RID rid, final boolean loadContent) {
-    return (Record) super.executeInReadLock(new Callable<Object>() {
+    return (Record) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
 
@@ -451,7 +452,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public Cursor<RID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
-    return (Cursor<RID>) super.executeInReadLock(new Callable<Object>() {
+    return (Cursor<RID>) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
 
@@ -516,7 +517,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (record.getIdentity() != null)
       throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
 
@@ -544,7 +545,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void createRecord(final Record record, final String bucketName) {
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         createRecordNoLock(record, bucketName);
@@ -575,7 +576,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void updateRecord(final Record record) {
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         updateRecordNoLock(record);
@@ -608,7 +609,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (record.getIdentity() == null)
       throw new IllegalArgumentException("Cannot delete a non persistent record");
 
-    super.executeInReadLock(new Callable<Object>() {
+    executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
         final boolean begunHere = checkTransactionIsActive();
@@ -875,6 +876,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     return original;
   }
 
+  /**
+   * Returns true if two databases are the same.
+   */
   public boolean equals(final Object o) {
     if (this == o)
       return true;
@@ -888,6 +892,58 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   public DatabaseContext.PDatabaseContextTL getContext() {
     return DatabaseContext.INSTANCE.getContext(databasePath);
+  }
+
+  /**
+   * Executes a callback in an shared lock.
+   */
+  @Override
+  public Object executeInReadLock(final Callable<Object> callable) {
+    readLock();
+    try {
+
+      return callable.call();
+
+    } catch (ClosedChannelException e) {
+      LogManager.instance().error(this, "Database '%s' has some files that are closed", e, name);
+      close();
+      throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
+
+    } catch (RuntimeException e) {
+      throw e;
+
+    } catch (Throwable e) {
+      throw new DatabaseOperationException("Error in execution in lock", e);
+
+    } finally {
+      readUnlock();
+    }
+  }
+
+  /**
+   * Executes a callback in an exclusive lock.
+   */
+  @Override
+  public Object executeInWriteLock(final Callable<Object> callable) {
+    writeLock();
+    try {
+
+      return callable.call();
+
+    } catch (ClosedChannelException e) {
+      LogManager.instance().error(this, "Database '%s' has some files that are closed", e, name);
+      close();
+      throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
+
+    } catch (RuntimeException e) {
+      throw e;
+
+    } catch (Throwable e) {
+      throw new DatabaseOperationException("Error in execution in lock", e);
+
+    } finally {
+      writeUnlock();
+    }
   }
 
   @Override
@@ -946,6 +1002,14 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     return name;
   }
 
+  public DatabaseInternal getWrappedDatabaseInstance() {
+    return wrappedDatabaseInstance;
+  }
+
+  public void setWrappedDatabaseInstance(final DatabaseInternal wrappedDatabaseInstance) {
+    this.wrappedDatabaseInstance = wrappedDatabaseInstance;
+  }
+
   public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry) {
     return executeWithRetries(callback, maxRetry, 0, null);
   }
@@ -989,13 +1053,5 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
     if (DatabaseContext.INSTANCE.get() == null)
       DatabaseContext.INSTANCE.init(wrappedDatabaseInstance);
-  }
-
-  public DatabaseInternal getWrappedDatabaseInstance() {
-    return wrappedDatabaseInstance;
-  }
-
-  public void setWrappedDatabaseInstance(final DatabaseInternal wrappedDatabaseInstance) {
-    this.wrappedDatabaseInstance = wrappedDatabaseInstance;
   }
 }

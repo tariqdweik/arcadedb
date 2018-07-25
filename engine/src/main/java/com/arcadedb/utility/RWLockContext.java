@@ -26,7 +26,10 @@ public class RWLockContext {
     lock.writeLock().unlock();
   }
 
-  public Object executeInReadLock(Callable<Object> callable) {
+  /**
+   * Executes a callback in an shared lock.
+   */
+  public Object executeInReadLock(final Callable<Object> callable) {
     readLock();
     try {
 
@@ -43,7 +46,10 @@ public class RWLockContext {
     }
   }
 
-  public Object executeInWriteLock(Callable<Object> callable) {
+  /**
+   * Executes a callback in an exclusive lock.
+   */
+  public Object executeInWriteLock(final Callable<Object> callable) {
     writeLock();
     try {
 

@@ -268,10 +268,12 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
             return false;
 
           if (!queue.offer(message)) {
-            server.getServer().log(this, Level.FINE, "Timeout on writing request to server '%s', setting it offline...", getRemoteServerName());
+            server.getServer().log(this, Level.INFO, "Timeout on writing request to server '%s', setting it offline...", getRemoteServerName());
 
             queue.clear();
             server.setReplicaStatus(remoteServerName, false);
+
+            //LogManager.instance().info(this, "THREAD DUMP:\n%s", FileUtils.threadDump());
 
             // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
             throw new ReplicationException("Replica '" + remoteServerName + "' is not reading replication messages");

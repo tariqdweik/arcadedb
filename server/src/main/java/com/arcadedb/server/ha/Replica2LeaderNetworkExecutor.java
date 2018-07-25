@@ -218,9 +218,9 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       synchronized (channelInputLock) {
         final boolean connectionAccepted = channel.readBoolean();
         if (!connectionAccepted) {
-          final String reason = channel.readString();
-
           byte reasonCode = channel.readByte();
+
+          final String reason = channel.readString();
 
           switch (reasonCode) {
           case ReplicationProtocol.ERROR_CONNECT_NOLEADER:

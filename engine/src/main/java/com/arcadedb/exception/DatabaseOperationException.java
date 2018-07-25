@@ -9,7 +9,7 @@ public class DatabaseOperationException extends RuntimeException {
     super(s);
   }
 
-  public DatabaseOperationException(String s, Exception e) {
+  public DatabaseOperationException(String s, Throwable e) {
     super(s, e);
   }
 }
