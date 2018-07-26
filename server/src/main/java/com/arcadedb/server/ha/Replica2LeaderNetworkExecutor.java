@@ -4,7 +4,6 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.Constants;
-import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
@@ -34,25 +33,23 @@ import java.util.Set;
 import java.util.logging.Level;
 
 public class Replica2LeaderNetworkExecutor extends Thread {
-  private final    HAServer             server;
-  private final    String               host;
-  private final    int                  port;
-  private          String               leaderServerName  = "?";
-  private          String               leaderServerHTTPAddress;
-  private final    ContextConfiguration configuration;
-  private final    boolean              testOn;
-  private          ChannelBinaryClient  channel;
-  private volatile boolean              shutdown          = false;
-  private          Object               channelOutputLock = new Object();
-  private          Object               channelInputLock  = new Object();
+  private final    HAServer            server;
+  private final    String              host;
+  private final    int                 port;
+  private          String              leaderServerName  = "?";
+  private          String              leaderServerHTTPAddress;
+  private final    boolean             testOn;
+  private          ChannelBinaryClient channel;
+  private volatile boolean             shutdown          = false;
+  private          Object              channelOutputLock = new Object();
+  private          Object              channelInputLock  = new Object();
 
-  public Replica2LeaderNetworkExecutor(final HAServer ha, final String host, final int port, final ContextConfiguration configuration) {
+  public Replica2LeaderNetworkExecutor(final HAServer ha, final String host, final int port) {
     this.server = ha;
     this.testOn = GlobalConfiguration.TEST.getValueAsBoolean();
 
     this.host = host;
     this.port = port;
-    this.configuration = configuration;
 
     connect();
   }
@@ -69,7 +66,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         final byte[] requestBytes = receiveResponse();
 
         if (shutdown)
-          return;
+          break;
 
         final Pair<ReplicationMessage, HACommand> request = server.getMessageFactory().deserializeCommand(buffer, requestBytes);
 
@@ -83,7 +80,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         if (message.messageNumber < 0) {
           server.getServer().log(this, Level.SEVERE, "Error on receiving message %d, closing connection", message.messageNumber);
           close();
-          return;
+          break;
         }
 
         server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
@@ -115,6 +112,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         reconnect(e);
       }
     }
+
+    server.getServer().log(this, Level.INFO, "Replica message thread closed (shutdown=%s name=%s)", shutdown, getName());
   }
 
   public String getRemoteServerName() {
@@ -127,7 +126,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
   private void reconnect(final Exception e) {
     if (Thread.currentThread().isInterrupted())
-      shutdown = true;
+      shutdown();
 
     if (!shutdown) {
       closeChannel();
@@ -171,12 +170,12 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   }
 
   public void close() {
-    shutdown = true;
+    shutdown();
     closeChannel();
   }
 
   public void kill() {
-    shutdown = true;
+    shutdown();
     interrupt();
     close();
   }
@@ -208,7 +207,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   }
 
   private void connect() {
-    server.getServer().log(this, Level.FINE, "Connecting to server %s:%d...", host, port);
+    server.getServer().log(this, Level.INFO, "Connecting to server %s:%d...", host, port);
 
     try {
       channel = server.createNetworkConnection(host, port, ReplicationProtocol.COMMAND_CONNECT);
@@ -262,14 +261,17 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
       server.getServer().log(this, Level.INFO, "Server connected to the Leader server %s:%d, members=[%s]", host, port, server.getServerAddressList());
 
-      setName(Constants.PRODUCT + "-ha-replica2leader/" + server.getServerName());
+      setName(Constants.PRODUCT + "-ha-replica2leader/" + server.getServerName() + "/" + getRemoteServerName());
 
       server.getServer().log(this, Level.INFO, "Server started as Replica in HA mode (cluster=%s leader=%s:%d)", server.getClusterName(), host, port);
 
       installDatabases();
+
     } catch (Exception e) {
-      shutdown = true;
-      throw new ConnectionException(host + ":" + port, e.toString());
+      LogManager.instance().error(this, "Error on connecting to the server %s:%d", e, host, port);
+
+      shutdown();
+      throw new ConnectionException(host + ":" + port, e);
     }
   }
 
@@ -278,6 +280,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     final ReplicationMessage lastMessage = server.getReplicationLogFile().getLastMessage();
     long lastLogNumber = lastMessage != null ? lastMessage.messageNumber : -1;
+
+    server.getServer().log(this, Level.INFO, "Requesting install of databases...");
 
     try {
       sendCommandToLeader(buffer, new ReplicaConnectRequest(lastLogNumber), -1);
@@ -312,7 +316,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       sendCommandToLeader(buffer, new ReplicaReadyRequest(), -1);
 
     } catch (Exception e) {
-      shutdown = true;
+      shutdown();
       server.getServer().log(this, Level.SEVERE, "Error on starting HA service (error=%s)", e);
       throw new ServerException("Cannot start HA service", e);
     }
@@ -393,5 +397,10 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       throw new NetworkProtocolException("Error on reading response, message " + response[0] + " not valid");
 
     return command.getSecond();
+  }
+
+  private void shutdown() {
+    server.getServer().log(this, Level.FINE, "Shutting down thread %s...", getName());
+    shutdown = true;
   }
 }

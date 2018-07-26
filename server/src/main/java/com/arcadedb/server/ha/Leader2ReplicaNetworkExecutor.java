@@ -63,7 +63,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     this.remoteServerHTTPAddress = remoteServerHTTPAddress;
     this.channel = channel;
 
-    setName(Constants.PRODUCT + "-ha-leader2replica/?");
+    setName(Constants.PRODUCT + "-ha-leader2replica/" + server.getServer().getServerName() + "/?");
 
     synchronized (channelOutputLock) {
       try {
@@ -84,7 +84,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           throw new ConnectionException(channel.socket.getInetAddress().toString(), "Election for Leader is pending");
         }
 
-        setName(Constants.PRODUCT + "-ha-leader2replica/" + remoteServerName + "(" + remoteServerAddress + ")");
+        setName(Constants.PRODUCT + "-ha-leader2replica/" + server.getServer().getServerName() + "/" + remoteServerName + "(" + remoteServerAddress + ")");
 
         // CONNECTED
         this.channel.writeBoolean(true);
@@ -156,7 +156,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       }
     });
     queueThread.start();
-    queueThread.setName(Constants.PRODUCT + "-ha-leader2replica-sender/" + remoteServerName);
+    queueThread.setName(Constants.PRODUCT + "-ha-leader2replica-sender/" + server.getServer().getServerName() + "/" + remoteServerName);
 
     // REUSE THE SAME BUFFER TO AVOID MALLOC
     final Binary buffer = new Binary(1024);
@@ -270,10 +270,10 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           if (!queue.offer(message)) {
             server.getServer().log(this, Level.INFO, "Timeout on writing request to server '%s', setting it offline...", getRemoteServerName());
 
+            LogManager.instance().info(this, "THREAD DUMP:\n%s", FileUtils.threadDump());
+
             queue.clear();
             server.setReplicaStatus(remoteServerName, false);
-
-            //LogManager.instance().info(this, "THREAD DUMP:\n%s", FileUtils.threadDump());
 
             // QUEUE FULL, THE REMOTE SERVER COULD BE STUCK SOMEWHERE. REMOVE THE REPLICA
             throw new ReplicationException("Replica '" + remoteServerName + "' is not reading replication messages");
@@ -311,7 +311,8 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       }
     });
 
-    server.printClusterConfiguration();
+    if (server.getServer().isStarted())
+      server.printClusterConfiguration();
   }
 
   public String getRemoteServerName() {

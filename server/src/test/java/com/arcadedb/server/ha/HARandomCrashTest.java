@@ -40,6 +40,22 @@ public class HARandomCrashTest extends ReplicationServerTest {
         if (!areAllServersOnline())
           return;
 
+        final Database db = getLeaderServer().getDatabase(getDatabaseName());
+        try {
+          final long count = db.countType(VERTEX1_TYPE_NAME, true);
+          if (count > (getTxs() * getVerticesPerTx()) * 4 / 5) {
+            LogManager.instance()
+                .info(this, "TEST: Skip stop of server because it's close to the end of the test (%d/%d)", count, getTxs() * getVerticesPerTx());
+            return;
+          }
+        } catch (Exception e) {
+          // GENERIC ERROR, SKIP STOP
+          LogManager.instance().info(this, "TEST: Skip stop of server for generic error: %s", e.toString());
+          return;
+        } finally {
+          db.close();
+        }
+
         LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);
 
         getServer(serverId).stop();
@@ -106,6 +122,8 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
           if (isPrintingConfigurationAtEveryStep())
             getLeaderServer().getHA().printClusterConfiguration();
+
+          LogManager.instance().flush();
         }
 
         db.begin();

@@ -779,7 +779,7 @@ public class HAServer implements ServerPlugin {
       r.close();
     replicaConnections.clear();
 
-    leaderConnection = new Replica2LeaderNetworkExecutor(this, host, port, configuration);
+    leaderConnection = new Replica2LeaderNetworkExecutor(this, host, port);
 
     // START SEPARATE THREAD TO EXECUTE LEADER'S REQUESTS
     leaderConnection.start();
