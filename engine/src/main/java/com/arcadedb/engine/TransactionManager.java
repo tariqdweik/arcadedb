@@ -46,6 +46,12 @@ public class TransactionManager {
     task.schedule(new TimerTask() {
       @Override
       public void run() {
+        if (!database.isOpen()) {
+          // DB CLOSED, CANCEL THE TASK
+          cancel();
+          return;
+        }
+
         if (activeWALFilePool != null) {
           taskExecuting = new CountDownLatch(1);
           try {
