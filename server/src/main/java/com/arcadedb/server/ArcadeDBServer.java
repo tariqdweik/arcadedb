@@ -273,7 +273,7 @@ public class ArcadeDBServer {
 
   private synchronized Database getDatabase(final String databaseName, final boolean createIfNotExists) {
     DatabaseInternal db = databases.get(databaseName);
-    if (db == null) {
+    if (db == null || !db.isOpen()) {
       final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
           PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
 

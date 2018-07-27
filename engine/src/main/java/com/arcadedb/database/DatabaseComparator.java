@@ -34,7 +34,7 @@ public class DatabaseComparator {
     final Collection<Bucket> buckets1 = db1.getSchema().getBuckets();
     final Collection<Bucket> buckets2 = db2.getSchema().getBuckets();
     if (buckets1.size() != buckets2.size())
-      throw new DatabaseAreNotIdentical("Buckets: DB1 %d <> DB %d", buckets1.size(), buckets2.size());
+      throw new DatabaseAreNotIdentical("Buckets: DB1 %d <> DB2 %d", buckets1.size(), buckets2.size());
 
     final HashMap<String, Bucket> types1Map = new HashMap<>(buckets1.size());
     final HashMap<String, Bucket> types2Map = new HashMap<>(buckets2.size());
@@ -56,11 +56,11 @@ public class DatabaseComparator {
       final Bucket bucket2 = types2Map.get(bucket1.getName());
 
       if (bucket1.getPageSize() != bucket2.getPageSize())
-        throw new DatabaseAreNotIdentical("Bucket '%s' has different page size in two databases. DB1 %d <> DB %d", bucket2.getName(), bucket1.getPageSize(),
+        throw new DatabaseAreNotIdentical("Bucket '%s' has different page size in two databases. DB1 %d <> DB2 %d", bucket2.getName(), bucket1.getPageSize(),
             bucket2.getPageSize());
 
       if (bucket1.getTotalPages() != bucket2.getTotalPages())
-        throw new DatabaseAreNotIdentical("Bucket '%s' has different page count in two databases. DB1 %d <> DB %d", bucket2.getName(), bucket1.getTotalPages(),
+        throw new DatabaseAreNotIdentical("Bucket '%s' has different page count in two databases. DB1 %d <> DB2 %d", bucket2.getName(), bucket1.getTotalPages(),
             bucket2.getTotalPages());
 
       // AT THIS POINT BOTH BUCKETS HAVE THE SAME PAGES
@@ -84,7 +84,7 @@ public class DatabaseComparator {
         }
 
         if (page1.getVersion() != page2.getVersion())
-          throw new DatabaseAreNotIdentical("Page %s has different versions on databases. DB1 %d <> DB %d", pageId, page1.getVersion(), page2.getVersion());
+          throw new DatabaseAreNotIdentical("Page %s has different versions on databases. DB1 %d <> DB2 %d", pageId, page1.getVersion(), page2.getVersion());
 
         if (!Arrays.equals(page1.getContent().array(), page2.getContent().array()))
           throw new DatabaseAreNotIdentical("Page %s has different content on databases", pageId);
@@ -97,7 +97,7 @@ public class DatabaseComparator {
     final Collection<DocumentType> types1 = db1.getSchema().getTypes();
     final Collection<DocumentType> types2 = db2.getSchema().getTypes();
     if (types1.size() != types2.size())
-      throw new DatabaseAreNotIdentical("Types: DB1 %d <> DB %d", types1.size(), types2.size());
+      throw new DatabaseAreNotIdentical("Types: DB1 %d <> DB2 %d", types1.size(), types2.size());
 
     final HashMap<String, DocumentType> types1Map = new HashMap<>(types1.size());
     final HashMap<String, DocumentType> types2Map = new HashMap<>(types2.size());

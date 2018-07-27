@@ -148,7 +148,9 @@ public class ServerDatabaseProxy implements DatabaseInternal {
 
   @Override
   public boolean isOpen() {
-    return proxied.isOpen();
+    if (open)
+      return proxied.isOpen();
+    return false;
   }
 
   @Override
@@ -382,7 +384,7 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   }
 
   protected void checkForOpen() {
-    if (!open)
+    if (!open || !proxied.isOpen())
       throw new DatabaseOperationException("Database instance '" + getName() + "' is closed");
   }
 }

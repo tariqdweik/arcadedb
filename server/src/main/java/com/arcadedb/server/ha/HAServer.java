@@ -53,7 +53,7 @@ public class HAServer implements ServerPlugin {
   private final    AtomicLong                                 messageNumber               = new AtomicLong(-1);
   protected final  String                                     replicationPath;
   protected        ReplicationLogFile                         replicationLogFile;
-  private          Replica2LeaderNetworkExecutor              leaderConnection;
+  private volatile Replica2LeaderNetworkExecutor              leaderConnection;
   private          LeaderNetworkListener                      listener;
   private          Map<Long, QuorumMessages>                  messagesWaitingForQuorum    = new ConcurrentHashMap<>(1024);
   private          long                                       lastConfigurationOutputHash = 0;
@@ -112,7 +112,7 @@ public class HAServer implements ServerPlugin {
       final ReplicationMessage lastMessage = replicationLogFile.getLastMessage();
       if (lastMessage != null) {
         messageNumber.set(lastMessage.messageNumber);
-        server.log(this, Level.INFO, "Found an existent replication log. Starting messages from %d", lastMessage.messageNumber);
+        server.log(this, Level.FINE, "Found an existent replication log. Starting messages from %d", lastMessage.messageNumber);
       }
     } catch (IOException e) {
       server.log(this, Level.SEVERE, "Error on creating replication file '%s' for remote server '%s'", fileName, server.getServerName());
@@ -199,7 +199,7 @@ public class HAServer implements ServerPlugin {
 
     setElectionStatus(ELECTION_STATUS.VOTING_FOR_ME);
 
-    while (leaderConnection == null && started) {
+    for (int retry = 0; leaderConnection == null && started; ++retry) {
       final int majorityOfVotes = (configuredServers / 2) + 1;
 
       int totalVotes = 1;
@@ -207,8 +207,8 @@ public class HAServer implements ServerPlugin {
       lastElectionVote = new Pair<>(electionTurn, getServerName());
 
       server.log(this, Level.INFO,
-          "Starting election of local server asking for votes from %s (turn=%d lastReplicationMessage=%d configuredServers=%d majorityOfVotes=%d)",
-          serverAddressList, electionTurn, lastReplicationMessage, configuredServers, majorityOfVotes);
+          "Starting election of local server asking for votes from %s (turn=%d retry=%d lastReplicationMessage=%d configuredServers=%d majorityOfVotes=%d)",
+          serverAddressList, electionTurn, retry, lastReplicationMessage, configuredServers, majorityOfVotes);
 
       final HashMap<String, Integer> otherLeaders = new HashMap<>();
 
@@ -253,11 +253,13 @@ public class HAServer implements ServerPlugin {
         }
       }
 
+      if (checkForExistentLeaderConnection(electionTurn))
+        break;
+
       if (totalVotes >= majorityOfVotes) {
         server.log(this, Level.INFO, "Current server elected as new $ANSI{green Leader} (turn=%d totalVotes=%d majority=%d)", electionTurn, totalVotes,
             majorityOfVotes);
         sendNewLeadershipToOtherNodes();
-
         break;
       }
 
@@ -272,18 +274,14 @@ public class HAServer implements ServerPlugin {
         }
       }
 
+      if (checkForExistentLeaderConnection(electionTurn))
+        break;
+
       try {
         final long timeout = 1000 + new Random().nextInt(1000);
         server.log(this, Level.INFO, "Not able to be elected as Leader, waiting %dms and retry (turn=%d totalVotes=%d majority=%d)", timeout, electionTurn,
             totalVotes, majorityOfVotes);
         Thread.sleep(timeout);
-
-        lc = leaderConnection;
-        if (lc != null) {
-          // I AM A REPLICA, NO LEADER ELECTION IS NEEDED
-          server.log(this, Level.INFO, "Abort election process, a Leader (%s) has been already found (turn=%d)", lc.getRemoteServerName(), electionTurn);
-          break;
-        }
 
       } catch (InterruptedException e) {
         // INTERRUPTED
@@ -291,8 +289,21 @@ public class HAServer implements ServerPlugin {
         break;
       }
 
+      if (checkForExistentLeaderConnection(electionTurn))
+        break;
+
       ++electionTurn;
     }
+  }
+
+  private boolean checkForExistentLeaderConnection(final long electionTurn) {
+    final Replica2LeaderNetworkExecutor lc = leaderConnection;
+    if (lc != null) {
+      // I AM A REPLICA, NO LEADER ELECTION IS NEEDED
+      server.log(this, Level.INFO, "Abort election process, a Leader (%s) has been already found (turn=%d)", lc.getRemoteServerName(), electionTurn);
+      return true;
+    }
+    return false;
   }
 
   private void sendNewLeadershipToOtherNodes() {

@@ -43,7 +43,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
         final Database db = getLeaderServer().getDatabase(getDatabaseName());
         try {
           final long count = db.countType(VERTEX1_TYPE_NAME, true);
-          if (count > (getTxs() * getVerticesPerTx()) * 4 / 5) {
+          if (count > (getTxs() * getVerticesPerTx()) * 9 / 10) {
             LogManager.instance()
                 .info(this, "TEST: Skip stop of server because it's close to the end of the test (%d/%d)", count, getTxs() * getVerticesPerTx());
             return;

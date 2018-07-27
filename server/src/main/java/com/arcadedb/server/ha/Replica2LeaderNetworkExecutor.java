@@ -71,16 +71,19 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         final Pair<ReplicationMessage, HACommand> request = server.getMessageFactory().deserializeCommand(buffer, requestBytes);
 
         if (request == null) {
-          channel.clearInput();
+          server.getServer().log(this, Level.SEVERE, "Error on receiving message NULL, reconnecting (threadId=%d)", Thread.currentThread().getId());
+          reconnect(null);
           continue;
         }
 
         final ReplicationMessage message = request.getFirst();
 
         if (message.messageNumber < 0) {
-          server.getServer().log(this, Level.SEVERE, "Error on receiving message %d, closing connection", message.messageNumber);
-          close();
-          break;
+          server.getServer()
+              .log(this, Level.SEVERE, "Error on receiving message %d (%s), reconnecting (threadId=%d)", message.messageNumber, request.getSecond(),
+                  Thread.currentThread().getId());
+          reconnect(null);
+          continue;
         }
 
         server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
@@ -109,11 +112,14 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       } catch (SocketTimeoutException e) {
         // IGNORE IT
       } catch (Exception e) {
+        server.getServer()
+            .log(this, Level.FINE, "Exception during execution of leader request (shutdown=%s name=%s error=%s)", shutdown, getName(), e.toString());
         reconnect(e);
       }
     }
 
-    server.getServer().log(this, Level.INFO, "Replica message thread closed (shutdown=%s name=%s)", shutdown, getName());
+    server.getServer()
+        .log(this, Level.INFO, "Replica message thread closed (shutdown=%s name=%s threadId=%d)", shutdown, getName(), Thread.currentThread().getId());
   }
 
   public String getRemoteServerName() {
@@ -178,6 +184,13 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     shutdown();
     interrupt();
     close();
+
+    // WAIT THE THREAD IS DEAD
+    try {
+      join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   /**
@@ -207,7 +220,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   }
 
   private void connect() {
-    server.getServer().log(this, Level.INFO, "Connecting to server %s:%d...", host, port);
+    server.getServer().log(this, Level.FINE, "Connecting to server %s:%d...", host, port);
 
     try {
       channel = server.createNetworkConnection(host, port, ReplicationProtocol.COMMAND_CONNECT);
@@ -226,22 +239,25 @@ public class Replica2LeaderNetworkExecutor extends Thread {
             final String leaderServerName = channel.readString();
             final String leaderAddress = channel.readString();
             server.getServer()
-                .log(this, Level.INFO, "Remote server is not a Leader, connecting to the current Leader '%s' (%s)", leaderServerName, leaderAddress);
+                .log(this, Level.INFO, "Cannot accept incoming connections: remote server is not a Leader, connecting to the current Leader '%s' (%s)",
+                    leaderServerName, leaderAddress);
             channel.close();
             throw new ServerIsNotTheLeaderException(
                 "Remote server is not a Leader, connecting to the current Leader '" + leaderServerName + "' (" + leaderAddress + ")", leaderAddress);
 
           case ReplicationProtocol.ERROR_CONNECT_ELECTION_PENDING:
-            server.getServer().log(this, Level.INFO, "An election for the Leader server is pending");
+            server.getServer().log(this, Level.INFO, "Cannot accept incoming connections: an election for the Leader server is in progress");
             channel.close();
             throw new ReplicationException("An election for the Leader server is pending");
 
           case ReplicationProtocol.ERROR_CONNECT_UNSUPPORTEDPROTOCOL:
-            server.getServer().log(this, Level.INFO, "Remote server does not support protocol %d", ReplicationProtocol.PROTOCOL_VERSION);
+            server.getServer()
+                .log(this, Level.INFO, "Cannot accept incoming connections: remote server does not support protocol %d", ReplicationProtocol.PROTOCOL_VERSION);
             break;
 
           case ReplicationProtocol.ERROR_CONNECT_WRONGCLUSTERNAME:
-            server.getServer().log(this, Level.INFO, "Remote server joined a different cluster than '%s'", server.getClusterName());
+            server.getServer()
+                .log(this, Level.INFO, "Cannot accept incoming connections: remote server joined a different cluster than '%s'", server.getClusterName());
             break;
           }
 
@@ -268,7 +284,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       installDatabases();
 
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on connecting to the server %s:%d", e, host, port);
+      server.getServer().log(this, Level.FINE, "Error on connecting to the server %s:%d (cause=%s)", host, port, e.toString());
 
       shutdown();
       throw new ConnectionException(host + ":" + port, e);
@@ -400,7 +416,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   }
 
   private void shutdown() {
-    server.getServer().log(this, Level.FINE, "Shutting down thread %s...", getName());
+    server.getServer().log(this, Level.FINE, "Shutting down thread %s (id=%d)...", getName(), getId());
     shutdown = true;
   }
 }

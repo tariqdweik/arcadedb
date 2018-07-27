@@ -13,7 +13,6 @@ import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
-import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -267,7 +266,7 @@ public class TransactionManager {
         LogManager.instance().debug(this, "  - updating page %s v%d", pageId, modifiedPage.version);
 
       } catch (IOException e) {
-        if (e instanceof ClosedByInterruptException || e instanceof ClosedChannelException)
+        if (e instanceof ClosedByInterruptException)
           // NORMAL EXCEPTION IN CASE THE CONNECTION/THREAD IS CLOSED (=INTERRUPTED)
           Thread.currentThread().interrupt();
         else
