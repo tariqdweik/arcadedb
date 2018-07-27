@@ -147,7 +147,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
       server.getServer()
           .log(this, Level.SEVERE, "Error on communication between current replica and the Leader ('%s'), reconnecting... (error=%s)", getRemoteServerName(),
-              e.toString());
+              e);
 
       if (!shutdown) {
         try {
