@@ -155,7 +155,6 @@ public class ServerDatabaseProxy implements DatabaseInternal {
 
   @Override
   public String getName() {
-    checkForOpen();
     return proxied.getName();
   }
 
