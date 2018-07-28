@@ -24,7 +24,14 @@ public class GetQueryHandler extends DatabaseAbstractHandler {
     final Deque<String> text = exchange.getQueryParameters().get("command");
     if (text == null || text.isEmpty()) {
       exchange.setStatusCode(400);
-      exchange.getResponseSender().send("{ \"error\" : \"Command text id is null\"}");
+      exchange.getResponseSender().send("{ \"error\" : \"Command text is null\"}");
+      return;
+    }
+
+    final Deque<String> language = exchange.getQueryParameters().get("language");
+    if (language == null || language.isEmpty()) {
+      exchange.setStatusCode(400);
+      exchange.getResponseSender().send("{ \"error\" : \"Language is null\"}");
       return;
     }
 
@@ -34,7 +41,7 @@ public class GetQueryHandler extends DatabaseAbstractHandler {
     try {
 
       final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
-      final ResultSet qResult = database.query("SQL", command);
+      final ResultSet qResult = database.query(language.getFirst(), command);
       while (qResult.hasNext()) {
         if (result.length() > 0)
           result.append(",");

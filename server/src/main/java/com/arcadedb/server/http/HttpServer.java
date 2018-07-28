@@ -49,9 +49,9 @@ public class HttpServer implements ServerPlugin {
     server.log(this, Level.INFO, "- Starting HTTP Server (host=%s port=%d)...", host, port);
 
     final RoutingHandler routes = new RoutingHandler();
-    routes.get("/query/{database}/{command}", new GetQueryHandler(this));
+    routes.get("/query/{database}/{language}/{command}", new GetQueryHandler(this));
     routes.post("/query/{database}", new PostQueryHandler(this));
-    routes.post("/sql/{database}", new SQLHandler(this));
+    routes.post("/command/{database}", new CommandHandler(this));
     routes.get("/document/{database}/{rid}", new GetDocumentHandler(this));
     routes.post("/document/{database}", new CreateDocumentHandler(this));
     routes.post("/server", new ServersHandler(this));

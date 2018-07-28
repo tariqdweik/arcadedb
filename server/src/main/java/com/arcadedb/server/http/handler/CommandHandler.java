@@ -16,8 +16,8 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.Map;
 
-public class SQLHandler extends DatabaseAbstractHandler {
-  public SQLHandler(final HttpServer httpServer) {
+public class CommandHandler extends DatabaseAbstractHandler {
+  public CommandHandler(final HttpServer httpServer) {
     super(httpServer);
   }
 
@@ -38,6 +38,8 @@ public class SQLHandler extends DatabaseAbstractHandler {
 
     final JSONObject json = new JSONObject(payload);
     final Map<String, Object> requestMap = json.toMap();
+
+    final String language = (String) requestMap.get("language");
 
     final String command = (String) requestMap.get("command");
 
@@ -60,14 +62,12 @@ public class SQLHandler extends DatabaseAbstractHandler {
         params = new Object[] { paramMap };
     }
 
-//    httpServer.getServer().getServerMetrics().meter("http.sql").mark();
-
     final StringBuilder result = new StringBuilder();
 
-    final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.sql");
+    final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.command");
     try {
 
-      final ResultSet qResult = database.command("SQL", command, params);
+      final ResultSet qResult = database.command(language, command, params);
 
       while (qResult.hasNext()) {
         if (result.length() > 0)

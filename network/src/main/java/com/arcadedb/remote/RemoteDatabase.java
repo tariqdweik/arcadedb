@@ -66,14 +66,14 @@ public class RemoteDatabase extends RWLockContext {
   }
 
   public void create() {
-    databaseCommand("create", null, null, true, null);
+    databaseCommand("create", "SQL", null, null, true, null);
   }
 
   public void close() {
   }
 
   public void drop() {
-    databaseCommand("drop", null, null, true, null);
+    databaseCommand("drop", "SQL", null, null, true, null);
     close();
   }
 
@@ -90,7 +90,7 @@ public class RemoteDatabase extends RWLockContext {
       }
     }
 
-    return (ResultSet) databaseCommand("sql", command, params, true, new Callback() {
+    return (ResultSet) databaseCommand("command", language, command, params, true, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) {
         final ResultSet resultSet = new InternalResultSet();
@@ -119,7 +119,7 @@ public class RemoteDatabase extends RWLockContext {
       }
     }
 
-    return (ResultSet) databaseCommand("query", command, params, false, new Callback() {
+    return (ResultSet) databaseCommand("query", language, command, params, false, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) {
         final ResultSet resultSet = new InternalResultSet();
@@ -160,18 +160,18 @@ public class RemoteDatabase extends RWLockContext {
     return name;
   }
 
-  private Object serverCommand(final String operation, final String payloadCommand, final Map<String, Object> params, final boolean requiresLeader,
-      final Callback callback) {
-    return httpCommand(null, operation, payloadCommand, params, requiresLeader, callback);
-  }
-
-  private Object databaseCommand(final String operation, final String payloadCommand, final Map<String, Object> params, final boolean requiresLeader,
-      final Callback callback) {
-    return httpCommand(name, operation, payloadCommand, params, requiresLeader, callback);
-  }
-
-  private Object httpCommand(final String extendedURL, final String operation, final String payloadCommand, final Map<String, Object> params,
+  private Object serverCommand(final String operation, final String language, final String payloadCommand, final Map<String, Object> params,
       final boolean requiresLeader, final Callback callback) {
+    return httpCommand(null, operation, language, payloadCommand, params, requiresLeader, callback);
+  }
+
+  private Object databaseCommand(final String operation, final String language, final String payloadCommand, final Map<String, Object> params,
+      final boolean requiresLeader, final Callback callback) {
+    return httpCommand(name, operation, language, payloadCommand, params, requiresLeader, callback);
+  }
+
+  private Object httpCommand(final String extendedURL, final String operation, final String language, final String payloadCommand,
+      final Map<String, Object> params, final boolean requiresLeader, final Callback callback) {
 
     Exception lastException = null;
 
@@ -191,6 +191,7 @@ public class RemoteDatabase extends RWLockContext {
 
           if (payloadCommand != null) {
             final JSONObject jsonRequest = new JSONObject();
+            jsonRequest.put("language", language);
             jsonRequest.put("command", payloadCommand);
 
             if (params != null) {
@@ -306,7 +307,7 @@ public class RemoteDatabase extends RWLockContext {
   }
 
   private void requestClusterConfiguration() {
-    serverCommand("server", null, null, false, new Callback() {
+    serverCommand("server", "SQL", null, null, false, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) {
         LogManager.instance().debug(this, "Configuring remote database: %s", response);

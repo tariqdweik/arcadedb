@@ -201,7 +201,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (asynch != null)
           asynch.close();
 
-        final DatabaseContext.PDatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
+        final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
         if (dbContext != null && dbContext.transaction != null) {
           if (dbContext.transaction != null && dbContext.transaction.isActive())
             // ROLLBACK ANY PENDING OPERATION
@@ -246,7 +246,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   public TransactionContext getTransaction() {
-    final DatabaseContext.PDatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
+    final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
     if (dbContext != null) {
       final TransactionContext tx = dbContext.transaction;
       if (tx != null) {
@@ -890,7 +890,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     return databasePath != null ? databasePath.equals(pDatabase.databasePath) : pDatabase.databasePath == null;
   }
 
-  public DatabaseContext.PDatabaseContextTL getContext() {
+  public DatabaseContext.DatabaseContextTL getContext() {
     return DatabaseContext.INSTANCE.getContext(databasePath);
   }
 

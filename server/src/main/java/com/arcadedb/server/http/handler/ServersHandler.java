@@ -4,7 +4,6 @@
 
 package com.arcadedb.server.http.handler;
 
-import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.http.HttpServer;
 import io.undertow.server.HttpServerExchange;
@@ -18,24 +17,18 @@ public class ServersHandler extends AbstractHandler {
 
   @Override
   public void execute(final HttpServerExchange exchange) {
-    try {
-      exchange.setStatusCode(200);
+    exchange.setStatusCode(200);
 
-      final HAServer ha = httpServer.getServer().getHA();
-      if (ha == null) {
-        exchange.getResponseSender().send("{}");
-      } else {
-        final String leaderServer = ha.isLeader() ? ha.getServer().getHttpServer().getListeningAddress() : ha.getLeader().getRemoteHTTPAddress();
-        final String replicaServers = ha.getReplicaServersHTTPAddressesList();
+    final HAServer ha = httpServer.getServer().getHA();
+    if (ha == null) {
+      exchange.getResponseSender().send("{}");
+    } else {
+      final String leaderServer = ha.isLeader() ? ha.getServer().getHttpServer().getListeningAddress() : ha.getLeader().getRemoteHTTPAddress();
+      final String replicaServers = ha.getReplicaServersHTTPAddressesList();
 
-        httpServer.getServer().log(this, Level.INFO, "Returning configuration leaderServer=%s replicaServers=[%s]", leaderServer, replicaServers);
+      httpServer.getServer().log(this, Level.INFO, "Returning configuration leaderServer=%s replicaServers=[%s]", leaderServer, replicaServers);
 
-        exchange.getResponseSender().send("{ \"leaderServer\": \"" + leaderServer + "\", \"replicaServers\" : \"" + replicaServers + "\"}");
-      }
-
-    } catch (RecordNotFoundException e) {
-      exchange.setStatusCode(404);
-      exchange.getResponseSender().send("{ \"error\" : \"Record id is null\"}");
+      exchange.getResponseSender().send("{ \"leaderServer\": \"" + leaderServer + "\", \"replicaServers\" : \"" + replicaServers + "\"}");
     }
   }
 }

@@ -33,6 +33,8 @@ public class PostQueryHandler extends DatabaseAbstractHandler {
     final JSONObject json = new JSONObject(payload);
     final Map<String, Object> requestMap = json.toMap();
 
+    final String language = (String) requestMap.get("language");
+
     final String command = (String) requestMap.get("command");
 
     if (command == null || command.isEmpty()) {
@@ -59,7 +61,7 @@ public class PostQueryHandler extends DatabaseAbstractHandler {
     final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.query");
     try {
 
-      final ResultSet qResult = database.query("SQL", command, params);
+      final ResultSet qResult = database.query(language, command, params);
       while (qResult.hasNext()) {
         if (result.length() > 0)
           result.append(",");
