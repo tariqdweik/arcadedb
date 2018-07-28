@@ -202,10 +202,20 @@ public class LeaderNetworkListener extends Thread {
 
       final long localServerLastMessageNumber = ha.getReplicationLogFile().getLastMessageNumber();
 
-      if (lastReplicationMessage >= localServerLastMessageNumber && (ha.lastElectionVote == null || ha.lastElectionVote.getFirst() < voteTurn)) {
+      if (localServerLastMessageNumber > lastReplicationMessage) {
+        // LOCAL SERVER HAS A HIGHER LSN, START ELECTION PROCESS IF NOT THE LEADER
+        ha.getServer().log(this, Level.INFO,
+            "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but cannot give my vote because my LSN is higher", remoteServerName,
+            lastReplicationMessage, localServerLastMessageNumber, voteTurn);
+        channel.writeByte((byte) 2);
+        ha.lastElectionVote = new Pair<>(voteTurn, "-");
+        final Replica2LeaderNetworkExecutor leader = ha.getLeader();
+        channel.writeString(leader != null ? leader.getRemoteAddress() : ha.getServerAddress());
+
+      } else if (lastReplicationMessage >= localServerLastMessageNumber && (ha.lastElectionVote == null || ha.lastElectionVote.getFirst() < voteTurn)) {
         ha.getServer().log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, giving my vote", remoteServerName,
             lastReplicationMessage, localServerLastMessageNumber, voteTurn);
-        channel.writeByte((byte) 1);
+        channel.writeByte((byte) 0);
         ha.lastElectionVote = new Pair<>(voteTurn, remoteServerName);
         ha.setElectionStatus(HAServer.ELECTION_STATUS.VOTING_FOR_OTHERS);
       } else {
@@ -213,7 +223,7 @@ public class LeaderNetworkListener extends Thread {
             .log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but cannot give my vote (votedFor='%s')",
                 remoteServerName, lastReplicationMessage, localServerLastMessageNumber, voteTurn,
                 ha.lastElectionVote != null ? ha.lastElectionVote.getSecond() : "-");
-        channel.writeByte((byte) 0);
+        channel.writeByte((byte) 1);
         final Replica2LeaderNetworkExecutor leader = ha.getLeader();
         channel.writeString(leader != null ? leader.getRemoteAddress() : ha.getServerAddress());
       }
