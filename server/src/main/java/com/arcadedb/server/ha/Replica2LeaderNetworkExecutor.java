@@ -99,6 +99,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           // SKIP
           continue;
 
+        // TODO: LOG THE TX BEFORE EXECUTING TO RECOVER THE DB IN CASE OF CRASH
+
         final HACommand response = request.getSecond().execute(server, leaderServerName, message.messageNumber);
 
         server.getReplicationLogFile().appendMessage(message);

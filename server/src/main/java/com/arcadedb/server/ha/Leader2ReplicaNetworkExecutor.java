@@ -16,9 +16,7 @@ import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -187,12 +185,9 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           }
         }
 
-      } catch (EOFException | SocketException e) {
-        server.getServer().log(this, Level.FINE, "Error on reading request from socket", e);
+      } catch (Exception e) {
+        server.getServer().log(this, Level.SEVERE, "Generic error during applying of request from Leader (cause=%s)", e.toString());
         server.setReplicaStatus(remoteServerName, false);
-        close();
-      } catch (IOException e) {
-        server.getServer().log(this, Level.SEVERE, "Error on reading request", e);
         close();
       }
     }

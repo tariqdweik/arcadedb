@@ -192,7 +192,7 @@ public class ArcadeDBServer {
     return started;
   }
 
-  public DatabaseInternal createDatabase(final String databaseName) {
+  public synchronized DatabaseInternal createDatabase(final String databaseName) {
     DatabaseInternal db = databases.get(databaseName);
     if (db != null)
       throw new IllegalArgumentException("Database '" + databaseName + "' already exists");
@@ -213,10 +213,7 @@ public class ArcadeDBServer {
     if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
       db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);
 
-    final DatabaseInternal oldDb = databases.putIfAbsent(databaseName, db);
-
-    if (oldDb != null)
-      db = oldDb;
+    databases.put(databaseName, db);
 
     return db;
   }
@@ -232,7 +229,7 @@ public class ArcadeDBServer {
     LogManager.instance().log(requester, level, message, null, false, args);
   }
 
-  public void removeDatabase(final String databaseName) {
+  public synchronized void removeDatabase(final String databaseName) {
     databases.remove(databaseName);
   }
 
@@ -274,6 +271,7 @@ public class ArcadeDBServer {
   private synchronized Database getDatabase(final String databaseName, final boolean createIfNotExists) {
     DatabaseInternal db = databases.get(databaseName);
     if (db == null || !db.isOpen()) {
+
       final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
           PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
 
@@ -290,10 +288,7 @@ public class ArcadeDBServer {
       if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
         db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);
 
-      final DatabaseInternal oldDb = databases.putIfAbsent(databaseName, db);
-
-      if (oldDb != null)
-        db = oldDb;
+      databases.put(databaseName, db);
     }
 
     return new ServerDatabaseProxy(db);
