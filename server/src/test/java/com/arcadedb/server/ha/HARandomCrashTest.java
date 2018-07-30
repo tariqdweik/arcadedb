@@ -6,6 +6,7 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.remote.RemoteException;
 import com.arcadedb.sql.executor.Result;
@@ -92,6 +93,10 @@ public class HARandomCrashTest extends ReplicationServerTest {
               Assertions.assertTrue(props.contains("name"));
               Assertions.assertEquals("distributed-test", result.getProperty("name"));
               break;
+            } catch (DuplicatedKeyException e) {
+              // SKIP IT
+              LogManager.instance().info(this, "TEST: Safely caught DuplicatedKeyException (retry=%d/%d error=%s)", retry, maxRetry, e.toString());
+              break;
             } catch (RemoteException e) {
               // IGNORE IT
               LogManager.instance().error(this, "TEST: Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
@@ -132,7 +137,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
       timer.cancel();
 
-      LogManager.instance().info(this, "Done");
+      LogManager.instance().info(this, "Done, restarted %d times", restarts);
 
     } finally {
       db.close();

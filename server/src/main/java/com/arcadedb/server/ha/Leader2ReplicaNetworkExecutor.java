@@ -369,7 +369,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       final ChannelBinaryServer c = channel;
       if (c == null) {
         close();
-        return;
+        throw new IOException("Channel closed");
       }
 
       c.writeBytes(msg.getContent(), msg.size());

@@ -6,9 +6,13 @@ package com.arcadedb.server.ha.message;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.engine.CompressionFactory;
+import com.arcadedb.engine.WALException;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicationException;
+
+import java.nio.channels.ClosedChannelException;
+import java.util.logging.Level;
 
 /**
  * Replicate a transaction. No response is expected.
@@ -58,6 +62,13 @@ public class TxRequest extends HAAbstractCommand {
     try {
       db.getTransactionManager().applyChanges(tx);
 
+    } catch (WALException e) {
+      if (e.getCause() instanceof ClosedChannelException) {
+        // CLOSE THE ENTIRE DB
+        server.getServer().log(this, Level.SEVERE, "Closed file during transaction, closing the entire database (error=%s)", e.toString());
+        db.getEmbedded().close();
+      }
+      throw e;
     } finally {
       db.close();
     }

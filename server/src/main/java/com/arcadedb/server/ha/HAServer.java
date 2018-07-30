@@ -748,7 +748,7 @@ public class HAServer implements ServerPlugin {
 
         // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
         try {
-          server.log(this, Level.FINE, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
+          server.log(this, Level.INFO, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
 
           if (min == -1)
             min = entry.getFirst().messageNumber;
@@ -762,9 +762,9 @@ public class HAServer implements ServerPlugin {
 
         } catch (Exception e) {
           // REMOVE THE REPLICA
-          server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE", replica.getRemoteServerName());
+          server.log(this, Level.SEVERE, "Replica '%s' does not respond, setting it as OFFLINE (error=%s)", replica.getRemoteServerName(), e.toString());
           setReplicaStatus(replica.getRemoteServerName(), false);
-          break;
+          throw new ReplicationException("Cannot resend messages to replica '" + replicaName + "'", e);
         }
       }
     }
