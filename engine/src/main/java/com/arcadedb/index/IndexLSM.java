@@ -37,9 +37,9 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
 public class IndexLSM extends PaginatedComponent implements Index {
-  public static final String UNIQUE_INDEX_EXT    = "uidx";
-  public static final String NOTUNIQUE_INDEX_EXT = "nuidx";
-  public static final int    DEF_PAGE_SIZE       = 4 * 1024 * 1024;
+  public static final  String UNIQUE_INDEX_EXT    = "uidx";
+  public static final  String NOTUNIQUE_INDEX_EXT = "nuidx";
+  public static final  int    DEF_PAGE_SIZE       = 4 * 1024 * 1024;
 
   private          byte[]  keyTypes;
   private          byte    valueType;
@@ -160,6 +160,10 @@ public class IndexLSM extends PaginatedComponent implements Index {
   public IndexLSMPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {
     final BasePage page = database.getTransaction().getPage(new PageId(file.getFileId(), pageId), pageSize);
     return new IndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page), ascendingOrder);
+  }
+
+  public boolean isUnique() {
+    return unique;
   }
 
   @Override
@@ -308,6 +312,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
    * @return
    */
   protected LookupResult searchInPage(final BasePage currentPage, final Binary currentPageBuffer, final Object[] keys, final int count, final int purpose) {
+    checkForNulls(keys);
+
     // SEARCH IN THE BF FIRST
     final int seed = getBFSeed(currentPage);
 
@@ -379,12 +385,14 @@ public class IndexLSM extends PaginatedComponent implements Index {
       for (int keyIndex = 0; keyIndex < keys.length; ++keyIndex) {
         // GET THE KEY
 
+        final Object key = keys[keyIndex];
+
         if (keyTypes[keyIndex] == BinaryTypes.TYPE_STRING) {
           // OPTIMIZATION: SPECIAL CASE, LAZY EVALUATE BYTE PER BYTE THE STRING
-          result = comparator.compareStrings((String) keys[keyIndex], currentPageBuffer);
+          result = comparator.compareStrings((String) key, currentPageBuffer);
         } else {
-          final Object key = serializer.deserializeValue(database, currentPageBuffer, keyTypes[keyIndex]);
-          result = comparator.compare(keys[keyIndex], keyTypes[keyIndex], key, keyTypes[keyIndex]);
+          final Object keyValue = serializer.deserializeValue(database, currentPageBuffer, keyTypes[keyIndex]);
+          result = comparator.compare(key, keyTypes[keyIndex], keyValue, keyTypes[keyIndex]);
         }
 
         if (result > 0) {
@@ -545,16 +553,24 @@ public class IndexLSM extends PaginatedComponent implements Index {
     currentPage.writeInt(0, newCount);
   }
 
+  protected int getBFSeed(final BasePage currentPage) {
+    return currentPage.readInt(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE);
+  }
+
+  protected Object[] checkForNulls(final Object keys[]) {
+    if (keys != null)
+      for (int i = 0; i < keys.length; ++i)
+        if (keys[i] == null)
+          throw new IllegalArgumentException("Indexed key cannot be NULL");
+    return keys;
+  }
+
   private int getKeyValueFreePosition(final BasePage currentPage) {
     return currentPage.readInt(INT_SERIALIZED_SIZE);
   }
 
   private void setKeyValueFreePosition(final ModifiablePage currentPage, final int newKeyValueFreePosition) {
     currentPage.writeInt(INT_SERIALIZED_SIZE, newKeyValueFreePosition);
-  }
-
-  protected int getBFSeed(final BasePage currentPage) {
-    return currentPage.readInt(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE);
   }
 
   private int getBFSize() {
@@ -564,6 +580,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
   private void internalPut(final Object[] keys, final RID rid, final boolean checkForUnique) {
     if (keys.length != keyTypes.length)
       throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
+
+    checkForNulls(keys);
 
     if (unique && checkForUnique) {
       final List<RID> result = get(keys);

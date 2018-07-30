@@ -44,4 +44,6 @@ public interface Index {
   Map<String, Long> getStats();
 
   int getFileId();
+
+  boolean isUnique();
 }

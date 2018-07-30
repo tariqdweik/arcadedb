@@ -132,7 +132,7 @@ public abstract class BaseGraphServerTest {
           if (servers[i] != null)
             servers[i].stop();
 
-          if (dropDatabases()) {
+          if (dropDatabasesAtTheEnd()) {
             final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE);
 
             if (factory.exists()) {
@@ -216,7 +216,7 @@ public abstract class BaseGraphServerTest {
     return 1;
   }
 
-  protected boolean dropDatabases() {
+  protected boolean dropDatabasesAtTheEnd() {
     return true;
   }
 

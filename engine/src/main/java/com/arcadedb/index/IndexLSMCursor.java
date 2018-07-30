@@ -41,8 +41,8 @@ public class IndexLSMCursor implements IndexCursor {
       throws IOException {
     this.index = index;
     this.ascendingOrder = ascendingOrder;
-    this.fromKeys = fromKeys;
-    this.toKeys = toKeys;
+    this.fromKeys = index.checkForNulls(fromKeys);
+    this.toKeys = index.checkForNulls(toKeys);
 
     this.keyTypes = index.getKeyTypes();
     this.totalPages = index.getTotalPages();

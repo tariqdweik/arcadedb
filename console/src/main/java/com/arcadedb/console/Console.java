@@ -333,7 +333,8 @@ public class Console {
       }
 
       table.writeRows(rows, -1);
-    }
+    } else
+      throw new ConsoleException("Information about '" + subject + "' is not available");
   }
 
   private void executeHelp() {
