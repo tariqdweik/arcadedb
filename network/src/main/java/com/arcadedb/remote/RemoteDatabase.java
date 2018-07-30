@@ -4,6 +4,8 @@
 
 package com.arcadedb.remote;
 
+import com.arcadedb.ContextConfiguration;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.network.binary.QuorumNotReachedException;
@@ -39,6 +41,7 @@ public class RemoteDatabase extends RWLockContext {
 
   private final String                      originalServer;
   private final int                         originalPort;
+  private final ContextConfiguration        configuration;
   private       String                      currentServer;
   private       int                         currentPort;
   private final String                      name;
@@ -48,11 +51,17 @@ public class RemoteDatabase extends RWLockContext {
   private       Pair<String, Integer>       leaderServer;
   private final List<Pair<String, Integer>> replicaServerList         = new ArrayList<>();
   private       int                         currentReplicaServerIndex = -1;
+  private       int                         timeout                   = 5000;
 
   private String protocol = "http";
   private String charset  = "UTF-8";
 
   public RemoteDatabase(final String server, final int port, final String name, final String userName, final String userPassword) {
+    this(server, port, name, userName, userPassword, null);
+  }
+
+  public RemoteDatabase(final String server, final int port, final String name, final String userName, final String userPassword,
+      final ContextConfiguration configuration) {
     this.originalServer = server;
     this.originalPort = port;
 
@@ -62,6 +71,9 @@ public class RemoteDatabase extends RWLockContext {
     this.name = name;
     this.userName = userName;
     this.userPassword = userPassword;
+
+    this.configuration = configuration != null ? configuration : new ContextConfiguration();
+    this.timeout = this.configuration.getValueAsInteger(GlobalConfiguration.NETWORK_SOCKET_TIMEOUT);
 
     requestClusterConfiguration();
   }
@@ -152,8 +164,16 @@ public class RemoteDatabase extends RWLockContext {
     return connectionStrategy;
   }
 
-  public void setConnectionStrategy(CONNECTION_STRATEGY connectionStrategy) {
+  public void setConnectionStrategy(final CONNECTION_STRATEGY connectionStrategy) {
     this.connectionStrategy = connectionStrategy;
+  }
+
+  public int getTimeout() {
+    return timeout;
+  }
+
+  public void setTimeout(final int timeout) {
+    this.timeout = timeout;
   }
 
   @Override
@@ -207,6 +227,8 @@ public class RemoteDatabase extends RWLockContext {
             }
           }
 
+          connection.setConnectTimeout(timeout);
+          connection.setReadTimeout(timeout);
           connection.connect();
 
           if (connection.getResponseCode() != 200) {
