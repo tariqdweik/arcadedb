@@ -4,11 +4,13 @@
 
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.DatabaseInternal;
+
 /**
  * Created by luigidellaquila on 12/11/14.
  */
 public interface BinaryCompareOperator {
-  boolean execute(Object left, Object right);
+  boolean execute(DatabaseInternal database, Object left, Object right);
 
   boolean supportsBasicCalculation();
 

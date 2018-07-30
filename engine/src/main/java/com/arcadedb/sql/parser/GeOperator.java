@@ -7,6 +7,9 @@
 
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.schema.Type;
+
 public class GeOperator extends SimpleNode implements BinaryCompareOperator {
   public GeOperator(int id) {
     super(id);
@@ -24,21 +27,22 @@ public class GeOperator extends SimpleNode implements BinaryCompareOperator {
   }
 
   @Override
-  public boolean execute(Object iLeft, Object iRight) {
+  public boolean execute(final DatabaseInternal database, Object iLeft, Object iRight) {
     if (iLeft == iRight) {
       return true;
     }
     if (iLeft == null || iRight == null) {
       return false;
     }
-    //TODO
-//    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
-//      Number[] couple = OType.castComparableNumber((Number) iLeft, (Number) iRight);
-//      iLeft = couple[0];
-//      iRight = couple[1];
-//    } else {
-//      iRight = OType.convert(iRight, iLeft.getClass());
-//    }
+
+    if (iLeft.getClass() != iRight.getClass() && iLeft instanceof Number && iRight instanceof Number) {
+      Number[] couple = Type.castComparableNumber((Number) iLeft, (Number) iRight);
+      iLeft = couple[0];
+      iRight = couple[1];
+    } else {
+      iRight = Type.convert(database, iRight, iLeft.getClass());
+    }
+
     if (iRight == null)
       return false;
     return ((Comparable<Object>) iLeft).compareTo(iRight) >= 0;

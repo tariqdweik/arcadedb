@@ -18,7 +18,7 @@ public class RightBinaryCondition extends SimpleNode {
 
   BinaryCompareOperator operator;
 
-  boolean not = false;
+  boolean    not = false;
   InOperator inOperator;
 
   Expression right;
@@ -106,12 +106,12 @@ public class RightBinaryCondition extends SimpleNode {
     return result;
   }
 
-  private boolean matchesFilters(Identifiable iCurrentRecord, Object element, CommandContext ctx) {
+  private boolean matchesFilters(final Identifiable iCurrentRecord, final Object element, final CommandContext ctx) {
     if (operator != null) {
-      operator.execute(element, right.execute(iCurrentRecord, ctx));
+      operator.execute(ctx.getDatabase(), element, right.execute(iCurrentRecord, ctx));
     } else if (inOperator != null) {
 
-      Object rightVal = evaluateRight(iCurrentRecord, ctx);
+      final Object rightVal = evaluateRight(iCurrentRecord, ctx);
       if (rightVal == null) {
         return false;
       }
@@ -124,12 +124,12 @@ public class RightBinaryCondition extends SimpleNode {
     return false;
   }
 
-  private boolean matchesFilters(Result iCurrentRecord, Object element, CommandContext ctx) {
+  private boolean matchesFilters(final Result iCurrentRecord, final Object element, final CommandContext ctx) {
     if (operator != null) {
-      return operator.execute(element, right.execute(iCurrentRecord, ctx));
+      return operator.execute(ctx.getDatabase(), element, right.execute(iCurrentRecord, ctx));
     } else if (inOperator != null) {
 
-      Object rightVal = evaluateRight(iCurrentRecord, ctx);
+      final Object rightVal = evaluateRight(iCurrentRecord, ctx);
       if (rightVal == null) {
         return false;
       }

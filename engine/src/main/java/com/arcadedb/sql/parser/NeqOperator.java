@@ -6,6 +6,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.sql.executor.OQueryOperatorEquals;
 
 public class NeqOperator extends SimpleNode implements BinaryCompareOperator {
@@ -23,7 +24,7 @@ public class NeqOperator extends SimpleNode implements BinaryCompareOperator {
   }
 
   @Override
-  public boolean execute(Object left, Object right) {
+  public boolean execute(DatabaseInternal database, Object left, Object right) {
     return !OQueryOperatorEquals.equals(left, right);
   }
 

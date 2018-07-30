@@ -6,6 +6,7 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.sql.executor.MultiValue;
 import com.arcadedb.sql.executor.QueryHelper;
 
@@ -26,7 +27,7 @@ public class LikeOperator extends SimpleNode implements BinaryCompareOperator {
   }
 
   @Override
-  public boolean execute(Object iLeft, Object iRight) {
+  public boolean execute(DatabaseInternal database, Object iLeft, Object iRight) {
     if (MultiValue.isMultiValue(iLeft) || MultiValue.isMultiValue(iRight))
       return false;
 

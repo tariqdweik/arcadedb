@@ -6,6 +6,8 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.DatabaseInternal;
+
 public class WithinOperator extends SimpleNode implements BinaryCompareOperator {
   public WithinOperator(int id) {
     super(id);
@@ -22,7 +24,7 @@ public class WithinOperator extends SimpleNode implements BinaryCompareOperator 
     return visitor.visit(this, data);
   }
 
-  @Override public boolean execute(Object left, Object right) {
+  @Override public boolean execute(DatabaseInternal database, Object left, Object right) {
     throw new UnsupportedOperationException(toString() + " operator cannot be evaluated in this context");
   }
 

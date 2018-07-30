@@ -11,8 +11,8 @@ import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.sql.executor.OCollate;
 import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.OCollate;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
 
@@ -34,17 +34,17 @@ public class BinaryCondition extends BooleanExpression {
   /**
    * Accept the visitor.
    **/
-  public Object jjtAccept(SqlParserVisitor visitor, Object data) {
+  public Object jjtAccept(final SqlParserVisitor visitor, final Object data) {
     return visitor.visit(this, data);
   }
 
   @Override
-  public boolean evaluate(Identifiable currentRecord, CommandContext ctx) {
-    return operator.execute(left.execute(currentRecord, ctx), right.execute(currentRecord, ctx));
+  public boolean evaluate(final Identifiable currentRecord, final CommandContext ctx) {
+    return operator.execute(ctx.getDatabase(), left.execute(currentRecord, ctx), right.execute(currentRecord, ctx));
   }
 
   @Override
-  public boolean evaluate(Result currentRecord, CommandContext ctx) {
+  public boolean evaluate(final Result currentRecord, final CommandContext ctx) {
     Object leftVal = left.execute(currentRecord, ctx);
     Object rightVal = right.execute(currentRecord, ctx);
     OCollate collate = left.getCollate(currentRecord, ctx);
@@ -55,7 +55,7 @@ public class BinaryCondition extends BooleanExpression {
       leftVal = collate.transform(leftVal);
       rightVal = collate.transform(rightVal);
     }
-    return operator.execute(leftVal, rightVal);
+    return operator.execute(ctx.getDatabase(), leftVal, rightVal);
   }
 
   public void toString(Map<Object, Object> params, StringBuilder builder) {
