@@ -4,10 +4,21 @@
 
 package com.arcadedb.exception;
 
-import java.util.Arrays;
-
 public class DuplicatedKeyException extends RuntimeException {
-  public DuplicatedKeyException(final String indexName, final Object[] keys) {
-    super("Duplicated key " + Arrays.toString(keys) + " found on index '" + indexName + "'");
+  private String indexName;
+  private String keys;
+
+  public DuplicatedKeyException(final String indexName, final String keys) {
+    super("Duplicated key " + keys + " found on index '" + indexName + "'");
+    this.indexName = indexName;
+    this.keys = keys;
+  }
+
+  public String getIndexName() {
+    return indexName;
+  }
+
+  public String getKeys() {
+    return keys;
   }
 }

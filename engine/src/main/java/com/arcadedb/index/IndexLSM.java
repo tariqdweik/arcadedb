@@ -37,9 +37,9 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
 public class IndexLSM extends PaginatedComponent implements Index {
-  public static final  String UNIQUE_INDEX_EXT    = "uidx";
-  public static final  String NOTUNIQUE_INDEX_EXT = "nuidx";
-  public static final  int    DEF_PAGE_SIZE       = 4 * 1024 * 1024;
+  public static final String UNIQUE_INDEX_EXT    = "uidx";
+  public static final String NOTUNIQUE_INDEX_EXT = "nuidx";
+  public static final int    DEF_PAGE_SIZE       = 4 * 1024 * 1024;
 
   private          byte[]  keyTypes;
   private          byte    valueType;
@@ -586,7 +586,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
     if (unique && checkForUnique) {
       final List<RID> result = get(keys);
       if (!result.isEmpty())
-        throw new DuplicatedKeyException(name, keys);
+        throw new DuplicatedKeyException(name, Arrays.toString(keys));
     }
 
     database.checkTransactionIsActive();
@@ -607,7 +607,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
       if (result.found) {
         if (unique)
-          throw new DuplicatedKeyException(name, keys);
+          throw new DuplicatedKeyException(name, Arrays.toString(keys));
 
         // TODO: MANAGE NOT-UNIQUE BY ADDING THE VALUE TO THE ENTRY'S VALUE CONTAINER
         // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE VALUE

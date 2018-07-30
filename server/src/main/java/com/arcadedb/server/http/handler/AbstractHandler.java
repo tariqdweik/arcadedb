@@ -4,6 +4,7 @@
 
 package com.arcadedb.server.http.handler;
 
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ServerMetrics;
@@ -97,6 +98,12 @@ public abstract class AbstractHandler implements HttpHandler {
       exchange.setStatusCode(503);
       exchange.getResponseSender()
           .send("{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");
+    } catch (DuplicatedKeyException e) {
+      LogManager.instance().debug(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      exchange.setStatusCode(503);
+      exchange.getResponseSender().send(
+          "{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName()
+              + "\", \"exceptionArg\": \"" + e.getIndexName() + "|" + e.getKeys() + "\" }");
     } catch (Exception e) {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(500);

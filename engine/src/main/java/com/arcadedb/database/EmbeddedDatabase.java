@@ -813,7 +813,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           if (typeIndexes != null) {
             for (DocumentType.IndexMetadata i : typeIndexes) {
               if (!i.index.get(keyValues).isEmpty())
-                throw new DuplicatedKeyException(i.index.getName(), keyValues);
+                throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(keyValues));
             }
           }
         }

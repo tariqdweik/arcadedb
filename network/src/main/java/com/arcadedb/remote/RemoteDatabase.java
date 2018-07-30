@@ -4,6 +4,7 @@
 
 package com.arcadedb.remote;
 
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
@@ -238,6 +239,9 @@ public class RemoteDatabase extends RWLockContext {
               } else if (exception.equals(QuorumNotReachedException.class.getName())) {
                 lastException = new QuorumNotReachedException(detail);
                 continue;
+              } else if (exception.equals(DuplicatedKeyException.class.getName())) {
+                final String[] exceptionArgs = exceptionArg.split("|");
+                throw new DuplicatedKeyException(exceptionArgs[0], exceptionArgs[1]);
               }
             }
 
