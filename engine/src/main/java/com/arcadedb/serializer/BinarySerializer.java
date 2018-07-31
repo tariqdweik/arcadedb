@@ -247,6 +247,11 @@ public class BinarySerializer {
       }
       break;
     }
+    case BinaryTypes.TYPE_UUID:
+      final UUID uuid = (UUID) value;
+      content.putNumber(uuid.getMostSignificantBits());
+      content.putNumber(uuid.getLeastSignificantBits());
+      break;
     default:
       LogManager.instance().info(this, "Error on serializing value '" + value + "', type not supported");
     }
@@ -299,6 +304,10 @@ public class BinarySerializer {
     case BinaryTypes.TYPE_RID:
       value = new RID(database, content.getInt(), content.getLong());
       break;
+    case BinaryTypes.TYPE_UUID:
+      value = new UUID(content.getNumber(), content.getNumber());
+      break;
+
     default:
       LogManager.instance().info(this, "Error on deserializing value of type " + type);
       value = null;

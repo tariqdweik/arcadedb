@@ -11,6 +11,7 @@ import com.arcadedb.exception.DatabaseMetadataException;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.UUID;
 
 public class BinaryTypes {
   public final static byte TYPE_NULL           = 0;
@@ -28,6 +29,7 @@ public class BinaryTypes {
   public final static byte TYPE_BINARY         = 12;
   public final static byte TYPE_COMPRESSED_RID = 13;
   public final static byte TYPE_RID            = 14;
+  public final static byte TYPE_UUID           = 15;
 
   public static byte getTypeFromValue(final Object value) {
     final byte type;
@@ -58,6 +60,8 @@ public class BinaryTypes {
       type = TYPE_BINARY;
     else if (value instanceof RID)
       type = TYPE_COMPRESSED_RID;
+    else if (value instanceof UUID)
+      type = TYPE_UUID;
     else
       throw new DatabaseMetadataException("Cannot serialize value '" + value + "' of type " + value.getClass());
 
@@ -91,6 +95,9 @@ public class BinaryTypes {
     case BinaryTypes.TYPE_RID:
       return Binary.INT_SERIALIZED_SIZE + Binary.LONG_SERIALIZED_SIZE;
 
+    case BinaryTypes.TYPE_UUID:
+      return Binary.LONG_SERIALIZED_SIZE + Binary.LONG_SERIALIZED_SIZE;
+
     default:
       return -1;
     }
@@ -123,6 +130,8 @@ public class BinaryTypes {
       type = TYPE_BINARY;
     else if (clazz == RID.class)
       type = TYPE_COMPRESSED_RID;
+    else if (clazz == UUID.class)
+      type = TYPE_UUID;
     else
       throw new DatabaseMetadataException("Cannot find type for class '" + clazz + "'");
 
