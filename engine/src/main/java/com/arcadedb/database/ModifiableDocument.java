@@ -53,6 +53,11 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return map.get(name);
   }
 
+  public Object remove(final String name) {
+    checkForLazyLoadingProperties();
+    return map.remove(name);
+  }
+
   public void save() {
     if (getIdentity() != null)
       database.updateRecord(this);

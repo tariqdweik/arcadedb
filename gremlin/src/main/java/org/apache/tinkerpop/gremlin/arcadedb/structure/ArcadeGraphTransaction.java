@@ -7,7 +7,6 @@ import org.apache.tinkerpop.gremlin.structure.util.TransactionException;
  * Created by Enrico Risa on 30/07/2018.
  */
 public class ArcadeGraphTransaction extends AbstractThreadLocalTransaction {
-
   private final ArcadeGraph graph;
 
   public ArcadeGraphTransaction(ArcadeGraph arcadeGraph) {
@@ -28,6 +27,11 @@ public class ArcadeGraphTransaction extends AbstractThreadLocalTransaction {
   @Override
   protected void doRollback() throws TransactionException {
     graph.getDatabase().rollback();
+  }
+
+  @Override
+  protected void doClose() {
+    graph.getDatabase().close();
   }
 
   @Override

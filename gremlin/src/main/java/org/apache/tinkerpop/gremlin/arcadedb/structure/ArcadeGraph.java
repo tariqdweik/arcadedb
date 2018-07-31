@@ -8,6 +8,7 @@ import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.VertexType;
+import com.arcadedb.utility.FileUtils;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -15,6 +16,7 @@ import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -26,12 +28,13 @@ import java.util.stream.Stream;
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
+@Graph.OptIn("org.apache.tinkerpop.gremlin.arcadedb.suite.ArcadeDebugSuite")
 public class ArcadeGraph implements Graph {
 
-  private final ArcadeGraphVariables   graphVariables;
-  private final ArcadeGraphTransaction transaction;
-  protected BaseConfiguration configuration = new BaseConfiguration();
-  protected final Database database;
+  private final   ArcadeGraphVariables   graphVariables;
+  private final   ArcadeGraphTransaction transaction;
+  protected       BaseConfiguration      configuration = new BaseConfiguration();
+  protected final Database               database;
 
   protected Features features = new ArcadeGraphFeatures();
 
@@ -39,10 +42,12 @@ public class ArcadeGraph implements Graph {
     this.configuration.copy(configuration);
     final String directory = this.configuration.getString(CONFIG_DIRECTORY);
     DatabaseFactory factory = new DatabaseFactory(directory, PaginatedFile.MODE.READ_WRITE);
-    if (!factory.exists()) {
-      factory.create();
-    }
-    this.database = factory.open();
+
+    if (!factory.exists())
+      this.database = factory.create();
+    else
+      this.database = factory.open();
+
     this.graphVariables = new ArcadeGraphVariables(this);
     this.transaction = new ArcadeGraphTransaction(this);
   }
@@ -69,8 +74,7 @@ public class ArcadeGraph implements Graph {
   }
 
   @Override
-  public Vertex addVertex(Object... keyValues) {
-
+  public Vertex addVertex(final Object... keyValues) {
     ElementHelper.legalPropertyKeyValueArray(keyValues);
     if (ElementHelper.getIdValue(keyValues).isPresent())
       throw Vertex.Exceptions.userSuppliedIdsNotSupported();
@@ -81,8 +85,8 @@ public class ArcadeGraph implements Graph {
     if (!this.database.getSchema().existsType(label)) {
       this.database.getSchema().createVertexType(label);
     }
-    ModifiableVertex modifiableVertex = this.database.newVertex(label);
-    ArcadeVertex vertex = new ArcadeVertex(this, modifiableVertex);
+    final ModifiableVertex modifiableVertex = this.database.newVertex(label);
+    final ArcadeVertex vertex = new ArcadeVertex(this, modifiableVertex);
     ElementHelper.attachProperties(vertex, keyValues);
     modifiableVertex.save();
     return vertex;
@@ -100,7 +104,6 @@ public class ArcadeGraph implements Graph {
 
   @Override
   public Iterator<Vertex> vertices(Object... vertexIds) {
-    this.tx().readWrite();
     if (vertexIds.length == 0) {
       return this.database.getSchema().getTypes().stream().filter(VertexType.class::isInstance)
           .flatMap((t) -> this.database.query("sql", String.format("select * from `%s`", t.getName())).vertexStream())
@@ -113,27 +116,27 @@ public class ArcadeGraph implements Graph {
           rid = (RID) id;
         }
         return rid;
-      }).map(rid -> database.lookupByRID(rid, true)).filter(Vertex.class::isInstance)
+      }).map(rid -> database.lookupByRID(rid, true)).filter(com.arcadedb.graph.Vertex.class::isInstance)
           .map(record -> (Vertex) new ArcadeVertex(this, (ModifiableVertex) record.modify())).iterator();
     }
   }
 
   @Override
   public Iterator<Edge> edges(Object... edgeIds) {
-    this.tx().readWrite();
     if (edgeIds.length == 0) {
       return this.database.getSchema().getTypes().stream().filter(EdgeType.class::isInstance)
           .flatMap((t) -> this.database.query("sql", String.format("select * from `%s`", t.getName())).edgeStream())
-          .map(vertex -> (Edge) new ArcadeEdge(this, (ModifiableEdge) vertex.modify())).iterator();
+          .map(edge -> (Edge) new ArcadeEdge(this, (ModifiableEdge) edge.modify())).iterator();
     } else {
       ElementHelper.validateMixedElementIds(Edge.class, edgeIds);
       return Stream.of(edgeIds).map(id -> {
-        RID rid = null;
-        if (id instanceof RID) {
+        RID rid;
+        if (id instanceof RID)
           rid = (RID) id;
-        }
+        else
+          rid = null;
         return rid;
-      }).map(rid -> database.lookupByRID(rid, true)).filter(Edge.class::isInstance)
+      }).map(rid -> database.lookupByRID(rid, false)).filter(com.arcadedb.graph.Edge.class::isInstance)
           .map(record -> (Edge) new ArcadeEdge(this, (ModifiableEdge) record.modify())).iterator();
     }
   }
@@ -144,10 +147,17 @@ public class ArcadeGraph implements Graph {
   }
 
   @Override
-  public void close() throws Exception {
-    this.tx().close();
-    if (this.database != null) {
+  public void close() {
+    if (this.database != null)
       this.database.close();
+  }
+
+  public void drop() {
+    if (this.database != null) {
+      if (!this.database.isOpen())
+        FileUtils.deleteRecursively(new File(this.database.getDatabasePath()));
+      else
+        this.database.drop();
     }
   }
 
@@ -161,15 +171,16 @@ public class ArcadeGraph implements Graph {
     return configuration;
   }
 
-  protected void deleteElement(ArcadeElement element) {
+  protected void deleteElement(final ArcadeElement element) {
     database.deleteRecord(element.getBaseElement().getRecord());
   }
 
   public class ArcadeGraphFeatures implements Features {
 
-    protected GraphFeatures  graphFeatures  = new ArcadeGraphGraphFeatures();
-    protected VertexFeatures vertexFeatures = new ArcadeVertexFeatures();
-    protected EdgeFeatures   edgeFeatures   = new ArcadeEdgeFeatures();
+    protected GraphFeatures          graphFeatures          = new ArcadeGraphGraphFeatures();
+    protected VertexFeatures         vertexFeatures         = new ArcadeVertexFeatures();
+    protected EdgeFeatures           edgeFeatures           = new ArcadeEdgeFeatures();
+    protected VertexPropertyFeatures vertexPropertyFeatures = new ArcadeVertexPropertyFeatures();
 
     @Override
     public GraphFeatures graph() {
@@ -214,6 +225,11 @@ public class ArcadeGraph implements Graph {
     public class ArcadeVertexFeatures implements VertexFeatures {
 
       @Override
+      public VertexPropertyFeatures properties() {
+        return vertexPropertyFeatures;
+      }
+
+      @Override
       public VertexProperty.Cardinality getCardinality(String key) {
         return VertexProperty.Cardinality.single;
       }
@@ -227,10 +243,106 @@ public class ArcadeGraph implements Graph {
       public boolean supportsMultiProperties() {
         return false;
       }
+
+      @Override
+      public boolean supportsCustomIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsUserSuppliedIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsUuidIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsAnyIds() {
+        return false;
+      }
+
+      @Override
+      public boolean willAllowId(Object id) {
+        return false;
+      }
+
+      @Override
+      public boolean supportsStringIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsNumericIds() {
+        return false;
+      }
     }
 
     public class ArcadeEdgeFeatures implements EdgeFeatures {
+      @Override
+      public boolean supportsUserSuppliedIds() {
+        return false;
+      }
 
+      @Override
+      public boolean supportsNumericIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsStringIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsUuidIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsCustomIds() {
+        return false;
+      }
+    }
+
+    public class ArcadeVertexPropertyFeatures implements VertexPropertyFeatures {
+
+      @Override
+      public boolean supportsCustomIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsUserSuppliedIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsUuidIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsAnyIds() {
+        return false;
+      }
+
+      @Override
+      public boolean willAllowId(Object id) {
+        return false;
+      }
+
+      @Override
+      public boolean supportsStringIds() {
+        return false;
+      }
+
+      @Override
+      public boolean supportsNumericIds() {
+        return false;
+      }
     }
 
   }
@@ -239,8 +351,7 @@ public class ArcadeGraph implements Graph {
     return database;
   }
 
-  public static com.arcadedb.graph.Vertex.DIRECTION mapDirection(Direction direction) {
-
+  public static com.arcadedb.graph.Vertex.DIRECTION mapDirection(final Direction direction) {
     switch (direction) {
     case OUT:
       return com.arcadedb.graph.Vertex.DIRECTION.OUT;

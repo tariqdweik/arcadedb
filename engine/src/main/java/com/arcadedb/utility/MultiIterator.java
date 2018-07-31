@@ -22,7 +22,7 @@ public class MultiIterator<T> implements Iterator<T>, Iterable<T> {
   private int skipped = 0;
 
   public MultiIterator() {
-    sources = new ArrayList<Object>();
+    sources = new ArrayList<>();
   }
 
   public MultiIterator(final Iterator<? extends Collection<?>> iterator) {

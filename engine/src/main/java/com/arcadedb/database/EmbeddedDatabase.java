@@ -639,7 +639,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public boolean isTransactionActive() {
-    return getTransaction().isActive();
+    final TransactionContext tx = getTransaction();
+    return tx != null && tx.isActive();
   }
 
   @Override

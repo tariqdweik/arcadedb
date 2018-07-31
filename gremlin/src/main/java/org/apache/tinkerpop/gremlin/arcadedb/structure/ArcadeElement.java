@@ -10,17 +10,16 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
  */
 public abstract class ArcadeElement<T extends ModifiableDocument> implements Element {
 
-  protected final T baseElement;
-  protected final ArcadeGraph        graph;
+  protected final T           baseElement;
+  protected final ArcadeGraph graph;
 
-  protected ArcadeElement(ArcadeGraph graph, T baseElement) {
+  protected ArcadeElement(final ArcadeGraph graph, final T baseElement) {
     this.baseElement = baseElement;
     this.graph = graph;
   }
 
   @Override
   public String label() {
-    this.graph.tx().readWrite();
     return baseElement.getType();
   }
 
@@ -32,7 +31,6 @@ public abstract class ArcadeElement<T extends ModifiableDocument> implements Ele
 
   @Override
   public Object id() {
-    this.graph.tx().readWrite();
     return baseElement.getIdentity();
   }
 

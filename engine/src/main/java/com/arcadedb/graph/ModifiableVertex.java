@@ -56,7 +56,7 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
     return Vertex.RECORD_TYPE;
   }
 
-  public Edge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
+  public ModifiableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
       final Object... properties) {
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }

@@ -38,6 +38,9 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
     if (next != null)
       return true;
 
+    if (currentContainer == null)
+      return false;
+
     RID nextEdge;
     while (true) {
       if (currentPosition.get() < currentContainer.getUsed()) {

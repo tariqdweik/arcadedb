@@ -87,6 +87,9 @@ public class HAServer implements ServerPlugin {
   }
 
   public HAServer(final ArcadeDBServer server, final ContextConfiguration configuration) {
+    if (!configuration.getValueAsBoolean(GlobalConfiguration.TX_WAL))
+      throw new ConfigurationException("Cannot start HA service without using WAL. Please enable the TX_WAL setting.");
+
     this.server = server;
     this.messageFactory = new HAMessageFactory(server);
     this.configuration = configuration;
@@ -157,9 +160,6 @@ public class HAServer implements ServerPlugin {
           startElection();
         }
       }).start();
-
-//      server.log(this, Level.INFO, "Server started as $ANSI{green Leader} in HA mode (cluster=%s configuredServers=%d majorityOfVotes=%d)", clusterName,
-//          configuredServers, majorityOfVotes);
     }
   }
 

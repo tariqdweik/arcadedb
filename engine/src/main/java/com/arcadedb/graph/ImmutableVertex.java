@@ -65,7 +65,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
     throw new UnsupportedOperationException("setInEdgesHeadChunk");
   }
 
-  public Edge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
+  public ModifiableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
       final Object... properties) {
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }

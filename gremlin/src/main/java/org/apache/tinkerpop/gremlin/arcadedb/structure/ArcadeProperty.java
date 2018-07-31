@@ -10,13 +10,13 @@ import java.util.NoSuchElementException;
  */
 public class ArcadeProperty<T> implements Property<T> {
 
-  protected final Element     element;
-  protected final String      key;
-  protected final ArcadeGraph graph;
-  protected       T           value;
-  protected boolean removed = false;
+  protected final ArcadeElement element;
+  protected final String        key;
+  protected final ArcadeGraph   graph;
+  protected       T             value;
+  protected       boolean       removed = false;
 
-  protected ArcadeProperty(Element element, String key, T value) {
+  protected ArcadeProperty(final ArcadeElement element, final String key, final T value) {
     this.element = element;
     this.key = key;
     this.value = value;
@@ -47,8 +47,9 @@ public class ArcadeProperty<T> implements Property<T> {
   public void remove() {
     if (this.removed)
       return;
-    this.removed = true;
     this.graph.tx().readWrite();
-
+    element.baseElement.remove(key);
+    element.baseElement.save();
+    this.removed = true;
   }
 }

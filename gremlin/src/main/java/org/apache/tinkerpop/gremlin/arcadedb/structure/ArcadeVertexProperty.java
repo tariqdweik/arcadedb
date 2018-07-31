@@ -19,7 +19,7 @@ public class ArcadeVertexProperty<T> implements VertexProperty<T> {
   protected final T            value;
   protected final ArcadeVertex vertex;
 
-  protected ArcadeVertexProperty(ArcadeVertex vertex, String key, T value) {
+  protected ArcadeVertexProperty(final ArcadeVertex vertex, final String key, final T value) {
     this.vertex = vertex;
     this.key = key;
     this.value = value;
@@ -57,12 +57,12 @@ public class ArcadeVertexProperty<T> implements VertexProperty<T> {
   }
 
   @Override
-  public <V> Property<V> property(String key, V value) {
+  public <V> Property<V> property(final String key, final V value) {
     return null;
   }
 
   @Override
-  public <U> Iterator<Property<U>> properties(String... propertyKeys) {
+  public <U> Iterator<Property<U>> properties(final String... propertyKeys) {
     return null;
   }
 

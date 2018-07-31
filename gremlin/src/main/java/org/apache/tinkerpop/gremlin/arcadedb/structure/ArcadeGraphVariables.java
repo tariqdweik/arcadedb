@@ -10,9 +10,9 @@ import java.util.Set;
  */
 public class ArcadeGraphVariables implements Graph.Variables {
 
-  private ArcadeGraph graph;
+  private final ArcadeGraph graph;
 
-  public ArcadeGraphVariables(ArcadeGraph graph) {
+  public ArcadeGraphVariables(final ArcadeGraph graph) {
     this.graph = graph;
   }
 
@@ -35,7 +35,6 @@ public class ArcadeGraphVariables implements Graph.Variables {
   public void remove(String key) {
 
   }
-
 
   public static class ArcadeVariableFeatures implements Graph.Features.VariableFeatures {
 

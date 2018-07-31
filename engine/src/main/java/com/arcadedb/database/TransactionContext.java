@@ -78,7 +78,7 @@ public class TransactionContext {
       if (rid == null)
         throw new IllegalArgumentException("Cannot update record in TX cache because it is not persistent: " + record);
 
-      if (modifiedRecordsCache instanceof RecordInternal)
+      if (record instanceof RecordInternal)
         modifiedRecordsCache.put(rid, record);
       else
         immutableRecordsCache.put(rid, record);
@@ -99,13 +99,13 @@ public class TransactionContext {
         it.remove();
       }
     }
-
-    for (Iterator<Record> it = modifiedRecordsCache.values().iterator(); it.hasNext(); ) {
-      final BaseRecord r = (BaseRecord) it.next();
-      if (r.getIdentity().getBucketId() == bucketId && r.getIdentity().getPosition() / Bucket.MAX_RECORDS_IN_PAGE == pageNum) {
-        r.removeBuffer();
-      }
-    }
+//
+//    for (Iterator<Record> it = modifiedRecordsCache.values().iterator(); it.hasNext(); ) {
+//      final BaseRecord r = (BaseRecord) it.next();
+//      if (r.getIdentity().getBucketId() == bucketId && r.getIdentity().getPosition() / Bucket.MAX_RECORDS_IN_PAGE == pageNum) {
+//        r.removeBuffer();
+//      }
+//    }
   }
 
   public void removeRecordFromCache(final Record record) {
@@ -310,7 +310,7 @@ public class TransactionContext {
 
         LogManager.instance().debug(this, "Creating buffer for TX %d (threadId=%d)", txId, Thread.currentThread().getId());
 
-        result = database.getTransactionManager().getTransactionBuffer(txId, pages);
+        result = database.getTransactionManager().createTransactionBuffer(txId, pages);
       }
 
       return new Pair(result, pages);

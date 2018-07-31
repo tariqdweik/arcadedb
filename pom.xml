@@ -149,6 +149,7 @@
         <module>console</module>
         <module>server</module>
         <module>engine</module>
+        <module>gremlin</module>
         <module>mongodbw</module>
         <module>redisw</module>
         <module>package</module>

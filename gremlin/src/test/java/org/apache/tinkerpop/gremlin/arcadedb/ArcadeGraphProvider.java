@@ -17,7 +17,6 @@ import java.util.Set;
  */
 public class ArcadeGraphProvider extends AbstractGraphProvider {
 
-
   private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {{
     add(ArcadeEdge.class);
     add(ArcadeElement.class);
@@ -29,27 +28,21 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
   }};
 
   @Override
-  public Map<String, Object> getBaseConfiguration(String graphName, Class<?> test, String testMethodName,
-      LoadGraphWith.GraphData loadGraphWith) {
+  public Map<String, Object> getBaseConfiguration(String graphName, Class<?> test, String testMethodName, LoadGraphWith.GraphData loadGraphWith) {
 
     final String directory = makeTestDirectory(graphName, test, testMethodName);
 
     return new HashMap<String, Object>() {{
       put(Graph.GRAPH, ArcadeGraph.class.getName());
       put(ArcadeGraph.CONFIG_DIRECTORY, directory);
-
     }};
-
   }
 
   @Override
   public void clear(Graph graph, Configuration configuration) throws Exception {
 
-    if (graph != null) {
-      if (graph.tx().isOpen())
-        graph.tx().rollback();
-      graph.close();
-    }
+    if (graph != null)
+      ((ArcadeGraph) graph).drop();
 
     if (configuration != null && configuration.containsKey(ArcadeGraph.CONFIG_DIRECTORY)) {
       // this is a non-in-sideEffects configuration so blow away the directory
@@ -66,5 +59,19 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
   @Override
   public Set<Class> getImplementations() {
     return IMPLEMENTATIONS;
+  }
+
+  protected String makeTestDirectory(final String graphName, final Class<?> test, final String testMethodName) {
+    return this.getWorkingDirectory() + File.separator + cleanPathSegment(this.getClass().getSimpleName()) + File.separator + cleanPathSegment(
+        test.getSimpleName()) + File.separator + cleanPathSegment(graphName) + File.separator + cleanParameters(cleanPathSegment(testMethodName));
+  }
+
+  public static String cleanPathSegment(final String toClean) {
+    String cleaned = toClean.replaceAll("[.\\\\/,{}:*?\"<>|\\[\\]\\(\\)]", "");
+    if (cleaned.length() == 0) {
+      throw new IllegalStateException("Path segment " + toClean + " has not valid characters and is thus empty");
+    } else {
+      return cleaned;
+    }
   }
 }

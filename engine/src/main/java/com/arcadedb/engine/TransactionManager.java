@@ -100,7 +100,7 @@ public class TransactionManager {
     }
   }
 
-  public Binary getTransactionBuffer(final long txId, final List<ModifiablePage> pages) {
+  public Binary createTransactionBuffer(final long txId, final List<ModifiablePage> pages) {
     return WALFile.writeTransactionToBuffer(pages, txId);
   }
 
@@ -169,9 +169,12 @@ public class TransactionManager {
           walPositions[i] = file.getFirstTransaction();
         }
 
+        long lastTxId = -1;
+
         while (true) {
           int lowerTx = -1;
           long lowerTxId = -1;
+
           for (int i = 0; i < walPositions.length; ++i) {
             final WALFile.WALTransaction walTx = walPositions[i];
             if (walTx != null) {
@@ -186,10 +189,15 @@ public class TransactionManager {
             // FINISHED
             break;
 
+          lastTxId = lowerTxId;
+
           applyChanges(walPositions[lowerTx]);
 
           walPositions[lowerTx] = activeWALFilePool[lowerTx].getTransaction(walPositions[lowerTx].endPositionInLog);
         }
+
+        // CONTINUE FROM LAST TXID
+        transactionIds.set(lastTxId + 1);
 
         // REMOVE ALL WAL FILES
         for (int i = 0; i < activeWALFilePool.length; ++i) {

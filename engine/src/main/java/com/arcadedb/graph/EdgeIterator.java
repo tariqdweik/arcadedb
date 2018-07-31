@@ -15,18 +15,24 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
   private final AtomicInteger currentPosition = new AtomicInteger(ModifiableEdgeChunk.CONTENT_START_POSITION);
 
   public EdgeIterator(final EdgeChunk current) {
+    if (current == null)
+      throw new IllegalArgumentException("Edge chunk is null");
+
     this.currentContainer = current;
   }
 
   @Override
   public boolean hasNext() {
+    if( currentContainer == null )
+      return false;
+
     if (currentPosition.get() < currentContainer.getUsed())
       return true;
 
     currentContainer = currentContainer.getNext();
     if (currentContainer != null) {
       currentPosition.set(ModifiableEdgeChunk.CONTENT_START_POSITION);
-      return true;
+      return currentPosition.get() < currentContainer.getUsed();
     }
     return false;
   }
