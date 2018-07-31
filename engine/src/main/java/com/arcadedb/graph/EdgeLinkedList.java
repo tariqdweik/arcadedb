@@ -123,7 +123,9 @@ public class EdgeLinkedList {
   public void removeEdge(final RID edgeRID) {
     EdgeChunk current = first;
     while (current != null) {
-      current.removeEdge(edgeRID);
+      if (current.removeEdge(edgeRID) > 0)
+        ((DatabaseInternal) vertex.getDatabase()).updateRecord(current);
+
       current = current.getNext();
     }
   }
@@ -131,7 +133,9 @@ public class EdgeLinkedList {
   public void removeVertex(final RID vertexRID) {
     EdgeChunk current = first;
     while (current != null) {
-      current.removeVertex(vertexRID);
+      if (current.removeVertex(vertexRID) > 0)
+        ((DatabaseInternal) vertex.getDatabase()).updateRecord(current);
+
       current = current.getNext();
     }
   }

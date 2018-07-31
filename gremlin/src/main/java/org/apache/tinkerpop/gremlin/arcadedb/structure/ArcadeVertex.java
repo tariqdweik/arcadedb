@@ -5,9 +5,10 @@ import com.arcadedb.graph.ModifiableVertex;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by Enrico Risa on 30/07/2018.
@@ -66,24 +67,30 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
 
   @Override
   public Iterator<Edge> edges(final Direction direction, final String... edgeLabels) {
-    if (edgeLabels.length == 0) {
-      return IteratorUtils.stream(this.baseElement.getEdges(ArcadeGraph.mapDirection(direction)))
-          .map((edge -> (Edge) new ArcadeEdge(this.graph, (ModifiableEdge) edge.modify()))).iterator();
-    } else {
-      return IteratorUtils.stream(this.baseElement.getEdges(ArcadeGraph.mapDirection(direction), edgeLabels))
-          .map((edge -> (Edge) new ArcadeEdge(this.graph, (ModifiableEdge) edge.modify()))).iterator();
-    }
+    final List<Edge> result = new ArrayList<>();
+
+    if (edgeLabels.length == 0)
+      for (com.arcadedb.graph.Edge edge : this.baseElement.getEdges(ArcadeGraph.mapDirection(direction)))
+        result.add(new ArcadeEdge(this.graph, (ModifiableEdge) edge.modify()));
+    else
+      for (com.arcadedb.graph.Edge edge : this.baseElement.getEdges(ArcadeGraph.mapDirection(direction), edgeLabels))
+        result.add(new ArcadeEdge(this.graph, (ModifiableEdge) edge.modify()));
+
+    return result.iterator();
   }
 
   @Override
   public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels) {
-    if (edgeLabels.length == 0) {
-      return IteratorUtils.stream(this.baseElement.getVertices(ArcadeGraph.mapDirection(direction)))
-          .map((vertex -> (Vertex) new ArcadeVertex(this.graph, (ModifiableVertex) vertex.modify()))).iterator();
-    } else {
-      return IteratorUtils.stream(this.baseElement.getVertices(ArcadeGraph.mapDirection(direction), edgeLabels))
-          .map((vertex -> (Vertex) new ArcadeVertex(this.graph, (ModifiableVertex) vertex.modify()))).iterator();
-    }
+    final List<Vertex> result = new ArrayList<>();
+
+    if (edgeLabels.length == 0)
+      for (com.arcadedb.graph.Vertex vertex : this.baseElement.getVertices(ArcadeGraph.mapDirection(direction)))
+        result.add(new ArcadeVertex(this.graph, (ModifiableVertex) vertex.modify()));
+    else
+      for (com.arcadedb.graph.Vertex vertex : this.baseElement.getVertices(ArcadeGraph.mapDirection(direction), edgeLabels))
+        result.add(new ArcadeVertex(this.graph, (ModifiableVertex) vertex.modify()));
+
+    return result.iterator();
   }
 
   @Override

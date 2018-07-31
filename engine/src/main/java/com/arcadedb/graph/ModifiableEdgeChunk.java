@@ -146,7 +146,7 @@ public class ModifiableEdgeChunk extends BaseRecord implements EdgeChunk, Record
 
       if (currEdgeBucketId == bucketId && currEdgePosition == position) {
         // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
-        buffer.move(buffer.position(), lastPos, used - lastPos);
+        buffer.move(buffer.position(), lastPos, used - buffer.position());
 
         used -= (buffer.position()-lastPos);
         setUsed(used);

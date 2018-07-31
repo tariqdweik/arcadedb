@@ -18,6 +18,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
@@ -287,6 +288,11 @@ public class ArcadeGraph implements Graph {
       }
 
       @Override
+      public boolean supportsAnyIds() {
+        return false;
+      }
+
+      @Override
       public boolean supportsNumericIds() {
         return false;
       }
@@ -349,6 +355,21 @@ public class ArcadeGraph implements Graph {
 
   protected Database getDatabase() {
     return database;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    ArcadeGraph that = (ArcadeGraph) o;
+    return Objects.equals(database, that.database);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(database);
   }
 
   public static com.arcadedb.graph.Vertex.DIRECTION mapDirection(final Direction direction) {

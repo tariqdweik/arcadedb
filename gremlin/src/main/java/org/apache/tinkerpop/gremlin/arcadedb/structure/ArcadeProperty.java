@@ -4,6 +4,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 /**
  * Created by Enrico Risa on 30/07/2018.
@@ -51,5 +52,20 @@ public class ArcadeProperty<T> implements Property<T> {
     element.baseElement.remove(key);
     element.baseElement.save();
     this.removed = true;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    final ArcadeProperty<?> that = (ArcadeProperty<?>) o;
+    return Objects.equals(element, that.element) && Objects.equals(key, that.key) && Objects.equals(graph, that.graph);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(graph, element, key);
   }
 }
