@@ -3,11 +3,14 @@ package org.apache.tinkerpop.gremlin.arcadedb.structure;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
+import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.VertexType;
+import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.FileUtils;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
@@ -16,8 +19,7 @@ import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import java.io.File;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -31,10 +33,13 @@ import java.util.stream.Stream;
 @Graph.OptIn("org.apache.tinkerpop.gremlin.arcadedb.suite.ArcadeDebugSuite")
 public class ArcadeGraph implements Graph {
 
-  private final   ArcadeGraphVariables   graphVariables;
+  private final   ArcadeVariableFeatures graphVariables = new ArcadeVariableFeatures();
   private final   ArcadeGraphTransaction transaction;
-  protected       BaseConfiguration      configuration = new BaseConfiguration();
   protected final Database               database;
+  protected final BaseConfiguration      configuration  = new BaseConfiguration();
+
+  private final static Iterator<Vertex> EMPTY_VERTICES = Collections.emptyIterator();
+  private final static Iterator<Edge>   EMPTY_EDGES    = Collections.emptyIterator();
 
   protected Features features = new ArcadeGraphFeatures();
 
@@ -48,7 +53,6 @@ public class ArcadeGraph implements Graph {
     else
       this.database = factory.open();
 
-    this.graphVariables = new ArcadeGraphVariables(this);
     this.transaction = new ArcadeGraphTransaction(this);
   }
 
@@ -103,12 +107,35 @@ public class ArcadeGraph implements Graph {
   }
 
   @Override
-  public Iterator<Vertex> vertices(Object... vertexIds) {
+  public Iterator<Vertex> vertices(final Object... vertexIds) {
     if (vertexIds.length == 0) {
-      return this.database.getSchema().getTypes().stream().filter(VertexType.class::isInstance)
-          .flatMap((t) -> this.database.query("sql", String.format("select * from `%s`", t.getName())).vertexStream())
-          .map(vertex -> (Vertex) new ArcadeVertex(this, (ModifiableVertex) vertex.modify())).iterator();
+      final Collection<DocumentType> types = this.database.getSchema().getTypes();
+      final Set<Bucket> buckets = new HashSet<>();
+      for (DocumentType t : types)
+        if (t instanceof VertexType)
+          buckets.addAll(t.getBuckets(true));
+
+      if (buckets.isEmpty())
+        return EMPTY_VERTICES;
+
+      // BUILD THE QUERY
+      final StringBuilder query = new StringBuilder("select from bucket:[");
+      int i = 0;
+      for (Bucket b : buckets) {
+        if (i > 0)
+          query.append(", ");
+        //query.append("`");
+        query.append(b.getName());
+        //query.append("`");
+        ++i;
+      }
+      query.append("]");
+
+      final ResultSet resultset = this.database.query("sql", query.toString());
+      return resultset.stream().map(result -> (Vertex) new ArcadeVertex(this, (ModifiableVertex) (result.toElement()).modify())).iterator();
+
     } else {
+
       ElementHelper.validateMixedElementIds(Vertex.class, vertexIds);
       return Stream.of(vertexIds).map(id -> {
         RID rid = null;
@@ -122,11 +149,34 @@ public class ArcadeGraph implements Graph {
   }
 
   @Override
-  public Iterator<Edge> edges(Object... edgeIds) {
+  public Iterator<Edge> edges(final Object... edgeIds) {
     if (edgeIds.length == 0) {
-      return this.database.getSchema().getTypes().stream().filter(EdgeType.class::isInstance)
-          .flatMap((t) -> this.database.query("sql", String.format("select * from `%s`", t.getName())).edgeStream())
-          .map(edge -> (Edge) new ArcadeEdge(this, (ModifiableEdge) edge.modify())).iterator();
+
+      final Collection<DocumentType> types = this.database.getSchema().getTypes();
+      final Set<Bucket> buckets = new HashSet<>();
+      for (DocumentType t : types)
+        if (t instanceof EdgeType)
+          buckets.addAll(t.getBuckets(true));
+
+      if (buckets.isEmpty())
+        return EMPTY_EDGES;
+
+      // BUILD THE QUERY
+      final StringBuilder query = new StringBuilder("select from bucket:[");
+      int i = 0;
+      for (Bucket b : buckets) {
+        if (i > 0)
+          query.append(", ");
+        //query.append("`");
+        query.append(b.getName());
+        //query.append("`");
+        ++i;
+      }
+      query.append("]");
+
+      final ResultSet resultset = this.database.query("sql", query.toString());
+      return resultset.stream().map(result -> (Edge) new ArcadeEdge(this, (ModifiableEdge) (result.toElement()).modify())).iterator();
+
     } else {
       ElementHelper.validateMixedElementIds(Edge.class, edgeIds);
       return Stream.of(edgeIds).map(id -> {
@@ -163,7 +213,7 @@ public class ArcadeGraph implements Graph {
 
   @Override
   public Variables variables() {
-    return graphVariables;
+    throw Graph.Exceptions.variablesNotSupported();
   }
 
   @Override

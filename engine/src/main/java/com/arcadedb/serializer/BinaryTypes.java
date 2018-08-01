@@ -63,7 +63,7 @@ public class BinaryTypes {
     else if (value instanceof UUID)
       type = TYPE_UUID;
     else
-      throw new DatabaseMetadataException("Cannot serialize value '" + value + "' of type " + value.getClass());
+      throw new IllegalArgumentException("Cannot serialize value '" + value + "' of type " + value.getClass());
 
     return type;
   }

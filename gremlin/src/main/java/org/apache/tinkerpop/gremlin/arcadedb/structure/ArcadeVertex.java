@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Enrico Risa on 30/07/2018.
@@ -66,6 +67,43 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
   }
 
   @Override
+  public <V> VertexProperty<V> property(final String key, final V value) {
+    ElementHelper.validateProperty(key, value);
+    this.graph.tx().readWrite();
+    baseElement.set(key, value);
+    baseElement.save();
+    return new ArcadeVertexProperty<>(this, key, value);
+  }
+
+  @Override
+  public <V> VertexProperty<V> property(final String key) {
+    return new ArcadeVertexProperty<>(this, key, (V) baseElement.get(key));
+  }
+
+  @Override
+  public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys) {
+    final List<ArcadeVertexProperty> props;
+    if (propertyKeys == null || propertyKeys.length == 0) {
+      final Set<String> propNames = baseElement.getPropertyNames();
+      props = new ArrayList<>(propNames.size());
+      for (String p : propNames) {
+        props.add(new ArcadeVertexProperty<>(this, p, (V) baseElement.get(p)));
+      }
+    } else {
+      props = new ArrayList<>(propertyKeys.length);
+      for (String p : propertyKeys) {
+        props.add(new ArcadeVertexProperty<>(this, p, (V) baseElement.get(p)));
+      }
+    }
+    return (Iterator) props.iterator();
+  }
+
+  @Override
+  public Set<String> keys() {
+    return baseElement.getPropertyNames();
+  }
+
+  @Override
   public Iterator<Edge> edges(final Direction direction, final String... edgeLabels) {
     final List<Edge> result = new ArrayList<>();
 
@@ -91,12 +129,6 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
         result.add(new ArcadeVertex(this.graph, (ModifiableVertex) vertex.modify()));
 
     return result.iterator();
-  }
-
-  @Override
-  public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys) {
-    return (Iterator) baseElement.getPropertyNames().stream().filter(key -> ElementHelper.keyExists(key, propertyKeys))
-        .map(key -> new ArcadeVertexProperty<>(this, key, (V) baseElement.get(key))).iterator();
   }
 
   @Override

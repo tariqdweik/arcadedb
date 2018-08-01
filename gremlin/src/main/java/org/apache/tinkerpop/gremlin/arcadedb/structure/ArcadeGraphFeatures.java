@@ -38,7 +38,7 @@ public class ArcadeGraphFeatures implements Graph.Features {
 
   public class ArcadeGraphGraphFeatures implements GraphFeatures {
 
-    private VariableFeatures variableFeatures = new ArcadeGraphVariables.ArcadeVariableFeatures();
+    private VariableFeatures variableFeatures = new ArcadeVariableFeatures();
 
     @Override
     public boolean supportsConcurrentAccess() {
@@ -129,7 +129,7 @@ public class ArcadeGraphFeatures implements Graph.Features {
     }
   }
 
-  public class ArcadeVertexPropertyFeatures extends ArcadePropertyFeatures implements VertexPropertyFeatures {
+  public class ArcadeVertexPropertyFeatures extends ArcadeDataTypeFeatures implements VertexPropertyFeatures {
 
     @Override
     public boolean supportsAnyIds() {
@@ -143,7 +143,7 @@ public class ArcadeGraphFeatures implements Graph.Features {
 
     @Override
     public boolean supportsNumericIds() {
-      return false;
+      return true;
     }
 
     @Override
@@ -162,10 +162,10 @@ public class ArcadeGraphFeatures implements Graph.Features {
     }
   }
 
-  public class ArcadeEdgePropertyFeatures extends ArcadePropertyFeatures implements EdgePropertyFeatures {
+  public class ArcadeEdgePropertyFeatures extends ArcadeDataTypeFeatures implements EdgePropertyFeatures {
   }
 
-  public class ArcadePropertyFeatures implements PropertyFeatures {
+  public static class ArcadeDataTypeFeatures implements DataTypeFeatures {
     @Override
     public boolean supportsMapValues() {
       return false;

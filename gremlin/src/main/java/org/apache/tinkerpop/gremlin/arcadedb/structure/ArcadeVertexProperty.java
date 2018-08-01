@@ -48,7 +48,8 @@ public class ArcadeVertexProperty<T> implements VertexProperty<T> {
   @Override
   public void remove() {
     graph().tx().readWrite();
-    vertex.getBaseElement().set(key, null);
+    vertex.getBaseElement().remove(key);
+    vertex.getBaseElement().save();
   }
 
   @Override

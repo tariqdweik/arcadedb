@@ -6,6 +6,7 @@ import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.arcadedb.structure.*;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.TransactionTest;
+import org.apache.tinkerpop.gremlin.structure.VertexTest;
 import org.junit.AssumptionViolatedException;
 
 import java.io.File;
@@ -23,13 +24,14 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
   static {
     IGNORED_TESTS = new HashMap<>();
     IGNORED_TESTS.put(TransactionTest.class, asList("shouldExecuteWithCompetingThreads"));
+    IGNORED_TESTS.put(VertexTest.BasicVertexTest.class, Arrays.asList("shouldNotGetConcurrentModificationException"));
   }
 
   private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {{
     add(ArcadeEdge.class);
     add(ArcadeElement.class);
     add(ArcadeGraph.class);
-    add(ArcadeGraphVariables.class);
+    add(ArcadeVariableFeatures.class);
     add(ArcadeProperty.class);
     add(ArcadeVertex.class);
     add(ArcadeVertexProperty.class);
