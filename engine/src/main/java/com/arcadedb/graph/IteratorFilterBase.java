@@ -12,23 +12,27 @@ import com.arcadedb.schema.EdgeType;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> {
   protected       EdgeChunk     currentContainer;
   protected final AtomicInteger currentPosition = new AtomicInteger(ModifiableEdgeChunk.CONTENT_START_POSITION);
 
-  protected RID              next;
-  protected HashSet<Integer> validBuckets;
+  protected RID          next;
+  protected Set<Integer> validBuckets;
 
   protected IteratorFilterBase(final DatabaseInternal database, final EdgeChunk current, final String[] edgeTypes) {
     this.currentContainer = current;
 
+    validBuckets = new HashSet<>();
     for (String e : edgeTypes) {
+      if (!database.getSchema().existsType(e))
+        continue;
+
       final EdgeType type = (EdgeType) database.getSchema().getType(e);
 
       final List<Bucket> buckets = type.getBuckets(true);
-      validBuckets = new HashSet<>(buckets.size());
       for (Bucket b : buckets)
         validBuckets.add(b.getId());
     }

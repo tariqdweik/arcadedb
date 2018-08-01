@@ -60,7 +60,10 @@ public class ArcadeEdge extends ArcadeElement<ModifiableEdge> implements Edge {
 
   @Override
   public <V> Property<V> property(final String key) {
-    return new ArcadeProperty<>(this, key, (V) baseElement.get(key));
+    final V value = (V) baseElement.get(key);
+    if (value != null)
+      return new ArcadeProperty<>(this, key, value);
+    return Property.empty();
   }
 
   @Override

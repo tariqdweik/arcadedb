@@ -5,6 +5,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.DocumentType;
@@ -17,6 +18,7 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.io.File;
 import java.util.*;
@@ -108,6 +110,8 @@ public class ArcadeGraph implements Graph {
 
   @Override
   public Iterator<Vertex> vertices(final Object... vertexIds) {
+    tx().readWrite();
+
     if (vertexIds.length == 0) {
       final Collection<DocumentType> types = this.database.getSchema().getTypes();
       final Set<Bucket> buckets = new HashSet<>();
@@ -124,9 +128,9 @@ public class ArcadeGraph implements Graph {
       for (Bucket b : buckets) {
         if (i > 0)
           query.append(", ");
-        //query.append("`");
+        query.append("`");
         query.append(b.getName());
-        //query.append("`");
+        query.append("`");
         ++i;
       }
       query.append("]");
@@ -143,13 +147,21 @@ public class ArcadeGraph implements Graph {
           rid = (RID) id;
         }
         return rid;
-      }).map(rid -> database.lookupByRID(rid, true)).filter(com.arcadedb.graph.Vertex.class::isInstance)
+      }).filter(rid -> rid != null).map(rid -> {
+        try {
+          return database.lookupByRID(rid, true);
+        } catch (RecordNotFoundException e) {
+          return null;
+        }
+      }).filter(record -> record != null).filter(com.arcadedb.graph.Vertex.class::isInstance)
           .map(record -> (Vertex) new ArcadeVertex(this, (ModifiableVertex) record.modify())).iterator();
     }
   }
 
   @Override
   public Iterator<Edge> edges(final Object... edgeIds) {
+    tx().readWrite();
+
     if (edgeIds.length == 0) {
 
       final Collection<DocumentType> types = this.database.getSchema().getTypes();
@@ -167,9 +179,9 @@ public class ArcadeGraph implements Graph {
       for (Bucket b : buckets) {
         if (i > 0)
           query.append(", ");
-        //query.append("`");
+        query.append("`");
         query.append(b.getName());
-        //query.append("`");
+        query.append("`");
         ++i;
       }
       query.append("]");
@@ -186,7 +198,7 @@ public class ArcadeGraph implements Graph {
         else
           rid = null;
         return rid;
-      }).map(rid -> database.lookupByRID(rid, false)).filter(com.arcadedb.graph.Edge.class::isInstance)
+      }).filter(rid -> rid != null).map(rid -> database.lookupByRID(rid, false)).filter(com.arcadedb.graph.Edge.class::isInstance)
           .map(record -> (Edge) new ArcadeEdge(this, (ModifiableEdge) record.modify())).iterator();
     }
   }
@@ -242,6 +254,11 @@ public class ArcadeGraph implements Graph {
   @Override
   public int hashCode() {
     return Objects.hash(database);
+  }
+
+  @Override
+  public String toString() {
+    return StringFactory.graphString(this, database.getName());
   }
 
   public static com.arcadedb.graph.Vertex.DIRECTION mapDirection(final Direction direction) {

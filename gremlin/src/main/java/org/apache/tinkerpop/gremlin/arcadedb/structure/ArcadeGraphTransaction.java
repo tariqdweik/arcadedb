@@ -30,11 +30,6 @@ public class ArcadeGraphTransaction extends AbstractThreadLocalTransaction {
   }
 
   @Override
-  protected void doClose() {
-    graph.getDatabase().close();
-  }
-
-  @Override
   public boolean isOpen() {
     return graph.getDatabase().isTransactionActive();
   }

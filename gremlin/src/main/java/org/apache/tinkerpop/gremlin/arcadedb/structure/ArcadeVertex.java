@@ -77,7 +77,10 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
 
   @Override
   public <V> VertexProperty<V> property(final String key) {
-    return new ArcadeVertexProperty<>(this, key, (V) baseElement.get(key));
+    final V value = (V) baseElement.get(key);
+    if (value != null)
+      return new ArcadeVertexProperty<>(this, key, value);
+    return VertexProperty.empty();
   }
 
   @Override
