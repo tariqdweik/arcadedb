@@ -31,6 +31,16 @@ public class ModifiableEdge extends ModifiableDocument implements Edge {
   }
 
   @Override
+  public void reload() {
+    super.reload();
+    if (buffer != null) {
+      this.out = new RID(database, buffer.getInt(), buffer.getLong());
+      this.in = new RID(database, buffer.getInt(), buffer.getLong());
+      this.propertiesStartingPosition = buffer.position();
+    }
+  }
+
+  @Override
   public RID getOut() {
     return out;
   }

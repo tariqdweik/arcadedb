@@ -130,6 +130,13 @@ public class TransactionContext {
     LogManager.instance()
         .debug(this, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
 
+    modifiedPages = null;
+    newPages = null;
+
+    // RELOAD PREVIOUS VERSION OF MODIFIED RECORDS
+    for (Record r : modifiedRecordsCache.values())
+      r.reload();
+
     reset();
   }
 

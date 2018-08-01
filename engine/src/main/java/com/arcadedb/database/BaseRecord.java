@@ -4,6 +4,8 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.exception.RecordNotFoundException;
+
 public abstract class BaseRecord implements Record {
   protected final DatabaseInternal database;
   protected       RID              rid;
@@ -25,8 +27,15 @@ public abstract class BaseRecord implements Record {
     return this;
   }
 
-  public void removeBuffer() {
-    buffer = null;
+  @Override
+  public void reload() {
+    if (rid != null && buffer == null) {
+      try {
+        buffer = database.getSchema().getBucketById(rid.getBucketId()).getRecord(rid);
+      } catch (RecordNotFoundException e) {
+        // IGNORE IT
+      }
+    }
   }
 
   @Override

@@ -33,6 +33,21 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
     this.propertiesStartingPosition = buffer.position();
   }
 
+  @Override
+  public void reload() {
+    super.reload();
+    if (buffer != null) {
+      this.outEdges = new RID(database, buffer.getInt(), buffer.getLong());
+      if (this.outEdges.getBucketId() == -1)
+        this.outEdges = null;
+      this.inEdges = new RID(database, buffer.getInt(), buffer.getLong());
+      if (this.inEdges.getBucketId() == -1)
+        this.inEdges = null;
+
+      this.propertiesStartingPosition = buffer.position();
+    }
+  }
+
   public RID getOutEdgesHeadChunk() {
     return outEdges;
   }
@@ -56,8 +71,7 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
     return Vertex.RECORD_TYPE;
   }
 
-  public ModifiableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
-      final Object... properties) {
+  public ModifiableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional, final Object... properties) {
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 

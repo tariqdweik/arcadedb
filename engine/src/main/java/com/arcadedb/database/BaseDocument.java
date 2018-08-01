@@ -21,4 +21,11 @@ public abstract class BaseDocument extends BaseRecord implements Document {
   public byte getRecordType() {
     return RECORD_TYPE;
   }
+
+  @Override
+  public void reload() {
+    super.reload();
+    if (buffer != null)
+      buffer.position(propertiesStartingPosition);
+  }
 }

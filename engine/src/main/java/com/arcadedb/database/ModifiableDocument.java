@@ -113,6 +113,12 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return this;
   }
 
+  @Override
+  public void reload() {
+    map = null;
+    super.reload();
+  }
+
   protected void checkForLazyLoadingProperties() {
     if (this.map == null && buffer != null) {
       buffer.position(propertiesStartingPosition);
