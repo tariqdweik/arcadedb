@@ -420,6 +420,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public Record lookupByRID(final RID rid, final boolean loadContent) {
+    if (rid == null)
+      throw new IllegalArgumentException("rid is null");
+
     return (Record) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {

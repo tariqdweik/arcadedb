@@ -6,7 +6,7 @@ package org.apache.tinkerpop.gremlin.arcadedb.suite;
 
 import org.apache.tinkerpop.gremlin.AbstractGremlinSuite;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalEngine;
-import org.apache.tinkerpop.gremlin.structure.EdgeTest;
+import org.apache.tinkerpop.gremlin.structure.PropertyTest;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
 
@@ -18,7 +18,7 @@ public class ArcadeDebugSuite extends AbstractGremlinSuite {
       //            TransactionTest.class,
       //            VertexTest.class
       //            TransactionTest.class
-      EdgeTest.class };
+      PropertyTest.class };
 
   public ArcadeDebugSuite(final Class<?> klass, final RunnerBuilder builder) throws InitializationError {
     super(klass, builder, allTests, null, false, TraversalEngine.Type.STANDARD);

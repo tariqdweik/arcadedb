@@ -2,6 +2,7 @@ package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -67,5 +68,10 @@ public class ArcadeProperty<T> implements Property<T> {
   @Override
   public int hashCode() {
     return Objects.hash(graph, element, key);
+  }
+
+  @Override
+  public String toString() {
+    return StringFactory.propertyString(this);
   }
 }
