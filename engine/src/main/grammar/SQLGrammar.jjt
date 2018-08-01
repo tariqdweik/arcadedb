@@ -16,8 +16,8 @@ package com.arcadedb.sql.parser;
 import java.io.InputStream;
 import java.util.List;
 import java.util.ArrayList;
-import com.arcadedb.exception.PCommandSQLParsingException;
-import com.arcadedb.exception.PQueryParsingException;
+import com.arcadedb.exception.CommandSQLParsingException;
+import com.arcadedb.exception.QueryParsingException;
 
 /** Database Sql grammar. */
 public class SqlParser {
@@ -554,7 +554,7 @@ TOKEN :
 | < MATCHES: ( "M" | "m") ( "A" | "a") ( "T" | "t") ( "C" | "c") ( "H" | "h") ( "E" | "e") ( "S" | "s") >
 | < KEY: ( "K" | "k") ( "E" | "e") ( "Y" | "y") >
 | < INSTANCEOF: ( "I" | "i" ) ( "N" | "n" ) ( "S" | "s" ) ( "T" | "t" ) ( "A" | "a" ) ( "N" | "n" ) ( "C" | "c" ) ( "E" | "e" ) ( "O" | "o" ) ( "F" | "f" ) >
-| < BUCKET: ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) >
+| < BUCKET: ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" )>
 }
 
 
@@ -793,89 +793,87 @@ Identifier Identifier():
 	|
 	token = <LINK>
 	|
-	token = <TYPE>
-    |
-    token = <INVERSE>
-    |
-    token = <EXPLAIN>
-    |
-    token = <GRANT>
-    |
-    token = <REVOKE>
-    |
-    token = <READ>
-    |
-    token = <EXECUTE>
-    |
-    token = <ALL>
-    |
-    token = <NONE>
-    |
-    token = <FUNCTION>
-    |
-    token = <PARAMETERS>
-    |
-    token = <IDEMPOTENT>
-    |
-    token = <LANGUAGE>
-    |
-    token = <BEGIN>
-    |
-    token = <COMMIT>
-    |
-    token = <ROLLBACK>
-    |
-    token = <IF>
-    |
-    token = <ISOLATION>
-    |
-    token = <SLEEP>
-    |
-    token = <CONSOLE>
-    |
-    token = <BLOB>
-    |
-    token = <SHARED>
-    |
-    token = <DEFAULT_>
-    |
-    token = <SEQUENCE>
-    |
-    token = <CACHE>
-    |
-    token = <START>
-    |
-    token = <OPTIONAL>
-    |
-    token = <COUNT>
-    |
-    token = <HA>
-    |
-    token = <STATUS>
-    |
-    token = <SERVER>
-    |
-    token = <SYNC>
-    |
-    token = <EXISTS>
-    |
-    token = <MOVE>
-    |
-    token = <DEPTH_ALIAS>
-    |
-    token = <PATH_ALIAS>
-    |
-    token = <IDENTIFIED>
-    |
-    token = <ROLE>
-    |
-    token = <USER>
-    |
-    token = <RID>
-    |
-    token = <DEFAULTBUCKET>
-    |
-    quotedToken = <QUOTED_IDENTIFIER>
+  token = <INVERSE>
+  |
+  token = <EXPLAIN>
+  |
+  token = <GRANT>
+  |
+  token = <REVOKE>
+  |
+  token = <READ>
+  |
+  token = <EXECUTE>
+  |
+  token = <ALL>
+  |
+  token = <NONE>
+  |
+  token = <FUNCTION>
+  |
+  token = <PARAMETERS>
+  |
+  token = <IDEMPOTENT>
+  |
+  token = <LANGUAGE>
+  |
+  token = <BEGIN>
+  |
+  token = <COMMIT>
+  |
+  token = <ROLLBACK>
+  |
+  token = <IF>
+  |
+  token = <ISOLATION>
+  |
+  token = <SLEEP>
+  |
+  token = <CONSOLE>
+  |
+  token = <BLOB>
+  |
+  token = <SHARED>
+  |
+  token = <DEFAULT_>
+  |
+  token = <SEQUENCE>
+  |
+  token = <CACHE>
+  |
+  token = <START>
+  |
+  token = <OPTIONAL>
+  |
+  token = <COUNT>
+  |
+  token = <HA>
+  |
+  token = <STATUS>
+  |
+  token = <SERVER>
+  |
+  token = <SYNC>
+  |
+  token = <EXISTS>
+  |
+  token = <MOVE>
+  |
+  token = <DEPTH_ALIAS>
+  |
+  token = <PATH_ALIAS>
+  |
+  token = <IDENTIFIED>
+  |
+  token = <ROLE>
+  |
+  token = <USER>
+  |
+  token = <RID>
+  |
+  token = <DEFAULTBUCKET>
+  |
+  quotedToken = <QUOTED_IDENTIFIER>
 ) {
 
     if(token!=null){
@@ -3555,7 +3553,7 @@ MatchPathItem MultiMatchPathItemArrows():
                 nextItem = BothPathItemOpt()  { jjtThis.items.add(nextItem); }
             ){
                 if(prevItem !=null && prevItem.filter == null){
-                    throw new PQueryParsingException("MATCH sub-pattern with no square brackets");
+                    throw new QueryParsingException("MATCH sub-pattern with no square brackets");
                 }
                 prevItem = nextItem;
             }
