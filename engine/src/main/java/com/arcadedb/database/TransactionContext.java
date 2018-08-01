@@ -134,8 +134,9 @@ public class TransactionContext {
     newPages = null;
 
     // RELOAD PREVIOUS VERSION OF MODIFIED RECORDS
-    for (Record r : modifiedRecordsCache.values())
-      r.reload();
+    if (database.isOpen())
+      for (Record r : modifiedRecordsCache.values())
+        r.reload();
 
     reset();
   }

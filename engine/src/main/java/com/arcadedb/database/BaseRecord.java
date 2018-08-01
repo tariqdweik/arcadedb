@@ -29,7 +29,7 @@ public abstract class BaseRecord implements Record {
 
   @Override
   public void reload() {
-    if (rid != null && buffer == null) {
+    if (rid != null && buffer == null && database.isOpen()) {
       try {
         buffer = database.getSchema().getBucketById(rid.getBucketId()).getRecord(rid);
       } catch (RecordNotFoundException e) {

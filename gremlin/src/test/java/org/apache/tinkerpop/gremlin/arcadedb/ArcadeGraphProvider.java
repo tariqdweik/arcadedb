@@ -76,6 +76,8 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
       // FIXME eventually ne need to get ride of this
       assumeFalse("there is some technical limitation in ArcadeDB that makes tests enter in an infinite loop when reading and writing to ArcadeDB", true);
 
+    //FileUtils.deleteRecursively(new File(config.getString("gremlin.arcadedb.directory")));
+
     return super.openTestGraph(config);
   }
 
