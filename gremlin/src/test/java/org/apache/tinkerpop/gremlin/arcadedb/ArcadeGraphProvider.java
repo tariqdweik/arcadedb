@@ -6,6 +6,7 @@ import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.LoadGraphWith;
 import org.apache.tinkerpop.gremlin.arcadedb.structure.*;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.SerializationTest;
 import org.apache.tinkerpop.gremlin.structure.TransactionTest;
 import org.apache.tinkerpop.gremlin.structure.VertexTest;
 import org.junit.AssumptionViolatedException;
@@ -26,6 +27,9 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
     IGNORED_TESTS = new HashMap<>();
     IGNORED_TESTS.put(TransactionTest.class, asList("shouldExecuteWithCompetingThreads"));
     IGNORED_TESTS.put(VertexTest.BasicVertexTest.class, Arrays.asList("shouldNotGetConcurrentModificationException"));
+    //This tests become broken after gremlin 3.2.4
+    IGNORED_TESTS.put(SerializationTest.GraphSONV3d0Test.class, Arrays.asList("shouldSerializeTraversalMetrics"));
+
   }
 
   private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {{

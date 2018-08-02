@@ -41,12 +41,16 @@ public abstract class ArcadeElement<T extends ModifiableDocument> implements Ele
       final Set<String> propNames = baseElement.getPropertyNames();
       props = new ArrayList<>(propNames.size());
       for (String p : propNames) {
-        props.add((V) baseElement.get(p));
+        final V value = (V) baseElement.get(p);
+        if (value != null)
+          props.add(value);
       }
     } else {
       props = new ArrayList<>(propertyKeys.length);
       for (String p : propertyKeys) {
-        props.add((V) baseElement.get(p));
+        final V value = (V) baseElement.get(p);
+        if (value != null)
+          props.add(value);
       }
     }
     return props.iterator();

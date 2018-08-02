@@ -20,22 +20,23 @@ public class ArcadeIoRegistry extends AbstractIoRegistry {
   public static final String BUCKET_ID       = "bucketId";
   public static final String BUCKET_POSITION = "bucketPosition";
 
-  private static final ArcadeIoRegistry INSTANCE = new ArcadeIoRegistry();
+  private final Database database;
 
-  private ArcadeIoRegistry() {
+  public ArcadeIoRegistry(final Database database) {
+    this.database = database;
     register(GryoIo.class, RID.class, new RIDGyroSerializer());
-    register(GraphSONIo.class, RID.class, ArcadeGraphSONV3.INSTANCE);
+    register(GraphSONIo.class, RID.class, new ArcadeGraphSONV3(database));
   }
 
-  public static ArcadeIoRegistry instance() {
-    return INSTANCE;
+  public Database getDatabase() {
+    return database;
   }
 
-  public static ArcadeIoRegistry getInstance() {
-    return INSTANCE;
+  public RID newRID(final Object obj) {
+    return newRID(this.database, obj);
   }
 
-  public static RID newRID(final Database db, final Object obj) {
+  public static RID newRID(final Database database, final Object obj) {
     if (obj == null)
       return null;
 
@@ -45,7 +46,7 @@ public class ArcadeIoRegistry extends AbstractIoRegistry {
     if (obj instanceof Map) {
       @SuppressWarnings({ "unchecked", "rawtypes" })
       final Map<String, Number> map = (Map) obj;
-      return new RID(db, map.get(BUCKET_ID).intValue(), map.get(BUCKET_POSITION).longValue());
+      return new RID(database, map.get(BUCKET_ID).intValue(), map.get(BUCKET_POSITION).longValue());
     }
 
     throw new IllegalArgumentException("Unable to convert unknown (" + obj.getClass() + ") type to RID");

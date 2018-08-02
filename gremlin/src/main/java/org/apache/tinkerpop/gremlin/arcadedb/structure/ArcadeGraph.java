@@ -207,7 +207,7 @@ public class ArcadeGraph implements Graph {
 
   @Override
   public <I extends Io> I io(Io.Builder<I> builder) {
-    return (I) Graph.super.io(builder.onMapper(mb -> mb.addRegistry(ArcadeIoRegistry.getInstance())));
+    return (I) Graph.super.io(builder.onMapper(mb -> mb.addRegistry(new ArcadeIoRegistry(this.database))));
   }
 
   @Override
