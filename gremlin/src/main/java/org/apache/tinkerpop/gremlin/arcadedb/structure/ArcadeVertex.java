@@ -90,12 +90,16 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
       final Set<String> propNames = baseElement.getPropertyNames();
       props = new ArrayList<>(propNames.size());
       for (String p : propNames) {
-        props.add(new ArcadeVertexProperty<>(this, p, (V) baseElement.get(p)));
+        final V value = (V) baseElement.get(p);
+        if (value != null)
+          props.add(new ArcadeVertexProperty<>(this, p, value));
       }
     } else {
       props = new ArrayList<>(propertyKeys.length);
       for (String p : propertyKeys) {
-        props.add(new ArcadeVertexProperty<>(this, p, (V) baseElement.get(p)));
+        final V value = (V) baseElement.get(p);
+        if (value != null)
+          props.add(new ArcadeVertexProperty<>(this, p, value));
       }
     }
     return (Iterator) props.iterator();

@@ -3,6 +3,7 @@ package org.apache.tinkerpop.gremlin.arcadedb.structure;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
+import com.arcadedb.database.Record;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.RecordNotFoundException;
@@ -24,7 +25,6 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.io.File;
 import java.util.*;
-import java.util.stream.Stream;
 
 /**
  * Created by Enrico Risa on 30/07/2018.
@@ -140,24 +140,33 @@ public class ArcadeGraph implements Graph {
       final ResultSet resultset = this.database.query("sql", query.toString());
       return resultset.stream().map(result -> (Vertex) new ArcadeVertex(this, (ModifiableVertex) (result.toElement()).modify())).iterator();
 
-    } else {
-
-      ElementHelper.validateMixedElementIds(Vertex.class, vertexIds);
-      return Stream.of(vertexIds).map(id -> {
-        RID rid = null;
-        if (id instanceof RID) {
-          rid = (RID) id;
-        }
-        return rid;
-      }).filter(rid -> rid != null).map(rid -> {
-        try {
-          return database.lookupByRID(rid, true);
-        } catch (RecordNotFoundException e) {
-          return null;
-        }
-      }).filter(record -> record != null).filter(com.arcadedb.graph.Vertex.class::isInstance)
-          .map(record -> (Vertex) new ArcadeVertex(this, (ModifiableVertex) record.modify())).iterator();
     }
+
+    ElementHelper.validateMixedElementIds(Vertex.class, vertexIds);
+
+    final List<Vertex> resultset = new ArrayList<>();
+
+    for (Object o : vertexIds) {
+      final RID rid;
+      if (o instanceof RID)
+        rid = (RID) o;
+      else if (o instanceof Vertex)
+        rid = (RID) ((Vertex) o).id();
+      else if (o instanceof String)
+        rid = new RID(database, (String) o);
+      else
+        continue;
+
+      try {
+        final Record r = database.lookupByRID(rid, true);
+        if (r instanceof com.arcadedb.graph.Vertex)
+          resultset.add(new ArcadeVertex(this, (ModifiableVertex) r.modify()));
+      } catch (RecordNotFoundException e) {
+        // NP, IGNORE IT
+      }
+    }
+
+    return resultset.iterator();
   }
 
   @Override
@@ -191,18 +200,33 @@ public class ArcadeGraph implements Graph {
       final ResultSet resultset = this.database.query("sql", query.toString());
       return resultset.stream().map(result -> (Edge) new ArcadeEdge(this, (ModifiableEdge) (result.toElement()).modify())).iterator();
 
-    } else {
-      ElementHelper.validateMixedElementIds(Edge.class, edgeIds);
-      return Stream.of(edgeIds).map(id -> {
-        RID rid;
-        if (id instanceof RID)
-          rid = (RID) id;
-        else
-          rid = null;
-        return rid;
-      }).filter(rid -> rid != null).map(rid -> database.lookupByRID(rid, false)).filter(com.arcadedb.graph.Edge.class::isInstance)
-          .map(record -> (Edge) new ArcadeEdge(this, (ModifiableEdge) record.modify())).iterator();
     }
+
+    ElementHelper.validateMixedElementIds(Vertex.class, edgeIds);
+
+    final List<Edge> resultset = new ArrayList<>();
+
+    for (Object o : edgeIds) {
+      final RID rid;
+      if (o instanceof RID)
+        rid = (RID) o;
+      else if (o instanceof Edge)
+        rid = (RID) ((Edge) o).id();
+      else if (o instanceof String)
+        rid = new RID(database, (String) o);
+      else
+        continue;
+
+      try {
+        final Record r = database.lookupByRID(rid, true);
+        if (r instanceof com.arcadedb.graph.Edge)
+          resultset.add(new ArcadeEdge(this, (ModifiableEdge) r.modify()));
+      } catch (RecordNotFoundException e) {
+        // NP, IGNORE IT
+      }
+    }
+
+    return resultset.iterator();
   }
 
   @Override

@@ -14,6 +14,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Enrico Risa on 30/07/2018.
@@ -68,9 +69,22 @@ public class ArcadeEdge extends ArcadeElement<ModifiableEdge> implements Edge {
 
   @Override
   public <V> Iterator<Property<V>> properties(final String... propertyKeys) {
-    final List<ArcadeProperty> props = new ArrayList<>();
-    for (String p : baseElement.getPropertyNames()) {
-      props.add(new ArcadeProperty<>(this, p, (V) baseElement.get(p)));
+    final List<ArcadeProperty> props;
+    if (propertyKeys == null || propertyKeys.length == 0) {
+      final Set<String> propNames = baseElement.getPropertyNames();
+      props = new ArrayList<>(propNames.size());
+      for (String p : propNames) {
+        final V value = (V) baseElement.get(p);
+        if (value != null)
+          props.add(new ArcadeProperty<>(this, p, value));
+      }
+    } else {
+      props = new ArrayList<>(propertyKeys.length);
+      for (String p : propertyKeys) {
+        final V value = (V) baseElement.get(p);
+        if (value != null)
+          props.add(new ArcadeProperty<>(this, p, value));
+      }
     }
     return (Iterator) props.iterator();
   }
