@@ -54,7 +54,6 @@ public class LocalResultSet implements ResultSet {
       return true;
     else
       return fetchNext();
-
   }
 
   @Override
@@ -78,6 +77,24 @@ public class LocalResultSet implements ResultSet {
   @Override
   public Optional<ExecutionPlan> getExecutionPlan() {
     return Optional.of(executionPlan);
+  }
+
+  @Override
+  public String toString() {
+    return "LocalResultSet(hasNext=" + hasNext() + ")";
+  }
+
+  /**
+   * Prints the resultset content to a string. The resultset is completely browsed.
+   */
+  public String print() {
+    final StringBuilder buffer = new StringBuilder();
+    for (int i = 0; hasNext(); ++i) {
+      if (i > 0)
+        buffer.append("\n");
+      buffer.append(i + ": " + next().toJSON());
+    }
+    return buffer.toString();
   }
 
   @Override

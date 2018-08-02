@@ -31,10 +31,10 @@ public class ResultInternal implements Result {
     this.element = ident;
   }
 
-  public void setProperty(String name, Object value) {
-    if (value instanceof Optional) {
+  public void setProperty(final String name, Object value) {
+    if (value instanceof Optional)
       value = ((Optional) value).orElse(null);
-    }
+
     if (value instanceof Result && ((Result) value).isElement()) {
       content.put(name, ((Result) value).getElement().get());
     } else {
@@ -42,11 +42,11 @@ public class ResultInternal implements Result {
     }
   }
 
-  public void removeProperty(String name) {
+  public void removeProperty(final String name) {
     content.remove(name);
   }
 
-  public <T> T getProperty(String name) {
+  public <T> T getProperty(final String name) {
     T result = null;
     if (content.containsKey(name)) {
       result = (T) wrap(content.get(name));
@@ -60,26 +60,23 @@ public class ResultInternal implements Result {
   }
 
   @Override
-  public Record getElementProperty(String name) {
+  public Record getElementProperty(final String name) {
     Object result = null;
-    if (content.containsKey(name)) {
+    if (content.containsKey(name))
       result = content.get(name);
-    } else if (element != null) {
+    else if (element != null)
       result = element.get(name);
-    }
 
-    if (result instanceof Result) {
+    if (result instanceof Result)
       result = ((Result) result).getRecord().orElse(null);
-    }
 
-//    if (result instanceof PRID) {
-//      result = ((PRID) result).getRecord();
-//    }
+    if (result instanceof RID)
+      result = ((RID) result).getRecord();
 
     return result instanceof Record ? (Record) result : null;
   }
 
-  private Object wrap(Object input) {
+  private Object wrap(final Object input) {
     //TODO!!!
 //    if (input instanceof PRecord && !((PRecord) input).getIdentity().isValid()) {
 //      OResultInternal result = new OResultInternal();
@@ -104,79 +101,68 @@ public class ResultInternal implements Result {
     return input;
   }
 
-  private boolean isEmbeddedSet(Object input) {
+  private boolean isEmbeddedSet(final Object input) {
     if (input instanceof Set) {
       for (Object o : (Set) input) {
-        if (o instanceof Record) {
+        if (o instanceof Record)
           return false;
-        }
-        if (isEmbeddedList(o)) {
+
+        else if (isEmbeddedList(o))
           return true;
-        }
-        if (isEmbeddedSet(o)) {
+        else if (isEmbeddedSet(o))
           return true;
-        }
-        if (isEmbeddedMap(o)) {
+        else if (isEmbeddedMap(o))
           return true;
-        }
       }
     }
     return false;
   }
 
-  private boolean isEmbeddedMap(Object input) {
+  private boolean isEmbeddedMap(final Object input) {
     if (input instanceof Map) {
       for (Object o : ((Map) input).values()) {
-        if (o instanceof Record) {
+        if (o instanceof Record)
           return false;//TODO
-        }
-        if (isEmbeddedList(o)) {
+        else if (isEmbeddedList(o))
           return true;
-        }
-        if (isEmbeddedSet(o)) {
+        else if (isEmbeddedSet(o))
           return true;
-        }
-        if (isEmbeddedMap(o)) {
+        else if (isEmbeddedMap(o))
           return true;
-        }
       }
     }
     return false;
   }
 
-  private boolean isEmbeddedList(Object input) {
+  private boolean isEmbeddedList(final Object input) {
     if (input instanceof List) {
       for (Object o : (List) input) {
-        if (o instanceof Record) {
+        if (o instanceof Record)
           return false;
-        }
-        if (isEmbeddedList(o)) {
+        else if (isEmbeddedList(o))
           return true;
-        }
-        if (isEmbeddedSet(o)) {
+        else if (isEmbeddedSet(o))
           return true;
-        }
-        if (isEmbeddedMap(o)) {
+        else if (isEmbeddedMap(o))
           return true;
-        }
       }
     }
     return false;
   }
 
   public Set<String> getPropertyNames() {
-    Set<String> result = new LinkedHashSet<>();
-    if (element != null) {
+    final Set<String> result = new LinkedHashSet<>();
+    if (element != null)
       result.addAll(element.getPropertyNames());
-    }
+
     result.addAll(content.keySet());
     return result;
   }
 
-  public boolean hasProperty(String propName) {
-    if (element != null && element.getPropertyNames().contains(propName)) {
+  public boolean hasProperty(final String propName) {
+    if (element != null && element.getPropertyNames().contains(propName))
       return true;
-    }
+
     return content.keySet().contains(propName);
   }
 
@@ -191,17 +177,17 @@ public class ResultInternal implements Result {
 
   @Override
   public Document toElement() {
-    if (isElement()) {
+    if (isElement())
       return getElement().get();
-    }
+
     throw new UnsupportedOperationException("REVIEW THIS!!!");
   }
 
   @Override
   public Optional<RID> getIdentity() {
-    if (element != null) {
+    if (element != null)
       return Optional.of(element.getIdentity());
-    }
+
     return Optional.empty();
   }
 
@@ -216,20 +202,20 @@ public class ResultInternal implements Result {
   }
 
   @Override
-  public Object getMetadata(String key) {
-    if (key == null) {
+  public Object getMetadata(final String key) {
+    if (key == null)
       return null;
-    }
+
     return metadata == null ? null : metadata.get(key);
   }
 
-  public void setMetadata(String key, Object value) {
-    if (key == null) {
+  public void setMetadata(final String key, final Object value) {
+    if (key == null)
       return;
-    }
-    if (metadata == null) {
+
+    if (metadata == null)
       metadata = new HashMap<>();
-    }
+
     metadata.put(key, value);
   }
 
@@ -237,20 +223,20 @@ public class ResultInternal implements Result {
     metadata = null;
   }
 
-  public void removeMetadata(String key) {
-    if (key == null || metadata == null) {
+  public void removeMetadata(final String key) {
+    if (key == null || metadata == null)
       return;
-    }
+
     metadata.remove(key);
   }
 
-  public void addMetadata(Map<String, Object> values) {
-    if (values == null) {
+  public void addMetadata(final Map<String, Object> values) {
+    if (values == null)
       return;
-    }
-    if (this.metadata == null) {
+
+    if (this.metadata == null)
       this.metadata = new HashMap<>();
-    }
+
     this.metadata.putAll(values);
   }
 
@@ -259,7 +245,7 @@ public class ResultInternal implements Result {
     return metadata == null ? Collections.emptySet() : metadata.keySet();
   }
 
-  private Object convertToElement(Object property) {
+  private Object convertToElement(final Object property) {
     if (property instanceof Result) {
       return ((Result) property).toElement();
     }
@@ -282,28 +268,27 @@ public class ResultInternal implements Result {
     return property;
   }
 
-  public void setElement(Document element) {
+  public void setElement(final Document element) {
     this.element = element;
   }
 
   @Override
   public String toString() {
-    if (element != null) {
+    if (element != null)
       return element.toString();
-    }
-    return "{\n" + content.entrySet().stream().map(x -> x.getKey() + ": " + x.getValue()).reduce("", (a, b) -> a + b + "\n")
-        + "}\n";
+
+    return "{\n" + content.entrySet().stream().map(x -> x.getKey() + ": " + x.getValue()).reduce("", (a, b) -> a + b + "\n") + "}\n";
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (!(obj instanceof ResultInternal)) {
       return false;
     }
-    ResultInternal resultObj = (ResultInternal) obj;
+    final ResultInternal resultObj = (ResultInternal) obj;
     if (element != null) {
       if (!resultObj.getElement().isPresent()) {
         return false;
@@ -319,10 +304,9 @@ public class ResultInternal implements Result {
 
   @Override
   public int hashCode() {
-    if (element != null) {
+    if (element != null)
       return element.hashCode();
-    }
+
     return content.hashCode();
   }
-
 }

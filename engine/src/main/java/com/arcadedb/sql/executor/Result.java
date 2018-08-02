@@ -73,11 +73,26 @@ public interface Result {
   Set<String> getMetadataKeys();
 
   default String toJSON() {
-    //TODO
-    return "{}";
+    if (isElement())
+      return getElement().get().toJSON().toString();
+
+    final StringBuilder result = new StringBuilder();
+    result.append("{");
+    boolean first = true;
+    for (String prop : getPropertyNames()) {
+      if (!first) {
+        result.append(", ");
+      }
+      result.append(toJson(prop));
+      result.append(": ");
+      result.append(toJson(getProperty(prop)));
+      first = false;
+    }
+    result.append("}");
+    return result.toString();
   }
 
-  default String toJson(Object val) {
+  default String toJson(final Object val) {
     String jsonVal = null;
     if (val == null) {
       jsonVal = "null";
