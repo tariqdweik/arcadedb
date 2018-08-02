@@ -1,5 +1,6 @@
 package org.apache.tinkerpop.gremlin.arcadedb;
 
+import com.arcadedb.database.RID;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.LoadGraphWith;
@@ -35,6 +36,7 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
     add(ArcadeProperty.class);
     add(ArcadeVertex.class);
     add(ArcadeVertexProperty.class);
+    add(RID.class);
   }};
 
   @Override

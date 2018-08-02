@@ -15,8 +15,10 @@ import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.FileUtils;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
+import org.apache.tinkerpop.gremlin.arcadedb.structure.io.ArcadeIoRegistry;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
@@ -201,6 +203,11 @@ public class ArcadeGraph implements Graph {
       }).filter(rid -> rid != null).map(rid -> database.lookupByRID(rid, false)).filter(com.arcadedb.graph.Edge.class::isInstance)
           .map(record -> (Edge) new ArcadeEdge(this, (ModifiableEdge) record.modify())).iterator();
     }
+  }
+
+  @Override
+  public <I extends Io> I io(Io.Builder<I> builder) {
+    return (I) Graph.super.io(builder.onMapper(mb -> mb.addRegistry(ArcadeIoRegistry.getInstance())));
   }
 
   @Override

@@ -33,6 +33,17 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
     this.propertiesStartingPosition = buffer.position();
   }
 
+
+  @Override
+  public ModifiableVertex save() {
+    return (ModifiableVertex) super.save();
+  }
+
+  @Override
+  public ModifiableVertex save(final String bucketName) {
+    return (ModifiableVertex) super.save(bucketName);
+  }
+
   @Override
   public void reload() {
     super.reload();

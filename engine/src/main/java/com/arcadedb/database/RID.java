@@ -4,10 +4,12 @@
 
 package com.arcadedb.database;
 
+import java.io.Serializable;
+
 /**
  * Immutable class.
  */
-public class RID implements Identifiable, Comparable<Identifiable> {
+public class RID implements Identifiable, Comparable<Identifiable>, Serializable {
   private final Database database;
   private       int      bucketId;
   private       long     offset;
@@ -18,12 +20,14 @@ public class RID implements Identifiable, Comparable<Identifiable> {
     this.offset = offset;
   }
 
-  public RID(final Database database, final String value) {
+  public RID(final Database database, String value) {
     this.database = database;
     if (!value.startsWith("#"))
       throw new IllegalArgumentException("RID as string is not valid");
 
-    final String[] parts = value.split(":");
+    value = value.substring(1);
+
+    final String[] parts = value.split(":", 2);
     this.bucketId = Integer.parseInt(parts[0]);
     this.offset = Long.parseLong(parts[1]);
   }

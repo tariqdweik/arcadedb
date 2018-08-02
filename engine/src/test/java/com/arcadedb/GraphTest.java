@@ -36,7 +36,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.getType());
       Assertions.assertEquals(VERTEX1_TYPE_NAME, v1.get("name"));
 
-      final Iterator<Vertex> vertices2level = v1.getVertices(Vertex.DIRECTION.OUT, new String[]{EDGE1_TYPE_NAME}).iterator();
+      final Iterator<Vertex> vertices2level = v1.getVertices(Vertex.DIRECTION.OUT, new String[] { EDGE1_TYPE_NAME }).iterator();
       Assertions.assertNotNull(vertices2level);
       Assertions.assertTrue(vertices2level.hasNext());
 
@@ -46,7 +46,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.getType());
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
-      final Iterator<Vertex> vertices2level2 = v1.getVertices(Vertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
+      final Iterator<Vertex> vertices2level2 = v1.getVertices(Vertex.DIRECTION.OUT, new String[] { EDGE2_TYPE_NAME }).iterator();
       Assertions.assertTrue(vertices2level2.hasNext());
 
       final Vertex v3 = vertices2level2.next();
@@ -55,7 +55,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v3.getType());
       Assertions.assertEquals("V3", v3.get("name"));
 
-      final Iterator<Vertex> vertices3level = v2.getVertices(Vertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
+      final Iterator<Vertex> vertices3level = v2.getVertices(Vertex.DIRECTION.OUT, new String[] { EDGE2_TYPE_NAME }).iterator();
       Assertions.assertNotNull(vertices3level);
       Assertions.assertTrue(vertices3level.hasNext());
 
@@ -92,7 +92,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertNotNull(v1);
 
       // TEST CONNECTED EDGES
-      final Iterator<Edge> edges1 = v1.getEdges(Vertex.DIRECTION.OUT, new String[]{EDGE1_TYPE_NAME}).iterator();
+      final Iterator<Edge> edges1 = v1.getEdges(Vertex.DIRECTION.OUT, new String[] { EDGE1_TYPE_NAME }).iterator();
       Assertions.assertNotNull(edges1);
       Assertions.assertTrue(edges1.hasNext());
 
@@ -106,7 +106,7 @@ public class GraphTest extends BaseGraphTest {
       Vertex v2 = e1.getInVertex();
       Assertions.assertEquals(VERTEX2_TYPE_NAME, v2.get("name"));
 
-      final Iterator<Edge> edges2 = v2.getEdges(Vertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
+      final Iterator<Edge> edges2 = v2.getEdges(Vertex.DIRECTION.OUT, new String[] { EDGE2_TYPE_NAME }).iterator();
       Assertions.assertTrue(edges2.hasNext());
 
       final Edge e2 = edges2.next();
@@ -119,7 +119,7 @@ public class GraphTest extends BaseGraphTest {
       Vertex v3 = e2.getInVertex();
       Assertions.assertEquals("V3", v3.get("name"));
 
-      final Iterator<Edge> edges3 = v1.getEdges(Vertex.DIRECTION.OUT, new String[]{EDGE2_TYPE_NAME}).iterator();
+      final Iterator<Edge> edges3 = v1.getEdges(Vertex.DIRECTION.OUT, new String[] { EDGE2_TYPE_NAME }).iterator();
       Assertions.assertNotNull(edges3);
       Assertions.assertTrue(edges3.hasNext());
 
@@ -154,7 +154,7 @@ public class GraphTest extends BaseGraphTest {
       v1Copy.save();
 
       // TEST CONNECTED EDGES
-      final Iterator<Edge> edges1 = v1.getEdges(Vertex.DIRECTION.OUT, new String[]{EDGE1_TYPE_NAME}).iterator();
+      final Iterator<Edge> edges1 = v1.getEdges(Vertex.DIRECTION.OUT, new String[] { EDGE1_TYPE_NAME }).iterator();
       Assertions.assertNotNull(edges1);
       Assertions.assertTrue(edges1.hasNext());
 
@@ -304,4 +304,52 @@ public class GraphTest extends BaseGraphTest {
       db.close();
     }
   }
+
+  @Test
+  public void selfLoopEdges() {
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    db.begin();
+    try {
+
+      // UNIDIRECTIONAL EDGE
+      final Vertex v1 = db.newVertex(VERTEX1_TYPE_NAME).save();
+      v1.newEdge(EDGE1_TYPE_NAME, v1, false).save();
+
+      Assertions.assertTrue(v1.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
+      Assertions.assertEquals(v1, v1.getVertices(Vertex.DIRECTION.OUT).iterator().next());
+      Assertions.assertFalse(v1.getVertices(Vertex.DIRECTION.IN).iterator().hasNext());
+
+      // BIDIRECTIONAL EDGE
+      final Vertex v2 = db.newVertex(VERTEX1_TYPE_NAME).save();
+      v2.newEdge(EDGE1_TYPE_NAME, v2, true).save();
+
+      Assertions.assertTrue(v2.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
+      Assertions.assertEquals(v2, v2.getVertices(Vertex.DIRECTION.OUT).iterator().next());
+
+      Assertions.assertTrue(v2.getVertices(Vertex.DIRECTION.IN).iterator().hasNext());
+      Assertions.assertEquals(v2, v2.getVertices(Vertex.DIRECTION.IN).iterator().next());
+
+      db.commit();
+
+      // UNIDIRECTIONAL EDGE
+      final Vertex v1reloaded = (Vertex) db.lookupByRID(v1.getIdentity(), true);
+      Assertions.assertTrue(v1reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
+      Assertions.assertEquals(v1reloaded, v1reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().next());
+      Assertions.assertFalse(v1reloaded.getVertices(Vertex.DIRECTION.IN).iterator().hasNext());
+
+      // BIDIRECTIONAL EDGE
+      final Vertex v2reloaded = (Vertex) db.lookupByRID(v2.getIdentity(), true);
+
+      Assertions.assertTrue(v2reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
+      Assertions.assertEquals(v2reloaded, v2reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().next());
+
+      Assertions.assertTrue(v2reloaded.getVertices(Vertex.DIRECTION.IN).iterator().hasNext());
+      Assertions.assertEquals(v2reloaded, v2reloaded.getVertices(Vertex.DIRECTION.IN).iterator().next());
+
+    } finally {
+      new DatabaseChecker().check(db);
+      db.close();
+    }
+  }
+
 }

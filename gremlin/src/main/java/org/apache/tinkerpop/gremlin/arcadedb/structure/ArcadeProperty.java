@@ -2,6 +2,7 @@ package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.util.NoSuchElementException;
@@ -56,13 +57,8 @@ public class ArcadeProperty<T> implements Property<T> {
   }
 
   @Override
-  public boolean equals(final Object o) {
-    if (this == o)
-      return true;
-    if (o == null || getClass() != o.getClass())
-      return false;
-    final ArcadeProperty<?> that = (ArcadeProperty<?>) o;
-    return Objects.equals(element, that.element) && Objects.equals(key, that.key) && Objects.equals(graph, that.graph);
+  public final boolean equals(final Object object) {
+    return ElementHelper.areEqual(this, object);
   }
 
   @Override

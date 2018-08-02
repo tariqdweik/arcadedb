@@ -58,15 +58,17 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return map.remove(name);
   }
 
-  public void save() {
+  public ModifiableDocument save() {
     if (getIdentity() != null)
       database.updateRecord(this);
     else
       database.createRecord(this);
+    return this;
   }
 
-  public void save(final String bucketName) {
+  public ModifiableDocument save(final String bucketName) {
     database.createRecord(this, bucketName);
+    return this;
   }
 
   @Override
