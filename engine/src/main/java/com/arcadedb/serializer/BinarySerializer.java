@@ -10,6 +10,7 @@ import com.arcadedb.exception.SerializationException;
 import com.arcadedb.graph.*;
 import com.arcadedb.utility.LogManager;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -247,12 +248,13 @@ public class BinarySerializer {
       }
       break;
     }
-    case BinaryTypes.TYPE_UUID:
+    case BinaryTypes.TYPE_UUID: {
       final UUID uuid = (UUID) value;
       content.putNumber(uuid.getMostSignificantBits());
       content.putNumber(uuid.getLeastSignificantBits());
       break;
-    case BinaryTypes.TYPE_LIST:
+    }
+    case BinaryTypes.TYPE_LIST: {
       if (value instanceof Collection) {
         final Collection list = (Collection) value;
         content.putNumber(list.size());
@@ -262,7 +264,7 @@ public class BinarySerializer {
           content.putByte(entryType);
           serializeValue(content, entryType, entryValue);
         }
-      } else {
+      } else if (value instanceof Object[]) {
         // ARRAY
         final Object[] array = (Object[]) value;
         content.putNumber(array.length);
@@ -271,8 +273,38 @@ public class BinarySerializer {
           content.putByte(entryType);
           serializeValue(content, entryType, entryValue);
         }
+      } else {
+        // ARRAY
+        final int length = Array.getLength(value);
+        content.putNumber(length);
+        for (int i = 0; i < length; ++i) {
+          final Object entryValue = Array.get(value, i);
+          final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
+          content.putByte(entryType);
+          serializeValue(content, entryType, entryValue);
+        }
       }
       break;
+    }
+    case BinaryTypes.TYPE_MAP: {
+      final Map<Object, Object> map = (Map<Object, Object>) value;
+      content.putNumber(map.size());
+      for (Map.Entry<Object, Object> entry : map.entrySet()) {
+        // WRITE THE KEY
+        final Object entryKey = entry.getKey();
+        final byte entryKeyType = BinaryTypes.getTypeFromValue(entryKey);
+        content.putByte(entryKeyType);
+        serializeValue(content, entryKeyType, entryKey);
+
+        // WRITE THE VALUE
+        final Object entryValue = entry.getValue();
+        final byte entryValueType = BinaryTypes.getTypeFromValue(entryValue);
+        content.putByte(entryValueType);
+        serializeValue(content, entryValueType, entryValue);
+      }
+      break;
+    }
+
     default:
       LogManager.instance().info(this, "Error on serializing value '" + value + "', type not supported");
     }
@@ -328,7 +360,7 @@ public class BinarySerializer {
     case BinaryTypes.TYPE_UUID:
       value = new UUID(content.getNumber(), content.getNumber());
       break;
-    case BinaryTypes.TYPE_LIST:
+    case BinaryTypes.TYPE_LIST: {
       final int count = (int) content.getNumber();
       final List list = new ArrayList(count);
       for (int i = 0; i < count; ++i) {
@@ -337,6 +369,22 @@ public class BinarySerializer {
       }
       value = list;
       break;
+    }
+    case BinaryTypes.TYPE_MAP: {
+      final int count = (int) content.getNumber();
+      final Map<Object, Object> map = new HashMap<>(count);
+      for (int i = 0; i < count; ++i) {
+        final byte entryKeyType = content.getByte();
+        final Object entryKey = deserializeValue(database, content, entryKeyType);
+
+        final byte entryValueType = content.getByte();
+        final Object entryValue = deserializeValue(database, content, entryValueType);
+
+        map.put(entryKey, entryValue);
+      }
+      value = map;
+      break;
+    }
 
     default:
       LogManager.instance().info(this, "Error on deserializing value of type " + type);

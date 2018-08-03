@@ -17,9 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SerializerTest {
 
@@ -252,25 +250,105 @@ public class SerializerTest {
         Assertions.assertIterableEquals(listOfBooleans, (Iterable<?>) record2.get("arrayOfBooleans"));
 
         Assertions.assertIterableEquals(listOfIntegers, (Iterable<?>) record2.get("listOfIntegers"));
-        Assertions.assertIterableEquals(listOfIntegers, (Iterable<?>) record2.get("listOfIntegers"));
+        Assertions.assertIterableEquals(listOfIntegers, (Iterable<?>) record2.get("arrayOfIntegers"));
 
         Assertions.assertIterableEquals(listOfLongs, (Iterable<?>) record2.get("listOfLongs"));
-        Assertions.assertIterableEquals(listOfLongs, (Iterable<?>) record2.get("listOfLongs"));
+        Assertions.assertIterableEquals(listOfLongs, (Iterable<?>) record2.get("arrayOfLongs"));
 
         Assertions.assertIterableEquals(listOfShorts, (Iterable<?>) record2.get("listOfShorts"));
-        Assertions.assertIterableEquals(listOfShorts, (Iterable<?>) record2.get("listOfShorts"));
+        Assertions.assertIterableEquals(listOfShorts, (Iterable<?>) record2.get("arrayOfShorts"));
 
         Assertions.assertIterableEquals(listOfFloats, (Iterable<?>) record2.get("listOfFloats"));
-        Assertions.assertIterableEquals(listOfFloats, (Iterable<?>) record2.get("listOfFloats"));
+        Assertions.assertIterableEquals(listOfFloats, (Iterable<?>) record2.get("arrayOfFloats"));
 
         Assertions.assertIterableEquals(listOfDoubles, (Iterable<?>) record2.get("listOfDoubles"));
-        Assertions.assertIterableEquals(listOfDoubles, (Iterable<?>) record2.get("listOfDoubles"));
+        Assertions.assertIterableEquals(listOfDoubles, (Iterable<?>) record2.get("arrayOfDoubles"));
 
         Assertions.assertIterableEquals(listOfStrings, (Iterable<?>) record2.get("listOfStrings"));
-        Assertions.assertIterableEquals(listOfStrings, (Iterable<?>) record2.get("listOfStrings"));
+        Assertions.assertIterableEquals(listOfStrings, (Iterable<?>) record2.get("arrayOfStrings"));
 
         Assertions.assertIterableEquals(listOfMixed, (Iterable<?>) record2.get("listOfMixed"));
-        Assertions.assertIterableEquals(listOfMixed, (Iterable<?>) record2.get("listOfMixed"));
+        Assertions.assertIterableEquals(listOfMixed, (Iterable<?>) record2.get("arrayOfMixed"));
+      }
+    });
+  }
+
+  @Test
+  public void testMapPropertiesInDocument() {
+    FileUtils.deleteRecursively(new File(DB_PATH));
+
+    final BinarySerializer serializer = new BinarySerializer();
+
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+      @Override
+      public void execute(Database database) {
+        database.getSchema().createDocumentType("Test");
+        database.commit();
+
+        Map<String, Boolean> mapOfStringsBooleans = new HashMap<>();
+        mapOfStringsBooleans.put("true", true);
+        mapOfStringsBooleans.put("false", false);
+
+        Map<Integer, Integer> mapOfIntegers = new LinkedHashMap<>();
+        for (int i = 0; i < 100; ++i)
+          mapOfIntegers.put(i, i);
+
+        Map<Long, Long> mapOfLongs = new HashMap<>();
+        for (int i = 0; i < 100; ++i)
+          mapOfLongs.put((long) i, (long) i);
+
+        Map<Short, Short> mapOfShorts = new LinkedHashMap<>();
+        for (int i = 0; i < 100; ++i)
+          mapOfShorts.put((short) i, (short) i);
+
+        Map<Float, Float> mapOfFloats = new LinkedHashMap<>();
+        for (int i = 0; i < 100; ++i)
+          mapOfFloats.put(((float) i) + 0.123f, ((float) i) + 0.123f);
+
+        Map<Double, Double> mapOfDoubles = new LinkedHashMap<>();
+        for (int i = 0; i < 100; ++i)
+          mapOfDoubles.put(((double) i) + 0.123f, ((double) i) + 0.123f);
+
+        Map<String, String> mapOfStrings = new HashMap<>();
+        for (int i = 0; i < 100; ++i)
+          mapOfStrings.put("" + i, "" + i);
+
+        Map<Object, Object> mapOfMixed = new HashMap<>();
+        mapOfMixed.put("0", (int) 0);
+        mapOfMixed.put(1l, (long) 1);
+        mapOfMixed.put("2short", (short) 2);
+        mapOfMixed.put("3string", "3");
+
+        database.begin();
+        final ModifiableDocument v = database.newDocument("Test");
+
+        v.set("mapOfStringsBooleans", mapOfStringsBooleans);
+        v.set("mapOfIntegers", mapOfIntegers);
+        v.set("mapOfLongs", mapOfLongs);
+        v.set("mapOfShorts", mapOfShorts);
+        v.set("mapOfFloats", mapOfFloats);
+        v.set("mapOfDoubles", mapOfDoubles);
+        v.set("mapOfStrings", mapOfStrings);
+        v.set("mapOfMixed", mapOfMixed);
+
+        final Binary buffer = serializer.serialize(database, v, -1);
+
+        final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
+        buffer2.put(buffer.toByteArray());
+        buffer2.flip();
+
+        Binary buffer3 = new Binary(buffer2);
+        buffer3.getByte(); // SKIP RECORD TYPE
+        Map<String, Object> record2 = serializer.deserializeProperties(database, buffer3);
+
+        Assertions.assertEquals(mapOfStringsBooleans, record2.get("mapOfStringsBooleans"));
+        Assertions.assertEquals(mapOfIntegers, record2.get("mapOfIntegers"));
+        Assertions.assertEquals(mapOfLongs, record2.get("mapOfLongs"));
+        Assertions.assertEquals(mapOfShorts, record2.get("mapOfShorts"));
+        Assertions.assertEquals(mapOfFloats, record2.get("mapOfFloats"));
+        Assertions.assertEquals(mapOfDoubles, record2.get("mapOfDoubles"));
+        Assertions.assertEquals(mapOfStrings, record2.get("mapOfStrings"));
+        Assertions.assertEquals(mapOfMixed, record2.get("mapOfMixed"));
       }
     });
   }

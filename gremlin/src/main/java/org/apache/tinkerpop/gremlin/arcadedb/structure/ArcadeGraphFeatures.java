@@ -167,11 +167,6 @@ public class ArcadeGraphFeatures implements Graph.Features {
 
   public static class ArcadeDataTypeFeatures implements DataTypeFeatures {
     @Override
-    public boolean supportsMapValues() {
-      return false;
-    }
-
-    @Override
     public boolean supportsSerializableValues() {
       return false;
     }
