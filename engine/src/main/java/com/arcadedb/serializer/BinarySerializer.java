@@ -253,13 +253,24 @@ public class BinarySerializer {
       content.putNumber(uuid.getLeastSignificantBits());
       break;
     case BinaryTypes.TYPE_LIST:
-      final Collection list = (Collection) value;
-      content.putNumber(list.size());
-      for (Iterator it = list.iterator(); it.hasNext(); ) {
-        final Object entryValue = it.next();
-        final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
-        content.putByte(entryType);
-        serializeValue(content, entryType, entryValue);
+      if (value instanceof Collection) {
+        final Collection list = (Collection) value;
+        content.putNumber(list.size());
+        for (Iterator it = list.iterator(); it.hasNext(); ) {
+          final Object entryValue = it.next();
+          final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
+          content.putByte(entryType);
+          serializeValue(content, entryType, entryValue);
+        }
+      } else {
+        // ARRAY
+        final Object[] array = (Object[]) value;
+        content.putNumber(array.length);
+        for (Object entryValue : array) {
+          final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
+          content.putByte(entryType);
+          serializeValue(content, entryType, entryValue);
+        }
       }
       break;
     default:

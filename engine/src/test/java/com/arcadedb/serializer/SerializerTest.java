@@ -213,14 +213,30 @@ public class SerializerTest {
 
         database.begin();
         final ModifiableDocument v = database.newDocument("Test");
+
         v.set("listOfBooleans", listOfBooleans);
+        v.set("arrayOfBooleans", listOfBooleans.toArray());
+
         v.set("listOfIntegers", listOfIntegers);
+        v.set("arrayOfIntegers", listOfIntegers.toArray());
+
         v.set("listOfLongs", listOfLongs);
+        v.set("arrayOfLongs", listOfLongs.toArray());
+
         v.set("listOfShorts", listOfShorts);
+        v.set("arrayOfShorts", listOfShorts.toArray());
+
         v.set("listOfFloats", listOfFloats);
+        v.set("arrayOfFloats", listOfFloats.toArray());
+
         v.set("listOfDoubles", listOfDoubles);
+        v.set("arrayOfDoubles", listOfDoubles.toArray());
+
         v.set("listOfStrings", listOfStrings);
+        v.set("arrayOfStrings", listOfStrings.toArray());
+
         v.set("listOfMixed", listOfMixed);
+        v.set("arrayOfMixed", listOfMixed.toArray());
 
         final Binary buffer = serializer.serialize(database, v, -1);
 
@@ -233,12 +249,27 @@ public class SerializerTest {
         Map<String, Object> record2 = serializer.deserializeProperties(database, buffer3);
 
         Assertions.assertIterableEquals(listOfBooleans, (Iterable<?>) record2.get("listOfBooleans"));
+        Assertions.assertIterableEquals(listOfBooleans, (Iterable<?>) record2.get("arrayOfBooleans"));
+
         Assertions.assertIterableEquals(listOfIntegers, (Iterable<?>) record2.get("listOfIntegers"));
+        Assertions.assertIterableEquals(listOfIntegers, (Iterable<?>) record2.get("listOfIntegers"));
+
         Assertions.assertIterableEquals(listOfLongs, (Iterable<?>) record2.get("listOfLongs"));
+        Assertions.assertIterableEquals(listOfLongs, (Iterable<?>) record2.get("listOfLongs"));
+
         Assertions.assertIterableEquals(listOfShorts, (Iterable<?>) record2.get("listOfShorts"));
+        Assertions.assertIterableEquals(listOfShorts, (Iterable<?>) record2.get("listOfShorts"));
+
         Assertions.assertIterableEquals(listOfFloats, (Iterable<?>) record2.get("listOfFloats"));
+        Assertions.assertIterableEquals(listOfFloats, (Iterable<?>) record2.get("listOfFloats"));
+
         Assertions.assertIterableEquals(listOfDoubles, (Iterable<?>) record2.get("listOfDoubles"));
+        Assertions.assertIterableEquals(listOfDoubles, (Iterable<?>) record2.get("listOfDoubles"));
+
         Assertions.assertIterableEquals(listOfStrings, (Iterable<?>) record2.get("listOfStrings"));
+        Assertions.assertIterableEquals(listOfStrings, (Iterable<?>) record2.get("listOfStrings"));
+
+        Assertions.assertIterableEquals(listOfMixed, (Iterable<?>) record2.get("listOfMixed"));
         Assertions.assertIterableEquals(listOfMixed, (Iterable<?>) record2.get("listOfMixed"));
       }
     });
