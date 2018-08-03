@@ -10,6 +10,7 @@ import com.arcadedb.engine.MurmurHash;
 import com.arcadedb.exception.DatabaseMetadataException;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Date;
 import java.util.UUID;
 
@@ -30,6 +31,7 @@ public class BinaryTypes {
   public final static byte TYPE_COMPRESSED_RID = 13;
   public final static byte TYPE_RID            = 14;
   public final static byte TYPE_UUID           = 15;
+  public final static byte TYPE_LIST           = 16;
 
   public static byte getTypeFromValue(final Object value) {
     final byte type;
@@ -62,6 +64,9 @@ public class BinaryTypes {
       type = TYPE_COMPRESSED_RID;
     else if (value instanceof UUID)
       type = TYPE_UUID;
+    else if (value instanceof Collection || value.getClass().isArray())
+      // TODO: SUPPORT SET SEMANTIC TOO
+      type = TYPE_LIST;
     else
       throw new IllegalArgumentException("Cannot serialize value '" + value + "' of type " + value.getClass());
 
@@ -99,6 +104,7 @@ public class BinaryTypes {
       return Binary.LONG_SERIALIZED_SIZE + Binary.LONG_SERIALIZED_SIZE;
 
     default:
+      // VARIABLE SIZE
       return -1;
     }
   }
@@ -132,6 +138,9 @@ public class BinaryTypes {
       type = TYPE_COMPRESSED_RID;
     else if (clazz == UUID.class)
       type = TYPE_UUID;
+    else if (clazz == Collection.class || clazz.isArray())
+      // TODO: SUPPORT SET SEMANTIC TOO
+      type = TYPE_LIST;
     else
       throw new DatabaseMetadataException("Cannot find type for class '" + clazz + "'");
 

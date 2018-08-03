@@ -252,6 +252,16 @@ public class BinarySerializer {
       content.putNumber(uuid.getMostSignificantBits());
       content.putNumber(uuid.getLeastSignificantBits());
       break;
+    case BinaryTypes.TYPE_LIST:
+      final Collection list = (Collection) value;
+      content.putNumber(list.size());
+      for (Iterator it = list.iterator(); it.hasNext(); ) {
+        final Object entryValue = it.next();
+        final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
+        content.putByte(entryType);
+        serializeValue(content, entryType, entryValue);
+      }
+      break;
     default:
       LogManager.instance().info(this, "Error on serializing value '" + value + "', type not supported");
     }
@@ -306,6 +316,15 @@ public class BinarySerializer {
       break;
     case BinaryTypes.TYPE_UUID:
       value = new UUID(content.getNumber(), content.getNumber());
+      break;
+    case BinaryTypes.TYPE_LIST:
+      final int count = (int) content.getNumber();
+      final List list = new ArrayList(count);
+      for (int i = 0; i < count; ++i) {
+        final byte entryType = content.getByte();
+        list.add(deserializeValue(database, content, entryType));
+      }
+      value = list;
       break;
 
     default:

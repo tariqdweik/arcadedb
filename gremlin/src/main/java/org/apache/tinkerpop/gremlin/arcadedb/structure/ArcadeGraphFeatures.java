@@ -172,47 +172,7 @@ public class ArcadeGraphFeatures implements Graph.Features {
     }
 
     @Override
-    public boolean supportsUniformListValues() {
-      return false;
-    }
-
-    @Override
     public boolean supportsSerializableValues() {
-      return false;
-    }
-
-    @Override
-    public boolean supportsStringArrayValues() {
-      return false;
-    }
-
-    @Override
-    public boolean supportsBooleanArrayValues() {
-      return false;
-    }
-
-    @Override
-    public boolean supportsDoubleArrayValues() {
-      return false;
-    }
-
-    @Override
-    public boolean supportsFloatArrayValues() {
-      return false;
-    }
-
-    @Override
-    public boolean supportsIntegerArrayValues() {
-      return false;
-    }
-
-    @Override
-    public boolean supportsLongArrayValues() {
-      return false;
-    }
-
-    @Override
-    public boolean supportsMixedListValues() {
       return false;
     }
   }

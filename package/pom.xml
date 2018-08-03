@@ -79,6 +79,11 @@
         </dependency>
         <dependency>
             <groupId>com.arcadeanalytics</groupId>
+            <artifactId>arcadedb-gremlin</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.arcadeanalytics</groupId>
             <artifactId>arcadedb-server</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
