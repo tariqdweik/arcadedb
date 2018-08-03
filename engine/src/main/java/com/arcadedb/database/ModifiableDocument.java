@@ -34,6 +34,11 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return dirty;
   }
 
+  @Override
+  public void unsetDirty() {
+    dirty = false;
+  }
+
   public void fromMap(final Map<String, Object> map) {
     this.map = new HashMap<>(map);
     dirty = true;
@@ -71,7 +76,6 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
       database.updateRecord(this);
     else
       database.createRecord(this);
-    dirty = false;
     return this;
   }
 
@@ -80,7 +84,6 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
       throw new IllegalStateException("Cannot update a record in a custom bucket");
 
     database.createRecord(this, bucketName);
-    dirty = false;
     return this;
   }
 

@@ -283,4 +283,8 @@ public class ModifiableEdgeChunk extends BaseRecord implements EdgeChunk, Record
   public void setIdentity(final RID rid) {
     this.rid = rid;
   }
+
+  @Override
+  public void unsetDirty() {
+  }
 }

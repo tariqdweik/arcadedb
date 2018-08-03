@@ -8,4 +8,6 @@ public interface RecordInternal {
   void setIdentity(RID rid);
 
   Binary getBuffer();
+
+  void unsetDirty();
 }

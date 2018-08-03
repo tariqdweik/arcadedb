@@ -358,6 +358,9 @@ public class TransactionContext {
 
       pageManager.updatePages(newPages, modifiedPages);
 
+      for (Record r : modifiedRecordsCache.values())
+        ((RecordInternal) r).unsetDirty();
+
     } catch (ConcurrentModificationException e) {
       throw e;
     } catch (Exception e) {
