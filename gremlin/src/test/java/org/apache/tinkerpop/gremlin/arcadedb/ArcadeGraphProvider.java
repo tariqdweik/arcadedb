@@ -10,13 +10,13 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.SerializationTest;
 import org.apache.tinkerpop.gremlin.structure.TransactionTest;
 import org.apache.tinkerpop.gremlin.structure.VertexTest;
+import org.apache.tinkerpop.gremlin.structure.io.IoGraphTest;
 import org.junit.AssumptionViolatedException;
 
 import java.io.File;
 import java.util.*;
 
 import static org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils.asList;
-import static org.junit.Assume.assumeFalse;
 
 /**
  * Created by Enrico Risa on 30/07/2018.
@@ -31,6 +31,7 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
     //This tests become broken after gremlin 3.2.4
     IGNORED_TESTS.put(SerializationTest.GraphSONV3d0Test.class, Arrays.asList("shouldSerializeTraversalMetrics"));
     IGNORED_TESTS.put(ProfileTest.Traversals.class, Arrays.asList("testProfileStrategyCallback", "testProfileStrategyCallbackSideEffect"));
+    IGNORED_TESTS.put(IoGraphTest.class, Arrays.asList("shouldReadWriteClassicToFileWithHelpers[graphml]", "shouldReadWriteModernToFileWithHelpers[graphml]"));
   }
 
   private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {{
@@ -75,17 +76,6 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
       final File graphDirectory = new File(configuration.getString(ArcadeGraph.CONFIG_DIRECTORY));
       deleteDirectory(graphDirectory);
     }
-  }
-
-  @Override
-  public Graph openTestGraph(Configuration config) {
-    if ("readGraph".equals(config.getString("name")))
-      // FIXME eventually ne need to get ride of this
-      assumeFalse("there is some technical limitation in ArcadeDB that makes tests enter in an infinite loop when reading and writing to ArcadeDB", true);
-
-    //FileUtils.deleteRecursively(new File(config.getString("gremlin.arcadedb.directory")));
-
-    return super.openTestGraph(config);
   }
 
   @Override
