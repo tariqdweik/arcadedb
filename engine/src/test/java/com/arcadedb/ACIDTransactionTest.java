@@ -34,7 +34,7 @@ public class ACIDTransactionTest {
   @BeforeEach
   public void populate() {
     FileUtils.deleteRecursively(new File(DB_PATH));
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V")) {

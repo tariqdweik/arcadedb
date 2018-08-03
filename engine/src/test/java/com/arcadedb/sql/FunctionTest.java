@@ -36,7 +36,7 @@ public class FunctionTest {
 
   @Test
   public void testCountFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -58,7 +58,7 @@ public class FunctionTest {
 
   @Test
   public void testAvgFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -80,7 +80,7 @@ public class FunctionTest {
 
   @Test
   public void testMaxFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -101,7 +101,7 @@ public class FunctionTest {
 
   @Test
   public void testMinFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -121,7 +121,7 @@ public class FunctionTest {
   }
 
   private static void populate(final int total) {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))

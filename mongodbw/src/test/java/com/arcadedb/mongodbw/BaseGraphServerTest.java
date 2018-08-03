@@ -48,7 +48,7 @@ public abstract class BaseGraphServerTest {
 
     deleteDatabaseFolders();
 
-    new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         if (isPopulateDatabase()) {

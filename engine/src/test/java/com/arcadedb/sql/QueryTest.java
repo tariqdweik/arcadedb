@@ -40,7 +40,7 @@ public class QueryTest {
   @Test
   public void testScan() {
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         ResultSet rs = db.command("SQL", "SELECT FROM V", new HashMap<>());
@@ -70,7 +70,7 @@ public class QueryTest {
   @Test
   public void testEqualsFiltering() {
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -103,7 +103,7 @@ public class QueryTest {
   @Test
   public void testCachedStatementAndExecutionPlan() {
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -165,7 +165,7 @@ public class QueryTest {
 
   @Test
   public void testMajorFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -186,7 +186,7 @@ public class QueryTest {
 
   @Test
   public void testMajorEqualsFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -207,7 +207,7 @@ public class QueryTest {
 
   @Test
   public void testMinorFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -228,7 +228,7 @@ public class QueryTest {
 
   @Test
   public void testMinorEqualsFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -249,7 +249,7 @@ public class QueryTest {
 
   @Test
   public void testNotFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -269,7 +269,7 @@ public class QueryTest {
   }
 
   private static void populate(final int total) {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))

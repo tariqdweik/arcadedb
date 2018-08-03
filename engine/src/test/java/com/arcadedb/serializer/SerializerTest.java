@@ -114,7 +114,7 @@ public class SerializerTest {
 
     final BinarySerializer serializer = new BinarySerializer();
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
@@ -134,7 +134,7 @@ public class SerializerTest {
         v.set("decimal", new BigDecimal(9876543210.0123456789));
         v.set("string", "Miner");
 
-        final Binary buffer = serializer.serialize(database, v, -1);
+        final Binary buffer = serializer.serialize(database, v);
 
         final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
         buffer2.put(buffer.toByteArray());
@@ -169,7 +169,7 @@ public class SerializerTest {
 
     final BinarySerializer serializer = new BinarySerializer();
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
@@ -236,7 +236,7 @@ public class SerializerTest {
         v.set("listOfMixed", listOfMixed);
         v.set("arrayOfMixed", listOfMixed.toArray());
 
-        final Binary buffer = serializer.serialize(database, v, -1);
+        final Binary buffer = serializer.serialize(database, v);
 
         final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
         buffer2.put(buffer.toByteArray());
@@ -279,7 +279,7 @@ public class SerializerTest {
 
     final BinarySerializer serializer = new BinarySerializer();
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
@@ -331,7 +331,7 @@ public class SerializerTest {
         v.set("mapOfStrings", mapOfStrings);
         v.set("mapOfMixed", mapOfMixed);
 
-        final Binary buffer = serializer.serialize(database, v, -1);
+        final Binary buffer = serializer.serialize(database, v);
 
         final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
         buffer2.put(buffer.toByteArray());

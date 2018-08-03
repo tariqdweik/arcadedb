@@ -29,14 +29,14 @@ public class BinarySerializer {
     return comparator;
   }
 
-  public Binary serialize(final Database database, final Record record, final int bucketId) {
+  public Binary serialize(final Database database, final Record record) {
     switch (record.getRecordType()) {
     case Document.RECORD_TYPE:
       return serializeDocument(database, (ModifiableDocument) record);
     case Vertex.RECORD_TYPE:
-      return serializeVertex(database, (ModifiableVertex) record, bucketId);
+      return serializeVertex(database, (ModifiableVertex) record);
     case Edge.RECORD_TYPE:
-      return serializeEdge(database, (ModifiableEdge) record, bucketId);
+      return serializeEdge(database, (ModifiableEdge) record);
     case EdgeChunk.RECORD_TYPE:
       return serializeEdgeContainer(database, (EdgeChunk) record);
     default:
@@ -44,17 +44,32 @@ public class BinarySerializer {
     }
   }
 
-  public Binary serializeDocument(final Database database, final Document document) {
-    final Binary header = ((EmbeddedDatabase) database).getContext().getTemporaryBuffer1();
-    header.putByte(document.getRecordType()); // RECORD TYPE
-    return serializeProperties(database, document, header);
+  public Binary serializeDocument(final Database database, final ModifiableDocument document) {
+    Binary header = document.getBuffer();
+
+    final boolean serializeProperties;
+    if (header == null || document.isDirty()) {
+      header = ((EmbeddedDatabase) database).getContext().getTemporaryBuffer1();
+      header.putByte(document.getRecordType()); // RECORD TYPE
+      serializeProperties = true;
+    } else {
+      // COPY THE CONTENT (THE BUFFER IS IMMUTABLE)
+      header = header.copy();
+      header.position(Binary.BYTE_SERIALIZED_SIZE);
+      serializeProperties = false;
+    }
+
+    if (serializeProperties)
+      return serializeProperties(database, document, header);
+
+    return header;
   }
 
-  public Binary serializeVertex(final Database database, final ModifiableVertex vertex, final int bucketId) {
+  public Binary serializeVertex(final Database database, final ModifiableVertex vertex) {
     Binary header = vertex.getBuffer();
 
     final boolean serializeProperties;
-    if (header == null) {
+    if (header == null || vertex.isDirty()) {
       header = ((EmbeddedDatabase) database).getContext().getTemporaryBuffer1();
       header.putByte(vertex.getRecordType()); // RECORD TYPE
       serializeProperties = true;
@@ -90,11 +105,11 @@ public class BinarySerializer {
     return header;
   }
 
-  public Binary serializeEdge(final Database database, final ModifiableEdge edge, final int bucketId) {
+  public Binary serializeEdge(final Database database, final ModifiableEdge edge) {
     Binary header = edge.getBuffer();
 
     final boolean serializeProperties;
-    if (header == null) {
+    if (header == null || edge.isDirty()) {
       header = ((EmbeddedDatabase) database).getContext().getTemporaryBuffer1();
       header.putByte(edge.getRecordType()); // RECORD TYPE
       serializeProperties = true;

@@ -315,7 +315,7 @@ public class Bucket extends PaginatedComponent {
   }
 
   private RID createRecordInternal(final Record record, final boolean isPlaceHolder) {
-    final Binary buffer = database.getSerializer().serialize(database, record, id);
+    final Binary buffer = database.getSerializer().serialize(database, record);
 
     if (buffer.size() > pageSize - CONTENT_HEADER_SIZE)
       // TODO: SUPPORT MULTI-PAGE CONTENT
@@ -389,7 +389,7 @@ public class Bucket extends PaginatedComponent {
   }
 
   private boolean updateRecordInternal(final Record record, final RID rid, final boolean updatePlaceholder) {
-    final Binary buffer = database.getSerializer().serialize(database, record, id);
+    final Binary buffer = database.getSerializer().serialize(database, record);
 
     final int pageId = (int) rid.getPosition() / Bucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % Bucket.MAX_RECORDS_IN_PAGE);

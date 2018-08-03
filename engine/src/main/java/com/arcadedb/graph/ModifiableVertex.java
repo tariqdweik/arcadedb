@@ -18,7 +18,7 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
   }
 
   /**
-   * Copy constructor from PImmutableVertex.modify().
+   * Copy constructor from ImmutableVertex.modify().
    */
   public ModifiableVertex(final Database graph, final String typeName, final RID rid, final Binary buffer) {
     super(graph, typeName, rid, buffer);

@@ -24,10 +24,10 @@ public class PolymorphicTest {
   private static RID root;
 
   @BeforeEach
-  public void populate() {
+  public void populate() throws Exception {
     FileUtils.deleteRecursively(new File(DB_PATH));
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         //------------
@@ -118,7 +118,7 @@ public class PolymorphicTest {
   }
 
   @Test
-  public void count() {
+  public void count() throws Exception {
     final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db2.begin();
     try {
@@ -152,7 +152,7 @@ public class PolymorphicTest {
   }
 
   @Test
-  public void scan() {
+  public void scan() throws Exception {
     final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db2.begin();
     try {

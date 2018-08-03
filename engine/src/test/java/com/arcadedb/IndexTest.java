@@ -323,7 +323,7 @@ public class IndexTest {
   private static void populate(final int total) {
     FileUtils.deleteRecursively(new File(DB_PATH));
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.POperation() {
+    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
       @Override
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));

@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class ModifiableDocument extends BaseDocument implements RecordInternal {
-  private Map<String, Object> map;
+  private   Map<String, Object> map;
+  protected boolean             dirty = false;
 
   protected ModifiableDocument(final Database database, final String typeName, final RID rid) {
     super(database, typeName, rid, null);
@@ -29,8 +30,13 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
       set(p, other.get(p));
   }
 
+  public boolean isDirty() {
+    return dirty;
+  }
+
   public void fromMap(final Map<String, Object> map) {
     this.map = new HashMap<>(map);
+    dirty = true;
   }
 
   @Override
@@ -43,31 +49,38 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return new JSONObject(map);
   }
 
-  public void set(final String name, final Object value) {
-    checkForLazyLoadingProperties();
-    map.put(name, value);
-  }
-
   public Object get(final String name) {
     checkForLazyLoadingProperties();
     return map.get(name);
   }
 
+  public void set(final String name, final Object value) {
+    checkForLazyLoadingProperties();
+    dirty = true;
+    map.put(name, value);
+  }
+
   public Object remove(final String name) {
     checkForLazyLoadingProperties();
+    dirty = true;
     return map.remove(name);
   }
 
   public ModifiableDocument save() {
-    if (getIdentity() != null)
+    if (rid != null)
       database.updateRecord(this);
     else
       database.createRecord(this);
+    dirty = false;
     return this;
   }
 
   public ModifiableDocument save(final String bucketName) {
+    if (rid != null)
+      throw new IllegalStateException("Cannot update a record in a custom bucket");
+
     database.createRecord(this, bucketName);
+    dirty = false;
     return this;
   }
 
@@ -117,6 +130,7 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
 
   @Override
   public void reload() {
+    dirty = false;
     map = null;
     super.reload();
   }
@@ -125,7 +139,6 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     if (this.map == null && buffer != null) {
       buffer.position(propertiesStartingPosition);
       this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
-      buffer = null;
     }
   }
 }

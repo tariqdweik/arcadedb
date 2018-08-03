@@ -265,7 +265,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           if (!queue.offer(message)) {
             server.getServer().log(this, Level.INFO, "Timeout on writing request to server '%s', setting it offline...", getRemoteServerName());
 
-            LogManager.instance().info(this, "THREAD DUMP:\n%s", FileUtils.threadDump());
+//            LogManager.instance().info(this, "THREAD DUMP:\n%s", FileUtils.threadDump());
 
             queue.clear();
             server.setReplicaStatus(remoteServerName, false);

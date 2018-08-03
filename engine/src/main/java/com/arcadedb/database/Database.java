@@ -17,18 +17,19 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-public interface Database {
+public interface Database extends AutoCloseable {
   interface Transaction {
     void execute(Database database);
   }
 
   String getName();
 
+  @Override
+  void close();
+
   boolean isOpen();
 
   void drop();
-
-  void close();
 
   DatabaseAsyncExecutor asynch();
 
@@ -72,9 +73,8 @@ public interface Database {
 
   ModifiableVertex newVertex(String typeName);
 
-  Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType,
-      String[] destinationVertexKey, Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType,
-      boolean bidirectional, Object... properties);
+  Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType, String[] destinationVertexKey,
+      Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
 
   Schema getSchema();
 

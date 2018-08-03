@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-public class DatabaseFactory {
-  public interface POperation {
+public class DatabaseFactory implements AutoCloseable {
+  public interface DatabaseOperation {
     void execute(Database database);
   }
 
@@ -32,6 +32,11 @@ public class DatabaseFactory {
       databasePath = path.substring(0, path.length() - 1);
     else
       databasePath = path;
+  }
+
+  @Override
+  public void close() {
+    callbacks.clear();
   }
 
   public boolean exists() {
@@ -52,7 +57,7 @@ public class DatabaseFactory {
     return db;
   }
 
-  public void execute(final POperation operation) {
+  public void execute(final DatabaseOperation operation) {
     if (operation == null)
       throw new IllegalArgumentException("Operation block is null");
 
@@ -65,7 +70,11 @@ public class DatabaseFactory {
         }
       });
     } finally {
-      db.close();
+      try {
+        db.close();
+      } catch (Exception e) {
+        // IGNORE IT
+      }
     }
   }
 
