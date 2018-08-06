@@ -13,8 +13,7 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
-import com.arcadedb.index.Index;
-import com.arcadedb.index.IndexLSM;
+import com.arcadedb.index.lsm.IndexLSM;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
@@ -50,6 +49,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected       TransactionManager    transactionManager;
   protected final WALFileFactory        walFactory;
   protected       DatabaseAsyncExecutor asynch         = null;
+  protected final DocumentIndexer       indexer;
   private         boolean               readYourWrites = true;
 
   protected          boolean autoTransaction = false;
@@ -84,9 +84,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       else
         name = path;
 
-    } catch (Exception e) {
-      open = false;
+      indexer = new DocumentIndexer(this);
 
+    } catch (Exception e) {
       if (e instanceof DatabaseOperationException)
         throw (DatabaseOperationException) e;
 
@@ -531,10 +531,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
         final DocumentType type = schema.getType(record.getType());
 
-        // NEW
         final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.getContext(databasePath).asyncMode);
         record.setIdentity(bucket.createRecord(record));
-        indexDocument(record, type, bucket);
+        indexer.createDocument(record, type, bucket);
 
         getTransaction().updateRecordInCache(record);
 
@@ -598,7 +597,19 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
 
+//    final Document originalRecord;
+//    if (record instanceof Document) {
+//      final Binary originalBuffer = ((RecordInternal) record).getBuffer();
+//      if (originalBuffer == null)
+//        throw new IllegalStateException("Cannot read original buffer for indexing");
+//      originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
+//    } else
+//      originalRecord = null;
+
     schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+
+//    if (record instanceof Document)
+//      indexer.updateDocument(originalRecord, (Document) record);
 
     getTransaction().updateRecordInCache(record);
     getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
@@ -621,6 +632,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           throw new DatabaseIsReadOnlyException("Cannot delete record " + record.getIdentity());
 
         final Bucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
+
+        if (record instanceof Document)
+          indexer.deleteDocument((Document) record);
 
         if (record instanceof Edge) {
           graphEngine.deleteEdge((Edge) record);
@@ -798,35 +812,6 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     return false;
   }
 
-  @Override
-  public void indexDocument(final ModifiableDocument record, final DocumentType type, final Bucket bucket) {
-    // INDEX THE RECORD
-    final List<DocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
-    if (metadata != null) {
-      for (DocumentType.IndexMetadata entry : metadata) {
-        final Index index = entry.index;
-        final String[] keyNames = entry.propertyNames;
-        final Object[] keyValues = new Object[keyNames.length];
-        for (int i = 0; i < keyNames.length; ++i) {
-          keyValues[i] = record.get(keyNames[i]);
-        }
-
-        if (index.isUnique()) {
-          // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-          final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(entry.propertyNames);
-          if (typeIndexes != null) {
-            for (DocumentType.IndexMetadata i : typeIndexes) {
-              if (!i.index.get(keyValues).isEmpty())
-                throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(keyValues));
-            }
-          }
-        }
-
-        index.put(keyValues, record.getIdentity());
-      }
-    }
-  }
-
   /**
    * Test only API.
    */
@@ -849,6 +834,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       open = false;
       Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
     }
+  }
+
+  @Override
+  public DocumentIndexer getIndexer() {
+    return indexer;
   }
 
   @Override

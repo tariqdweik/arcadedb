@@ -71,4 +71,7 @@ public abstract class BaseRecord implements Record {
     return buffer;
   }
 
+  public void setBuffer(final Binary buffer) {
+    this.buffer = buffer;
+  }
 }

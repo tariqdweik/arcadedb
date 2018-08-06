@@ -145,7 +145,7 @@ public class DatabaseAsyncExecutor {
 
                 if (command.record instanceof ModifiableDocument) {
                   final ModifiableDocument doc = (ModifiableDocument) command.record;
-                  database.indexDocument(doc, database.getSchema().getType(doc.getType()), command.bucket);
+                  database.getIndexer().createDocument(doc, database.getSchema().getType(doc.getType()), command.bucket);
                 }
 
                 count++;

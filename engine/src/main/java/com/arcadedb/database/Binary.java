@@ -93,7 +93,11 @@ public class Binary implements BinaryStructure {
 
   @Override
   public void position(final int index) {
-    buffer.position(index);
+    try {
+      buffer.position(index);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Invalid position " + index + " (size=" + buffer.limit() + ")");
+    }
   }
 
   @Override

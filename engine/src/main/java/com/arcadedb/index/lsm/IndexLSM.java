@@ -2,7 +2,7 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.index;
+package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
@@ -11,6 +11,9 @@ import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.DuplicatedKeyException;
+import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.IndexException;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
@@ -40,6 +43,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
   public static final String UNIQUE_INDEX_EXT    = "uidx";
   public static final String NOTUNIQUE_INDEX_EXT = "nuidx";
   public static final int    DEF_PAGE_SIZE       = 4 * 1024 * 1024;
+  public static final RID    REMOVED_RID         = new RID(null, -1, -1l);
 
   private          byte[]  keyTypes;
   private          byte    valueType;
@@ -179,7 +183,6 @@ public class IndexLSM extends PaginatedComponent implements Index {
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = getCount(currentPage);
 
-        // SEARCH IN THE BF FIRST
         final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 0);
         if (result != null && result.found) {
           final RID value = (RID) getValue(currentPageBuffer, database.getSerializer(), result.valueBeginPosition);
@@ -197,7 +200,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
         }
       }
 
-      LogManager.instance().debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, list.size());
+      //LogManager.instance().debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, list.size());
 
       return list;
 
@@ -217,6 +220,11 @@ public class IndexLSM extends PaginatedComponent implements Index {
   @Override
   public void remove(final Object[] keys) {
     internalPut(keys, null, false);
+  }
+
+  @Override
+  public void remove(final Object[] keys, final RID rid) {
+//    internalPut(keys, REMOVED_RID, false);
   }
 
   public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage, TrackableBinary currentPageBuffer, final Object[] keys,

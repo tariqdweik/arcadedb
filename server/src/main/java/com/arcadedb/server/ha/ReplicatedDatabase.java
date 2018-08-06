@@ -16,7 +16,6 @@ import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.server.ArcadeDBServer;
@@ -184,8 +183,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public void indexDocument(final ModifiableDocument record, final DocumentType type, final Bucket bucket) {
-    proxied.indexDocument(record, type, bucket);
+  public DocumentIndexer getIndexer() {
+    return proxied.getIndexer();
   }
 
   @Override

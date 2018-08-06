@@ -15,7 +15,7 @@ import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
-import com.arcadedb.index.IndexLSM;
+import com.arcadedb.index.lsm.IndexLSM;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;

@@ -25,19 +25,19 @@ public class ModifiableEdge extends ModifiableDocument implements Edge {
 
   public ModifiableEdge(final Database graph, final String typeName, final RID rid, final Binary buffer) {
     super(graph, typeName, rid, buffer);
-    this.out = new RID(graph, buffer.getInt(), buffer.getLong());
-    this.in = new RID(graph, buffer.getInt(), buffer.getLong());
-    this.propertiesStartingPosition = buffer.position();
+    init();
   }
 
   @Override
   public void reload() {
     super.reload();
-    if (buffer != null) {
-      this.out = new RID(database, buffer.getInt(), buffer.getLong());
-      this.in = new RID(database, buffer.getInt(), buffer.getLong());
-      this.propertiesStartingPosition = buffer.position();
-    }
+    init();
+  }
+
+  @Override
+  public void setBuffer(final Binary buffer) {
+    super.setBuffer(buffer);
+    init();
   }
 
   @Override
@@ -71,5 +71,14 @@ public class ModifiableEdge extends ModifiableDocument implements Edge {
   @Override
   public byte getRecordType() {
     return Edge.RECORD_TYPE;
+  }
+
+  private void init() {
+    if (buffer != null) {
+      buffer.position(1);
+      this.out = new RID(database, buffer.getInt(), buffer.getLong());
+      this.in = new RID(database, buffer.getInt(), buffer.getLong());
+      this.propertiesStartingPosition = buffer.position();
+    }
   }
 }

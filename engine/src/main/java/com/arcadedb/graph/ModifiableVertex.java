@@ -22,17 +22,8 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
    */
   public ModifiableVertex(final Database graph, final String typeName, final RID rid, final Binary buffer) {
     super(graph, typeName, rid, buffer);
-
-    this.outEdges = new RID(graph, buffer.getInt(), buffer.getLong());
-    if (this.outEdges.getBucketId() == -1)
-      this.outEdges = null;
-    this.inEdges = new RID(graph, buffer.getInt(), buffer.getLong());
-    if (this.inEdges.getBucketId() == -1)
-      this.inEdges = null;
-
-    this.propertiesStartingPosition = buffer.position();
+    init();
   }
-
 
   @Override
   public ModifiableVertex save() {
@@ -47,16 +38,13 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
   @Override
   public void reload() {
     super.reload();
-    if (buffer != null) {
-      this.outEdges = new RID(database, buffer.getInt(), buffer.getLong());
-      if (this.outEdges.getBucketId() == -1)
-        this.outEdges = null;
-      this.inEdges = new RID(database, buffer.getInt(), buffer.getLong());
-      if (this.inEdges.getBucketId() == -1)
-        this.inEdges = null;
+    init();
+  }
 
-      this.propertiesStartingPosition = buffer.position();
-    }
+  @Override
+  public void setBuffer(final Binary buffer) {
+    super.setBuffer(buffer);
+    init();
   }
 
   public RID getOutEdgesHeadChunk() {
@@ -129,5 +117,19 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
   @Override
   public boolean isConnectedTo(final Identifiable toVertex, final DIRECTION direction) {
     return database.getGraphEngine().isVertexConnectedTo(this, toVertex, direction);
+  }
+
+  private void init() {
+    if (buffer != null) {
+      buffer.position(1);
+      this.outEdges = new RID(database, buffer.getInt(), buffer.getLong());
+      if (this.outEdges.getBucketId() == -1)
+        this.outEdges = null;
+      this.inEdges = new RID(database, buffer.getInt(), buffer.getLong());
+      if (this.inEdges.getBucketId() == -1)
+        this.inEdges = null;
+
+      this.propertiesStartingPosition = buffer.position();
+    }
   }
 }

@@ -9,5 +9,7 @@ public interface RecordInternal {
 
   Binary getBuffer();
 
+  void setBuffer(Binary array);
+
   void unsetDirty();
 }

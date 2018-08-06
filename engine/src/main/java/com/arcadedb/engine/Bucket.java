@@ -4,10 +4,7 @@
 
 package com.arcadedb.engine;
 
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.Record;
+import com.arcadedb.database.*;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.utility.FileUtils;
@@ -381,6 +378,8 @@ public class Bucket extends PaginatedComponent {
 
       LogManager.instance().debug(this, "Created record %s (page=%s records=%d threadId=%d)", rid, lastPage, recordCountInPage, Thread.currentThread().getId());
 
+      ((RecordInternal) record).setBuffer(buffer.copy());
+
       return rid;
 
     } catch (IOException e) {
@@ -508,6 +507,8 @@ public class Bucket extends PaginatedComponent {
             .debug(this, "Updated record %s with the same size or less as before (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
 
       }
+
+      ((RecordInternal) record).setBuffer(buffer.copy());
 
       return true;
 

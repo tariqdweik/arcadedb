@@ -35,7 +35,15 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
   }
 
   @Override
+  public void setBuffer(final Binary buffer) {
+    super.setBuffer(buffer);
+    dirty = false;
+    map = null;
+  }
+
+  @Override
   public void unsetDirty() {
+    map = null;
     dirty = false;
   }
 
@@ -135,11 +143,15 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
   public void reload() {
     dirty = false;
     map = null;
+    buffer = null;
     super.reload();
   }
 
   protected void checkForLazyLoadingProperties() {
-    if (this.map == null && buffer != null) {
+    if (this.map == null) {
+      if (buffer == null)
+        reload();
+
       buffer.position(propertiesStartingPosition);
       this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
     }

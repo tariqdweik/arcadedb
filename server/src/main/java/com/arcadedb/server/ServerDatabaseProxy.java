@@ -7,12 +7,14 @@ package com.arcadedb.server;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
-import com.arcadedb.engine.*;
+import com.arcadedb.engine.FileManager;
+import com.arcadedb.engine.PageManager;
+import com.arcadedb.engine.TransactionManager;
+import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.ModifiableVertex;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.ResultSet;
@@ -117,15 +119,14 @@ public class ServerDatabaseProxy implements DatabaseInternal {
   }
 
   @Override
-  public void indexDocument(final ModifiableDocument record, final DocumentType type, final Bucket bucket) {
-    checkForOpen();
-    proxied.indexDocument(record, type, bucket);
-  }
-
-  @Override
   public void kill() {
     checkForOpen();
     proxied.kill();
+  }
+
+  @Override
+  public DocumentIndexer getIndexer() {
+    return proxied.getIndexer();
   }
 
   @Override

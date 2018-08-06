@@ -39,7 +39,17 @@ public interface Index {
 
   void put(Object[] keys, RID rid);
 
+  /**
+   * Removes the keys from the index.
+   *
+   * @param keys
+   */
   void remove(Object[] keys);
+
+  /**
+   * Removes an entry keys/rid entry from the index.
+   */
+  void remove(Object[] keys, RID rid);
 
   Map<String, Long> getStats();
 

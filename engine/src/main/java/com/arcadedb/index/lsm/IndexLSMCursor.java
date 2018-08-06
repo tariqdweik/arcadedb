@@ -2,11 +2,12 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.index;
+package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 

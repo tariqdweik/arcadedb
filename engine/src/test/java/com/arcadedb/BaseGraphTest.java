@@ -58,7 +58,7 @@ public abstract class BaseGraphTest {
       v2.save();
 
       // CREATION OF EDGE PASSING PARAMS AS VARARGS
-      ModifiableEdge e1 = (ModifiableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
+      ModifiableEdge e1 = v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
       Assertions.assertEquals(e1.getOut(), v1);
       Assertions.assertEquals(e1.getIn(), v2);
 
@@ -70,11 +70,11 @@ public abstract class BaseGraphTest {
       params.put("name", "E2");
 
       // CREATION OF EDGE PASSING PARAMS AS MAP
-      ModifiableEdge e2 = (ModifiableEdge) v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
+      ModifiableEdge e2 = v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
       Assertions.assertEquals(e2.getOut(), v2);
       Assertions.assertEquals(e2.getIn(), v3);
 
-      ModifiableEdge e3 = (ModifiableEdge) v1.newEdge(EDGE2_TYPE_NAME, v3, true);
+      ModifiableEdge e3 = v1.newEdge(EDGE2_TYPE_NAME, v3, true);
       Assertions.assertEquals(e3.getOut(), v1);
       Assertions.assertEquals(e3.getIn(), v3);
 

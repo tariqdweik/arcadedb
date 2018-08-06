@@ -2,7 +2,7 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.index;
+package com.arcadedb.index.lsm;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;

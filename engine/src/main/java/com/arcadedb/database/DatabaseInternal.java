@@ -5,11 +5,9 @@
 package com.arcadedb.database;
 
 import com.arcadedb.ContextConfiguration;
-import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.TransactionManager;
 import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.graph.GraphEngine;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.StatementCache;
 
@@ -48,9 +46,9 @@ public interface DatabaseInternal extends Database {
 
   void updateRecordNoLock(Record record);
 
-  void indexDocument(ModifiableDocument record, DocumentType type, Bucket bucket);
-
   void kill();
+
+  DocumentIndexer getIndexer();
 
   WALFileFactory getWALFileFactory();
 

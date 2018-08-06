@@ -11,7 +11,7 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.ModifiableVertex;
-import com.arcadedb.index.IndexLSM;
+import com.arcadedb.index.lsm.IndexLSM;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
