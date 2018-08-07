@@ -205,10 +205,14 @@ public class IndexLSM extends PaginatedComponent implements Index {
             RID rid = (RID) allValues.get(i);
 
             if (rid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && rid.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
-              // DELETED ITEM
-              set.clear();
-              exit = true;
-              break;
+              if (set.contains(rid))
+                continue;
+              else {
+                // DELETED ITEM
+                set.clear();
+                exit = true;
+                break;
+              }
             }
 
             if (rid.getBucketId() < 0) {
@@ -663,7 +667,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       int count = getCount(currentPage);
 
-      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 3);
+      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, unique ? 3 : 0);
       if (unique && checkForUnique && result.found) {
         // CHECK FOR DUPLICATES
         final List<Object> allValues = readAllValues(currentPageBuffer, result);
@@ -718,7 +722,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
       currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
 
       final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
-      if (keyIndex < count - 1)
+      if (keyIndex < count)
         // NOT LAST KEY, SHIFT POINTERS TO THE RIGHT
         currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
 
@@ -813,7 +817,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
       currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
 
       final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
-      if (keyIndex < count - 1)
+      if (keyIndex < count)
         // NOT LAST KEY, SHIFT POINTERS TO THE RIGHT
         currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
 
