@@ -10,6 +10,8 @@ import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -212,6 +214,78 @@ public class IndexTest {
               index.remove(key, r);
             }
             found++;
+            total++;
+          }
+        }
+
+        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
+
+      Assertions.assertEquals(TOT, total);
+
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes)
+          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+      }
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
+  public void testUpdateKeys() {
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    db.begin();
+    try {
+      int total = 0;
+
+      final ResultSet resultSet = db.query("sql", "select from " + TYPE_NAME);
+      for (ResultSet it = resultSet; it.hasNext(); ) {
+        final Result r = it.next();
+
+        final ModifiableDocument record = (ModifiableDocument) r.getElement().get().modify();
+        record.set("id", (Integer) record.get("id") + 1000000);
+        record.save();
+      }
+
+      final Index[] indexes = db.getSchema().getIndexes();
+
+      // ORIGINAL KEYS SHOULD BE REMOVED
+      for (int i = 0; i < TOT; ++i) {
+        int found = 0;
+
+        final Object[] key = new Object[] { i };
+
+        for (Index index : indexes) {
+          final Set<RID> value = index.get(key);
+          if (!value.isEmpty()) {
+            found++;
+            total++;
+          }
+        }
+
+        Assertions.assertEquals(0, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
+
+      Assertions.assertEquals(0, total);
+
+      total = 0;
+
+      // CHECK FOR NEW KEYS
+      for (int i = 1000000; i < 1000000 + TOT; ++i) {
+        int found = 0;
+
+        final Object[] key = new Object[] { i };
+
+        for (Index index : indexes) {
+          final Set<RID> value = index.get(key);
+          if (!value.isEmpty()) {
+            for (RID r : value) {
+              index.remove(key, r);
+              found++;
+            }
             total++;
           }
         }

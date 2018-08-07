@@ -597,19 +597,20 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
 
-//    final Document originalRecord;
-//    if (record instanceof Document) {
-//      final Binary originalBuffer = ((RecordInternal) record).getBuffer();
-//      if (originalBuffer == null)
-//        throw new IllegalStateException("Cannot read original buffer for indexing");
-//      originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
-//    } else
-//      originalRecord = null;
+    final Document originalRecord;
+    if (record instanceof Document) {
+      final Binary originalBuffer = ((RecordInternal) record).getBuffer();
+      if (originalBuffer == null)
+        throw new IllegalStateException("Cannot read original buffer for indexing");
+      originalBuffer.rewind();
+      originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
+    } else
+      originalRecord = null;
 
     schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
-//    if (record instanceof Document)
-//      indexer.updateDocument(originalRecord, (Document) record);
+    if (record instanceof Document)
+      indexer.updateDocument(originalRecord, (Document) record);
 
     getTransaction().updateRecordInCache(record);
     getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());

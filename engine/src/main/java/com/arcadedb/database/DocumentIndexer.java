@@ -43,6 +43,7 @@ public class DocumentIndexer {
           }
         }
 
+        // TODO: IF THE UNIQUE IS ASSURED HERE, IT COULD BE DISABLED THE CHECK INSIDE THE INDEX IMPL
         index.put(keyValues, record.getIdentity());
       }
     }
@@ -76,7 +77,7 @@ public class DocumentIndexer {
           oldKeyValues[i] = originalRecord.get(keyNames[i]);
           newKeyValues[i] = modifiedRecord.get(keyNames[i]);
 
-          if (newKeyValues == null || !newKeyValues.equals(oldKeyValues[i])) {
+          if (newKeyValues[i] == null || !newKeyValues[i].equals(oldKeyValues[i])) {
             keyValuesAreModified = true;
             break;
           }
