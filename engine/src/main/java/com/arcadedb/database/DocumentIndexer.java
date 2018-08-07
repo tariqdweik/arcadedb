@@ -8,13 +8,38 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.utility.LockManager;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class DocumentIndexer {
 
-  private final EmbeddedDatabase database;
+  private final EmbeddedDatabase              database;
+  private final LockManager<IndexKey, Thread> lockManager = new LockManager<>();
+
+  private class IndexKey {
+    private final Object[] keys;
+
+    private IndexKey(final Object[] keys) {
+      this.keys = keys;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o)
+        return true;
+      if (o == null || getClass() != o.getClass())
+        return false;
+      final IndexKey indexKey = (IndexKey) o;
+      return Arrays.equals(keys, indexKey.keys);
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(keys);
+    }
+  }
 
   protected DocumentIndexer(final EmbeddedDatabase database) {
     this.database = database;
@@ -33,13 +58,23 @@ public class DocumentIndexer {
         }
 
         if (index.isUnique()) {
-          // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-          final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(entry.propertyNames);
-          if (typeIndexes != null) {
-            for (DocumentType.IndexMetadata i : typeIndexes) {
-              if (!i.index.get(keyValues).isEmpty())
-                throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(keyValues));
+          // PROTECT AGAINST CONCURRENT INSERTION OF THE SAME KEY
+          final IndexKey key = new IndexKey(keyValues);
+          lockManager.tryLock(key, Thread.currentThread(), 0);
+
+          try {
+
+            // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
+            final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(entry.propertyNames);
+            if (typeIndexes != null) {
+              for (DocumentType.IndexMetadata i : typeIndexes) {
+                if (!i.index.get(keyValues).isEmpty())
+                  throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(keyValues));
+              }
             }
+
+          } finally {
+            lockManager.unlock(key, Thread.currentThread());
           }
         }
 
