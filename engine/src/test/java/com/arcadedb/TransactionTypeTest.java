@@ -7,6 +7,7 @@ package com.arcadedb;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
+import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -82,7 +83,7 @@ public class TransactionTypeTest {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
-      db.scanType(TYPE_NAME,true,  new DocumentCallback() {
+      db.scanType(TYPE_NAME, true, new DocumentCallback() {
         @Override
         public boolean onRecord(final Document record) {
           final Document record2 = (Document) db.lookupByRID(record.getIdentity(), false);
@@ -156,7 +157,7 @@ public class TransactionTypeTest {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
     db.begin();
     try {
-      db.scanType(TYPE_NAME,true,  new DocumentCallback() {
+      db.scanType(TYPE_NAME, true, new DocumentCallback() {
         @Override
         public boolean onRecord(final Document record) {
           db.deleteRecord(record);
@@ -173,15 +174,21 @@ public class TransactionTypeTest {
 
     Assertions.assertEquals(TOT, total.get());
 
+    try (final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open()) {
+      Assertions.assertEquals(0, db2.countType(TYPE_NAME, true));
+
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      final Index[] indexes = db2.getSchema().getIndexes();
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes)
+          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+      }
+    }
+
     populate();
 
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db2.begin();
-    try {
-      Assertions.assertEquals(TOT, db2.countType(TYPE_NAME, true));
-      db2.commit();
-    } finally {
-      db2.close();
+    try (final Database db3 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open()) {
+      Assertions.assertEquals(TOT, db3.countType(TYPE_NAME, true));
     }
   }
 
@@ -192,7 +199,7 @@ public class TransactionTypeTest {
       final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
       db.begin();
       try {
-        db.scanType(TYPE_NAME,true,  new DocumentCallback() {
+        db.scanType(TYPE_NAME, true, new DocumentCallback() {
           @Override
           public boolean onRecord(final Document record) {
             db.deleteRecord(record);

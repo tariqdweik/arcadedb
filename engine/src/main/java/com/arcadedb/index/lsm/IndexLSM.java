@@ -740,6 +740,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
           final Object[] values = readEntryValues(currentPageBuffer);
           for (int i = 0; i < values.length; ++i) {
             if (rid.equals(values[i])) {
+              currentPageBuffer.position(result.valueBeginPositions[0]);
               updateEntryValue(currentPageBuffer, i, removedRID);
               return;
             }

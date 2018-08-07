@@ -68,7 +68,7 @@ public class IndexTest {
   }
 
   @Test
-  public void testRemove() throws IOException {
+  public void testRemoveKeys() throws IOException {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
