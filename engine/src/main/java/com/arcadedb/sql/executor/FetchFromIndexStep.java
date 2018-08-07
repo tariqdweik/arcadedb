@@ -140,8 +140,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
         cursor = nextCursors.remove(0);
       }
       if (cursor.hasNext()) {
-        cursor.next();
-        nextEntry = new Pair(cursor.getKeys(), cursor.getValue());
+        final Object value = cursor.next();
+        nextEntry = new Pair(cursor.getKeys(), value);
         count++;
         return;
       }

@@ -121,9 +121,9 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
 
   private Pair<Object, Identifiable> loadNextEntry(CommandContext commandContext) {
     while (cursor.hasNext()) {
-      cursor.next();
+      final Object value = cursor.next();
 
-      Pair<Object, Identifiable> result = new Pair(cursor.getKeys(), cursor.getValue());
+      Pair<Object, Identifiable> result = new Pair(cursor.getKeys(), value);
       if (ridCondition == null) {
         return result;
       }

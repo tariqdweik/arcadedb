@@ -24,10 +24,10 @@ public class IndexLSMPageIterator {
   private int      currentEntryIndex;
   private int      valuePosition = -1;
   private Object[] nextKeys;
-  private Object   nextValue;
+  private Object[] nextValue;
 
-  public IndexLSMPageIterator(final IndexLSM index, final BasePage page, final int currentEntryInPage, final int keyStartPosition,
-      final byte[] keyTypes, final int totalKeys, final boolean ascendingOrder) {
+  public IndexLSMPageIterator(final IndexLSM index, final BasePage page, final int currentEntryInPage, final int keyStartPosition, final byte[] keyTypes,
+      final int totalKeys, final boolean ascendingOrder) {
     this.index = index;
     this.pageId = page.getPageId();
     this.buffer = new Binary(page.slice());
@@ -63,16 +63,17 @@ public class IndexLSMPageIterator {
       nextKeys[k] = index.getDatabase().getSerializer().deserializeValue(index.getDatabase(), buffer, keyTypes[k]);
 
     valuePosition = buffer.position();
-    nextValue = null;
+    nextValue = index.readEntryValues(buffer);
 
     return nextKeys;
   }
 
-  public Object getValue() {
+  public Object[] getValue() {
     if (nextValue == null) {
       if (valuePosition < 0)
         getKeys();
-      nextValue = index.getValue(buffer, serializer, valuePosition);
+      buffer.position(valuePosition);
+      nextValue = index.readEntryValues(buffer);
     }
     return nextValue;
   }

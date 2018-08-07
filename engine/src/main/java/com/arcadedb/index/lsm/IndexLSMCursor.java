@@ -19,13 +19,12 @@ import java.util.Arrays;
  */
 public class IndexLSMCursor implements IndexCursor {
   private final IndexLSM               index;
-  private final boolean                ascendingOrder;
-  private final Object[]               fromKeys;
   private final Object[]               toKeys;
   private final IndexLSMPageIterator[] pageIterators;
   private       IndexLSMPageIterator   currentIterator;
   private       Object[]               currentKeys;
-  private       Object                 currentValue;
+  private       Object[]               currentValues;
+  private       int                    currentValueIndex = 0;
   private       int                    totalPages;
   private       byte[]                 keyTypes;
   private final Object[][]             keys;
@@ -38,11 +37,9 @@ public class IndexLSMCursor implements IndexCursor {
     this(index, ascendingOrder, null, null);
   }
 
-  public IndexLSMCursor(final IndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys)
-      throws IOException {
+  public IndexLSMCursor(final IndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys) throws IOException {
     this.index = index;
-    this.ascendingOrder = ascendingOrder;
-    this.fromKeys = index.checkForNulls(fromKeys);
+    index.checkForNulls(fromKeys);
     this.toKeys = index.checkForNulls(toKeys);
 
     this.keyTypes = index.getKeyTypes();
@@ -64,8 +61,7 @@ public class IndexLSMCursor implements IndexCursor {
 
       if (fromKeys != null) {
         // SEEK FOR THE FROM RANGE
-        final BasePage currentPage = index.getDatabase().getTransaction()
-            .getPage(new PageId(index.getFileId(), pageId), index.getPageSize());
+        final BasePage currentPage = index.getDatabase().getTransaction().getPage(new PageId(index.getFileId(), pageId), index.getPageSize());
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = index.getCount(currentPage);
 
@@ -74,8 +70,7 @@ public class IndexLSMCursor implements IndexCursor {
           // USE THE BLOOM FILTER
           lookupResult = index.searchInPage(currentPage, currentPageBuffer, fromKeys, count, ascendingOrder ? 1 : 2);
         else
-          lookupResult = index
-              .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
+          lookupResult = index.lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
 
         if (lookupResult != null) {
           pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
@@ -90,8 +85,7 @@ public class IndexLSMCursor implements IndexCursor {
         if (ascendingOrder) {
           pageIterators[pageId] = index.newPageIterator(pageId, -1, ascendingOrder);
         } else {
-          final BasePage currentPage = index.getDatabase().getTransaction()
-              .getPage(new PageId(index.getFileId(), pageId), index.getPageSize());
+          final BasePage currentPage = index.getDatabase().getTransaction().getPage(new PageId(index.getFileId(), pageId), index.getPageSize());
           pageIterators[pageId] = index.newPageIterator(pageId, index.getCount(currentPage), ascendingOrder);
         }
 
@@ -111,12 +105,22 @@ public class IndexLSMCursor implements IndexCursor {
 
   @Override
   public boolean hasNext() {
-    return validIterators > 0;
+    return validIterators > 0 || (currentValues != null && currentValueIndex < currentValues.length);
   }
 
   @Override
   public Object next() {
     do {
+      if (currentValues != null && currentValueIndex < currentValues.length) {
+        final Object value = currentValues[currentValueIndex++];
+        if (!index.isDeletedEntry(value))
+          return value;
+
+        continue;
+      }
+
+      currentValueIndex = 0;
+
       Object[] minorKey = null;
       int minorKeyIndex = -1;
 
@@ -137,7 +141,7 @@ public class IndexLSMCursor implements IndexCursor {
 
       currentIterator = pageIterators[minorKeyIndex];
       currentKeys = currentIterator.getKeys();
-      currentValue = currentIterator.getValue();
+      currentValues = currentIterator.getValue();
 
       if (currentIterator.hasNext()) {
         currentIterator.next();
@@ -157,19 +161,14 @@ public class IndexLSMCursor implements IndexCursor {
         keys[minorKeyIndex] = null;
         --validIterators;
       }
-    } while (currentValue == null && hasNext());
+    } while ((currentValues == null || index.isDeletedEntry(currentValues[currentValueIndex])) && hasNext());
 
-    return currentValue;
+    return currentValues == null || currentValueIndex >= currentValues.length ? null : currentValues[currentValueIndex++];
   }
 
   @Override
   public Object[] getKeys() {
     return currentKeys;
-  }
-
-  @Override
-  public Object getValue() {
-    return currentValue;
   }
 
   @Override

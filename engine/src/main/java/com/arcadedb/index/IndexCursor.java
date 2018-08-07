@@ -7,8 +7,6 @@ package com.arcadedb.index;
 public interface IndexCursor {
   Object[] getKeys();
 
-  Object getValue();
-
   boolean hasNext();
 
   Object next();

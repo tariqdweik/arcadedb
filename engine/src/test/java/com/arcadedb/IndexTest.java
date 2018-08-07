@@ -82,7 +82,6 @@ public class IndexTest {
         final Object[] key = new Object[] { i };
 
         for (Index index : indexes) {
-
           final List<RID> value = index.get(key);
           if (!value.isEmpty()) {
             index.remove(key);
@@ -102,7 +101,7 @@ public class IndexTest {
           Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
       }
 
-      // NOT SUPPORTED
+      // NOT SUPPORTED YET
 //      for (Index index : indexes)
 //        Assertions.assertNull(index.iterator(true).next());
 //
@@ -168,12 +167,10 @@ public class IndexTest {
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
-          iterator.next();
+          Assertions.assertNotNull(iterator.next());
 
           Assertions.assertNotNull(iterator.getKeys());
           Assertions.assertEquals(1, iterator.getKeys().length);
-
-          Assertions.assertNotNull(iterator.getValue());
 
           total++;
         }
@@ -201,12 +198,10 @@ public class IndexTest {
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
-          iterator.next();
+          Assertions.assertNotNull(iterator.next());
 
           Assertions.assertNotNull(iterator.getKeys());
           Assertions.assertEquals(1, iterator.getKeys().length);
-
-          Assertions.assertNotNull(iterator.getValue());
 
           total++;
         }
@@ -234,12 +229,10 @@ public class IndexTest {
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
-          iterator.next();
+          Assertions.assertNotNull(iterator.next());
 
           Assertions.assertNotNull(iterator.getKeys());
           Assertions.assertEquals(1, iterator.getKeys().length);
-
-          Assertions.assertNotNull(iterator.getValue());
 
           total++;
         }
@@ -267,12 +260,10 @@ public class IndexTest {
         Assertions.assertNotNull(iterator);
 
         while (iterator.hasNext()) {
-          iterator.next();
+          Assertions.assertNotNull(iterator.next());
 
           Assertions.assertNotNull(iterator.getKeys());
           Assertions.assertEquals(1, iterator.getKeys().length);
-
-          Assertions.assertNotNull(iterator.getValue());
 
           total++;
         }
@@ -301,13 +292,14 @@ public class IndexTest {
 
         while (iterator.hasNext()) {
           Identifiable value = (Identifiable) iterator.next();
+
+          Assertions.assertNotNull(value);
+
           int fieldValue = (int) ((Document) value.getRecord()).get("id");
           Assertions.assertTrue(fieldValue >= 10 && fieldValue <= 19);
 
           Assertions.assertNotNull(iterator.getKeys());
           Assertions.assertEquals(1, iterator.getKeys().length);
-
-          Assertions.assertNotNull(iterator.getValue());
 
           total++;
         }
