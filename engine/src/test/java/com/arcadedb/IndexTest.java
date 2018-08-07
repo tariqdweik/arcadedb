@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 public class IndexTest {
   private static final int    TOT       = 10000;
@@ -50,9 +51,9 @@ public class IndexTest {
       for (int i = 0; i < TOT; ++i) {
         final List<Integer> results = new ArrayList<>();
         for (Index index : indexes) {
-          final List<RID> value = index.get(new Object[] { i });
+          final Set<RID> value = index.get(new Object[] { i });
           if (!value.isEmpty())
-            results.add((Integer) ((Document) value.get(0).getRecord()).get("id"));
+            results.add((Integer) ((Document) value.iterator().next().getRecord()).get("id"));
         }
 
         total++;
@@ -68,7 +69,7 @@ public class IndexTest {
   }
 
   @Test
-  public void testRemoveKeys() throws IOException {
+  public void testRemoveKeys() {
     final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
     db.begin();
     try {
@@ -82,7 +83,7 @@ public class IndexTest {
         final Object[] key = new Object[] { i };
 
         for (Index index : indexes) {
-          final List<RID> value = index.get(key);
+          final Set<RID> value = index.get(key);
           if (!value.isEmpty()) {
             index.remove(key);
             found++;
@@ -101,12 +102,130 @@ public class IndexTest {
           Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
       }
 
-      // NOT SUPPORTED YET
-//      for (Index index : indexes)
-//        Assertions.assertNull(index.iterator(true).next());
-//
-//      for (Index index : indexes)
-//        Assertions.assertNull(index.iterator(false).next());
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
+  public void testRemoveEntries() {
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
+    db.begin();
+    try {
+      int total = 0;
+
+      final Index[] indexes = db.getSchema().getIndexes();
+
+      for (int i = 0; i < TOT; ++i) {
+        int found = 0;
+
+        final Object[] key = new Object[] { i };
+
+        for (Index index : indexes) {
+          final Set<RID> value = index.get(key);
+          if (!value.isEmpty()) {
+            for (RID r : value)
+              index.remove(key, r);
+            found++;
+            total++;
+          }
+        }
+
+        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
+
+      Assertions.assertEquals(TOT, total);
+
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes)
+          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+      }
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
+  public void testRemoveEntriesMultipleTimes() {
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
+    db.begin();
+    try {
+      int total = 0;
+
+      final Index[] indexes = db.getSchema().getIndexes();
+
+      for (int i = 0; i < TOT; ++i) {
+        int found = 0;
+
+        final Object[] key = new Object[] { i };
+
+        for (Index index : indexes) {
+          final Set<RID> value = index.get(key);
+          if (!value.isEmpty()) {
+            for (RID r : value) {
+              for (int k = 0; k < 10; ++k)
+                index.remove(key, r);
+            }
+            found++;
+            total++;
+          }
+        }
+
+        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
+
+      Assertions.assertEquals(TOT, total);
+
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes)
+          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+      }
+
+    } finally {
+      db.close();
+    }
+  }
+
+  @Test
+  public void testRemoveAndPutEntries() {
+    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
+    db.begin();
+    try {
+      int total = 0;
+
+      final Index[] indexes = db.getSchema().getIndexes();
+
+      for (int i = 0; i < TOT; ++i) {
+        int found = 0;
+
+        final Object[] key = new Object[] { i };
+
+        for (Index index : indexes) {
+          final Set<RID> value = index.get(key);
+          if (!value.isEmpty()) {
+            for (RID r : value) {
+              index.remove(key, r);
+              index.put(key, r);
+              index.remove(key, r);
+            }
+            found++;
+            total++;
+          }
+        }
+
+        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
+
+      Assertions.assertEquals(TOT, total);
+
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes)
+          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+      }
 
     } finally {
       db.close();
@@ -129,7 +248,7 @@ public class IndexTest {
 
         for (Index index : indexes) {
 
-          final List<RID> value = index.get(key);
+          final Set<RID> value = index.get(key);
           if (!value.isEmpty()) {
             try {
               index.put(key, new RID(db, 10, 10));

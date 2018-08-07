@@ -466,7 +466,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (metadata == null || metadata.isEmpty())
           throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
-        final List<RID> result = new ArrayList<>();
+        final Set<RID> result = new HashSet<>();
         for (DocumentType.IndexMetadata m : metadata)
           result.addAll(m.index.get(keys));
 

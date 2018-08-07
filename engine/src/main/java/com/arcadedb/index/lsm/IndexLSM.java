@@ -180,11 +180,13 @@ public class IndexLSM extends PaginatedComponent implements Index {
   }
 
   @Override
-  public List<RID> get(final Object[] keys) {
+  public Set<RID> get(final Object[] keys) {
     try {
-      final List<RID> list = new ArrayList<>();
+      final Set<RID> set = new HashSet<>();
 
       final int totalPages = getTotalPages();
+
+      final Set<RID> removedRIDs = new HashSet<>();
 
       // SEARCH FROM THE LAST PAGE BACK
       for (int p = totalPages - 1; p > -1; --p) {
@@ -195,11 +197,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
         final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 3);
         if (result != null && result.found) {
           // REAL ALL THE ENTRIES
-          final List<Object> allValues = new ArrayList<>();
-          for (int i = 0; i < result.valueBeginPositions.length; ++i) {
-            currentPageBuffer.position(result.valueBeginPositions[i]);
-            readEntryValues(currentPageBuffer, allValues);
-          }
+          final List<Object> allValues = readAllValues(currentPageBuffer, result);
 
           // START FROM THE LAST ENTRY
           boolean exit = false;
@@ -208,21 +206,24 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
             if (rid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && rid.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
               // DELETED ITEM
-              list.clear();
+              set.clear();
               exit = true;
               break;
             }
 
-            if (rid.getBucketId() < 0)
+            if (rid.getBucketId() < 0) {
               // RID DELETED, SKIP THE RID
+              final RID originalRID = getOriginalRID(rid);
+              if (!set.contains(originalRID))
+                removedRIDs.add(originalRID);
+              continue;
+            }
+
+            if (removedRIDs.contains(rid))
+              // ALREADY FOUND AS DELETED
               continue;
 
-            list.add(rid);
-
-            if (unique) {
-              exit = true;
-              break;
-            }
+            set.add(rid);
           }
 
           if (exit)
@@ -230,13 +231,22 @@ public class IndexLSM extends PaginatedComponent implements Index {
         }
       }
 
-      //LogManager.instance().debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, list.size());
+      //LogManager.instance().debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, set.size());
 
-      return list;
+      return set;
 
     } catch (IOException e) {
       throw new DatabaseOperationException("Cannot lookup key '" + Arrays.toString(keys) + "' in index '" + name + "'", e);
     }
+  }
+
+  private List<Object> readAllValues(final Binary currentPageBuffer, final LookupResult result) {
+    final List<Object> allValues = new ArrayList<>();
+    for (int i = 0; i < result.valueBeginPositions.length; ++i) {
+      currentPageBuffer.position(result.valueBeginPositions[i]);
+      readEntryValues(currentPageBuffer, allValues);
+    }
+    return allValues;
   }
 
   @Override
@@ -461,7 +471,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
         for (int i = firstKeyPos; i <= lastKeyPos; ++i)
           positionsArray[i - firstKeyPos] = currentPageBuffer.getInt(startIndexArray + (firstKeyPos * INT_SERIALIZED_SIZE)) + keySerializedSize;
 
-        return new LookupResult(true, firstKeyPos, positionsArray);
+        return new LookupResult(true, lastKeyPos, positionsArray);
       }
 
       if (keys.length < keyTypes.length) {
@@ -633,7 +643,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
     checkForNulls(keys);
 
     if (unique && checkForUnique) {
-      final List<RID> result = get(keys);
+      final Set<RID> result = get(keys);
       if (!result.isEmpty())
         throw new DuplicatedKeyException(name, Arrays.toString(keys));
     }
@@ -653,9 +663,34 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       int count = getCount(currentPage);
 
-      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
-      if (unique && checkForUnique && result.found)
-        throw new DuplicatedKeyException(name, Arrays.toString(keys));
+      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 3);
+      if (unique && checkForUnique && result.found) {
+        // CHECK FOR DUPLICATES
+        final List<Object> allValues = readAllValues(currentPageBuffer, result);
+
+        final Set<RID> removedRIDs = new HashSet<>();
+
+        for (int i = allValues.size() - 1; i > -1; --i) {
+          final RID valueAsRid = (RID) allValues.get(i);
+          if (valueAsRid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && valueAsRid.getPosition() == REMOVED_ENTRY_RID.getPosition())
+            // DELETED ITEM, FINE
+            break;
+
+          if (valueAsRid.getBucketId() < 0) {
+            // RID DELETED, SKIP THE RID
+            removedRIDs.add(getOriginalRID(valueAsRid));
+            continue;
+          }
+
+          if (removedRIDs.contains(valueAsRid))
+            // ALREADY FOUND AS DELETED, FINE
+            continue;
+
+          throw new DuplicatedKeyException(name, Arrays.toString(keys));
+        }
+      }
+
+      // TODO: OPTIMIZATION: REPLACE SAME KEY/RID (even deleted) INSTEAD OF ADDING A NEW ENTRY
 
       // WRITE KEY/VALUE PAIRS FIRST
       final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
@@ -663,7 +698,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       int keyValueFreePosition = getKeyValueFreePosition(currentPage);
 
-      int keyIndex = result.keyIndex;
+      int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
       boolean newPage = false;
       if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
         // NO SPACE LEFT, CREATE A NEW PAGE
@@ -682,9 +717,10 @@ public class IndexLSM extends PaginatedComponent implements Index {
       // WRITE KEY/VALUE PAIR CONTENT
       currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
 
-      // SHIFT POINTERS TO THE RIGHT
       final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
-      currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
+      if (keyIndex < count - 1)
+        // NOT LAST KEY, SHIFT POINTERS TO THE RIGHT
+        currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
 
       currentPageBuffer.putInt(startPos, keyValueFreePosition);
 
@@ -740,10 +776,13 @@ public class IndexLSM extends PaginatedComponent implements Index {
           final Object[] values = readEntryValues(currentPageBuffer);
           for (int i = 0; i < values.length; ++i) {
             if (rid.equals(values[i])) {
-              currentPageBuffer.position(result.valueBeginPositions[0]);
+              // OVERWRITE LAST VALUE
+              currentPageBuffer.position(result.valueBeginPositions[result.valueBeginPositions.length - 1]);
               updateEntryValue(currentPageBuffer, i, removedRID);
               return;
-            }
+            } else if (removedRID.equals(values[i]))
+              // ALREADY DELETED
+              return;
           }
         }
       }
@@ -754,7 +793,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       int keyValueFreePosition = getKeyValueFreePosition(currentPage);
 
-      int keyIndex = result.keyIndex;
+      int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
       boolean newPage = false;
       if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
         // NO SPACE LEFT, CREATE A NEW PAGE
@@ -773,9 +812,10 @@ public class IndexLSM extends PaginatedComponent implements Index {
       // WRITE KEY/VALUE PAIR CONTENT
       currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
 
-      // SHIFT POINTERS TO THE RIGHT
       final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
-      currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
+      if (keyIndex < count - 1)
+        // NOT LAST KEY, SHIFT POINTERS TO THE RIGHT
+        currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
 
       currentPageBuffer.putInt(startPos, keyValueFreePosition);
 

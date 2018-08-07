@@ -7,8 +7,8 @@ package com.arcadedb.index;
 import com.arcadedb.database.RID;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface Index {
   String getName();
@@ -35,7 +35,7 @@ public interface Index {
    */
   IndexCursor range(Object[] beginKeys, Object[] endKeys) throws IOException;
 
-  List<RID> get(Object[] keys);
+  Set<RID> get(Object[] keys);
 
   void put(Object[] keys, RID rid);
 
