@@ -24,14 +24,13 @@ import com.arcadedb.sql.executor.SQLEngine;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.sql.parser.StatementCache;
-import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
-import com.arcadedb.utility.MultiIterator;
-import com.arcadedb.utility.RWLockContext;
+import com.arcadedb.utility.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.FileLock;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -58,6 +57,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(
       Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, IndexLSM.NOTUNIQUE_INDEX_EXT, IndexLSM.UNIQUE_INDEX_EXT));
   private                File                                      lockFile;
+  private                FileLock                                  lockFileIO;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
   private                StatementCache                            statementCache          = new StatementCache(this,
       GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
@@ -153,6 +153,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     lockFile = new File(databasePath + "/database.lck");
 
     if (lockFile.exists()) {
+      lockDatabase();
+
       // RECOVERY
       LogManager.instance().warn(this, "Database '%s' was not closed properly last time", name);
 
@@ -162,20 +164,24 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       executeCallbacks(CALLBACK_EVENT.DB_NOT_CLOSED);
 
       transactionManager.checkIntegrity();
-    } else
+    } else {
       lockFile.createNewFile();
+
+      lockDatabase();
+    }
   }
 
   @Override
   public void drop() {
+    checkDatabaseIsOpen();
+    if (mode == PaginatedFile.MODE.READ_ONLY)
+      throw new DatabaseIsReadOnlyException("Cannot drop database");
+
+    close();
+
     executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
-        checkDatabaseIsOpen();
-        if (mode == PaginatedFile.MODE.READ_ONLY)
-          throw new DatabaseIsReadOnlyException("Cannot drop database");
-
-        close();
         FileUtils.deleteRecursively(new File(databasePath));
         return null;
       }
@@ -214,6 +220,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           fileManager.close();
           transactionManager.close();
           statementCache.clear();
+
+          try {
+            lockFileIO.release();
+          } catch (IOException e) {
+            // IGNORE IT
+          }
 
           lockFile.delete();
 
@@ -831,6 +843,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       fileManager.close();
       transactionManager.kill();
 
+      try {
+        lockFileIO.release();
+      } catch (IOException e) {
+        // IGNORE IT
+      }
+
     } finally {
       open = false;
       Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
@@ -1037,8 +1055,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         if (recordToReloadOnRetry != null) {
           // RELOAD THE RECORDS
           for (Record r : recordToReloadOnRetry)
-            ;
-          //r.reload();
+            r.reload();
         }
 
         if (waitBetweenRetry > 0)
@@ -1059,5 +1076,18 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
     if (DatabaseContext.INSTANCE.get() == null)
       DatabaseContext.INSTANCE.init(wrappedDatabaseInstance);
+  }
+
+  private void lockDatabase() throws IOException {
+    try {
+      lockFileIO = new RandomAccessFile(lockFile, "rw").getChannel().tryLock();
+
+      if (lockFileIO == null)
+        throw new LockException("Database '" + name + "' is locked by another process");
+
+    } catch (Exception e) {
+      // IGNORE HERE
+      throw new LockException("Database '" + name + "' is locked by another process", e);
+    }
   }
 }

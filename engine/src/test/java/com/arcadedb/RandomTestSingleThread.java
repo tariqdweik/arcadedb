@@ -5,11 +5,9 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.VertexType;
@@ -24,7 +22,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class RandomTestSingleThread {
+public class RandomTestSingleThread extends BaseTest {
   private static final int CYCLES           = 1500;
   private static final int STARTING_ACCOUNT = 100;
   private static final int PARALLEL         = Runtime.getRuntime().availableProcessors();
@@ -43,7 +41,6 @@ public class RandomTestSingleThread {
 
     long begin = System.currentTimeMillis();
 
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       database.begin();
 
@@ -89,10 +86,8 @@ public class RandomTestSingleThread {
     } finally {
       new DatabaseChecker().check(database);
 
-      database.close();
-
-      System.out.println("Test finished in " + (System.currentTimeMillis() - begin) + "ms, mvccExceptions=" + mvccErrors.get()
-          + " otherExceptions=" + otherErrors.get());
+      System.out.println(
+          "Test finished in " + (System.currentTimeMillis() - begin) + "ms, mvccExceptions=" + mvccErrors.get() + " otherExceptions=" + otherErrors.get());
     }
 
     LogManager.instance().flush();
@@ -130,7 +125,6 @@ public class RandomTestSingleThread {
   }
 
   private void populateDatabase() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     long begin = System.currentTimeMillis();
 
@@ -149,39 +143,34 @@ public class RandomTestSingleThread {
       database.commit();
 
     } finally {
-      database.close();
       LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 
   private void createSchema() {
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    try {
-      if (!database.getSchema().existsType("Account")) {
-        database.begin();
 
-        final VertexType accountType = database.getSchema().createVertexType("Account", PARALLEL);
-        accountType.createProperty("id", Long.class);
-        accountType.createProperty("name", String.class);
-        accountType.createProperty("surname", String.class);
-        accountType.createProperty("registered", Date.class);
+    if (!database.getSchema().existsType("Account")) {
+      database.begin();
 
-        database.getSchema().createClassIndexes(true, "Account", new String[] { "id" });
+      final VertexType accountType = database.getSchema().createVertexType("Account", PARALLEL);
+      accountType.createProperty("id", Long.class);
+      accountType.createProperty("name", String.class);
+      accountType.createProperty("surname", String.class);
+      accountType.createProperty("registered", Date.class);
 
-        final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
-        txType.createProperty("uuid", String.class);
-        txType.createProperty("date", Date.class);
-        txType.createProperty("amount", BigDecimal.class);
+      database.getSchema().createClassIndexes(true, "Account", new String[] { "id" });
 
-        database.getSchema().createClassIndexes(true, "Transaction", new String[] { "uuid" });
+      final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
+      txType.createProperty("uuid", String.class);
+      txType.createProperty("date", Date.class);
+      txType.createProperty("amount", BigDecimal.class);
 
-        final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
-        edgeType.createProperty("date", Date.class);
+      database.getSchema().createClassIndexes(true, "Transaction", new String[] { "uuid" });
 
-        database.commit();
-      }
-    } finally {
-      database.close();
+      final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
+      edgeType.createProperty("date", Date.class);
+
+      database.commit();
     }
   }
 }

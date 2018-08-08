@@ -7,7 +7,6 @@ package performance;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.async.SQLCallback;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -21,7 +20,7 @@ public class PerformanceSQLInsert {
   }
 
   private void run() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
 
     if (!database.getSchema().existsType(TYPE_NAME)) {
       database.getSchema().createVertexType(TYPE_NAME);
@@ -50,8 +49,9 @@ public class PerformanceSQLInsert {
         });
       }
 
-      System.out.println("Inserted " + MAX_LOOPS + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database
-          .countType(TYPE_NAME, true) + " ok=" + oks.get() + " errors=" + errors.get() + ")");
+      System.out.println(
+          "Inserted " + MAX_LOOPS + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database.countType(TYPE_NAME, true) + " ok=" + oks
+              .get() + " errors=" + errors.get() + ")");
 
       while (oks.get() < MAX_LOOPS) {
         try {
@@ -62,8 +62,8 @@ public class PerformanceSQLInsert {
         }
 
         System.out.println(
-            "Inserted " + MAX_LOOPS + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database
-                .countType(TYPE_NAME, true) + " ok=" + oks.get() + " errors=" + errors.get() + ")");
+            "Inserted " + MAX_LOOPS + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database.countType(TYPE_NAME, true) + " ok=" + oks
+                .get() + " errors=" + errors.get() + ")");
       }
 
     } finally {

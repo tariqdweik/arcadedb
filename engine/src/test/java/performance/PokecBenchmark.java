@@ -6,7 +6,6 @@ package performance;
 
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.utility.LogManager;
 
@@ -123,7 +122,7 @@ public class PokecBenchmark {
   }
 
   private PokecBenchmark() throws Exception {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
+    final Database db = new DatabaseFactory(DB_PATH).open();
     db.begin();
 
     try {

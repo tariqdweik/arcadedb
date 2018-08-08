@@ -7,7 +7,6 @@ package com.arcadedb.server;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.ha.HAServer;
@@ -197,13 +196,13 @@ public class ArcadeDBServer {
     if (db != null)
       throw new IllegalArgumentException("Database '" + databaseName + "' already exists");
 
-    final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
-        PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
+    final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName)
+        .setAutoTransaction(true);
 
     if (factory.exists())
       throw new IllegalArgumentException("Database '" + databaseName + "' already exists");
 
-    db = factory.create();
+    db = (DatabaseInternal) factory.create();
 
     // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
     for (DocumentType t : db.getSchema().getTypes()) {
@@ -272,13 +271,13 @@ public class ArcadeDBServer {
     DatabaseInternal db = databases.get(databaseName);
     if (db == null || !db.isOpen()) {
 
-      final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName,
-          PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true);
+      final DatabaseFactory factory = new DatabaseFactory(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY) + "/" + databaseName)
+          .setAutoTransaction(true);
 
       if (createIfNotExists)
-        db = factory.exists() ? factory.open() : factory.create();
+        db = (DatabaseInternal) (factory.exists() ? factory.open() : factory.create());
       else
-        db = factory.open();
+        db = (DatabaseInternal) factory.open();
 
       // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
       for (DocumentType t : db.getSchema().getTypes()) {
@@ -291,7 +290,7 @@ public class ArcadeDBServer {
       databases.put(databaseName, db);
     }
 
-    return new ServerDatabaseProxy(db);
+    return db;
   }
 
   private void loadDatabases() {

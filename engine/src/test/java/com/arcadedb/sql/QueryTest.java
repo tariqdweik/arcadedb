@@ -4,16 +4,14 @@
 
 package com.arcadedb.sql;
 
+import com.arcadedb.BaseTest;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.ModifiableDocument;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -22,25 +20,33 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryTest {
-  private static final int    TOT     = 10000;
-  private static final String DB_PATH = "target/database/testdb";
+public class QueryTest extends BaseTest {
+  private static final int TOT = 10000;
 
-  @BeforeAll
-  public static void populate() {
-    populate(TOT);
-  }
+  @Override
+  protected void beginTest() {
+    database.transaction(new Database.Transaction() {
+      @Override
+      public void execute(Database database) {
+        if (!database.getSchema().existsType("V"))
+          database.getSchema().createVertexType("V");
 
-  @AfterAll
-  public static void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.drop();
+        for (int i = 0; i < TOT; ++i) {
+          final ModifiableDocument v = database.newVertex("V");
+          v.set("id", i);
+          v.set("name", "Jay");
+          v.set("surname", "Miner" + i);
+
+          v.save();
+        }
+      }
+    });
   }
 
   @Test
   public void testScan() {
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         ResultSet rs = db.command("SQL", "SELECT FROM V", new HashMap<>());
@@ -70,7 +76,7 @@ public class QueryTest {
   @Test
   public void testEqualsFiltering() {
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -103,7 +109,7 @@ public class QueryTest {
   @Test
   public void testCachedStatementAndExecutionPlan() {
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -131,12 +137,10 @@ public class QueryTest {
         Assertions.assertEquals(1, total.get());
 
         // CHECK STATEMENT CACHE
-        Assertions.assertTrue(
-            ((DatabaseInternal) db).getStatementCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
+        Assertions.assertTrue(((DatabaseInternal) db).getStatementCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
 
         // CHECK EXECUTION PLAN CACHE
-        Assertions.assertTrue(
-            ((DatabaseInternal) db).getExecutionPlanCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
+        Assertions.assertTrue(((DatabaseInternal) db).getExecutionPlanCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
 
         // EXECUTE THE 2ND TIME
         rs = db.command("SQL", "SELECT FROM V WHERE name = :name AND surname = :surname", params);
@@ -165,7 +169,7 @@ public class QueryTest {
 
   @Test
   public void testMajorFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -186,7 +190,7 @@ public class QueryTest {
 
   @Test
   public void testMajorEqualsFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -207,7 +211,7 @@ public class QueryTest {
 
   @Test
   public void testMinorFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -228,7 +232,7 @@ public class QueryTest {
 
   @Test
   public void testMinorEqualsFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -249,7 +253,7 @@ public class QueryTest {
 
   @Test
   public void testNotFiltering() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -264,25 +268,6 @@ public class QueryTest {
           total.incrementAndGet();
         }
         Assertions.assertEquals(11, total.get());
-      }
-    });
-  }
-
-  private static void populate(final int total) {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
-      @Override
-      public void execute(Database database) {
-        if (!database.getSchema().existsType("V"))
-          database.getSchema().createVertexType("V");
-
-        for (int i = 0; i < total; ++i) {
-          final ModifiableDocument v = database.newVertex("V");
-          v.set("id", i);
-          v.set("name", "Jay");
-          v.set("surname", "Miner" + i);
-
-          v.save();
-        }
       }
     });
   }

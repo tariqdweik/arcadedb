@@ -4,24 +4,19 @@
 
 package com.arcadedb.serializer;
 
+import com.arcadedb.BaseTest;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-public class SerializerTest {
-
-  public static final String DB_PATH = "./target/arcadedb/testdb";
+public class SerializerTest extends BaseTest {
 
   @Test
   public void testVarNumber() {
@@ -110,11 +105,9 @@ public class SerializerTest {
 
   @Test
   public void testLiteralPropertiesInDocument() {
-    FileUtils.deleteRecursively(new File(DB_PATH));
-
     final BinarySerializer serializer = new BinarySerializer();
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
@@ -165,11 +158,9 @@ public class SerializerTest {
 
   @Test
   public void testListPropertiesInDocument() {
-    FileUtils.deleteRecursively(new File(DB_PATH));
-
     final BinarySerializer serializer = new BinarySerializer();
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
@@ -275,11 +266,9 @@ public class SerializerTest {
 
   @Test
   public void testMapPropertiesInDocument() {
-    FileUtils.deleteRecursively(new File(DB_PATH));
-
     final BinarySerializer serializer = new BinarySerializer();
 
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");

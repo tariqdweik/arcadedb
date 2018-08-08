@@ -5,20 +5,15 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.async.ErrorCallback;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALException;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -28,13 +23,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ACIDTransactionTest {
-  private static final String DB_PATH = "target/database/testdb";
-
-  @BeforeEach
-  public void populate() {
-    FileUtils.deleteRecursively(new File(DB_PATH));
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+public class ACIDTransactionTest extends BaseTest {
+  @Override
+  protected void beginTest() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V")) {
@@ -48,15 +40,9 @@ public class ACIDTransactionTest {
     });
   }
 
-  @AfterEach
-  public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.drop();
-  }
-
   @Test
   public void testAsyncTX() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
 
     db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
     db.asynch().setTransactionUseWAL(true);
@@ -93,17 +79,13 @@ public class ACIDTransactionTest {
 
     verifyWALFilesAreStillPresent();
 
-    final Database db2 = verifyDatabaseWasNotClosedProperly();
-    try {
-      Assertions.assertEquals(TOT, db2.countType("V", true));
-    } finally {
-      db2.close();
-    }
+    verifyDatabaseWasNotClosedProperly();
+    Assertions.assertEquals(TOT, database.countType("V", true));
   }
 
   @Test
   public void testCrashDuringTx() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
     db.begin();
     try {
       final ModifiableDocument v = db.newDocument("V");
@@ -116,17 +98,13 @@ public class ACIDTransactionTest {
       ((DatabaseInternal) db).kill();
     }
 
-    final Database db2 = verifyDatabaseWasNotClosedProperly();
-    try {
-      Assertions.assertEquals(0, db2.countType("V", true));
-    } finally {
-      db.close();
-    }
+    verifyDatabaseWasNotClosedProperly();
+    Assertions.assertEquals(0, database.countType("V", true));
   }
 
   @Test
   public void testIOExceptionAfterWALIsWritten() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
     db.begin();
 
     try {
@@ -154,17 +132,13 @@ public class ACIDTransactionTest {
 
     verifyWALFilesAreStillPresent();
 
-    final Database db2 = verifyDatabaseWasNotClosedProperly();
-    try {
-      Assertions.assertEquals(1, db2.countType("V", true));
-    } finally {
-      db2.close();
-    }
+    verifyDatabaseWasNotClosedProperly();
+    Assertions.assertEquals(1, database.countType("V", true));
   }
 
   @Test
   public void testAsyncIOExceptionAfterWALIsWrittenLastRecords() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
 
     final AtomicInteger errors = new AtomicInteger(0);
 
@@ -222,17 +196,13 @@ public class ACIDTransactionTest {
 
     verifyWALFilesAreStillPresent();
 
-    final Database db2 = verifyDatabaseWasNotClosedProperly();
-    try {
-      Assertions.assertEquals(TOT, db2.countType("V", true));
-    } finally {
-      db2.close();
-    }
+    verifyDatabaseWasNotClosedProperly();
+    Assertions.assertEquals(TOT, database.countType("V", true));
   }
 
   @Test
   public void testAsyncIOExceptionAfterWALIsWrittenManyRecords() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
 
     final int TOT = 100000;
 
@@ -280,18 +250,14 @@ public class ACIDTransactionTest {
 
     verifyWALFilesAreStillPresent();
 
-    final Database db2 = verifyDatabaseWasNotClosedProperly();
-    try {
-      Assertions.assertEquals(TOT, db2.countType("V", true));
-    } finally {
-      db2.close();
-    }
+    verifyDatabaseWasNotClosedProperly();
+
+    Assertions.assertEquals(TOT, database.countType("V", true));
   }
 
-  private Database verifyDatabaseWasNotClosedProperly() {
+  private void verifyDatabaseWasNotClosedProperly() {
     final AtomicBoolean dbNotClosedCaught = new AtomicBoolean(false);
 
-    final DatabaseFactory factory = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE);
     factory.registerCallback(DatabaseInternal.CALLBACK_EVENT.DB_NOT_CLOSED, new Callable<Void>() {
       @Override
       public Void call() {
@@ -300,13 +266,12 @@ public class ACIDTransactionTest {
       }
     });
 
-    Database db = factory.open();
+    database = factory.open();
     Assertions.assertTrue(dbNotClosedCaught.get());
-    return db;
   }
 
   private void verifyWALFilesAreStillPresent() {
-    File dbDir = new File(DB_PATH);
+    File dbDir = new File(getDatabasePath());
     Assertions.assertTrue(dbDir.exists());
     Assertions.assertTrue(dbDir.isDirectory());
     File[] files = dbDir.listFiles(new FilenameFilter() {

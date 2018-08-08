@@ -8,44 +8,44 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.utility.LockManager;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class DocumentIndexer {
 
-  private final EmbeddedDatabase              database;
-  private final LockManager<IndexKey, Thread> lockManager = new LockManager<>();
+  public static class IndexKey {
+    public final Index    index;
+    public final String   typeName;
+    public final String[] keyNames;
+    public final Object[] keys;
+    public final RID      rid;
 
-  private class IndexKey {
-    private final Object[] keys;
-
-    private IndexKey(final Object[] keys) {
+    public IndexKey(final Index index, final String typeName, final String[] keyNames, final Object[] keys, final RID rid) {
+      this.index = index;
+      this.typeName = typeName;
+      this.keyNames = keyNames;
       this.keys = keys;
+      this.rid = rid;
     }
 
     @Override
-    public boolean equals(final Object o) {
-      if (this == o)
-        return true;
-      if (o == null || getClass() != o.getClass())
-        return false;
-      final IndexKey indexKey = (IndexKey) o;
-      return Arrays.equals(keys, indexKey.keys);
-    }
-
-    @Override
-    public int hashCode() {
-      return Arrays.hashCode(keys);
+    public String toString() {
+      return "IndexKey(" + typeName + Arrays.toString(keyNames) + "=" + Arrays.toString(keys) + ")";
     }
   }
+
+  private final EmbeddedDatabase database;
 
   protected DocumentIndexer(final EmbeddedDatabase database) {
     this.database = database;
   }
 
   public void createDocument(final ModifiableDocument record, final DocumentType type, final Bucket bucket) {
+    final RID rid = record.getIdentity();
+    if (rid == null)
+      throw new IllegalArgumentException("Cannot index a non persistent record");
+
     // INDEX THE RECORD
     final List<DocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
     if (metadata != null) {
@@ -53,33 +53,13 @@ public class DocumentIndexer {
         final Index index = entry.index;
         final String[] keyNames = entry.propertyNames;
         final Object[] keyValues = new Object[keyNames.length];
-        for (int i = 0; i < keyNames.length; ++i) {
+        for (int i = 0; i < keyNames.length; ++i)
           keyValues[i] = record.get(keyNames[i]);
-        }
 
-        if (index.isUnique()) {
-          // PROTECT AGAINST CONCURRENT INSERTION OF THE SAME KEY
-          final IndexKey key = new IndexKey(keyValues);
-          lockManager.tryLock(key, Thread.currentThread(), 0);
-
-          try {
-
-            // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-            final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(entry.propertyNames);
-            if (typeIndexes != null) {
-              for (DocumentType.IndexMetadata i : typeIndexes) {
-                if (!i.index.get(keyValues).isEmpty())
-                  throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(keyValues));
-              }
-            }
-
-          } finally {
-            lockManager.unlock(key, Thread.currentThread());
-          }
-        }
-
-        // TODO: IF THE UNIQUE IS ASSURED HERE, IT COULD BE DISABLED THE CHECK INSIDE THE INDEX IMPL
-        index.put(keyValues, record.getIdentity());
+        if (index.isUnique())
+          postponeUniqueInsertion(index, type.getName(), keyNames, keyValues, rid);
+        else
+          index.put(keyValues, rid, false);
       }
     }
   }
@@ -124,7 +104,11 @@ public class DocumentIndexer {
 
         // REMOVE THE OLD ENTRY KEYS/VALUE AND INSERT THE NEW ONE
         index.remove(oldKeyValues, rid);
-        index.put(newKeyValues, rid);
+
+        if (index.isUnique())
+          postponeUniqueInsertion(index, type.getName(), keyNames, newKeyValues, rid);
+        else
+          index.put(newKeyValues, rid, false);
       }
     }
   }
@@ -157,5 +141,29 @@ public class DocumentIndexer {
         index.remove(keyValues, record.getIdentity());
       }
     }
+  }
+
+  private void postponeUniqueInsertion(final Index index, final String typeName, final String[] keyNames, final Object[] keyValues, final RID rid) {
+    // ADD THE KEY TO CHECK AT COMMIT TIME DURING THE LOCK
+    database.getTransaction().addIndexKeyLock(new IndexKey(index, typeName, keyNames, keyValues, rid));
+  }
+
+  /**
+   * Called at commit time in the middle of the lock to avoid concurrent insertion of the same key.
+   */
+  public void postponeUniqueInsertion(final IndexKey key) {
+    final DocumentType type = database.getSchema().getType(key.typeName);
+
+    // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
+    final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.keyNames);
+    if (typeIndexes != null) {
+      for (DocumentType.IndexMetadata i : typeIndexes) {
+        if (!i.index.get(key.keys).isEmpty())
+          throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keys));
+      }
+    }
+
+    // AVOID CHECKING FOR UNIQUENESS BECAUSE IT HAS ALREADY BEEN CHECKED
+    key.index.put(key.keys, key.rid, false);
   }
 }

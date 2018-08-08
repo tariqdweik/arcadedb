@@ -7,7 +7,6 @@ package performance;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.async.SQLCallback;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
@@ -24,7 +23,7 @@ public class PerformanceParsing {
   }
 
   private void run() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
 
     if (!database.getSchema().existsType(TYPE_NAME)) {
       database.getSchema().createVertexType(TYPE_NAME);

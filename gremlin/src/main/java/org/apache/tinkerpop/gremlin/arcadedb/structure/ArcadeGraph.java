@@ -5,7 +5,6 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
@@ -50,7 +49,7 @@ public class ArcadeGraph implements Graph {
   protected ArcadeGraph(final Configuration configuration) {
     this.configuration.copy(configuration);
     final String directory = this.configuration.getString(CONFIG_DIRECTORY);
-    DatabaseFactory factory = new DatabaseFactory(directory, PaginatedFile.MODE.READ_WRITE);
+    final DatabaseFactory factory = new DatabaseFactory(directory);
 
     if (!factory.exists())
       this.database = factory.create();

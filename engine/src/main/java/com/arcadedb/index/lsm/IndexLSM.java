@@ -255,10 +255,15 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   @Override
   public void put(final Object[] keys, final RID rid) {
+    put(keys, rid, true);
+  }
+
+  @Override
+  public void put(final Object[] keys, final RID rid, final boolean checkForUnique) {
     if (rid == null)
       throw new IllegalArgumentException("RID is null");
 
-    internalPut(keys, rid, true);
+    internalPut(keys, rid, checkForUnique);
   }
 
   @Override
@@ -275,9 +280,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
       final RID rid) {
     if (currentPage == null) {
 
-      Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
-      if (txPageCounter == null)
-        txPageCounter = pageCount.get();
+      final int txPageCounter = getTotalPages();
 
       try {
         currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), txPageCounter - 1), pageSize, false);
@@ -384,17 +387,6 @@ public class IndexLSM extends PaginatedComponent implements Index {
     }
 
     return result;
-  }
-
-  public int getTotalPages() {
-    final Integer txPageCounter = database.getTransaction().getPageCounter(id);
-    if (txPageCounter != null)
-      return txPageCounter;
-    try {
-      return (int) database.getFileManager().getVirtualFileSize(file.getFileId()) / pageSize;
-    } catch (IOException e) {
-      throw new IndexException("Error on determine the total pages", e);
-    }
   }
 
   private int compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object keys[], final int mid, final int count) {
@@ -564,9 +556,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   private ModifiablePage createNewPage() {
     // NEW FILE, CREATE HEADER PAGE
-    Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
-    if (txPageCounter == null)
-      txPageCounter = pageCount.get();
+    final int txPageCounter = getTotalPages();
 
     final ModifiablePage currentPage = database.getTransaction().addPage(new PageId(file.getFileId(), txPageCounter), pageSize);
 
@@ -654,9 +644,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
     database.checkTransactionIsActive();
 
-    Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
-    if (txPageCounter == null)
-      txPageCounter = pageCount.get();
+    final int txPageCounter = getTotalPages();
 
     int pageNum = txPageCounter - 1;
 
@@ -755,9 +743,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
     database.checkTransactionIsActive();
 
-    Integer txPageCounter = database.getTransaction().getPageCounter(file.getFileId());
-    if (txPageCounter == null)
-      txPageCounter = pageCount.get();
+    final int txPageCounter = getTotalPages();
 
     int pageNum = txPageCounter - 1;
 

@@ -4,25 +4,24 @@
 
 package performance;
 
+import com.arcadedb.BaseTest;
 import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class PerformanceSQLSelect {
+public class PerformanceSQLSelect extends BaseTest {
   private static final String TYPE_NAME = "Person";
   private static final int    MAX_LOOPS = 10;
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     new PerformanceSQLSelect().run();
   }
 
   private void run() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
+
 
     database.asynch().setParallelLevel(4);
 
@@ -40,8 +39,8 @@ public class PerformanceSQLSelect {
           row.incrementAndGet();
         }
 
-        System.out.println("Found " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database
-            .countType(TYPE_NAME, true) + ")");
+        System.out
+            .println("Found " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database.countType(TYPE_NAME, true) + ")");
       }
     } finally {
       database.close();

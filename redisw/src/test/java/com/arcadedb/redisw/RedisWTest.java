@@ -17,9 +17,9 @@ public class RedisWTest extends BaseGraphServerTest {
 
   @BeforeEach
   @Override
-  public void startTest() {
+  public void beginTest() {
     GlobalConfiguration.SERVER_PLUGINS.setValue("Redis:com.arcadedb.redisw.RedisWrapperPlugin");
-    super.startTest();
+    super.beginTest();
   }
 
   @AfterEach

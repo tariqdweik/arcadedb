@@ -39,6 +39,8 @@ public interface Index {
 
   void put(Object[] keys, RID rid);
 
+  void put(Object[] keys, RID rid, boolean checkForUnique);
+
   /**
    * Removes the keys from the index.
    *

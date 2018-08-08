@@ -5,34 +5,17 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
-import com.arcadedb.utility.FileUtils;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TransactionBucketTest {
-  private static final int    TOT     = 10000;
-  private static final String DB_PATH = "target/database/testdb";
-
-  @BeforeAll
-  public static void populate() {
-    populate(TOT);
-  }
-
-  @AfterAll
-  public static void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.drop();
-  }
+public class TransactionBucketTest extends BaseTest {
+  private static final int TOT = 10000;
 
   @Test
   public void testPopulate() {
@@ -42,180 +25,152 @@ public class TransactionBucketTest {
   public void testScan() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db.begin();
-    try {
-      db.scanBucket("V_0", new RecordCallback() {
-        @Override
-        public boolean onRecord(final Record record) {
-          Assertions.assertNotNull(record);
+    database.begin();
 
-          Set<String> prop = new HashSet<String>();
-          for (String p : ((Document) record).getPropertyNames())
-            prop.add(p);
+    database.scanBucket("V_0", new RecordCallback() {
+      @Override
+      public boolean onRecord(final Record record) {
+        Assertions.assertNotNull(record);
 
-          Assertions.assertEquals(3, ((Document) record).getPropertyNames().size(), 9);
-          Assertions.assertTrue(prop.contains("id"));
-          Assertions.assertTrue(prop.contains("name"));
-          Assertions.assertTrue(prop.contains("surname"));
+        Set<String> prop = new HashSet<String>();
+        for (String p : ((Document) record).getPropertyNames())
+          prop.add(p);
 
-          total.incrementAndGet();
-          return true;
-        }
-      });
+        Assertions.assertEquals(3, ((Document) record).getPropertyNames().size(), 9);
+        Assertions.assertTrue(prop.contains("id"));
+        Assertions.assertTrue(prop.contains("name"));
+        Assertions.assertTrue(prop.contains("surname"));
 
-      Assertions.assertEquals(TOT, total.get());
+        total.incrementAndGet();
+        return true;
+      }
+    });
 
-      db.commit();
+    Assertions.assertEquals(TOT, total.get());
 
-    } finally {
-      db.close();
-    }
+    database.commit();
   }
 
   @Test
   public void testIterator() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db.begin();
-    try {
-      Iterator<Record> iterator = db.iterateBucket("V_0");
+    database.begin();
 
-      while (iterator.hasNext()) {
-        Document record = (Document) iterator.next();
-        Assertions.assertNotNull(record);
+    Iterator<Record> iterator = database.iterateBucket("V_0");
 
-        Set<String> prop = new HashSet<String>();
-        for (String p : record.getPropertyNames())
-          prop.add(p);
+    while (iterator.hasNext()) {
+      Document record = (Document) iterator.next();
+      Assertions.assertNotNull(record);
 
-        Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
-        Assertions.assertTrue(prop.contains("id"));
-        Assertions.assertTrue(prop.contains("name"));
-        Assertions.assertTrue(prop.contains("surname"));
+      Set<String> prop = new HashSet<String>();
+      for (String p : record.getPropertyNames())
+        prop.add(p);
 
-        total.incrementAndGet();
+      Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+      Assertions.assertTrue(prop.contains("id"));
+      Assertions.assertTrue(prop.contains("name"));
+      Assertions.assertTrue(prop.contains("surname"));
 
-      }
+      total.incrementAndGet();
 
-      Assertions.assertEquals(TOT, total.get());
-
-      db.commit();
-
-    } finally {
-      db.close();
     }
+
+    Assertions.assertEquals(TOT, total.get());
+
+    database.commit();
   }
 
   @Test
   public void testLookupAllRecordsByRID() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db.begin();
-    try {
-      db.scanBucket("V_0", new RecordCallback() {
-        @Override
-        public boolean onRecord(final Record record) {
-          final Document record2 = (Document) db.lookupByRID(record.getIdentity(), false);
-          Assertions.assertNotNull(record2);
-          Assertions.assertEquals(record, record2);
+    database.begin();
 
-          Set<String> prop = new HashSet<String>();
-          for (String p : record2.getPropertyNames())
-            prop.add(p);
+    database.scanBucket("V_0", new RecordCallback() {
+      @Override
+      public boolean onRecord(final Record record) {
+        final Document record2 = (Document) database.lookupByRID(record.getIdentity(), false);
+        Assertions.assertNotNull(record2);
+        Assertions.assertEquals(record, record2);
 
-          Assertions.assertEquals(record2.getPropertyNames().size(), 3);
-          Assertions.assertTrue(prop.contains("id"));
-          Assertions.assertTrue(prop.contains("name"));
-          Assertions.assertTrue(prop.contains("surname"));
+        Set<String> prop = new HashSet<String>();
+        for (String p : record2.getPropertyNames())
+          prop.add(p);
 
-          total.incrementAndGet();
-          return true;
-        }
-      });
+        Assertions.assertEquals(record2.getPropertyNames().size(), 3);
+        Assertions.assertTrue(prop.contains("id"));
+        Assertions.assertTrue(prop.contains("name"));
+        Assertions.assertTrue(prop.contains("surname"));
 
-      db.commit();
+        total.incrementAndGet();
+        return true;
+      }
+    });
 
-    } finally {
-      db.close();
-    }
+    database.commit();
 
     Assertions.assertEquals(TOT, total.get());
   }
 
   @Test
-  public void testDeleteAllRecordsReuseSpace()  {
+  public void testDeleteAllRecordsReuseSpace() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.begin();
+    database.begin();
     try {
-      db.scanBucket("V_0", new RecordCallback() {
+      database.scanBucket("V_0", new RecordCallback() {
         @Override
         public boolean onRecord(final Record record) {
-          db.deleteRecord(record);
+          database.deleteRecord(record);
           total.incrementAndGet();
           return true;
         }
       });
 
-      db.commit();
+      database.commit();
 
     } finally {
-      Assertions.assertEquals(0, db.countBucket("V_0"));
-
-      db.close();
+      Assertions.assertEquals(0, database.countBucket("V_0"));
     }
 
     Assertions.assertEquals(TOT, total.get());
 
-    populate();
+    beginTest();
 
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db2.begin();
-    try {
-      Assertions.assertEquals(TOT, db2.countBucket("V_0"));
-      db2.commit();
-    } finally {
-      db2.close();
-    }
+    Assertions.assertEquals(TOT, database.countBucket("V_0"));
   }
 
   @Test
   public void testDeleteFail() {
+    reopenDatabaseInReadOnlyMode();
 
     Assertions.assertThrows(DatabaseIsReadOnlyException.class, () -> {
-      final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-      db.begin();
-      try {
-        db.scanBucket("V_0", new RecordCallback() {
-          @Override
-          public boolean onRecord(final Record record) {
-            db.deleteRecord(record);
-            return true;
-          }
-        });
+      database.begin();
 
-        db.commit();
+      database.scanBucket("V_0", new RecordCallback() {
+        @Override
+        public boolean onRecord(final Record record) {
+          database.deleteRecord(record);
+          return true;
+        }
+      });
 
-      } finally {
-        db.close();
-      }
+      database.commit();
     });
+
+    reopenDatabase();
   }
 
-  private static void populate(final int total) {
-    FileUtils.deleteRecursively(new File(DB_PATH));
-
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+  @Override
+  protected void beginTest() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))
           database.getSchema().createDocumentType("V");
 
-        for (int i = 0; i < total; ++i) {
+        for (int i = 0; i < TOT; ++i) {
           final ModifiableDocument v = database.newDocument("V");
           v.set("id", i);
           v.set("name", "Jay");

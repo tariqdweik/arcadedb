@@ -21,13 +21,11 @@ public class DatabaseFactory implements AutoCloseable {
   }
 
   private final ContextConfiguration                                       contextConfiguration = new ContextConfiguration();
-  private final PaginatedFile.MODE                                         mode;
   private final String                                                     databasePath;
   private       boolean                                                    autoTransaction      = false;
   private       Map<DatabaseInternal.CALLBACK_EVENT, List<Callable<Void>>> callbacks            = new HashMap<>();
 
-  public DatabaseFactory(final String path, final PaginatedFile.MODE mode) {
-    this.mode = mode;
+  public DatabaseFactory(final String path) {
     if (path.endsWith("/"))
       databasePath = path.substring(0, path.length() - 1);
     else
@@ -35,7 +33,7 @@ public class DatabaseFactory implements AutoCloseable {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     callbacks.clear();
   }
 
@@ -43,39 +41,22 @@ public class DatabaseFactory implements AutoCloseable {
     return new File(databasePath + "/" + SchemaImpl.SCHEMA_FILE_NAME).exists();
   }
 
-  public EmbeddedDatabase open() {
-    final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks);
-    db.setAutoTransaction(autoTransaction);
-    db.open();
-    return db;
+  public Database open() {
+    return open(PaginatedFile.MODE.READ_WRITE);
   }
 
-  public EmbeddedDatabase create() {
-    final EmbeddedDatabase db = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks);
-    db.setAutoTransaction(autoTransaction);
-    db.create();
-    return db;
+  public synchronized Database open(final PaginatedFile.MODE mode) {
+    final EmbeddedDatabase database = new EmbeddedDatabase(databasePath, mode, contextConfiguration, callbacks);
+    database.setAutoTransaction(autoTransaction);
+    database.open();
+    return database;
   }
 
-  public void execute(final DatabaseOperation operation) {
-    if (operation == null)
-      throw new IllegalArgumentException("Operation block is null");
-
-    final Database db = exists() ? open() : create();
-    try {
-      db.transaction(new Database.Transaction() {
-        @Override
-        public void execute(Database database) {
-          operation.execute(database);
-        }
-      });
-    } finally {
-      try {
-        db.close();
-      } catch (Exception e) {
-        // IGNORE IT
-      }
-    }
+  public synchronized Database create() {
+    final EmbeddedDatabase database = new EmbeddedDatabase(databasePath, PaginatedFile.MODE.READ_WRITE, contextConfiguration, callbacks);
+    database.setAutoTransaction(autoTransaction);
+    database.create();
+    return database;
   }
 
   public DatabaseFactory setAutoTransaction(final boolean enabled) {

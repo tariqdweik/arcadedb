@@ -53,8 +53,6 @@ public class HARandomCrashTest extends ReplicationServerTest {
           // GENERIC ERROR, SKIP STOP
           LogManager.instance().info(this, "TEST: Skip stop of server for generic error: %s", e.toString());
           return;
-        } finally {
-          db.close();
         }
 
         LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);

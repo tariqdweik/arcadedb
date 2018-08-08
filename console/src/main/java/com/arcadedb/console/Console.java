@@ -8,7 +8,6 @@ import com.arcadedb.Constants;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Document;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.remote.RemoteDatabase;
@@ -28,14 +27,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Console {
-  private static final String         PROMPT = "\n%s> ";
-  private final        boolean        system = System.console() != null;
-  private final        Terminal       terminal;
-  private final        LineReader     lineReader;
-  private final        TerminalParser parser = new TerminalParser();
-  private              RemoteDatabase remoteDatabase;
-  private              Database       database;
-  private              ConsoleOutput  output;
+  private static final String          PROMPT = "\n%s> ";
+  private final        boolean         system = System.console() != null;
+  private final        Terminal        terminal;
+  private final        LineReader      lineReader;
+  private final        TerminalParser  parser = new TerminalParser();
+  private              RemoteDatabase  remoteDatabase;
+  private              ConsoleOutput   output;
+  private              DatabaseFactory databaseFactory;
+  private              Database        database;
 
   private String getPrompt() {
     return String.format(PROMPT, database != null ? "{" + database.getName() + "}" : "");
@@ -90,6 +90,11 @@ public class Console {
     if (database != null) {
       database.close();
       database = null;
+    }
+
+    if (databaseFactory != null) {
+      databaseFactory.close();
+      databaseFactory = null;
     }
   }
 
@@ -180,8 +185,10 @@ public class Console {
         terminal.writer().printf("\nConnected\n");
         terminal.writer().flush();
 
-      } else
-        database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
+      } else {
+        databaseFactory = new DatabaseFactory(url);
+        database = databaseFactory.setAutoTransaction(true).open();
+      }
     } else
       throw new ConsoleException("URL missing");
   }
@@ -198,8 +205,10 @@ public class Console {
         terminal.writer().printf("\nDatabase created\n");
         terminal.writer().flush();
 
-      } else
-        database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).create();
+      } else {
+        databaseFactory = new DatabaseFactory(url);
+        database = databaseFactory.setAutoTransaction(true).create();
+      }
     } else
       throw new ConsoleException("URL missing");
   }
@@ -217,7 +226,8 @@ public class Console {
         terminal.writer().flush();
 
       } else {
-        database = new DatabaseFactory(url, PaginatedFile.MODE.READ_WRITE).setAutoTransaction(true).open();
+        databaseFactory = new DatabaseFactory(url);
+        database = databaseFactory.setAutoTransaction(true).open();
         database.drop();
       }
     } else

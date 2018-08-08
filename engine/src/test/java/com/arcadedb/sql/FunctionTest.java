@@ -4,39 +4,45 @@
 
 package com.arcadedb.sql;
 
+import com.arcadedb.BaseTest;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class FunctionTest {
-  private static final int    TOT     = 10000;
-  private static final String DB_PATH = "target/database/testdb";
+public class FunctionTest extends BaseTest {
+  private static final int TOT = 10000;
 
-  @BeforeAll
-  public static void populate() {
-    populate(TOT);
-  }
+  @Override
+  protected void beginTest() {
+    database.transaction(new Database.Transaction() {
+      @Override
+      public void execute(Database database) {
+        if (!database.getSchema().existsType("V"))
+          database.getSchema().createVertexType("V");
 
-  @AfterAll
-  public static void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.drop();
+        for (int i = 0; i < TOT; ++i) {
+          final ModifiableDocument v = database.newVertex("V");
+          v.set("id", i);
+          v.set("name", "Jay");
+          v.set("surname", "Miner" + i);
+
+          v.save();
+        }
+      }
+    });
   }
 
   @Test
   public void testCountFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -58,7 +64,7 @@ public class FunctionTest {
 
   @Test
   public void testAvgFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -80,7 +86,7 @@ public class FunctionTest {
 
   @Test
   public void testMaxFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -101,7 +107,7 @@ public class FunctionTest {
 
   @Test
   public void testMinFunction() {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.DatabaseOperation() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -116,25 +122,6 @@ public class FunctionTest {
           counter.incrementAndGet();
         }
         Assertions.assertEquals(1, counter.get());
-      }
-    });
-  }
-
-  private static void populate(final int total) {
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
-      @Override
-      public void execute(Database database) {
-        if (!database.getSchema().existsType("V"))
-          database.getSchema().createVertexType("V");
-
-        for (int i = 0; i < total; ++i) {
-          final ModifiableDocument v = database.newVertex("V");
-          v.set("id", i);
-          v.set("name", "Jay");
-          v.set("surname", "Miner" + i);
-
-          v.save();
-        }
       }
     });
   }

@@ -1,16 +1,16 @@
+package com.arcadedb.mongodbw;
+
 /*
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
-
-package com.arcadedb.mongodbw;
 
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseComparator;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.VertexType;
@@ -21,16 +21,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.Callable;
 
 /**
- * This class has been copied to avoid complex dependencies.
+ * This class has been copied under Console project to avoid complex dependencies.
  */
 public abstract class BaseGraphServerTest {
   protected static final String VERTEX1_TYPE_NAME = "V1";
@@ -41,14 +38,30 @@ public abstract class BaseGraphServerTest {
 
   protected static RID              root;
   private          ArcadeDBServer[] servers;
+  private          Database         databases[];
+
+  protected Database getDatabase(final int serverId) {
+    return databases[serverId];
+  }
+
+  protected BaseGraphServerTest() {
+    GlobalConfiguration.TEST.setValue(true);
+    GlobalConfiguration.SERVER_ROOT_PATH.setValue("./target");
+  }
 
   @BeforeEach
-  public void startTest() {
+  public void beginTest() {
+    checkArcadeIsTotallyDown();
+
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
     deleteDatabaseFolders();
 
-    new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+    databases = new Database[getServerCount()];
+    for (int i = 0; i < getServerCount(); ++i)
+      databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
+
+    getDatabase(0).transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         if (isPopulateDatabase()) {
@@ -71,7 +84,7 @@ public abstract class BaseGraphServerTest {
     });
 
     if (isPopulateDatabase()) {
-      final Database db = new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).open();
+      final Database db = getDatabase(0);
       db.begin();
       try {
         final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
@@ -118,17 +131,37 @@ public abstract class BaseGraphServerTest {
 
   @AfterEach
   public void endTest() {
-    LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
-    for (int i = servers.length - 1; i > -1; --i) {
-      if (servers[i] != null)
-        servers[i].stop();
+    try {
+      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
+      checkDatabasesAreIdentical();
+    } finally {
+      LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
+      if (servers != null)
+        for (int i = servers.length - 1; i > -1; --i) {
+          if (servers[i] != null)
+            servers[i].stop();
 
-      if (dropDatabases()) {
-        final Database db = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE)
-            .open();
-        db.drop();
-      }
+          if (dropDatabasesAtTheEnd()) {
+            final Database db = getDatabase(i);
+            if (db.isOpen()) {
+              db.drop();
+            }
+          }
+        }
+
+      checkArcadeIsTotallyDown();
+
+      GlobalConfiguration.TEST.setValue(false);
     }
+  }
+
+  protected void checkArcadeIsTotallyDown() {
+    final ByteArrayOutputStream os = new ByteArrayOutputStream();
+    final PrintWriter output = new PrintWriter(new BufferedOutputStream(os));
+    new Exception().printStackTrace(output);
+    output.flush();
+    final String out = os.toString();
+    Assertions.assertFalse(out.contains("ArcadeDB"), "Some thread is still up & running: \n" + out);
   }
 
   protected void startServers() {
@@ -151,6 +184,7 @@ public abstract class BaseGraphServerTest {
       config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
 
       servers[i] = new ArcadeDBServer(config);
+      onBeforeStarting(servers[i]);
       servers[i].start();
 
       try {
@@ -162,9 +196,7 @@ public abstract class BaseGraphServerTest {
     }
   }
 
-  protected void deleteDatabaseFolders() {
-    for (int i = 0; i < getServerCount(); ++i)
-      FileUtils.deleteRecursively(new File(getDatabasePath(i)));
+  protected void onBeforeStarting(ArcadeDBServer server) {
   }
 
   protected boolean isPopulateDatabase() {
@@ -175,11 +207,23 @@ public abstract class BaseGraphServerTest {
     return servers[i];
   }
 
+  protected Database getServerDatabase(final int i, final String name) {
+    return servers[i].getDatabase(name);
+  }
+
+  protected ArcadeDBServer getServer(final String name) {
+    for (ArcadeDBServer s : servers) {
+      if (s.getServerName().equals(name))
+        return s;
+    }
+    return null;
+  }
+
   protected int getServerCount() {
     return 1;
   }
 
-  protected boolean dropDatabases() {
+  protected boolean dropDatabasesAtTheEnd() {
     return true;
   }
 
@@ -202,5 +246,65 @@ public abstract class BaseGraphServerTest {
     }
 
     return buffer.toString();
+  }
+
+  protected void executeAsynchronously(final Callable callback) {
+    final Timer task = new Timer();
+    task.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          callback.call();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }, 1);
+  }
+
+  protected ArcadeDBServer getLeaderServer() {
+    for (int i = 0; i < getServerCount(); ++i)
+      if (getServer(i).isStarted()) {
+        final ArcadeDBServer onlineServer = getServer(i);
+        final String leaderName = onlineServer.getHA().getLeaderName();
+        return getServer(leaderName);
+      }
+    return null;
+  }
+
+  protected boolean areAllServersOnline() {
+    final int onlineReplicas = getLeaderServer().getHA().getOnlineReplicas();
+    if (1 + onlineReplicas < getServerCount()) {
+      // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
+      LogManager.instance().info(this, "TEST: Not all the servers are ONLINE (%d), skip this crash...", onlineReplicas);
+      getLeaderServer().getHA().printClusterConfiguration();
+      return false;
+    }
+    return true;
+  }
+
+  protected int[] getServerToCheck() {
+    final int[] result = new int[getServerCount()];
+    for (int i = 0; i < result.length; ++i)
+      result[i] = i;
+    return result;
+  }
+
+  protected void deleteDatabaseFolders() {
+    for (int i = 0; i < getServerCount(); ++i)
+      FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + getDatabasePath(i)));
+    FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
+  }
+
+  protected void checkDatabasesAreIdentical() {
+    final int[] servers2Check = getServerToCheck();
+
+    for (int i = 1; i < servers2Check.length; ++i) {
+      final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
+      final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());
+
+      LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
+      new DatabaseComparator().compare(db1, db2);
+    }
   }
 }

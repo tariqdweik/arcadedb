@@ -4,40 +4,27 @@
 
 package com.arcadedb;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.DocumentCallback;
+import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.DatabaseChecker;
-import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
+public class CRUDTest extends BaseTest {
+  private static final int TOT = Bucket.DEF_PAGE_SIZE * 2;
 
-public class CRUDTest {
-  private static final int    TOT     = Bucket.DEF_PAGE_SIZE * 2;
-  private static final String DB_PATH = "target/database/testdb";
-
-  @BeforeEach
-  public void populate() {
-    FileUtils.deleteRecursively(new File(DB_PATH));
-    Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).create();
-    createAll(db);
-    db.close();
-  }
-
-  @AfterEach
-  public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.drop();
+  @Override
+  protected void beginTest() {
+    createAll();
   }
 
   @Test
   public void testUpdate() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
     db.begin();
     try {
 
@@ -66,20 +53,19 @@ public class CRUDTest {
       });
 
     } finally {
-      new DatabaseChecker().check(db);
-      db.close();
+      new DatabaseChecker().check(database);
     }
   }
 
   @Test
   public void testMultiUpdatesOverlap() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
 
     try {
 
       for (int i = 0; i < 10; ++i) {
         db.begin();
-        updateAll(db, "largeField" + i);
+        updateAll("largeField" + i);
 
         Assertions.assertEquals(TOT, db.countType("V", true));
 
@@ -103,14 +89,13 @@ public class CRUDTest {
       });
 
     } finally {
-      new DatabaseChecker().check(db);
-      db.close();
+      new DatabaseChecker().check(database);
     }
   }
 
   @Test
   public void testMultiUpdatesAndDeleteOverlap() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = database;
     try {
 
       for (int i = 0; i < 10; ++i) {
@@ -118,7 +103,7 @@ public class CRUDTest {
 
         db.begin();
 
-        updateAll(db, "largeField" + i);
+        updateAll("largeField" + i);
         Assertions.assertEquals(TOT, db.countType("V", true));
 
         db.commit();
@@ -137,7 +122,7 @@ public class CRUDTest {
           }
         });
 
-        deleteAll(db);
+        deleteAll();
 
         Assertions.assertEquals(0, db.countType("V", true));
 
@@ -147,19 +132,18 @@ public class CRUDTest {
 
         LogManager.instance().info(this, "Completed %d cycle of updates+delete", i);
 
-        createAll(db);
+        createAll();
 
         Assertions.assertEquals(TOT, db.countType("V", true));
       }
 
     } finally {
-      new DatabaseChecker().check(db);
-      db.close();
+      new DatabaseChecker().check(database);
     }
   }
 
-  private void createAll(Database db) {
-    db.transaction(new Database.Transaction() {
+  private void createAll() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))
@@ -175,8 +159,8 @@ public class CRUDTest {
     });
   }
 
-  private void updateAll(Database db, String largeField) {
-    db.scanType("V", true, new DocumentCallback() {
+  private void updateAll(String largeField) {
+    database.scanType("V", true, new DocumentCallback() {
       @Override
       public boolean onRecord(Document record) {
         final ModifiableDocument document = (ModifiableDocument) record.modify();
@@ -188,11 +172,11 @@ public class CRUDTest {
     });
   }
 
-  private void deleteAll(Database db) {
-    db.scanType("V", true, new DocumentCallback() {
+  private void deleteAll() {
+    database.scanType("V", true, new DocumentCallback() {
       @Override
       public boolean onRecord(Document record) {
-        db.deleteRecord(record);
+        database.deleteRecord(record);
         return true;
       }
     });

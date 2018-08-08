@@ -5,9 +5,7 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.DatabaseChecker;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.ModifiableEdge;
@@ -19,17 +17,15 @@ import org.junit.jupiter.api.Test;
 import java.util.Iterator;
 
 public class GraphTest extends BaseGraphTest {
-
   @Test
   public void checkVertices() {
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db2.begin();
+    database.begin();
     try {
 
-      Assertions.assertEquals(1, db2.countType(VERTEX1_TYPE_NAME, false));
-      Assertions.assertEquals(2, db2.countType(VERTEX2_TYPE_NAME, false));
+      Assertions.assertEquals(1, database.countType(VERTEX1_TYPE_NAME, false));
+      Assertions.assertEquals(2, database.countType(VERTEX2_TYPE_NAME, false));
 
-      final Vertex v1 = (Vertex) db2.lookupByRID(root, false);
+      final Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
       // TEST CONNECTED VERTICES
@@ -75,20 +71,19 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertFalse(v3.isConnectedTo(v2, Vertex.DIRECTION.OUT));
 
     } finally {
-      db2.close();
+      database.commit();
     }
   }
 
   @Test
   public void checkEdges() {
-    final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db2.begin();
+    database.begin();
     try {
 
-      Assertions.assertEquals(1, db2.countType(EDGE1_TYPE_NAME, false));
-      Assertions.assertEquals(2, db2.countType(EDGE2_TYPE_NAME, false));
+      Assertions.assertEquals(1, database.countType(EDGE1_TYPE_NAME, false));
+      Assertions.assertEquals(2, database.countType(EDGE2_TYPE_NAME, false));
 
-      final Vertex v1 = (Vertex) db2.lookupByRID(root, false);
+      final Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
       // TEST CONNECTED EDGES
@@ -133,20 +128,19 @@ public class GraphTest extends BaseGraphTest {
       v2.getEdges();
 
     } finally {
-      db2.close();
+      database.commit();
     }
   }
 
   @Test
   public void updateVerticesAndEdges() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.begin();
+    database.begin();
     try {
 
-      Assertions.assertEquals(1, db.countType(EDGE1_TYPE_NAME, false));
-      Assertions.assertEquals(2, db.countType(EDGE2_TYPE_NAME, false));
+      Assertions.assertEquals(1, database.countType(EDGE1_TYPE_NAME, false));
+      Assertions.assertEquals(2, database.countType(EDGE2_TYPE_NAME, false));
 
-      final Vertex v1 = (Vertex) db.lookupByRID(root, false);
+      final Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
       final ModifiableVertex v1Copy = (ModifiableVertex) v1.modify();
@@ -166,26 +160,24 @@ public class GraphTest extends BaseGraphTest {
       e1Copy.set("newProperty2", "TestUpdate2");
       e1Copy.save();
 
-      db.commit();
+      database.commit();
 
-      final Vertex v1CopyReloaded = (Vertex) db.lookupByRID(v1Copy.getIdentity(), true);
+      final Vertex v1CopyReloaded = (Vertex) database.lookupByRID(v1Copy.getIdentity(), true);
       Assertions.assertEquals("TestUpdate1", v1CopyReloaded.get("newProperty1"));
-      final Edge e1CopyReloaded = (Edge) db.lookupByRID(e1Copy.getIdentity(), true);
+      final Edge e1CopyReloaded = (Edge) database.lookupByRID(e1Copy.getIdentity(), true);
       Assertions.assertEquals("TestUpdate2", e1CopyReloaded.get("newProperty2"));
 
     } finally {
-      new DatabaseChecker().check(db);
-      db.close();
+      new DatabaseChecker().check(database);
     }
   }
 
   @Test
   public void deleteVertices() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.begin();
+    database.begin();
     try {
 
-      Vertex v1 = (Vertex) db.lookupByRID(root, false);
+      Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
       Iterator<Vertex> vertices = v1.getVertices(Vertex.DIRECTION.OUT).iterator();
@@ -197,13 +189,13 @@ public class GraphTest extends BaseGraphTest {
       Vertex v3 = vertices.next();
       Assertions.assertNotNull(v3);
 
-      final long totalVertices = db.countType(v1.getType(), true);
+      final long totalVertices = database.countType(v1.getType(), true);
 
       // DELETE THE VERTEX
       // -----------------------
-      db.deleteRecord(v1);
+      database.deleteRecord(v1);
 
-      Assertions.assertEquals(totalVertices - 1, db.countType(v1.getType(), true));
+      Assertions.assertEquals(totalVertices - 1, database.countType(v1.getType(), true));
 
       vertices = v2.getVertices(Vertex.DIRECTION.IN).iterator();
       Assertions.assertFalse(vertices.hasNext());
@@ -219,7 +211,7 @@ public class GraphTest extends BaseGraphTest {
 
       // RELOAD AND CHECK AGAIN
       // -----------------------
-      v2 = (Vertex) db.lookupByRID(v2.getIdentity(), true);
+      v2 = (Vertex) database.lookupByRID(v2.getIdentity(), true);
 
       vertices = v2.getVertices(Vertex.DIRECTION.IN).iterator();
       Assertions.assertFalse(vertices.hasNext());
@@ -227,7 +219,7 @@ public class GraphTest extends BaseGraphTest {
       vertices = v2.getVertices(Vertex.DIRECTION.OUT).iterator();
       Assertions.assertTrue(vertices.hasNext());
 
-      v3 = (Vertex) db.lookupByRID(v3.getIdentity(), true);
+      v3 = (Vertex) database.lookupByRID(v3.getIdentity(), true);
 
       // Expecting 1 edge only: V2 is still connected to V3
       vertices = v3.getVertices(Vertex.DIRECTION.IN).iterator();
@@ -236,24 +228,24 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertFalse(vertices.hasNext());
 
       try {
-        db.lookupByRID(root, true);
+        database.lookupByRID(root, true);
         Assertions.fail("Expected deleted record");
       } catch (RecordNotFoundException e) {
       }
 
     } finally {
-      new DatabaseChecker().check(db);
-      db.close();
+      database.commit();
+      new DatabaseChecker().check(database);
     }
   }
 
   @Test
   public void deleteEdges() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.begin();
+    final Database db = database;
+    database.begin();
     try {
 
-      Vertex v1 = (Vertex) db.lookupByRID(root, false);
+      Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
       Iterator<Edge> edges = v1.getEdges(Vertex.DIRECTION.OUT).iterator();
@@ -267,7 +259,7 @@ public class GraphTest extends BaseGraphTest {
 
       // DELETE THE EDGE
       // -----------------------
-      db.deleteRecord(e2);
+      database.deleteRecord(e2);
 
       Vertex vOut = e2.getOutVertex();
       edges = vOut.getEdges(Vertex.DIRECTION.OUT).iterator();
@@ -283,7 +275,7 @@ public class GraphTest extends BaseGraphTest {
       // RELOAD AND CHECK AGAIN
       // -----------------------
       try {
-        db.lookupByRID(e2.getIdentity(), true);
+        database.lookupByRID(e2.getIdentity(), true);
         Assertions.fail("Expected deleted record");
       } catch (RecordNotFoundException e) {
       }
@@ -300,19 +292,18 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertFalse(edges.hasNext());
 
     } finally {
-      new DatabaseChecker().check(db);
-      db.close();
+      database.commit();
+      new DatabaseChecker().check(database);
     }
   }
 
   @Test
   public void selfLoopEdges() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.begin();
+    database.begin();
     try {
 
       // UNIDIRECTIONAL EDGE
-      final Vertex v1 = db.newVertex(VERTEX1_TYPE_NAME).save();
+      final Vertex v1 = database.newVertex(VERTEX1_TYPE_NAME).save();
       v1.newEdge(EDGE1_TYPE_NAME, v1, false).save();
 
       Assertions.assertTrue(v1.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
@@ -320,7 +311,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertFalse(v1.getVertices(Vertex.DIRECTION.IN).iterator().hasNext());
 
       // BIDIRECTIONAL EDGE
-      final Vertex v2 = db.newVertex(VERTEX1_TYPE_NAME).save();
+      final Vertex v2 = database.newVertex(VERTEX1_TYPE_NAME).save();
       v2.newEdge(EDGE1_TYPE_NAME, v2, true).save();
 
       Assertions.assertTrue(v2.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
@@ -329,16 +320,16 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertTrue(v2.getVertices(Vertex.DIRECTION.IN).iterator().hasNext());
       Assertions.assertEquals(v2, v2.getVertices(Vertex.DIRECTION.IN).iterator().next());
 
-      db.commit();
+      database.commit();
 
       // UNIDIRECTIONAL EDGE
-      final Vertex v1reloaded = (Vertex) db.lookupByRID(v1.getIdentity(), true);
+      final Vertex v1reloaded = (Vertex) database.lookupByRID(v1.getIdentity(), true);
       Assertions.assertTrue(v1reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
       Assertions.assertEquals(v1reloaded, v1reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().next());
       Assertions.assertFalse(v1reloaded.getVertices(Vertex.DIRECTION.IN).iterator().hasNext());
 
       // BIDIRECTIONAL EDGE
-      final Vertex v2reloaded = (Vertex) db.lookupByRID(v2.getIdentity(), true);
+      final Vertex v2reloaded = (Vertex) database.lookupByRID(v2.getIdentity(), true);
 
       Assertions.assertTrue(v2reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().hasNext());
       Assertions.assertEquals(v2reloaded, v2reloaded.getVertices(Vertex.DIRECTION.OUT).iterator().next());
@@ -347,8 +338,7 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertEquals(v2reloaded, v2reloaded.getVertices(Vertex.DIRECTION.IN).iterator().next());
 
     } finally {
-      new DatabaseChecker().check(db);
-      db.close();
+      new DatabaseChecker().check(database);
     }
   }
 

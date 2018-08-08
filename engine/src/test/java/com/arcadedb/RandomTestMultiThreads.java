@@ -5,11 +5,9 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.schema.EdgeType;
@@ -19,13 +17,12 @@ import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 import org.junit.jupiter.api.Test;
-import performance.PerformanceTest;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class RandomTestMultiThreads {
+public class RandomTestMultiThreads extends BaseTest {
   private static final int CYCLES           = 10000;
   private static final int STARTING_ACCOUNT = 10000;
   private static final int PARALLEL         = Runtime.getRuntime().availableProcessors();
@@ -42,13 +39,11 @@ public class RandomTestMultiThreads {
   public void testRandom() {
     LogManager.instance().info(this, "Executing " + CYCLES + " transactions with %d workers", WORKERS);
 
-    PerformanceTest.clean();
     createSchema();
     populateDatabase();
 
     long begin = System.currentTimeMillis();
 
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
 
       final Thread[] threads = new Thread[WORKERS];
@@ -70,8 +65,8 @@ public class RandomTestMultiThreads {
                 final int op = getRandom(100);
                 if (i % 5000 == 0)
                   LogManager.instance()
-                      .info(this, "Operations %d/%d totalTransactionInCurrentTx=%d totalTransactions=%d (thread=%d)", i, CYCLES,
-                          totalTransactionInCurrentTx, totalTransactionRecords.get(), threadId);
+                      .info(this, "Operations %d/%d totalTransactionInCurrentTx=%d totalTransactions=%d (thread=%d)", i, CYCLES, totalTransactionInCurrentTx,
+                          totalTransactionRecords.get(), threadId);
 
                 LogManager.instance().debug(this, "Operation %d %d/%d (thread=%d)", op, i, CYCLES, threadId);
 
@@ -153,8 +148,8 @@ public class RandomTestMultiThreads {
                   final long newCounter = database.countType("Transaction", true);
 
                   if (getRandom(50) == 0)
-                    LogManager.instance().info(this, "Found %d Transaction records, ram counter=%d (thread=%d)...", newCounter,
-                        totalTransactionRecords.get(), threadId);
+                    LogManager.instance()
+                        .info(this, "Found %d Transaction records, ram counter=%d (thread=%d)...", newCounter, totalTransactionRecords.get(), threadId);
 
                   totalTransactionInCurrentTx -= deleteRecords(database, threadId);
 
@@ -216,10 +211,8 @@ public class RandomTestMultiThreads {
     } finally {
       new DatabaseChecker().check(database);
 
-      database.close();
-
-      System.out.println("Test finished in " + (System.currentTimeMillis() - begin) + "ms, mvccExceptions=" + mvccErrors.get()
-          + " otherExceptions=" + otherErrors.size());
+      System.out.println(
+          "Test finished in " + (System.currentTimeMillis() - begin) + "ms, mvccExceptions=" + mvccErrors.get() + " otherExceptions=" + otherErrors.size());
 
       for (Pair<Integer, Exception> entry : otherErrors) {
         System.out.println(" = threadId=" + entry.getFirst() + " exception=" + entry.getSecond());
@@ -318,7 +311,6 @@ public class RandomTestMultiThreads {
   }
 
   private void populateDatabase() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
 
     long begin = System.currentTimeMillis();
 
@@ -337,41 +329,35 @@ public class RandomTestMultiThreads {
       database.commit();
 
     } finally {
-      database.close();
       LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 
   private void createSchema() {
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    try {
-      if (!database.getSchema().existsType("Account")) {
-        database.begin();
+    if (!database.getSchema().existsType("Account")) {
+      database.begin();
 
-        final VertexType accountType = database.getSchema().createVertexType("Account", PARALLEL);
-        accountType.createProperty("id", Long.class);
-        accountType.createProperty("name", String.class);
-        accountType.createProperty("surname", String.class);
-        accountType.createProperty("registered", Date.class);
+      final VertexType accountType = database.getSchema().createVertexType("Account", PARALLEL);
+      accountType.createProperty("id", Long.class);
+      accountType.createProperty("name", String.class);
+      accountType.createProperty("surname", String.class);
+      accountType.createProperty("registered", Date.class);
 
-        database.getSchema().createClassIndexes(true, "Account", new String[] { "id" }, 500000);
+      database.getSchema().createClassIndexes(true, "Account", new String[] { "id" }, 500000);
 
-        final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
-        txType.createProperty("uuid", String.class);
-        txType.createProperty("date", Date.class);
-        txType.createProperty("amount", BigDecimal.class);
-        txType.createProperty("updated", Boolean.class);
-        txType.createProperty("longFieldUpdated", String.class);
+      final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
+      txType.createProperty("uuid", String.class);
+      txType.createProperty("date", Date.class);
+      txType.createProperty("amount", BigDecimal.class);
+      txType.createProperty("updated", Boolean.class);
+      txType.createProperty("longFieldUpdated", String.class);
 
-        database.getSchema().createClassIndexes(true, "Transaction", new String[] { "uuid" }, 500000);
+      database.getSchema().createClassIndexes(true, "Transaction", new String[] { "uuid" }, 500000);
 
-        final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
-        edgeType.createProperty("date", Date.class);
+      final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
+      edgeType.createProperty("date", Date.class);
 
-        database.commit();
-      }
-    } finally {
-      database.close();
+      database.commit();
     }
   }
 }

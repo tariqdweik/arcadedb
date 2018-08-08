@@ -25,9 +25,9 @@ public class MongoDBWTest extends BaseGraphServerTest {
 
   @BeforeEach
   @Override
-  public void startTest() {
+  public void beginTest() {
     GlobalConfiguration.SERVER_PLUGINS.setValue("MongoDB:com.arcadedb.mongodbw.MongoDBWrapperPlugin");
-    super.startTest();
+    super.beginTest();
   }
 
   @AfterEach

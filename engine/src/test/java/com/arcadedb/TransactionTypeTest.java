@@ -5,37 +5,20 @@
 package com.arcadedb;
 
 import com.arcadedb.database.*;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.utility.FileUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TransactionTypeTest {
+public class TransactionTypeTest extends BaseTest {
   private static final int    TOT       = 10000;
   private static final String TYPE_NAME = "V";
-  private static final String DB_PATH   = "target/database/testdb";
-
-  @BeforeEach
-  public void populate() {
-    populate(TOT);
-  }
-
-  @AfterEach
-  public void drop() {
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.drop();
-  }
 
   @Test
   public void testPopulate() {
@@ -45,89 +28,44 @@ public class TransactionTypeTest {
   public void testScan() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db.begin();
-    try {
-      db.scanType(TYPE_NAME, true, new DocumentCallback() {
-        @Override
-        public boolean onRecord(final Document record) {
-          Assertions.assertNotNull(record);
+    database.begin();
 
-          Set<String> prop = new HashSet<String>();
-          for (String p : record.getPropertyNames())
-            prop.add(p);
+    database.scanType(TYPE_NAME, true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        Assertions.assertNotNull(record);
 
-          Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
-          Assertions.assertTrue(prop.contains("id"));
-          Assertions.assertTrue(prop.contains("name"));
-          Assertions.assertTrue(prop.contains("surname"));
+        Set<String> prop = new HashSet<String>();
+        for (String p : record.getPropertyNames())
+          prop.add(p);
 
-          total.incrementAndGet();
-          return true;
-        }
-      });
+        Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+        Assertions.assertTrue(prop.contains("id"));
+        Assertions.assertTrue(prop.contains("name"));
+        Assertions.assertTrue(prop.contains("surname"));
 
-      Assertions.assertEquals(TOT, total.get());
+        total.incrementAndGet();
+        return true;
+      }
+    });
 
-      db.commit();
+    Assertions.assertEquals(TOT, total.get());
 
-    } finally {
-      db.close();
-    }
+    database.commit();
   }
 
   @Test
   public void testLookupAllRecordsByRID() {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db.begin();
-    try {
-      db.scanType(TYPE_NAME, true, new DocumentCallback() {
-        @Override
-        public boolean onRecord(final Document record) {
-          final Document record2 = (Document) db.lookupByRID(record.getIdentity(), false);
-          Assertions.assertNotNull(record2);
-          Assertions.assertEquals(record, record2);
+    database.begin();
 
-          Set<String> prop = new HashSet<String>();
-          for (String p : record2.getPropertyNames())
-            prop.add(p);
-
-          Assertions.assertEquals(record2.getPropertyNames().size(), 3);
-          Assertions.assertTrue(prop.contains("id"));
-          Assertions.assertTrue(prop.contains("name"));
-          Assertions.assertTrue(prop.contains("surname"));
-
-          total.incrementAndGet();
-          return true;
-        }
-      });
-
-      db.commit();
-
-    } finally {
-      db.close();
-    }
-
-    Assertions.assertEquals(TOT, total.get());
-  }
-
-  @Test
-  public void testLookupAllRecordsByKey() {
-    final AtomicInteger total = new AtomicInteger();
-
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-    db.begin();
-    try {
-      for (int i = 0; i < TOT; i++) {
-        final Cursor<RID> result = db.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
-        Assertions.assertNotNull(result);
-        Assertions.assertEquals(1, result.size());
-
-        final Document record2 = (Document) result.next().getRecord();
-
-        Assertions.assertEquals(i, record2.get("id"));
+    database.scanType(TYPE_NAME, true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        final Document record2 = (Document) database.lookupByRID(record.getIdentity(), false);
+        Assertions.assertNotNull(record2);
+        Assertions.assertEquals(record, record2);
 
         Set<String> prop = new HashSet<String>();
         for (String p : record2.getPropertyNames())
@@ -139,13 +77,43 @@ public class TransactionTypeTest {
         Assertions.assertTrue(prop.contains("surname"));
 
         total.incrementAndGet();
+        return true;
       }
+    });
 
-      db.commit();
+    database.commit();
 
-    } finally {
-      db.close();
+    Assertions.assertEquals(TOT, total.get());
+  }
+
+  @Test
+  public void testLookupAllRecordsByKey() {
+    final AtomicInteger total = new AtomicInteger();
+
+    database.begin();
+
+    for (int i = 0; i < TOT; i++) {
+      final Cursor<RID> result = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
+      Assertions.assertNotNull(result);
+      Assertions.assertEquals(1, result.size());
+
+      final Document record2 = (Document) result.next().getRecord();
+
+      Assertions.assertEquals(i, record2.get("id"));
+
+      Set<String> prop = new HashSet<String>();
+      for (String p : record2.getPropertyNames())
+        prop.add(p);
+
+      Assertions.assertEquals(record2.getPropertyNames().size(), 3);
+      Assertions.assertTrue(prop.contains("id"));
+      Assertions.assertTrue(prop.contains("name"));
+      Assertions.assertTrue(prop.contains("surname"));
+
+      total.incrementAndGet();
     }
+
+    database.commit();
 
     Assertions.assertEquals(TOT, total.get());
   }
@@ -154,80 +122,69 @@ public class TransactionTypeTest {
   public void testDeleteAllRecordsReuseSpace() throws IOException {
     final AtomicInteger total = new AtomicInteger();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
-    db.begin();
-    try {
-      db.scanType(TYPE_NAME, true, new DocumentCallback() {
-        @Override
-        public boolean onRecord(final Document record) {
-          db.deleteRecord(record);
-          total.incrementAndGet();
-          return true;
-        }
-      });
+    database.begin();
 
-      db.commit();
+    database.scanType(TYPE_NAME, true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        database.deleteRecord(record);
+        total.incrementAndGet();
+        return true;
+      }
+    });
 
-    } finally {
-      db.close();
-    }
+    database.commit();
 
     Assertions.assertEquals(TOT, total.get());
 
-    try (final Database db2 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open()) {
-      Assertions.assertEquals(0, db2.countType(TYPE_NAME, true));
+    Assertions.assertEquals(0, database.countType(TYPE_NAME, true));
 
-      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
-      final Index[] indexes = db2.getSchema().getIndexes();
-      for (int i = 0; i < TOT; ++i) {
-        for (Index index : indexes)
-          Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
-      }
+    // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+    final Index[] indexes = database.getSchema().getIndexes();
+    for (int i = 0; i < TOT; ++i) {
+      for (Index index : indexes)
+        Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
     }
 
-    populate();
+    beginTest();
 
-    try (final Database db3 = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open()) {
-      Assertions.assertEquals(TOT, db3.countType(TYPE_NAME, true));
-    }
+    Assertions.assertEquals(TOT, database.countType(TYPE_NAME, true));
   }
 
   @Test
   public void testDeleteFail() {
+    reopenDatabaseInReadOnlyMode();
 
     Assertions.assertThrows(DatabaseIsReadOnlyException.class, () -> {
-      final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_ONLY).open();
-      db.begin();
-      try {
-        db.scanType(TYPE_NAME, true, new DocumentCallback() {
-          @Override
-          public boolean onRecord(final Document record) {
-            db.deleteRecord(record);
-            return true;
-          }
-        });
 
-        db.commit();
+      database.begin();
 
-      } finally {
-        db.close();
-      }
+      database.scanType(TYPE_NAME, true, new DocumentCallback() {
+        @Override
+        public boolean onRecord(final Document record) {
+          database.deleteRecord(record);
+          return true;
+        }
+      });
+
+      database.commit();
     });
+
+    reopenDatabase();
   }
 
-  private void populate(final int total) {
-    FileUtils.deleteRecursively(new File(DB_PATH));
-
-    new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+  @Override
+  protected void beginTest() {
+    database.transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
-        Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
+        if (!database.getSchema().existsType(TYPE_NAME)) {
+          final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
+          type.createProperty("id", Integer.class);
+          database.getSchema().createClassIndexes(true, TYPE_NAME, new String[] { "id" });
+        }
 
-        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
-        type.createProperty("id", Integer.class);
-        database.getSchema().createClassIndexes(true, TYPE_NAME, new String[] { "id" });
-
-        for (int i = 0; i < total; ++i) {
+        for (int i = 0; i < TOT; ++i) {
           final ModifiableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
           v.set("name", "Jay");

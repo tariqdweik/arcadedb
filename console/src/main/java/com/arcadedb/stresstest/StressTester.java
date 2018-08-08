@@ -5,7 +5,6 @@ package com.arcadedb.stresstest;
 
 import com.arcadedb.Constants;
 import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.stresstest.workload.CheckWorkload;
 import com.arcadedb.stresstest.workload.OWorkload;
 import com.arcadedb.stresstest.workload.OWorkloadFactory;
@@ -67,7 +66,7 @@ public class StressTester {
     LogManager.instance().setConsoleLevel("SEVERE");
 
     // creates the temporary DB where to execute the test
-    final DatabaseFactory dbFactory = new DatabaseFactory(databaseIdentifier.getUrl(), PaginatedFile.MODE.READ_WRITE);
+    final DatabaseFactory dbFactory = new DatabaseFactory(databaseIdentifier.getUrl());
     if (dbFactory.exists())
       throw new RuntimeException("Database " + databaseIdentifier.getUrl() + " already exists.");
 

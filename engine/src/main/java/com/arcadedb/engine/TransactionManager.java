@@ -6,6 +6,8 @@ package com.arcadedb.engine;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.exception.TransactionException;
+import com.arcadedb.utility.LockManager;
 import com.arcadedb.utility.LogManager;
 
 import java.io.File;
@@ -29,8 +31,9 @@ public class TransactionManager {
   private final Timer          task;
   private       CountDownLatch taskExecuting = new CountDownLatch(0);
 
-  private final AtomicLong transactionIds = new AtomicLong();
-  private final AtomicLong logFileCounter = new AtomicLong();
+  private final AtomicLong                   transactionIds     = new AtomicLong();
+  private final AtomicLong                   logFileCounter     = new AtomicLong();
+  private final LockManager<Integer, Thread> fileIdsLockManager = new LockManager();
 
   private AtomicLong statsPagesWritten = new AtomicLong();
   private AtomicLong statsBytesWritten = new AtomicLong();
@@ -78,6 +81,8 @@ public class TransactionManager {
       Thread.currentThread().interrupt();
       // IGNORE IT
     }
+
+    fileIdsLockManager.close();
 
     if (activeWALFilePool != null) {
       // MOVE ALL WAL FILES AS INACTIVE
@@ -298,6 +303,8 @@ public class TransactionManager {
       task.purge();
     }
 
+    fileIdsLockManager.close();
+
     try {
       taskExecuting.await();
     } catch (InterruptedException e) {
@@ -308,6 +315,48 @@ public class TransactionManager {
 
   public long getNextTransactionId() {
     return transactionIds.getAndIncrement();
+  }
+
+  public List<Integer> tryLockFiles(final Collection<Integer> fileIds, final long timeout) {
+    // ORDER THE FILES TO AVOID DEADLOCK
+    final List<Integer> orderedFilesIds = new ArrayList<>(fileIds);
+    Collections.sort(orderedFilesIds);
+
+    final List<Integer> lockedFiles = new ArrayList<>(orderedFilesIds.size());
+    for (Integer fileId : orderedFilesIds) {
+      if (tryLockFile(fileId, timeout))
+        lockedFiles.add(fileId);
+      else
+        break;
+    }
+
+    if (lockedFiles.size() == orderedFilesIds.size()) {
+      // OK: ALL LOCKED
+      LogManager.instance().debug(this, "Locked files %s (threadId=%d)", orderedFilesIds, Thread.currentThread().getId());
+      return lockedFiles;
+    }
+
+    // ERROR: UNLOCK LOCKED FILES
+    unlockFilesInOrder(lockedFiles);
+
+    throw new TransactionException("Timeout on locking resource during commit");
+  }
+
+  public void unlockFilesInOrder(final List<Integer> lockedFileIds) {
+    if (lockedFileIds != null) {
+      for (Integer fileId : lockedFileIds)
+        unlockFile(fileId);
+
+      LogManager.instance().debug(this, "Unlocked files %s (threadId=%d)", lockedFileIds, Thread.currentThread().getId());
+    }
+  }
+
+  public boolean tryLockFile(final Integer fileId, final long timeout) {
+    return fileIdsLockManager.tryLock(fileId, Thread.currentThread(), timeout);
+  }
+
+  public void unlockFile(final Integer fileId) {
+    fileIdsLockManager.unlock(fileId, Thread.currentThread());
   }
 
   private void createFilePool() {

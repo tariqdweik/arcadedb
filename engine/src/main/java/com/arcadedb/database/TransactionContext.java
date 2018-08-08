@@ -7,7 +7,9 @@ package com.arcadedb.database;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.TransactionException;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 
@@ -25,16 +27,17 @@ import java.util.*;
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class TransactionContext {
-  protected     DatabaseInternal            database;
-  private       Map<PageId, ModifiablePage> modifiedPages;
-  private       Map<PageId, ModifiablePage> newPages;
-  private final Map<Integer, Integer>       newPageCounters       = new HashMap<>();
-  private final Map<RID, Record>            immutableRecordsCache = new HashMap<>(1024);
-  private final Map<RID, Record>            modifiedRecordsCache  = new HashMap<>(1024);
-  private       boolean                     useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
-  private       WALFile.FLUSH_TYPE          walFlush;
-  private       List<Integer>               lockedFiles;
-  private       long                        txId                  = -1;
+  protected     DatabaseInternal              database;
+  private       Map<PageId, ModifiablePage>   modifiedPages;
+  private       Map<PageId, ModifiablePage>   newPages;
+  private final Map<Integer, Integer>         newPageCounters       = new HashMap<>();
+  private final Map<RID, Record>              immutableRecordsCache = new HashMap<>(1024);
+  private final Map<RID, Record>              modifiedRecordsCache  = new HashMap<>(1024);
+  private       boolean                       useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
+  private       WALFile.FLUSH_TYPE            walFlush;
+  private       List<Integer>                 lockedFiles;
+  private final Set<DocumentIndexer.IndexKey> indexKeysToLocks      = new HashSet<>();
+  private       long                          txId                  = -1;
 
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
@@ -198,7 +201,8 @@ public class TransactionContext {
     assureIsActive();
 
     if (newPages == null)
-      newPages = new HashMap<>();
+      // KEEP ORDERING IN CASE MULTIPLE PAGES FOR THE SAME FILE ARE CREATED
+      newPages = new LinkedHashMap<>();
 
     // CREATE A PAGE ID BASED ON NEW PAGES IN TX. IN CASE OF ROLLBACK THEY ARE SIMPLY REMOVED AND THE GLOBAL PAGE COUNT IS UNCHANGED
     final ModifiablePage page = new ModifiablePage(database.getPageManager(), pageId, pageSize);
@@ -281,16 +285,19 @@ public class TransactionContext {
       return null;
     }
 
-    final PageManager pageManager = database.getPageManager();
-
     Binary result = null;
 
     // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
-    lockedFiles = lockFilesInOrder(pageManager);
+    lockedFiles = lockFilesInOrder();
     try {
+      // CHECK INDEX UNIQUE PUT
+      for (DocumentIndexer.IndexKey lockedKey : indexKeysToLocks)
+        database.getIndexer().postponeUniqueInsertion(lockedKey);
 
       // CHECK THE VERSIONS FIRST
       final List<ModifiablePage> pages = new ArrayList<>();
+
+      final PageManager pageManager = database.getPageManager();
 
       for (final Iterator<ModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
         final ModifiablePage p = it.next();
@@ -323,6 +330,9 @@ public class TransactionContext {
 
       return new Pair(result, pages);
 
+    } catch (DuplicatedKeyException e) {
+      rollback();
+      throw e;
     } catch (ConcurrentModificationException e) {
       rollback();
       throw e;
@@ -349,14 +359,14 @@ public class TransactionContext {
       LogManager.instance()
           .debug(this, "TX committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
 
+      pageManager.updatePages(newPages, modifiedPages);
+
       if (newPages != null) {
         for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
           database.getSchema().getFileById(entry.getKey()).setPageCount(entry.getValue());
           database.getFileManager().setVirtualFileSize(entry.getKey(), entry.getValue() * database.getFileManager().getFile(entry.getKey()).getPageSize());
         }
       }
-
-      pageManager.updatePages(newPages, modifiedPages);
 
       for (Record r : modifiedRecordsCache.values())
         ((RecordInternal) r).unsetDirty();
@@ -371,28 +381,37 @@ public class TransactionContext {
     }
   }
 
-  private List<Integer> lockFilesInOrder(final PageManager pageManager) {
+  private List<Integer> lockFilesInOrder() {
     final Set<Integer> modifiedFiles = new HashSet<>();
+
     for (PageId p : modifiedPages.keySet())
       modifiedFiles.add(p.getFileId());
     if (newPages != null)
       for (PageId p : newPages.keySet())
         modifiedFiles.add(p.getFileId());
 
-    final List<Integer> orderedModifiedFiles = new ArrayList<>(modifiedFiles);
-    Collections.sort(orderedModifiedFiles);
+    // LOCK ALL THE FILE IMPACTED BY THE INDEX KEYS
+    for (DocumentIndexer.IndexKey key : indexKeysToLocks) {
+      final DocumentType type = database.getSchema().getType(key.typeName);
+      final List<Bucket> buckets = type.getBuckets(false);
+      for (Bucket b : buckets)
+        modifiedFiles.add(b.getId());
+    }
 
     final long timeout = GlobalConfiguration.COMMIT_LOCK_TIMEOUT.getValueAsLong();
 
-    return pageManager.tryLockFiles(orderedModifiedFiles, timeout);
+    return database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
   }
 
   private void reset() {
+    final TransactionManager txManager = database.getTransactionManager();
+
     if (lockedFiles != null) {
-      final PageManager pageManager = database.getPageManager();
-      pageManager.unlockFilesInOrder(lockedFiles);
+      txManager.unlockFilesInOrder(lockedFiles);
       lockedFiles = null;
     }
+
+    indexKeysToLocks.clear();
 
     modifiedPages = null;
     newPages = null;
@@ -400,5 +419,9 @@ public class TransactionContext {
     modifiedRecordsCache.clear();
     immutableRecordsCache.clear();
     txId = -1;
+  }
+
+  public void addIndexKeyLock(final DocumentIndexer.IndexKey indexKey) {
+    indexKeysToLocks.add(indexKey);
   }
 }

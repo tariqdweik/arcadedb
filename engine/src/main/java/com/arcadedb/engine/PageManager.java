@@ -8,13 +8,15 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
-import com.arcadedb.exception.TransactionException;
 import com.arcadedb.utility.LockContext;
 import com.arcadedb.utility.LockManager;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -27,7 +29,6 @@ public class PageManager extends LockContext {
   private final ConcurrentMap<PageId, ImmutablePage>  readCache  = new ConcurrentHashMap<>(65536);
   private final ConcurrentMap<PageId, ModifiablePage> writeCache = new ConcurrentHashMap<>(65536);
 
-  private final LockManager<Integer, Thread> lockManager      = new LockManager();
   private final TransactionManager           txManager;
   private       boolean                      flushOnlyAtClose = GlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
 
@@ -95,7 +96,6 @@ public class PageManager extends LockContext {
     readCache.clear();
     totalReadCacheRAM.set(0);
     totalWriteCacheRAM.set(0);
-    lockManager.close();
 
     flushOnlyAtClose = flushOnlyAtCloseOld;
   }
@@ -117,7 +117,6 @@ public class PageManager extends LockContext {
     readCache.clear();
     totalReadCacheRAM.set(0);
     totalWriteCacheRAM.set(0);
-    lockManager.close();
   }
 
   public void clear() {
@@ -236,36 +235,6 @@ public class PageManager extends LockContext {
     LogManager.instance().debug(this, "Overwritten page %s (size=%d threadId=%d)", page, page.getPhysicalSize(), Thread.currentThread().getId());
   }
 
-  public List<Integer> tryLockFiles(final List<Integer> orderedModifiedFiles, final long timeout) {
-    final List<Integer> lockedFiles = new ArrayList<>(orderedModifiedFiles.size());
-    for (Integer fileId : orderedModifiedFiles) {
-      if (tryLockFile(fileId, timeout))
-        lockedFiles.add(fileId);
-      else
-        break;
-    }
-
-    if (lockedFiles.size() == orderedModifiedFiles.size()) {
-      // OK: ALL LOCKED
-      LogManager.instance().debug(this, "Locked files %s (threadId=%d)", orderedModifiedFiles, Thread.currentThread().getId());
-      return lockedFiles;
-    }
-
-    // ERROR: UNLOCK LOCKED FILES
-    unlockFilesInOrder(lockedFiles);
-
-    throw new TransactionException("Timeout on locking resource during commit");
-  }
-
-  public void unlockFilesInOrder(final List<Integer> lockedFiles) {
-    if (lockedFiles != null) {
-      for (Integer fileId : lockedFiles)
-        unlockFile(fileId);
-
-      LogManager.instance().debug(this, "Unlocked files %s (threadId=%d)", lockedFiles, Thread.currentThread().getId());
-    }
-  }
-
   public PPageManagerStats getStats() {
     final PPageManagerStats stats = new PPageManagerStats();
     stats.maxRAM = maxRAM;
@@ -300,14 +269,6 @@ public class PageManager extends LockContext {
     final ModifiablePage page2 = writeCache.remove(pageId);
     if (page2 != null)
       totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
-  }
-
-  public boolean tryLockFile(final Integer fileId, final long timeout) {
-    return lockManager.tryLock(fileId, Thread.currentThread(), timeout);
-  }
-
-  public void unlockFile(final Integer fileId) {
-    lockManager.unlock(fileId, Thread.currentThread());
   }
 
   public void preloadFile(final int fileId) {

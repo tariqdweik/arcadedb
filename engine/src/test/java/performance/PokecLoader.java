@@ -8,7 +8,6 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.index.lsm.IndexLSM;
@@ -52,7 +51,7 @@ public class PokecLoader {
     else
       directory.mkdirs();
 
-    final Database db = new DatabaseFactory(DB_PATH, PaginatedFile.MODE.READ_WRITE).open();
+    final Database db = new DatabaseFactory(DB_PATH).open();
     try {
       createSchema(db);
       loadProfiles(db);

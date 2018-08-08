@@ -89,6 +89,7 @@ public class FileManager {
 
   public void setVirtualFileSize(final Integer fileId, final long fileSize) {
     fileVirtualSize.put(fileId, fileSize);
+//    LogManager.instance().info(this, "File %d vSize=%d (thread=%d)", fileId, fileSize, Thread.currentThread().getId());
   }
 
   public PFileManagerStats getStats() {
@@ -130,8 +131,7 @@ public class FileManager {
     return getOrCreateFile(PaginatedFile.getFileNameFromPath(filePath), filePath, mode);
   }
 
-  public PaginatedFile getOrCreateFile(final String fileName, final String filePath, final PaginatedFile.MODE mode)
-      throws IOException {
+  public PaginatedFile getOrCreateFile(final String fileName, final String filePath, final PaginatedFile.MODE mode) throws IOException {
     PaginatedFile file = fileNameMap.get(fileName);
     if (file != null)
       return file;

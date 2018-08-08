@@ -4,19 +4,17 @@
 
 package performance;
 
+import com.arcadedb.BaseTest;
 import com.arcadedb.database.Cursor;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.async.ErrorCallback;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.schema.DocumentType;
 import org.junit.jupiter.api.Assertions;
 
-public class PerformanceVertexIndexTest {
+public class PerformanceVertexIndexTest extends BaseTest {
   private static final int    TOT       = 10000000;
   private static final String TYPE_NAME = "Person";
   private static final int    PARALLEL  = 2;
@@ -30,7 +28,6 @@ public class PerformanceVertexIndexTest {
 
     long begin = System.currentTimeMillis();
 
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH, PaginatedFile.MODE.READ_WRITE).open();
     try {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();

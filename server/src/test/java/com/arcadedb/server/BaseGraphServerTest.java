@@ -7,8 +7,10 @@ package com.arcadedb.server;
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.*;
-import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseComparator;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.RID;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.VertexType;
@@ -35,6 +37,11 @@ public abstract class BaseGraphServerTest {
 
   protected static RID              root;
   private          ArcadeDBServer[] servers;
+  private          Database         databases[];
+
+  protected Database getDatabase(final int serverId) {
+    return databases[serverId];
+  }
 
   protected BaseGraphServerTest() {
     GlobalConfiguration.TEST.setValue(true);
@@ -42,16 +49,18 @@ public abstract class BaseGraphServerTest {
   }
 
   @BeforeEach
-  public void startTest() {
+  public void beginTest() {
     checkArcadeIsTotallyDown();
 
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    for (int i = 0; i < getServerCount(); ++i)
-      FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/databases" + i));
-    FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
+    deleteDatabaseFolders();
 
-    new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).execute(new DatabaseFactory.DatabaseOperation() {
+    databases = new Database[getServerCount()];
+    for (int i = 0; i < getServerCount(); ++i)
+      databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
+
+    getDatabase(0).transaction(new Database.Transaction() {
       @Override
       public void execute(Database database) {
         if (isPopulateDatabase()) {
@@ -74,8 +83,7 @@ public abstract class BaseGraphServerTest {
     });
 
     if (isPopulateDatabase()) {
-
-      final Database db = new DatabaseFactory(getDatabasePath(0), PaginatedFile.MODE.READ_WRITE).open();
+      final Database db = getDatabase(0);
       db.begin();
       try {
         final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
@@ -133,10 +141,8 @@ public abstract class BaseGraphServerTest {
             servers[i].stop();
 
           if (dropDatabasesAtTheEnd()) {
-            final DatabaseFactory factory = new DatabaseFactory("./target/databases" + i + "/" + getDatabaseName(), PaginatedFile.MODE.READ_WRITE);
-
-            if (factory.exists()) {
-              final Database db = factory.open();
+            final Database db = getDatabase(i);
+            if (db.isOpen()) {
               db.drop();
             }
           }
@@ -281,6 +287,12 @@ public abstract class BaseGraphServerTest {
     for (int i = 0; i < result.length; ++i)
       result[i] = i;
     return result;
+  }
+
+  protected void deleteDatabaseFolders() {
+    for (int i = 0; i < getServerCount(); ++i)
+      FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + getDatabasePath(i)));
+    FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
   }
 
   protected void checkDatabasesAreIdentical() {
