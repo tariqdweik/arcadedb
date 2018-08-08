@@ -151,7 +151,7 @@ public class DocumentIndexer {
   /**
    * Called at commit time in the middle of the lock to avoid concurrent insertion of the same key.
    */
-  public void postponeUniqueInsertion(final IndexKey key) {
+  public void indexUniqueInsertionInTx(final IndexKey key) {
     final DocumentType type = database.getSchema().getType(key.typeName);
 
     // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS

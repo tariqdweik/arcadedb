@@ -10,7 +10,6 @@ import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.DatabaseChecker;
-import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.graph.ModifiableVertex;
 import com.arcadedb.schema.EdgeType;
@@ -86,6 +85,8 @@ public class MVCCTest extends BaseTest {
           }, 0);
         }
 
+        database.asynch().waitCompletion();
+
       } finally {
         new DatabaseChecker().check(database);
 
@@ -106,25 +107,19 @@ public class MVCCTest extends BaseTest {
     long begin = System.currentTimeMillis();
 
     try {
-      database.asynch().setParallelLevel(PARALLEL);
-      database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
-      database.asynch().setCommitEvery(20000);
-      database.asynch().onError(new ErrorCallback() {
+      database.transaction(new Database.Transaction() {
         @Override
-        public void call(Exception exception) {
-          LogManager.instance().error(this, "ERROR: " + exception, exception);
+        public void execute(Database database) {
+          for (long row = 0; row < TOT_ACCOUNT; ++row) {
+            final ModifiableDocument record = database.newVertex("Account");
+            record.set("id", row);
+            record.set("name", "Luca" + row);
+            record.set("surname", "Skywalker" + row);
+            record.set("registered", new Date());
+            record.save();
+          }
         }
       });
-
-      for (long row = 0; row < TOT_ACCOUNT; ++row) {
-        final ModifiableDocument record = database.newVertex("Account");
-        record.set("id", row);
-        record.set("name", "Luca" + row);
-        record.set("surname", "Skywalker" + row);
-        record.set("registered", new Date());
-        database.asynch().createRecord(record);
-      }
 
     } finally {
       LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");

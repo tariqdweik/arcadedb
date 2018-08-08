@@ -27,17 +27,17 @@ import java.util.*;
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class TransactionContext {
-  protected     DatabaseInternal              database;
-  private       Map<PageId, ModifiablePage>   modifiedPages;
-  private       Map<PageId, ModifiablePage>   newPages;
-  private final Map<Integer, Integer>         newPageCounters       = new HashMap<>();
-  private final Map<RID, Record>              immutableRecordsCache = new HashMap<>(1024);
-  private final Map<RID, Record>              modifiedRecordsCache  = new HashMap<>(1024);
-  private       boolean                       useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
-  private       WALFile.FLUSH_TYPE            walFlush;
-  private       List<Integer>                 lockedFiles;
-  private final Set<DocumentIndexer.IndexKey> indexKeysToLocks      = new HashSet<>();
-  private       long                          txId                  = -1;
+  protected     DatabaseInternal               database;
+  private       Map<PageId, ModifiablePage>    modifiedPages;
+  private       Map<PageId, ModifiablePage>    newPages;
+  private final Map<Integer, Integer>          newPageCounters       = new HashMap<>();
+  private final Map<RID, Record>               immutableRecordsCache = new HashMap<>(1024);
+  private final Map<RID, Record>               modifiedRecordsCache  = new HashMap<>(1024);
+  private       boolean                        useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
+  private       WALFile.FLUSH_TYPE             walFlush;
+  private       List<Integer>                  lockedFiles;
+  private final List<DocumentIndexer.IndexKey> indexKeysToLocks      = new ArrayList<>();
+  private       long                           txId                  = -1;
 
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
@@ -291,8 +291,8 @@ public class TransactionContext {
     lockedFiles = lockFilesInOrder();
     try {
       // CHECK INDEX UNIQUE PUT
-      for (DocumentIndexer.IndexKey lockedKey : indexKeysToLocks)
-        database.getIndexer().postponeUniqueInsertion(lockedKey);
+      for (int i = 0; i < indexKeysToLocks.size(); ++i)
+        database.getIndexer().indexUniqueInsertionInTx(indexKeysToLocks.get(i));
 
       // CHECK THE VERSIONS FIRST
       final List<ModifiablePage> pages = new ArrayList<>();
