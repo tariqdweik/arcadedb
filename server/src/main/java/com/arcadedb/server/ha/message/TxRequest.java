@@ -69,8 +69,6 @@ public class TxRequest extends HAAbstractCommand {
         db.getEmbedded().close();
       }
       throw e;
-    } finally {
-      db.close();
     }
 
     if (waitForQuorum)

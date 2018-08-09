@@ -39,40 +39,36 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
     Database db = getServerDatabase(0, getDatabaseName());
     db.begin();
-    try {
-      Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + 0);
 
-      LogManager.instance().info(this, "TEST: Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
+    Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + 0);
 
-      final long total = getTxs() * getVerticesPerTx();
-      long counter = 0;
+    LogManager.instance().info(this, "TEST: Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
-      for (int tx = 0; tx < getTxs(); ++tx) {
-        for (int i = 0; i < getVerticesPerTx(); ++i) {
-          final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
-          v1.set("id", ++counter);
-          v1.set("name", "distributed-test");
-          v1.save();
-        }
+    final long total = getTxs() * getVerticesPerTx();
+    long counter = 0;
 
-        db.commit();
-
-        if (counter % (total / 10) == 0) {
-          LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
-          if (isPrintingConfigurationAtEveryStep())
-            getLeaderServer().getHA().printClusterConfiguration();
-        }
-
-        db.begin();
+    for (int tx = 0; tx < getTxs(); ++tx) {
+      for (int i = 0; i < getVerticesPerTx(); ++i) {
+        final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
+        v1.set("id", ++counter);
+        v1.set("name", "distributed-test");
+        v1.save();
       }
 
-      LogManager.instance().info(this, "Done");
+      db.commit();
 
-      Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + 0);
+      if (counter % (total / 10) == 0) {
+        LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+        if (isPrintingConfigurationAtEveryStep())
+          getLeaderServer().getHA().printClusterConfiguration();
+      }
 
-    } finally {
-      db.close();
+      db.begin();
     }
+
+    LogManager.instance().info(this, "Done");
+
+    Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + 0);
 
     try {
       Thread.sleep(1000);
@@ -102,8 +98,6 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       } catch (Exception e) {
         e.printStackTrace();
         Assertions.fail("Error on checking on server" + s);
-      } finally {
-        db.close();
       }
     }
   }
@@ -135,8 +129,6 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     } catch (Exception e) {
       e.printStackTrace();
       Assertions.fail("TEST: Error on checking on server" + s);
-    } finally {
-      db.close();
     }
   }
 }

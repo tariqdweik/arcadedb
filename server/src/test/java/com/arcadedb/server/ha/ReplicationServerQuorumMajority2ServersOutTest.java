@@ -74,8 +74,6 @@ public class ReplicationServerQuorumMajority2ServersOutTest extends ReplicationS
     } catch (Exception e) {
       e.printStackTrace();
       Assertions.fail("Error on checking on server" + s);
-    } finally {
-      db.close();
     }
   }
 

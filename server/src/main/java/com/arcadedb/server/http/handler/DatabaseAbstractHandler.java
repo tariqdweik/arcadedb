@@ -32,12 +32,7 @@ public abstract class DatabaseAbstractHandler extends AbstractHandler {
     } else
       db = null;
 
-    try {
-      execute(exchange, db);
-    } finally {
-      if (db != null)
-        db.close();
-    }
+    execute(exchange, db);
   }
 
   protected boolean openDatabase() {

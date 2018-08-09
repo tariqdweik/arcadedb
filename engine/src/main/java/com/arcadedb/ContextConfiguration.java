@@ -3,6 +3,8 @@
  */
 package com.arcadedb;
 
+import com.arcadedb.utility.SystemVariableResolver;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,7 +114,8 @@ public class ContextConfiguration implements Serializable {
     final Object v = getValue(iConfig);
     if (v == null)
       return null;
-    return v.toString();
+
+    return SystemVariableResolver.resolveSystemVariables(v.toString(), "");
   }
 
   public int getValueAsInteger(final GlobalConfiguration iConfig) {

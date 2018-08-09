@@ -5,8 +5,8 @@
 package com.arcadedb.database;
 
 public class RoundRobinBucketSelectionStrategy implements BucketSelectionStrategy {
-  private int current = -1;
-  private int total;
+  private volatile int current = -1;
+  private          int total;
 
   @Override
   public void setTotalBuckets(final int total) {
@@ -18,9 +18,13 @@ public class RoundRobinBucketSelectionStrategy implements BucketSelectionStrateg
 
   @Override
   public int getBucketToSave() {
-    if (++current >= total)
+    // COPY THE VALUE ON THE HEAP FOR MULTI-THREAD ACCESS
+    int bucketIndex = ++current;
+    if (bucketIndex >= total) {
       current = 0;
-    return current;
+      bucketIndex = 0;
+    }
+    return bucketIndex;
   }
 
   @Override

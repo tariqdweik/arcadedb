@@ -57,8 +57,10 @@ public abstract class BaseGraphServerTest {
     deleteDatabaseFolders();
 
     databases = new Database[getServerCount()];
-    for (int i = 0; i < getServerCount(); ++i)
+    for (int i = 0; i < getServerCount(); ++i) {
+      GlobalConfiguration.SERVER_DATABASE_DIRECTORY.setValue("./target/databases");
       databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
+    }
 
     getDatabase(0).transaction(new Database.Transaction() {
       @Override
@@ -85,44 +87,47 @@ public abstract class BaseGraphServerTest {
     if (isPopulateDatabase()) {
       final Database db = getDatabase(0);
       db.begin();
-      try {
-        final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
-        v1.set("id", 0);
-        v1.set("name", VERTEX1_TYPE_NAME);
-        v1.save();
 
-        final ModifiableVertex v2 = db.newVertex(VERTEX2_TYPE_NAME);
-        v2.set("name", VERTEX2_TYPE_NAME);
-        v2.save();
+      final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
+      v1.set("id", 0);
+      v1.set("name", VERTEX1_TYPE_NAME);
+      v1.save();
 
-        // CREATION OF EDGE PASSING PARAMS AS VARARGS
-        ModifiableEdge e1 = (ModifiableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
-        Assertions.assertEquals(e1.getOut(), v1);
-        Assertions.assertEquals(e1.getIn(), v2);
+      final ModifiableVertex v2 = db.newVertex(VERTEX2_TYPE_NAME);
+      v2.set("name", VERTEX2_TYPE_NAME);
+      v2.save();
 
-        final ModifiableVertex v3 = db.newVertex(VERTEX2_TYPE_NAME);
-        v3.set("name", "V3");
-        v3.save();
+      // CREATION OF EDGE PASSING PARAMS AS VARARGS
+      ModifiableEdge e1 = (ModifiableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
+      Assertions.assertEquals(e1.getOut(), v1);
+      Assertions.assertEquals(e1.getIn(), v2);
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "E2");
+      final ModifiableVertex v3 = db.newVertex(VERTEX2_TYPE_NAME);
+      v3.set("name", "V3");
+      v3.save();
 
-        // CREATION OF EDGE PASSING PARAMS AS MAP
-        ModifiableEdge e2 = (ModifiableEdge) v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
-        Assertions.assertEquals(e2.getOut(), v2);
-        Assertions.assertEquals(e2.getIn(), v3);
+      Map<String, Object> params = new HashMap<>();
+      params.put("name", "E2");
 
-        ModifiableEdge e3 = (ModifiableEdge) v1.newEdge(EDGE2_TYPE_NAME, v3, true);
-        Assertions.assertEquals(e3.getOut(), v1);
-        Assertions.assertEquals(e3.getIn(), v3);
+      // CREATION OF EDGE PASSING PARAMS AS MAP
+      ModifiableEdge e2 = (ModifiableEdge) v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
+      Assertions.assertEquals(e2.getOut(), v2);
+      Assertions.assertEquals(e2.getIn(), v3);
 
-        db.commit();
+      ModifiableEdge e3 = (ModifiableEdge) v1.newEdge(EDGE2_TYPE_NAME, v3, true);
+      Assertions.assertEquals(e3.getOut(), v1);
+      Assertions.assertEquals(e3.getIn(), v3);
 
-        root = v1.getIdentity();
+      db.commit();
 
-      } finally {
-        db.close();
-      }
+      root = v1.getIdentity();
+    }
+
+    // CLOSE ALL DATABASES BEFORE TO START THE SERVERS
+    LogManager.instance().info(this, "TEST: Closing databases before starting");
+    for (int i = 0; i < databases.length; ++i) {
+      databases[i].close();
+      databases[i] = null;
     }
 
     startServers();
@@ -139,14 +144,10 @@ public abstract class BaseGraphServerTest {
         for (int i = servers.length - 1; i > -1; --i) {
           if (servers[i] != null)
             servers[i].stop();
-
-          if (dropDatabasesAtTheEnd()) {
-            final Database db = getDatabase(i);
-            if (db.isOpen()) {
-              db.drop();
-            }
-          }
         }
+
+      if (dropDatabasesAtTheEnd())
+        deleteDatabaseFolders();
 
       checkArcadeIsTotallyDown();
 
@@ -231,7 +232,7 @@ public abstract class BaseGraphServerTest {
   }
 
   protected String getDatabasePath(final int serverId) {
-    return DB_PATH + serverId + "/" + getDatabaseName();
+    return GlobalConfiguration.SERVER_DATABASE_DIRECTORY.getValueAsString() + serverId + "/" + getDatabaseName();
   }
 
   protected String readResponse(final HttpURLConnection connection) throws IOException {
@@ -291,7 +292,7 @@ public abstract class BaseGraphServerTest {
 
   protected void deleteDatabaseFolders() {
     for (int i = 0; i < getServerCount(); ++i)
-      FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + getDatabasePath(i)));
+      FileUtils.deleteRecursively(new File(getDatabasePath(i)));
     FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
   }
 

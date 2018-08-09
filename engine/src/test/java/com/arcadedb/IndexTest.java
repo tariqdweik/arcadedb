@@ -229,6 +229,9 @@ public class IndexTest extends BaseTest {
           record.save();
         }
 
+        database.commit();
+        database.begin();
+
         final Index[] indexes = database.getSchema().getIndexes();
 
         // ORIGINAL KEYS SHOULD BE REMOVED
@@ -567,6 +570,7 @@ public class IndexTest extends BaseTest {
                   LogManager.instance().error(this, "%s Thread %d Generic Exception", e, getClass(), Thread.currentThread().getId());
                   if (database.isTransactionActive())
                     database.rollback();
+                  return;
                 }
               }
 

@@ -36,57 +36,53 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
     final RemoteDatabase db = new RemoteDatabase(server1AddressParts[0], Integer.parseInt(server1AddressParts[1]), getDatabaseName(), "root", "root");
 
     db.begin();
-    try {
-      LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
-      long counter = 0;
+    LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
-      final int maxRetry = 10;
+    long counter = 0;
 
-      for (int tx = 0; tx < getTxs(); ++tx) {
-        for (int i = 0; i < getVerticesPerTx(); ++i) {
-          for (int retry = 0; retry < maxRetry; ++retry) {
+    final int maxRetry = 10;
+
+    for (int tx = 0; tx < getTxs(); ++tx) {
+      for (int i = 0; i < getVerticesPerTx(); ++i) {
+        for (int retry = 0; retry < maxRetry; ++retry) {
+          try {
+            ResultSet resultSet = db.command("SQL", "CREATE VERTEX " + VERTEX1_TYPE_NAME + " SET id = ?, name = ?", ++counter, "distributed-test");
+
+            Assertions.assertTrue(resultSet.hasNext());
+            final Result result = resultSet.next();
+            Assertions.assertNotNull(result);
+            final Set<String> props = result.getPropertyNames();
+            Assertions.assertEquals(2, props.size());
+            Assertions.assertTrue(props.contains("id"));
+            Assertions.assertEquals(counter, (int) result.getProperty("id"));
+            Assertions.assertTrue(props.contains("name"));
+            Assertions.assertEquals("distributed-test", result.getProperty("name"));
+            break;
+          } catch (RemoteException e) {
+            // IGNORE IT
+            LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
             try {
-              ResultSet resultSet = db.command("SQL", "CREATE VERTEX " + VERTEX1_TYPE_NAME + " SET id = ?, name = ?", ++counter, "distributed-test");
-
-              Assertions.assertTrue(resultSet.hasNext());
-              final Result result = resultSet.next();
-              Assertions.assertNotNull(result);
-              final Set<String> props = result.getPropertyNames();
-              Assertions.assertEquals(2, props.size());
-              Assertions.assertTrue(props.contains("id"));
-              Assertions.assertEquals(counter, (int) result.getProperty("id"));
-              Assertions.assertTrue(props.contains("name"));
-              Assertions.assertEquals("distributed-test", result.getProperty("name"));
-              break;
-            } catch (RemoteException e) {
-              // IGNORE IT
-              LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
-              try {
-                Thread.sleep(500);
-              } catch (InterruptedException e1) {
-                Thread.currentThread().interrupt();
-              }
+              Thread.sleep(500);
+            } catch (InterruptedException e1) {
+              Thread.currentThread().interrupt();
             }
           }
         }
-
-        db.commit();
-
-        if (counter % 1000 == 0) {
-          LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
-          if (isPrintingConfigurationAtEveryStep())
-            getLeaderServer().getHA().printClusterConfiguration();
-        }
-
-        db.begin();
       }
 
-      LogManager.instance().info(this, "Done");
+      db.commit();
 
-    } finally {
-      db.close();
+      if (counter % 1000 == 0) {
+        LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+        if (isPrintingConfigurationAtEveryStep())
+          getLeaderServer().getHA().printClusterConfiguration();
+      }
+
+      db.begin();
     }
+
+    LogManager.instance().info(this, "Done");
 
     try {
       Thread.sleep(1000);

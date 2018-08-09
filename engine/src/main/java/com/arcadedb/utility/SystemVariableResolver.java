@@ -4,6 +4,8 @@
 
 package com.arcadedb.utility;
 
+import com.arcadedb.GlobalConfiguration;
+
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,6 +43,12 @@ public class SystemVariableResolver implements VariableParserListener {
       // TRY TO FIND THE VARIABLE BETWEEN SYSTEM'S ENVIRONMENT PROPERTIES
       resolved = System.getenv(variable);
 
+    if (resolved == null) {
+      final GlobalConfiguration cfg = GlobalConfiguration.findByKey(variable);
+      if (cfg != null)
+        resolved = cfg.getValueAsString();
+    }
+
     return resolved;
   }
 
@@ -49,7 +57,7 @@ public class SystemVariableResolver implements VariableParserListener {
     return resolveVariable(variable);
   }
 
-  public static void setEnv(final String name, String value) {
+  public static void setEnv(final String name, final String value) {
     final Map<String, String> map = new HashMap<String, String>(System.getenv());
     map.put(name, value);
     setEnv(map);

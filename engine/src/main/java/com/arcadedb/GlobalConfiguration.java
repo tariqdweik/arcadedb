@@ -7,6 +7,7 @@ package com.arcadedb;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
+import com.arcadedb.utility.SystemVariableResolver;
 
 import java.io.PrintStream;
 import java.util.Locale;
@@ -116,7 +117,7 @@ public enum GlobalConfiguration {
   SERVER_ROOT_PATH("arcadedb.server.rootPath", "Root path in the file system where the server is looking for files. By default is the current directory",
       String.class, "."),
 
-  SERVER_DATABASE_DIRECTORY("arcadedb.server.databaseDirectory", "Directory containing the database", String.class, "../databases"),
+  SERVER_DATABASE_DIRECTORY("arcadedb.server.databaseDirectory", "Directory containing the database", String.class, "${arcadedb.server.rootPath}/databases"),
 
   SERVER_PLUGINS("arcadedb.server.plugins", "List of server plugins to install. The format to load a plugin is: `<pluginName>:<pluginFullClass>`", String.class,
       ""),
@@ -372,7 +373,9 @@ public enum GlobalConfiguration {
   }
 
   public String getValueAsString() {
-    return value != nullValue && value != null ? value.toString() : defValue != null ? defValue.toString() : null;
+    return value != nullValue && value != null ?
+        SystemVariableResolver.resolveSystemVariables(value.toString(), "") :
+        defValue != null ? SystemVariableResolver.resolveSystemVariables(defValue.toString(), "") : null;
   }
 
   public int getValueAsInteger() {
