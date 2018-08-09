@@ -6,6 +6,7 @@ package performance;
 
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
 import org.junit.jupiter.api.Assertions;
 
@@ -34,9 +35,11 @@ public class PerformanceIndexTest {
         type.createProperty("surname", String.class);
         type.createProperty("locali", Integer.class);
         type.createProperty("notes1", String.class);
-        type.createProperty("notes2", String.class);
+//        type.createProperty("notes2", String.class);
 
-        database.getSchema().createClassIndexes(true, TYPE_NAME, new String[] { "id" }, 5000000);
+        database.getSchema().createClassIndexes(false, TYPE_NAME, new String[] { "id" }, 3000000);
+        database.getSchema().createClassIndexes(false, TYPE_NAME, new String[] { "name" }, 3000000);
+        database.getSchema().createClassIndexes(false, TYPE_NAME, new String[] { "surname" }, 3000000);
         database.commit();
       }
     } finally {
@@ -49,9 +52,11 @@ public class PerformanceIndexTest {
 
     try {
 
+      database.setReadYourWrites(false);
       database.asynch().setCommitEvery(5000);
       database.asynch().setParallelLevel(parallel);
       database.asynch().setTransactionUseWAL(true);
+      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
 
       database.asynch().onError(new ErrorCallback() {
         @Override
@@ -70,9 +75,9 @@ public class PerformanceIndexTest {
         record.set("surname", "Skywalker" + row);
         record.set("locali", 10);
         record.set("notes1",
-            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
-        record.set("notes2",
-            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
+            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
+//        record.set("notes2",
+//            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
 
         database.asynch().createRecord(record);
 

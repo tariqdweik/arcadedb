@@ -14,7 +14,7 @@ import com.arcadedb.utility.LogManager;
 public class PerformanceInsertNoIndexTest extends BaseTest {
   private static final int    TOT       = 20000000;
   private static final String TYPE_NAME = "Person";
-  private static final int    PARALLEL  = Runtime.getRuntime().availableProcessors() - 1;
+  private static final int    PARALLEL  = 2;
 
   public static void main(String[] args) {
     new PerformanceInsertNoIndexTest().run();
@@ -73,5 +73,7 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
         System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
       }
     }
+
+    database.close();
   }
 }

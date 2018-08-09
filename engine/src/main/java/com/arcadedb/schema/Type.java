@@ -45,22 +45,20 @@ public enum Type {
 
   EMBEDDEDLIST("EmbeddedList", 9, List.class, new Class<?>[] { List.class, MultiIterator.class }),
 
-  EMBEDDEDSET("EmbeddedSet", 10, Set.class, new Class<?>[] { Set.class }),
+  EMBEDDEDMAP("EmbeddedMap", 10, Map.class, new Class<?>[] { Map.class }),
 
-  EMBEDDEDMAP("EmbeddedMap", 11, Map.class, new Class<?>[] { Map.class }),
+  LINK("Link", 11, Identifiable.class, new Class<?>[] { Identifiable.class, RID.class }),
 
-  LINK("Link", 12, Identifiable.class, new Class<?>[] { Identifiable.class, RID.class }),
+  BYTE("Byte", 12, Byte.class, new Class<?>[] { Number.class }),
 
-  BYTE("Byte", 13, Byte.class, new Class<?>[] { Number.class }),
+  DATE("Date", 13, Date.class, new Class<?>[] { Number.class }),
 
-  DATE("Date", 14, Date.class, new Class<?>[] { Number.class }),
+  DECIMAL("Decimal", 14, BigDecimal.class, new Class<?>[] { BigDecimal.class, Number.class }),
 
-  DECIMAL("Decimal", 15, BigDecimal.class, new Class<?>[] { BigDecimal.class, Number.class }),
-
-  ANY("Any", 16, null, new Class<?>[] {});
+  ANY("Any", 15, null, new Class<?>[] {});
 
   // Don't change the order, the type discover get broken if you change the order.
-  protected static final Type[] TYPES = new Type[] { EMBEDDEDLIST, EMBEDDEDSET, EMBEDDEDMAP, LINK, STRING, DATETIME };
+  protected static final Type[] TYPES = new Type[] { EMBEDDEDLIST, EMBEDDEDMAP, LINK, STRING, DATETIME };
 
   protected static final Type[]              TYPES_BY_ID    = new Type[17];
   // Values previosly stored in javaTypes
@@ -93,6 +91,9 @@ public enum Type {
     TYPES_BY_CLASS.put(Character.class, STRING);
     TYPES_BY_CLASS.put(Character.TYPE, STRING);
     TYPES_BY_CLASS.put(BigDecimal.class, DECIMAL);
+    TYPES_BY_CLASS.put(List.class, EMBEDDEDLIST);
+    TYPES_BY_CLASS.put(Map.class, EMBEDDEDMAP);
+
     BYTE.castable.add(BOOLEAN);
     SHORT.castable.addAll(Arrays.asList(BOOLEAN, BYTE));
     INTEGER.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT));
@@ -100,7 +101,6 @@ public enum Type {
     FLOAT.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT, INTEGER));
     DOUBLE.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT));
     DECIMAL.castable.addAll(Arrays.asList(BOOLEAN, BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE));
-    EMBEDDEDLIST.castable.add(EMBEDDEDSET);
   }
 
   protected final String     name;
@@ -129,6 +129,16 @@ public enum Type {
     if (iId >= 0 && iId < TYPES_BY_ID.length)
       return TYPES_BY_ID[iId];
     return null;
+  }
+
+  public static void validateValue(final Object value) {
+    if (value != null) {
+      if (value instanceof String || value instanceof Number || value instanceof Map || value instanceof Collection)
+        return;
+
+      if (!TYPES_BY_CLASS.containsKey(value.getClass()))
+        throw new IllegalArgumentException("Value '" + value + "' of class '" + value.getClass() + "' is not supported");
+    }
   }
 
   /**
@@ -380,8 +390,7 @@ public enum Type {
               try {
                 result.add(new RID(database, iValue.toString()));
               } catch (Exception e) {
-                LogManager.instance()
-                    .debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+                LogManager.instance().debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
               }
             }
           }
@@ -511,8 +520,7 @@ public enum Type {
 
     }
 
-    throw new IllegalArgumentException(
-        "Cannot increment value '" + a + "' (" + a.getClass() + ") with '" + b + "' (" + b.getClass() + ")");
+    throw new IllegalArgumentException("Cannot increment value '" + a + "' (" + a.getClass() + ") with '" + b + "' (" + b.getClass() + ")");
   }
 
   public static Number[] castComparableNumber(Number context, Number max) {
@@ -685,7 +693,7 @@ public enum Type {
   }
 
   public boolean isMultiValue() {
-    return this == EMBEDDEDLIST || this == EMBEDDEDMAP || this == EMBEDDEDSET;
+    return this == EMBEDDEDLIST || this == EMBEDDEDMAP;
   }
 
   public boolean isLink() {
@@ -693,7 +701,7 @@ public enum Type {
   }
 
   public boolean isEmbedded() {
-    return this == EMBEDDEDLIST || this == EMBEDDEDMAP || this == EMBEDDEDSET;
+    return this == EMBEDDEDLIST || this == EMBEDDEDMAP;
   }
 
   public Class<?> getDefaultJavaType() {

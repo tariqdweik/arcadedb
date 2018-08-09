@@ -8,10 +8,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="arcadedb-console" />
-    <orderEntry type="library" name="Maven: org.jline:jline-terminal:3.7.0" level="project" />
-    <orderEntry type="library" name="Maven: org.jline:jline-reader:3.7.0" level="project" />
-    <orderEntry type="module" module-name="arcadedb-network" />
     <orderEntry type="module" module-name="arcadedb-engine" />
     <orderEntry type="library" name="Maven: com.conversantmedia:disruptor:1.2.11" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.13" level="project" />
@@ -31,6 +27,10 @@
     <orderEntry type="library" name="Maven: com.squareup:javapoet:1.8.0" level="project" />
     <orderEntry type="library" name="Maven: net.objecthunter:exp4j:0.4.8" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:jcl-over-slf4j:1.7.21" level="project" />
+    <orderEntry type="module" module-name="arcadedb-console" />
+    <orderEntry type="library" name="Maven: org.jline:jline-terminal:3.7.0" level="project" />
+    <orderEntry type="library" name="Maven: org.jline:jline-reader:3.7.0" level="project" />
+    <orderEntry type="module" module-name="arcadedb-network" />
     <orderEntry type="module" module-name="arcadedb-server" />
     <orderEntry type="library" name="Maven: io.undertow:undertow-core:2.0.1.Final" level="project" />
     <orderEntry type="library" name="Maven: org.jboss.logging:jboss-logging:3.3.0.Final" level="project" />

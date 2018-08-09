@@ -145,11 +145,11 @@
         </pluginManagement>
     </build>
     <modules>
+        <module>engine</module>
+        <module>gremlin</module>
         <module>network</module>
         <module>console</module>
         <module>server</module>
-        <module>engine</module>
-        <module>gremlin</module>
         <module>mongodbw</module>
         <module>redisw</module>
         <module>package</module>

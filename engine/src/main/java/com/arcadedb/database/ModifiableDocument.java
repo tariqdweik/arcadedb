@@ -57,6 +57,11 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return new HashMap<>(map);
   }
 
+
+  public void fromJSON(final JSONObject json) {
+    fromMap(json.toMap());
+  }
+
   @Override
   public JSONObject toJSON() {
     return new JSONObject(map);

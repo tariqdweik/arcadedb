@@ -59,12 +59,12 @@ public class ArcadeVertexProperty<T> implements VertexProperty<T> {
 
   @Override
   public <V> Property<V> property(final String key, final V value) {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public <U> Iterator<Property<U>> properties(final String... propertyKeys) {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override

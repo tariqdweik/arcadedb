@@ -51,6 +51,7 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
   @Override
   public <V> VertexProperty<V> property(final VertexProperty.Cardinality cardinality, final String key, final V value, final Object... keyValues) {
     ElementHelper.validateProperty(key, value);
+    ArcadeProperty.validateValue(value);
     if (ElementHelper.getIdValue(keyValues).isPresent())
       throw Vertex.Exceptions.userSuppliedIdsNotSupported();
 
@@ -69,6 +70,7 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
   @Override
   public <V> VertexProperty<V> property(final String key, final V value) {
     ElementHelper.validateProperty(key, value);
+    ArcadeProperty.validateValue(value);
     this.graph.tx().readWrite();
     baseElement.set(key, value);
     baseElement.save();

@@ -2,6 +2,7 @@ package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.schema.Type;
 import org.apache.commons.collections.iterators.ArrayIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -53,6 +54,7 @@ public class ArcadeEdge extends ArcadeElement<ModifiableEdge> implements Edge {
   @Override
   public <V> Property<V> property(final String key, final V value) {
     ElementHelper.validateProperty(key, value);
+    ArcadeProperty.validateValue(value);
     this.graph.tx().readWrite();
     baseElement.set(key, value);
     baseElement.save();

@@ -1,5 +1,6 @@
 package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
+import com.arcadedb.schema.Type;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -69,5 +70,14 @@ public class ArcadeProperty<T> implements Property<T> {
   @Override
   public String toString() {
     return StringFactory.propertyString(this);
+  }
+
+  public static void validateValue(final Object value) {
+    if (value != null) {
+      if (value.getClass().isArray())
+        // DO NOT SUPPORT ARRAY BECAUSE ARCADE TRANSFORM THEM IMPLICITLY INTO LISTS
+        throw new IllegalArgumentException("Array type is not supported");
+      Type.validateValue(value);
+    }
   }
 }
