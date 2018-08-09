@@ -94,6 +94,9 @@ public class MVCCTest extends BaseTest {
         Assertions.assertEquals(0, otherErrors.get());
 
         System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms, managed mvcc exceptions " + mvccErrors.get());
+
+        database.drop();
+        database = factory.create();
       }
 
       LogManager.instance().flush();
