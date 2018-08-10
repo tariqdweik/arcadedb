@@ -56,7 +56,10 @@ public class IndexLSM extends PaginatedComponent implements Index {
   private AtomicLong statsBFFalsePositive = new AtomicLong();
   private AtomicLong statsAdjacentSteps   = new AtomicLong();
 
-  protected class LookupResult {
+  private static final LookupResult LOWER  = new LookupResult(false, 0, null);
+  private static final LookupResult HIGHER = new LookupResult(false, 0, null);
+
+  protected static class LookupResult {
     public final boolean found;
     public final int     keyIndex;
     public final int[]   valueBeginPositions;
@@ -444,51 +447,76 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
     final Object[] convertedKeys = convertKeys(keys);
 
+    LookupResult result;
+
+    // CHECK THE BOUNDARIES FIRST (LOWER THAN THE FIRST)
+    result = compareKey(currentPageBuffer, startIndexArray, keys, convertedKeys, low, count, purpose);
+    if (result == LOWER)
+      return new LookupResult(false, low, null);
+    else if (result != HIGHER)
+      return result;
+
+    // CHECK THE BOUNDARIES FIRST (HIGHER THAN THE LAST)
+    result = compareKey(currentPageBuffer, startIndexArray, keys, convertedKeys, high, count, purpose);
+    if (result == HIGHER)
+      return new LookupResult(false, count, null);
+    else if (result != LOWER)
+      return result;
+
     while (low <= high) {
       int mid = (low + high) / 2;
 
-      int result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, mid, count);
+      result = compareKey(currentPageBuffer, startIndexArray, keys, convertedKeys, mid, count, purpose);
 
-      if (result > 0) {
+      if (result == HIGHER)
         low = mid + 1;
-        continue;
-      } else if (result < 0) {
+      else if (result == LOWER)
         high = mid - 1;
-        continue;
-      }
-
-      if (purpose == 3) {
-        currentPageBuffer.position(currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE)));
-        final int keySerializedSize = getSerializedKeySize(currentPageBuffer, keys);
-
-        // RETRIEVE ALL THE RESULTS
-        final int firstKeyPos = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);
-        final int lastKeyPos = findLastEntryOfSameKey(count, currentPageBuffer, convertedKeys, startIndexArray, mid);
-
-        final int[] positionsArray = new int[lastKeyPos - firstKeyPos + 1];
-        for (int i = firstKeyPos; i <= lastKeyPos; ++i)
-          positionsArray[i - firstKeyPos] = currentPageBuffer.getInt(startIndexArray + (firstKeyPos * INT_SERIALIZED_SIZE)) + keySerializedSize;
-
-        return new LookupResult(true, lastKeyPos, positionsArray);
-      }
-
-      if (keys.length < keyTypes.length) {
-        // PARTIAL MATCHING
-        if (purpose == 1) {
-          // FIND THE MOST LEFT ITEM
-          mid = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);
-        } else if (purpose == 2) {
-          mid = findLastEntryOfSameKey(count, currentPageBuffer, convertedKeys, startIndexArray, mid);
-        }
-      }
-
-      // TODO: SET CORRECT VALUE POSITION FOR PARTIAL KEYS
-      return new LookupResult(true, mid, new int[] { currentPageBuffer.position() });
+      else
+        return result;
     }
 
     // NOT FOUND
     return new LookupResult(false, low, null);
+  }
 
+  private LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] keys, final Object[] convertedKeys, int mid,
+      final int count, final int purpose) {
+
+    int result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, mid, count);
+
+    if (result > 0)
+      return HIGHER;
+    else if (result < 0)
+      return LOWER;
+
+    if (purpose == 3) {
+      currentPageBuffer.position(currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE)));
+      final int keySerializedSize = getSerializedKeySize(currentPageBuffer, keys);
+
+      // RETRIEVE ALL THE RESULTS
+      final int firstKeyPos = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);
+      final int lastKeyPos = findLastEntryOfSameKey(count, currentPageBuffer, convertedKeys, startIndexArray, mid);
+
+      final int[] positionsArray = new int[lastKeyPos - firstKeyPos + 1];
+      for (int i = firstKeyPos; i <= lastKeyPos; ++i)
+        positionsArray[i - firstKeyPos] = currentPageBuffer.getInt(startIndexArray + (firstKeyPos * INT_SERIALIZED_SIZE)) + keySerializedSize;
+
+      return new LookupResult(true, lastKeyPos, positionsArray);
+    }
+
+    if (convertedKeys.length < keyTypes.length) {
+      // PARTIAL MATCHING
+      if (purpose == 1) {
+        // FIND THE MOST LEFT ITEM
+        mid = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);
+      } else if (purpose == 2) {
+        mid = findLastEntryOfSameKey(count, currentPageBuffer, convertedKeys, startIndexArray, mid);
+      }
+    }
+
+    // TODO: SET CORRECT VALUE POSITION FOR PARTIAL KEYS
+    return new LookupResult(true, mid, new int[] { currentPageBuffer.position() });
   }
 
   private Object[] convertKeys(final Object[] keys) {

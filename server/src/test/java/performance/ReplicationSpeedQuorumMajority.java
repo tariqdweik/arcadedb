@@ -13,6 +13,8 @@ import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 
+import java.util.UUID;
+
 public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
   public static void main(final String[] args) {
     new ReplicationSpeedQuorumMajority().run();
@@ -20,7 +22,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
   public ReplicationSpeedQuorumMajority() {
     GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS.setValue("2424-2500");
-    GlobalConfiguration.HA_QUORUM.setValue("Majority");
+    GlobalConfiguration.HA_QUORUM.setValue("majority");
   }
 
   protected int getTxs() {
@@ -28,7 +30,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
   }
 
   protected int getVerticesPerTx() {
-    return 50000;
+    return 10000;
   }
 
   @Override
@@ -38,6 +40,8 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
   public void run() {
     deleteDatabaseFolders();
+
+    final int parallel = 4;
 
     databases = new Database[getServerCount()];
     for (int i = 0; i < getServerCount(); ++i) {
@@ -51,7 +55,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
         if (isPopulateDatabase()) {
           Assertions.assertFalse(database.getSchema().existsType("Device"));
 
-          VertexType v = database.getSchema().createVertexType("Device", 3);
+          VertexType v = database.getSchema().createVertexType("Device", parallel);
 
           v.createProperty("id", String.class);
           v.createProperty("lastModifiedUserId", String.class);
@@ -70,9 +74,9 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
           v.createProperty("operationalStatus", String.class);
           v.createProperty("supplierName", String.class);
 
-          database.getSchema().createClassIndexes(false, "Device", new String[] { "id" });
-          database.getSchema().createClassIndexes(false, "Device", new String[] { "number" });
-          database.getSchema().createClassIndexes(false, "Device", new String[] { "relativeName" });
+          database.getSchema().createClassIndexes(false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
+          database.getSchema().createClassIndexes(false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
+          database.getSchema().createClassIndexes(false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
         }
       }
     });
@@ -88,8 +92,8 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
     Database db = getServerDatabase(0, getDatabaseName());
 
-    db.begin();
-    db.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.YES_NO_METADATA);
+//    db.begin();
+//    db.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.YES_NO_METADATA);
 
     LogManager.instance().info(this, "TEST: Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
 
@@ -101,6 +105,10 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
     long lastLapCounter = 0;
 
     db.setReadYourWrites(false);
+    db.asynch().setCommitEvery(getVerticesPerTx());
+    db.asynch().setParallelLevel(parallel);
+    db.asynch().setTransactionUseWAL(true);
+    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
 
     for (int tx = 0; tx < getTxs(); ++tx) {
       for (int i = 0; i < getVerticesPerTx(); ++i) {
@@ -108,9 +116,11 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
         ++counter;
 
-        v.set("id", "3846069"); // INDEXED
-        v.set("number", "1"); // INDEXED
-        v.set("relativeName", "/shelf=0/slot=1"); // INDEXED
+        final String randomString = UUID.randomUUID().toString();
+
+        v.set("id", randomString); // INDEXED
+        v.set("number", "" + counter); // INDEXED
+        v.set("relativeName", "/shelf=" + counter + "/slot=1"); // INDEXED
 
         v.set("lastModifiedUserId", "Holder");
         v.set("createdDate", "2011-09-12 14:50:57.0");
@@ -126,7 +136,8 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
         v.set("operationalStatus", "NotAvailable");
         v.set("supplierName", "TBD");
 
-        v.save();
+        db.asynch().createRecord(v);
+        //v.save();
 
         if (counter % 1000 == 0) {
           if (System.currentTimeMillis() - lastLap > 1000) {
@@ -137,10 +148,10 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
         }
       }
 
-      db.commit();
-
-      db.begin();
-      db.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.YES_NO_METADATA);
+//      db.commit();
+//
+//      db.begin();
+//      db.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.YES_NO_METADATA);
     }
 
     LogManager.instance().info(this, "Done");

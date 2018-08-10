@@ -52,22 +52,26 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
           }
         });
 
-        long row = 0;
-        for (; row < TOT; ++row) {
+        final long startTimer = System.currentTimeMillis();
+        long lastLap = startTimer;
+        long lastLapCounter = 0;
+
+        long counter = 0;
+        for (; counter < TOT; ++counter) {
           final ModifiableDocument record = database.newDocument(TYPE_NAME);
 
-          record.set("id", row);
-          record.set("name", "Luca" + row);
-          record.set("surname", "Skywalker" + row);
+          record.set("id", counter);
+          record.set("name", "Luca" + counter);
+          record.set("surname", "Skywalker" + counter);
           record.set("locali", 10);
 
           database.asynch().createRecord(record);
 
-          if (row % 1000000 == 0)
-            System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+          if (counter % 1000000 == 0)
+            System.out.println("Written " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
         }
 
-        System.out.println("Inserted " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+        System.out.println("Inserted " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
       } finally {
         System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");

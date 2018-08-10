@@ -6,8 +6,7 @@ package com.arcadedb.schema;
 
 import com.arcadedb.database.BucketSelectionStrategy;
 import com.arcadedb.database.Document;
-import com.arcadedb.database.RoundRobinBucketSelectionStrategy;
-import com.arcadedb.database.ThreadAffinityBucketSelectionStrategy;
+import com.arcadedb.database.DefaultBucketSelectionStrategy;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
@@ -17,14 +16,13 @@ import java.util.*;
 public class DocumentType {
   private final SchemaImpl                             schema;
   private final String                                 name;
-  private final List<DocumentType>                     parentTypes            = new ArrayList<>();
-  private final List<DocumentType>                     subTypes               = new ArrayList<>();
-  private final List<Bucket>                           buckets                = new ArrayList<>();
-  private       BucketSelectionStrategy                syncSelectionStrategy  = new RoundRobinBucketSelectionStrategy();
-  private       BucketSelectionStrategy                asyncSelectionStrategy = new ThreadAffinityBucketSelectionStrategy();
-  private final Map<String, Property>                  properties             = new HashMap<>();
-  private       Map<Integer, List<IndexMetadata>>      indexesByBucket        = new HashMap<>();
-  private       Map<List<String>, List<IndexMetadata>> indexesByProperties    = new HashMap<>();
+  private final List<DocumentType>                     parentTypes             = new ArrayList<>();
+  private final List<DocumentType>                     subTypes                = new ArrayList<>();
+  private final List<Bucket>                           buckets                 = new ArrayList<>();
+  private       BucketSelectionStrategy                bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
+  private final Map<String, Property>                  properties              = new HashMap<>();
+  private       Map<Integer, List<IndexMetadata>>      indexesByBucket         = new HashMap<>();
+  private       Map<List<String>, List<IndexMetadata>> indexesByProperties     = new HashMap<>();
 
   public class IndexMetadata {
     public String[] propertyNames;
@@ -142,25 +140,16 @@ public class DocumentType {
   public Bucket getBucketToSave(final boolean async) {
     if (buckets.isEmpty())
       throw new SchemaException("Cannot save on a bucket for type '" + name + "' because there are no buckets associated");
-    return buckets.get(async ? asyncSelectionStrategy.getBucketToSave() : syncSelectionStrategy.getBucketToSave());
+    return buckets.get(bucketSelectionStrategy.getBucketToSave(async));
   }
 
-  public BucketSelectionStrategy getSyncSelectionStrategy() {
-    return syncSelectionStrategy;
+  public BucketSelectionStrategy getBucketSelectionStrategy() {
+    return bucketSelectionStrategy;
   }
 
-  public void setSyncSelectionStrategy(final BucketSelectionStrategy selectionStrategy) {
-    this.syncSelectionStrategy = selectionStrategy;
-    this.syncSelectionStrategy.setTotalBuckets(buckets.size());
-  }
-
-  public BucketSelectionStrategy getAsyncSelectionStrategy() {
-    return asyncSelectionStrategy;
-  }
-
-  public void setAsyncSelectionStrategy(final BucketSelectionStrategy selectionStrategy) {
-    this.asyncSelectionStrategy = selectionStrategy;
-    this.asyncSelectionStrategy.setTotalBuckets(buckets.size());
+  public void setBucketSelectionStrategy(final BucketSelectionStrategy selectionStrategy) {
+    this.bucketSelectionStrategy = selectionStrategy;
+    this.bucketSelectionStrategy.setTotalBuckets(buckets.size());
   }
 
   public boolean existsProperty(final String propertyName) {
@@ -382,8 +371,7 @@ public class DocumentType {
     }
 
     buckets.add(bucket);
-    syncSelectionStrategy.setTotalBuckets(buckets.size());
-    asyncSelectionStrategy.setTotalBuckets(buckets.size());
+    bucketSelectionStrategy.setTotalBuckets(buckets.size());
   }
 
   protected Map<String, Property> getPolymorphicProperties() {

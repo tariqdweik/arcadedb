@@ -6,9 +6,11 @@ package com.arcadedb.server;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.*;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.exception.ConfigurationException;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicatedDatabase;
 import com.arcadedb.server.http.HttpServer;
@@ -204,11 +206,6 @@ public class ArcadeDBServer {
 
     db = (DatabaseInternal) factory.create();
 
-    // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
-    for (DocumentType t : db.getSchema().getTypes()) {
-      t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
-    }
-
     if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
       db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);
 
@@ -278,11 +275,6 @@ public class ArcadeDBServer {
         db = (DatabaseInternal) (factory.exists() ? factory.open() : factory.create());
       else
         db = (DatabaseInternal) factory.open();
-
-      // FORCE THREAD AFFINITY TO REDUCE CONFLICTS
-      for (DocumentType t : db.getSchema().getTypes()) {
-        t.setSyncSelectionStrategy(new ThreadAffinityBucketSelectionStrategy());
-      }
 
       if (configuration.getValueAsBoolean(GlobalConfiguration.HA_ENABLED))
         db = new ReplicatedDatabase(this, (EmbeddedDatabase) db);

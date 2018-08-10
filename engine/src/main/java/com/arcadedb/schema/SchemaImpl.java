@@ -213,8 +213,7 @@ public class SchemaImpl implements Schema {
           throw new SchemaException("Cannot create bucket '" + bucketName + "' because already exists");
 
         try {
-          final Bucket bucket = new Bucket(database, bucketName, databasePath + "/" + bucketName, PaginatedFile.MODE.READ_WRITE,
-              pageSize);
+          final Bucket bucket = new Bucket(database, bucketName, databasePath + "/" + bucketName, PaginatedFile.MODE.READ_WRITE, pageSize);
           registerFile(bucket);
           bucketMap.put(bucketName, bucket);
 
@@ -263,15 +262,13 @@ public class SchemaImpl implements Schema {
     return createClassIndexes(unique, typeName, propertyNames, pageSize, propertyNames.length);
   }
 
-  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
-      final int bfKeyDepth) {
+  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames, final int pageSize, final int bfKeyDepth) {
     return (Index[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         try {
           if (propertyNames.length == 0)
-            throw new DatabaseMetadataException(
-                "Cannot create index on type '" + typeName + "' because there are no property defined");
+            throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
           final DocumentType type = getType(typeName);
 
@@ -282,8 +279,7 @@ public class SchemaImpl implements Schema {
           for (String propertyName : propertyNames) {
             final Property property = type.getPolymorphicProperty(propertyName);
             if (property == null)
-              throw new SchemaException(
-                  "Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
+              throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
             keyTypes[i++] = BinaryTypes.getTypeFromClass(property.getType());
           }
@@ -296,11 +292,10 @@ public class SchemaImpl implements Schema {
             final String indexName = b.getName() + "_" + System.currentTimeMillis();
 
             if (indexMap.containsKey(indexName))
-              throw new DatabaseMetadataException(
-                  "Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
+              throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-            indexes[idx] = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE,
-                keyTypes, BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
+            indexes[idx] = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
+                BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
 
             registerFile(indexes[idx]);
             indexMap.put(indexName, indexes[idx]);
@@ -323,8 +318,7 @@ public class SchemaImpl implements Schema {
     return createManualIndex(unique, indexName, keyTypes, pageSize, keyTypes.length);
   }
 
-  public Index createManualIndex(final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize,
-      final int bfKeyDepth) {
+  public Index createManualIndex(final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
     return (IndexLSM) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -332,8 +326,8 @@ public class SchemaImpl implements Schema {
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          final IndexLSM index = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName,
-              PaginatedFile.MODE.READ_WRITE, keyTypes, BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
+          final IndexLSM index = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
+              BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
           registerFile(index);
           indexMap.put(indexName, index);
 
@@ -659,8 +653,6 @@ public class SchemaImpl implements Schema {
           buckets[i] = originalBuckets.get(i).getName();
 
         type.put("buckets", buckets);
-        type.put("syncSelectionStrategy", t.getSyncSelectionStrategy().getName());
-        type.put("asyncSelectionStrategy", t.getAsyncSelectionStrategy().getName());
 
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);
@@ -680,8 +672,7 @@ public class SchemaImpl implements Schema {
       file.close();
 
     } catch (IOException e) {
-      LogManager.instance()
-          .error(this, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
+      LogManager.instance().error(this, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
     }
   }
 

@@ -336,8 +336,7 @@ public class Console {
         row.setField("PARENT TYPES", type.getParentTypes());
         row.setField("BUCKETS", type.getBuckets(false));
         row.setField("PROPERTIES", type.getPropertyNames());
-        row.setField("SYNC STRATEGY", type.getSyncSelectionStrategy());
-        row.setField("ASYNC STRATEGY", type.getAsyncSelectionStrategy());
+        row.setField("SYNC STRATEGY", type.getBucketSelectionStrategy());
 
         rows.add(row);
       }

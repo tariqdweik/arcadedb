@@ -143,7 +143,7 @@ public enum GlobalConfiguration {
   // HA
   HA_ENABLED("arcadedb.ha.enabled", "True if HA is enabled for the current server", Boolean.class, false),
 
-  HA_QUORUM("arcadedb.ha.quorum", "Default quorum between none, 1, 2, 3, majority and all servers. Default is majority", String.class, "MAJORITY"),
+  HA_QUORUM("arcadedb.ha.quorum", "Default quorum between 'none', 1, 2, 3, 'majority' and 'all' servers. Default is majority", String.class, "MAJORITY"),
 
   HA_QUORUM_TIMEOUT("arcadedb.ha.quorumTimeout", "Timeout waiting for the quorum", Long.class, 10000),
 

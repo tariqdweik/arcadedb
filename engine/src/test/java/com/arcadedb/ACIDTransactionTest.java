@@ -44,7 +44,7 @@ public class ACIDTransactionTest extends BaseTest {
   public void testAsyncTX() {
     final Database db = database;
 
-    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
+    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1);
 
@@ -142,7 +142,7 @@ public class ACIDTransactionTest extends BaseTest {
 
     final AtomicInteger errors = new AtomicInteger(0);
 
-    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
+    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1);
     db.asynch().onError(new ErrorCallback() {
@@ -210,7 +210,7 @@ public class ACIDTransactionTest extends BaseTest {
 
     final AtomicInteger errors = new AtomicInteger(0);
 
-    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NO_METADATA);
+    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
     db.asynch().setTransactionUseWAL(true);
     db.asynch().setCommitEvery(1000000);
     db.asynch().onError(new ErrorCallback() {

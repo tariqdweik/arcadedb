@@ -7,7 +7,7 @@ package com.arcadedb.database;
 public interface BucketSelectionStrategy {
   void setTotalBuckets(int total);
 
-  int getBucketToSave();
+  int getBucketToSave(boolean async);
 
   String getName();
 }

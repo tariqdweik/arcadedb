@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class WALFile extends LockContext {
   public enum FLUSH_TYPE {
-    NO, YES_NO_METADATA, YES_FULL
+    NO, YES_NOMETADATA, YES_FULL
   }
 
   // TXID (long) + PAGES (int) + SEGMENT_SIZE (int)
@@ -266,7 +266,7 @@ public class WALFile extends LockContext {
 
     statsBytesWritten += buffer.size();
 
-    if (sync == FLUSH_TYPE.YES_NO_METADATA)
+    if (sync == FLUSH_TYPE.YES_NOMETADATA)
       channel.force(false);
     else if (sync == FLUSH_TYPE.YES_FULL)
       channel.force(true);
@@ -311,7 +311,7 @@ public class WALFile extends LockContext {
     case 0:
       return WALFile.FLUSH_TYPE.NO;
     case 1:
-      return WALFile.FLUSH_TYPE.YES_NO_METADATA;
+      return WALFile.FLUSH_TYPE.YES_NOMETADATA;
     case 2:
       return WALFile.FLUSH_TYPE.YES_FULL;
     default:
