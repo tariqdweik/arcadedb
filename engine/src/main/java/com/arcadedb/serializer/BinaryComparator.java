@@ -30,8 +30,7 @@ public class BinaryComparator {
    *
    * @return true if they match, otherwise false
    */
-  public boolean equals(final Database database, final Binary buffer1, final byte type1, final Binary buffer2,
-      final byte type2) {
+  public boolean equals(final Database database, final Binary buffer1, final byte type1, final Binary buffer2, final byte type2) {
     final Object value1 = serializer.deserializeValue(database, buffer1, type1);
     final Object value2 = serializer.deserializeValue(database, buffer2, type2);
 
@@ -240,13 +239,36 @@ public class BinaryComparator {
     return false;
   }
 
-  public int compareStrings(final String string1, final Binary buffer2) {
-    final long b1Size = string1.length();
-    final long b2Size = buffer2.getNumber();
+  public int compareStrings(final byte[] buffer1, final byte[] buffer2) {
+    final long b1Size = buffer1.length;
+    final long b2Size = buffer2.length;
 
     final int minSize = (int) Math.min(b1Size, b2Size);
 
-    final byte[] buffer1 = string1.getBytes();
+    for (int i = 0; i < minSize; ++i) {
+      final byte b1 = buffer1[i];
+      final byte b2 = buffer2[i];
+
+      if (b1 > b2)
+        return 1;
+      else if (b1 < b2)
+        return -1;
+    }
+
+    if (b1Size == b2Size)
+      return 0;
+
+    if (b1Size > b2Size)
+      return 1;
+
+    return -1;
+  }
+
+  public int compareStrings(final byte[] buffer1, final Binary buffer2) {
+    final long b1Size = buffer1.length;
+    final long b2Size = buffer2.getNumber();
+
+    final int minSize = (int) Math.min(b1Size, b2Size);
 
     for (int i = 0; i < minSize; ++i) {
       final byte b1 = buffer1[i];
@@ -413,6 +435,9 @@ public class BinaryComparator {
     }
 
     case BinaryTypes.TYPE_STRING: {
+      if (value1 instanceof byte[] && value2 instanceof byte[])
+        return compareStrings((byte[]) value1, (byte[]) value2);
+
       return ((String) value1).compareTo(value2.toString());
     }
 

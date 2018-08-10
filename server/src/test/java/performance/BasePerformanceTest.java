@@ -2,33 +2,25 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.server;
+package performance;
 
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseComparator;
-import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
-import com.arcadedb.graph.ModifiableEdge;
-import com.arcadedb.graph.ModifiableVertex;
-import com.arcadedb.schema.VertexType;
+import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.util.*;
-import java.util.concurrent.Callable;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintWriter;
 
-/**
- * This class has been copied under Console project to avoid complex dependencies.
- */
-public abstract class BaseGraphServerTest {
+public abstract class BasePerformanceTest {
   protected static final String VERTEX1_TYPE_NAME = "V1";
   protected static final String VERTEX2_TYPE_NAME = "V2";
   protected static final String EDGE1_TYPE_NAME   = "E1";
@@ -36,104 +28,18 @@ public abstract class BaseGraphServerTest {
 
   protected static RID              root;
   private          ArcadeDBServer[] servers;
-  private          Database         databases[];
+  protected        Database[]       databases;
 
   protected Database getDatabase(final int serverId) {
     return databases[serverId];
   }
 
-  protected BaseGraphServerTest() {
+  protected BasePerformanceTest() {
     GlobalConfiguration.TEST.setValue(true);
     GlobalConfiguration.SERVER_ROOT_PATH.setValue("./target");
   }
 
-  @BeforeEach
-  public void beginTest() {
-    checkArcadeIsTotallyDown();
-
-    LogManager.instance().info(this, "Starting test %s...", getClass().getName());
-
-    deleteDatabaseFolders();
-
-    databases = new Database[getServerCount()];
-    for (int i = 0; i < getServerCount(); ++i) {
-      GlobalConfiguration.SERVER_DATABASE_DIRECTORY.setValue("./target/databases");
-      databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
-    }
-
-    getDatabase(0).transaction(new Database.Transaction() {
-      @Override
-      public void execute(Database database) {
-        if (isPopulateDatabase()) {
-          Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
-
-          VertexType v = database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
-          v.createProperty("id", Long.class);
-
-          database.getSchema().createClassIndexes(true, VERTEX1_TYPE_NAME, new String[] { "id" });
-
-          Assertions.assertFalse(database.getSchema().existsType(VERTEX2_TYPE_NAME));
-          database.getSchema().createVertexType(VERTEX2_TYPE_NAME, 3);
-
-          database.getSchema().createEdgeType(EDGE1_TYPE_NAME);
-          database.getSchema().createEdgeType(EDGE2_TYPE_NAME);
-
-          database.getSchema().createDocumentType("Person");
-        }
-      }
-    });
-
-    if (isPopulateDatabase()) {
-      final Database db = getDatabase(0);
-      db.begin();
-
-      final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
-      v1.set("id", 0);
-      v1.set("name", VERTEX1_TYPE_NAME);
-      v1.save();
-
-      final ModifiableVertex v2 = db.newVertex(VERTEX2_TYPE_NAME);
-      v2.set("name", VERTEX2_TYPE_NAME);
-      v2.save();
-
-      // CREATION OF EDGE PASSING PARAMS AS VARARGS
-      ModifiableEdge e1 = (ModifiableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
-      Assertions.assertEquals(e1.getOut(), v1);
-      Assertions.assertEquals(e1.getIn(), v2);
-
-      final ModifiableVertex v3 = db.newVertex(VERTEX2_TYPE_NAME);
-      v3.set("name", "V3");
-      v3.save();
-
-      Map<String, Object> params = new HashMap<>();
-      params.put("name", "E2");
-
-      // CREATION OF EDGE PASSING PARAMS AS MAP
-      ModifiableEdge e2 = (ModifiableEdge) v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
-      Assertions.assertEquals(e2.getOut(), v2);
-      Assertions.assertEquals(e2.getIn(), v3);
-
-      ModifiableEdge e3 = (ModifiableEdge) v1.newEdge(EDGE2_TYPE_NAME, v3, true);
-      Assertions.assertEquals(e3.getOut(), v1);
-      Assertions.assertEquals(e3.getIn(), v3);
-
-      db.commit();
-
-      root = v1.getIdentity();
-    }
-
-    // CLOSE ALL DATABASES BEFORE TO START THE SERVERS
-    LogManager.instance().info(this, "TEST: Closing databases before starting");
-    for (int i = 0; i < databases.length; ++i) {
-      databases[i].close();
-      databases[i] = null;
-    }
-
-    startServers();
-  }
-
-  @AfterEach
-  public void endTest() {
+  protected void endTest() {
     try {
       LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
       checkDatabasesAreIdentical();
@@ -234,33 +140,6 @@ public abstract class BaseGraphServerTest {
     return GlobalConfiguration.SERVER_DATABASE_DIRECTORY.getValueAsString() + serverId + "/" + getDatabaseName();
   }
 
-  protected String readResponse(final HttpURLConnection connection) throws IOException {
-    InputStream in = connection.getInputStream();
-    Scanner scanner = new Scanner(in);
-
-    final StringBuilder buffer = new StringBuilder();
-
-    while (scanner.hasNext()) {
-      buffer.append(scanner.next().replace('\n', ' '));
-    }
-
-    return buffer.toString();
-  }
-
-  protected void executeAsynchronously(final Callable callback) {
-    final Timer task = new Timer();
-    task.schedule(new TimerTask() {
-      @Override
-      public void run() {
-        try {
-          callback.call();
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-    }, 1);
-  }
-
   protected ArcadeDBServer getLeaderServer() {
     for (int i = 0; i < getServerCount(); ++i)
       if (getServer(i).isStarted()) {
@@ -306,4 +185,9 @@ public abstract class BaseGraphServerTest {
       new DatabaseComparator().compare(db1, db2);
     }
   }
+
+  protected boolean isPrintingConfigurationAtEveryStep() {
+    return false;
+  }
+
 }

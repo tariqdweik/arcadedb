@@ -403,7 +403,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
       if (keyTypes[keyIndex] == BinaryTypes.TYPE_STRING) {
         // OPTIMIZATION: SPECIAL CASE, LAZY EVALUATE BYTE PER BYTE THE STRING
-        result = comparator.compareStrings((String) key, currentPageBuffer);
+        result = comparator.compareStrings((byte[]) key, currentPageBuffer);
       } else {
         final Object keyValue = serializer.deserializeValue(database, currentPageBuffer, keyTypes[keyIndex]);
         result = comparator.compare(key, keyTypes[keyIndex], keyValue, keyTypes[keyIndex]);
@@ -442,10 +442,12 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
     final int startIndexArray = getHeaderSize(pageNum);
 
+    final Object[] convertedKeys = convertKeys(keys);
+
     while (low <= high) {
       int mid = (low + high) / 2;
 
-      int result = compareKey(currentPageBuffer, startIndexArray, keys, mid, count);
+      int result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, mid, count);
 
       if (result > 0) {
         low = mid + 1;
@@ -460,8 +462,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
         final int keySerializedSize = getSerializedKeySize(currentPageBuffer, keys);
 
         // RETRIEVE ALL THE RESULTS
-        final int firstKeyPos = findFirstEntryOfSameKey(currentPageBuffer, keys, startIndexArray, mid);
-        final int lastKeyPos = findLastEntryOfSameKey(count, currentPageBuffer, keys, startIndexArray, mid);
+        final int firstKeyPos = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);
+        final int lastKeyPos = findLastEntryOfSameKey(count, currentPageBuffer, convertedKeys, startIndexArray, mid);
 
         final int[] positionsArray = new int[lastKeyPos - firstKeyPos + 1];
         for (int i = firstKeyPos; i <= lastKeyPos; ++i)
@@ -474,9 +476,9 @@ public class IndexLSM extends PaginatedComponent implements Index {
         // PARTIAL MATCHING
         if (purpose == 1) {
           // FIND THE MOST LEFT ITEM
-          mid = findFirstEntryOfSameKey(currentPageBuffer, keys, startIndexArray, mid);
+          mid = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);
         } else if (purpose == 2) {
-          mid = findLastEntryOfSameKey(count, currentPageBuffer, keys, startIndexArray, mid);
+          mid = findLastEntryOfSameKey(count, currentPageBuffer, convertedKeys, startIndexArray, mid);
         }
       }
 
@@ -489,6 +491,17 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   }
 
+  private Object[] convertKeys(final Object[] keys) {
+    final Object[] convertedKeys = new Object[keys.length];
+    for (int i = 0; i < keys.length; ++i) {
+      if (keys[i] instanceof String)
+        convertedKeys[i] = ((String) keys[i]).getBytes();
+      else
+        convertedKeys[i] = keys[i];
+    }
+    return convertedKeys;
+  }
+
   private int findLastEntryOfSameKey(final int count, final Binary currentPageBuffer, final Object[] keys, final int startIndexArray, int mid) {
     int result;// FIND THE MOST RIGHT ITEM
     for (int i = mid + 1; i < count; ++i) {
@@ -499,7 +512,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
         final byte keyType = keyTypes[keyIndex];
         if (keyType == BinaryTypes.TYPE_STRING) {
           // OPTIMIZATION: SPECIAL CASE, LAZY EVALUATE BYTE PER BYTE THE STRING
-          result = comparator.compareStrings((String) keys[keyIndex], currentPageBuffer);
+          result = comparator.compareStrings((byte[]) keys[keyIndex], currentPageBuffer);
         } else {
           final Object key = serializer.deserializeValue(database, currentPageBuffer, keyType);
           result = comparator.compare(keys[keyIndex], keyType, key, keyType);
@@ -527,7 +540,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
       for (int keyIndex = 0; keyIndex < keys.length; ++keyIndex) {
         if (keyTypes[keyIndex] == BinaryTypes.TYPE_STRING) {
           // OPTIMIZATION: SPECIAL CASE, LAZY EVALUATE BYTE PER BYTE THE STRING
-          result = comparator.compareStrings((String) keys[keyIndex], currentPageBuffer);
+          result = comparator.compareStrings((byte[]) keys[keyIndex], currentPageBuffer);
         } else {
           final Object key = serializer.deserializeValue(database, currentPageBuffer, keyTypes[keyIndex]);
           result = comparator.compare(keys[keyIndex], keyTypes[keyIndex], key, keyTypes[keyIndex]);

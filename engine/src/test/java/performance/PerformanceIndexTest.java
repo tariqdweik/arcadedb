@@ -10,6 +10,8 @@ import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
 import org.junit.jupiter.api.Assertions;
 
+import java.util.UUID;
+
 public class PerformanceIndexTest {
   private static final int    TOT       = 5000000;
   private static final String TYPE_NAME = "Person";
@@ -70,9 +72,11 @@ public class PerformanceIndexTest {
       for (; row < TOT; ++row) {
         final ModifiableDocument record = database.newDocument(TYPE_NAME);
 
+        final String randomString = UUID.randomUUID().toString();
+
         record.set("id", row);
-        record.set("name", "Luca" + row);
-        record.set("surname", "Skywalker" + row);
+        record.set("name", randomString);
+        record.set("surname", randomString);
         record.set("locali", 10);
         record.set("notes1",
             "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
