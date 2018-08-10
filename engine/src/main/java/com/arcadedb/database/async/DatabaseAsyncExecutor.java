@@ -36,13 +36,13 @@ public class DatabaseAsyncExecutor {
   private       AtomicLong         commandRoundRobinIndex = new AtomicLong();
 
   // SPECIAL COMMANDS
-  private final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand() {
+  public final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand() {
     @Override
     public String toString() {
       return "FORCE_COMMIT";
     }
   };
-  private final static DatabaseAsyncCommand FORCE_EXIT   = new DatabaseAsyncCommand() {
+  public final static DatabaseAsyncCommand FORCE_EXIT   = new DatabaseAsyncCommand() {
     @Override
     public String toString() {
       return "FORCE_EXIT";
@@ -151,9 +151,9 @@ public class DatabaseAsyncExecutor {
                 count++;
 
                 if (count % commitEvery == 0) {
-                  database.getTransaction().commit();
+                  database.commit();
                   onOk();
-                  database.getTransaction().begin();
+                  database.begin();
                 }
 
               } catch (Exception e) {
@@ -174,7 +174,7 @@ public class DatabaseAsyncExecutor {
                 count++;
 
                 if (count % commitEvery == 0) {
-                  database.getTransaction().commit();
+                  database.commit();
                 }
 
                 if (sql.userCallback != null)
@@ -185,7 +185,7 @@ public class DatabaseAsyncExecutor {
                   sql.userCallback.onError(e);
               } finally {
                 if (!database.isTransactionActive())
-                  database.getTransaction().begin();
+                  database.begin();
               }
 
             } else if (message instanceof DatabaseAsyncScanBucket) {
@@ -286,14 +286,14 @@ public class DatabaseAsyncExecutor {
         } catch (Exception e) {
           LogManager.instance().error(this, "Error on saving record (asyncThread=%s)", e, getName());
           if (!database.getTransaction().isActive())
-            database.getTransaction().begin();
+            database.begin();
         }
       }
 
       try
 
       {
-        database.getTransaction().commit();
+        database.commit();
         onOk();
       } catch (Exception e)
 
@@ -305,7 +305,7 @@ public class DatabaseAsyncExecutor {
 
   private void beginTxIfNeeded() {
     if (!database.getTransaction().isActive())
-      database.getTransaction().begin();
+      database.begin();
   }
 
   public class PDBAsynchStats {
@@ -363,13 +363,24 @@ public class DatabaseAsyncExecutor {
       }
     }
 
+    DatabaseAsyncCommand lastMessage = null;
     int completed = 0;
     while (true) {
       for (int i = 0; i < executorThreads.length; ++i) {
-        final int messages = executorThreads[i].queue.size();
+        int messages = executorThreads[i].queue.size();
         if (messages == 0)
           ++completed;
         else {
+          final DatabaseAsyncCommand currentMessage = executorThreads[i].queue.peek();
+          if (lastMessage != null) {
+            if (lastMessage == currentMessage) {
+              // SAME MESSAGE, THE THREAD IS STUCK
+              completed++;
+            }
+          }
+
+          lastMessage = currentMessage;
+
           LogManager.instance().debug(this, "Waiting for completion async thread %s found %d messages still to be processed", executorThreads[i], messages);
           break;
         }
@@ -377,7 +388,7 @@ public class DatabaseAsyncExecutor {
 
       if (completed < executorThreads.length) {
         try {
-          Thread.sleep(100);
+          Thread.sleep(500);
           continue;
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();

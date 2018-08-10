@@ -88,6 +88,8 @@ public class DatabaseComparator {
 
         if (!Arrays.equals(page1.getContent().array(), page2.getContent().array()))
           throw new DatabaseAreNotIdentical("Page %s has different content on databases", pageId);
+
+        db2.getPageManager().removePageFromCache(page2.getPageId());
       }
     }
 

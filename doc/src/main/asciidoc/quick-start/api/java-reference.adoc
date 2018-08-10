@@ -1,18 +1,28 @@
 
 ==== Java API Reference
 
+The entry point it's the DatabaseFactory class that allows to create and open a database.
+
+```java
+DatabaseFactory arcade = new DatabaseFactory("/databases/mydb");
+```
+
+A `DatabaseFactory` object doesn't keep any state and its only goal is creating a `Database` instance.
+
 ===== Create a new database
 
-In order to create a new database, an `READ_WRITE` mode factory must be created where we can call the `.create()` method.
+To create a new database from scratch, use the `.create()` method in `DatabaseFactory` class. If the database already exists, an exception is thrown.
 
 Syntax:
 
 ```java
-Resultset <db>.query( String language, String command, Object... args )
+Database database = new DatabaseFactory("/databases/mydb").create();
 ```
 
+
+
 ```
-Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).create();
+Database db = new DatabaseFactory("/databases/mydb").create();
 try {
   // YOUR CODE
 } finally {

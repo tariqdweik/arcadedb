@@ -45,11 +45,7 @@ public abstract class BasePerformanceTest {
       checkDatabasesAreIdentical();
     } finally {
       LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
-      if (servers != null)
-        for (int i = servers.length - 1; i > -1; --i) {
-          if (servers[i] != null)
-            servers[i].stop();
-        }
+      stopServers();
 
       if (dropDatabasesAtTheEnd())
         deleteDatabaseFolders();
@@ -58,6 +54,14 @@ public abstract class BasePerformanceTest {
 
       GlobalConfiguration.TEST.setValue(false);
     }
+  }
+
+  protected void stopServers() {
+    if (servers != null)
+      for (int i = servers.length - 1; i > -1; --i) {
+        if (servers[i] != null)
+          servers[i].stop();
+      }
   }
 
   protected void checkArcadeIsTotallyDown() {
