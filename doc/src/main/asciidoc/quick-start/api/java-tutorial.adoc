@@ -2,12 +2,22 @@
 
 In order to work with a database, the reference to the database to use must be taken. You can create a new database from scratch or open an existent one. Most of the API works in both synchronous and asynchronous modes. The asynchronous API are available from the `<db>.asynch()` object.
 
-To start from scratch, let's create a new database. The `READ_WRITE` mode factory is required, where we can execute the `.create()` method.
-
-Example:
+To start from scratch, let's create a new database. The entry point it's the DatabaseFactory class that allows to create and open a database.
 
 ```java
-Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).create();
+DatabaseFactory arcade = new DatabaseFactory("/databases/mydb");
+```
+
+A `DatabaseFactory` object doesn't keep any state and its only goal is creating a `Database` instance.
+
+===== Create a new database
+
+To create a new database from scratch, use the `.create()` method in `DatabaseFactory` class. If the database already exists, an exception is thrown.
+
+Syntax:
+
+```java
+Database database = new DatabaseFactory("/databases/mydb").create();
 ```
 
 The database instance `db` is ready to be used. If you want to open an existent database, use the `open()` method instead:
