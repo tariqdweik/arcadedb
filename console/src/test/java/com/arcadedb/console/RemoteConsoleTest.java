@@ -31,7 +31,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   }
 
   @BeforeEach
-  public void startTest() {
+  public void beginTest() {
     deleteDatabaseFolders();
     startServers();
 
@@ -48,7 +48,8 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @AfterEach
   public void endTest() {
     super.endTest();
-    console.close();
+    if (console != null)
+      console.close();
   }
 
   @Test

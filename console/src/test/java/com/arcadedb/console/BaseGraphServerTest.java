@@ -123,6 +123,7 @@ public abstract class BaseGraphServerTest {
 
       root = v1.getIdentity();
 
+      db.close();
     }
 
     startServers();
@@ -227,7 +228,7 @@ public abstract class BaseGraphServerTest {
   }
 
   protected String getDatabasePath(final int serverId) {
-    return GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + serverId + "/" + getDatabaseName();
+    return GlobalConfiguration.SERVER_DATABASE_DIRECTORY.getValueAsString() + serverId + "/" + getDatabaseName();
   }
 
   protected String readResponse(final HttpURLConnection connection) throws IOException {
