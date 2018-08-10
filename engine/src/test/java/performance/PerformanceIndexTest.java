@@ -9,12 +9,12 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.ModifiableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
-import com.arcadedb.schema.VertexType;
+import com.arcadedb.schema.DocumentType;
 
 import java.util.UUID;
 
 public class PerformanceIndexTest {
-  private static final int    TOT       = 5000000;
+  private static final int    TOT       = 300000000;
   private static final String TYPE_NAME = "Device";
 
   public static void main(String[] args) throws Exception {
@@ -31,28 +31,15 @@ public class PerformanceIndexTest {
       if (!database.getSchema().existsType(TYPE_NAME)) {
         database.begin();
 
-        VertexType v = database.getSchema().createVertexType(TYPE_NAME, 3);
+        DocumentType v = database.getSchema().createDocumentType(TYPE_NAME, parallel);
 
-        v.createProperty("id", String.class);
-        v.createProperty("lastModifiedUserId", String.class);
-        v.createProperty("createdDate", String.class);
-        v.createProperty("assocJointClosureId", String.class);
-        v.createProperty("HolderSpec_Name", String.class);
-        v.createProperty("number", String.class);
-        v.createProperty("relativeName", String.class);
-        v.createProperty("Name", String.class);
-        v.createProperty("holderGroupName", String.class);
-        v.createProperty("slot2slottype", String.class);
-        v.createProperty("inventoryStatus", String.class);
-        v.createProperty("lastModifiedDate", String.class);
-        v.createProperty("createdUserId", String.class);
-        v.createProperty("orientation", String.class);
-        v.createProperty("operationalStatus", String.class);
-        v.createProperty("supplierName", String.class);
+        v.createProperty("id", Long.class);
+        v.createProperty("name", String.class);
+        v.createProperty("surname", String.class);
+        v.createProperty("locali", Integer.class);
+        v.createProperty("notes1", String.class);
 
-        database.getSchema().createClassIndexes(false, "Device", new String[] { "id" }, 5000000);
-        database.getSchema().createClassIndexes(false, "Device", new String[] { "number" }, 5000000);
-        database.getSchema().createClassIndexes(false, "Device", new String[] { "relativeName" }, 5000000);
+        database.getSchema().createClassIndexes(false, TYPE_NAME, new String[] { "id" }, 5000000);
 
         database.commit();
       }
