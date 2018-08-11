@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class IndexTest extends BaseTest {
+public class LSMTreeIndexTest extends BaseTest {
   private static final int    TOT       = 10000;
   private static final String TYPE_NAME = "V";
 

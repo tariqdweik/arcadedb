@@ -11,11 +11,9 @@ import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.DuplicatedKeyException;
-import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.IndexException;
 import com.arcadedb.serializer.BinaryComparator;
-import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
 
@@ -39,19 +37,12 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * HEADER Nst PAGE = [numberOfEntries(int:4),offsetFreeKeyValueContent(int:4),bloomFilterSeed(int:4),
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
-public class IndexLSM extends PaginatedComponent implements Index {
+public class IndexLSMTree extends IndexLSMAbstract {
   public static final String UNIQUE_INDEX_EXT    = "uidx";
   public static final String NOTUNIQUE_INDEX_EXT = "nuidx";
-  public static final int    DEF_PAGE_SIZE       = 4 * 1024 * 1024;
-  public static final RID    REMOVED_ENTRY_RID   = new RID(null, -1, -1l);
 
-  private final    BinarySerializer serializer;
-  private final    BinaryComparator comparator;
-  private          byte[]           keyTypes;
-  private          byte             valueType;
-  private          int              bfKeyDepth;
-  private volatile boolean          compacting = false;
-  private final    boolean          unique;
+  private final BinaryComparator comparator;
+  private       int              bfKeyDepth;
 
   private AtomicLong statsBFFalsePositive = new AtomicLong();
   private AtomicLong statsAdjacentSteps   = new AtomicLong();
@@ -59,29 +50,13 @@ public class IndexLSM extends PaginatedComponent implements Index {
   private static final LookupResult LOWER  = new LookupResult(false, 0, null);
   private static final LookupResult HIGHER = new LookupResult(false, 0, null);
 
-  protected static class LookupResult {
-    public final boolean found;
-    public final int     keyIndex;
-    public final int[]   valueBeginPositions;
-
-    public LookupResult(final boolean found, final int keyIndex, final int[] valueBeginPositions) {
-      this.found = found;
-      this.keyIndex = keyIndex;
-      this.valueBeginPositions = valueBeginPositions;
-    }
-  }
-
   /**
    * Called at creation time.
    */
-  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
+  public IndexLSMTree(final Database database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
       final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, pageSize);
-    this.serializer = database.getSerializer();
+    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, valueType, pageSize);
     this.comparator = serializer.getComparator();
-    this.unique = unique;
-    this.keyTypes = keyTypes;
-    this.valueType = valueType;
     this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
     createNewPage();
@@ -90,15 +65,10 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at cloning time.
    */
-  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final byte[] keyTypes, final byte valueType,
+  public IndexLSMTree(final Database database, final String name, final boolean unique, String filePath, final byte[] keyTypes, final byte valueType,
       final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + (unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT),
-        PaginatedFile.MODE.READ_WRITE, pageSize);
-    this.serializer = database.getSerializer();
+    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, valueType, pageSize);
     this.comparator = serializer.getComparator();
-    this.unique = unique;
-    this.keyTypes = keyTypes;
-    this.valueType = valueType;
     this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
     createNewPage();
@@ -107,33 +77,26 @@ public class IndexLSM extends PaginatedComponent implements Index {
   /**
    * Called at load time (1st page only).
    */
-  public IndexLSM(final Database database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
+  public IndexLSMTree(final Database database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
       final int pageSize) throws IOException {
-    super(database, name, filePath, id, mode, pageSize);
-    this.serializer = database.getSerializer();
+    super(database, name, unique, filePath, id, mode, pageSize);
     this.comparator = serializer.getComparator();
 
     final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
-
-    this.unique = unique;
 
     int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + getBFSize();
     final int len = currentPage.readByte(pos++);
     this.keyTypes = new byte[len];
     for (int i = 0; i < len; ++i)
       this.keyTypes[i] = currentPage.readByte(pos++);
-    this.valueType = currentPage.readByte(pos++);
+    this.valueType = currentPage.readByte(pos++); // RID
     this.bfKeyDepth = currentPage.readByte(pos++);
   }
 
-  public IndexLSM copy() throws IOException {
+  public IndexLSMTree copy() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-    return new IndexLSM(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize, bfKeyDepth);
-  }
-
-  public void removeTempSuffix() {
-    // TODO
+    return new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize, bfKeyDepth);
   }
 
   @Override
@@ -143,7 +106,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
     compacting = true;
     try {
-      final IndexLSMCompactor compactor = new IndexLSMCompactor(this);
+      final IndexLSMTreeCompactor compactor = new IndexLSMTreeCompactor(this);
       compactor.compact();
     } finally {
       compacting = false;
@@ -152,7 +115,7 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   @Override
   public IndexCursor iterator(final boolean ascendingOrder) throws IOException {
-    return new IndexLSMCursor(this, ascendingOrder);
+    return new IndexLSMTreeCursor(this, ascendingOrder);
   }
 
   @Override
@@ -170,113 +133,12 @@ public class IndexLSM extends PaginatedComponent implements Index {
 
   @Override
   public IndexCursor range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
-    return new IndexLSMCursor(this, true, fromKeys, toKeys);
+    return new IndexLSMTreeCursor(this, true, fromKeys, toKeys);
   }
 
-  public IndexLSMPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {
+  public IndexLSMTreePageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {
     final BasePage page = database.getTransaction().getPage(new PageId(file.getFileId(), pageId), pageSize);
-    return new IndexLSMPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page), ascendingOrder);
-  }
-
-  public boolean isUnique() {
-    return unique;
-  }
-
-  @Override
-  public Set<RID> get(final Object[] keys) {
-    try {
-      final Set<RID> set = new HashSet<>();
-
-      final int totalPages = getTotalPages();
-
-      final Set<RID> removedRIDs = new HashSet<>();
-
-      // SEARCH FROM THE LAST PAGE BACK
-      for (int p = totalPages - 1; p > -1; --p) {
-        final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), p), pageSize);
-        final Binary currentPageBuffer = new Binary(currentPage.slice());
-        final int count = getCount(currentPage);
-
-        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 3);
-        if (result != null && result.found) {
-          // REAL ALL THE ENTRIES
-          final List<Object> allValues = readAllValues(currentPageBuffer, result);
-
-          // START FROM THE LAST ENTRY
-          boolean exit = false;
-          for (int i = allValues.size() - 1; i > -1; --i) {
-            RID rid = (RID) allValues.get(i);
-
-            if (rid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && rid.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
-              if (set.contains(rid))
-                continue;
-              else {
-                // DELETED ITEM
-                set.clear();
-                exit = true;
-                break;
-              }
-            }
-
-            if (rid.getBucketId() < 0) {
-              // RID DELETED, SKIP THE RID
-              final RID originalRID = getOriginalRID(rid);
-              if (!set.contains(originalRID))
-                removedRIDs.add(originalRID);
-              continue;
-            }
-
-            if (removedRIDs.contains(rid))
-              // ALREADY FOUND AS DELETED
-              continue;
-
-            set.add(rid);
-          }
-
-          if (exit)
-            break;
-        }
-      }
-
-      //LogManager.instance().debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, set.size());
-
-      return set;
-
-    } catch (IOException e) {
-      throw new DatabaseOperationException("Cannot lookup key '" + Arrays.toString(keys) + "' in index '" + name + "'", e);
-    }
-  }
-
-  private List<Object> readAllValues(final Binary currentPageBuffer, final LookupResult result) {
-    final List<Object> allValues = new ArrayList<>();
-    for (int i = 0; i < result.valueBeginPositions.length; ++i) {
-      currentPageBuffer.position(result.valueBeginPositions[i]);
-      readEntryValues(currentPageBuffer, allValues);
-    }
-    return allValues;
-  }
-
-  @Override
-  public void put(final Object[] keys, final RID rid) {
-    put(keys, rid, true);
-  }
-
-  @Override
-  public void put(final Object[] keys, final RID rid, final boolean checkForUnique) {
-    if (rid == null)
-      throw new IllegalArgumentException("RID is null");
-
-    internalPut(keys, rid, checkForUnique);
-  }
-
-  @Override
-  public void remove(final Object[] keys) {
-    internalRemove(keys, null);
-  }
-
-  @Override
-  public void remove(final Object[] keys, final RID rid) {
-    internalRemove(keys, rid);
+    return new IndexLSMTreePageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page), ascendingOrder);
   }
 
   public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage, TrackableBinary currentPageBuffer, final Object[] keys,
@@ -342,37 +204,16 @@ public class IndexLSM extends PaginatedComponent implements Index {
     final Map<String, Long> stats = new HashMap<>();
     stats.put("pages", (long) getTotalPages());
     stats.put("BFFalsePositive", statsBFFalsePositive.get());
-    stats.put("AdjacentSteps", statsAdjacentSteps.get());
+    stats.put("adjacentSteps", statsAdjacentSteps.get());
     return stats;
   }
 
-  @Override
-  public int getFileId() {
-    return file.getFileId();
-  }
-
-  @Override
-  public String toString() {
-    return name;
-  }
-
-  public byte[] getKeyTypes() {
-    return keyTypes;
-  }
-
-  public boolean isDeletedEntry(final Object rid) {
-    return ((RID) rid).getBucketId() < 0;
-  }
-
   /**
-   * @param currentPage
-   * @param currentPageBuffer
-   * @param keys
-   * @param count
-   * @param purpose           0 = exists, 1 = ascending iterator, 2 = descending iterator
+   * @param purpose 0 = exists, 1 = ascending iterator, 2 = descending iterator
    *
    * @return
    */
+  @Override
   protected LookupResult searchInPage(final BasePage currentPage, final Binary currentPageBuffer, final Object[] keys, final int count, final int purpose) {
     checkForNulls(keys);
 
@@ -519,17 +360,6 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return new LookupResult(true, mid, new int[] { currentPageBuffer.position() });
   }
 
-  private Object[] convertKeys(final Object[] keys) {
-    final Object[] convertedKeys = new Object[keys.length];
-    for (int i = 0; i < keys.length; ++i) {
-      if (keys[i] instanceof String)
-        convertedKeys[i] = ((String) keys[i]).getBytes();
-      else
-        convertedKeys[i] = keys[i];
-    }
-    return convertedKeys;
-  }
-
   private int findLastEntryOfSameKey(final int count, final Binary currentPageBuffer, final Object[] keys, final int startIndexArray, int mid) {
     int result;// FIND THE MOST RIGHT ITEM
     for (int i = mid + 1; i < count; ++i) {
@@ -639,39 +469,16 @@ public class IndexLSM extends PaginatedComponent implements Index {
     return 0;
   }
 
-  protected int getCount(final BasePage currentPage) {
-    return currentPage.readInt(0);
-  }
-
-  private void setCount(final ModifiablePage currentPage, final int newCount) {
-    currentPage.writeInt(0, newCount);
-  }
-
   protected int getBFSeed(final BasePage currentPage) {
     return currentPage.readInt(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE);
-  }
-
-  protected Object[] checkForNulls(final Object keys[]) {
-    if (keys != null)
-      for (int i = 0; i < keys.length; ++i)
-        if (keys[i] == null)
-          throw new IllegalArgumentException("Indexed key cannot be NULL");
-    return keys;
-  }
-
-  private int getKeyValueFreePosition(final BasePage currentPage) {
-    return currentPage.readInt(INT_SERIALIZED_SIZE);
-  }
-
-  private void setKeyValueFreePosition(final ModifiablePage currentPage, final int newKeyValueFreePosition) {
-    currentPage.writeInt(INT_SERIALIZED_SIZE, newKeyValueFreePosition);
   }
 
   private int getBFSize() {
     return pageSize / 15 / 8 * 8;
   }
 
-  private void internalPut(final Object[] keys, final RID rid, final boolean checkForUnique) {
+  @Override
+  protected void internalPut(final Object[] keys, final RID rid, final boolean checkForUnique) {
     if (keys.length != keyTypes.length)
       throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
 
@@ -776,7 +583,8 @@ public class IndexLSM extends PaginatedComponent implements Index {
     }
   }
 
-  private void internalRemove(final Object[] keys, final RID rid) {
+  @Override
+  protected void internalRemove(final Object[] keys, final RID rid) {
     if (keys.length != keyTypes.length)
       throw new IllegalArgumentException("Cannot remove an entry in the index with a partial key");
 
@@ -869,34 +677,6 @@ public class IndexLSM extends PaginatedComponent implements Index {
     }
   }
 
-  private RID getRemovedRID(final RID rid) {
-    return new RID(database, (rid.getBucketId() + 2) * -1, rid.getPosition());
-  }
-
-  private RID getOriginalRID(final RID rid) {
-    return new RID(database, (rid.getBucketId() * -1) - 2, rid.getPosition());
-  }
-
-  protected Object[] readEntryValues(final Binary buffer) {
-    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
-
-    final Object[] rids = new Object[items];
-
-    for (int i = 0; i < rids.length; ++i)
-      rids[i] = serializer.deserializeValue(database, buffer, valueType);
-
-    return rids;
-  }
-
-  protected void readEntryValues(final Binary buffer, final List list) {
-    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
-
-    final Object[] rids = new Object[items];
-
-    for (int i = 0; i < rids.length; ++i)
-      list.add(serializer.deserializeValue(database, buffer, valueType));
-  }
-
   private void writeEntry(final Binary buffer, final Object[] keys, final Object rid) {
     buffer.clear();
 
@@ -915,36 +695,6 @@ public class IndexLSM extends PaginatedComponent implements Index {
       serializer.serializeValue(buffer, keyTypes[i], keys[i]);
 
     writeEntryValues(buffer, rids);
-  }
-
-  private void writeEntryValues(final Binary buffer, final Object[] values) {
-    // WRITE NUMBER OF VALUES
-    serializer.serializeValue(buffer, BinaryTypes.TYPE_INT, values.length);
-
-    // WRITE VALUES
-    for (int i = 0; i < values.length; ++i)
-      serializer.serializeValue(buffer, valueType, values[i]);
-  }
-
-  private void writeEntryValue(final Binary buffer, final Object value) {
-    // WRITE NUMBER OF VALUES
-    serializer.serializeValue(buffer, BinaryTypes.TYPE_INT, 1);
-
-    // WRITE VALUES
-    serializer.serializeValue(buffer, valueType, value);
-  }
-
-  private void updateEntryValue(final Binary buffer, final int valueIndex, final Object value) {
-    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
-
-    if (valueIndex > items - 1)
-      throw new IllegalArgumentException("Cannot update value index " + valueIndex + " in value container with only " + items + " items");
-
-    // MOVE TO THE LAST ITEM
-    buffer.position(buffer.position() + (BinaryTypes.getTypeSize(valueType) * valueIndex));
-
-    // WRITE VALUES
-    serializer.serializeValue(buffer, valueType, value);
   }
 
   /**

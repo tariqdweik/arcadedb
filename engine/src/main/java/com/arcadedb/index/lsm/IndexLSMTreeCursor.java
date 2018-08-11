@@ -17,27 +17,27 @@ import java.util.Arrays;
 /**
  * Index cursor doesn't remove the deleted entries.
  */
-public class IndexLSMCursor implements IndexCursor {
-  private final IndexLSM               index;
-  private final Object[]               toKeys;
-  private final IndexLSMPageIterator[] pageIterators;
-  private       IndexLSMPageIterator   currentIterator;
-  private       Object[]               currentKeys;
-  private       Object[]               currentValues;
-  private       int                    currentValueIndex = 0;
-  private       int                    totalPages;
-  private       byte[]                 keyTypes;
-  private final Object[][]             keys;
-  private       BinarySerializer       serializer;
-  private       BinaryComparator       comparator;
+public class IndexLSMTreeCursor implements IndexCursor {
+  private final IndexLSMTree               index;
+  private final Object[]                   toKeys;
+  private final IndexLSMTreePageIterator[] pageIterators;
+  private       IndexLSMTreePageIterator   currentIterator;
+  private       Object[]                   currentKeys;
+  private       Object[]                   currentValues;
+  private       int                        currentValueIndex = 0;
+  private       int                        totalPages;
+  private       byte[]                     keyTypes;
+  private final Object[][]                 keys;
+  private       BinarySerializer           serializer;
+  private       BinaryComparator           comparator;
 
   private int validIterators;
 
-  public IndexLSMCursor(final IndexLSM index, final boolean ascendingOrder) throws IOException {
+  public IndexLSMTreeCursor(final IndexLSMTree index, final boolean ascendingOrder) throws IOException {
     this(index, ascendingOrder, null, null);
   }
 
-  public IndexLSMCursor(final IndexLSM index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys) throws IOException {
+  public IndexLSMTreeCursor(final IndexLSMTree index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys) throws IOException {
     this.index = index;
     index.checkForNulls(fromKeys);
     this.toKeys = index.checkForNulls(toKeys);
@@ -49,7 +49,7 @@ public class IndexLSMCursor implements IndexCursor {
     this.comparator = this.serializer.getComparator();
 
     // CREATE ITERATORS, ONE PER PAGE
-    pageIterators = new IndexLSMPageIterator[totalPages];
+    pageIterators = new IndexLSMTreePageIterator[totalPages];
     keys = new Object[totalPages][keyTypes.length];
 
     validIterators = 0;
@@ -65,7 +65,7 @@ public class IndexLSMCursor implements IndexCursor {
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = index.getCount(currentPage);
 
-        final IndexLSM.LookupResult lookupResult;
+        final IndexLSMTree.LookupResult lookupResult;
         if (fromKeys == toKeys)
           // USE THE BLOOM FILTER
           lookupResult = index.searchInPage(currentPage, currentPageBuffer, fromKeys, count, ascendingOrder ? 1 : 2);
@@ -75,7 +75,7 @@ public class IndexLSMCursor implements IndexCursor {
         if (lookupResult != null) {
           pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
 
-          if (toKeys == null || (IndexLSM.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
+          if (toKeys == null || (IndexLSMTree.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
             keys[pageId] = pageIterators[pageId].getKeys();
             validIterators++;
           }
@@ -92,7 +92,7 @@ public class IndexLSMCursor implements IndexCursor {
         if (pageIterators[pageId].hasNext()) {
           pageIterators[pageId].next();
 
-          if (toKeys == null || (IndexLSM.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
+          if (toKeys == null || (IndexLSMTree.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
             keys[pageId] = pageIterators[pageId].getKeys();
             validIterators++;
           }
@@ -131,7 +131,7 @@ public class IndexLSMCursor implements IndexCursor {
           minorKeyIndex = p;
         } else {
           if (keys[p] != null) {
-            if (IndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+            if (IndexLSMTree.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
               minorKey = keys[p];
               minorKeyIndex = p;
             }
@@ -147,7 +147,7 @@ public class IndexLSMCursor implements IndexCursor {
         currentIterator.next();
         keys[minorKeyIndex] = currentIterator.getKeys();
 
-        if (toKeys != null && (IndexLSM.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
+        if (toKeys != null && (IndexLSMTree.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
           currentIterator.close();
           currentIterator = null;
           pageIterators[minorKeyIndex] = null;
@@ -173,7 +173,7 @@ public class IndexLSMCursor implements IndexCursor {
 
   @Override
   public void close() {
-    for (IndexLSMPageIterator it : pageIterators)
+    for (IndexLSMTreePageIterator it : pageIterators)
       if (it != null)
         it.close();
     Arrays.fill(pageIterators, null);

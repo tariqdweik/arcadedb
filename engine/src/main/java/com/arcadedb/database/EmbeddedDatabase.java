@@ -13,7 +13,7 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
-import com.arcadedb.index.lsm.IndexLSM;
+import com.arcadedb.index.lsm.IndexLSMTree;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
@@ -55,7 +55,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   protected volatile boolean open            = false;
 
   protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(
-      Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, IndexLSM.NOTUNIQUE_INDEX_EXT, IndexLSM.UNIQUE_INDEX_EXT));
+      Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, IndexLSMTree.NOTUNIQUE_INDEX_EXT, IndexLSMTree.UNIQUE_INDEX_EXT));
   private                File                                      lockFile;
   private                FileLock                                  lockFileIO;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;

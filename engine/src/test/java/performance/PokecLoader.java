@@ -10,7 +10,7 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.ModifiableVertex;
-import com.arcadedb.index.lsm.IndexLSM;
+import com.arcadedb.index.lsm.IndexLSMTree;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
@@ -145,7 +145,7 @@ public class PokecLoader {
 
     db.getSchema().createEdgeType("E");
 
-    db.getSchema().createClassIndexes(true, "V", new String[] { "id" }, IndexLSM.DEF_PAGE_SIZE * 10);
+    db.getSchema().createClassIndexes(true, "V", new String[] { "id" }, IndexLSMTree.DEF_PAGE_SIZE * 10);
     db.commit();
   }
 }

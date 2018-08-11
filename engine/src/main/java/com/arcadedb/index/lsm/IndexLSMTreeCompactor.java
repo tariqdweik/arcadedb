@@ -17,10 +17,10 @@ import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
 
-public class IndexLSMCompactor {
-  private final IndexLSM index;
+public class IndexLSMTreeCompactor {
+  private final IndexLSMTree index;
 
-  public IndexLSMCompactor(final IndexLSM index) {
+  public IndexLSMTreeCompactor(final IndexLSMTree index) {
     this.index = index;
   }
 
@@ -31,7 +31,7 @@ public class IndexLSMCompactor {
     LogManager.instance().info(this, "Compacting index '%s' (pages=%d)...", index, totalPages);
 
     index.getDatabase().begin();
-    final IndexLSM newIndex = index.copy();
+    final IndexLSMTree newIndex = index.copy();
     ((SchemaImpl) index.getDatabase().getSchema()).registerFile(newIndex);
 
     final byte[] keyTypes = index.getKeyTypes();
@@ -51,7 +51,7 @@ public class IndexLSMCompactor {
       else
         pagesToCompact = totalPages - pageIndex;
 
-      final IndexLSMPageIterator[] iterators = new IndexLSMPageIterator[pagesToCompact];
+      final IndexLSMTreePageIterator[] iterators = new IndexLSMTreePageIterator[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
         iterators[i] = index.newPageIterator(pageIndex + i, 0, true);
 
@@ -89,7 +89,7 @@ public class IndexLSMCompactor {
           } else {
             if (keys[p] != null) {
               moreItems = true;
-              if (IndexLSM.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+              if (IndexLSMTree.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
                 minorKey = keys[p];
                 minorKeyIndex = p;
               }

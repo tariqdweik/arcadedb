@@ -11,8 +11,8 @@ import com.arcadedb.serializer.BinarySerializer;
 
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
-public class IndexLSMPageIterator {
-  private final IndexLSM         index;
+public class IndexLSMTreePageIterator {
+  private final IndexLSMTree     index;
   private final PageId           pageId;
   private final Binary           buffer;
   private final byte[]           keyTypes;
@@ -26,7 +26,7 @@ public class IndexLSMPageIterator {
   private Object[] nextKeys;
   private Object[] nextValue;
 
-  public IndexLSMPageIterator(final IndexLSM index, final BasePage page, final int currentEntryInPage, final int keyStartPosition, final byte[] keyTypes,
+  public IndexLSMTreePageIterator(final IndexLSMTree index, final BasePage page, final int currentEntryInPage, final int keyStartPosition, final byte[] keyTypes,
       final int totalKeys, final boolean ascendingOrder) {
     this.index = index;
     this.pageId = page.getPageId();

@@ -15,7 +15,7 @@ import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
-import com.arcadedb.index.lsm.IndexLSM;
+import com.arcadedb.index.lsm.IndexLSMTree;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
@@ -96,20 +96,20 @@ public class SchemaImpl implements Schema {
           LogManager.instance().error(this, "Error on opening bucket '%s' (error=%s)", e, file, e.toString());
         }
 
-      } else if (fileExt.equals(IndexLSM.UNIQUE_INDEX_EXT)) {
+      } else if (fileExt.equals(IndexLSMTree.UNIQUE_INDEX_EXT)) {
         // INDEX
         try {
-          final IndexLSM index = new IndexLSM(database, fileName, true, file.getFilePath(), fileId, mode, pageSize);
+          final IndexLSMTree index = new IndexLSMTree(database, fileName, true, file.getFilePath(), fileId, mode, pageSize);
           indexMap.put(fileName, index);
           pf = index;
         } catch (IOException e) {
           LogManager.instance().error(this, "Error on opening index '%s' (error=%s)", e, file, e.toString());
         }
 
-      } else if (fileExt.equals(IndexLSM.NOTUNIQUE_INDEX_EXT)) {
+      } else if (fileExt.equals(IndexLSMTree.NOTUNIQUE_INDEX_EXT)) {
         // INDEX
         try {
-          final IndexLSM index = new IndexLSM(database, fileName, false, file.getFilePath(), fileId, mode, pageSize);
+          final IndexLSMTree index = new IndexLSMTree(database, fileName, false, file.getFilePath(), fileId, mode, pageSize);
           indexMap.put(fileName, index);
           pf = index;
         } catch (IOException e) {
@@ -254,7 +254,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames) {
-    return createClassIndexes(unique, typeName, propertyNames, IndexLSM.DEF_PAGE_SIZE);
+    return createClassIndexes(unique, typeName, propertyNames, IndexLSMTree.DEF_PAGE_SIZE);
   }
 
   @Override
@@ -286,7 +286,7 @@ public class SchemaImpl implements Schema {
 
           final List<Bucket> buckets = type.getBuckets(false);
 
-          final IndexLSM[] indexes = new IndexLSM[buckets.size()];
+          final IndexLSMTree[] indexes = new IndexLSMTree[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
             final Bucket b = buckets.get(idx);
             final String indexName = b.getName() + "_" + System.currentTimeMillis();
@@ -294,7 +294,7 @@ public class SchemaImpl implements Schema {
             if (indexMap.containsKey(indexName))
               throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-            indexes[idx] = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
+            indexes[idx] = new IndexLSMTree(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
                 BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
 
             registerFile(indexes[idx]);
@@ -319,14 +319,14 @@ public class SchemaImpl implements Schema {
   }
 
   public Index createManualIndex(final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
-    return (IndexLSM) database.executeInWriteLock(new Callable<Object>() {
+    return (IndexLSMTree) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         if (indexMap.containsKey(indexName))
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          final IndexLSM index = new IndexLSM(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
+          final IndexLSMTree index = new IndexLSMTree(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
               BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
           registerFile(index);
           indexMap.put(indexName, index);
@@ -508,7 +508,7 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  public void swapIndexes(final IndexLSM oldIndex, final IndexLSM newIndex) throws IOException {
+  public void swapIndexes(final IndexLSMTree oldIndex, final IndexLSMTree newIndex) throws IOException {
     indexMap.remove(oldIndex.getName());
 
     indexMap.put(newIndex.getName(), newIndex);
