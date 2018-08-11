@@ -68,7 +68,7 @@ public class IndexLSMTreeCursor implements IndexCursor {
         final IndexLSMTree.LookupResult lookupResult;
         if (fromKeys == toKeys)
           // USE THE BLOOM FILTER
-          lookupResult = index.searchInPage(currentPage, currentPageBuffer, fromKeys, count, ascendingOrder ? 1 : 2);
+          lookupResult = index.searchInPage(currentPage, currentPageBuffer, fromKeys, count, ascendingOrder ? 2 : 3);
         else
           lookupResult = index.lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
 

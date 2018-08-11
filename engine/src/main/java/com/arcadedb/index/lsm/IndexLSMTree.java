@@ -167,7 +167,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
     serializer.serializeValue(keyValueContent, valueType, rid);
 
-    int keyValueFreePosition = getKeyValueFreePosition(currentPage);
+    int keyValueFreePosition = getEntriesFreePosition(currentPage);
 
     if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
       // NO SPACE LEFT, CREATE A NEW PAGE
@@ -195,7 +195,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
 
     setCount(currentPage, count + 1);
-    setKeyValueFreePosition(currentPage, keyValueFreePosition);
+    setEntriesFreePosition(currentPage, keyValueFreePosition);
 
     return currentPage;
   }
@@ -209,7 +209,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
   }
 
   /**
-   * @param purpose 0 = exists, 1 = ascending iterator, 2 = descending iterator
+   * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator, 3 = descending iterator
    *
    * @return
    */
@@ -261,9 +261,9 @@ public class IndexLSMTree extends IndexLSMAbstract {
   }
 
   /**
-   * Lookups for an entry in the index by using dichotomic search.
+   * Lookups for an entry in the index by using dichotomy search.
    *
-   * @param purpose 0 = exists, 1 = ascending iterator, 2 = descending iterator, 3 = retrieve
+   * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator, 3 = descending iterator
    *
    * @return
    */
@@ -274,7 +274,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     if (keys.length > keyTypes.length)
       throw new IllegalArgumentException("key is composed of " + keys.length + " items, while the index defined " + keyTypes.length + " items");
 
-    if ((purpose == 0 || purpose == 3) && keys.length != keyTypes.length)
+    if ((purpose == 0 || purpose == 1) && keys.length != keyTypes.length)
       throw new IllegalArgumentException("key is composed of " + keys.length + " items, while the index defined " + keyTypes.length + " items");
 
     if (count == 0)
@@ -331,7 +331,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     else if (result < 0)
       return LOWER;
 
-    if (purpose == 3) {
+    if (purpose == 1) {
       currentPageBuffer.position(currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE)));
       final int keySerializedSize = getSerializedKeySize(currentPageBuffer, keys);
 
@@ -348,10 +348,10 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
     if (convertedKeys.length < keyTypes.length) {
       // PARTIAL MATCHING
-      if (purpose == 1) {
+      if (purpose == 2) {
         // FIND THE MOST LEFT ITEM
         mid = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);
-      } else if (purpose == 2) {
+      } else if (purpose == 3) {
         mid = findLastEntryOfSameKey(count, currentPageBuffer, convertedKeys, startIndexArray, mid);
       }
     }
@@ -504,31 +504,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
       int count = getCount(currentPage);
 
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, unique ? 3 : 0);
-      if (unique && checkForUnique && result.found) {
-        // CHECK FOR DUPLICATES
-        final List<Object> allValues = readAllValues(currentPageBuffer, result);
-
-        final Set<RID> removedRIDs = new HashSet<>();
-
-        for (int i = allValues.size() - 1; i > -1; --i) {
-          final RID valueAsRid = (RID) allValues.get(i);
-          if (valueAsRid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && valueAsRid.getPosition() == REMOVED_ENTRY_RID.getPosition())
-            // DELETED ITEM, FINE
-            break;
-
-          if (valueAsRid.getBucketId() < 0) {
-            // RID DELETED, SKIP THE RID
-            removedRIDs.add(getOriginalRID(valueAsRid));
-            continue;
-          }
-
-          if (removedRIDs.contains(valueAsRid))
-            // ALREADY FOUND AS DELETED, FINE
-            continue;
-
-          throw new DuplicatedKeyException(name, Arrays.toString(keys));
-        }
-      }
+      if (unique && checkForUnique && result.found)
+        checkUniqueConstraint(keys, currentPageBuffer, result);
 
       // TODO: OPTIMIZATION: REPLACE SAME KEY/RID (even deleted) INSTEAD OF ADDING A NEW ENTRY
 
@@ -536,7 +513,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
       final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
       writeEntry(keyValueContent, keys, rid);
 
-      int keyValueFreePosition = getKeyValueFreePosition(currentPage);
+      int keyValueFreePosition = getEntriesFreePosition(currentPage);
 
       int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
       boolean newPage = false;
@@ -572,7 +549,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
       bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
 
       setCount(currentPage, count + 1);
-      setKeyValueFreePosition(currentPage, keyValueFreePosition);
+      setEntriesFreePosition(currentPage, keyValueFreePosition);
 
       LogManager.instance()
           .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
@@ -630,7 +607,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
       final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
       writeEntry(keyValueContent, keys, removedRID);
 
-      int keyValueFreePosition = getKeyValueFreePosition(currentPage);
+      int keyValueFreePosition = getEntriesFreePosition(currentPage);
 
       int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
       boolean newPage = false;
@@ -666,7 +643,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
       bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
 
       setCount(currentPage, count + 1);
-      setKeyValueFreePosition(currentPage, keyValueFreePosition);
+      setEntriesFreePosition(currentPage, keyValueFreePosition);
 
       LogManager.instance()
           .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
@@ -706,5 +683,20 @@ public class IndexLSMTree extends IndexLSMAbstract {
       serializer.deserializeValue(database, buffer, keyTypes[keyIndex]);
 
     return buffer.position() - startsAt;
+  }
+
+  private Object[] convertKeys(final Object[] keys) {
+    final Object[] convertedKeys = new Object[keys.length];
+    for (int i = 0; i < keys.length; ++i) {
+      if (keys[i] instanceof String)
+        convertedKeys[i] = ((String) keys[i]).getBytes();
+      else
+        convertedKeys[i] = keys[i];
+    }
+    return convertedKeys;
+  }
+
+  private void setCount(final ModifiablePage currentPage, final int newCount) {
+    currentPage.writeInt(0, newCount);
   }
 }

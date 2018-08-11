@@ -7,8 +7,10 @@ package com.arcadedb.index.lsm;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
+import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseOperationException;
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
@@ -82,7 +84,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
   }
 
   /**
-   * @param purpose 0 = exists, 1 = ascending iterator, 2 = descending iterator
+   * @param purpose 0 = exists, 1 = retrieve
    *
    * @return
    */
@@ -91,10 +93,6 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
 
   public void removeTempSuffix() {
     // TODO
-  }
-
-  public boolean isUnique() {
-    return unique;
   }
 
   @Override
@@ -112,7 +110,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = getCount(currentPage);
 
-        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 3);
+        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 1);
         if (result != null && result.found) {
           // REAL ALL THE ENTRIES
           final List<Object> allValues = readAllValues(currentPageBuffer, result);
@@ -185,6 +183,10 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
     internalRemove(keys, rid);
   }
 
+  public boolean isUnique() {
+    return unique;
+  }
+
   @Override
   public int getFileId() {
     return file.getFileId();
@@ -203,23 +205,8 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
     return ((RID) rid).getBucketId() < 0;
   }
 
-  protected Object[] convertKeys(final Object[] keys) {
-    final Object[] convertedKeys = new Object[keys.length];
-    for (int i = 0; i < keys.length; ++i) {
-      if (keys[i] instanceof String)
-        convertedKeys[i] = ((String) keys[i]).getBytes();
-      else
-        convertedKeys[i] = keys[i];
-    }
-    return convertedKeys;
-  }
-
   protected int getCount(final BasePage currentPage) {
     return currentPage.readInt(0);
-  }
-
-  protected void setCount(final ModifiablePage currentPage, final int newCount) {
-    currentPage.writeInt(0, newCount);
   }
 
   protected Object[] checkForNulls(final Object keys[]) {
@@ -230,11 +217,11 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
     return keys;
   }
 
-  protected int getKeyValueFreePosition(final BasePage currentPage) {
+  protected int getEntriesFreePosition(final BasePage currentPage) {
     return currentPage.readInt(INT_SERIALIZED_SIZE);
   }
 
-  protected void setKeyValueFreePosition(final ModifiablePage currentPage, final int newKeyValueFreePosition) {
+  protected void setEntriesFreePosition(final ModifiablePage currentPage, final int newKeyValueFreePosition) {
     currentPage.writeInt(INT_SERIALIZED_SIZE, newKeyValueFreePosition);
   }
 
@@ -244,26 +231,6 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
 
   protected RID getOriginalRID(final RID rid) {
     return new RID(database, (rid.getBucketId() * -1) - 2, rid.getPosition());
-  }
-
-  protected Object[] readEntryValues(final Binary buffer) {
-    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
-
-    final Object[] rids = new Object[items];
-
-    for (int i = 0; i < rids.length; ++i)
-      rids[i] = serializer.deserializeValue(database, buffer, valueType);
-
-    return rids;
-  }
-
-  protected void readEntryValues(final Binary buffer, final List list) {
-    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
-
-    final Object[] rids = new Object[items];
-
-    for (int i = 0; i < rids.length; ++i)
-      list.add(serializer.deserializeValue(database, buffer, valueType));
   }
 
   protected void writeEntryValues(final Binary buffer, final Object[] values) {
@@ -296,6 +263,26 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
     serializer.serializeValue(buffer, valueType, value);
   }
 
+  protected Object[] readEntryValues(final Binary buffer) {
+    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
+
+    final Object[] rids = new Object[items];
+
+    for (int i = 0; i < rids.length; ++i)
+      rids[i] = serializer.deserializeValue(database, buffer, valueType);
+
+    return rids;
+  }
+
+  protected void readEntryValues(final Binary buffer, final List list) {
+    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
+
+    final Object[] rids = new Object[items];
+
+    for (int i = 0; i < rids.length; ++i)
+      list.add(serializer.deserializeValue(database, buffer, valueType));
+  }
+
   protected List<Object> readAllValues(final Binary currentPageBuffer, final LookupResult result) {
     final List<Object> allValues = new ArrayList<>();
     for (int i = 0; i < result.valueBeginPositions.length; ++i) {
@@ -303,5 +290,31 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
       readEntryValues(currentPageBuffer, allValues);
     }
     return allValues;
+  }
+
+  protected void checkUniqueConstraint(final Object[] keys, final TrackableBinary currentPageBuffer, final LookupResult result) {
+    // CHECK FOR DUPLICATES
+    final List<Object> allValues = readAllValues(currentPageBuffer, result);
+
+    final Set<RID> removedRIDs = new HashSet<>();
+
+    for (int i = allValues.size() - 1; i > -1; --i) {
+      final RID valueAsRid = (RID) allValues.get(i);
+      if (valueAsRid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && valueAsRid.getPosition() == REMOVED_ENTRY_RID.getPosition())
+        // DELETED ITEM, FINE
+        break;
+
+      if (valueAsRid.getBucketId() < 0) {
+        // RID DELETED, SKIP THE RID
+        removedRIDs.add(getOriginalRID(valueAsRid));
+        continue;
+      }
+
+      if (removedRIDs.contains(valueAsRid))
+        // ALREADY FOUND AS DELETED, FINE
+        continue;
+
+      throw new DuplicatedKeyException(name, Arrays.toString(keys));
+    }
   }
 }
