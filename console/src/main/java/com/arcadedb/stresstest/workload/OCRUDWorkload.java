@@ -7,6 +7,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.stresstest.DatabaseIdentifier;
 import com.arcadedb.stresstest.StressTesterSettings;
@@ -133,7 +134,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
       if (!schema.existsType(OCRUDWorkload.CLASS_NAME)) {
         final DocumentType cls = schema.createDocumentType(OCRUDWorkload.CLASS_NAME);
         cls.createProperty("name", String.class);
-        schema.createClassIndexes(true, OCRUDWorkload.CLASS_NAME, new String[] { "name" });
+        schema.createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, OCRUDWorkload.CLASS_NAME, new String[] { "name" });
       }
     } finally {
       database.close();

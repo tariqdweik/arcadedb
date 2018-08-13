@@ -32,6 +32,14 @@ public class Bucket extends PaginatedComponent {
   protected static final int PAGE_RECORD_TABLE_OFFSET         = PAGE_RECORD_COUNT_IN_PAGE_OFFSET + Binary.SHORT_SERIALIZED_SIZE;
   protected static final int CONTENT_HEADER_SIZE              = PAGE_RECORD_TABLE_OFFSET + (MAX_RECORDS_IN_PAGE * INT_SERIALIZED_SIZE);
 
+  public static class PaginatedComponentFactoryHandler implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
+    @Override
+    public PaginatedComponent create(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
+        final int pageSize) throws IOException {
+      return new Bucket(database, name, filePath, id, mode, pageSize);
+    }
+  }
+
   /**
    * Called at creation time.
    */

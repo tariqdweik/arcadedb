@@ -11,6 +11,7 @@ import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.schema.EdgeType;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
@@ -343,7 +344,7 @@ public class RandomTestMultiThreads extends BaseTest {
       accountType.createProperty("surname", String.class);
       accountType.createProperty("registered", Date.class);
 
-      database.getSchema().createClassIndexes(true, "Account", new String[] { "id" }, 500000);
+      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Account", new String[] { "id" }, 500000);
 
       final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
       txType.createProperty("uuid", String.class);
@@ -352,7 +353,7 @@ public class RandomTestMultiThreads extends BaseTest {
       txType.createProperty("updated", Boolean.class);
       txType.createProperty("longFieldUpdated", String.class);
 
-      database.getSchema().createClassIndexes(true, "Transaction", new String[] { "uuid" }, 500000);
+      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Transaction", new String[] { "uuid" }, 500000);
 
       final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
       edgeType.createProperty("date", Date.class);

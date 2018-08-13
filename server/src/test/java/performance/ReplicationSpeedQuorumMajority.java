@@ -9,6 +9,7 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
@@ -74,9 +75,9 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
           v.createProperty("operationalStatus", String.class);
           v.createProperty("supplierName", String.class);
 
-          database.getSchema().createClassIndexes(false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
-          database.getSchema().createClassIndexes(false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
-          database.getSchema().createClassIndexes(false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
+          database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
+          database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
+          database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
         }
       }
     });

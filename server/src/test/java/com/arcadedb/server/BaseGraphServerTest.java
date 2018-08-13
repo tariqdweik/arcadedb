@@ -13,6 +13,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
 import com.arcadedb.graph.ModifiableEdge;
 import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
@@ -70,7 +71,7 @@ public abstract class BaseGraphServerTest {
           VertexType v = database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
           v.createProperty("id", Long.class);
 
-          database.getSchema().createClassIndexes(true, VERTEX1_TYPE_NAME, new String[] { "id" });
+          database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, VERTEX1_TYPE_NAME, new String[] { "id" });
 
           Assertions.assertFalse(database.getSchema().existsType(VERTEX2_TYPE_NAME));
           database.getSchema().createVertexType(VERTEX2_TYPE_NAME, 3);

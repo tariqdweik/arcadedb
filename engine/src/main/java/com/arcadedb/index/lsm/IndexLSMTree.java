@@ -11,8 +11,10 @@ import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.DuplicatedKeyException;
+import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.IndexException;
+import com.arcadedb.engine.PaginatedComponentFactory;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
@@ -38,11 +40,11 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * bloomFilter(bytes[]:<bloomFilterLength>)]
  */
 public class IndexLSMTree extends IndexLSMAbstract {
-  public static final String UNIQUE_INDEX_EXT    = "uidx";
-  public static final String NOTUNIQUE_INDEX_EXT = "nuidx";
+  public static final String UNIQUE_INDEX_EXT    = "utidx";
+  public static final String NOTUNIQUE_INDEX_EXT = "nutidx";
 
   private final BinaryComparator comparator;
-  private       int              bfKeyDepth;
+  private final int              bfKeyDepth;
 
   private AtomicLong statsBFFalsePositive = new AtomicLong();
   private AtomicLong statsAdjacentSteps   = new AtomicLong();
@@ -50,11 +52,33 @@ public class IndexLSMTree extends IndexLSMAbstract {
   private static final LookupResult LOWER  = new LookupResult(false, 0, null);
   private static final LookupResult HIGHER = new LookupResult(false, 0, null);
 
+  public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
+    @Override
+    public Index create(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
+        final byte[] keyTypes, final byte valueType, final int pageSize) throws IOException {
+      return new IndexLSMTree(database, name, unique, filePath, mode, keyTypes, valueType, pageSize, keyTypes.length);
+    }
+  }
+
+  public static class PaginatedComponentFactoryHandlerUnique implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
+    @Override
+    public PaginatedComponent create(Database database, String name, String filePath, int id, PaginatedFile.MODE mode, int pageSize) throws IOException {
+      return new IndexLSMTree(database, name, true, filePath, id, mode, pageSize);
+    }
+  }
+
+  public static class PaginatedComponentFactoryHandlerNotUnique implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
+    @Override
+    public PaginatedComponent create(Database database, String name, String filePath, int id, PaginatedFile.MODE mode, int pageSize) throws IOException {
+      return new IndexLSMTree(database, name, false, filePath, id, mode, pageSize);
+    }
+  }
+
   /**
    * Called at creation time.
    */
-  public IndexLSMTree(final Database database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
-      final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
+  public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
+      final byte[] keyTypes, final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
     super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, valueType, pageSize);
     this.comparator = serializer.getComparator();
     this.bfKeyDepth = bfKeyDepth;
@@ -65,7 +89,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
   /**
    * Called at cloning time.
    */
-  public IndexLSMTree(final Database database, final String name, final boolean unique, String filePath, final byte[] keyTypes, final byte valueType,
+  public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final byte[] keyTypes, final byte valueType,
       final int pageSize, final int bfKeyDepth) throws IOException {
     super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, valueType, pageSize);
     this.comparator = serializer.getComparator();
@@ -77,7 +101,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
   /**
    * Called at load time (1st page only).
    */
-  public IndexLSMTree(final Database database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
+  public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final int id, final PaginatedFile.MODE mode,
       final int pageSize) throws IOException {
     super(database, name, unique, filePath, id, mode, pageSize);
     this.comparator = serializer.getComparator();

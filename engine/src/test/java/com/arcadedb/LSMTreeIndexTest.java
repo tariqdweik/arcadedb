@@ -10,6 +10,7 @@ import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
@@ -620,7 +621,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
-        final Index[] indexes = database.getSchema().createClassIndexes(true, TYPE_NAME, new String[] { "id" }, 1000);
+        final Index[] indexes = database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, 1000);
 
         for (int i = 0; i < TOT; ++i) {
           final ModifiableDocument v = database.newDocument(TYPE_NAME);

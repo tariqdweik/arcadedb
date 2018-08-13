@@ -7,14 +7,14 @@ package com.arcadedb.schema;
 import com.arcadedb.Constants;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.engine.Bucket;
+import com.arcadedb.engine.*;
 import com.arcadedb.engine.Dictionary;
-import com.arcadedb.engine.PaginatedComponent;
-import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexFactory;
+import com.arcadedb.index.lsm.IndexLSMAbstract;
 import com.arcadedb.index.lsm.IndexLSMTree;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.FileUtils;
@@ -39,17 +39,34 @@ public class SchemaImpl implements Schema {
   private final       List<PaginatedComponent>  files            = new ArrayList<PaginatedComponent>();
   private final       Map<String, DocumentType> types            = new HashMap<String, DocumentType>();
   private final       Map<String, Bucket>       bucketMap        = new HashMap<String, Bucket>();
-  private final       Map<String, Index>        indexMap         = new HashMap<String, Index>();
-  private final       String                    databasePath;
-  private             Dictionary                dictionary;
-  private             String                    dateFormat       = DEFAULT_DATE_FORMAT;
-  private             String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
-  private             String                    encoding         = DEFAULT_ENCODING;
-  private             TimeZone                  timeZone         = TimeZone.getDefault();
+  private final Map<String, Index>        indexMap         = new HashMap<String, Index>();
+  private final String                    databasePath;
+  private       Dictionary                dictionary;
+  private       String                    dateFormat       = DEFAULT_DATE_FORMAT;
+  private       String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
+  private       String                    encoding         = DEFAULT_ENCODING;
+  private       TimeZone                  timeZone         = TimeZone.getDefault();
+  private final PaginatedComponentFactory paginatedComponentFactory;
+  private final IndexFactory              indexFactory     = new IndexFactory();
+
+  public enum INDEX_TYPE {
+    LSM_TREE, LSM_HASH
+  }
 
   public SchemaImpl(final DatabaseInternal database, final String databasePath, final PaginatedFile.MODE mode) {
     this.database = database;
     this.databasePath = databasePath;
+
+    paginatedComponentFactory = new PaginatedComponentFactory(database);
+    paginatedComponentFactory.registerComponent(Dictionary.DICT_EXT, new Dictionary.PaginatedComponentFactoryHandler());
+    paginatedComponentFactory.registerComponent(Bucket.BUCKET_EXT, new Bucket.PaginatedComponentFactoryHandler());
+    paginatedComponentFactory.registerComponent(IndexLSMTree.UNIQUE_INDEX_EXT, new IndexLSMTree.PaginatedComponentFactoryHandlerUnique());
+    paginatedComponentFactory.registerComponent(IndexLSMTree.NOTUNIQUE_INDEX_EXT, new IndexLSMTree.PaginatedComponentFactoryHandlerNotUnique());
+//    paginatedComponentFactory.registerComponent(IndexLSMHash.UNIQUE_INDEX_EXT, new IndexLSMHash.PaginatedComponentFactoryHandlerUnique());
+//    paginatedComponentFactory.registerComponent(IndexLSMHash.NOTUNIQUE_INDEX_EXT, new IndexLSMHash.PaginatedComponentFactoryHandlerNotUnique());
+
+    indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new IndexLSMTree.IndexFactoryHandler());
+//    indexFactory.register(INDEX_TYPE.LSM_HASH.name(), new IndexLSMHash.IndexLSMHashFactoryHandler());
   }
 
   public void create(final PaginatedFile.MODE mode) {
@@ -69,58 +86,16 @@ public class SchemaImpl implements Schema {
 
   public void load(final PaginatedFile.MODE mode) throws IOException {
     for (PaginatedFile file : database.getFileManager().getFiles()) {
-      final String fileName = file.getComponentName();
-      final int fileId = file.getFileId();
-      final String fileExt = file.getFileExtension();
-      final int pageSize = file.getPageSize();
+      final PaginatedComponent pf = paginatedComponentFactory.createComponent(file, mode);
 
-      PaginatedComponent pf = null;
-
-      if (fileExt.equals(Dictionary.DICT_EXT)) {
-        // DICTIONARY
-        try {
-          dictionary = new Dictionary(database, fileName, file.getFilePath(), fileId, mode, pageSize);
-          pf = dictionary;
-
-        } catch (IOException e) {
-          LogManager.instance().error(this, "Error on opening dictionary '%s' (error=%s)", e, file, e.toString());
-        }
-
-      } else if (fileExt.equals(Bucket.BUCKET_EXT)) {
-        // BUCKET
-        try {
-          final Bucket newPart = new Bucket(database, fileName, file.getFilePath(), fileId, mode, pageSize);
-          bucketMap.put(fileName, newPart);
-          pf = newPart;
-        } catch (IOException e) {
-          LogManager.instance().error(this, "Error on opening bucket '%s' (error=%s)", e, file, e.toString());
-        }
-
-      } else if (fileExt.equals(IndexLSMTree.UNIQUE_INDEX_EXT)) {
-        // INDEX
-        try {
-          final IndexLSMTree index = new IndexLSMTree(database, fileName, true, file.getFilePath(), fileId, mode, pageSize);
-          indexMap.put(fileName, index);
-          pf = index;
-        } catch (IOException e) {
-          LogManager.instance().error(this, "Error on opening index '%s' (error=%s)", e, file, e.toString());
-        }
-
-      } else if (fileExt.equals(IndexLSMTree.NOTUNIQUE_INDEX_EXT)) {
-        // INDEX
-        try {
-          final IndexLSMTree index = new IndexLSMTree(database, fileName, false, file.getFilePath(), fileId, mode, pageSize);
-          indexMap.put(fileName, index);
-          pf = index;
-        } catch (IOException e) {
-          LogManager.instance().error(this, "Error on opening index '%s' (error=%s)", e, file, e.toString());
-        }
-      }
+      if (pf instanceof Bucket)
+        bucketMap.put(pf.getName(), (Bucket) pf);
+      else if (pf instanceof Index)
+        indexMap.put(pf.getName(), (Index) pf);
 
       if (pf != null)
         registerFile(pf);
     }
-
     readConfiguration();
   }
 
@@ -253,16 +228,12 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames) {
-    return createClassIndexes(unique, typeName, propertyNames, IndexLSMTree.DEF_PAGE_SIZE);
+  public Index[] createClassIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames) {
+    return createClassIndexes(indexType, unique, typeName, propertyNames, IndexLSMAbstract.DEF_PAGE_SIZE);
   }
 
   @Override
-  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
-    return createClassIndexes(unique, typeName, propertyNames, pageSize, propertyNames.length);
-  }
-
-  public Index[] createClassIndexes(final boolean unique, final String typeName, final String[] propertyNames, final int pageSize, final int bfKeyDepth) {
+  public Index[] createClassIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
     return (Index[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -286,7 +257,7 @@ public class SchemaImpl implements Schema {
 
           final List<Bucket> buckets = type.getBuckets(false);
 
-          final IndexLSMTree[] indexes = new IndexLSMTree[buckets.size()];
+          final Index[] indexes = new Index[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
             final Bucket b = buckets.get(idx);
             final String indexName = b.getName() + "_" + System.currentTimeMillis();
@@ -294,10 +265,13 @@ public class SchemaImpl implements Schema {
             if (indexMap.containsKey(indexName))
               throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-            indexes[idx] = new IndexLSMTree(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
-                BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
+            indexes[idx] = indexFactory
+                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
+                    BinaryTypes.TYPE_RID, pageSize);
 
-            registerFile(indexes[idx]);
+            if (indexes[idx] instanceof PaginatedComponent)
+              registerFile((PaginatedComponent) indexes[idx]);
+
             indexMap.put(indexName, indexes[idx]);
 
             type.addIndexInternal(indexes[idx], b, propertyNames);
@@ -314,11 +288,7 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  public Index createManualIndex(final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
-    return createManualIndex(unique, indexName, keyTypes, pageSize, keyTypes.length);
-  }
-
-  public Index createManualIndex(final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) {
+  public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
     return (IndexLSMTree) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -326,9 +296,13 @@ public class SchemaImpl implements Schema {
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          final IndexLSMTree index = new IndexLSMTree(database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
-              BinaryTypes.TYPE_RID, pageSize, bfKeyDepth);
-          registerFile(index);
+          Index index = indexFactory
+              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
+                  BinaryTypes.TYPE_RID, pageSize);
+
+          if (index instanceof PaginatedComponent)
+            registerFile((PaginatedComponent) index);
+
           indexMap.put(indexName, index);
 
           return index;

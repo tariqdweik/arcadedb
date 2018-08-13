@@ -34,11 +34,18 @@ public class Dictionary extends PaginatedComponent {
   private static final int DICTIONARY_ITEM_COUNT  = 0;
   private static final int DICTIONARY_HEADER_SIZE = Binary.INT_SERIALIZED_SIZE;
 
+  public static class PaginatedComponentFactoryHandler implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
+    @Override
+    public PaginatedComponent create(Database database, String name, String filePath, final int fileId, PaginatedFile.MODE mode, int pageSize)
+        throws IOException {
+      return new Dictionary(database, name, filePath, fileId, mode, pageSize);
+    }
+  }
+
   /**
    * Called at creation time.
    */
-  public Dictionary(final Database database, final String name, String filePath, final PaginatedFile.MODE mode, final int pageSize)
-      throws IOException {
+  public Dictionary(final Database database, final String name, String filePath, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
@@ -51,8 +58,8 @@ public class Dictionary extends PaginatedComponent {
   /**
    * Called at load time.
    */
-  public Dictionary(final Database database, final String name, String filePath, final int id, final PaginatedFile.MODE mode,
-      final int pageSize) throws IOException {
+  public Dictionary(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
+      throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE

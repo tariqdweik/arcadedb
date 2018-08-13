@@ -52,7 +52,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
   /**
    * Called at creation time.
    */
-  public IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final String ext, final PaginatedFile.MODE mode,
+  protected IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final String ext, final PaginatedFile.MODE mode,
       final byte[] keyTypes, final byte valueType, final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), ext, mode, pageSize);
     this.serializer = database.getSerializer();
@@ -64,7 +64,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
   /**
    * Called at cloning time.
    */
-  public IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final String ext, final byte[] keyTypes,
+  protected IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final String ext, final byte[] keyTypes,
       final byte valueType, final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + ext, PaginatedFile.MODE.READ_WRITE, pageSize);
     this.serializer = database.getSerializer();
@@ -76,7 +76,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
   /**
    * Called at load time (1st page only).
    */
-  public IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
+  protected IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
       final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     this.serializer = database.getSerializer();
