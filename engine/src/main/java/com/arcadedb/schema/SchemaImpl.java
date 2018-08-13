@@ -39,15 +39,15 @@ public class SchemaImpl implements Schema {
   private final       List<PaginatedComponent>  files            = new ArrayList<PaginatedComponent>();
   private final       Map<String, DocumentType> types            = new HashMap<String, DocumentType>();
   private final       Map<String, Bucket>       bucketMap        = new HashMap<String, Bucket>();
-  private final Map<String, Index>        indexMap         = new HashMap<String, Index>();
-  private final String                    databasePath;
-  private       Dictionary                dictionary;
-  private       String                    dateFormat       = DEFAULT_DATE_FORMAT;
-  private       String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
-  private       String                    encoding         = DEFAULT_ENCODING;
-  private       TimeZone                  timeZone         = TimeZone.getDefault();
-  private final PaginatedComponentFactory paginatedComponentFactory;
-  private final IndexFactory              indexFactory     = new IndexFactory();
+  private final       Map<String, Index>        indexMap         = new HashMap<String, Index>();
+  private final       String                    databasePath;
+  private             Dictionary                dictionary;
+  private             String                    dateFormat       = DEFAULT_DATE_FORMAT;
+  private             String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
+  private             String                    encoding         = DEFAULT_ENCODING;
+  private             TimeZone                  timeZone         = TimeZone.getDefault();
+  private final       PaginatedComponentFactory paginatedComponentFactory;
+  private final       IndexFactory              indexFactory     = new IndexFactory();
 
   public enum INDEX_TYPE {
     LSM_TREE, LSM_HASH
@@ -66,7 +66,7 @@ public class SchemaImpl implements Schema {
 //    paginatedComponentFactory.registerComponent(IndexLSMHash.NOTUNIQUE_INDEX_EXT, new IndexLSMHash.PaginatedComponentFactoryHandlerNotUnique());
 
     indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new IndexLSMTree.IndexFactoryHandler());
-//    indexFactory.register(INDEX_TYPE.LSM_HASH.name(), new IndexLSMHash.IndexLSMHashFactoryHandler());
+//    indexFactory.register(INDEX_TYPE.LSM_HASH.name(), new IndexLSMHash.IndexFactoryHandler());
   }
 
   public void create(final PaginatedFile.MODE mode) {

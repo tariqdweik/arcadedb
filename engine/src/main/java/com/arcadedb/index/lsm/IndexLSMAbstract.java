@@ -21,7 +21,7 @@ import java.util.*;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
 /**
- * Abstract class for LSM based indexes.
+ * Abstract class for LSM-based indexes.
  */
 public abstract class IndexLSMAbstract extends PaginatedComponent implements Index {
   public static final int DEF_PAGE_SIZE     = 4 * 1024 * 1024;

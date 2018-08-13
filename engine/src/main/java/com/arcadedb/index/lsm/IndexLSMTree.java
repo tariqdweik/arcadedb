@@ -14,7 +14,6 @@ import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.IndexException;
-import com.arcadedb.engine.PaginatedComponentFactory;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
@@ -355,7 +354,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     else if (result < 0)
       return LOWER;
 
-    if (purpose == 1) {
+    if (purpose == 0 || purpose == 1) {
       currentPageBuffer.position(currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE)));
       final int keySerializedSize = getSerializedKeySize(currentPageBuffer, keys);
 
@@ -365,7 +364,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
       final int[] positionsArray = new int[lastKeyPos - firstKeyPos + 1];
       for (int i = firstKeyPos; i <= lastKeyPos; ++i)
-        positionsArray[i - firstKeyPos] = currentPageBuffer.getInt(startIndexArray + (firstKeyPos * INT_SERIALIZED_SIZE)) + keySerializedSize;
+        positionsArray[i - firstKeyPos] = currentPageBuffer.getInt(startIndexArray + (i * INT_SERIALIZED_SIZE)) + keySerializedSize;
 
       return new LookupResult(true, lastKeyPos, positionsArray);
     }
@@ -608,21 +607,30 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
       if (result.found) {
-        // LAST PAGE IS NOT IMMUTABLE (YET), UPDATE THE 1ST VALUE
-        currentPageBuffer.position(result.valueBeginPositions[0]);
+        boolean exit = false;
 
-        if (rid != null) {
-          // SEARCH FOR THE VALUE TO REPLACE
+        for (int i = result.valueBeginPositions.length - 1; !exit && i > -1; --i) {
+          currentPageBuffer.position(result.valueBeginPositions[i]);
+
           final Object[] values = readEntryValues(currentPageBuffer);
-          for (int i = 0; i < values.length; ++i) {
-            if (rid.equals(values[i])) {
-              // OVERWRITE LAST VALUE
-              currentPageBuffer.position(result.valueBeginPositions[result.valueBeginPositions.length - 1]);
-              updateEntryValue(currentPageBuffer, i, removedRID);
-              return;
-            } else if (removedRID.equals(values[i]))
+
+          for (int v = values.length - 1; v > -1; --v) {
+            final RID currentRID = (RID) values[v];
+
+            if (rid != null) {
+              if (rid.equals(currentRID)) {
+                // FOUND
+                exit = true;
+                break;
+              } else if (removedRID.equals(currentRID))
+                // ALREADY DELETED
+                return;
+            }
+
+            if (currentRID.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && currentRID.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
               // ALREADY DELETED
               return;
+            }
           }
         }
       }
