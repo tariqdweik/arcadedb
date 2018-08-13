@@ -37,6 +37,8 @@ public interface Index {
 
   Set<RID> get(Object[] keys);
 
+  Set<RID> get(Object[] keys, final int limit);
+
   void put(Object[] keys, RID rid);
 
   void put(Object[] keys, RID rid, boolean checkForUnique);

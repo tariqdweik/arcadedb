@@ -53,24 +53,24 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
    * Called at creation time.
    */
   protected IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final String ext, final PaginatedFile.MODE mode,
-      final byte[] keyTypes, final byte valueType, final int pageSize) throws IOException {
+      final byte[] keyTypes, final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), ext, mode, pageSize);
     this.serializer = database.getSerializer();
     this.unique = unique;
     this.keyTypes = keyTypes;
-    this.valueType = valueType;
+    this.valueType = BinaryTypes.TYPE_COMPRESSED_RID;
   }
 
   /**
    * Called at cloning time.
    */
   protected IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final String ext, final byte[] keyTypes,
-      final byte valueType, final int pageSize) throws IOException {
+      final int pageSize) throws IOException {
     super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + ext, PaginatedFile.MODE.READ_WRITE, pageSize);
     this.serializer = database.getSerializer();
     this.unique = unique;
     this.keyTypes = keyTypes;
-    this.valueType = valueType;
+    this.valueType = BinaryTypes.TYPE_COMPRESSED_RID;
   }
 
   /**
@@ -97,67 +97,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
 
   @Override
   public Set<RID> get(final Object[] keys) {
-    try {
-      final Set<RID> set = new HashSet<>();
-
-      final int totalPages = getTotalPages();
-
-      final Set<RID> removedRIDs = new HashSet<>();
-
-      // SEARCH FROM THE LAST PAGE BACK
-      for (int p = totalPages - 1; p > -1; --p) {
-        final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), p), pageSize);
-        final Binary currentPageBuffer = new Binary(currentPage.slice());
-        final int count = getCount(currentPage);
-
-        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 1);
-        if (result != null && result.found) {
-          // REAL ALL THE ENTRIES
-          final List<Object> allValues = readAllValues(currentPageBuffer, result);
-
-          // START FROM THE LAST ENTRY
-          boolean exit = false;
-          for (int i = allValues.size() - 1; i > -1; --i) {
-            RID rid = (RID) allValues.get(i);
-
-            if (rid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && rid.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
-              if (set.contains(rid))
-                continue;
-              else {
-                // DELETED ITEM
-                set.clear();
-                exit = true;
-                break;
-              }
-            }
-
-            if (rid.getBucketId() < 0) {
-              // RID DELETED, SKIP THE RID
-              final RID originalRID = getOriginalRID(rid);
-              if (!set.contains(originalRID))
-                removedRIDs.add(originalRID);
-              continue;
-            }
-
-            if (removedRIDs.contains(rid))
-              // ALREADY FOUND AS DELETED
-              continue;
-
-            set.add(rid);
-          }
-
-          if (exit)
-            break;
-        }
-      }
-
-      //LogManager.instance().debug(this, "Get entry by key %s from index '%s' resultItems=%d", Arrays.toString(keys), name, set.size());
-
-      return set;
-
-    } catch (IOException e) {
-      throw new DatabaseOperationException("Cannot lookup key '" + Arrays.toString(keys) + "' in index '" + name + "'", e);
-    }
+    return get(keys, -1);
   }
 
   @Override
@@ -315,6 +255,68 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
         continue;
 
       throw new DuplicatedKeyException(name, Arrays.toString(keys));
+    }
+  }
+
+  @Override
+  public Set<RID> get(final Object[] keys, final int limit) {
+    try {
+      final Set<RID> set = new HashSet<>();
+
+      final int totalPages = getTotalPages();
+
+      final Set<RID> removedRIDs = new HashSet<>();
+
+      // SEARCH FROM THE LAST PAGE BACK
+      for (int p = totalPages - 1; p > -1; --p) {
+        final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), p), pageSize);
+        final Binary currentPageBuffer = new Binary(currentPage.slice());
+        final int count = getCount(currentPage);
+
+        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 1);
+        if (result != null && result.found) {
+          // REAL ALL THE ENTRIES
+          final List<Object> allValues = readAllValues(currentPageBuffer, result);
+
+          // START FROM THE LAST ENTRY
+          for (int i = allValues.size() - 1; i > -1; --i) {
+            RID rid = (RID) allValues.get(i);
+
+            if (rid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && rid.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
+              if (set.contains(rid))
+                continue;
+              else {
+                // DELETED ITEM
+                set.clear();
+                return set;
+              }
+            }
+
+            if (rid.getBucketId() < 0) {
+              // RID DELETED, SKIP THE RID
+              final RID originalRID = getOriginalRID(rid);
+              if (!set.contains(originalRID))
+                removedRIDs.add(originalRID);
+              continue;
+            }
+
+            if (removedRIDs.contains(rid))
+              // ALREADY FOUND AS DELETED
+              continue;
+
+            set.add(rid);
+
+            if (limit > -1 && set.size() >= limit) {
+              return set;
+            }
+          }
+        }
+      }
+
+      return set;
+
+    } catch (IOException e) {
+      throw new DatabaseOperationException("Cannot lookup key '" + Arrays.toString(keys) + "' in index '" + name + "'", e);
     }
   }
 }

@@ -15,6 +15,7 @@ import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
 import com.arcadedb.index.lsm.IndexLSMAbstract;
+import com.arcadedb.index.lsm.IndexLSMHash;
 import com.arcadedb.index.lsm.IndexLSMTree;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.FileUtils;
@@ -62,11 +63,11 @@ public class SchemaImpl implements Schema {
     paginatedComponentFactory.registerComponent(Bucket.BUCKET_EXT, new Bucket.PaginatedComponentFactoryHandler());
     paginatedComponentFactory.registerComponent(IndexLSMTree.UNIQUE_INDEX_EXT, new IndexLSMTree.PaginatedComponentFactoryHandlerUnique());
     paginatedComponentFactory.registerComponent(IndexLSMTree.NOTUNIQUE_INDEX_EXT, new IndexLSMTree.PaginatedComponentFactoryHandlerNotUnique());
-//    paginatedComponentFactory.registerComponent(IndexLSMHash.UNIQUE_INDEX_EXT, new IndexLSMHash.PaginatedComponentFactoryHandlerUnique());
-//    paginatedComponentFactory.registerComponent(IndexLSMHash.NOTUNIQUE_INDEX_EXT, new IndexLSMHash.PaginatedComponentFactoryHandlerNotUnique());
+    paginatedComponentFactory.registerComponent(IndexLSMHash.UNIQUE_INDEX_EXT, new IndexLSMHash.PaginatedComponentFactoryHandlerUnique());
+    paginatedComponentFactory.registerComponent(IndexLSMHash.NOTUNIQUE_INDEX_EXT, new IndexLSMHash.PaginatedComponentFactoryHandlerNotUnique());
 
     indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new IndexLSMTree.IndexFactoryHandler());
-//    indexFactory.register(INDEX_TYPE.LSM_HASH.name(), new IndexLSMHash.IndexFactoryHandler());
+    indexFactory.register(INDEX_TYPE.LSM_HASH.name(), new IndexLSMHash.IndexFactoryHandler());
   }
 
   public void create(final PaginatedFile.MODE mode) {
@@ -92,6 +93,8 @@ public class SchemaImpl implements Schema {
         bucketMap.put(pf.getName(), (Bucket) pf);
       else if (pf instanceof Index)
         indexMap.put(pf.getName(), (Index) pf);
+      else if (pf instanceof Dictionary)
+        dictionary = (Dictionary) pf;
 
       if (pf != null)
         registerFile(pf);
@@ -266,8 +269,7 @@ public class SchemaImpl implements Schema {
               throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
             indexes[idx] = indexFactory
-                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
-                    BinaryTypes.TYPE_RID, pageSize);
+                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
 
             if (indexes[idx] instanceof PaginatedComponent)
               registerFile((PaginatedComponent) indexes[idx]);
@@ -297,8 +299,7 @@ public class SchemaImpl implements Schema {
 
         try {
           Index index = indexFactory
-              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
-                  BinaryTypes.TYPE_RID, pageSize);
+              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
 
           if (index instanceof PaginatedComponent)
             registerFile((PaginatedComponent) index);

@@ -19,11 +19,11 @@ public class IndexFactory {
   }
 
   public Index createIndex(final String indexType, final Database database, final String indexName, final boolean unique, final String filePath,
-      final PaginatedFile.MODE mode, final byte[] keyTypes, final byte valueType, final int pageSize) throws IOException {
+      final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     final IndexFactoryHandler handler = map.get(indexType);
     if (handler == null)
       throw new IllegalArgumentException("Cannot create index of type '" + indexType + "'");
 
-    return handler.create(database, indexName, unique, filePath, mode, keyTypes, valueType, pageSize);
+    return handler.create(database, indexName, unique, filePath, mode, keyTypes, pageSize);
   }
 }

@@ -11,5 +11,5 @@ import java.io.IOException;
 
 public interface IndexFactoryHandler {
   Index create(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
-      final byte valueType, final int pageSize) throws IOException;
+      final int pageSize) throws IOException;
 }

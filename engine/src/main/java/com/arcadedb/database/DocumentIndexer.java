@@ -158,7 +158,7 @@ public class DocumentIndexer {
     final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.keyNames);
     if (typeIndexes != null) {
       for (DocumentType.IndexMetadata i : typeIndexes) {
-        if (!i.index.get(key.keys).isEmpty())
+        if (!i.index.get(key.keys, 1).isEmpty())
           throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keys));
       }
     }

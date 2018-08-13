@@ -33,7 +33,7 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * When a page is full, another page is created, waiting for a compaction.
  * <p>
  * HEADER 1st PAGE = [numberOfEntries(int:4),offsetFreeKeyValueContent(int:4),bloomFilterSeed(int:4),
- * bloomFilter(bytes[]:<bloomFilterLength>), numberOfKeys(byte:1),keyType(byte:1)*,valueType(byte:1),bfKeyDepth(byte:1)]
+ * bloomFilter(bytes[]:<bloomFilterLength>), numberOfKeys(byte:1),keyType(byte:1)*,bfKeyDepth(byte:1)]
  * <p>
  * HEADER Nst PAGE = [numberOfEntries(int:4),offsetFreeKeyValueContent(int:4),bloomFilterSeed(int:4),
  * bloomFilter(bytes[]:<bloomFilterLength>)]
@@ -54,8 +54,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
     public Index create(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-        final byte[] keyTypes, final byte valueType, final int pageSize) throws IOException {
-      return new IndexLSMTree(database, name, unique, filePath, mode, keyTypes, valueType, pageSize, keyTypes.length);
+        final byte[] keyTypes, final int pageSize) throws IOException {
+      return new IndexLSMTree(database, name, unique, filePath, mode, keyTypes, pageSize, keyTypes.length);
     }
   }
 
@@ -77,8 +77,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
    * Called at creation time.
    */
   public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-      final byte[] keyTypes, final byte valueType, final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, valueType, pageSize);
+      final byte[] keyTypes, final int pageSize, final int bfKeyDepth) throws IOException {
+    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
     this.comparator = serializer.getComparator();
     this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
@@ -88,9 +88,9 @@ public class IndexLSMTree extends IndexLSMAbstract {
   /**
    * Called at cloning time.
    */
-  public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final byte[] keyTypes, final byte valueType,
-      final int pageSize, final int bfKeyDepth) throws IOException {
-    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, valueType, pageSize);
+  public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final byte[] keyTypes, final int pageSize,
+      final int bfKeyDepth) throws IOException {
+    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
     this.comparator = serializer.getComparator();
     this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
@@ -112,14 +112,13 @@ public class IndexLSMTree extends IndexLSMAbstract {
     this.keyTypes = new byte[len];
     for (int i = 0; i < len; ++i)
       this.keyTypes[i] = currentPage.readByte(pos++);
-    this.valueType = currentPage.readByte(pos++); // RID
     this.bfKeyDepth = currentPage.readByte(pos++);
   }
 
   public IndexLSMTree copy() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-    return new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, valueType, pageSize, bfKeyDepth);
+    return new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize, bfKeyDepth);
   }
 
   @Override
@@ -215,7 +214,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
         getBFSeed(currentPage));
 
-    bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
+    bf.add(BinaryTypes.getHash32(keys, bfKeyDepth));
 
     setCount(currentPage, count + 1);
     setEntriesFreePosition(currentPage, keyValueFreePosition);
@@ -247,7 +246,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
         seed);
 
     LookupResult result = null;
-    if (bf.mightContain(BinaryTypes.getHash(keys, bfKeyDepth))) {
+    if (bf.mightContain(BinaryTypes.getHash32(keys, bfKeyDepth))) {
       result = lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, keys, purpose);
       if (!result.found)
         statsBFFalsePositive.incrementAndGet();
@@ -469,10 +468,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
     if (pageCount.get() == 0) {
       currentPage.writeByte(pos++, (byte) keyTypes.length);
-      for (int i = 0; i < keyTypes.length; ++i) {
+      for (int i = 0; i < keyTypes.length; ++i)
         currentPage.writeByte(pos++, keyTypes[i]);
-      }
-      currentPage.writeByte(pos++, valueType);
       currentPage.writeByte(pos++, (byte) bfKeyDepth);
     }
 
@@ -508,7 +505,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     checkForNulls(keys);
 
     if (unique && checkForUnique) {
-      final Set<RID> result = get(keys);
+      final Set<RID> result = get(keys, 1);
       if (!result.isEmpty())
         throw new DuplicatedKeyException(name, Arrays.toString(keys));
     }
@@ -529,8 +526,6 @@ public class IndexLSMTree extends IndexLSMAbstract {
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, unique ? 3 : 0);
       if (unique && checkForUnique && result.found)
         checkUniqueConstraint(keys, currentPageBuffer, result);
-
-      // TODO: OPTIMIZATION: REPLACE SAME KEY/RID (even deleted) INSTEAD OF ADDING A NEW ENTRY
 
       // WRITE KEY/VALUE PAIRS FIRST
       final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
@@ -569,7 +564,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
           getBFSeed(currentPage));
 
       // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
-      bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
+      bf.add(BinaryTypes.getHash32(keys, bfKeyDepth));
 
       setCount(currentPage, count + 1);
       setEntriesFreePosition(currentPage, keyValueFreePosition);
@@ -672,7 +667,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
           getBFSeed(currentPage));
 
       // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
-      bf.add(BinaryTypes.getHash(keys, bfKeyDepth));
+      bf.add(BinaryTypes.getHash32(keys, bfKeyDepth));
 
       setCount(currentPage, count + 1);
       setEntriesFreePosition(currentPage, keyValueFreePosition);
