@@ -86,19 +86,34 @@ public class SchemaImpl implements Schema {
   }
 
   public void load(final PaginatedFile.MODE mode) throws IOException {
-    for (PaginatedFile file : database.getFileManager().getFiles()) {
-      final PaginatedComponent pf = paginatedComponentFactory.createComponent(file, mode);
+    final Collection<PaginatedFile> filesToOpen = database.getFileManager().getFiles();
 
-      if (pf instanceof Bucket)
-        bucketMap.put(pf.getName(), (Bucket) pf);
-      else if (pf instanceof Index)
-        indexMap.put(pf.getName(), (Index) pf);
-      else if (pf instanceof Dictionary)
-        dictionary = (Dictionary) pf;
-
-      if (pf != null)
-        registerFile(pf);
+    // REGISTER THE DICTIONARY FIRST
+    for (PaginatedFile file : filesToOpen) {
+      if (Dictionary.DICT_EXT.equals(file.getFileExtension())) {
+        dictionary = (Dictionary) paginatedComponentFactory.createComponent(file, mode);
+        registerFile(dictionary);
+        break;
+      }
     }
+
+    if (dictionary == null)
+      throw new ConfigurationException("Dictionary file not found in database directory");
+
+    for (PaginatedFile file : filesToOpen) {
+      if (!Dictionary.DICT_EXT.equals(file.getFileExtension())) {
+        final PaginatedComponent pf = paginatedComponentFactory.createComponent(file, mode);
+
+        if (pf instanceof Bucket)
+          bucketMap.put(pf.getName(), (Bucket) pf);
+        else if (pf instanceof Index)
+          indexMap.put(pf.getName(), (Index) pf);
+
+        if (pf != null)
+          registerFile(pf);
+      }
+    }
+
     readConfiguration();
   }
 
@@ -269,7 +284,8 @@ public class SchemaImpl implements Schema {
               throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
             indexes[idx] = indexFactory
-                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
+                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, propertyNames,
+                    keyTypes, pageSize);
 
             if (indexes[idx] instanceof PaginatedComponent)
               registerFile((PaginatedComponent) indexes[idx]);
@@ -299,7 +315,8 @@ public class SchemaImpl implements Schema {
 
         try {
           Index index = indexFactory
-              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
+              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, null, keyTypes,
+                  pageSize);
 
           if (index instanceof PaginatedComponent)
             registerFile((PaginatedComponent) index);

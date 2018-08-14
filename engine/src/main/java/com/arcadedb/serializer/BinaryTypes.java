@@ -177,12 +177,12 @@ public class BinaryTypes {
     return key.hashCode();
   }
 
-  public static int getHash64(final Object[] keys) {
+  public static long getHash64(final Object[] keys) {
     return getHash64(keys, keys.length);
   }
 
-  public static int getHash64(final Object[] keys, final int keyCount) {
-    int hash = 0;
+  public static long getHash64(final Object[] keys, final int keyCount) {
+    long hash = 0;
 
     for (int i = 0; i < keyCount; ++i)
       hash += getHash64(keys[i]);

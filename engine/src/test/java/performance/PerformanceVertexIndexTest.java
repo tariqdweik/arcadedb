@@ -13,10 +13,8 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.LogManager;
 
-import java.util.UUID;
-
 public class PerformanceVertexIndexTest {
-  private static final int    TOT       = 1000000000;
+  private static final int    TOT       = 300_000_000;
   private static final String TYPE_NAME = "Device";
 
   public static void main(String[] args) {
@@ -53,9 +51,9 @@ public class PerformanceVertexIndexTest {
         v.createProperty("operationalStatus", String.class);
         v.createProperty("supplierName", String.class);
 
-        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
-        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
-        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_HASH, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_HASH, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_HASH, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
 
         database.commit();
       }
@@ -92,7 +90,7 @@ public class PerformanceVertexIndexTest {
       for (; counter < totalToInsert; ++counter) {
         final ModifiableDocument v = database.newDocument("Device");
 
-        final String randomString = UUID.randomUUID().toString();
+        final String randomString = "" + counter;
 
         v.set("id", randomString); // INDEXED
         v.set("number", "" + counter); // INDEXED
