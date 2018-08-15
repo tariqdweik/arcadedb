@@ -4,17 +4,16 @@
 
 package performance;
 
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.LogManager;
+import org.junit.jupiter.api.Assertions;
 
 public class PerformanceVertexIndexTest {
-  private static final int    TOT       = 300_000_000;
+  private static final int    TOT       = 1_000_000;
   private static final String TYPE_NAME = "Device";
 
   public static void main(String[] args) {
@@ -51,9 +50,11 @@ public class PerformanceVertexIndexTest {
         v.createProperty("operationalStatus", String.class);
         v.createProperty("supplierName", String.class);
 
-        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_HASH, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
-        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_HASH, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
-        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_HASH, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
+//        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "HolderSpec_Name" }, 2 * 1024 * 1024);
+//        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "Name" }, 2 * 1024 * 1024);
 
         database.commit();
       }
@@ -68,7 +69,7 @@ public class PerformanceVertexIndexTest {
     try {
 
       database.setReadYourWrites(false);
-      database.asynch().setCommitEvery(10000);
+      database.asynch().setCommitEvery(25000);
       database.asynch().setParallelLevel(parallel);
       database.asynch().setTransactionUseWAL(true);
       database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
@@ -99,8 +100,8 @@ public class PerformanceVertexIndexTest {
         v.set("lastModifiedUserId", "Holder");
         v.set("createdDate", "2011-09-12 14:50:57.0");
         v.set("assocJointClosureId", "434746");
-        v.set("HolderSpec_Name", "Slot");
-        v.set("Name", "1");
+        v.set("HolderSpec_Name", "Slot"+counter);
+        v.set("Name", "1"+counter);
         v.set("holderGroupName", "TBC");
         v.set("slot2slottype", "1900000012");
         v.set("inventoryStatus", "INI");
@@ -127,26 +128,26 @@ public class PerformanceVertexIndexTest {
       database.close();
       System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
-//
-//    begin = System.currentTimeMillis();
-//    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
-//    try {
-//      System.out.println("Lookup all the keys...");
-//      for (long id = 0; id < TOT; ++id) {
-//        final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
-//        Assertions.assertNotNull(records);
-//        Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
-//
-//        final Document record = (Document) records.next().getRecord();
-//        Assertions.assertEquals(id, record.get("id"));
-//
-//        if (id % 100000 == 0)
-//          System.out.println("Checked " + id + " lookups in " + (System.currentTimeMillis() - begin) + "ms");
-//      }
-//    } finally {
-//      database.close();
-//      System.out.println("Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
-//    }
+
+    begin = System.currentTimeMillis();
+    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
+    try {
+      System.out.println("Lookup all the keys...");
+      for (long id = 0; id < TOT; ++id) {
+        final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
+        Assertions.assertNotNull(records);
+        Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
+
+        final Document record = (Document) records.next().getRecord();
+        Assertions.assertEquals(""+id, record.get("id"));
+
+        if (id % 100000 == 0)
+          System.out.println("Checked " + id + " lookups in " + (System.currentTimeMillis() - begin) + "ms");
+      }
+    } finally {
+      database.close();
+      System.out.println("Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
+    }
 
   }
 }

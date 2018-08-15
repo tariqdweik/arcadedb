@@ -37,12 +37,13 @@ public class IndexLSMTreeCursor implements IndexCursor {
     this(index, ascendingOrder, null, null);
   }
 
-  public IndexLSMTreeCursor(final IndexLSMTree index, final boolean ascendingOrder, final Object[] fromKeys, final Object[] toKeys) throws IOException {
+  public IndexLSMTreeCursor(final IndexLSMTree index, final boolean ascendingOrder, Object[] fromKeys, final Object[] toKeys) throws IOException {
     this.index = index;
-    index.checkForNulls(fromKeys);
-    this.toKeys = index.checkForNulls(toKeys);
-
     this.keyTypes = index.getKeyTypes();
+
+    fromKeys = index.convertKeys(index.checkForNulls(fromKeys), keyTypes);
+    this.toKeys = index.convertKeys(index.checkForNulls(toKeys), keyTypes);
+
     this.totalPages = index.getTotalPages();
 
     this.serializer = index.getDatabase().getSerializer();

@@ -14,6 +14,7 @@ import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.IndexException;
+import com.arcadedb.schema.Type;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
@@ -242,6 +243,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
   public Set<RID> get(final Object[] keys, final int limit) {
     checkForNulls(keys);
 
+    final Object[] convertedKeys = convertKeys(keys, keyTypes);
+
     try {
       final Set<RID> set = new HashSet<>();
 
@@ -255,7 +258,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = getCount(currentPage);
 
-        final LookupResult result = searchInPage(currentPage, currentPageBuffer, keys, count, 1);
+        final LookupResult result = searchInPage(currentPage, currentPageBuffer, convertedKeys, count, 1);
         if (result != null && result.found) {
           // REAL ALL THE ENTRIES
           final List<Object> allValues = readAllValuesFromResult(currentPageBuffer, result);
@@ -316,8 +319,6 @@ public class IndexLSMTree extends IndexLSMAbstract {
    * @return
    */
   protected LookupResult searchInPage(final BasePage currentPage, final Binary currentPageBuffer, final Object[] keys, final int count, final int purpose) {
-    checkForNulls(keys);
-
     // SEARCH IN THE BF FIRST
     final int seed = getBFSeed(currentPage);
 
@@ -341,15 +342,15 @@ public class IndexLSMTree extends IndexLSMAbstract {
    *
    * @return
    */
-  protected LookupResult lookupInPage(final int pageNum, final int count, final Binary currentPageBuffer, final Object[] keys, final int purpose) {
+  protected LookupResult lookupInPage(final int pageNum, final int count, final Binary currentPageBuffer, final Object[] convertedKeys, final int purpose) {
     if (keyTypes.length == 0)
       throw new IllegalArgumentException("No key types found");
 
-    if (keys.length > keyTypes.length)
-      throw new IllegalArgumentException("key is composed of " + keys.length + " items, while the index defined " + keyTypes.length + " items");
+    if (convertedKeys.length > keyTypes.length)
+      throw new IllegalArgumentException("key is composed of " + convertedKeys.length + " items, while the index defined " + keyTypes.length + " items");
 
-    if ((purpose == 0 || purpose == 1) && keys.length != keyTypes.length)
-      throw new IllegalArgumentException("key is composed of " + keys.length + " items, while the index defined " + keyTypes.length + " items");
+    if ((purpose == 0 || purpose == 1) && convertedKeys.length != keyTypes.length)
+      throw new IllegalArgumentException("key is composed of " + convertedKeys.length + " items, while the index defined " + keyTypes.length + " items");
 
     if (count == 0)
       // EMPTY, NOT FOUND
@@ -360,19 +361,17 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
     final int startIndexArray = getHeaderSize(pageNum);
 
-    final Object[] convertedKeys = convertKeys(keys);
-
     LookupResult result;
 
     // CHECK THE BOUNDARIES FIRST (LOWER THAN THE FIRST)
-    result = compareKey(currentPageBuffer, startIndexArray, keys, convertedKeys, low, count, purpose);
+    result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, low, count, purpose);
     if (result == LOWER)
       return new LookupResult(false, low, null);
     else if (result != HIGHER)
       return result;
 
     // CHECK THE BOUNDARIES FIRST (HIGHER THAN THE LAST)
-    result = compareKey(currentPageBuffer, startIndexArray, keys, convertedKeys, high, count, purpose);
+    result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, high, count, purpose);
     if (result == HIGHER)
       return new LookupResult(false, count, null);
     else if (result != LOWER)
@@ -381,7 +380,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     while (low <= high) {
       int mid = (low + high) / 2;
 
-      result = compareKey(currentPageBuffer, startIndexArray, keys, convertedKeys, mid, count, purpose);
+      result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, mid, count, purpose);
 
       if (result == HIGHER)
         low = mid + 1;
@@ -421,7 +420,9 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
       int count = getCount(currentPage);
 
-      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, unique ? 3 : 0);
+      final Object[] convertedKeys = convertKeys(keys, keyTypes);
+
+      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, convertedKeys, unique ? 3 : 0);
 
       // WRITE KEY/VALUE PAIRS FIRST
       final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
@@ -496,7 +497,9 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
       final RID removedRID = rid != null ? getRemovedRID(rid) : REMOVED_ENTRY_RID;
 
-      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, keys, 0);
+      final Object[] convertedKeys = convertKeys(keys, keyTypes);
+
+      final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, convertedKeys, 0);
       if (result.found) {
         boolean exit = false;
 
@@ -600,23 +603,27 @@ public class IndexLSMTree extends IndexLSMAbstract {
   /**
    * Reads the keys and returns the serialized size.
    */
-  private int getSerializedKeySize(final Binary buffer, final Object[] keys) {
+  private int getSerializedKeySize(final Binary buffer, final int keyLength) {
     final int startsAt = buffer.position();
-    for (int keyIndex = 0; keyIndex < keys.length; ++keyIndex)
+    for (int keyIndex = 0; keyIndex < keyLength; ++keyIndex)
       serializer.deserializeValue(database, buffer, keyTypes[keyIndex]);
 
     return buffer.position() - startsAt;
   }
 
-  private Object[] convertKeys(final Object[] keys) {
-    final Object[] convertedKeys = new Object[keys.length];
-    for (int i = 0; i < keys.length; ++i) {
-      if (keys[i] instanceof String)
-        convertedKeys[i] = ((String) keys[i]).getBytes();
-      else
-        convertedKeys[i] = keys[i];
+  protected Object[] convertKeys(final Object[] keys, final byte[] keyTypes) {
+    if (keys != null) {
+      final Object[] convertedKeys = new Object[keys.length];
+      for (int i = 0; i < keys.length; ++i) {
+        convertedKeys[i] = Type.convert(database, keys[i], BinaryTypes.getClassFromType(keyTypes[i]));
+
+        if (convertedKeys[i] instanceof String)
+          // OPTIMIZATION: ALWAYS CONVERT STRINGS TO BYTE[]
+          convertedKeys[i] = ((String) convertedKeys[i]).getBytes();
+      }
+      return convertedKeys;
     }
-    return convertedKeys;
+    return keys;
   }
 
   private int compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object keys[], final int mid, final int count) {
@@ -646,8 +653,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
     return result;
   }
 
-  private LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] keys, final Object[] convertedKeys, int mid,
-      final int count, final int purpose) {
+  private LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] convertedKeys, int mid, final int count,
+      final int purpose) {
 
     int result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, mid, count);
 
@@ -658,7 +665,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
     if (purpose == 0 || purpose == 1) {
       currentPageBuffer.position(currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE)));
-      final int keySerializedSize = getSerializedKeySize(currentPageBuffer, keys);
+      final int keySerializedSize = getSerializedKeySize(currentPageBuffer, convertedKeys.length);
 
       // RETRIEVE ALL THE RESULTS
       final int firstKeyPos = findFirstEntryOfSameKey(currentPageBuffer, convertedKeys, startIndexArray, mid);

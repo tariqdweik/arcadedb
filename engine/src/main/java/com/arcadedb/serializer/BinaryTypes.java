@@ -94,6 +94,7 @@ public class BinaryTypes {
       return Binary.BYTE_SERIALIZED_SIZE;
 
     case BinaryTypes.TYPE_DECIMAL:
+      return Binary.FLOAT_SERIALIZED_SIZE;
 
     case BinaryTypes.TYPE_FLOAT:
       return Binary.FLOAT_SERIALIZED_SIZE;
@@ -151,6 +152,46 @@ public class BinaryTypes {
       throw new DatabaseMetadataException("Cannot find type for class '" + clazz + "'");
 
     return type;
+  }
+
+  public static Class<?> getClassFromType(final byte type) {
+    switch (type) {
+    case BinaryTypes.TYPE_STRING:
+      return String.class;
+
+    case BinaryTypes.TYPE_INT:
+      return Integer.class;
+
+    case BinaryTypes.TYPE_SHORT:
+      return Short.class;
+
+    case BinaryTypes.TYPE_LONG:
+      return Long.class;
+
+    case BinaryTypes.TYPE_BYTE:
+      return Byte.class;
+
+    case BinaryTypes.TYPE_DECIMAL:
+      return BigDecimal.class;
+
+    case BinaryTypes.TYPE_FLOAT:
+      return Float.class;
+
+    case BinaryTypes.TYPE_DOUBLE:
+      return Double.class;
+
+    case BinaryTypes.TYPE_DATETIME:
+    case BinaryTypes.TYPE_DATE:
+      return Date.class;
+
+    case BinaryTypes.TYPE_RID:
+    case BinaryTypes.TYPE_UUID:
+      return RID.class;
+
+    default:
+      // UNKNOWN
+      return null;
+    }
   }
 
   public static int getHash32(final Object[] keys) {

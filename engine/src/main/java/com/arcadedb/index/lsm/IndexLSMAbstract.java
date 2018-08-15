@@ -26,8 +26,8 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
   public static final RID REMOVED_ENTRY_RID = new RID(null, -1, -1l);
 
   protected final    BinarySerializer serializer;
+  protected final    byte             valueType  = BinaryTypes.TYPE_COMPRESSED_RID;
   protected          byte[]           keyTypes;
-  protected          byte             valueType;
   protected volatile boolean          compacting = false;
   protected final    boolean          unique;
 
@@ -40,7 +40,6 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
     this.serializer = database.getSerializer();
     this.unique = unique;
     this.keyTypes = keyTypes;
-    this.valueType = BinaryTypes.TYPE_COMPRESSED_RID;
   }
 
   /**
@@ -52,7 +51,6 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
     this.serializer = database.getSerializer();
     this.unique = unique;
     this.keyTypes = keyTypes;
-    this.valueType = BinaryTypes.TYPE_COMPRESSED_RID;
   }
 
   /**

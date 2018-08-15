@@ -251,7 +251,9 @@ public enum Type {
       return iValue;
 
     try {
-      if (iValue instanceof Binary && iTargetClass.isAssignableFrom(byte[].class))
+      if (iTargetClass.equals(String.class))
+        return iValue.toString();
+      else if (iValue instanceof Binary && iTargetClass.isAssignableFrom(byte[].class))
         return ((Binary) iValue).toByteArray();
       else if (byte[].class.isAssignableFrom(iValue.getClass())) {
         return iValue;
@@ -378,8 +380,6 @@ public enum Type {
             return new SimpleDateFormat(database.getSchema().getDateFormat()).parse((String) iValue);
           }
         }
-      } else if (iTargetClass.equals(String.class)) {
-        return iValue.toString();
       } else if (iTargetClass.equals(Identifiable.class)) {
         if (MultiValue.isMultiValue(iValue)) {
           List<Identifiable> result = new ArrayList<>();
