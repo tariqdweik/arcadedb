@@ -497,6 +497,7 @@ public class SchemaImpl implements Schema {
   }
 
   public void swapIndexes(final IndexLSMTree oldIndex, final IndexLSMTree newIndex) throws IOException {
+    // TODO: MUST BE SYNCHRONIZED
     indexMap.remove(oldIndex.getName());
 
     indexMap.put(newIndex.getName(), newIndex);
@@ -514,6 +515,8 @@ public class SchemaImpl implements Schema {
     }
 
     newIndex.removeTempSuffix();
+
+    saveConfiguration();
 
     oldIndex.drop();
   }

@@ -7,6 +7,9 @@ package performance;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
+import com.arcadedb.utility.LogManager;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
 
@@ -21,8 +24,20 @@ public class PerformanceIndexCompaction {
     final long begin = System.currentTimeMillis();
     try {
       System.out.println("Compacting all indexes...");
+
+      final long total = database.countType("Device", true);
+
+      long totalIndexed = countIndexedItems(database);
+
+      LogManager.instance().info(this, "Total indexes items %d", totalIndexed);
+
       for (Index index : database.getSchema().getIndexes())
         index.compact();
+
+      long totalIndexed2 = countIndexedItems(database);
+
+      Assertions.assertEquals(total, totalIndexed);
+      Assertions.assertEquals(totalIndexed, totalIndexed2);
 
       System.out.println("Compaction done");
 
@@ -31,5 +46,17 @@ public class PerformanceIndexCompaction {
       System.out.println("Compaction finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
 
+  }
+
+  private long countIndexedItems(Database database) throws IOException {
+    long totalIndexed = 0;
+    for (Index index : database.getSchema().getIndexes()) {
+      IndexCursor it = index.iterator(true);
+      while (it.hasNext()) {
+        it.next();
+        ++totalIndexed;
+      }
+    }
+    return totalIndexed;
   }
 }

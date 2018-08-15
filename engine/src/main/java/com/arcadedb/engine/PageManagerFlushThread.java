@@ -46,8 +46,6 @@ public class PageManagerFlushThread extends Thread {
         return;
       } catch (Exception e) {
         LogManager.instance().error(this, "Error on processing page flush requests", e);
-        running = false;
-        return;
       }
     }
   }

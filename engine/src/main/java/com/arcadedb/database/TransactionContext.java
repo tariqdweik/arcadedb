@@ -34,6 +34,7 @@ public class TransactionContext {
   private final Map<RID, Record>               immutableRecordsCache = new HashMap<>(1024);
   private final Map<RID, Record>               modifiedRecordsCache  = new HashMap<>(1024);
   private       boolean                        useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
+  private       boolean                        asyncFlush            = true;
   private       WALFile.FLUSH_TYPE             walFlush;
   private       List<Integer>                  lockedFiles;
   private final List<DocumentIndexer.IndexKey> indexKeysToLocks      = new ArrayList<>();
@@ -359,7 +360,7 @@ public class TransactionContext {
       LogManager.instance()
           .debug(this, "TX committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
 
-      pageManager.updatePages(newPages, modifiedPages);
+      pageManager.updatePages(newPages, modifiedPages, asyncFlush);
 
       if (newPages != null) {
         for (Map.Entry<Integer, Integer> entry : newPageCounters.entrySet()) {
@@ -379,6 +380,18 @@ public class TransactionContext {
     } finally {
       reset();
     }
+  }
+
+  public void addIndexKeyLock(final DocumentIndexer.IndexKey indexKey) {
+    indexKeysToLocks.add(indexKey);
+  }
+
+  public boolean isAsyncFlush() {
+    return asyncFlush;
+  }
+
+  public void setAsyncFlush(final boolean value) {
+    this.asyncFlush = value;
   }
 
   private List<Integer> lockFilesInOrder() {
@@ -419,9 +432,5 @@ public class TransactionContext {
     modifiedRecordsCache.clear();
     immutableRecordsCache.clear();
     txId = -1;
-  }
-
-  public void addIndexKeyLock(final DocumentIndexer.IndexKey indexKey) {
-    indexKeysToLocks.add(indexKey);
   }
 }

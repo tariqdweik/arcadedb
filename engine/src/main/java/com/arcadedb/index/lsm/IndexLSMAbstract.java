@@ -11,9 +11,11 @@ import com.arcadedb.engine.ModifiablePage;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexException;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Set;
 
@@ -21,8 +23,9 @@ import java.util.Set;
  * Abstract class for LSM-based indexes.
  */
 public abstract class IndexLSMAbstract extends PaginatedComponent implements Index {
-  public static final int DEF_PAGE_SIZE     = 4 * 1024 * 1024;
-  public static final RID REMOVED_ENTRY_RID = new RID(null, -1, -1l);
+  public static final  int    DEF_PAGE_SIZE     = 4 * 1024 * 1024;
+  public static final  RID    REMOVED_ENTRY_RID = new RID(null, -1, -1l);
+  private static final String TEMP_EXT          = "temp_";
 
   protected final    BinarySerializer serializer;
   protected final    byte             valueType  = BinaryTypes.TYPE_COMPRESSED_RID;
@@ -46,7 +49,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
    */
   protected IndexLSMAbstract(final Database database, final String name, final boolean unique, String filePath, final String ext, final byte[] keyTypes,
       final int pageSize) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), "temp_" + ext, PaginatedFile.MODE.READ_WRITE, pageSize);
+    super(database, name, filePath, database.getFileManager().newFileId(), TEMP_EXT + ext, PaginatedFile.MODE.READ_WRITE, pageSize);
     this.serializer = database.getSerializer();
     this.unique = unique;
     this.keyTypes = keyTypes;
@@ -67,7 +70,16 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
   protected abstract void internalRemove(Object[] keys, RID rid);
 
   public void removeTempSuffix() {
-    // TODO
+    final String fileName = file.getFileName();
+
+    final int extPos = fileName.lastIndexOf('.');
+    if (fileName.substring(extPos + 1).startsWith(TEMP_EXT)) {
+      try {
+        file.rename(fileName.substring(0, extPos) + "." + fileName.substring(extPos + TEMP_EXT.length() + 1));
+      } catch (FileNotFoundException e) {
+        throw new IndexException("Cannot rename temp file", e);
+      }
+    }
   }
 
   @Override

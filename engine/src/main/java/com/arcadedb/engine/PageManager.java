@@ -9,7 +9,6 @@ import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.utility.LockContext;
-import com.arcadedb.utility.LockManager;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
@@ -29,8 +28,8 @@ public class PageManager extends LockContext {
   private final ConcurrentMap<PageId, ImmutablePage>  readCache  = new ConcurrentHashMap<>(65536);
   private final ConcurrentMap<PageId, ModifiablePage> writeCache = new ConcurrentHashMap<>(65536);
 
-  private final TransactionManager           txManager;
-  private       boolean                      flushOnlyAtClose = GlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
+  private final TransactionManager txManager;
+  private       boolean            flushOnlyAtClose = GlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
 
   private final long       maxRAM;
   private final AtomicLong totalReadCacheRAM                     = new AtomicLong();
@@ -182,22 +181,22 @@ public class PageManager extends LockContext {
     return null;
   }
 
-  public void updatePages(final Map<PageId, ModifiablePage> newPages, final Map<PageId, ModifiablePage> modifiedPages)
+  public void updatePages(final Map<PageId, ModifiablePage> newPages, final Map<PageId, ModifiablePage> modifiedPages, final boolean asyncFlush)
       throws IOException, InterruptedException {
     lock();
     try {
       if (newPages != null)
         for (ModifiablePage p : newPages.values())
-          updatePage(p, true);
+          updatePage(p, true, asyncFlush);
 
       for (ModifiablePage p : modifiedPages.values())
-        updatePage(p, false);
+        updatePage(p, false, asyncFlush);
     } finally {
       unlock();
     }
   }
 
-  public void updatePage(final ModifiablePage page, final boolean isNew) throws IOException, InterruptedException {
+  public void updatePage(final ModifiablePage page, final boolean isNew, final boolean asyncFlush) throws IOException, InterruptedException {
     final BasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
     if (p != null) {
 
@@ -215,9 +214,14 @@ public class PageManager extends LockContext {
       if (writeCache.put(page.pageId, page) == null)
         totalWriteCacheRAM.addAndGet(page.getPhysicalSize());
 
-      if (!flushOnlyAtClose)
-        // ONLY IF NOT ALREADY IN THE QUEUE, ENQUEUE THE PAGE TO BE FLUSHED BY A SEPARATE THREAD
-        flushThread.asyncFlush(page);
+      if (asyncFlush) {
+        // ASYNCHRONOUS FLUSH
+        if (!flushOnlyAtClose)
+          // ONLY IF NOT ALREADY IN THE QUEUE, ENQUEUE THE PAGE TO BE FLUSHED BY A SEPARATE THREAD
+          flushThread.asyncFlush(page);
+      } else
+        // SYNCHRONOUS FLUSH
+        flushPage(page);
 
       LogManager.instance().debug(this, "Updated page %s (size=%d threadId=%d)", page, page.getPhysicalSize(), Thread.currentThread().getId());
     }
@@ -269,6 +273,17 @@ public class PageManager extends LockContext {
     final ModifiablePage page2 = writeCache.remove(pageId);
     if (page2 != null)
       totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
+  }
+
+  public void flushPagesOfFile(final int fileId) {
+    for (ModifiablePage p : writeCache.values()) {
+      if (p.getPageId().getFileId() == fileId)
+        try {
+          flushPage(p);
+        } catch (Exception e) {
+          LogManager.instance().error(this, "Error on flushing page %s (threadId=%d)", e, p, Thread.currentThread().getId());
+        }
+    }
   }
 
   public void preloadFile(final int fileId) {

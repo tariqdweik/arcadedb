@@ -16,49 +16,40 @@ public class PaginatedFile {
     READ_ONLY, READ_WRITE
   }
 
-  private final String      filePath;
+  private final MODE        mode;
+  private       String      filePath;
   private       String      fileName;
   private       FileChannel channel;
   private       int         fileId;
   private       int         pageSize;
   private       String      componentName;
-  private final String      fileExtension;
+  private       String      fileExtension;
   private       boolean     open;
 
   protected PaginatedFile(final String filePath, final MODE mode) throws FileNotFoundException {
-    this.filePath = filePath;
-
-    String filePrefix = filePath.substring(0, filePath.lastIndexOf("."));
-    this.fileExtension = filePath.substring(filePath.lastIndexOf(".") + 1);
-
-    final int pageSizePos = filePrefix.lastIndexOf(".");
-    pageSize = Integer.parseInt(filePrefix.substring(pageSizePos + 1));
-    filePrefix = filePrefix.substring(0, pageSizePos);
-
-    final int fileIdPos = filePrefix.lastIndexOf(".");
-    if (fileIdPos > -1) {
-      fileId = Integer.parseInt(filePrefix.substring(fileIdPos + 1));
-      int pos = filePrefix.lastIndexOf("/");
-      componentName = filePrefix.substring(pos + 1, filePrefix.lastIndexOf("."));
-    } else {
-      fileId = -1;
-      int pos = filePrefix.lastIndexOf("/");
-      componentName = filePrefix.substring(pos + 1);
-    }
-
-    final int lastSlash = filePath.lastIndexOf("/");
-    if (lastSlash > -1)
-      fileName = filePath.substring(lastSlash + 1);
-    else
-      fileName = filePath;
-
-    this.channel = new RandomAccessFile(filePath, mode == MODE.READ_WRITE ? "rw" : "r").getChannel();
-    this.open = true;
+    this.mode = mode;
+    open(filePath, mode);
   }
 
   public void close() throws IOException {
     channel.close();
     this.open = false;
+  }
+
+  public void rename(final String newFileName) throws FileNotFoundException {
+    try {
+      close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    final int pos = filePath.indexOf(fileName);
+    final String dir = filePath.substring(0, pos);
+
+    final File newFile = new File(dir + "/" + newFileName);
+    new File(filePath).renameTo(newFile);
+
+    open(newFile.getAbsolutePath(), mode);
   }
 
   public void drop() throws IOException {
@@ -171,5 +162,36 @@ public class PaginatedFile {
       fileName = filePrefix.substring(pos + 1);
     }
     return fileName;
+  }
+
+  private void open(final String filePath, final MODE mode) throws FileNotFoundException {
+    this.filePath = filePath;
+
+    String filePrefix = filePath.substring(0, filePath.lastIndexOf("."));
+    this.fileExtension = filePath.substring(filePath.lastIndexOf(".") + 1);
+
+    final int pageSizePos = filePrefix.lastIndexOf(".");
+    pageSize = Integer.parseInt(filePrefix.substring(pageSizePos + 1));
+    filePrefix = filePrefix.substring(0, pageSizePos);
+
+    final int fileIdPos = filePrefix.lastIndexOf(".");
+    if (fileIdPos > -1) {
+      fileId = Integer.parseInt(filePrefix.substring(fileIdPos + 1));
+      int pos = filePrefix.lastIndexOf("/");
+      componentName = filePrefix.substring(pos + 1, filePrefix.lastIndexOf("."));
+    } else {
+      fileId = -1;
+      int pos = filePrefix.lastIndexOf("/");
+      componentName = filePrefix.substring(pos + 1);
+    }
+
+    final int lastSlash = filePath.lastIndexOf("/");
+    if (lastSlash > -1)
+      fileName = filePath.substring(lastSlash + 1);
+    else
+      fileName = filePath;
+
+    this.channel = new RandomAccessFile(filePath, mode == MODE.READ_WRITE ? "rw" : "r").getChannel();
+    this.open = true;
   }
 }
