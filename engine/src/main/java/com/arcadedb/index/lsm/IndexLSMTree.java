@@ -180,65 +180,6 @@ public class IndexLSMTree extends IndexLSMAbstract {
     internalRemove(keys, null);
   }
 
-  public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage, TrackableBinary currentPageBuffer, final Object[] keys,
-      final RID rid) {
-    if (currentPage == null) {
-
-      final int txPageCounter = getTotalPages();
-
-      try {
-        currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), txPageCounter - 1), pageSize, false);
-        currentPageBuffer = currentPage.getTrackable();
-      } catch (IOException e) {
-        throw new DatabaseOperationException("Cannot append key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
-      }
-    }
-
-    int count = getCount(currentPage);
-
-    int pageNum = currentPage.getPageId().getPageNumber();
-
-    keyValueContent.rewind();
-
-    // MULTI KEYS
-    for (int i = 0; i < keyTypes.length; ++i)
-      serializer.serializeValue(keyValueContent, keyTypes[i], keys[i]);
-
-    serializer.serializeValue(keyValueContent, valueType, rid);
-
-    int keyValueFreePosition = getValuesFreePosition(currentPage);
-
-    if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
-      // NO SPACE LEFT, CREATE A NEW PAGE
-      database.getTransaction().commit();
-      database.getTransaction().begin();
-      currentPage = createNewPage();
-      currentPageBuffer = currentPage.getTrackable();
-      pageNum = currentPage.getPageId().getPageNumber();
-      count = 0;
-      keyValueFreePosition = currentPage.getMaxContentSize();
-    }
-
-    keyValueFreePosition -= keyValueContent.size();
-
-    // WRITE KEY/VALUE PAIR CONTENT
-    currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
-
-    final int startPos = getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE);
-    currentPageBuffer.putInt(startPos, keyValueFreePosition);
-
-    // ADD THE ITEM IN THE BF
-    final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
-        getBFSeed(currentPage));
-
-    bf.add(BinaryTypes.getHash32(keys, bfKeyDepth));
-
-    setCount(currentPage, count + 1);
-    setValuesFreePosition(currentPage, keyValueFreePosition);
-
-    return currentPage;
-  }
-
   @Override
   public Set<RID> get(final Object[] keys, final int limit) {
     checkForNulls(keys);
@@ -470,8 +411,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
       setValuesFreePosition(currentPage, keyValueFreePosition);
 
       LogManager.instance()
-          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(), count + 1,
-              newPage);
+          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
+              count + 1, newPage);
 
     } catch (IOException e) {
       throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
@@ -581,6 +522,64 @@ public class IndexLSMTree extends IndexLSMAbstract {
     } catch (IOException e) {
       throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
     }
+  }
+
+  public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage, TrackableBinary currentPageBuffer, final Object[] keys,
+      final RID[] rids) {
+    if (currentPage == null) {
+
+      final int txPageCounter = getTotalPages();
+
+      try {
+        currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), txPageCounter - 1), pageSize, false);
+        currentPageBuffer = currentPage.getTrackable();
+      } catch (IOException e) {
+        throw new DatabaseOperationException(
+            "Cannot append key '" + Arrays.toString(keys) + "' with value " + Arrays.toString(rids) + " in index '" + name + "'", e);
+      }
+    }
+
+    int count = getCount(currentPage);
+
+    int pageNum = currentPage.getPageId().getPageNumber();
+
+    final Object[] convertedKeys = convertKeys(keys, keyTypes);
+
+    keyValueContent.rewind();
+
+    writeEntry(keyValueContent, convertedKeys, rids);
+
+    int keyValueFreePosition = getValuesFreePosition(currentPage);
+
+    if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
+      // NO SPACE LEFT, CREATE A NEW PAGE
+      database.getTransaction().commit();
+      database.getTransaction().begin();
+      currentPage = createNewPage();
+      currentPageBuffer = currentPage.getTrackable();
+      pageNum = currentPage.getPageId().getPageNumber();
+      count = 0;
+      keyValueFreePosition = currentPage.getMaxContentSize();
+    }
+
+    keyValueFreePosition -= keyValueContent.size();
+
+    // WRITE KEY/VALUE PAIR CONTENT
+    currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
+
+    final int startPos = getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE);
+    currentPageBuffer.putInt(startPos, keyValueFreePosition);
+
+    // ADD THE ITEM IN THE BF
+    final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
+        getBFSeed(currentPage));
+
+    bf.add(BinaryTypes.getHash32(convertedKeys, bfKeyDepth));
+
+    setCount(currentPage, count + 1);
+    setValuesFreePosition(currentPage, keyValueFreePosition);
+
+    return currentPage;
   }
 
   private void writeEntry(final Binary buffer, final Object[] keys, final Object rid) {

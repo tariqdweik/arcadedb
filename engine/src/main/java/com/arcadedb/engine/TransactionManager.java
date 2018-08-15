@@ -246,7 +246,14 @@ public class TransactionManager {
     LogManager.instance().debug(this, "- applying changes from txId=%d", tx.txId);
 
     for (WALFile.WALPage txPage : tx.pages) {
-      final PaginatedFile file = database.getFileManager().getFile(txPage.fileId);
+      final PaginatedFile file;
+
+      try {
+        file = database.getFileManager().getFile(txPage.fileId);
+      } catch (Exception e) {
+        LogManager.instance().info(this, "Error on applying tx changes for page %s", txPage);
+        continue;
+      }
 
       final PageId pageId = new PageId(txPage.fileId, txPage.pageNumber);
       try {

@@ -16,6 +16,8 @@ import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class IndexLSMTreeCompactor {
   private final IndexLSMTree index;
@@ -74,36 +76,55 @@ public class IndexLSMTreeCompactor {
       ModifiablePage lastPage = null;
       TrackableBinary currentPageBuffer = null;
 
+      final List<RID> rids = new ArrayList<>();
+
       boolean moreItems = true;
       for (; moreItems; ++loops) {
         moreItems = false;
 
         Object[] minorKey = null;
-        int minorKeyIndex = -1;
+        final List<Integer> minorKeyIndexes = new ArrayList<>();
 
         // FIND THE MINOR KEY
         for (int p = 0; p < pagesToCompact; ++p) {
           if (minorKey == null) {
             minorKey = keys[p];
-            minorKeyIndex = p;
+            minorKeyIndexes.add(p);
           } else {
             if (keys[p] != null) {
               moreItems = true;
-              if (IndexLSMTree.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+              final int cmp = IndexLSMTree.compareKeys(comparator, keyTypes, keys[p], minorKey);
+              if (cmp == 0) {
+                minorKeyIndexes.add(p);
+              } else if (cmp < 0) {
                 minorKey = keys[p];
-                minorKeyIndex = p;
+                minorKeyIndexes.clear();
+                minorKeyIndexes.add(p);
               }
             }
           }
         }
 
-        final Object value = iterators[minorKeyIndex].getValue();
-        if( value == null )
-          // DELETED
-          continue;
+        rids.clear();
+        for (int i = 0; i < minorKeyIndexes.size(); ++i) {
+          final IndexLSMTreePageIterator entry = iterators[minorKeyIndexes.get(i)];
+          if (entry == null)
+            continue;
 
-        final ModifiablePage newPage = newIndex
-            .appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, (RID) value);
+          final Object[] value = entry.getValue();
+          if (value == null)
+            // DELETED
+            continue;
+
+          for (int r = 0; r < value.length; ++r) {
+            rids.add((RID) value[r]);
+          }
+        }
+
+        final RID[] ridsArray = new RID[rids.size()];
+        rids.toArray(ridsArray);
+
+        final ModifiablePage newPage = newIndex.appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, ridsArray);
         if (newPage != lastPage) {
           currentPageBuffer = newPage.getTrackable();
           lastPage = newPage;
@@ -114,17 +135,23 @@ public class IndexLSMTreeCompactor {
         if (totalKeys % 1000000 == 0)
           LogManager.instance().info(this, "- keys %d - loops %d - page %s", totalKeys, loops, newPage);
 
-        if (iterators[minorKeyIndex].hasNext()) {
-          iterators[minorKeyIndex].next();
-          keys[minorKeyIndex] = iterators[minorKeyIndex].getKeys();
-        } else {
-          iterators[minorKeyIndex].close();
-          iterators[minorKeyIndex] = null;
-          keys[minorKeyIndex] = null;
+        for (int i = 0; i < minorKeyIndexes.size(); ++i) {
+          final int idx = minorKeyIndexes.get(i);
+          final IndexLSMTreePageIterator it = iterators[idx];
+          if (it != null) {
+            if (iterators[idx].hasNext()) {
+              iterators[idx].next();
+              keys[idx] = iterators[idx].getKeys();
+            } else {
+              iterators[idx].close();
+              iterators[idx] = null;
+              keys[idx] = null;
+            }
+          }
         }
       }
 
-      LogManager.instance().info(this, "Compacted %s pages, total %d...", pagesToCompact, pageIndex + pagesToCompact);
+      LogManager.instance().info(this, "Compacted %d pages, remaining %d...", pagesToCompact, (totalPages - pagesToCompact));
 
       database.commit();
       database.begin();
@@ -138,7 +165,7 @@ public class IndexLSMTreeCompactor {
 
     database.commit();
 
-    LogManager.instance().info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index,
-        newIndex.getTotalPages(), loops);
+    LogManager.instance()
+        .info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index, newIndex.getTotalPages(), loops);
   }
 }

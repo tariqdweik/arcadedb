@@ -67,6 +67,11 @@ public class WALFile extends LockContext {
     public Binary currentContent;
     public int    currentPageVersion;
     public int    currentPageSize;
+
+    @Override
+    public String toString() {
+      return "WALPage(fileId=" + fileId + " pageNumber=" + pageNumber + ")";
+    }
   }
 
   public WALFile(final String filePath) throws FileNotFoundException {
