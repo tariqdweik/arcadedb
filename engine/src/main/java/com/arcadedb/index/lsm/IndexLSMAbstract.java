@@ -4,7 +4,6 @@
 
 package com.arcadedb.index.lsm;
 
-import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.BasePage;
@@ -138,18 +137,5 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
 
   protected RID getOriginalRID(final RID rid) {
     return new RID(database, (rid.getBucketId() * -1) - 2, rid.getPosition());
-  }
-
-  protected void updateEntryValue(final Binary buffer, final int valueIndex, final Object value) {
-    final int items = (int) serializer.deserializeValue(database, buffer, BinaryTypes.TYPE_INT);
-
-    if (valueIndex > items - 1)
-      throw new IllegalArgumentException("Cannot update value index " + valueIndex + " in value container with only " + items + " items");
-
-    // MOVE TO THE LAST ITEM
-    buffer.position(buffer.position() + (BinaryTypes.getTypeSize(valueType) * valueIndex));
-
-    // WRITE VALUES
-    serializer.serializeValue(buffer, valueType, value);
   }
 }

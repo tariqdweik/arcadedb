@@ -213,7 +213,7 @@ public class BinaryTypes {
     if (clazz == String.class)
       return MurmurHash.hash32((String) key);
     else if (clazz == byte[].class)
-      return MurmurHash.hash32(((byte[]) key), 0, ((byte[]) key).length);
+      return MurmurHash.hash32(((byte[]) key), ((byte[]) key).length);
 
     return key.hashCode();
   }

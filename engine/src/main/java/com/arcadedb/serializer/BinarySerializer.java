@@ -211,7 +211,10 @@ public class BinarySerializer {
     case BinaryTypes.TYPE_NULL:
       break;
     case BinaryTypes.TYPE_STRING:
-      content.putString((String) value);
+      if (value instanceof byte[])
+        content.putBytes((byte[]) value);
+      else
+        content.putString(value.toString());
       break;
     case BinaryTypes.TYPE_BYTE:
       content.putByte((Byte) value);

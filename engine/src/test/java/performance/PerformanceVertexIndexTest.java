@@ -13,7 +13,7 @@ import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 public class PerformanceVertexIndexTest {
-  private static final int    TOT       = 1_000_000;
+  private static final int    TOT       = 100_000_000;
   private static final String TYPE_NAME = "Device";
 
   public static void main(String[] args) {
@@ -100,8 +100,8 @@ public class PerformanceVertexIndexTest {
         v.set("lastModifiedUserId", "Holder");
         v.set("createdDate", "2011-09-12 14:50:57.0");
         v.set("assocJointClosureId", "434746");
-        v.set("HolderSpec_Name", "Slot"+counter);
-        v.set("Name", "1"+counter);
+        v.set("HolderSpec_Name", "Slot" + counter);
+        v.set("Name", "1" + counter);
         v.set("holderGroupName", "TBC");
         v.set("slot2slottype", "1900000012");
         v.set("inventoryStatus", "INI");
@@ -129,9 +129,12 @@ public class PerformanceVertexIndexTest {
       System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
 
-    begin = System.currentTimeMillis();
     database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
     try {
+      Assertions.assertEquals(TOT, database.countType(TYPE_NAME, false));
+
+      begin = System.currentTimeMillis();
+
       System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {
         final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
@@ -139,10 +142,13 @@ public class PerformanceVertexIndexTest {
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
 
         final Document record = (Document) records.next().getRecord();
-        Assertions.assertEquals(""+id, record.get("id"));
+        Assertions.assertEquals("" + id, record.get("id"));
 
-        if (id % 100000 == 0)
-          System.out.println("Checked " + id + " lookups in " + (System.currentTimeMillis() - begin) + "ms");
+        if (id % 10000 == 0) {
+          final long delta = System.currentTimeMillis() - begin;
+          LogManager.instance().info(this, "Checked " + id + " lookups in " + delta + "ms = " + (id / (delta / 1000)) + " lookups/sec");
+          begin = System.currentTimeMillis();
+        }
       }
     } finally {
       database.close();

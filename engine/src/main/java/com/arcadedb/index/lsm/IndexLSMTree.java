@@ -258,6 +258,9 @@ public class IndexLSMTree extends IndexLSMAbstract {
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = getCount(currentPage);
 
+        if (count < 1)
+          return set;
+
         final LookupResult result = searchInPage(currentPage, currentPageBuffer, convertedKeys, count, 1);
         if (result != null && result.found) {
           // REAL ALL THE ENTRIES
@@ -426,7 +429,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
       // WRITE KEY/VALUE PAIRS FIRST
       final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
-      writeEntry(keyValueContent, keys, rid);
+      writeEntry(keyValueContent, convertedKeys, rid);
 
       int keyValueFreePosition = getValuesFreePosition(currentPage);
 
@@ -461,14 +464,14 @@ public class IndexLSMTree extends IndexLSMAbstract {
           getBFSeed(currentPage));
 
       // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
-      bf.add(BinaryTypes.getHash32(keys, bfKeyDepth));
+      bf.add(BinaryTypes.getHash32(convertedKeys, bfKeyDepth));
 
       setCount(currentPage, count + 1);
       setValuesFreePosition(currentPage, keyValueFreePosition);
 
       LogManager.instance()
-          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
-              count + 1, newPage);
+          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(), count + 1,
+              newPage);
 
     } catch (IOException e) {
       throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
