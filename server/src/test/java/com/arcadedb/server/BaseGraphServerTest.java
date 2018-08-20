@@ -11,8 +11,8 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseComparator;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.RID;
-import com.arcadedb.graph.ModifiableEdge;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableEdge;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.FileUtils;
@@ -88,21 +88,21 @@ public abstract class BaseGraphServerTest {
       final Database db = getDatabase(0);
       db.begin();
 
-      final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
+      final MutableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
       v1.set("id", 0);
       v1.set("name", VERTEX1_TYPE_NAME);
       v1.save();
 
-      final ModifiableVertex v2 = db.newVertex(VERTEX2_TYPE_NAME);
+      final MutableVertex v2 = db.newVertex(VERTEX2_TYPE_NAME);
       v2.set("name", VERTEX2_TYPE_NAME);
       v2.save();
 
       // CREATION OF EDGE PASSING PARAMS AS VARARGS
-      ModifiableEdge e1 = (ModifiableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
+      MutableEdge e1 = (MutableEdge) v1.newEdge(EDGE1_TYPE_NAME, v2, true, "name", "E1");
       Assertions.assertEquals(e1.getOut(), v1);
       Assertions.assertEquals(e1.getIn(), v2);
 
-      final ModifiableVertex v3 = db.newVertex(VERTEX2_TYPE_NAME);
+      final MutableVertex v3 = db.newVertex(VERTEX2_TYPE_NAME);
       v3.set("name", "V3");
       v3.save();
 
@@ -110,11 +110,11 @@ public abstract class BaseGraphServerTest {
       params.put("name", "E2");
 
       // CREATION OF EDGE PASSING PARAMS AS MAP
-      ModifiableEdge e2 = (ModifiableEdge) v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
+      MutableEdge e2 = (MutableEdge) v2.newEdge(EDGE2_TYPE_NAME, v3, true, params);
       Assertions.assertEquals(e2.getOut(), v2);
       Assertions.assertEquals(e2.getIn(), v3);
 
-      ModifiableEdge e3 = (ModifiableEdge) v1.newEdge(EDGE2_TYPE_NAME, v3, true);
+      MutableEdge e3 = (MutableEdge) v1.newEdge(EDGE2_TYPE_NAME, v3, true);
       Assertions.assertEquals(e3.getOut(), v1);
       Assertions.assertEquals(e3.getIn(), v3);
 

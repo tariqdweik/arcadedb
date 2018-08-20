@@ -105,11 +105,11 @@ public class TransactionManager {
     }
   }
 
-  public Binary createTransactionBuffer(final long txId, final List<ModifiablePage> pages) {
+  public Binary createTransactionBuffer(final long txId, final List<MutablePage> pages) {
     return WALFile.writeTransactionToBuffer(pages, txId);
   }
 
-  public void writeTransactionToWAL(final List<ModifiablePage> pages, final WALFile.FLUSH_TYPE sync, final long txId, final Binary bufferChanges) {
+  public void writeTransactionToWAL(final List<MutablePage> pages, final WALFile.FLUSH_TYPE sync, final long txId, final Binary bufferChanges) {
     while (true) {
       final WALFile file = activeWALFilePool[(int) (Thread.currentThread().getId() % activeWALFilePool.length)];
 
@@ -131,7 +131,7 @@ public class TransactionManager {
     }
   }
 
-  public void notifyPageFlushed(final ModifiablePage page) {
+  public void notifyPageFlushed(final MutablePage page) {
     final WALFile walFile = page.getWALFile();
 
     if (walFile == null)
@@ -271,7 +271,7 @@ public class TransactionManager {
                   + page.getVersion() + ")");
 
         // IF VERSION IS THE SAME OR MAJOR, OVERWRITE THE PAGE
-        final ModifiablePage modifiedPage = page.modify();
+        final MutablePage modifiedPage = page.modify();
         txPage.currentContent.rewind();
         modifiedPage.writeByteArray(txPage.changesFrom - BasePage.PAGE_HEADER_SIZE, txPage.currentContent.getContent());
         modifiedPage.version = txPage.currentPageVersion;

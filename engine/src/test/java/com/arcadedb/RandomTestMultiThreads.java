@@ -5,7 +5,7 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
@@ -223,7 +223,7 @@ public class RandomTestMultiThreads extends BaseTest {
 
   private void createTransactions(final Database database, final int txOps) {
     for (long txId = 0; txId < txOps; ++txId) {
-      final ModifiableDocument tx = database.newVertex("Transaction");
+      final MutableDocument tx = database.newVertex("Transaction");
       tx.set("uuid", "" + uuid.getAndIncrement());
       tx.set("date", new Date());
       tx.set("amount", getRandom(STARTING_ACCOUNT));
@@ -249,7 +249,7 @@ public class RandomTestMultiThreads extends BaseTest {
 
       if (getRandom(2) == 0) {
         try {
-          final ModifiableDocument doc = (ModifiableDocument) next.modify();
+          final MutableDocument doc = (MutableDocument) next.modify();
 
           Integer val = (Integer) doc.get("updated");
           if (val == null)
@@ -319,7 +319,7 @@ public class RandomTestMultiThreads extends BaseTest {
 
     try {
       for (long row = 0; row < STARTING_ACCOUNT; ++row) {
-        final ModifiableDocument record = database.newVertex("Account");
+        final MutableDocument record = database.newVertex("Account");
         record.set("id", row);
         record.set("name", "Luca" + row);
         record.set("surname", "Skywalker" + row);

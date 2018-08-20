@@ -7,7 +7,7 @@ package com.arcadedb.serializer;
 import com.arcadedb.BaseTest;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.engine.Bucket;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -115,7 +115,7 @@ public class SerializerTest extends BaseTest {
 
         database.begin();
 
-        final ModifiableDocument v = database.newDocument("Test");
+        final MutableDocument v = database.newDocument("Test");
         v.set("minInt", Integer.MIN_VALUE);
         v.set("maxInt", Integer.MAX_VALUE);
         v.set("minLong", Long.MIN_VALUE);
@@ -201,7 +201,7 @@ public class SerializerTest extends BaseTest {
         listOfMixed.add("3");
 
         database.begin();
-        final ModifiableDocument v = database.newDocument("Test");
+        final MutableDocument v = database.newDocument("Test");
 
         v.set("listOfBooleans", listOfBooleans);
         v.set("arrayOfBooleans", listOfBooleans.toArray());
@@ -309,7 +309,7 @@ public class SerializerTest extends BaseTest {
         mapOfMixed.put("3string", "3");
 
         database.begin();
-        final ModifiableDocument v = database.newDocument("Test");
+        final MutableDocument v = database.newDocument("Test");
 
         v.set("mapOfStringsBooleans", mapOfStringsBooleans);
         v.set("mapOfIntegers", mapOfIntegers);

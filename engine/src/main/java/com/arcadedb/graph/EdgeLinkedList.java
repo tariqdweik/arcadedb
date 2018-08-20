@@ -100,14 +100,14 @@ public class EdgeLinkedList {
       // CHUNK FULL, ALLOCATE A NEW ONE
       DatabaseInternal database = (DatabaseInternal) vertex.getDatabase();
 
-      final ModifiableEdgeChunk newChunk = new ModifiableEdgeChunk(database, computeBestSize());
+      final MutableEdgeChunk newChunk = new MutableEdgeChunk(database, computeBestSize());
 
       newChunk.add(edgeRID, vertexRID);
       newChunk.setNext(first);
 
       database.createRecord(newChunk, database.getSchema().getBucketById(first.getIdentity().getBucketId()).getName());
 
-      final ModifiableVertex modifiableV = (ModifiableVertex) vertex.modify();
+      final MutableVertex modifiableV = (MutableVertex) vertex.modify();
 
       if (direction == Vertex.DIRECTION.OUT)
         modifiableV.setOutEdgesHeadChunk(newChunk.getIdentity());

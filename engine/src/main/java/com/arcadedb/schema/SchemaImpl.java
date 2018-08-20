@@ -280,8 +280,7 @@ public class SchemaImpl implements Schema {
               throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
             indexes[idx] = indexFactory
-                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, propertyNames,
-                    keyTypes, pageSize);
+                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
 
             if (indexes[idx] instanceof PaginatedComponent)
               registerFile((PaginatedComponent) indexes[idx]);
@@ -311,8 +310,7 @@ public class SchemaImpl implements Schema {
 
         try {
           Index index = indexFactory
-              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, null, keyTypes,
-                  pageSize);
+              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
 
           if (index instanceof PaginatedComponent)
             registerFile((PaginatedComponent) index);

@@ -8,7 +8,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.WALFile;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.LogManager;
@@ -113,7 +113,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
     for (int tx = 0; tx < getTxs(); ++tx) {
       for (int i = 0; i < getVerticesPerTx(); ++i) {
-        final ModifiableVertex v = db.newVertex("Device");
+        final MutableVertex v = db.newVertex("Device");
 
         ++counter;
 

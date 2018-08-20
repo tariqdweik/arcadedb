@@ -10,7 +10,7 @@ import com.arcadedb.serializer.BinaryTypes;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ModifiableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInternal {
+public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInternal {
   public static final  byte RECORD_TYPE            = 3;
   public static final  int  CONTENT_START_POSITION =
       Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + BinaryTypes.getTypeSize(BinaryTypes.TYPE_RID);
@@ -18,19 +18,19 @@ public class ModifiableEdgeChunk extends BaseRecord implements EdgeChunk, Record
 
   private int bufferSize;
 
-  public ModifiableEdgeChunk(final Database database, final RID rid) {
+  public MutableEdgeChunk(final Database database, final RID rid) {
     super(database, rid, null);
     this.buffer = null;
   }
 
-  public ModifiableEdgeChunk(final Database database, final RID rid, final Binary buffer) {
+  public MutableEdgeChunk(final Database database, final RID rid, final Binary buffer) {
     super(database, rid, buffer);
     this.buffer = buffer;
     this.buffer.setAutoResizable(false);
     this.bufferSize = buffer.size();
   }
 
-  public ModifiableEdgeChunk(final Database database, final int bufferSize) {
+  public MutableEdgeChunk(final Database database, final int bufferSize) {
     super(database, null, new Binary(bufferSize));
     this.buffer.setAutoResizable(false);
     this.bufferSize = bufferSize;

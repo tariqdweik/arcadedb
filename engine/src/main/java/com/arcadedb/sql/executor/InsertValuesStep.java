@@ -4,7 +4,7 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Expression;
@@ -46,7 +46,7 @@ public class InsertValuesStep extends AbstractExecutionStep {
           if (!result.isElement()) {
             throw new CommandExecutionException("Error executing INSERT, cannot modify element: " + result);
           }
-          result = new UpdatableResult((ModifiableDocument) result.getElement().get());
+          result = new UpdatableResult((MutableDocument) result.getElement().get());
         }
         List<Expression> currentValues = values.get(nextValueSet++);
         if (currentValues.size() != identifiers.size()) {

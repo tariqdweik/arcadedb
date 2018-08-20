@@ -31,9 +31,9 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
     return Vertex.RECORD_TYPE;
   }
 
-  public ModifiableVertex modify() {
+  public MutableVertex modify() {
     checkForLazyLoading();
-    return new ModifiableVertex(database, typeName, rid, buffer.copy());
+    return new MutableVertex(database, typeName, rid, buffer.copy());
   }
 
   @Override
@@ -65,7 +65,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
     throw new UnsupportedOperationException("setInEdgesHeadChunk");
   }
 
-  public ModifiableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
+  public MutableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
       final Object... properties) {
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }

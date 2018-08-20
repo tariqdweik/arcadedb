@@ -8,7 +8,7 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
@@ -304,13 +304,13 @@ public class SuffixIdentifier extends SimpleNode {
     if (target == null) {
       return;
     }
-    ModifiableDocument doc = null;
-    if (target instanceof ModifiableDocument) {
-      doc = (ModifiableDocument) target;
+    MutableDocument doc = null;
+    if (target instanceof MutableDocument) {
+      doc = (MutableDocument) target;
     } else {
       Record rec = target.getRecord();
       if (rec instanceof Record) {
-        doc = (ModifiableDocument) rec;
+        doc = (MutableDocument) rec;
       }
     }
     if (doc != null) {
@@ -354,8 +354,8 @@ public class SuffixIdentifier extends SimpleNode {
     if (identifier != null) {
       if (currentValue instanceof ResultInternal) {
         ((ResultInternal) currentValue).removeProperty(identifier.getStringValue());
-      } else if (currentValue instanceof ModifiableDocument) {
-        ((ModifiableDocument) currentValue).set(identifier.getStringValue(), null);
+      } else if (currentValue instanceof MutableDocument) {
+        ((MutableDocument) currentValue).set(identifier.getStringValue(), null);
       } else if (currentValue instanceof Map) {
         ((Map) currentValue).remove(identifier.getStringValue());
       }

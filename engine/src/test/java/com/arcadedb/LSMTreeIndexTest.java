@@ -225,7 +225,7 @@ public class LSMTreeIndexTest extends BaseTest {
         for (ResultSet it = resultSet; it.hasNext(); ) {
           final Result r = it.next();
 
-          final ModifiableDocument record = (ModifiableDocument) r.getElement().get().modify();
+          final MutableDocument record = (MutableDocument) r.getElement().get().modify();
           record.set("id", (Integer) record.get("id") + 1000000);
           record.save();
         }
@@ -539,7 +539,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
                 database.begin();
                 try {
-                  final ModifiableDocument v = database.newDocument(TYPE_NAME);
+                  final MutableDocument v = database.newDocument(TYPE_NAME);
                   v.set("id", i);
                   v.set("name", "Jay");
                   v.set("surname", "Miner");
@@ -624,7 +624,7 @@ public class LSMTreeIndexTest extends BaseTest {
         final Index[] indexes = database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, 1000);
 
         for (int i = 0; i < TOT; ++i) {
-          final ModifiableDocument v = database.newDocument(TYPE_NAME);
+          final MutableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

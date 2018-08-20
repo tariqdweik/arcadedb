@@ -5,6 +5,7 @@
 package com.arcadedb.mongodbw;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.sql.executor.Result;
@@ -147,7 +148,7 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
 
     int total = 0;
     for (Document d : list) {
-      final com.arcadedb.database.ModifiableDocument record = database.newDocument(collectionName);
+      final MutableDocument record = database.newDocument(collectionName);
 
       for (Map.Entry<String, Object> p : d.entrySet()) {
         final Object value = p.getValue();

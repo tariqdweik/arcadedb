@@ -36,7 +36,7 @@ public interface DatabaseInternal extends Database {
 
   TransactionManager getTransactionManager();
 
-  void createRecord(ModifiableDocument record);
+  void createRecord(MutableDocument record);
 
   void createRecord(Record record, String bucketName);
 

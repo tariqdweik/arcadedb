@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Document;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.EdgeType;
@@ -66,7 +66,7 @@ public class CreateRecordStep extends AbstractExecutionStep {
           else
             instance = ctx.getDatabase().newDocument(typeName);
 
-          return new UpdatableResult((ModifiableDocument) instance);
+          return new UpdatableResult((MutableDocument) instance);
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);

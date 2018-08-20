@@ -199,10 +199,10 @@ public class WALFile extends LockContext {
     }
   }
 
-  public static Binary writeTransactionToBuffer(final List<ModifiablePage> pages, final long txId) {
+  public static Binary writeTransactionToBuffer(final List<MutablePage> pages, final long txId) {
     // COMPUTE TOTAL TXLOG SEGMENT SIZE
     int segmentSize = 0;
-    for (ModifiablePage newPage : pages) {
+    for (MutablePage newPage : pages) {
       final int[] deltaRange = newPage.getModifiedRange();
       final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
       segmentSize += PAGE_HEADER_SIZE + deltaSize;
@@ -219,7 +219,7 @@ public class WALFile extends LockContext {
     assert bufferChanges.position() == TX_HEADER_SIZE;
 
     // WRITE ALL PAGES SEGMENTS
-    for (ModifiablePage newPage : pages) {
+    for (MutablePage newPage : pages) {
       final int[] deltaRange = newPage.getModifiedRange();
 
       assert deltaRange[0] > -1 && deltaRange[1] < newPage.getPhysicalSize();
@@ -253,7 +253,7 @@ public class WALFile extends LockContext {
     return bufferChanges;
   }
 
-  public void writeTransactionToFile(final DatabaseInternal database, final List<ModifiablePage> pages, final FLUSH_TYPE sync, final WALFile file,
+  public void writeTransactionToFile(final DatabaseInternal database, final List<MutablePage> pages, final FLUSH_TYPE sync, final WALFile file,
       final long txId, final Binary buffer) throws IOException {
 
     LogManager.instance().debug(this, "Appending WAL for txId=%d (size=%d file=%s threadId=%d)", txId, buffer.size(), filePath, Thread.currentThread().getId());
@@ -261,7 +261,7 @@ public class WALFile extends LockContext {
     file.append(buffer.getByteBuffer());
 
     // WRITE ALL PAGES SEGMENTS
-    for (ModifiablePage newPage : pages) {
+    for (MutablePage newPage : pages) {
       // SET THE WAL FILE TO NOTIFY LATER WHEN THE PAGE HAS BEEN FLUSHED
       newPage.setWALFile(file);
 

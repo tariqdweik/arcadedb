@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Document;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 
 import java.util.Optional;
 import java.util.Set;
@@ -14,10 +14,10 @@ import java.util.Set;
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
 public class UpdatableResult extends ResultInternal {
-  protected     ResultInternal     previousValue = null;
-  private final ModifiableDocument element;
+  protected     ResultInternal  previousValue = null;
+  private final MutableDocument element;
 
-  public UpdatableResult(ModifiableDocument element) {
+  public UpdatableResult(MutableDocument element) {
     this.element = element;
   }
 

@@ -49,7 +49,7 @@ public class Dictionary extends PaginatedComponent {
     super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
-      final ModifiablePage header = database.getTransaction().addPage(new PageId(file.getFileId(), 0), pageSize);
+      final MutablePage header = database.getTransaction().addPage(new PageId(file.getFileId(), 0), pageSize);
       itemCount = 0;
       updateCounters(header);
     }
@@ -63,7 +63,7 @@ public class Dictionary extends PaginatedComponent {
     super(database, name, filePath, id, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
-      final ModifiablePage header = database.getTransaction().addPage(new PageId(file.getFileId(), 0), pageSize);
+      final MutablePage header = database.getTransaction().addPage(new PageId(file.getFileId(), 0), pageSize);
       itemCount = 0;
       updateCounters(header);
 
@@ -129,7 +129,7 @@ public class Dictionary extends PaginatedComponent {
 
     final byte[] property = propertyName.getBytes();
 
-    final ModifiablePage header;
+    final MutablePage header;
     try {
       header = database.getTransaction().getPageToModify(new PageId(file.getFileId(), 0), pageSize, false);
 
@@ -146,7 +146,7 @@ public class Dictionary extends PaginatedComponent {
     }
   }
 
-  private void updateCounters(final ModifiablePage header) {
+  private void updateCounters(final MutablePage header) {
     header.writeInt(DICTIONARY_ITEM_COUNT, itemCount);
   }
 }

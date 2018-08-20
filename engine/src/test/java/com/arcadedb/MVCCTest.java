@@ -6,12 +6,12 @@ package com.arcadedb;
 
 import com.arcadedb.database.Cursor;
 import com.arcadedb.database.Database;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
@@ -69,7 +69,7 @@ public class MVCCTest extends BaseTest {
               Assertions.assertTrue(database.getTransaction().getModifiedPages() == 0);
               Assertions.assertNull(database.getTransaction().getPageCounter(1));
 
-              final ModifiableDocument tx = database.newVertex("Transaction");
+              final MutableDocument tx = database.newVertex("Transaction");
               tx.set("uuid", UUID.randomUUID().toString());
               tx.set("date", new Date());
               tx.set("amount", rnd.nextInt(TOT_ACCOUNT));
@@ -81,7 +81,7 @@ public class MVCCTest extends BaseTest {
 
               RID account = accounts.next();
 
-              ((ModifiableVertex) tx).newEdge("PurchasedBy", account, true, "date", new Date());
+              ((MutableVertex) tx).newEdge("PurchasedBy", account, true, "date", new Date());
             }
           }, 0);
         }
@@ -115,7 +115,7 @@ public class MVCCTest extends BaseTest {
         @Override
         public void execute(Database database) {
           for (long row = 0; row < TOT_ACCOUNT; ++row) {
-            final ModifiableDocument record = database.newVertex("Account");
+            final MutableDocument record = database.newVertex("Account");
             record.set("id", row);
             record.set("name", "Luca" + row);
             record.set("surname", "Skywalker" + row);

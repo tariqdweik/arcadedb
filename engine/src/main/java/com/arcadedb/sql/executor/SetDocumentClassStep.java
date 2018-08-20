@@ -6,7 +6,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Identifier;
@@ -45,7 +45,7 @@ public class SetDocumentClassStep extends AbstractExecutionStep {
           if (element instanceof Record) {
             Record doc = (Record) element;
             if (!(result instanceof ResultInternal)) {
-              result = new UpdatableResult((ModifiableDocument) doc);
+              result = new UpdatableResult((MutableDocument) doc);
             } else {
               ((ResultInternal) result).setElement((Document) doc);
             }

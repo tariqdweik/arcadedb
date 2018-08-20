@@ -4,7 +4,7 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.TimeoutException;
 
@@ -72,7 +72,7 @@ public class ConvertToUpdatableResultStep extends AbstractExecutionStep {
             if (nextItem.isElement()) {
               Record element = nextItem.getElement().get();
               if (element != null) {
-                nextItem = new UpdatableResult((ModifiableDocument) element.modify());
+                nextItem = new UpdatableResult((MutableDocument) element.modify());
               }
               break;
             }

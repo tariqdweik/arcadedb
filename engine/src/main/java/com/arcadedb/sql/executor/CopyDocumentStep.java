@@ -4,7 +4,7 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.TimeoutException;
 
@@ -61,7 +61,7 @@ public class CopyDocumentStep extends AbstractExecutionStep {
           } else {
             resultDoc = toCopy.toElement().getRecord();
           }
-          return new UpdatableResult((ModifiableDocument) resultDoc);
+          return new UpdatableResult((MutableDocument) resultDoc);
         } finally {
           if (profilingEnabled) {
             cost += (System.nanoTime() - begin);

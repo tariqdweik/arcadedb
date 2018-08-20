@@ -6,24 +6,24 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
 
-public class ModifiableEdge extends ModifiableDocument implements Edge {
+public class MutableEdge extends MutableDocument implements Edge {
   private RID out;
   private RID in;
 
-  public ModifiableEdge(final Database graph, final String typeName, final RID out, RID in) {
+  public MutableEdge(final Database graph, final String typeName, final RID out, RID in) {
     super(graph, typeName, null);
     this.out = out;
     this.in = in;
   }
 
-  public ModifiableEdge(final Database graph, final String typeName, final RID rid) {
+  public MutableEdge(final Database graph, final String typeName, final RID rid) {
     super(graph, typeName, rid);
   }
 
-  public ModifiableEdge(final Database graph, final String typeName, final RID rid, final Binary buffer) {
+  public MutableEdge(final Database graph, final String typeName, final RID rid, final Binary buffer) {
     super(graph, typeName, rid, buffer);
     init();
   }

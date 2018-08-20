@@ -171,7 +171,7 @@ public class TransactionBucketTest extends BaseTest {
           database.getSchema().createDocumentType("V");
 
         for (int i = 0; i < TOT; ++i) {
-          final ModifiableDocument v = database.newDocument("V");
+          final MutableDocument v = database.newDocument("V");
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

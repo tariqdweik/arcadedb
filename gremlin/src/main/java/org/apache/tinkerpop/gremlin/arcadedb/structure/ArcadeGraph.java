@@ -6,8 +6,8 @@ import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.RecordNotFoundException;
-import com.arcadedb.graph.ModifiableEdge;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableEdge;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.VertexType;
@@ -92,7 +92,7 @@ public class ArcadeGraph implements Graph {
     if (!this.database.getSchema().existsType(label)) {
       this.database.getSchema().createVertexType(label);
     }
-    final ModifiableVertex modifiableVertex = this.database.newVertex(label);
+    final MutableVertex modifiableVertex = this.database.newVertex(label);
     final ArcadeVertex vertex = new ArcadeVertex(this, modifiableVertex);
     ElementHelper.attachProperties(vertex, keyValues);
     modifiableVertex.save();
@@ -137,7 +137,7 @@ public class ArcadeGraph implements Graph {
       query.append("]");
 
       final ResultSet resultset = this.database.query("sql", query.toString());
-      return resultset.stream().map(result -> (Vertex) new ArcadeVertex(this, (ModifiableVertex) (result.toElement()).modify())).iterator();
+      return resultset.stream().map(result -> (Vertex) new ArcadeVertex(this, (MutableVertex) (result.toElement()).modify())).iterator();
 
     }
 
@@ -159,7 +159,7 @@ public class ArcadeGraph implements Graph {
       try {
         final Record r = database.lookupByRID(rid, true);
         if (r instanceof com.arcadedb.graph.Vertex)
-          resultset.add(new ArcadeVertex(this, (ModifiableVertex) r.modify()));
+          resultset.add(new ArcadeVertex(this, (MutableVertex) r.modify()));
       } catch (RecordNotFoundException e) {
         // NP, IGNORE IT
       }
@@ -197,7 +197,7 @@ public class ArcadeGraph implements Graph {
       query.append("]");
 
       final ResultSet resultset = this.database.query("sql", query.toString());
-      return resultset.stream().map(result -> (Edge) new ArcadeEdge(this, (ModifiableEdge) (result.toElement()).modify())).iterator();
+      return resultset.stream().map(result -> (Edge) new ArcadeEdge(this, (MutableEdge) (result.toElement()).modify())).iterator();
 
     }
 
@@ -219,7 +219,7 @@ public class ArcadeGraph implements Graph {
       try {
         final Record r = database.lookupByRID(rid, true);
         if (r instanceof com.arcadedb.graph.Edge)
-          resultset.add(new ArcadeEdge(this, (ModifiableEdge) r.modify()));
+          resultset.add(new ArcadeEdge(this, (MutableEdge) r.modify()));
       } catch (RecordNotFoundException e) {
         // NP, IGNORE IT
       }

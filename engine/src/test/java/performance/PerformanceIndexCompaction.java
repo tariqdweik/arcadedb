@@ -6,6 +6,7 @@ package performance;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.utility.LogManager;
@@ -19,7 +20,7 @@ public class PerformanceIndexCompaction {
   }
 
   private void run() throws IOException {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_ONLY);
 
     final long begin = System.currentTimeMillis();
     try {

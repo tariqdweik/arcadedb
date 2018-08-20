@@ -194,7 +194,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
   }
 
   public Document createOperation(final long n) {
-    final ModifiableDocument doc = ((OWorkLoadContext) getContext()).getDb().newDocument(CLASS_NAME);
+    final MutableDocument doc = ((OWorkLoadContext) getContext()).getDb().newDocument(CLASS_NAME);
     doc.set("name", "value" + n);
     doc.save();
     return doc;
@@ -219,7 +219,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
   }
 
   public void updateOperation(final Database database, final Identifiable rec) {
-    final ModifiableDocument doc = (ModifiableDocument) rec.getRecord().modify();
+    final MutableDocument doc = (MutableDocument) rec.getRecord().modify();
     doc.set("updated", true);
     doc.save();
   }

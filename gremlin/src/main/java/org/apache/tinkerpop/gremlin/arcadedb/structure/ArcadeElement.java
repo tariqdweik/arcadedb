@@ -1,6 +1,6 @@
 package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -11,7 +11,7 @@ import java.util.*;
 /**
  * Created by Enrico Risa on 30/07/2018.
  */
-public abstract class ArcadeElement<T extends ModifiableDocument> implements Element {
+public abstract class ArcadeElement<T extends MutableDocument> implements Element {
 
   protected final T           baseElement;
   protected final ArcadeGraph graph;

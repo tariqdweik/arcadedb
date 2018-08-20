@@ -6,6 +6,7 @@ package performance;
 
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
@@ -21,6 +22,11 @@ public class PerformanceVertexIndexTest {
   }
 
   private void run() {
+    insertData();
+//    checkLookups();
+  }
+
+  private void insertData() {
     PerformanceTest.clean();
 
     final int parallel = 4;
@@ -69,7 +75,7 @@ public class PerformanceVertexIndexTest {
     try {
 
       database.setReadYourWrites(false);
-      database.asynch().setCommitEvery(25000);
+      database.asynch().setCommitEvery(50000);
       database.asynch().setParallelLevel(parallel);
       database.asynch().setTransactionUseWAL(true);
       database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
@@ -89,7 +95,7 @@ public class PerformanceVertexIndexTest {
 
       long counter = 0;
       for (; counter < totalToInsert; ++counter) {
-        final ModifiableDocument v = database.newDocument("Device");
+        final MutableDocument v = database.newDocument("Device");
 
         final String randomString = "" + counter;
 
@@ -128,14 +134,19 @@ public class PerformanceVertexIndexTest {
       database.close();
       System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
+  }
 
-    database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
+  private void checkLookups() {
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_WRITE);
+    long begin = System.currentTimeMillis();
+
     try {
       Assertions.assertEquals(TOT, database.countType(TYPE_NAME, false));
 
+      System.out.println("Lookup all the keys...");
+
       begin = System.currentTimeMillis();
 
-      System.out.println("Lookup all the keys...");
       for (long id = 0; id < TOT; ++id) {
         final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
@@ -146,7 +157,7 @@ public class PerformanceVertexIndexTest {
 
         if (id % 10000 == 0) {
           final long delta = System.currentTimeMillis() - begin;
-          LogManager.instance().info(this, "Checked " + id + " lookups in " + delta + "ms = " + (id / (delta / 1000)) + " lookups/sec");
+          LogManager.instance().info(this, "Checked " + id + " lookups in " + delta + "ms = " + (10000 / (delta / 1000)) + " lookups/sec");
           begin = System.currentTimeMillis();
         }
       }
@@ -154,6 +165,5 @@ public class PerformanceVertexIndexTest {
       database.close();
       System.out.println("Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
-
   }
 }

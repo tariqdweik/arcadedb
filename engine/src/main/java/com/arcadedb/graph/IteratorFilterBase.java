@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> {
   protected       EdgeChunk     currentContainer;
-  protected final AtomicInteger currentPosition = new AtomicInteger(ModifiableEdgeChunk.CONTENT_START_POSITION);
+  protected final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeChunk.CONTENT_START_POSITION);
 
   protected RID          next;
   protected Set<Integer> validBuckets;
@@ -62,7 +62,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
         // FETCH NEXT CHUNK
         currentContainer = currentContainer.getNext();
         if (currentContainer != null) {
-          currentPosition.set(ModifiableEdgeChunk.CONTENT_START_POSITION);
+          currentPosition.set(MutableEdgeChunk.CONTENT_START_POSITION);
         } else
           // END
           break;

@@ -8,8 +8,8 @@ import com.arcadedb.database.Database;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.graph.Edge;
-import com.arcadedb.graph.ModifiableEdge;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableEdge;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -143,7 +143,7 @@ public class GraphTest extends BaseGraphTest {
       final Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
 
-      final ModifiableVertex v1Copy = (ModifiableVertex) v1.modify();
+      final MutableVertex v1Copy = (MutableVertex) v1.modify();
       v1Copy.set("newProperty1", "TestUpdate1");
       v1Copy.save();
 
@@ -156,7 +156,7 @@ public class GraphTest extends BaseGraphTest {
 
       Assertions.assertNotNull(e1);
 
-      final ModifiableEdge e1Copy = (ModifiableEdge) e1.modify();
+      final MutableEdge e1Copy = (MutableEdge) e1.modify();
       e1Copy.set("newProperty2", "TestUpdate2");
       e1Copy.save();
 

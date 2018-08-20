@@ -5,7 +5,7 @@
 package performance;
 
 import com.arcadedb.BaseTest;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
@@ -58,7 +58,7 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
 
         long counter = 0;
         for (; counter < TOT; ++counter) {
-          final ModifiableDocument record = database.newDocument(TYPE_NAME);
+          final MutableDocument record = database.newDocument(TYPE_NAME);
 
           record.set("id", counter);
           record.set("name", "Luca" + counter);

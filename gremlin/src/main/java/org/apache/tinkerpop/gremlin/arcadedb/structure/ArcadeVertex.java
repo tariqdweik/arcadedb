@@ -1,7 +1,7 @@
 package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
-import com.arcadedb.graph.ModifiableEdge;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableEdge;
+import com.arcadedb.graph.MutableVertex;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
@@ -14,9 +14,9 @@ import java.util.Set;
 /**
  * Created by Enrico Risa on 30/07/2018.
  */
-public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Vertex {
+public class ArcadeVertex extends ArcadeElement<MutableVertex> implements Vertex {
 
-  protected ArcadeVertex(final ArcadeGraph graph, final ModifiableVertex baseElement) {
+  protected ArcadeVertex(final ArcadeGraph graph, final MutableVertex baseElement) {
     super(graph, baseElement);
   }
 
@@ -39,9 +39,9 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
       this.graph.getDatabase().getSchema().createEdgeType(label);
     }
 
-    ModifiableVertex baseElement = getBaseElement();
+    MutableVertex baseElement = getBaseElement();
 
-    com.arcadedb.graph.ModifiableEdge edge = baseElement.newEdge(label, vertex.getBaseElement(), true);
+    MutableEdge edge = baseElement.newEdge(label, vertex.getBaseElement(), true);
     ArcadeEdge arcadeEdge = new ArcadeEdge(graph, edge);
     ElementHelper.attachProperties(arcadeEdge, keyValues);
     edge.save();
@@ -118,10 +118,10 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
 
     if (edgeLabels.length == 0)
       for (com.arcadedb.graph.Edge edge : this.baseElement.getEdges(ArcadeGraph.mapDirection(direction)))
-        result.add(new ArcadeEdge(this.graph, (ModifiableEdge) edge.modify()));
+        result.add(new ArcadeEdge(this.graph, (MutableEdge) edge.modify()));
     else
       for (com.arcadedb.graph.Edge edge : this.baseElement.getEdges(ArcadeGraph.mapDirection(direction), edgeLabels))
-        result.add(new ArcadeEdge(this.graph, (ModifiableEdge) edge.modify()));
+        result.add(new ArcadeEdge(this.graph, (MutableEdge) edge.modify()));
 
     return result.iterator();
   }
@@ -132,10 +132,10 @@ public class ArcadeVertex extends ArcadeElement<ModifiableVertex> implements Ver
 
     if (edgeLabels.length == 0)
       for (com.arcadedb.graph.Vertex vertex : this.baseElement.getVertices(ArcadeGraph.mapDirection(direction)))
-        result.add(new ArcadeVertex(this.graph, (ModifiableVertex) vertex.modify()));
+        result.add(new ArcadeVertex(this.graph, (MutableVertex) vertex.modify()));
     else
       for (com.arcadedb.graph.Vertex vertex : this.baseElement.getVertices(ArcadeGraph.mapDirection(direction), edgeLabels))
-        result.add(new ArcadeVertex(this.graph, (ModifiableVertex) vertex.modify()));
+        result.add(new ArcadeVertex(this.graph, (MutableVertex) vertex.modify()));
 
     return result.iterator();
   }

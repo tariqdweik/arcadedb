@@ -6,7 +6,7 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.BaseGraphServerTest;
@@ -49,7 +49,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
     for (int tx = 0; tx < getTxs(); ++tx) {
       for (int i = 0; i < getVerticesPerTx(); ++i) {
-        final ModifiableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
+        final MutableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
         v1.set("id", ++counter);
         v1.set("name", "distributed-test");
         v1.save();

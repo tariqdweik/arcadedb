@@ -26,9 +26,9 @@ public class ImmutableDocument extends BaseDocument {
   }
 
   @Override
-  public ModifiableDocument modify() {
+  public MutableDocument modify() {
     checkForLazyLoading();
-    return new ModifiableDocument(database, typeName, rid, buffer.copy());
+    return new MutableDocument(database, typeName, rid, buffer.copy());
   }
 
   @Override

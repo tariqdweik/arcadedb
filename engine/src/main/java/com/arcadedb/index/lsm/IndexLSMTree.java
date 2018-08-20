@@ -33,20 +33,17 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * <p>
  * When a page is full, another page is created, waiting for a compaction.
  * <p>
- * HEADER 1st PAGE = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),bloomFilterSeed(int:4),bloomFilter(bytes[]:<bloomFilterLength>),
- * numberOfKeys(byte:1),keyType(byte:1)*,bfKeyDepth(byte:1)]
+ * HEADER 1st PAGE = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),compacted(boolean:1),numberOfKeys(byte:1),keyType(byte:1)*]
  * <p>
- * HEADER Nst PAGE = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),bloomFilterSeed(int:4),bloomFilter(bytes[]:<bloomFilterLength>)]
+ * HEADER Nst PAGE = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4)]
  */
 public class IndexLSMTree extends IndexLSMAbstract {
   public static final String UNIQUE_INDEX_EXT    = "utidx";
   public static final String NOTUNIQUE_INDEX_EXT = "nutidx";
 
   private final BinaryComparator comparator;
-  private final int              bfKeyDepth;
 
-  private AtomicLong statsBFFalsePositive = new AtomicLong();
-  private AtomicLong statsAdjacentSteps   = new AtomicLong();
+  private AtomicLong statsAdjacentSteps = new AtomicLong();
 
   private static final LookupResult LOWER  = new LookupResult(false, 0, null);
   private static final LookupResult HIGHER = new LookupResult(false, 0, null);
@@ -54,8 +51,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
     public Index create(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-        final String[] propertyNames, final byte[] keyTypes, final int pageSize) throws IOException {
-      return new IndexLSMTree(database, name, unique, filePath, mode, propertyNames, keyTypes, pageSize, keyTypes.length);
+        final byte[] keyTypes, final int pageSize) throws IOException {
+      return new IndexLSMTree(database, name, unique, filePath, mode, keyTypes, pageSize);
     }
   }
 
@@ -89,10 +86,9 @@ public class IndexLSMTree extends IndexLSMAbstract {
    * Called at creation time.
    */
   public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-      final String[] propertyNames, final byte[] keyTypes, final int pageSize, final int bfKeyDepth) throws IOException {
+      final byte[] keyTypes, final int pageSize) throws IOException {
     super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
     this.comparator = serializer.getComparator();
-    this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
     createNewPage();
   }
@@ -100,11 +96,10 @@ public class IndexLSMTree extends IndexLSMAbstract {
   /**
    * Called at cloning time.
    */
-  public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final String[] propertyNames,
-      final byte[] keyTypes, final int pageSize, final int bfKeyDepth) throws IOException {
+  public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final byte[] keyTypes, final int pageSize)
+      throws IOException {
     super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
     this.comparator = serializer.getComparator();
-    this.bfKeyDepth = bfKeyDepth;
     database.checkTransactionIsActive();
     createNewPage();
   }
@@ -119,31 +114,36 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
     final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
 
-    int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + getBFSize();
+    int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE;
+    final boolean compacted = currentPage.readByte(pos++) == 1;
+    if (compacted)
+      compactingStatus = COMPACTING_STATUS.COMPACTED;
+    else
+      compactingStatus = COMPACTING_STATUS.NO;
+
     final int len = currentPage.readByte(pos++);
     this.keyTypes = new byte[len];
     for (int i = 0; i < len; ++i)
       this.keyTypes[i] = currentPage.readByte(pos++);
-    this.bfKeyDepth = currentPage.readByte(pos++);
   }
 
   public IndexLSMTree copy() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-    return new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, null, keyTypes, pageSize, bfKeyDepth);
+    return new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize);
   }
 
   @Override
   public void compact() throws IOException {
-    if (compacting)
+    if (compactingStatus == COMPACTING_STATUS.IN_PROGRESS)
       throw new IllegalStateException("Index '" + name + "' is already compacting");
 
-    compacting = true;
+    compactingStatus = COMPACTING_STATUS.IN_PROGRESS;
     try {
       final IndexLSMTreeCompactor compactor = new IndexLSMTreeCompactor(this);
       compactor.compact();
     } finally {
-      compacting = false;
+      compactingStatus = COMPACTING_STATUS.COMPACTED;
     }
   }
 
@@ -202,8 +202,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
         if (count < 1)
           return set;
 
-        final LookupResult result = searchInPage(currentPage, currentPageBuffer, convertedKeys, count, 1);
-        if (result != null && result.found) {
+        final LookupResult result = lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, convertedKeys, 1);
+        if (result.found) {
           // REAL ALL THE ENTRIES
           final List<Object> allValues = readAllValuesFromResult(currentPageBuffer, result);
 
@@ -252,31 +252,8 @@ public class IndexLSMTree extends IndexLSMAbstract {
   public Map<String, Long> getStats() {
     final Map<String, Long> stats = new HashMap<>();
     stats.put("pages", (long) getTotalPages());
-    stats.put("BFFalsePositive", statsBFFalsePositive.get());
     stats.put("adjacentSteps", statsAdjacentSteps.get());
     return stats;
-  }
-
-  /**
-   * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator, 3 = descending iterator
-   *
-   * @return
-   */
-  protected LookupResult searchInPage(final BasePage currentPage, final Binary currentPageBuffer, final Object[] keys, final int count, final int purpose) {
-    // SEARCH IN THE BF FIRST
-    final int seed = getBFSeed(currentPage);
-
-    final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
-        seed);
-
-    LookupResult result = null;
-    if (bf.mightContain(BinaryTypes.getHash32(keys, bfKeyDepth))) {
-      result = lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, keys, purpose);
-      if (!result.found)
-        statsBFFalsePositive.incrementAndGet();
-    }
-
-    return result;
   }
 
   /**
@@ -284,7 +261,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
    *
    * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator, 3 = descending iterator
    *
-   * @return
+   * @return always an LookupResult object, never null
    */
   protected LookupResult lookupInPage(final int pageNum, final int count, final Binary currentPageBuffer, final Object[] convertedKeys, final int purpose) {
     if (keyTypes.length == 0)
@@ -358,7 +335,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     int pageNum = txPageCounter - 1;
 
     try {
-      ModifiablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
+      MutablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
 
       TrackableBinary currentPageBuffer = currentPage.getTrackable();
 
@@ -401,11 +378,11 @@ public class IndexLSMTree extends IndexLSMAbstract {
       currentPageBuffer.putInt(startPos, keyValueFreePosition);
 
       // ADD THE ITEM IN THE BF
-      final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
-          getBFSeed(currentPage));
-
-      // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
-      bf.add(BinaryTypes.getHash32(convertedKeys, bfKeyDepth));
+//      final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
+//          getBFSeed(currentPage));
+//
+//      // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
+//      bf.add(BinaryTypes.getHash32(convertedKeys, bfKeyDepth));
 
       setCount(currentPage, count + 1);
       setValuesFreePosition(currentPage, keyValueFreePosition);
@@ -433,7 +410,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     int pageNum = txPageCounter - 1;
 
     try {
-      ModifiablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
+      MutablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
 
       TrackableBinary currentPageBuffer = currentPage.getTrackable();
 
@@ -505,13 +482,6 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
       currentPageBuffer.putInt(startPos, keyValueFreePosition);
 
-      // ADD THE ITEM IN THE BF
-      final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
-          getBFSeed(currentPage));
-
-      // COMPUTE BF FOR ALL THE COMBINATIONS OF THE KEYS
-      bf.add(BinaryTypes.getHash32(keys, bfKeyDepth));
-
       setCount(currentPage, count + 1);
       setValuesFreePosition(currentPage, keyValueFreePosition);
 
@@ -524,7 +494,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     }
   }
 
-  public ModifiablePage appendDuringCompaction(final Binary keyValueContent, ModifiablePage currentPage, TrackableBinary currentPageBuffer, final Object[] keys,
+  public MutablePage appendDuringCompaction(final Binary keyValueContent, MutablePage currentPage, TrackableBinary currentPageBuffer, final Object[] keys,
       final RID[] rids) {
     if (currentPage == null) {
 
@@ -570,11 +540,12 @@ public class IndexLSMTree extends IndexLSMAbstract {
     final int startPos = getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE);
     currentPageBuffer.putInt(startPos, keyValueFreePosition);
 
+    // TODO: !!!USE THE BF ON THE 1ST PAGE ONLY!!!
     // ADD THE ITEM IN THE BF
-    final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
-        getBFSeed(currentPage));
-
-    bf.add(BinaryTypes.getHash32(convertedKeys, bfKeyDepth));
+//    final BufferBloomFilter bf = new BufferBloomFilter(currentPageBuffer.slice(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE), getBFSize(),
+//        getBFSeed(currentPage));
+//
+//    bf.add(BinaryTypes.getHash32(convertedKeys, bfKeyDepth));
 
     setCount(currentPage, count + 1);
     setValuesFreePosition(currentPage, keyValueFreePosition);
@@ -752,18 +723,18 @@ public class IndexLSMTree extends IndexLSMAbstract {
   }
 
   private int getHeaderSize(final int pageNum) {
-    int size = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + getBFSize();
-    if (pageNum == 0)
-      size += BYTE_SERIALIZED_SIZE + keyTypes.length;
-    size += BYTE_SERIALIZED_SIZE;
+    int size = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE;
+    if (pageNum == 0) {
+      size += BYTE_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE + keyTypes.length;
+    }
     return size;
   }
 
-  private ModifiablePage createNewPage() {
+  private MutablePage createNewPage() {
     // NEW FILE, CREATE HEADER PAGE
     final int txPageCounter = getTotalPages();
 
-    final ModifiablePage currentPage = database.getTransaction().addPage(new PageId(file.getFileId(), txPageCounter), pageSize);
+    final MutablePage currentPage = database.getTransaction().addPage(new PageId(file.getFileId(), txPageCounter), pageSize);
 
     int pos = 0;
     currentPage.writeInt(pos, currentPage.getMaxContentSize());
@@ -772,18 +743,13 @@ public class IndexLSMTree extends IndexLSMAbstract {
     currentPage.writeInt(pos, 0); // ENTRIES COUNT
     pos += INT_SERIALIZED_SIZE;
 
-    // BLOOM FILTER (BF)
-    final int seed = new Random(System.currentTimeMillis()).nextInt();
-
-    currentPage.writeInt(pos, seed);
-    pos += INT_SERIALIZED_SIZE;
-    pos += getBFSize();
-
     if (txPageCounter == 0) {
+      currentPage.writeByte(pos, (byte) 0); // COMPACTED
+      pos += BYTE_SERIALIZED_SIZE;
+
       currentPage.writeByte(pos++, (byte) keyTypes.length);
       for (int i = 0; i < keyTypes.length; ++i)
         currentPage.writeByte(pos++, keyTypes[i]);
-      currentPage.writeByte(pos++, (byte) bfKeyDepth);
     }
 
     return currentPage;
@@ -848,19 +814,15 @@ public class IndexLSMTree extends IndexLSMAbstract {
     return allValues;
   }
 
-  private int getBFSeed(final BasePage currentPage) {
-    return currentPage.readInt(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE);
-  }
-
-  private int getBFSize() {
-    return pageSize / 15 / 8 * 8;
+  protected boolean isCompacted(final BasePage currentPage) {
+    return currentPage.readByte(INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE) == 1;
   }
 
   protected int getCount(final BasePage currentPage) {
     return currentPage.readInt(INT_SERIALIZED_SIZE);
   }
 
-  private void setCount(final ModifiablePage currentPage, final int newCount) {
+  private void setCount(final MutablePage currentPage, final int newCount) {
     currentPage.writeInt(INT_SERIALIZED_SIZE, newCount);
   }
 }

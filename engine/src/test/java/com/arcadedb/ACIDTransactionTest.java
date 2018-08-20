@@ -6,7 +6,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALException;
 import com.arcadedb.engine.WALFile;
@@ -54,7 +54,7 @@ public class ACIDTransactionTest extends BaseTest {
 
     try {
       for (; total.get() < TOT; total.incrementAndGet()) {
-        final ModifiableDocument v = db.newDocument("V");
+        final MutableDocument v = db.newDocument("V");
         v.set("id", total.get());
         v.set("name", "Crash");
         v.set("surname", "Test");
@@ -88,7 +88,7 @@ public class ACIDTransactionTest extends BaseTest {
     final Database db = database;
     db.begin();
     try {
-      final ModifiableDocument v = db.newDocument("V");
+      final MutableDocument v = db.newDocument("V");
       v.set("id", 0);
       v.set("name", "Crash");
       v.set("surname", "Test");
@@ -108,7 +108,7 @@ public class ACIDTransactionTest extends BaseTest {
     db.begin();
 
     try {
-      final ModifiableDocument v = db.newDocument("V");
+      final MutableDocument v = db.newDocument("V");
       v.set("id", 0);
       v.set("name", "Crash");
       v.set("surname", "Test");
@@ -170,7 +170,7 @@ public class ACIDTransactionTest extends BaseTest {
       });
 
       for (; total.get() < TOT; total.incrementAndGet()) {
-        final ModifiableDocument v = db.newDocument("V");
+        final MutableDocument v = db.newDocument("V");
         v.set("id", 0);
         v.set("name", "Crash");
         v.set("surname", "Test");
@@ -231,7 +231,7 @@ public class ACIDTransactionTest extends BaseTest {
       });
 
       for (; total.get() < TOT; total.incrementAndGet()) {
-        final ModifiableDocument v = db.newDocument("V");
+        final MutableDocument v = db.newDocument("V");
         v.set("id", 0);
         v.set("name", "Crash");
         v.set("surname", "Test");

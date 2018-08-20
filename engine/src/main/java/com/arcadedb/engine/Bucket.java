@@ -332,7 +332,7 @@ public class Bucket extends PaginatedComponent {
 
     try {
       int newPosition = -1;
-      ModifiablePage lastPage = null;
+      MutablePage lastPage = null;
       int recordCountInPage = -1;
       boolean createNewPage = false;
 
@@ -408,7 +408,7 @@ public class Bucket extends PaginatedComponent {
     }
 
     try {
-      final ModifiablePage page = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
+      final MutablePage page = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
       final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
       if (positionInPage >= recordCountInPage)
         throw new RecordNotFoundException("Record " + rid + " not found", rid);
@@ -537,7 +537,7 @@ public class Bucket extends PaginatedComponent {
     }
 
     try {
-      final ModifiablePage page = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
+      final MutablePage page = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageId), pageSize, false);
       final short recordCountInPage = page.readShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
       if (positionInPage >= recordCountInPage)
         throw new RecordNotFoundException("Record " + rid + " not found", rid);

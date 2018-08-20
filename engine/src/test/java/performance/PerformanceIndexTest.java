@@ -6,7 +6,7 @@ package performance;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
@@ -70,7 +70,7 @@ public class PerformanceIndexTest {
 
       long row = 0;
       for (; row < TOT; ++row) {
-        final ModifiableDocument record = database.newDocument(TYPE_NAME);
+        final MutableDocument record = database.newDocument(TYPE_NAME);
 
         final String randomString = UUID.randomUUID().toString();
 

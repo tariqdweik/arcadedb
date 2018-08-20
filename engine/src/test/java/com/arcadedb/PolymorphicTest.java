@@ -9,7 +9,7 @@ import com.arcadedb.database.Document;
 import com.arcadedb.database.DocumentCallback;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.SchemaException;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.VertexType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -70,25 +70,25 @@ public class PolymorphicTest extends BaseTest {
     final Database db = database;
     db.begin();
 
-    final ModifiableVertex maserati = db.newVertex("Car");
+    final MutableVertex maserati = db.newVertex("Car");
     maserati.set("brand", "Maserati");
     maserati.set("type", "Ghibli");
     maserati.set("year", 2017);
     maserati.save();
 
-    final ModifiableVertex ducati = db.newVertex("Motorcycle");
+    final MutableVertex ducati = db.newVertex("Motorcycle");
     ducati.set("brand", "Ducati");
     ducati.set("type", "Monster");
     ducati.set("year", 2015);
     ducati.save();
 
-    final ModifiableVertex ferrari = db.newVertex("Supercar");
+    final MutableVertex ferrari = db.newVertex("Supercar");
     ferrari.set("brand", "Ferrari");
     ferrari.set("type", "458 Italia");
     ferrari.set("year", 2014);
     ferrari.save();
 
-    final ModifiableVertex luca = db.newVertex("Client");
+    final MutableVertex luca = db.newVertex("Client");
     luca.set("firstName", "Luca");
     luca.set("lastName", "Skywalker");
     luca.save();

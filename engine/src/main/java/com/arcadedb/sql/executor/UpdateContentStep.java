@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Document;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Json;
@@ -69,7 +69,7 @@ public class UpdateContentStep extends AbstractExecutionStep {
   private boolean handleContent(Record record, CommandContext ctx) {
     boolean updated = false;
 
-    final ModifiableDocument doc = (ModifiableDocument) record.getRecord().modify();
+    final MutableDocument doc = (MutableDocument) record.getRecord().modify();
 
     doc.merge(json.toDocument(record, ctx));
 

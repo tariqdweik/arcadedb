@@ -528,7 +528,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public void createRecord(final ModifiableDocument record) {
+  public void createRecord(final MutableDocument record) {
     if (record.getIdentity() != null)
       throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
@@ -730,7 +730,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public ModifiableDocument newDocument(final String typeName) {
+  public MutableDocument newDocument(final String typeName) {
     if (typeName == null)
       throw new IllegalArgumentException("Type is null");
 
@@ -738,11 +738,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (!type.getClass().equals(DocumentType.class))
       throw new IllegalArgumentException("Cannot create a document of type '" + typeName + "' because is not a document type");
 
-    return new ModifiableDocument(wrappedDatabaseInstance, typeName, null);
+    return new MutableDocument(wrappedDatabaseInstance, typeName, null);
   }
 
   @Override
-  public ModifiableVertex newVertex(final String typeName) {
+  public MutableVertex newVertex(final String typeName) {
     if (typeName == null)
       throw new IllegalArgumentException("Type is null");
 
@@ -750,7 +750,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (!type.getClass().equals(VertexType.class))
       throw new IllegalArgumentException("Cannot create a vertex of type '" + typeName + "' because is not a vertex type");
 
-    return new ModifiableVertex(wrappedDatabaseInstance, typeName, null);
+    return new MutableVertex(wrappedDatabaseInstance, typeName, null);
   }
 
   public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
@@ -775,7 +775,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       if (createVertexIfNotExist) {
         sourceVertex = newVertex(sourceVertexType);
         for (int i = 0; i < sourceVertexKey.length; ++i)
-          ((ModifiableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
+          ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
       } else
         throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
@@ -787,7 +787,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       if (createVertexIfNotExist) {
         destinationVertex = newVertex(destinationVertexType);
         for (int i = 0; i < destinationVertexKey.length; ++i)
-          ((ModifiableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+          ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
       } else
         throw new IllegalArgumentException(
             "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));

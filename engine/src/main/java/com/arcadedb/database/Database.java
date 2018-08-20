@@ -8,7 +8,7 @@ import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.FileManager;
 import com.arcadedb.engine.PageManager;
 import com.arcadedb.graph.Edge;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.ResultSet;
@@ -69,9 +69,9 @@ public interface Database extends AutoCloseable {
 
   long countBucket(String bucketName);
 
-  ModifiableDocument newDocument(String typeName);
+  MutableDocument newDocument(String typeName);
 
-  ModifiableVertex newVertex(String typeName);
+  MutableVertex newVertex(String typeName);
 
   Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType, String[] destinationVertexKey,
       Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);

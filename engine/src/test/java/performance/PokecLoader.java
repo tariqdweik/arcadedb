@@ -9,7 +9,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.WALFile;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.index.lsm.IndexLSMTree;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
@@ -84,7 +84,7 @@ public class PokecLoader {
       final String line = buffered.readLine();
       final String[] profile = line.split("\t");
 
-      final ModifiableVertex v = db.newVertex("V");
+      final MutableVertex v = db.newVertex("V");
       final int id = Integer.parseInt(profile[0]);
       v.set(COLUMNS[0], id);
       if (IMPORT_PROPERTIES)

@@ -15,10 +15,10 @@ import java.util.concurrent.TimeUnit;
  * Flushes pages to disk asynchronously.
  */
 public class PageManagerFlushThread extends Thread {
-  private final    PageManager                        pageManager;
-  public final     ArrayBlockingQueue<ModifiablePage> queue   = new ArrayBlockingQueue<>(GlobalConfiguration.PAGE_FLUSH_QUEUE.getValueAsInteger());
-  private final    String                             logContext;
-  private volatile boolean                            running = true;
+  private final    PageManager                     pageManager;
+  public final     ArrayBlockingQueue<MutablePage> queue   = new ArrayBlockingQueue<>(GlobalConfiguration.PAGE_FLUSH_QUEUE.getValueAsInteger());
+  private final    String                          logContext;
+  private volatile boolean                         running = true;
 
   public PageManagerFlushThread(final PageManager pageManager) {
     super("AsynchFlush");
@@ -26,7 +26,7 @@ public class PageManagerFlushThread extends Thread {
     this.logContext = LogManager.instance().getContext();
   }
 
-  public void asyncFlush(final ModifiablePage page) throws InterruptedException {
+  public void asyncFlush(final MutablePage page) throws InterruptedException {
     LogManager.instance().debug(this, "Enqueuing flushing page %s in bg...", page);
     queue.put(page);
   }
@@ -51,7 +51,7 @@ public class PageManagerFlushThread extends Thread {
   }
 
   private void flushStream() throws InterruptedException, IOException {
-    final ModifiablePage page = queue.poll(300l, TimeUnit.MILLISECONDS);
+    final MutablePage page = queue.poll(300l, TimeUnit.MILLISECONDS);
 
     if (page != null) {
       if (LogManager.instance().isDebugEnabled())

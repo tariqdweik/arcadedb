@@ -143,8 +143,8 @@ public class DatabaseAsyncExecutor {
 
                 database.createRecordNoLock(command.record, command.bucket.getName());
 
-                if (command.record instanceof ModifiableDocument) {
-                  final ModifiableDocument doc = (ModifiableDocument) command.record;
+                if (command.record instanceof MutableDocument) {
+                  final MutableDocument doc = (MutableDocument) command.record;
                   database.getIndexer().createDocument(doc, database.getSchema().getType(doc.getType()), command.bucket);
                 }
 
@@ -220,7 +220,7 @@ public class DatabaseAsyncExecutor {
 
                 final VertexInternal modifiableSourceVertex;
                 if (outEdgesHeadChunk == null) {
-                  final ModifiableEdgeChunk outChunk = new ModifiableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
+                  final MutableEdgeChunk outChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
                   database.createRecordNoLock(outChunk,
                       GraphEngine.getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
                   outEdgesHeadChunk = outChunk.getIdentity();
@@ -253,7 +253,7 @@ public class DatabaseAsyncExecutor {
 
                 final VertexInternal modifiableDestinationVertex;
                 if (inEdgesHeadChunk == null) {
-                  final ModifiableEdgeChunk inChunk = new ModifiableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
+                  final MutableEdgeChunk inChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
                   database.createRecordNoLock(inChunk,
                       GraphEngine.getEdgesBucketName(database, command.destinationVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
                   inEdgesHeadChunk = inChunk.getIdentity();
@@ -447,7 +447,7 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  public void createRecord(final ModifiableDocument record) {
+  public void createRecord(final MutableDocument record) {
     final DocumentType type = database.getSchema().getType(record.getType());
 
     if (record.getIdentity() == null) {
@@ -509,7 +509,7 @@ public class DatabaseAsyncExecutor {
       if (createVertexIfNotExist) {
         sourceVertex = database.newVertex(sourceVertexType);
         for (int i = 0; i < sourceVertexKey.length; ++i)
-          ((ModifiableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
+          ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
       } else
         throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
@@ -521,7 +521,7 @@ public class DatabaseAsyncExecutor {
       if (createVertexIfNotExist) {
         destinationVertex = database.newVertex(destinationVertexType);
         for (int i = 0; i < destinationVertexKey.length; ++i)
-          ((ModifiableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+          ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
       } else
         throw new IllegalArgumentException(
             "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
@@ -608,7 +608,7 @@ public class DatabaseAsyncExecutor {
     final DatabaseInternal database = (DatabaseInternal) sourceVertex.getDatabase();
 
     try {
-      final ModifiableEdge edge = new ModifiableEdge(database, edgeType, rid, destinationVertex.getIdentity());
+      final MutableEdge edge = new MutableEdge(database, edgeType, rid, destinationVertex.getIdentity());
       GraphEngine.setProperties(edge, properties);
       edge.save();
 

@@ -6,33 +6,33 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 
-public class ModifiableVertex extends ModifiableDocument implements VertexInternal {
+public class MutableVertex extends MutableDocument implements VertexInternal {
   private RID outEdges;
   private RID inEdges;
 
   /**
    * Creation constructor.
    */
-  public ModifiableVertex(final Database graph, final String typeName, final RID rid) {
+  public MutableVertex(final Database graph, final String typeName, final RID rid) {
     super(graph, typeName, rid);
   }
 
   /**
    * Copy constructor from ImmutableVertex.modify().
    */
-  public ModifiableVertex(final Database graph, final String typeName, final RID rid, final Binary buffer) {
+  public MutableVertex(final Database graph, final String typeName, final RID rid, final Binary buffer) {
     super(graph, typeName, rid, buffer);
     init();
   }
 
   @Override
-  public ModifiableVertex save() {
-    return (ModifiableVertex) super.save();
+  public MutableVertex save() {
+    return (MutableVertex) super.save();
   }
 
   @Override
-  public ModifiableVertex save(final String bucketName) {
-    return (ModifiableVertex) super.save(bucketName);
+  public MutableVertex save(final String bucketName) {
+    return (MutableVertex) super.save(bucketName);
   }
 
   @Override
@@ -70,7 +70,7 @@ public class ModifiableVertex extends ModifiableDocument implements VertexIntern
     return Vertex.RECORD_TYPE;
   }
 
-  public ModifiableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional, final Object... properties) {
+  public MutableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional, final Object... properties) {
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 

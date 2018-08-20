@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class VertexIterator implements Iterator<Vertex>, Iterable<Vertex> {
   private       EdgeChunk     currentContainer;
-  private final AtomicInteger currentPosition = new AtomicInteger(ModifiableEdgeChunk.CONTENT_START_POSITION);
+  private final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeChunk.CONTENT_START_POSITION);
 
   public VertexIterator(final EdgeChunk current) {
     if (current == null)
@@ -30,7 +30,7 @@ public class VertexIterator implements Iterator<Vertex>, Iterable<Vertex> {
 
     currentContainer = currentContainer.getNext();
     if (currentContainer != null) {
-      currentPosition.set(ModifiableEdgeChunk.CONTENT_START_POSITION);
+      currentPosition.set(MutableEdgeChunk.CONTENT_START_POSITION);
       return currentPosition.get() < currentContainer.getUsed();
     }
     return false;

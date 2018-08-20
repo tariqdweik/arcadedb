@@ -32,11 +32,11 @@ public class BinarySerializer {
   public Binary serialize(final Database database, final Record record) {
     switch (record.getRecordType()) {
     case Document.RECORD_TYPE:
-      return serializeDocument(database, (ModifiableDocument) record);
+      return serializeDocument(database, (MutableDocument) record);
     case Vertex.RECORD_TYPE:
-      return serializeVertex(database, (ModifiableVertex) record);
+      return serializeVertex(database, (MutableVertex) record);
     case Edge.RECORD_TYPE:
-      return serializeEdge(database, (ModifiableEdge) record);
+      return serializeEdge(database, (MutableEdge) record);
     case EdgeChunk.RECORD_TYPE:
       return serializeEdgeContainer(database, (EdgeChunk) record);
     default:
@@ -44,7 +44,7 @@ public class BinarySerializer {
     }
   }
 
-  public Binary serializeDocument(final Database database, final ModifiableDocument document) {
+  public Binary serializeDocument(final Database database, final MutableDocument document) {
     Binary header = document.getBuffer();
 
     final boolean serializeProperties;
@@ -65,7 +65,7 @@ public class BinarySerializer {
     return header;
   }
 
-  public Binary serializeVertex(final Database database, final ModifiableVertex vertex) {
+  public Binary serializeVertex(final Database database, final MutableVertex vertex) {
     Binary header = vertex.getBuffer();
 
     final boolean serializeProperties;
@@ -105,7 +105,7 @@ public class BinarySerializer {
     return header;
   }
 
-  public Binary serializeEdge(final Database database, final ModifiableEdge edge) {
+  public Binary serializeEdge(final Database database, final MutableEdge edge) {
     Binary header = edge.getBuffer();
 
     final boolean serializeProperties;

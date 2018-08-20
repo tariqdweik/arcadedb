@@ -14,7 +14,7 @@ import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
@@ -61,7 +61,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
         final TransactionContext tx = proxied.getTransaction();
 
-        final Pair<Binary, List<ModifiablePage>> changes = tx.commit1stPhase();
+        final Pair<Binary, List<MutablePage>> changes = tx.commit1stPhase();
 
         try {
           if (changes != null) {
@@ -158,7 +158,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public void createRecord(final ModifiableDocument record) {
+  public void createRecord(final MutableDocument record) {
     proxied.createRecord(record);
   }
 
@@ -308,12 +308,12 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public ModifiableDocument newDocument(final String typeName) {
+  public MutableDocument newDocument(final String typeName) {
     return proxied.newDocument(typeName);
   }
 
   @Override
-  public ModifiableVertex newVertex(String typeName) {
+  public MutableVertex newVertex(String typeName) {
     return proxied.newVertex(typeName);
   }
 

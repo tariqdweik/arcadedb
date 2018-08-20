@@ -9,7 +9,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TrackableBinary;
-import com.arcadedb.engine.ModifiablePage;
+import com.arcadedb.engine.MutablePage;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
@@ -43,7 +43,7 @@ public class IndexLSMTreeCompactor {
 
     final long indexCompactionRAM = GlobalConfiguration.INDEX_COMPACTION_RAM.getValueAsLong() * 1024 * 1024;
 
-    long iterations = 0;
+    long iterations = 1;
     long totalKeys = 0;
     long totalValues = 0;
     long totalMergedKeys = 0;
@@ -81,7 +81,7 @@ public class IndexLSMTreeCompactor {
       final BinarySerializer serializer = database.getSerializer();
       final BinaryComparator comparator = serializer.getComparator();
 
-      ModifiablePage lastPage = null;
+      MutablePage lastPage = null;
       TrackableBinary currentPageBuffer = null;
 
       final List<RID> rids = new ArrayList<>();
@@ -141,7 +141,7 @@ public class IndexLSMTreeCompactor {
           final RID[] ridsArray = new RID[rids.size()];
           rids.toArray(ridsArray);
 
-          final ModifiablePage newPage = newIndex.appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, ridsArray);
+          final MutablePage newPage = newIndex.appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, minorKey, ridsArray);
           if (newPage != lastPage) {
             currentPageBuffer = newPage.getTrackable();
             lastPage = newPage;

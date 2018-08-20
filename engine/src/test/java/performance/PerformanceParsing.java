@@ -7,7 +7,7 @@ package performance;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.async.SQLCallback;
-import com.arcadedb.graph.ModifiableVertex;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
@@ -28,7 +28,7 @@ public class PerformanceParsing {
     if (!database.getSchema().existsType(TYPE_NAME)) {
       database.getSchema().createVertexType(TYPE_NAME);
       database.begin();
-      final ModifiableVertex v = database.newVertex(TYPE_NAME);
+      final MutableVertex v = database.newVertex(TYPE_NAME);
       v.set("name", "test");
       database.commit();
     }

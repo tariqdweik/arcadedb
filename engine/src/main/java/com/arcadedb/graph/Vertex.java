@@ -14,7 +14,7 @@ public interface Vertex extends Document {
     OUT, IN, BOTH
   }
 
-  ModifiableEdge newEdge(String edgeType, Identifiable toVertex, boolean bidirectional, final Object... properties);
+  MutableEdge newEdge(String edgeType, Identifiable toVertex, boolean bidirectional, final Object... properties);
 
   long countEdges(DIRECTION direction, String edgeType);
 

@@ -8,20 +8,19 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.TrackableBinary;
 
 /**
- * Low level modifiable page implementation. The first 8 bytes (the header) are reserved to store the page version (MVCC).
+ * Mutable page that accepts updates. It keeps track of the modified bytes.
  */
-public class ModifiablePage extends BasePage implements TrackableContent {
+public class MutablePage extends BasePage implements TrackableContent {
   private int     modifiedRangeFrom = Integer.MAX_VALUE;
   private int     modifiedRangeTo   = -1;
   private WALFile walFile;
 
-  public ModifiablePage(final PageManager manager, final PageId pageId, final int size) {
+  public MutablePage(final PageManager manager, final PageId pageId, final int size) {
     this(manager, pageId, size, new byte[size], 0, 0);
     updateModifiedRange(0, size - 1);
   }
 
-  public ModifiablePage(final PageManager manager, final PageId pageId, final int size, final byte[] array, final int version,
-      final int contentSize) {
+  public MutablePage(final PageManager manager, final PageId pageId, final int size, final byte[] array, final int version, final int contentSize) {
     super(manager, pageId, size, array, version, contentSize);
   }
 
@@ -133,8 +132,7 @@ public class ModifiablePage extends BasePage implements TrackableContent {
       throw new IllegalArgumentException("Invalid position " + start);
 
     if (start + length > getPhysicalSize())
-      throw new IllegalArgumentException(
-          "Cannot write outside the page space (" + (start + length) + ">" + getPhysicalSize() + ")");
+      throw new IllegalArgumentException("Cannot write outside the page space (" + (start + length) + ">" + getPhysicalSize() + ")");
 
     updateModifiedRange(start, start + length - 1);
   }

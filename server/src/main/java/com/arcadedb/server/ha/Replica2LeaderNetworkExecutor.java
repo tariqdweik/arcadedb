@@ -9,7 +9,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseContext;
 import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.engine.ModifiablePage;
+import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.engine.PageManager;
 import com.arcadedb.engine.PaginatedFile;
@@ -389,7 +389,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       }
 
       for (int i = 0; i < fileChunk.getPages(); ++i) {
-        final ModifiablePage page = new ModifiablePage(pageManager, new PageId(file.getFileId(), from + i), pageSize);
+        final MutablePage page = new MutablePage(pageManager, new PageId(file.getFileId(), from + i), pageSize);
         System.arraycopy(fileChunk.getPagesContent().getContent(), i * pageSize, page.getTrackable().getContent(), 0, pageSize);
         page.loadMetadata();
         pageManager.overridePage(page);

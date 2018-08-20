@@ -29,9 +29,9 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
     }
   }
 
-  public ModifiableEdge modify() {
+  public MutableEdge modify() {
     checkForLazyLoading();
-    return new ModifiableEdge(database, typeName, rid, buffer.copy());
+    return new MutableEdge(database, typeName, rid, buffer.copy());
   }
 
   @Override

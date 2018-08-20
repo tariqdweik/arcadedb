@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Document;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Identifier;
 
@@ -43,7 +43,7 @@ public class SaveElementStep extends AbstractExecutionStep {
         if (result.isElement()) {
           final Document doc = result.getElement().orElse(null);
 
-          final ModifiableDocument modifiableDoc = (ModifiableDocument) doc.modify();
+          final MutableDocument modifiableDoc = (MutableDocument) doc.modify();
           if (cluster == null)
             modifiableDoc.save();
           else

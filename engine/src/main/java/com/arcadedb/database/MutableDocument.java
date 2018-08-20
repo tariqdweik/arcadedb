@@ -11,16 +11,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ModifiableDocument extends BaseDocument implements RecordInternal {
+public class MutableDocument extends BaseDocument implements RecordInternal {
   private   Map<String, Object> map;
   protected boolean             dirty = false;
 
-  protected ModifiableDocument(final Database database, final String typeName, final RID rid) {
+  protected MutableDocument(final Database database, final String typeName, final RID rid) {
     super(database, typeName, rid, null);
     this.map = new LinkedHashMap<String, Object>();
   }
 
-  protected ModifiableDocument(final Database database, final String typeName, final RID rid, final Binary buffer) {
+  protected MutableDocument(final Database database, final String typeName, final RID rid, final Binary buffer) {
     super(database, typeName, rid, buffer);
     buffer.position(buffer.position() + 1); // SKIP RECORD TYPE
   }
@@ -84,7 +84,7 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return map.remove(name);
   }
 
-  public ModifiableDocument save() {
+  public MutableDocument save() {
     if (rid != null)
       database.updateRecord(this);
     else
@@ -92,7 +92,7 @@ public class ModifiableDocument extends BaseDocument implements RecordInternal {
     return this;
   }
 
-  public ModifiableDocument save(final String bucketName) {
+  public MutableDocument save(final String bucketName) {
     if (rid != null)
       throw new IllegalStateException("Cannot update a record in a custom bucket");
 

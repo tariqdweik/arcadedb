@@ -24,7 +24,7 @@ public class GraphEngine {
     }
   }
 
-  public ModifiableEdge newEdge(VertexInternal vertex, final String edgeType, Identifiable toVertex, final boolean bidirectional, final Object... properties) {
+  public MutableEdge newEdge(VertexInternal vertex, final String edgeType, Identifiable toVertex, final boolean bidirectional, final Object... properties) {
     if (toVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 
@@ -32,18 +32,18 @@ public class GraphEngine {
     if (rid == null)
       throw new IllegalArgumentException("Current vertex is not persistent");
 
-    if (toVertex instanceof ModifiableDocument && toVertex.getIdentity() == null)
+    if (toVertex instanceof MutableDocument && toVertex.getIdentity() == null)
       throw new IllegalArgumentException("Target vertex is not persistent");
 
     final DatabaseInternal database = (DatabaseInternal) vertex.getDatabase();
 
-    final ModifiableEdge edge = new ModifiableEdge(database, edgeType, rid, toVertex.getIdentity());
+    final MutableEdge edge = new MutableEdge(database, edgeType, rid, toVertex.getIdentity());
     setProperties(edge, properties);
     edge.save();
 
     RID outEdgesHeadChunk = vertex.getOutEdgesHeadChunk();
     if (outEdgesHeadChunk == null) {
-      final ModifiableEdgeChunk outChunk = new ModifiableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
+      final MutableEdgeChunk outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
       database.createRecord(outChunk, getEdgesBucketName(database, rid.getBucketId(), Vertex.DIRECTION.OUT));
       outEdgesHeadChunk = outChunk.getIdentity();
 
@@ -62,7 +62,7 @@ public class GraphEngine {
 
       RID inEdgesHeadChunk = toVertexRecord.getInEdgesHeadChunk();
       if (inEdgesHeadChunk == null) {
-        final ModifiableEdgeChunk inChunk = new ModifiableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
+        final MutableEdgeChunk inChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
         database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
         inEdgesHeadChunk = inChunk.getIdentity();
 
@@ -409,7 +409,7 @@ public class GraphEngine {
     throw new IllegalArgumentException("Invalid direction");
   }
 
-  public static void setProperties(final ModifiableDocument edge, final Object[] properties) {
+  public static void setProperties(final MutableDocument edge, final Object[] properties) {
     if (properties != null)
       if (properties.length == 1 && properties[0] instanceof Map) {
         // GET PROPERTIES FROM THE MAP

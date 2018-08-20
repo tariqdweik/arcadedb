@@ -6,7 +6,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.DocumentCallback;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.database.async.OkCallback;
 import com.arcadedb.schema.DocumentType;
@@ -96,7 +96,7 @@ public class AsyncTest extends BaseTest {
     database.commit();
 
     for (int i = 0; i < TOT; ++i) {
-      final ModifiableDocument v = database.newDocument(TYPE_NAME);
+      final MutableDocument v = database.newDocument(TYPE_NAME);
       v.set("id", i);
       v.set("name", "Jay");
       v.set("surname", "Miner");

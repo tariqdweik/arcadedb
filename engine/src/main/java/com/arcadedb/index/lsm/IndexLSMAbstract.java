@@ -7,7 +7,7 @@ package com.arcadedb.index.lsm;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.BasePage;
-import com.arcadedb.engine.ModifiablePage;
+import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.Index;
@@ -23,15 +23,17 @@ import java.util.Set;
  * Abstract class for LSM-based indexes.
  */
 public abstract class IndexLSMAbstract extends PaginatedComponent implements Index {
-  public static final  int    DEF_PAGE_SIZE     = 4 * 1024 * 1024;
+  public static final  int    DEF_PAGE_SIZE     = 2 * 1024 * 1024;
   public static final  RID    REMOVED_ENTRY_RID = new RID(null, -1, -1l);
   private static final String TEMP_EXT          = "temp_";
 
-  protected final    BinarySerializer serializer;
-  protected final    byte             valueType  = BinaryTypes.TYPE_COMPRESSED_RID;
-  protected          byte[]           keyTypes;
-  protected volatile boolean          compacting = false;
-  protected final    boolean          unique;
+  protected final    BinarySerializer  serializer;
+  protected final    byte              valueType        = BinaryTypes.TYPE_COMPRESSED_RID;
+  protected          byte[]            keyTypes;
+  protected volatile COMPACTING_STATUS compactingStatus = COMPACTING_STATUS.NO;
+  protected final    boolean           unique;
+
+  public enum COMPACTING_STATUS {NO, IN_PROGRESS, COMPACTED}
 
   /**
    * Called at creation time.
@@ -139,7 +141,7 @@ public abstract class IndexLSMAbstract extends PaginatedComponent implements Ind
     return currentPage.readInt(0);
   }
 
-  protected void setValuesFreePosition(final ModifiablePage currentPage, final int newValuesFreePosition) {
+  protected void setValuesFreePosition(final MutablePage currentPage, final int newValuesFreePosition) {
     currentPage.writeInt(0, newValuesFreePosition);
   }
 

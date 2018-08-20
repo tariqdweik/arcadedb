@@ -5,7 +5,7 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
@@ -102,7 +102,7 @@ public class RandomTestSingleThread extends BaseTest {
     LogManager.instance().info(this, "Creating %d transactions...", txOps);
 
     for (long txId = 0; txId < txOps; ++txId) {
-      final ModifiableDocument tx = database.newVertex("Transaction");
+      final MutableDocument tx = database.newVertex("Transaction");
       tx.set("uuid", UUID.randomUUID().toString());
       tx.set("date", new Date());
       tx.set("amount", rnd.nextInt(STARTING_ACCOUNT));
@@ -133,7 +133,7 @@ public class RandomTestSingleThread extends BaseTest {
 
     try {
       for (long row = 0; row < STARTING_ACCOUNT; ++row) {
-        final ModifiableDocument record = database.newVertex("Account");
+        final MutableDocument record = database.newVertex("Account");
         record.set("id", row);
         record.set("name", "Luca" + row);
         record.set("surname", "Skywalker" + row);

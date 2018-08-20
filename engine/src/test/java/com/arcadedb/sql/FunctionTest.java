@@ -6,8 +6,7 @@ package com.arcadedb.sql;
 
 import com.arcadedb.BaseTest;
 import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
@@ -29,7 +28,7 @@ public class FunctionTest extends BaseTest {
           database.getSchema().createVertexType("V");
 
         for (int i = 0; i < TOT; ++i) {
-          final ModifiableDocument v = database.newVertex("V");
+          final MutableDocument v = database.newVertex("V");
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner" + i);

@@ -5,7 +5,7 @@
 package com.arcadedb.server.http.handler;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.server.http.HttpServer;
 import io.undertow.server.HttpServerExchange;
 import org.json.JSONObject;
@@ -32,7 +32,7 @@ public class CreateDocumentHandler extends DatabaseAbstractHandler {
 
     httpServer.getServer().getServerMetrics().meter("http.create-record").mark();
 
-    final ModifiableDocument document = database.newDocument(type);
+    final MutableDocument document = database.newDocument(type);
     document.save();
 
     exchange.setStatusCode(200);

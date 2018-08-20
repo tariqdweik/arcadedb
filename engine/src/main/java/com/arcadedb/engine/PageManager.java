@@ -24,9 +24,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * Manages pages from disk to RAM. Each page can have different size.
  */
 public class PageManager extends LockContext {
-  private final FileManager                           fileManager;
-  private final ConcurrentMap<PageId, ImmutablePage>  readCache  = new ConcurrentHashMap<>(65536);
-  private final ConcurrentMap<PageId, ModifiablePage> writeCache = new ConcurrentHashMap<>(65536);
+  private final FileManager                          fileManager;
+  private final ConcurrentMap<PageId, ImmutablePage> readCache  = new ConcurrentHashMap<>(65536);
+  private final ConcurrentMap<PageId, MutablePage>   writeCache = new ConcurrentHashMap<>(65536);
 
   private final TransactionManager txManager;
   private       boolean            flushOnlyAtClose = GlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
@@ -84,7 +84,7 @@ public class PageManager extends LockContext {
     // FLUSH REMAINING PAGES
     final boolean flushOnlyAtCloseOld = flushOnlyAtClose;
     flushOnlyAtClose = true;
-    for (ModifiablePage p : writeCache.values()) {
+    for (MutablePage p : writeCache.values()) {
       try {
         flushPage(p);
       } catch (Exception e) {
@@ -132,8 +132,8 @@ public class PageManager extends LockContext {
       }
     }
 
-    for (Iterator<ModifiablePage> it = writeCache.values().iterator(); it.hasNext(); ) {
-      final ModifiablePage p = it.next();
+    for (Iterator<MutablePage> it = writeCache.values().iterator(); it.hasNext(); ) {
+      final MutablePage p = it.next();
       if (p.getPageId().getFileId() == fileId) {
         totalWriteCacheRAM.addAndGet(-1 * p.getPhysicalSize());
         it.remove();
@@ -164,7 +164,7 @@ public class PageManager extends LockContext {
     return page;
   }
 
-  public BasePage checkPageVersion(final ModifiablePage page, final boolean isNew) throws IOException {
+  public BasePage checkPageVersion(final MutablePage page, final boolean isNew) throws IOException {
     final BasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
 
     if (p != null && p.getVersion() != page.getVersion()) {
@@ -181,22 +181,22 @@ public class PageManager extends LockContext {
     return null;
   }
 
-  public void updatePages(final Map<PageId, ModifiablePage> newPages, final Map<PageId, ModifiablePage> modifiedPages, final boolean asyncFlush)
+  public void updatePages(final Map<PageId, MutablePage> newPages, final Map<PageId, MutablePage> modifiedPages, final boolean asyncFlush)
       throws IOException, InterruptedException {
     lock();
     try {
       if (newPages != null)
-        for (ModifiablePage p : newPages.values())
+        for (MutablePage p : newPages.values())
           updatePage(p, true, asyncFlush);
 
-      for (ModifiablePage p : modifiedPages.values())
+      for (MutablePage p : modifiedPages.values())
         updatePage(p, false, asyncFlush);
     } finally {
       unlock();
     }
   }
 
-  public void updatePage(final ModifiablePage page, final boolean isNew, final boolean asyncFlush) throws IOException, InterruptedException {
+  public void updatePage(final MutablePage page, final boolean isNew, final boolean asyncFlush) throws IOException, InterruptedException {
     final BasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
     if (p != null) {
 
@@ -227,7 +227,7 @@ public class PageManager extends LockContext {
     }
   }
 
-  public void overridePage(final ModifiablePage page) throws IOException {
+  public void overridePage(final MutablePage page) throws IOException {
     readCache.remove(page.pageId);
 
     // ADD THE PAGE IN THE WRITE CACHE. FROM THIS POINT THE PAGE IS NEVER MODIFIED DIRECTLY, SO IT CAN BE SHARED
@@ -270,13 +270,13 @@ public class PageManager extends LockContext {
     if (page != null)
       totalReadCacheRAM.addAndGet(-1 * page.getPhysicalSize());
 
-    final ModifiablePage page2 = writeCache.remove(pageId);
+    final MutablePage page2 = writeCache.remove(pageId);
     if (page2 != null)
       totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
   }
 
   public void flushPagesOfFile(final int fileId) {
-    for (ModifiablePage p : writeCache.values()) {
+    for (MutablePage p : writeCache.values()) {
       if (p.getPageId().getFileId() == fileId)
         try {
           flushPage(p);
@@ -302,7 +302,7 @@ public class PageManager extends LockContext {
     }
   }
 
-  protected void flushPage(final ModifiablePage page) throws IOException {
+  protected void flushPage(final MutablePage page) throws IOException {
     final PaginatedFile file = fileManager.getFile(page.pageId.getFileId());
     if (!file.isOpen())
       throw new DatabaseMetadataException("Cannot flush pages on disk because file is closed");

@@ -4,7 +4,7 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
@@ -87,10 +87,10 @@ public class CreateEdgesStep extends AbstractExecutionStep {
 
             Edge edge = currentFrom.newEdge(targetClass.getStringValue(), currentTo, true);
 
-            if (!(edge instanceof ModifiableDocument)) {
+            if (!(edge instanceof MutableDocument)) {
               throw new UnsupportedOperationException("How to make an unmodifiable edge modifiable?");
             }
-            UpdatableResult result = new UpdatableResult((ModifiableDocument) edge);
+            UpdatableResult result = new UpdatableResult((MutableDocument) edge);
             result.setElement(edge);
             currentBatch++;
             return result;

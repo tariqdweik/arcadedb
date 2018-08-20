@@ -66,20 +66,14 @@ public class IndexLSMTreeCursor implements IndexCursor {
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = index.getCount(currentPage);
 
-        final IndexLSMTree.LookupResult lookupResult;
-        if (fromKeys == toKeys)
-          // USE THE BLOOM FILTER
-          lookupResult = index.searchInPage(currentPage, currentPageBuffer, fromKeys, count, ascendingOrder ? 2 : 3);
-        else
-          lookupResult = index.lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
+        final IndexLSMTree.LookupResult lookupResult = index
+            .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
 
-        if (lookupResult != null) {
-          pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
+        pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
 
-          if (toKeys == null || (IndexLSMTree.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
-            keys[pageId] = pageIterators[pageId].getKeys();
-            validIterators++;
-          }
+        if (toKeys == null || (IndexLSMTree.compareKeys(comparator, keyTypes, pageIterators[pageId].getKeys(), toKeys) <= 0)) {
+          keys[pageId] = pageIterators[pageId].getKeys();
+          validIterators++;
         }
 
       } else {

@@ -186,7 +186,7 @@ public class TransactionTypeTest extends BaseTest {
         }
 
         for (int i = 0; i < TOT; ++i) {
-          final ModifiableDocument v = database.newDocument(TYPE_NAME);
+          final MutableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
           v.set("name", "Jay");
           v.set("surname", "Miner");

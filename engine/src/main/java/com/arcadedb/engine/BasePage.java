@@ -37,9 +37,9 @@ public abstract class BasePage {
     this.version = version;
   }
 
-  public ModifiablePage modify() {
+  public MutablePage modify() {
     final byte[] array = this.content.getByteBuffer().array();
-    final ModifiablePage copy = new ModifiablePage(manager, pageId, size, Arrays.copyOf(array, array.length), version,
+    final MutablePage copy = new MutablePage(manager, pageId, size, Arrays.copyOf(array, array.length), version,
         content.size());
     // COPY THE CONTENT, SO CHANGES DOES NOT AFFECT IMMUTABLE COPY
     return copy;

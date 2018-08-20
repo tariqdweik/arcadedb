@@ -27,15 +27,15 @@ import java.util.*;
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class TransactionContext {
-  protected     DatabaseInternal               database;
-  private       Map<PageId, ModifiablePage>    modifiedPages;
-  private       Map<PageId, ModifiablePage>    newPages;
-  private final Map<Integer, Integer>          newPageCounters       = new HashMap<>();
-  private final Map<RID, Record>               immutableRecordsCache = new HashMap<>(1024);
-  private final Map<RID, Record>               modifiedRecordsCache  = new HashMap<>(1024);
-  private       boolean                        useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
-  private       boolean                        asyncFlush            = true;
-  private       WALFile.FLUSH_TYPE             walFlush;
+  protected     DatabaseInternal         database;
+  private       Map<PageId, MutablePage> modifiedPages;
+  private       Map<PageId, MutablePage> newPages;
+  private final Map<Integer, Integer>    newPageCounters       = new HashMap<>();
+  private final Map<RID, Record>         immutableRecordsCache = new HashMap<>(1024);
+  private final Map<RID, Record>         modifiedRecordsCache  = new HashMap<>(1024);
+  private       boolean                  useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
+  private       boolean                  asyncFlush            = true;
+  private       WALFile.FLUSH_TYPE       walFlush;
   private       List<Integer>                  lockedFiles;
   private final List<DocumentIndexer.IndexKey> indexKeysToLocks      = new ArrayList<>();
   private       long                           txId                  = -1;
@@ -56,7 +56,7 @@ public class TransactionContext {
     if (modifiedPages == null)
       throw new TransactionException("Transaction not begun");
 
-    final Pair<Binary, List<ModifiablePage>> changes = commit1stPhase();
+    final Pair<Binary, List<MutablePage>> changes = commit1stPhase();
 
     if (modifiedPages != null)
       commit2ndPhase(changes);
@@ -175,11 +175,11 @@ public class TransactionContext {
   /**
    * If the page is not already in transaction tx, loads from the database and clone it locally.
    */
-  public ModifiablePage getPageToModify(final PageId pageId, final int size, final boolean isNew) throws IOException {
+  public MutablePage getPageToModify(final PageId pageId, final int size, final boolean isNew) throws IOException {
     if (!isActive())
       throw new TransactionException("Transaction not active");
 
-    ModifiablePage page = modifiedPages.get(pageId);
+    MutablePage page = modifiedPages.get(pageId);
     if (page == null) {
       if (newPages != null)
         page = newPages.get(pageId);
@@ -188,9 +188,9 @@ public class TransactionContext {
         // NOT FOUND, DELEGATES TO THE DATABASE
         final BasePage loadedPage = database.getPageManager().getPage(pageId, size, isNew);
         if (loadedPage != null) {
-          final ModifiablePage modifiablePage = loadedPage.modify();
-          modifiedPages.put(pageId, modifiablePage);
-          page = modifiablePage;
+          final MutablePage mutablePage = loadedPage.modify();
+          modifiedPages.put(pageId, mutablePage);
+          page = mutablePage;
         }
       }
     }
@@ -198,7 +198,7 @@ public class TransactionContext {
     return page;
   }
 
-  public ModifiablePage addPage(final PageId pageId, final int pageSize) {
+  public MutablePage addPage(final PageId pageId, final int pageSize) {
     assureIsActive();
 
     if (newPages == null)
@@ -206,7 +206,7 @@ public class TransactionContext {
       newPages = new LinkedHashMap<>();
 
     // CREATE A PAGE ID BASED ON NEW PAGES IN TX. IN CASE OF ROLLBACK THEY ARE SIMPLY REMOVED AND THE GLOBAL PAGE COUNT IS UNCHANGED
-    final ModifiablePage page = new ModifiablePage(database.getPageManager(), pageId, pageSize);
+    final MutablePage page = new MutablePage(database.getPageManager(), pageId, pageSize);
     newPages.put(pageId, page);
 
     final Integer indexCounter = newPageCounters.get(pageId.getFileId());
@@ -275,7 +275,7 @@ public class TransactionContext {
    *
    * @return
    */
-  public Pair<Binary, List<ModifiablePage>> commit1stPhase() {
+  public Pair<Binary, List<MutablePage>> commit1stPhase() {
     if (lockedFiles != null)
       throw new TransactionException("Cannot execute 1st phase commit because it was already started");
 
@@ -296,12 +296,12 @@ public class TransactionContext {
         database.getIndexer().indexUniqueInsertionInTx(indexKeysToLocks.get(i));
 
       // CHECK THE VERSIONS FIRST
-      final List<ModifiablePage> pages = new ArrayList<>();
+      final List<MutablePage> pages = new ArrayList<>();
 
       final PageManager pageManager = database.getPageManager();
 
-      for (final Iterator<ModifiablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
-        final ModifiablePage p = it.next();
+      for (final Iterator<MutablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
+        final MutablePage p = it.next();
 
         final int[] range = p.getModifiedRange();
         if (range[1] > 0) {
@@ -313,7 +313,7 @@ public class TransactionContext {
       }
 
       if (newPages != null)
-        for (ModifiablePage p : newPages.values()) {
+        for (MutablePage p : newPages.values()) {
           final int[] range = p.getModifiedRange();
           if (range[1] > 0) {
             pageManager.checkPageVersion(p, true);
@@ -344,7 +344,7 @@ public class TransactionContext {
     }
   }
 
-  public void commit2ndPhase(final Pair<Binary, List<ModifiablePage>> changes) {
+  public void commit2ndPhase(final Pair<Binary, List<MutablePage>> changes) {
     if (lockedFiles == null)
       throw new TransactionException("Cannot execute 2nd phase commit without having started the 1st phase");
 

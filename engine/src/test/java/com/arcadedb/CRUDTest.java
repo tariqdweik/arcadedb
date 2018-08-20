@@ -7,7 +7,7 @@ package com.arcadedb;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.DocumentCallback;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.utility.LogManager;
@@ -31,7 +31,7 @@ public class CRUDTest extends BaseTest {
       db.scanType("V", true, new DocumentCallback() {
         @Override
         public boolean onRecord(Document record) {
-          final ModifiableDocument document = (ModifiableDocument) record.modify();
+          final MutableDocument document = (MutableDocument) record.modify();
           document.set("update", true);
           document.set("largeField", "This is a large field to force the page overlap at some point"); // FORCE THE PAGE OVERLAP
           document.save();
@@ -150,7 +150,7 @@ public class CRUDTest extends BaseTest {
           database.getSchema().createDocumentType("V");
 
         for (int i = 0; i < TOT; ++i) {
-          final ModifiableDocument v = database.newDocument("V");
+          final MutableDocument v = database.newDocument("V");
           v.set("id", i);
           v.set("name", "V" + i);
           v.save();
@@ -163,7 +163,7 @@ public class CRUDTest extends BaseTest {
     database.scanType("V", true, new DocumentCallback() {
       @Override
       public boolean onRecord(Document record) {
-        final ModifiableDocument document = (ModifiableDocument) record.modify();
+        final MutableDocument document = (MutableDocument) record.modify();
         document.set("update", true);
         document.set(largeField, "This is a large field to force the page overlap at some point"); // FORCE THE PAGE OVERLAP
         document.save();

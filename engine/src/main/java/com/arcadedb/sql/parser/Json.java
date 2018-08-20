@@ -8,7 +8,7 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.database.ModifiableDocument;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -51,7 +51,7 @@ public class Json extends SimpleNode {
 
   public Document toDocument(final Identifiable source, final CommandContext ctx) {
     final String className = getClassNameForDocument(ctx, source);
-    final ModifiableDocument doc;
+    final MutableDocument doc;
     if (className != null) {
       doc = ctx.getDatabase().newDocument(className);
     } else {
