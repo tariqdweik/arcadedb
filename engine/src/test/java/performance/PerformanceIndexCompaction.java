@@ -4,6 +4,7 @@
 
 package performance;
 
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.PaginatedFile;
@@ -20,20 +21,20 @@ public class PerformanceIndexCompaction {
   }
 
   private void run() throws IOException {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_ONLY);
+    GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(5);
+
+    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_WRITE);
 
     final long begin = System.currentTimeMillis();
     try {
       System.out.println("Compacting all indexes...");
 
       final long total = database.countType("Device", true);
-
       long totalIndexed = countIndexedItems(database);
-
       LogManager.instance().info(this, "Total indexes items %d", totalIndexed);
 
       for (Index index : database.getSchema().getIndexes())
-        index.compact();
+        Assertions.assertTrue(index.compact());
 
       long totalIndexed2 = countIndexedItems(database);
 

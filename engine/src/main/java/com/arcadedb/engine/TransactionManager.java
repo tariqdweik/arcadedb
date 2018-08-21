@@ -41,34 +41,37 @@ public class TransactionManager {
   public TransactionManager(final DatabaseInternal database) {
     this.database = database;
 
-    createFilePool();
-
     this.logContext = LogManager.instance().getContext();
 
-    task = new Timer();
-    task.schedule(new TimerTask() {
-      @Override
-      public void run() {
-        if (!database.isOpen()) {
-          // DB CLOSED, CANCEL THE TASK
-          cancel();
-          return;
-        }
+    if (database.getMode() == PaginatedFile.MODE.READ_WRITE) {
+      createWALFilePool();
 
-        if (activeWALFilePool != null) {
-          taskExecuting = new CountDownLatch(1);
-          try {
-            if (logContext != null)
-              LogManager.instance().setContext(logContext);
+      task = new Timer();
+      task.schedule(new TimerTask() {
+        @Override
+        public void run() {
+          if (!database.isOpen()) {
+            // DB CLOSED, CANCEL THE TASK
+            cancel();
+            return;
+          }
 
-            checkWALFiles();
-            cleanWALFiles();
-          } finally {
-            taskExecuting.countDown();
+          if (activeWALFilePool != null) {
+            taskExecuting = new CountDownLatch(1);
+            try {
+              if (logContext != null)
+                LogManager.instance().setContext(logContext);
+
+              checkWALFiles();
+              cleanWALFiles();
+            } finally {
+              taskExecuting.countDown();
+            }
           }
         }
-      }
-    }, 1000, 1000);
+      }, 1000, 1000);
+    } else
+      task = null;
   }
 
   public void close() {
@@ -214,7 +217,7 @@ public class TransactionManager {
             LogManager.instance().error(this, "Error on dropping WAL file '%s'", e, file);
           }
         }
-        createFilePool();
+        createWALFilePool();
         database.getPageManager().clear();
       }
     } finally {
@@ -366,7 +369,7 @@ public class TransactionManager {
     fileIdsLockManager.unlock(fileId, Thread.currentThread());
   }
 
-  private void createFilePool() {
+  private void createWALFilePool() {
     activeWALFilePool = new WALFile[Runtime.getRuntime().availableProcessors()];
     for (int i = 0; i < activeWALFilePool.length; ++i) {
       try {

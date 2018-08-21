@@ -68,6 +68,8 @@ public enum GlobalConfiguration {
     }
   }),
 
+  INITIAL_PAGE_CACHE_SIZE("arcadedb.initialPageCacheSize", "Initial number of entries for page cache", Integer.class, 65535),
+
   FLUSH_ONLY_AT_CLOSE("arcadedb.flushOnlyAtClose", "Never flushes pages on disk until the database closing", Boolean.class, false),
 
   TX_WAL("arcadedb.txWAL", "Uses the WAL", Boolean.class, true),
@@ -92,7 +94,7 @@ public enum GlobalConfiguration {
   SQL_STATEMENT_CACHE("arcadedb.sqlStatementCache", "Maximum number of parsed statements to keep in cache", Integer.class, 300),
 
   // INDEXES
-  INDEX_COMPACTION_RAM("arcadedb.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300),
+  INDEX_COMPACTION_RAM_MB("arcadedb.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300),
 
   // NETWORK
   NETWORK_SOCKET_BUFFER_SIZE("arcadedb.network.socketBufferSize", "TCP/IP Socket buffer size, if 0 use the OS default", Integer.class, 0),
@@ -318,8 +320,6 @@ public enum GlobalConfiguration {
   }
 
   public void setValue(final Object iValue) {
-    Object oldValue = value;
-
     if (iValue != null)
       if (type == Boolean.class)
         value = Boolean.parseBoolean(iValue.toString());

@@ -67,7 +67,7 @@ public class IndexLSMTreeCursor implements IndexCursor {
         final int count = index.getCount(currentPage);
 
         final IndexLSMTree.LookupResult lookupResult = index
-            .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 1 : 2);
+            .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 2 : 3);
 
         pageIterators[pageId] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
 

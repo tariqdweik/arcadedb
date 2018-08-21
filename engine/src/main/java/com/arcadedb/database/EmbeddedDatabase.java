@@ -59,10 +59,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   private                File                                      lockFile;
   private                FileLock                                  lockFileIO;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
-  private                StatementCache                            statementCache          = new StatementCache(this,
-      GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
-  private                ExecutionPlanCache                        executionPlanCache      = new ExecutionPlanCache(this,
-      GlobalConfiguration.SQL_STATEMENT_CACHE.getValueAsInteger());
+  private                StatementCache                            statementCache;
+  private                ExecutionPlanCache                        executionPlanCache;
   private                DatabaseInternal                          wrappedDatabaseInstance = this;
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
@@ -71,7 +69,9 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       this.mode = mode;
       this.configuration = configuration;
       this.callbacks = callbacks;
-      this.walFactory = new WALFileFactoryEmbedded();
+      this.walFactory = mode == PaginatedFile.MODE.READ_WRITE ? new WALFileFactoryEmbedded() : null;
+      this.statementCache = new StatementCache(this, configuration.getValueAsInteger(GlobalConfiguration.SQL_STATEMENT_CACHE));
+      this.executionPlanCache = new ExecutionPlanCache(this, configuration.getValueAsInteger(GlobalConfiguration.SQL_STATEMENT_CACHE));
 
       if (path.endsWith("/"))
         databasePath = path.substring(0, path.length() - 1);
@@ -114,7 +114,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
       fileManager = new FileManager(databasePath, mode, SUPPORTED_FILE_EXT);
       transactionManager = new TransactionManager(wrappedDatabaseInstance);
-      pageManager = new PageManager(fileManager, transactionManager);
+      pageManager = new PageManager(fileManager, transactionManager, configuration);
 
       open = true;
 
@@ -165,9 +165,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
       transactionManager.checkIntegrity();
     } else {
-      lockFile.createNewFile();
-
-      lockDatabase();
+      if (mode == PaginatedFile.MODE.READ_WRITE) {
+        lockFile.createNewFile();
+        lockDatabase();
+      } else
+        lockFile = null;
     }
   }
 
@@ -221,13 +223,14 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           transactionManager.close();
           statementCache.clear();
 
-          try {
-            lockFileIO.release();
-          } catch (IOException e) {
-            // IGNORE IT
+          if (lockFile != null) {
+            try {
+              lockFileIO.release();
+            } catch (IOException e) {
+              // IGNORE IT
+            }
+            lockFile.delete();
           }
-
-          lockFile.delete();
 
         } finally {
           DatabaseContext.INSTANCE.remove();
@@ -675,7 +678,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void transaction(final Transaction txBlock) {
-    transaction(txBlock, GlobalConfiguration.MVCC_RETRIES.getValueAsInteger());
+    transaction(txBlock, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
   }
 
   @Override
@@ -699,7 +702,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         lastException = e;
         continue;
       } catch (Exception e) {
-        if (getTransaction().isActive())
+        final TransactionContext tx = getTransaction();
+        if (tx != null && tx.isActive())
           rollback();
         throw e;
       }
@@ -814,6 +818,11 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
+  public PaginatedFile.MODE getMode() {
+    return mode;
+  }
+
+  @Override
   public boolean checkTransactionIsActive() {
     checkDatabaseIsOpen();
     if (autoTransaction && !isTransactionActive()) {
@@ -843,10 +852,12 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       fileManager.close();
       transactionManager.kill();
 
-      try {
-        lockFileIO.release();
-      } catch (IOException e) {
-        // IGNORE IT
+      if (lockFile != null) {
+        try {
+          lockFileIO.release();
+        } catch (IOException e) {
+          // IGNORE IT
+        }
       }
 
     } finally {

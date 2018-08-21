@@ -4,26 +4,41 @@
 
 package performance;
 
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
+import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 
-public class PerformanceVertexIndexTest {
-  private static final int    TOT       = 100_000_000;
-  private static final String TYPE_NAME = "Device";
+import java.io.IOException;
 
-  public static void main(String[] args) {
+public class PerformanceVertexIndexTest {
+  private static final int    TOT               = 100_000_000;
+  private static final int    COMPACTION_RAM_MB = 1024; // 1GB
+  private static final String TYPE_NAME         = "Device";
+
+  public static void main(String[] args) throws IOException {
     new PerformanceVertexIndexTest().run();
   }
 
-  private void run() {
-    insertData();
+  private void run() throws IOException {
+    GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(COMPACTION_RAM_MB);
+//    insertData();
 //    checkLookups();
+//    compaction();
+    checkLookups();
+  }
+
+  private void compaction() throws IOException {
+    try (Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open()) {
+      for (Index index : database.getSchema().getIndexes())
+        Assertions.assertTrue(index.compact());
+    }
   }
 
   private void insertData() {
@@ -137,11 +152,11 @@ public class PerformanceVertexIndexTest {
   }
 
   private void checkLookups() {
-    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_WRITE);
+    Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_ONLY);
     long begin = System.currentTimeMillis();
 
     try {
-      Assertions.assertEquals(TOT, database.countType(TYPE_NAME, false));
+//      Assertions.assertEquals(TOT, database.countType(TYPE_NAME, false));
 
       System.out.println("Lookup all the keys...");
 
@@ -157,7 +172,7 @@ public class PerformanceVertexIndexTest {
 
         if (id % 10000 == 0) {
           final long delta = System.currentTimeMillis() - begin;
-          LogManager.instance().info(this, "Checked " + id + " lookups in " + delta + "ms = " + (10000 / (delta / 1000)) + " lookups/sec");
+          LogManager.instance().info(this, "Checked " + id + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
           begin = System.currentTimeMillis();
         }
       }

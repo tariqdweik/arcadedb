@@ -13,7 +13,7 @@ import java.util.Set;
 public interface Index {
   String getName();
 
-  void compact() throws IOException;
+  boolean compact() throws IOException;
 
   /**
    * The returning iterator does not skip deleted entries.

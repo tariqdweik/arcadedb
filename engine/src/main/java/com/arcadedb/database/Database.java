@@ -7,6 +7,7 @@ package com.arcadedb.database;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.FileManager;
 import com.arcadedb.engine.PageManager;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.Schema;
@@ -23,6 +24,8 @@ public interface Database extends AutoCloseable {
   }
 
   String getName();
+
+  PaginatedFile.MODE getMode();
 
   @Override
   void close();

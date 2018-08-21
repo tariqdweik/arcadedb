@@ -34,8 +34,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
   private final    String                        remoteServerName;
   private final    String                        remoteServerAddress;
   private final    String                        remoteServerHTTPAddress;
-  private final    PushPullBlockingQueue<Binary> queue                 = new PushPullBlockingQueue<>(
-      GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+  private final    PushPullBlockingQueue<Binary> queue;
   private          long                          joinedOn;
   private          long                          leftOn                = 0;
   private          ChannelBinaryServer           channel;
@@ -60,6 +59,8 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     this.remoteServerAddress = remoteServerAddress;
     this.remoteServerHTTPAddress = remoteServerHTTPAddress;
     this.channel = channel;
+
+    this.queue = new PushPullBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
 
     setName(Constants.PRODUCT + "-ha-leader2replica/" + server.getServer().getServerName() + "/?");
 

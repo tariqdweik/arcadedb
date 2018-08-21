@@ -110,6 +110,10 @@ public class SchemaImpl implements Schema {
       }
     }
 
+    for (PaginatedComponent f : files)
+      if (f != null)
+        f.onAfterLoad();
+
     readConfiguration();
   }
 

@@ -4,6 +4,7 @@
 
 package com.arcadedb.engine;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.ConfigurationException;
@@ -25,11 +26,11 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class PageManager extends LockContext {
   private final FileManager                          fileManager;
-  private final ConcurrentMap<PageId, ImmutablePage> readCache  = new ConcurrentHashMap<>(65536);
-  private final ConcurrentMap<PageId, MutablePage>   writeCache = new ConcurrentHashMap<>(65536);
+  private final ConcurrentMap<PageId, ImmutablePage> readCache;
+  private final ConcurrentMap<PageId, MutablePage>   writeCache;
 
   private final TransactionManager txManager;
-  private       boolean            flushOnlyAtClose = GlobalConfiguration.FLUSH_ONLY_AT_CLOSE.getValueAsBoolean();
+  private       boolean            flushOnlyAtClose;
 
   private final long       maxRAM;
   private final AtomicLong totalReadCacheRAM                     = new AtomicLong();
@@ -44,6 +45,7 @@ public class PageManager extends LockContext {
 
   private       long                   lastCheckForRAM = 0;
   private final PageManagerFlushThread flushThread;
+  private final int                    freePageRAM;
 
   public class PPageManagerStats {
     public long maxRAM;
@@ -59,15 +61,21 @@ public class PageManager extends LockContext {
     public long concurrentModificationExceptions;
   }
 
-  public PageManager(final FileManager fileManager, final TransactionManager txManager) {
+  public PageManager(final FileManager fileManager, final TransactionManager txManager, final ContextConfiguration configuration) {
     this.fileManager = fileManager;
     this.txManager = txManager;
 
-    maxRAM = GlobalConfiguration.MAX_PAGE_RAM.getValueAsLong() * 1024;
+    this.freePageRAM = configuration.getValueAsInteger(GlobalConfiguration.FREE_PAGE_RAM);
+    this.readCache = new ConcurrentHashMap<>(configuration.getValueAsInteger(GlobalConfiguration.INITIAL_PAGE_CACHE_SIZE));
+    this.writeCache = new ConcurrentHashMap<>(configuration.getValueAsInteger(GlobalConfiguration.INITIAL_PAGE_CACHE_SIZE));
+
+    this.flushOnlyAtClose = configuration.getValueAsBoolean(GlobalConfiguration.FLUSH_ONLY_AT_CLOSE);
+
+    maxRAM = configuration.getValueAsLong(GlobalConfiguration.MAX_PAGE_RAM) * 1024;
     if (maxRAM < 0)
       throw new ConfigurationException(GlobalConfiguration.MAX_PAGE_RAM.getKey() + " configuration is invalid (" + maxRAM + ")");
 
-    flushThread = new PageManagerFlushThread(this);
+    flushThread = new PageManagerFlushThread(this, configuration);
     flushThread.start();
   }
 
@@ -354,7 +362,7 @@ public class PageManager extends LockContext {
     if (totalRAM < maxRAM)
       return;
 
-    final long ramToFree = maxRAM * GlobalConfiguration.FREE_PAGE_RAM.getValueAsInteger() / 100;
+    final long ramToFree = maxRAM * freePageRAM / 100;
 
     LogManager.instance().debug(this, "Freeing RAM (target=%d, current %d > %d max threadId=%d)", ramToFree, totalRAM, maxRAM, Thread.currentThread().getId());
 

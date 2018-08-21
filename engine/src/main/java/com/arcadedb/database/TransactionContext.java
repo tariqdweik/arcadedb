@@ -27,15 +27,15 @@ import java.util.*;
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class TransactionContext {
-  protected     DatabaseInternal         database;
-  private       Map<PageId, MutablePage> modifiedPages;
-  private       Map<PageId, MutablePage> newPages;
-  private final Map<Integer, Integer>    newPageCounters       = new HashMap<>();
-  private final Map<RID, Record>         immutableRecordsCache = new HashMap<>(1024);
-  private final Map<RID, Record>         modifiedRecordsCache  = new HashMap<>(1024);
-  private       boolean                  useWAL                = GlobalConfiguration.TX_WAL.getValueAsBoolean();
-  private       boolean                  asyncFlush            = true;
-  private       WALFile.FLUSH_TYPE       walFlush;
+  protected     DatabaseInternal               database;
+  private       Map<PageId, MutablePage>       modifiedPages;
+  private       Map<PageId, MutablePage>       newPages;
+  private final Map<Integer, Integer>          newPageCounters       = new HashMap<>();
+  private final Map<RID, Record>               immutableRecordsCache = new HashMap<>(1024);
+  private final Map<RID, Record>               modifiedRecordsCache  = new HashMap<>(1024);
+  private       boolean                        useWAL;
+  private       boolean                        asyncFlush            = true;
+  private       WALFile.FLUSH_TYPE             walFlush;
   private       List<Integer>                  lockedFiles;
   private final List<DocumentIndexer.IndexKey> indexKeysToLocks      = new ArrayList<>();
   private       long                           txId                  = -1;
@@ -43,6 +43,7 @@ public class TransactionContext {
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
     this.walFlush = WALFile.getWALFlushType(database.getConfiguration().getValueAsInteger(GlobalConfiguration.TX_WAL_FLUSH));
+    this.useWAL = database.getConfiguration().getValueAsBoolean(GlobalConfiguration.TX_WAL);
   }
 
   public void begin() {
@@ -411,7 +412,7 @@ public class TransactionContext {
         modifiedFiles.add(b.getId());
     }
 
-    final long timeout = GlobalConfiguration.COMMIT_LOCK_TIMEOUT.getValueAsLong();
+    final long timeout = database.getConfiguration().getValueAsLong(GlobalConfiguration.COMMIT_LOCK_TIMEOUT);
 
     return database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
   }

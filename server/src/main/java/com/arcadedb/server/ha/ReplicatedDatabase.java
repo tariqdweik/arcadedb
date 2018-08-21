@@ -213,6 +213,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public PaginatedFile.MODE getMode() {
+    return proxied.getMode();
+  }
+
+  @Override
   public DatabaseAsyncExecutor asynch() {
     return proxied.asynch();
   }

@@ -53,6 +53,9 @@ public abstract class BaseTest {
   public void afterTest() {
     endTest();
     if (database != null && database.isOpen()) {
+      if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
+        reopenDatabase();
+
       database.drop();
       database = null;
     }

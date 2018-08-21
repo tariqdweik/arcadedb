@@ -43,15 +43,15 @@ public abstract class PaginatedComponent {
       pageCount.set((int) (file.getSize() / getPageSize()));
   }
 
+  public void onAfterLoad() {
+  }
+
   public int getPageSize() {
     return pageSize;
   }
 
   public void setPageCount(final int value) {
     assert value > pageCount.get();
-
-//    LogManager.instance().info(this, "Component %d page %d -> %d (thread=%d hash=%d))", id, pageCount.get(), value, Thread.currentThread().getId(), hashCode());
-
     pageCount.set(value);
   }
 
@@ -80,9 +80,6 @@ public abstract class PaginatedComponent {
       if (txPageCounter != null)
         return txPageCounter;
     }
-
-//    LogManager.instance().info(this, "Component %d page = %d (thread=%d hash=%d)", id, pageCount.get(), Thread.currentThread().getId(), hashCode());
-
     return pageCount.get();
   }
 }

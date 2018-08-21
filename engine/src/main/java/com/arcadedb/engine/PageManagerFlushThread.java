@@ -4,6 +4,7 @@
 
 package com.arcadedb.engine;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.utility.LogManager;
 
@@ -16,14 +17,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class PageManagerFlushThread extends Thread {
   private final    PageManager                     pageManager;
-  public final     ArrayBlockingQueue<MutablePage> queue   = new ArrayBlockingQueue<>(GlobalConfiguration.PAGE_FLUSH_QUEUE.getValueAsInteger());
+  public final     ArrayBlockingQueue<MutablePage> queue;
   private final    String                          logContext;
   private volatile boolean                         running = true;
 
-  public PageManagerFlushThread(final PageManager pageManager) {
+  public PageManagerFlushThread(final PageManager pageManager, final ContextConfiguration configuration) {
     super("AsynchFlush");
     this.pageManager = pageManager;
     this.logContext = LogManager.instance().getContext();
+    this.queue = new ArrayBlockingQueue<>(configuration.getValueAsInteger(GlobalConfiguration.PAGE_FLUSH_QUEUE));
   }
 
   public void asyncFlush(final MutablePage page) throws InterruptedException {

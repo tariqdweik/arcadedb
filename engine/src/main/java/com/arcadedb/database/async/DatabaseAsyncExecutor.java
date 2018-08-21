@@ -29,7 +29,7 @@ public class DatabaseAsyncExecutor {
   private final DatabaseInternal   database;
   private       AsyncThread[]      executorThreads;
   private       int                parallelLevel          = 1;
-  private       int                commitEvery            = GlobalConfiguration.ASYNC_TX_BATCH_SIZE.getValueAsInteger();
+  private       int                commitEvery;
   private       boolean            transactionUseWAL      = true;
   private       WALFile.FLUSH_TYPE transactionSync        = WALFile.FLUSH_TYPE.NO;
   private       AtomicLong         transactionCounter     = new AtomicLong();
@@ -53,8 +53,7 @@ public class DatabaseAsyncExecutor {
   private ErrorCallback onErrorCallback;
 
   private class AsyncThread extends Thread {
-    public final    PushPullBlockingQueue<DatabaseAsyncCommand> queue         = new PushPullBlockingQueue<>(
-        GlobalConfiguration.ASYNC_OPERATIONS_QUEUE.getValueAsInteger() / parallelLevel);
+    public final    PushPullBlockingQueue<DatabaseAsyncCommand> queue;
     public final    DatabaseInternal                            database;
     public volatile boolean                                     shutdown      = false;
     public volatile boolean                                     forceShutdown = false;
@@ -63,6 +62,7 @@ public class DatabaseAsyncExecutor {
     private AsyncThread(final DatabaseInternal database, final int id) {
       super("AsyncCreateRecord-" + id);
       this.database = database;
+      this.queue = new PushPullBlockingQueue<>(database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE) / parallelLevel);
     }
 
     @Override
@@ -303,17 +303,9 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private void beginTxIfNeeded() {
-    if (!database.getTransaction().isActive())
-      database.begin();
-  }
-
-  public class PDBAsynchStats {
-    public long queueSize;
-  }
-
   public DatabaseAsyncExecutor(final DatabaseInternal database) {
     this.database = database;
+    this.commitEvery = database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_TX_BATCH_SIZE);
     createThreads(Runtime.getRuntime().availableProcessors());
   }
 
@@ -435,7 +427,7 @@ public class DatabaseAsyncExecutor {
   }
 
   public void transaction(final Database.Transaction txBlock) {
-    transaction(txBlock, GlobalConfiguration.MVCC_RETRIES.getValueAsInteger());
+    transaction(txBlock, database.getConfiguration().getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
   }
 
   public void transaction(final Database.Transaction txBlock, final int retries) {
@@ -563,6 +555,15 @@ public class DatabaseAsyncExecutor {
 
   public void setCommitEvery(final int commitEvery) {
     this.commitEvery = commitEvery;
+  }
+
+  public class PDBAsynchStats {
+    public long queueSize;
+  }
+
+  private void beginTxIfNeeded() {
+    if (!database.getTransaction().isActive())
+      database.begin();
   }
 
   private void createThreads(final int parallelLevel) {

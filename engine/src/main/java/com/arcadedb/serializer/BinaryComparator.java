@@ -435,8 +435,12 @@ public class BinaryComparator {
     }
 
     case BinaryTypes.TYPE_STRING: {
-      if (value1 instanceof byte[] && value2 instanceof byte[])
-        return compareStrings((byte[]) value1, (byte[]) value2);
+      if (value1 instanceof byte[]) {
+        if (value2 instanceof byte[])
+          return compareStrings((byte[]) value1, (byte[]) value2);
+        else
+          return compareStrings((byte[]) value1, (byte[]) ((String) value2).getBytes());
+      }
 
       return ((String) value1).compareTo(value2.toString());
     }
