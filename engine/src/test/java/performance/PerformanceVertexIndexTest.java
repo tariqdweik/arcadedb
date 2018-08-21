@@ -28,9 +28,9 @@ public class PerformanceVertexIndexTest {
 
   private void run() throws IOException {
     GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(COMPACTION_RAM_MB);
-//    insertData();
-//    checkLookups();
-//    compaction();
+    insertData();
+    checkLookups();
+    compaction();
     checkLookups();
   }
 
@@ -156,13 +156,11 @@ public class PerformanceVertexIndexTest {
     long begin = System.currentTimeMillis();
 
     try {
-//      Assertions.assertEquals(TOT, database.countType(TYPE_NAME, false));
-
-      System.out.println("Lookup all the keys...");
+      System.out.println("Lookup first 150K keys...");
 
       begin = System.currentTimeMillis();
 
-      for (long id = 0; id < TOT; ++id) {
+      for (long id = 0; id < 150000; ++id) {
         final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
