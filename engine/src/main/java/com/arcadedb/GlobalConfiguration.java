@@ -49,14 +49,15 @@ public enum GlobalConfiguration {
 
   TEST("arcadedb.test", "Tells if it is running in test mode. This enables the calling of callbacks for testing purpose ", Boolean.class, false),
 
-  MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4 * 1024l * 1024l, new Callable<Object, Object>() {
+  MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4, new Callable<Object, Object>() {
     @Override
     public Object call(final Object value) {
-      final long maxRAM = (long) value;
+      final long maxRAM = (long) value * 1024 * 1024;
       if (maxRAM > Runtime.getRuntime().maxMemory() * 80 / 100) {
-        final long newValue = Runtime.getRuntime().maxMemory() / 2 / 1000;
-        LogManager.instance().warn(this, "Setting '%s' is > than 80% of maximum heap (%s). Decreasing it to %s", MAX_PAGE_RAM.key,
-            FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()), FileUtils.getSizeAsString(newValue));
+        final long newValue = Runtime.getRuntime().maxMemory() / 2;
+        LogManager.instance()
+            .warn(this, "Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", MAX_PAGE_RAM.key, FileUtils.getSizeAsString(maxRAM),
+                FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()), FileUtils.getSizeAsString(newValue));
         return newValue;
       }
       return value;
@@ -64,7 +65,7 @@ public enum GlobalConfiguration {
   }, new Callable<Object, Object>() {
     @Override
     public Object call(final Object value) {
-      return Runtime.getRuntime().maxMemory() / 2 / 1000;
+      return Runtime.getRuntime().maxMemory() / 2 / 1024 / 1024;
     }
   }),
 

@@ -71,7 +71,7 @@ public class PageManager extends LockContext {
 
     this.flushOnlyAtClose = configuration.getValueAsBoolean(GlobalConfiguration.FLUSH_ONLY_AT_CLOSE);
 
-    maxRAM = configuration.getValueAsLong(GlobalConfiguration.MAX_PAGE_RAM) * 1024;
+    maxRAM = configuration.getValueAsLong(GlobalConfiguration.MAX_PAGE_RAM) * 1024 * 1024;
     if (maxRAM < 0)
       throw new ConfigurationException(GlobalConfiguration.MAX_PAGE_RAM.getKey() + " configuration is invalid (" + maxRAM + ")");
 
@@ -267,7 +267,7 @@ public class PageManager extends LockContext {
     if (readCache.put(page.pageId, page) == null)
       totalReadCacheRAM.addAndGet(page.getPhysicalSize());
 
-    if (System.currentTimeMillis() - lastCheckForRAM > 500) {
+    if (System.currentTimeMillis() - lastCheckForRAM > 5) {
       checkForPageDisposal();
       lastCheckForRAM = System.currentTimeMillis();
     }
@@ -334,7 +334,7 @@ public class PageManager extends LockContext {
   }
 
   private ImmutablePage loadPage(final PageId pageId, final int size) throws IOException {
-    if (System.currentTimeMillis() - lastCheckForRAM > 500) {
+    if (System.currentTimeMillis() - lastCheckForRAM > 5) {
       checkForPageDisposal();
       lastCheckForRAM = System.currentTimeMillis();
     }
