@@ -7,7 +7,9 @@ package com.arcadedb.engine;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.database.TransactionContext;
+import com.arcadedb.schema.SchemaImpl;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,9 +70,13 @@ public abstract class PaginatedComponent {
   }
 
   public void drop() throws IOException {
-    database.getSchema().removeFile(file.getFileId());
-    database.getPageManager().deleteFile(file.getFileId());
-    database.getFileManager().dropFile(file.getFileId());
+    if (database.isOpen()) {
+      ((SchemaImpl) database.getSchema()).removeFile(file.getFileId());
+      database.getPageManager().deleteFile(file.getFileId());
+      database.getFileManager().dropFile(file.getFileId());
+    } else {
+      new File(file.getFilePath()).delete();
+    }
   }
 
   public int getTotalPages() {

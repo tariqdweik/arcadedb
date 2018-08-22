@@ -158,7 +158,6 @@ public class SchemaImpl implements Schema {
     return p;
   }
 
-  @Override
   public void removeFile(final int fileId) {
     if (fileId >= files.size())
       return;
@@ -235,6 +234,10 @@ public class SchemaImpl implements Schema {
     for (Index index : indexMap.values())
       indexes[i++] = index;
     return indexes;
+  }
+
+  public void removeIndex(final String indexName) {
+    indexMap.remove(indexName);
   }
 
   @Override
@@ -334,6 +337,8 @@ public class SchemaImpl implements Schema {
     files.clear();
     types.clear();
     bucketMap.clear();
+    for (Index i : indexMap.values())
+      i.close();
     indexMap.clear();
     dictionary = null;
   }
@@ -498,29 +503,20 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  public void swapIndexes(final IndexLSMTree oldIndex, final IndexLSMTree newIndex) throws IOException {
-    // TODO: MUST BE SYNCHRONIZED
-    indexMap.remove(oldIndex.getName());
+  public void swapIndexes(final IndexLSMTree oldIndex, final IndexLSMTree newIndex) {
+    oldIndex.lazyDrop();
 
     indexMap.put(newIndex.getName(), newIndex);
 
+    LogManager.instance().info(this, "Replacing index '%s' -> '%s' in schema...", oldIndex.getName(), newIndex.getName());
+
     // SCAN ALL THE TYPES TO FIND WHERE THE INDEX WAS DEFINED TO REPLACE IT
-    for (DocumentType t : getTypes()) {
-      for (List<DocumentType.IndexMetadata> metadata : t.getAllIndexesMetadata()) {
-        for (DocumentType.IndexMetadata m : metadata) {
-          if (m.index.equals(oldIndex)) {
-            m.index = newIndex;
-            break;
-          }
-        }
-      }
-    }
+    for (DocumentType t : getTypes())
+      t.replaceIndex(oldIndex, newIndex);
 
     newIndex.removeTempSuffix();
 
     saveConfiguration();
-
-    oldIndex.drop();
   }
 
   protected void readConfiguration() throws IOException {

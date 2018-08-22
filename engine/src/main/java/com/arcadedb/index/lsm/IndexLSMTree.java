@@ -47,10 +47,11 @@ public class IndexLSMTree extends IndexLSMAbstract {
   public static final String UNIQUE_INDEX_EXT    = "utidx";
   public static final String NOTUNIQUE_INDEX_EXT = "nutidx";
 
-  private final BinaryComparator comparator;
-  private       int              subIndexFileId = -1;
-  private       IndexLSMTree     subIndex       = null;
-  private       LockContext      lock           = new LockContext();
+  private final    BinaryComparator comparator;
+  private          int              subIndexFileId    = -1;
+  private          IndexLSMTree     subIndex          = null;
+  private          LockContext      lock              = new LockContext();
+  private volatile boolean          dropWhenCollected = false;
 
   private AtomicLong statsAdjacentSteps = new AtomicLong();
 
@@ -110,10 +111,10 @@ public class IndexLSMTree extends IndexLSMAbstract {
    * Called at cloning time.
    */
   public IndexLSMTree(final Database database, final String name, final boolean unique, final String filePath, final byte[] keyTypes, final int pageSize,
-      final IndexLSMTree subIndex) throws IOException {
+      final COMPACTING_STATUS compactingStatus, final IndexLSMTree subIndex) throws IOException {
     super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
     this.comparator = serializer.getComparator();
-    this.compactingStatus = COMPACTING_STATUS.COMPACTED;
+    this.compactingStatus = compactingStatus;
     this.subIndex = subIndex;
     database.checkTransactionIsActive();
   }
@@ -148,6 +149,29 @@ public class IndexLSMTree extends IndexLSMAbstract {
   }
 
   @Override
+  public void close() {
+    lock.executeInLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        if (dropWhenCollected) {
+          try {
+            LogManager.instance().info(this, "Finalizing deletion of index '%s'...", name);
+            if (database.isOpen())
+              ((SchemaImpl) database.getSchema()).removeIndex(getName());
+            drop();
+          } catch (IOException e) {
+            LogManager.instance().error(this, "Error on dropping the index '%s'", e, name);
+          }
+        }
+
+        if (subIndex != null)
+          subIndex.close();
+        return null;
+      }
+    });
+  }
+
+  @Override
   public void onAfterLoad() {
     if (subIndexFileId > -1)
       subIndex = (IndexLSMTree) database.getSchema().getFileById(subIndexFileId);
@@ -157,7 +181,7 @@ public class IndexLSMTree extends IndexLSMAbstract {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
 
-    return new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize, null);
+    return new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize, COMPACTING_STATUS.COMPACTED, null);
   }
 
   @Override
@@ -177,11 +201,21 @@ public class IndexLSMTree extends IndexLSMAbstract {
     }
   }
 
+  @Override
+  public void finalize() {
+    close();
+  }
+
+  public void lazyDrop() {
+    dropWhenCollected = true;
+  }
+
   public void copyPagesToNewFile(final int startingFromPage, final IndexLSMTree subIndex) throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
 
-    final IndexLSMTree newIndex = new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize, subIndex);
+    final IndexLSMTree newIndex = new IndexLSMTree(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize,
+        COMPACTING_STATUS.NO, subIndex);
     ((SchemaImpl) database.getSchema()).registerFile(newIndex);
 
     // KEEP METADATA AND LEAVE IT EMPTY
@@ -255,16 +289,14 @@ public class IndexLSMTree extends IndexLSMAbstract {
     try {
       final Set<RID> set = new HashSet<>();
 
-      final int totalPages = getTotalPages();
-
       final Set<RID> removedRIDs = new HashSet<>();
 
       if (compactingStatus == COMPACTING_STATUS.COMPACTED)
         // SEARCH IN COMPACTED INDEX
-        searchInCompactedIndex(convertedKeys, totalPages, limit, set, removedRIDs);
+        searchInCompactedIndex(convertedKeys, limit, set, removedRIDs);
       else
         // NON COMPACTED INDEX, SEARCH IN ALL THE PAGES
-        searchInNonCompactedIndex(convertedKeys, totalPages, limit, set, removedRIDs);
+        searchInNonCompactedIndex(convertedKeys, limit, set, removedRIDs);
 
       return set;
 
@@ -893,11 +925,13 @@ public class IndexLSMTree extends IndexLSMAbstract {
     currentPage.writeInt(INT_SERIALIZED_SIZE, newCount);
   }
 
-  private void searchInNonCompactedIndex(final Object[] convertedKeys, final int totalPages, final int limit, final Set<RID> set, final Set<RID> removedRIDs) {
+  private void searchInNonCompactedIndex(final Object[] convertedKeys, final int limit, final Set<RID> set, final Set<RID> removedRIDs) {
     lock.executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         // SEARCH FROM THE LAST PAGE BACK
+        final int totalPages = getTotalPages();
+
         for (int p = totalPages - 1; p > -1; --p) {
           final BasePage currentPage = database.getTransaction().getPage(new PageId(file.getFileId(), p), pageSize);
           final Binary currentPageBuffer = new Binary(currentPage.slice());
@@ -912,16 +946,17 @@ public class IndexLSMTree extends IndexLSMAbstract {
 
         if (subIndex != null)
           // CONTINUE ON THE SUB-INDEX
-          subIndex.searchInCompactedIndex(convertedKeys, totalPages, limit, set, removedRIDs);
+          subIndex.searchInCompactedIndex(convertedKeys, limit, set, removedRIDs);
 
         return null;
       }
     });
   }
 
-  private void searchInCompactedIndex(final Object[] convertedKeys, final int totalPages, final int limit, final Set<RID> set, final Set<RID> removedRIDs)
-      throws IOException {
+  private void searchInCompactedIndex(final Object[] convertedKeys, final int limit, final Set<RID> set, final Set<RID> removedRIDs) throws IOException {
     // JUMP ROOT PAGES BEFORE LOADING THE PAGE WITH THE KEY/VALUES
+    final int totalPages = getTotalPages();
+
     for (int i = 0; i < totalPages; ) {
       final BasePage rootPage = database.getTransaction().getPage(new PageId(file.getFileId(), i), pageSize);
 

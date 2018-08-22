@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 
 public interface Index {
+  void close();
+
   String getName();
 
   boolean compact() throws IOException;

@@ -16,9 +16,11 @@ import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class PerformanceVertexIndexTest {
-  private static final int    TOT               = 100_000_000;
+  private static final int    TOT               = 10_000_000;
   private static final int    COMPACTION_RAM_MB = 1024; // 1GB
   private static final String TYPE_NAME         = "Device";
 
@@ -29,9 +31,21 @@ public class PerformanceVertexIndexTest {
   private void run() throws IOException {
     GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(COMPACTION_RAM_MB);
     insertData();
-    checkLookups();
-    compaction();
-    checkLookups();
+    checkLookups(10);
+
+    // THIS TIME LOOK UP FOR KEYS WHILE COMPACTION
+    new Timer().schedule(new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          compaction();
+        } catch (IOException e) {
+          Assertions.fail(e);
+        }
+      }
+    }, 0);
+
+    checkLookups(10);
   }
 
   private void compaction() throws IOException {
@@ -98,8 +112,9 @@ public class PerformanceVertexIndexTest {
       database.asynch().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
-          System.out.println("ERROR: " + exception);
+          LogManager.instance().info(this, "TEST: ERROR: " + exception);
           exception.printStackTrace();
+          Assertions.fail(exception);
         }
       });
 
@@ -143,24 +158,26 @@ public class PerformanceVertexIndexTest {
         }
       }
 
-      System.out.println("Inserted " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().info(this, "TEST: Inserted " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
       database.close();
-      System.out.println("Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().info(this, "TEST: Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 
-  private void checkLookups() {
+  private void checkLookups(final int step) {
     Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_ONLY);
     long begin = System.currentTimeMillis();
 
     try {
-      System.out.println("Lookup first 150K keys...");
+      LogManager.instance().info(this, "TEST: Lookup for keys...");
 
       begin = System.currentTimeMillis();
 
-      for (long id = 0; id < 150000; ++id) {
+      int checked = 0;
+
+      for (long id = 0; id < TOT; id += step) {
         final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
@@ -168,15 +185,19 @@ public class PerformanceVertexIndexTest {
         final Document record = (Document) records.next().getRecord();
         Assertions.assertEquals("" + id, record.get("id"));
 
-        if (id % 10000 == 0) {
-          final long delta = System.currentTimeMillis() - begin;
-          LogManager.instance().info(this, "Checked " + id + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
+        checked++;
+
+        if (checked % 10000 == 0) {
+          long delta = System.currentTimeMillis() - begin;
+          if (delta < 1)
+            delta = 1;
+          LogManager.instance().info(this, "Checked " + checked + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
           begin = System.currentTimeMillis();
         }
       }
     } finally {
       database.close();
-      System.out.println("Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().info(this, "TEST: Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 }

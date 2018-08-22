@@ -5,11 +5,12 @@
 package com.arcadedb.schema;
 
 import com.arcadedb.database.BucketSelectionStrategy;
-import com.arcadedb.database.Document;
 import com.arcadedb.database.DefaultBucketSelectionStrategy;
+import com.arcadedb.database.Document;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.lsm.IndexLSMTree;
 
 import java.util.*;
 
@@ -123,13 +124,6 @@ public class DocumentType {
       allBuckets.addAll(p.getBuckets(true));
 
     return allBuckets;
-  }
-
-  private boolean hasBucket(final String bucketName) {
-    for (Bucket b : buckets)
-      if (b.getName().equals(bucketName))
-        return true;
-    return false;
   }
 
   public void addBucket(final Bucket bucket) {
@@ -374,6 +368,17 @@ public class DocumentType {
     bucketSelectionStrategy.setTotalBuckets(buckets.size());
   }
 
+  protected void replaceIndex(final IndexLSMTree oldIndex, final IndexLSMTree newIndex) {
+    for (List<DocumentType.IndexMetadata> metadata : indexesByBucket.values()) {
+      for (DocumentType.IndexMetadata m : metadata) {
+        if (m.index.equals(oldIndex)) {
+          m.index = newIndex;
+          break;
+        }
+      }
+    }
+  }
+
   protected Map<String, Property> getPolymorphicProperties() {
     final Map<String, Property> allProperties = new HashMap<>();
     allProperties.putAll(properties);
@@ -382,5 +387,12 @@ public class DocumentType {
       allProperties.putAll(p.getPolymorphicProperties());
 
     return allProperties;
+  }
+
+  private boolean hasBucket(final String bucketName) {
+    for (Bucket b : buckets)
+      if (b.getName().equals(bucketName))
+        return true;
+    return false;
   }
 }

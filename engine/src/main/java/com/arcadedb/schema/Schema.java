@@ -18,8 +18,6 @@ public interface Schema {
 
   PaginatedComponent getFileById(int id);
 
-  void removeFile(int fileId);
-
   boolean existsBucket(String bucketName);
 
   Bucket getBucketByName(String name);
