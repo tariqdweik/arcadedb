@@ -11,9 +11,10 @@
 # Using ArcadeDB with k8s
 #    - Create cluster    : kubectl apply -f arcadedb-statefulset.yaml
 #    - List the pods     : kubectl get pods
-#    - Run console       : kubectl exec -it arcadedb-0 /home/arcadedb/bin/console.sh
+#    - Run console       : kubectl exec -it arcadedb-0 bin/console.sh
 #    - Destroy cluster   : kubectl delete -f arcadedb-statefulset.yaml
 
+apiVersion: v1
 apiVersion: v1
 kind: Service
 metadata:
@@ -45,10 +46,6 @@ spec:
   ports:
   - name: http
     port: 2480
-  selector:
-    app: arcadedb-master
-  type: LoadBalancer
----
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
@@ -57,7 +54,7 @@ metadata:
     app: arcadedb-master
 spec:
   serviceName: arcadedb-masters
-  podManagementPolicy: "Parallel"
+  podManagementPolicy: "OrderedReady"
   replicas: 1
   selector:
     matchLabels:
@@ -91,23 +88,16 @@ spec:
               fieldPath: status.podIP
         command:
           - "bin/server.sh"
-          - "-Darcadedb.ha.replicationIncomingHost=$(POD_IP)"
+          - "-Darcadedb.dumpConfigAtStartup=true"
+          - "-Darcadedb.server.name=${HOSTNAME}"
+          - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
+          - "-Darcadedb.ha.enabled=true"
+          - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
         ports:
         - containerPort: 2480
-          name: server-http
+          name: master-http
         - containerPort: 2424
-          name: server-rpc
-#        readinessProbe:
-#          tcpSocket:
-#            port: 7100
-#          initialDelaySeconds: 5
-#          periodSeconds: 10
-#        livenessProbe:
-#          tcpSocket:
-#            port: 7100
-#          initialDelaySeconds: 15
-#          periodSeconds: 10
-
+          name: master-rpc
         # These volume mounts are persistent. They are like inline claims,
         # but not exactly because the names need to match exactly one of
         # the stateful pod volumes.
@@ -143,7 +133,7 @@ spec:
   - name: http
     port: 2480
   - name: rpc-port
-    port: 2423
+    port: 2424
   selector:
     app: arcadedb-replica
 ---
@@ -155,8 +145,8 @@ metadata:
     app: arcadedb-replica
 spec:
   serviceName: arcadedb-replicas
-  podManagementPolicy: "Parallel"
-  replicas: 3
+  podManagementPolicy: "OrderedReady"
+  replicas: 1
   selector:
     matchLabels:
       app: arcadedb-replica
@@ -184,12 +174,18 @@ spec:
         imagePullPolicy: IfNotPresent
         command:
           - "bin/server.sh"
-          - "-Darcadedb.ha.replicationIncomingHost=$(POD_IP)"
+          - "-Darcadedb.dumpConfigAtStartup=true"
+          - "-Darcadedb.server.name=${HOSTNAME}"
+          - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
+          - "-Darcadedb.ha.enabled=true"
+          - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
+          - "-Darcadedb.ha.serverList=arcadedb-master-0.arcadedb-masters.default.svc.cluster.local:2424"
         ports:
         - containerPort: 2480
           name: replica-http
         - containerPort: 2424
           name: replica-rpc
+        args:
         # These volume mounts are persistent. They are like inline claims,
         # but not exactly because the names need to match exactly one of
         # the stateful pod volumes.
