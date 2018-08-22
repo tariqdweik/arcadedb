@@ -122,6 +122,9 @@ public class LSMTreeIndexCompacted extends LSMTreeIndex {
 
   public MutablePage appendDuringCompaction(final Binary keyValueContent, MutablePage currentPage, TrackableBinary currentPageBuffer, final int pagesToCompact,
       final Object[] keys, final RID[] rids) {
+    if( keys == null )
+      throw new IllegalArgumentException("Keys parameter is null");
+
     if (currentPage == null) {
       // CREATE A NEW PAGE
       final int txPageCounter = getTotalPages();

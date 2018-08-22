@@ -265,6 +265,9 @@ public abstract class LSMTreeIndex extends PaginatedComponent implements Index {
   }
 
   protected void internalPut(final Object[] keys, final RID rid, final boolean checkForUnique) {
+    if (keys == null)
+      throw new IllegalArgumentException("Keys parameter is null");
+
     if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update the index '" + name + "'");
 
@@ -283,8 +286,11 @@ public abstract class LSMTreeIndex extends PaginatedComponent implements Index {
 
     lock.executeInLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         final int txPageCounter = getTotalPages();
+
+        if (txPageCounter < 1)
+          throw new IllegalArgumentException("Cannot update the index '" + name + "' because the file is invalid");
 
         int pageNum = txPageCounter - 1;
 
@@ -347,6 +353,9 @@ public abstract class LSMTreeIndex extends PaginatedComponent implements Index {
   }
 
   protected void internalRemove(final Object[] keys, final RID rid) {
+    if (keys == null)
+      throw new IllegalArgumentException("Keys parameter is null");
+
     if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update the index '" + name + "'");
 
@@ -359,8 +368,11 @@ public abstract class LSMTreeIndex extends PaginatedComponent implements Index {
 
     lock.executeInLock(new Callable<Object>() {
       @Override
-      public Object call() throws Exception {
+      public Object call() {
         final int txPageCounter = getTotalPages();
+
+        if (txPageCounter < 1)
+          throw new IllegalArgumentException("Cannot update the index '" + name + "' because the file is invalid");
 
         int pageNum = txPageCounter - 1;
 

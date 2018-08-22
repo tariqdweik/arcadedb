@@ -188,7 +188,8 @@ public class LSMTreeIndexCompactor {
           }
 
           // UPDATE LAST PAGE'S KEY
-          lastPageMaxKey = minorKey;
+          if (minorKey != null)
+            lastPageMaxKey = minorKey;
 
           ++totalKeys;
           totalValues += rids.size();
@@ -214,7 +215,7 @@ public class LSMTreeIndexCompactor {
         }
       }
 
-      if (rootPage != null) {
+      if (rootPage != null && lastPageMaxKey != null) {
         // WRITE THE MAX KEY
         compactedIndex.appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, pagesToCompact, lastPageMaxKey, new RID[] { new RID(database, 0, 0) });
         LogManager.instance()
