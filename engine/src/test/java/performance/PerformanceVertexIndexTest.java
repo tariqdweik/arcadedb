@@ -10,6 +10,7 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.LogManager;
@@ -51,7 +52,7 @@ public class PerformanceVertexIndexTest {
   private void compaction() throws IOException {
     try (Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open()) {
       for (Index index : database.getSchema().getIndexes())
-        Assertions.assertTrue(index.compact());
+        Assertions.assertTrue(((LSMTreeIndexMutable) index).compact());
     }
   }
 

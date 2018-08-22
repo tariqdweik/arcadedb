@@ -8,6 +8,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.LogManager;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
@@ -37,28 +39,33 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(COMPACTION_RAM_MB);
 
       insertData();
-//      checkLookups(100);
+      checkLookups(100, 1);
 
-      final CountDownLatch semaphore = new CountDownLatch(1);
+      final CountDownLatch semaphore1 = new CountDownLatch(1);
 
       // THIS TIME LOOK UP FOR KEYS WHILE COMPACTION
       new Timer().schedule(new TimerTask() {
         @Override
         public void run() {
           compaction();
-          semaphore.countDown();
+          semaphore1.countDown();
         }
       }, 0);
 
-      checkLookups(1);
+      checkLookups(1, 1);
 
-      try {
-        semaphore.await();
-      } catch (InterruptedException e) {
-        Assertions.fail(e);
-      }
+      semaphore1.await();
 
+      insertData();
 
+      checkLookups(1, 2);
+
+      compaction();
+
+      checkLookups(1, 2);
+
+    } catch (InterruptedException e) {
+      Assertions.fail(e);
     } finally {
       GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(300);
     }
@@ -67,7 +74,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
   private void compaction() {
     for (Index index : database.getSchema().getIndexes()) {
       try {
-        Assertions.assertTrue(index.compact());
+        Assertions.assertTrue(((LSMTreeIndexMutable) index).compact());
       } catch (IOException e) {
         Assertions.fail(e);
       }
@@ -149,28 +156,31 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
     database.asynch().waitCompletion();
   }
 
-  private void checkLookups(final int step) {
+  private void checkLookups(final int step, final int expectedItems) {
     long begin = System.currentTimeMillis();
 
-    try {
-      Assertions.assertEquals(TOT, database.countType(TYPE_NAME, false));
+//      Assertions.assertEquals(TOT * expectedItems, database.countType(TYPE_NAME, false));
 
-      LogManager.instance().info(this, "TEST: Lookup all the keys...");
+    LogManager.instance().info(this, "TEST: Lookup all the keys...");
 
-      begin = System.currentTimeMillis();
+    begin = System.currentTimeMillis();
 
-      int checked = 0;
+    int checked = 0;
 
-      for (long id = 0; id < TOT; id += step) {
+    for (long id = 0; id < TOT; id += step) {
+      try {
         final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
-        if (records.size() != 1)
+        if (records.size() != expectedItems)
           LogManager.instance().info(this, "Cannot find key '%s'", id);
 
-        Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
+        Assertions.assertEquals(expectedItems, records.size(), "Wrong result for lookup of key " + id);
 
-        final Document record = (Document) records.next().getRecord();
-        Assertions.assertEquals("" + id, record.get("id"));
+        for (Iterator<RID> it = records.iterator(); it.hasNext(); ) {
+          final RID rid = it.next();
+          final Document record = (Document) rid.getRecord();
+          Assertions.assertEquals("" + id, record.get("id"));
+        }
 
         checked++;
 
@@ -181,11 +191,10 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
           LogManager.instance().info(this, "Checked " + checked + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
           begin = System.currentTimeMillis();
         }
+      } catch (Exception e) {
+        Assertions.fail("Error on lookup key " + id, e);
       }
-    } catch (Exception e) {
-      Assertions.fail(e);
-    } finally {
-      LogManager.instance().info(this, "TEST: Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
+    LogManager.instance().info(this, "TEST: Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
   }
 }

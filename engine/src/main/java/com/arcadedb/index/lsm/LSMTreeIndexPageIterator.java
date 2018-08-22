@@ -11,22 +11,22 @@ import com.arcadedb.serializer.BinarySerializer;
 
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
-public class IndexLSMTreePageIterator {
-  private final IndexLSMTree     index;
-  private final PageId           pageId;
-  private final Binary           buffer;
-  private final byte[]           keyTypes;
-  private final int              keyStartPosition;
-  private final BinarySerializer serializer;
-  private final int              totalKeys;
-  private final boolean          ascendingOrder;
+public class LSMTreeIndexPageIterator {
+  private final LSMTreeIndexMutable index;
+  private final PageId              pageId;
+  private final Binary              buffer;
+  private final byte[]              keyTypes;
+  private final int                 keyStartPosition;
+  private final BinarySerializer    serializer;
+  private final int                 totalKeys;
+  private final boolean             ascendingOrder;
 
   private int      currentEntryIndex;
   private int      valuePosition = -1;
   private Object[] nextKeys;
   private Object[] nextValue;
 
-  public IndexLSMTreePageIterator(final IndexLSMTree index, final BasePage page, final int currentEntryInPage, final int keyStartPosition, final byte[] keyTypes,
+  public LSMTreeIndexPageIterator(final LSMTreeIndexMutable index, final BasePage page, final int currentEntryInPage, final int keyStartPosition, final byte[] keyTypes,
       final int totalKeys, final boolean ascendingOrder) {
     this.index = index;
     this.pageId = page.getPageId();

@@ -14,8 +14,8 @@ import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
-import com.arcadedb.index.lsm.IndexLSMAbstract;
-import com.arcadedb.index.lsm.IndexLSMTree;
+import com.arcadedb.index.lsm.LSMTreeIndex;
+import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
@@ -60,10 +60,10 @@ public class SchemaImpl implements Schema {
     paginatedComponentFactory = new PaginatedComponentFactory(database);
     paginatedComponentFactory.registerComponent(Dictionary.DICT_EXT, new Dictionary.PaginatedComponentFactoryHandler());
     paginatedComponentFactory.registerComponent(Bucket.BUCKET_EXT, new Bucket.PaginatedComponentFactoryHandler());
-    paginatedComponentFactory.registerComponent(IndexLSMTree.UNIQUE_INDEX_EXT, new IndexLSMTree.PaginatedComponentFactoryHandlerUnique());
-    paginatedComponentFactory.registerComponent(IndexLSMTree.NOTUNIQUE_INDEX_EXT, new IndexLSMTree.PaginatedComponentFactoryHandlerNotUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndexMutable.PaginatedComponentFactoryHandlerUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndexMutable.PaginatedComponentFactoryHandlerNotUnique());
 
-    indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new IndexLSMTree.IndexFactoryHandler());
+    indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new LSMTreeIndexMutable.IndexFactoryHandler());
   }
 
   public void create(final PaginatedFile.MODE mode) {
@@ -250,7 +250,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public Index[] createClassIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames) {
-    return createClassIndexes(indexType, unique, typeName, propertyNames, IndexLSMAbstract.DEF_PAGE_SIZE);
+    return createClassIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndex.DEF_PAGE_SIZE);
   }
 
   @Override
@@ -281,7 +281,7 @@ public class SchemaImpl implements Schema {
           final Index[] indexes = new Index[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
             final Bucket b = buckets.get(idx);
-            final String indexName = b.getName() + "_" + System.currentTimeMillis();
+            final String indexName = b.getName() + "_" + System.nanoTime();
 
             if (indexMap.containsKey(indexName))
               throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
@@ -309,7 +309,7 @@ public class SchemaImpl implements Schema {
   }
 
   public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
-    return (IndexLSMTree) database.executeInWriteLock(new Callable<Object>() {
+    return (LSMTreeIndexMutable) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         if (indexMap.containsKey(indexName))
@@ -503,7 +503,7 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  public void swapIndexes(final IndexLSMTree oldIndex, final IndexLSMTree newIndex) {
+  public void swapIndexes(final LSMTreeIndexMutable oldIndex, final LSMTreeIndexMutable newIndex) {
     oldIndex.lazyDrop();
 
     indexMap.put(newIndex.getName(), newIndex);

@@ -15,8 +15,6 @@ public interface Index {
 
   String getName();
 
-  boolean compact() throws IOException;
-
   /**
    * The returning iterator does not skip deleted entries.
    */
