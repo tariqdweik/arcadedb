@@ -1,3 +1,6 @@
+# If you are running this on MacOSX, assure you have k8s desktop version. Run:
+#
+# > kubectl config use-context docker-for-desktop
 #
 # Overall Design:
 #    - a headless service to expose a DNS entry for discovery
@@ -79,19 +82,16 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: arcadedb-master
-        image: arcade-analytics/arcadedb:latest
-        imagePullPolicy: Always
+        image: arcade/arcadedb:latest
+        imagePullPolicy: IfNotPresent
         env:
         - name: POD_IP
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
         command:
-          - "/home/arcadedb/bin/server.sh"
-          - "--fs_data_dirs=/mnt/data0"
-          - "--rpc_bind_addresses=$(POD_IP)"
-          - "--master_addresses=yb-masters.default.svc.cluster.local:7100"
-          - "--master_replication_factor=3"
+          - "bin/server.sh"
+          - "-Darcadedb.ha.replicationIncomingHost=$(POD_IP)"
         ports:
         - containerPort: 2480
           name: server-http
@@ -180,13 +180,11 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: arcadedb-replica
-        image: arcade-analytics/arcadedb:latest
-        imagePullPolicy: Always
+        image: arcade/arcadedb:latest
+        imagePullPolicy: IfNotPresent
         command:
-          - "/home/arcadedb/bin/server.sh"
-          - "--fs_data_dirs=/mnt/data0"
-          - "--tserver_master_addrs=yb-masters.default.svc.cluster.local:7100"
-          - "--tserver_master_replication_factor=3"
+          - "bin/server.sh"
+          - "-Darcadedb.ha.replicationIncomingHost=$(POD_IP)"
         ports:
         - containerPort: 2480
           name: replica-http
@@ -211,3 +209,18 @@ spec:
       resources:
         requests:
           storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arcadedb-replica-http
+  labels:
+    app: arcadedb-replica
+spec:
+  clusterIP:
+  ports:
+  - name: http
+    port: 2480
+  selector:
+    app: arcadedb-replica
+  type: LoadBalancer
