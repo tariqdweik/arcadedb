@@ -33,6 +33,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileLock;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class EmbeddedDatabase extends RWLockContext implements Database, DatabaseInternal {
   protected final String                name;
@@ -62,6 +63,22 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   private                StatementCache                            statementCache;
   private                ExecutionPlanCache                        executionPlanCache;
   private                DatabaseInternal                          wrappedDatabaseInstance = this;
+
+  // STATISTICS
+  private AtomicLong statsTxCommits     = new AtomicLong();
+  private AtomicLong statsTxRollbacks   = new AtomicLong();
+  private AtomicLong statsCreateRecord  = new AtomicLong();
+  private AtomicLong statsReadRecord    = new AtomicLong();
+  private AtomicLong statsUpdateRecord  = new AtomicLong();
+  private AtomicLong statsDeleteRecord  = new AtomicLong();
+  private AtomicLong statsQueries       = new AtomicLong();
+  private AtomicLong statsCommands      = new AtomicLong();
+  private AtomicLong statsScanType      = new AtomicLong();
+  private AtomicLong statsScanBucket    = new AtomicLong();
+  private AtomicLong statsIterateType   = new AtomicLong();
+  private AtomicLong statsIterateBucket = new AtomicLong();
+  private AtomicLong statsCountType     = new AtomicLong();
+  private AtomicLong statsCountBucket   = new AtomicLong();
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
@@ -258,6 +275,26 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
+  public Map<String, Object> getStats() {
+    final Map<String, Object> map = new HashMap<>();
+    map.put("txCommits", statsTxCommits.get());
+    map.put("txRollbacks", statsTxRollbacks.get());
+    map.put("createRecord", statsCreateRecord.get());
+    map.put("readRecord", statsReadRecord.get());
+    map.put("updateRecord", statsUpdateRecord.get());
+    map.put("deleteRecord", statsDeleteRecord.get());
+    map.put("queries", statsQueries.get());
+    map.put("commands", statsCommands.get());
+    map.put("scanType", statsScanType.get());
+    map.put("scanBucket", statsScanBucket.get());
+    map.put("iterateType", statsIterateType.get());
+    map.put("iterateBucket", statsIterateBucket.get());
+    map.put("countType", statsCountType.get());
+    map.put("countBucket", statsCountBucket.get());
+    return map;
+  }
+
+  @Override
   public String getDatabasePath() {
     return databasePath;
   }
@@ -292,8 +329,14 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     });
   }
 
+  public void incrementStatsTxCommits() {
+    statsTxCommits.incrementAndGet();
+  }
+
   @Override
   public void commit() {
+    statsTxCommits.incrementAndGet();
+
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -306,6 +349,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void rollback() {
+    statsTxRollbacks.incrementAndGet();
+
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -322,6 +367,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public long countBucket(final String bucketName) {
+    statsCountBucket.incrementAndGet();
+
     return (Long) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -333,6 +380,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public long countType(final String typeName, final boolean polymorphic) {
+    statsCountType.incrementAndGet();
+
     return (Long) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -350,6 +399,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
+    statsScanType.incrementAndGet();
+
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -374,6 +425,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public void scanBucket(final String bucketName, final RecordCallback callback) {
+    statsScanBucket.incrementAndGet();
+
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -395,6 +448,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public Iterator<Record> iterateType(final String typeName, final boolean polymorphic) {
+    statsIterateType.incrementAndGet();
+
     return (Iterator<Record>) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -419,6 +474,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public Iterator<Record> iterateBucket(final String bucketName) {
+    statsIterateBucket.incrementAndGet();
+
     readLock();
     try {
 
@@ -439,6 +496,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public Record lookupByRID(final RID rid, final boolean loadContent) {
     if (rid == null)
       throw new IllegalArgumentException("rid is null");
+
+    statsReadRecord.incrementAndGet();
 
     return (Record) executeInReadLock(new Callable<Object>() {
       @Override
@@ -472,6 +531,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
 
   @Override
   public Cursor<RID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
+    statsReadRecord.incrementAndGet();
+
     return (Cursor<RID>) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -744,6 +805,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     if (!type.getClass().equals(DocumentType.class))
       throw new IllegalArgumentException("Cannot create a document of type '" + typeName + "' because is not a document type");
 
+    statsCreateRecord.incrementAndGet();
+
     return new MutableDocument(wrappedDatabaseInstance, typeName, null);
   }
 
@@ -755,6 +818,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
     final DocumentType type = schema.getType(typeName);
     if (!type.getClass().equals(VertexType.class))
       throw new IllegalArgumentException("Cannot create a vertex of type '" + typeName + "' because is not a vertex type");
+
+    statsCreateRecord.incrementAndGet();
 
     return new MutableVertex(wrappedDatabaseInstance, typeName, null);
   }
@@ -799,6 +864,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
             "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
       destinationVertex = (Vertex) v2Result.next().getRecord();
+
+    statsCreateRecord.incrementAndGet();
 
     return sourceVertex.newEdge(edgeType, destinationVertex, bidirectional, properties);
   }
@@ -877,6 +944,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public ResultSet command(String language, String query, final Object... args) {
     checkDatabaseIsOpen();
 
+    statsCommands.incrementAndGet();
+
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
@@ -886,6 +955,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   public ResultSet command(String language, String query, final Map<String, Object> args) {
     checkDatabaseIsOpen();
 
+    statsCommands.incrementAndGet();
+
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
     return original;
@@ -894,6 +965,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   @Override
   public ResultSet query(String language, String query, final Object... args) {
     checkDatabaseIsOpen();
+
+    statsQueries.incrementAndGet();
 
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
@@ -905,6 +978,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   @Override
   public ResultSet query(String language, String query, Map<String, Object> args) {
     checkDatabaseIsOpen();
+
+    statsQueries.incrementAndGet();
 
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())

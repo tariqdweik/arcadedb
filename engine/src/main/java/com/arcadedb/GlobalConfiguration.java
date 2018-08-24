@@ -28,7 +28,7 @@ public enum GlobalConfiguration {
     }
   }),
 
-  DUMP_METRICS_EVERY("arcadedb.dumpMetricsEvery", "Dumps the metrics at startup, shutdown and every configurable amount of time", Long.class, 0,
+  DUMP_METRICS_EVERY("arcadedb.dumpMetricsEvery", "Dumps the metrics at startup, shutdown and every configurable amount of time (in ms)", Long.class, 0,
       new Callable<Object, Object>() {
         @Override
         public Object call(final Object value) {

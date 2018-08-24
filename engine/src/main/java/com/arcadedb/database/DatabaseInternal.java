@@ -12,6 +12,7 @@ import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.StatementCache;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -21,6 +22,8 @@ public interface DatabaseInternal extends Database {
   enum CALLBACK_EVENT {
     TX_AFTER_WAL_WRITE, DB_NOT_CLOSED
   }
+
+  Map<String, Object> getStats();
 
   DatabaseInternal getEmbedded();
 

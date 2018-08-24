@@ -50,6 +50,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
   @Override
   public void commit() {
+    proxied.incrementStatsTxCommits();
+
     final boolean isLeader = server.getHA().isLeader();
 
     proxied.executeInReadLock(new Callable<Object>() {
@@ -122,6 +124,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
     // COMMIT 2ND PHASE ONLY IF THE QUORUM HAS BEEN REACHED
     tx.commit2ndPhase(changes);
+  }
+
+  @Override
+  public Map<String, Object> getStats() {
+    return proxied.getStats();
   }
 
   @Override
