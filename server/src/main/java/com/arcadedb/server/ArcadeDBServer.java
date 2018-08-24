@@ -310,7 +310,7 @@ public class ArcadeDBServer {
     }
 
     final String defaultDatabases = configuration.getValueAsString(GlobalConfiguration.SERVER_DEFAULT_DATABASES);
-    if (defaultDatabases != null) {
+    if (defaultDatabases != null && !defaultDatabases.isEmpty()) {
       // CREATE DEFAULT DATABASES
       final String[] dbs = defaultDatabases.split(";");
       for (String db : dbs) {
