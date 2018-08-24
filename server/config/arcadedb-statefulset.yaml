@@ -15,6 +15,25 @@
 #    - Destroy cluster   : kubectl delete -f arcadedb-statefulset.yaml
 
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: arcadedb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arcade-server-http
+  labels:
+    app: arcade-server
+spec:
+  clusterIP:
+  ports:
+  - name: http
+    port: 2480
+  selector:
+    app: arcade-server
+  type: LoadBalancer
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -22,9 +41,9 @@ metadata:
   # member pods (masters). The CNAME of this service points to SRV records - one for each Pod that
   # is Running and Ready). Read more in the Kubernetes docs:
   # https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/
-  name: arcadedb-masters
+  name: arcadedb-servers
   labels:
-    app: arcadedb-master
+    app: arcadedb-server
 spec:
   clusterIP: None
   ports:
@@ -33,36 +52,25 @@ spec:
   - name: rpc-port
     port: 2424
   selector:
-    app: arcadedb-master
+    app: arcadedb-server
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: arcadedb-master-http
-  labels:
-    app: arcadedb-master
-spec:
-  clusterIP:
-  ports:
-  - name: http
-    port: 2480
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
-  name: arcadedb-master
+  name: arcadedb-server
   labels:
-    app: arcadedb-master
+    app: arcadedb-server
 spec:
-  serviceName: arcadedb-masters
+  serviceName: arcadedb-servers
   podManagementPolicy: "OrderedReady"
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
-      app: arcadedb-master
+      app: arcadedb-server
   template:
     metadata:
       labels:
-        app: arcadedb-master
+        app: arcadedb-server
     spec:
       affinity:
         # Set the anti-affinity selector scope to arcadedb servers.
@@ -75,10 +83,10 @@ spec:
                 - key: app
                   operator: In
                   values:
-                  - arcadedb-master
+                  - arcadedb-server
               topologyKey: kubernetes.io/hostname
       containers:
-      - name: arcadedb-master
+      - name: arcadedb-server
         image: arcade/arcadedb:latest
         imagePullPolicy: IfNotPresent
         env:
@@ -91,8 +99,10 @@ spec:
           - "-Darcadedb.dumpConfigAtStartup=true"
           - "-Darcadedb.server.name=${HOSTNAME}"
           - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
+          - "-Darcadedb.server.defaultDatabases=Universe[elon:musk]"
           - "-Darcadedb.ha.enabled=true"
           - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
+          - "-Darcadedb.ha.serverList=arcadedb-server-0.arcadedb-servers.default.svc.cluster.local:2424"
         ports:
         - containerPort: 2480
           name: master-http
@@ -117,106 +127,3 @@ spec:
       resources:
         requests:
           storage: 10Gi
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  # This is a "headless" service for the arcadedb-replica which exists to allow discovery of the set of
-  # member pods (replicas).
-  name: arcadedb-replicas
-  labels:
-    app: arcadedb-replica
-spec:
-  clusterIP: None
-  ports:
-  - name: http
-    port: 2480
-  - name: rpc-port
-    port: 2424
-  selector:
-    app: arcadedb-replica
----
-apiVersion: apps/v1beta1
-kind: StatefulSet
-metadata:
-  name: arcadedb-replica
-  labels:
-    app: arcadedb-replica
-spec:
-  serviceName: arcadedb-replicas
-  podManagementPolicy: "OrderedReady"
-  replicas: 1
-  selector:
-    matchLabels:
-      app: arcadedb-replica
-  template:
-    metadata:
-      labels:
-        app: arcadedb-replica
-    spec:
-      affinity:
-        # Set the anti-affinity selector scope to ArcadeDB replica here.
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - arcadedb-replica
-              topologyKey: kubernetes.io/hostname
-      containers:
-      - name: arcadedb-replica
-        image: arcade/arcadedb:latest
-        imagePullPolicy: IfNotPresent
-        command:
-          - "bin/server.sh"
-          - "-Darcadedb.dumpConfigAtStartup=true"
-          - "-Darcadedb.server.name=${HOSTNAME}"
-          - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
-          - "-Darcadedb.ha.enabled=true"
-          - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
-          - "-Darcadedb.ha.serverList=arcadedb-master-0.arcadedb-masters.default.svc.cluster.local:2424"
-        ports:
-        - containerPort: 2480
-          name: replica-http
-        - containerPort: 2424
-          name: replica-rpc
-        args:
-        # These volume mounts are persistent. They are like inline claims,
-        # but not exactly because the names need to match exactly one of
-        # the stateful pod volumes.
-        volumeMounts:
-        - name: datadir
-          mountPath: /mnt/data0
-  updateStrategy:
-    type: RollingUpdate
-  # These are converted to volume claims by the controller
-  # and mounted at the paths mentioned above.
-  # do not use these in production until ssd GCEPersistentDisk or other ssd pd
-  volumeClaimTemplates:
-  - metadata:
-      name: datadir
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: arcadedb-replica-http
-  labels:
-    app: arcadedb-replica
-spec:
-  clusterIP:
-  ports:
-  - name: http
-    port: 2480
-  selector:
-    app: arcadedb-replica
-  type: LoadBalancer

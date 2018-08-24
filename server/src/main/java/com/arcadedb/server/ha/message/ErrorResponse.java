@@ -5,7 +5,6 @@ package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.server.ha.HAServer;
-import com.arcadedb.utility.LogManager;
 
 /**
  * Response for forwarded transaction.
@@ -24,7 +23,6 @@ public class ErrorResponse extends HAAbstractCommand {
 
   @Override
   public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
-    LogManager.instance().warn(this, "Received error from remote server (class=%d message=%s)", exceptionClass, exceptionMessage);
     server.receivedResponseFromForward(messageNumber, this);
     return null;
   }
