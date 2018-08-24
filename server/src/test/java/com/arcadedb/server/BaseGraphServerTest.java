@@ -23,6 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -173,7 +175,12 @@ public abstract class BaseGraphServerTest {
     for (int i = 0; i < totalServers; ++i) {
       if (i > 0)
         serverURLs += ",";
-      serverURLs += "localhost:" + (port++);
+
+        try {
+          serverURLs += (InetAddress.getLocalHost().getHostName()) + ":" + (port++);
+        } catch (UnknownHostException e) {
+          e.printStackTrace();
+        }
     }
 
     for (int i = 0; i < totalServers; ++i) {
@@ -181,6 +188,7 @@ public abstract class BaseGraphServerTest {
       config.setValue(GlobalConfiguration.SERVER_NAME, Constants.PRODUCT + "_" + i);
       config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + i);
       config.setValue(GlobalConfiguration.HA_SERVER_LIST, serverURLs);
+      config.setValue(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST, "0.0.0.0");
       config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
 
       onServerConfiguration(config);
