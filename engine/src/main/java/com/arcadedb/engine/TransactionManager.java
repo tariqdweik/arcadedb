@@ -273,6 +273,9 @@ public class TransactionManager {
               "Cannot apply changes to the database because modified page version (" + txPage.currentPageVersion + ") does not match with existent version ("
                   + page.getVersion() + ")");
 
+        LogManager.instance()
+            .debug(this, "Updating page %s versionInLog=%d versionInDB=%d (txId=%d)", pageId, txPage.currentPageVersion, page.getVersion(), tx.txId);
+
         // IF VERSION IS THE SAME OR MAJOR, OVERWRITE THE PAGE
         final MutablePage modifiedPage = page.modify();
         txPage.currentContent.rewind();
@@ -352,8 +355,8 @@ public class TransactionManager {
     throw new TransactionException("Timeout on locking resource during commit");
   }
 
-  public void unlockFilesInOrder(final List<Integer> lockedFileIds) {
-    if (lockedFileIds != null) {
+  public void unlockFilesInOrder(final Collection<Integer> lockedFileIds) {
+    if (lockedFileIds != null && !lockedFileIds.isEmpty()) {
       for (Integer fileId : lockedFileIds)
         unlockFile(fileId);
 

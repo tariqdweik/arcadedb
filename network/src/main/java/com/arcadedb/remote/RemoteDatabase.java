@@ -6,6 +6,7 @@ package com.arcadedb.remote;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.database.RID;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.network.binary.QuorumNotReachedException;
@@ -263,7 +264,7 @@ public class RemoteDatabase extends RWLockContext {
                 continue;
               } else if (exception.equals(DuplicatedKeyException.class.getName())) {
                 final String[] exceptionArgs = exceptionArg.split("|");
-                throw new DuplicatedKeyException(exceptionArgs[0], exceptionArgs[1]);
+                throw new DuplicatedKeyException(exceptionArgs[0], exceptionArgs[1], new RID(null, exceptionArgs[2]));
               }
             }
 

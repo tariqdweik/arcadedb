@@ -78,32 +78,31 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         final ReplicationMessage message = request.getFirst();
 
-        if (message.messageNumber < 0) {
-          server.getServer()
-              .log(this, Level.SEVERE, "Error on receiving message %d (%s), reconnecting (threadId=%d)", message.messageNumber, request.getSecond(),
-                  Thread.currentThread().getId());
-          reconnect(null);
-          continue;
+        if (message.messageNumber > -1)
+          server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
+        else
+          server.getServer().log(this, Level.FINE, "Received response %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
+
+        // NUMBERS <0 ARE FORWARD FROM REPLICA TO LEADER WITHOUT A VALID SEQUENCE
+        if (message.messageNumber > -1) {
+          final long lastMessage = server.getReplicationLogFile().getLastMessageNumber();
+
+          if (message.messageNumber <= lastMessage) {
+            server.getServer().log(this, Level.FINE, "Message %d already applied on local server (last=%d). Skip this", message.messageNumber, lastMessage);
+            continue;
+          }
+
+          if (!server.getReplicationLogFile().checkMessageOrder(message))
+            // SKIP
+            continue;
         }
-
-        server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
-
-        final long lastMessage = server.getReplicationLogFile().getLastMessageNumber();
-
-        if (message.messageNumber <= lastMessage) {
-          server.getServer().log(this, Level.FINE, "Message %d already applied on local server (last=%d). Skip this", message.messageNumber, lastMessage);
-          continue;
-        }
-
-        if (!server.getReplicationLogFile().checkMessageOrder(message))
-          // SKIP
-          continue;
 
         // TODO: LOG THE TX BEFORE EXECUTING TO RECOVER THE DB IN CASE OF CRASH
 
         final HACommand response = request.getSecond().execute(server, leaderServerName, message.messageNumber);
 
-        server.getReplicationLogFile().appendMessage(message);
+        if (message.messageNumber > -1)
+          server.getReplicationLogFile().appendMessage(message);
 
         if (testOn)
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_MSG_RECEIVED, request);
@@ -163,7 +162,10 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   }
 
   public void sendCommandToLeader(final Binary buffer, final HACommand response, final long messageNumber) throws IOException {
-    server.getServer().log(this, Level.FINE, "Sending message (response to %d) to the Leader '%s'...", messageNumber, response);
+    if (messageNumber > -1)
+      server.getServer().log(this, Level.FINE, "Sending message (response to %d) to the Leader '%s'...", messageNumber, response);
+    else
+      server.getServer().log(this, Level.FINE, "Sending message (request %d) to the Leader '%s'...", messageNumber, response);
 
     server.getMessageFactory().serializeCommand(response, buffer, messageNumber);
 

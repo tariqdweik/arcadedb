@@ -54,18 +54,21 @@ public abstract class BaseGraphServerTest {
 
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    deleteDatabaseFolders();
+    if (isCreateDatabases()) {
+      deleteDatabaseFolders();
 
-    databases = new Database[getServerCount()];
-    for (int i = 0; i < getServerCount(); ++i) {
-      GlobalConfiguration.SERVER_DATABASE_DIRECTORY.setValue("./target/databases");
-      databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
-    }
+      databases = new Database[getServerCount()];
+      for (int i = 0; i < getServerCount(); ++i) {
+        GlobalConfiguration.SERVER_DATABASE_DIRECTORY.setValue("./target/databases");
+        databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
+      }
+    } else
+      databases = new Database[0];
 
-    getDatabase(0).transaction(new Database.Transaction() {
-      @Override
-      public void execute(Database database) {
-        if (isPopulateDatabase()) {
+    if (isPopulateDatabase()) {
+      getDatabase(0).transaction(new Database.Transaction() {
+        @Override
+        public void execute(Database database) {
           Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
 
           VertexType v = database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
@@ -81,10 +84,8 @@ public abstract class BaseGraphServerTest {
 
           database.getSchema().createDocumentType("Person");
         }
-      }
-    });
+      });
 
-    if (isPopulateDatabase()) {
       final Database db = getDatabase(0);
       db.begin();
 
@@ -136,7 +137,6 @@ public abstract class BaseGraphServerTest {
   @AfterEach
   public void endTest() {
     try {
-      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
       checkDatabasesAreIdentical();
     } finally {
       LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
@@ -183,6 +183,8 @@ public abstract class BaseGraphServerTest {
       config.setValue(GlobalConfiguration.HA_SERVER_LIST, serverURLs);
       config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
 
+      onServerConfiguration(config);
+
       servers[i] = new ArcadeDBServer(config);
       onBeforeStarting(servers[i]);
       servers[i].start();
@@ -196,7 +198,14 @@ public abstract class BaseGraphServerTest {
     }
   }
 
+  protected void onServerConfiguration(final ContextConfiguration config) {
+  }
+
   protected void onBeforeStarting(ArcadeDBServer server) {
+  }
+
+  protected boolean isCreateDatabases() {
+    return true;
   }
 
   protected boolean isPopulateDatabase() {
@@ -296,15 +305,25 @@ public abstract class BaseGraphServerTest {
     FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
   }
 
+  protected void deleteAllDatabases() {
+    for (int i = 0; i < getServerCount(); ++i)
+      FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_DATABASE_DIRECTORY.getValueAsString() + i + "/"));
+    FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
+  }
+
   protected void checkDatabasesAreIdentical() {
     final int[] servers2Check = getServerToCheck();
 
-    for (int i = 1; i < servers2Check.length; ++i) {
-      final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
-      final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());
+    if (servers2Check.length > 1) {
+      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
 
-      LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
-      new DatabaseComparator().compare(db1, db2);
+      for (int i = 1; i < servers2Check.length; ++i) {
+        final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
+        final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());
+
+        LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
+        new DatabaseComparator().compare(db1, db2);
+      }
     }
   }
 }

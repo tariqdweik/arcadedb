@@ -36,7 +36,7 @@ public class TransactionContext {
   private       boolean                        useWAL;
   private       boolean                        asyncFlush            = true;
   private       WALFile.FLUSH_TYPE             walFlush;
-  private       List<Integer>                  lockedFiles;
+  private       Collection<Integer>            lockedFiles;
   private final List<DocumentIndexer.IndexKey> indexKeysToLocks      = new ArrayList<>();
   private       long                           txId                  = -1;
 
@@ -49,15 +49,18 @@ public class TransactionContext {
   public void begin() {
     if (modifiedPages != null)
       throw new TransactionException("Transaction already begun");
-
     modifiedPages = new HashMap<>();
+
+    if (newPages == null)
+      // KEEP ORDERING IN CASE MULTIPLE PAGES FOR THE SAME FILE ARE CREATED
+      newPages = new LinkedHashMap<>();
   }
 
   public Binary commit() {
     if (modifiedPages == null)
       throw new TransactionException("Transaction not begun");
 
-    final Pair<Binary, List<MutablePage>> changes = commit1stPhase();
+    final Pair<Binary, List<MutablePage>> changes = commit1stPhase(true);
 
     if (modifiedPages != null)
       commit2ndPhase(changes);
@@ -190,7 +193,10 @@ public class TransactionContext {
         final BasePage loadedPage = database.getPageManager().getPage(pageId, size, isNew);
         if (loadedPage != null) {
           final MutablePage mutablePage = loadedPage.modify();
-          modifiedPages.put(pageId, mutablePage);
+          if (isNew)
+            newPages.put(pageId, mutablePage);
+          else
+            modifiedPages.put(pageId, mutablePage);
           page = mutablePage;
         }
       }
@@ -201,10 +207,6 @@ public class TransactionContext {
 
   public MutablePage addPage(final PageId pageId, final int pageSize) {
     assureIsActive();
-
-    if (newPages == null)
-      // KEEP ORDERING IN CASE MULTIPLE PAGES FOR THE SAME FILE ARE CREATED
-      newPages = new LinkedHashMap<>();
 
     // CREATE A PAGE ID BASED ON NEW PAGES IN TX. IN CASE OF ROLLBACK THEY ARE SIMPLY REMOVED AND THE GLOBAL PAGE COUNT IS UNCHANGED
     final MutablePage page = new MutablePage(database.getPageManager(), pageId, pageSize);
@@ -272,11 +274,49 @@ public class TransactionContext {
   }
 
   /**
-   * Locks the files in order, then checks all the pre-conditions.
-   *
-   * @return
+   * Executes 1st phase from a replica.
    */
-  public Pair<Binary, List<MutablePage>> commit1stPhase() {
+  public void commitFromReplica(final WALFile.WALTransaction buffer, final List<DocumentIndexer.IndexKey> keysTx) throws TransactionException {
+    try {
+      for (WALFile.WALPage p : buffer.pages) {
+        final PaginatedFile file = database.getFileManager().getFile(p.fileId);
+        final int pageSize = file.getPageSize();
+
+        final PageId pageId = new PageId(p.fileId, p.pageNumber);
+
+        final boolean isNew = p.pageNumber >= file.getTotalPages();
+
+        final MutablePage page = getPageToModify(pageId, pageSize, isNew);
+
+        if (p.currentPageVersion != page.getVersion() + 1)
+          throw new ConcurrentModificationException(
+              "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + page.getVersion()
+                  + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+
+        // APPLY THE CHANGE TO THE PAGE
+        page.writeByteArray(p.changesFrom - BasePage.PAGE_HEADER_SIZE, p.currentContent.content);
+        page.setContentSize(p.currentPageSize);
+
+        if (isNew) {
+          newPages.put(pageId, page);
+          newPageCounters.put(pageId.getFileId(), pageId.getPageNumber() + 1);
+        } else
+          modifiedPages.put(pageId, page);
+      }
+
+      indexKeysToLocks.addAll(keysTx);
+
+    } catch (Exception e) {
+      throw new TransactionException("Transaction error on commit", e);
+    }
+
+    database.commit();
+  }
+
+  /**
+   * Locks the files in order, then checks all the pre-conditions.
+   */
+  public Pair<Binary, List<MutablePage>> commit1stPhase(final boolean isLeader) {
     if (lockedFiles != null)
       throw new TransactionException("Cannot execute 1st phase commit because it was already started");
 
@@ -287,14 +327,18 @@ public class TransactionContext {
       return null;
     }
 
-    Binary result = null;
+    if (isLeader)
+      // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
+      lockedFiles = lockFilesInOrder();
+    else
+      // IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION
+      lockedFiles = new ArrayList<>();
 
-    // LOCK FILES IN ORDER (TO AVOID DEADLOCK)
-    lockedFiles = lockFilesInOrder();
     try {
-      // CHECK INDEX UNIQUE PUT
-      for (int i = 0; i < indexKeysToLocks.size(); ++i)
-        database.getIndexer().indexUniqueInsertionInTx(indexKeysToLocks.get(i));
+      if (isLeader)
+        // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
+        for (int i = 0; i < indexKeysToLocks.size(); ++i)
+          database.getIndexer().indexUniqueInsertionInTx(indexKeysToLocks.get(i));
 
       // CHECK THE VERSIONS FIRST
       final List<MutablePage> pages = new ArrayList<>();
@@ -321,6 +365,8 @@ public class TransactionContext {
             pages.add(p);
           }
         }
+
+      Binary result = null;
 
       if (useWAL) {
         txId = database.getTransactionManager().getNextTransactionId();
@@ -417,7 +463,7 @@ public class TransactionContext {
     return database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
   }
 
-  private void reset() {
+  public void reset() {
     final TransactionManager txManager = database.getTransactionManager();
 
     if (lockedFiles != null) {
@@ -433,5 +479,9 @@ public class TransactionContext {
     modifiedRecordsCache.clear();
     immutableRecordsCache.clear();
     txId = -1;
+  }
+
+  public List<DocumentIndexer.IndexKey> getIndexKeys() {
+    return indexKeysToLocks;
   }
 }

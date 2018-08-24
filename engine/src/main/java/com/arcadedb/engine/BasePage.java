@@ -16,9 +16,9 @@ import java.util.concurrent.Callable;
  * maximum content for a page is pageSize - 16.
  */
 public abstract class BasePage {
+  public static final    int PAGE_HEADER_SIZE        = Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
   protected static final int PAGE_VERSION_OFFSET     = 0;
   protected static final int PAGE_CONTENTSIZE_OFFSET = Binary.INT_SERIALIZED_SIZE;
-  protected static final int PAGE_HEADER_SIZE        = Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
 
   protected final PageManager manager;
 
@@ -28,8 +28,7 @@ public abstract class BasePage {
   protected       int    version;
   private         long   lastAccessed = System.currentTimeMillis();
 
-  protected BasePage(final PageManager manager, final PageId pageId, final int size, final byte[] buffer, final int version,
-      final int contentSize) {
+  protected BasePage(final PageManager manager, final PageId pageId, final int size, final byte[] buffer, final int version, final int contentSize) {
     this.manager = manager;
     this.pageId = pageId;
     this.size = size;
@@ -39,8 +38,7 @@ public abstract class BasePage {
 
   public MutablePage modify() {
     final byte[] array = this.content.getByteBuffer().array();
-    final MutablePage copy = new MutablePage(manager, pageId, size, Arrays.copyOf(array, array.length), version,
-        content.size());
+    final MutablePage copy = new MutablePage(manager, pageId, size, Arrays.copyOf(array, array.length), version, content.size());
     // COPY THE CONTENT, SO CHANGES DOES NOT AFFECT IMMUTABLE COPY
     return copy;
   }

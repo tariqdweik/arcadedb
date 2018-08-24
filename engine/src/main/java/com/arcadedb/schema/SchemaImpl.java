@@ -601,7 +601,7 @@ public class SchemaImpl implements Schema {
     }
   }
 
-  protected void saveConfiguration() {
+  public void saveConfiguration() {
     try {
       final FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME);
 

@@ -277,7 +277,7 @@ public abstract class LSMTreeIndex extends PaginatedComponent implements Index {
     if (unique && checkForUnique) {
       final Set<RID> result = get(keys, 1);
       if (!result.isEmpty())
-        throw new DuplicatedKeyException(name, Arrays.toString(keys));
+        throw new DuplicatedKeyException(name, Arrays.toString(keys), result.iterator().next());
     }
 
     checkForNulls(keys);

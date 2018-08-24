@@ -11,6 +11,7 @@ import com.arcadedb.schema.DocumentType;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 public class DocumentIndexer {
 
@@ -18,20 +19,20 @@ public class DocumentIndexer {
     public final Index    index;
     public final String   typeName;
     public final String[] keyNames;
-    public final Object[] keys;
+    public final Object[] keyValues;
     public final RID      rid;
 
-    public IndexKey(final Index index, final String typeName, final String[] keyNames, final Object[] keys, final RID rid) {
+    public IndexKey(final Index index, final String typeName, final String[] keyNames, final Object[] keyValues, final RID rid) {
       this.index = index;
       this.typeName = typeName;
       this.keyNames = keyNames;
-      this.keys = keys;
+      this.keyValues = keyValues;
       this.rid = rid;
     }
 
     @Override
     public String toString() {
-      return "IndexKey(" + typeName + Arrays.toString(keyNames) + "=" + Arrays.toString(keys) + ")";
+      return "IndexKey(" + typeName + Arrays.toString(keyNames) + "=" + Arrays.toString(keyValues) + ")";
     }
   }
 
@@ -52,8 +53,9 @@ public class DocumentIndexer {
       for (DocumentType.IndexMetadata entry : metadata) {
         final Index index = entry.index;
         final String[] keyNames = entry.propertyNames;
+
         final Object[] keyValues = new Object[keyNames.length];
-        for (int i = 0; i < keyNames.length; ++i)
+        for (int i = 0; i < keyValues.length; ++i)
           keyValues[i] = record.get(keyNames[i]);
 
         if (index.isUnique())
@@ -158,12 +160,13 @@ public class DocumentIndexer {
     final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.keyNames);
     if (typeIndexes != null) {
       for (DocumentType.IndexMetadata i : typeIndexes) {
-        if (!i.index.get(key.keys, 1).isEmpty())
-          throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keys));
+        final Set<RID> found = i.index.get(key.keyValues, 1);
+        if (!found.isEmpty())
+          throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
       }
     }
 
     // AVOID CHECKING FOR UNIQUENESS BECAUSE IT HAS ALREADY BEEN CHECKED
-    key.index.put(key.keys, key.rid, false);
+    key.index.put(key.keyValues, key.rid, false);
   }
 }

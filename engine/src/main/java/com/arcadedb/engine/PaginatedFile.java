@@ -61,6 +61,10 @@ public class PaginatedFile {
     return channel.size();
   }
 
+  public long getTotalPages() throws IOException {
+    return channel.size() / pageSize;
+  }
+
   public void flush() throws IOException {
     channel.force(true);
   }

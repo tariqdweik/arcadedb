@@ -46,6 +46,8 @@ public interface Database extends AutoCloseable {
 
   void transaction(Transaction txBlock);
 
+  void transaction(Transaction txBlock, int retries);
+
   void setAutoTransaction(boolean autoTransaction);
 
   void begin();
@@ -81,14 +83,16 @@ public interface Database extends AutoCloseable {
 
   Schema getSchema();
 
+  //TODO: MOVE TO DATABASE INTERNAL
   FileManager getFileManager();
 
-  void transaction(Transaction txBlock, int retries);
-
+  //TODO: MOVE TO DATABASE INTERNAL
   RecordFactory getRecordFactory();
 
+  //TODO: MOVE TO DATABASE INTERNAL
   BinarySerializer getSerializer();
 
+  //TODO: MOVE TO DATABASE INTERNAL
   PageManager getPageManager();
 
   ResultSet command(String language, String query, Map<String, Object> args);

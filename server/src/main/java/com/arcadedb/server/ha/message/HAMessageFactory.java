@@ -33,8 +33,11 @@ public class HAMessageFactory {
     registerCommand(FileContentResponse.class);
     registerCommand(TxRequest.class);
     registerCommand(TxResponse.class);
+    registerCommand(TxForwardRequest.class);
+    registerCommand(TxForwardResponse.class);
     registerCommand(ReplicaReadyRequest.class);
     registerCommand(UpdateClusterConfiguration.class);
+    registerCommand(ErrorResponse.class);
   }
 
   public void serializeCommand(final HACommand command, final Binary buffer, final long messageNumber) {

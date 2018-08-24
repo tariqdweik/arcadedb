@@ -33,7 +33,11 @@ public class DatabaseStructureRequest extends HAAbstractCommand {
 
     final File file = new File(db.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
     try {
-      final String schemaJson = FileUtils.readStreamAsString(new FileInputStream(file), db.getSchema().getEncoding());
+      final String schemaJson;
+      if (file.exists())
+        schemaJson = FileUtils.readStreamAsString(new FileInputStream(file), db.getSchema().getEncoding());
+      else
+        schemaJson = "{}";
 
       final Map<Integer, String> fileNames = new HashMap<>();
       for (PaginatedFile f : db.getFileManager().getFiles())
@@ -42,7 +46,7 @@ public class DatabaseStructureRequest extends HAAbstractCommand {
       return new DatabaseStructureResponse(schemaJson, fileNames);
 
     } catch (IOException e) {
-      throw new NetworkProtocolException("Error on reading schema json file");
+      throw new NetworkProtocolException("Error on reading schema json file", e);
     }
   }
 

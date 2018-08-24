@@ -6,6 +6,8 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
+import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
@@ -17,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 public abstract class ReplicationServerTest extends BaseGraphServerTest {
+  private static final int DEFAULT_MAX_RETRIES = 3;
+
   public ReplicationServerTest() {
     GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS.setValue("2424-2500");
   }
@@ -35,9 +39,13 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
   @Test
   public void testReplication() {
+    testReplication(0);
+  }
+
+  public void testReplication(final int serverId) {
     checkDatabases();
 
-    Database db = getServerDatabase(0, getDatabaseName());
+    Database db = getServerDatabase(serverId, getDatabaseName());
     db.begin();
 
     Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + 0);
@@ -48,14 +56,30 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     long counter = 0;
 
     for (int tx = 0; tx < getTxs(); ++tx) {
-      for (int i = 0; i < getVerticesPerTx(); ++i) {
-        final MutableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
-        v1.set("id", ++counter);
-        v1.set("name", "distributed-test");
-        v1.save();
-      }
+      final long lastGoodCounter = counter;
 
-      db.commit();
+      for (int retry = 0; retry < getMaxRetry(); ++retry) {
+        try {
+          if (!db.isTransactionActive())
+            db.begin();
+
+          for (int i = 0; i < getVerticesPerTx(); ++i) {
+            final MutableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
+            v1.set("id", ++counter);
+            v1.set("name", "distributed-test");
+            v1.save();
+          }
+
+          db.commit();
+          break;
+
+        } catch (TransactionException | NeedRetryException e) {
+          LogManager.instance().info(this, "TEST: - RECEIVED ERROR: %s (RETRY %d/%d)", e.toString(), retry, getMaxRetry());
+          if (retry >= DEFAULT_MAX_RETRIES - 1)
+            throw e;
+          counter = lastGoodCounter;
+        }
+      }
 
       if (counter % (total / 10) == 0) {
         LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
@@ -82,6 +106,10 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     }
 
     onAfterTest();
+  }
+
+  protected int getMaxRetry() {
+    return DEFAULT_MAX_RETRIES;
   }
 
   protected void checkDatabases() {

@@ -15,10 +15,10 @@ import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ha.message.TxForwardRequest;
 import com.arcadedb.server.ha.message.TxRequest;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
 
 public class ReplicatedDatabase implements DatabaseInternal {
   private final ArcadeDBServer   server;
@@ -51,8 +50,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
   @Override
   public void commit() {
-    if (!server.getHA().isLeader())
-      throw new ServerIsNotTheLeaderException("Cannot execute command", server.getHA().getLeader().getRemoteServerName());
+    final boolean isLeader = server.getHA().isLeader();
 
     proxied.executeInReadLock(new Callable<Object>() {
       @Override
@@ -61,44 +59,20 @@ public class ReplicatedDatabase implements DatabaseInternal {
 
         final TransactionContext tx = proxied.getTransaction();
 
-        final Pair<Binary, List<MutablePage>> changes = tx.commit1stPhase();
+        final Pair<Binary, List<MutablePage>> changes = tx.commit1stPhase(isLeader);
 
         try {
           if (changes != null) {
             final Binary bufferChanges = changes.getFirst();
 
-            server.log(this, Level.FINE, "Replicating transaction (size=%d)", bufferChanges.size());
-
-            final int configuredServers = server.getHA().getConfiguredServers();
-
-            final int reqQuorum;
-            switch (quorum) {
-            case NONE:
-              reqQuorum = 0;
-              break;
-            case ONE:
-              reqQuorum = 1;
-              break;
-            case TWO:
-              reqQuorum = 2;
-              break;
-            case THREE:
-              reqQuorum = 3;
-              break;
-            case MAJORITY:
-              reqQuorum = (configuredServers / 2) + 1;
-              break;
-            case ALL:
-              reqQuorum = configuredServers;
-              break;
-            default:
-              throw new IllegalArgumentException("Quorum " + quorum + " not managed");
+            if (isLeader)
+              replicateTx(tx, changes, bufferChanges);
+            else {
+              // USE A BIGGER TIMEOUT CONSIDERING THE DOUBLE LATENCY
+              final TxForwardRequest command = new TxForwardRequest(ReplicatedDatabase.this, bufferChanges, tx.getIndexKeys());
+              server.getHA().forwardCommandToLeader(command, timeout * 2);
+              tx.reset();
             }
-
-            server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), bufferChanges, reqQuorum > 1), reqQuorum, timeout);
-
-            // COMMIT 2ND PHASE ONLY IF THE QUORUM HAS BEEN REACHED
-            tx.commit2ndPhase(changes);
           }
 
         } catch (NeedRetryException e) {
@@ -115,6 +89,39 @@ public class ReplicatedDatabase implements DatabaseInternal {
         return null;
       }
     });
+  }
+
+  public void replicateTx(final TransactionContext tx, final Pair<Binary, List<MutablePage>> changes, final Binary bufferChanges) {
+    final int configuredServers = server.getHA().getConfiguredServers();
+
+    final int reqQuorum;
+    switch (quorum) {
+    case NONE:
+      reqQuorum = 0;
+      break;
+    case ONE:
+      reqQuorum = 1;
+      break;
+    case TWO:
+      reqQuorum = 2;
+      break;
+    case THREE:
+      reqQuorum = 3;
+      break;
+    case MAJORITY:
+      reqQuorum = (configuredServers / 2) + 1;
+      break;
+    case ALL:
+      reqQuorum = configuredServers;
+      break;
+    default:
+      throw new IllegalArgumentException("Quorum " + quorum + " not managed");
+    }
+
+    server.getHA().sendCommandToReplicasWithQuorum(new TxRequest(getName(), bufferChanges, reqQuorum > 1), reqQuorum, timeout);
+
+    // COMMIT 2ND PHASE ONLY IF THE QUORUM HAS BEEN REACHED
+    tx.commit2ndPhase(changes);
   }
 
   @Override

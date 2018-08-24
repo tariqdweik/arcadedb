@@ -7,7 +7,10 @@ package com.arcadedb.server.ha;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
+import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.exception.TransactionException;
 import com.arcadedb.network.binary.ChannelBinaryClient;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.network.binary.QuorumNotReachedException;
@@ -15,6 +18,7 @@ import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerPlugin;
 import com.arcadedb.server.TestCallback;
+import com.arcadedb.server.ha.message.ErrorResponse;
 import com.arcadedb.server.ha.message.HACommand;
 import com.arcadedb.server.ha.message.HAMessageFactory;
 import com.arcadedb.server.ha.message.UpdateClusterConfiguration;
@@ -33,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
+// TODO: REFACTOR LEADER/REPLICA IN 2 CLASSES
 public class HAServer implements ServerPlugin {
 
   public enum QUORUM {
@@ -48,29 +53,40 @@ public class HAServer implements ServerPlugin {
   private final    ContextConfiguration                       configuration;
   private final    String                                     clusterName;
   private final    long                                       startedOn;
-  private volatile int                                        configuredServers              = 1;
-  private final    Map<String, Leader2ReplicaNetworkExecutor> replicaConnections             = new ConcurrentHashMap<>();
-  private final    AtomicLong                                 lastDistributedOperationNumber = new AtomicLong(-1);
+  private volatile int                                        configuredServers                 = 1;
+  private final    Map<String, Leader2ReplicaNetworkExecutor> replicaConnections                = new ConcurrentHashMap<>();
+  private final    AtomicLong                                 lastDistributedOperationNumber    = new AtomicLong(-1);
+  private final    AtomicLong                                 lastForwardOperationNumber        = new AtomicLong(0);
   protected final  String                                     replicationPath;
   protected        ReplicationLogFile                         replicationLogFile;
   private volatile Replica2LeaderNetworkExecutor              leaderConnection;
   private          LeaderNetworkListener                      listener;
-  private          Map<Long, QuorumMessages>                  messagesWaitingForQuorum       = new ConcurrentHashMap<>(1024);
-  private          long                                       lastConfigurationOutputHash    = 0;
-  private final    Object                                     sendingLock                    = new Object();
+  private          Map<Long, QuorumMessage>                   messagesWaitingForQuorum          = new ConcurrentHashMap<>(1024);
+  private          Map<Long, ForwardedMessage>                forwardMessagesWaitingForResponse = new ConcurrentHashMap<>(1024);
+  private          long                                       lastConfigurationOutputHash       = 0;
+  private final    Object                                     sendingLock                       = new Object();
   private          String                                     serverAddress;
-  private          Set<String>                                serverAddressList              = new HashSet<>();
+  private          Set<String>                                serverAddressList                 = new HashSet<>();
   private          String                                     replicasHTTPAddresses;
   protected        Pair<Long, String>                         lastElectionVote;
-  private volatile ELECTION_STATUS                            electionStatus                 = ELECTION_STATUS.DONE;
+  private volatile ELECTION_STATUS                            electionStatus                    = ELECTION_STATUS.DONE;
   private          boolean                                    started;
 
-  private class QuorumMessages {
+  private class QuorumMessage {
     public final long           sentOn = System.currentTimeMillis();
     public final CountDownLatch semaphore;
 
-    public QuorumMessages(final CountDownLatch quorumSemaphore) {
+    public QuorumMessage(final CountDownLatch quorumSemaphore) {
       this.semaphore = quorumSemaphore;
+    }
+  }
+
+  private class ForwardedMessage {
+    public final CountDownLatch semaphore;
+    public       ErrorResponse  error;
+
+    public ForwardedMessage() {
+      this.semaphore = new CountDownLatch(1);
     }
   }
 
@@ -376,10 +392,10 @@ public class HAServer implements ServerPlugin {
     }
   }
 
-  public void receivedResponseForQuorum(final String remoteServerName, final long messageNumber) {
+  public void receivedResponse(final String remoteServerName, final long messageNumber) {
     final long receivedOn = System.currentTimeMillis();
 
-    final QuorumMessages msg = messagesWaitingForQuorum.get(messageNumber);
+    final QuorumMessage msg = messagesWaitingForQuorum.get(messageNumber);
     if (msg == null)
       // QUORUM ALREADY REACHED OR TIMEOUT
       return;
@@ -390,6 +406,18 @@ public class HAServer implements ServerPlugin {
     final Leader2ReplicaNetworkExecutor c = replicaConnections.get(remoteServerName);
     if (c != null)
       c.updateStats(msg.sentOn, receivedOn);
+  }
+
+  public void receivedResponseFromForward(final long messageNumber, final ErrorResponse error) {
+    final ForwardedMessage msg = forwardMessagesWaitingForResponse.get(messageNumber);
+    if (msg == null)
+      // QUORUM ALREADY REACHED OR TIMEOUT
+      return;
+
+    server.log(this, Level.FINE, "Forwarded message %d has been executed", messageNumber);
+
+    msg.error = error;
+    msg.semaphore.countDown();
   }
 
   public ReplicationLogFile getReplicationLogFile() {
@@ -469,6 +497,56 @@ public class HAServer implements ServerPlugin {
       this.configuredServers = 1;
   }
 
+  public void forwardCommandToLeader(final HACommand command, final long timeout) {
+    final Binary buffer = new Binary();
+
+    final String leaderName = getLeaderName();
+
+    final long opNumber = this.lastForwardOperationNumber.decrementAndGet();
+
+    server.log(this, Level.FINE, "Forwarding request %d (%s) to Leader server '%s'", opNumber, command, leaderName);
+
+    // REGISTER THE REQUEST TO WAIT FOR
+    final ForwardedMessage forwardedMessage = new ForwardedMessage();
+
+    forwardMessagesWaitingForResponse.put(opNumber, forwardedMessage);
+
+    try {
+      leaderConnection.sendCommandToLeader(buffer, command, opNumber);
+
+      try {
+        if (forwardedMessage.semaphore.await(timeout, TimeUnit.MILLISECONDS)) {
+
+          if (forwardedMessage.error != null) {
+            // EXCEPTION
+            if (forwardedMessage.error.exceptionClass.equals(ConcurrentModificationException.class.getName()))
+              throw new ConcurrentModificationException(forwardedMessage.error.exceptionMessage);
+            else if (forwardedMessage.error.exceptionClass.equals(TransactionException.class.getName()))
+              throw new TransactionException(forwardedMessage.error.exceptionMessage);
+            else if (forwardedMessage.error.exceptionClass.equals(QuorumNotReachedException.class.getName()))
+              throw new QuorumNotReachedException(forwardedMessage.error.exceptionMessage);
+
+            server.log(this, Level.WARNING, "Unexpected error received from forwarding a transaction to the Leader");
+            throw new ReplicationException("Unexpected error received from forwarding a transaction to the Leader");
+          }
+
+        } else {
+          throw new TimeoutException("Error on forwarding transaction to the Leader server");
+        }
+
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new ReplicationException("No response received from the Leader for request " + opNumber + " because the thread was interrupted");
+      } finally {
+        forwardMessagesWaitingForResponse.remove(opNumber);
+      }
+
+    } catch (IOException e) {
+      server.log(this, Level.SEVERE, "Leader server '%s' does not respond, starting election...", leaderName);
+      startElection();
+    }
+  }
+
   public long sendCommandToReplicas(final HACommand command) {
     checkCurrentNodeIsTheLeader();
 
@@ -535,13 +613,13 @@ public class HAServer implements ServerPlugin {
           if (quorum > 1) {
             quorumSemaphore = new CountDownLatch(quorum - 1);
             // REGISTER THE REQUEST TO WAIT FOR THE QUORUM
-            messagesWaitingForQuorum.put(opNumber, new QuorumMessages(quorumSemaphore));
+            messagesWaitingForQuorum.put(opNumber, new QuorumMessage(quorumSemaphore));
           }
 
           // SEND THE REQUEST TO ALL THE REPLICAS
           final List<Leader2ReplicaNetworkExecutor> replicas = new ArrayList<>(replicaConnections.values());
 
-          server.log(this, Level.FINE, "Sending request %d to %s (quorum=%d)", opNumber, replicas, quorum);
+          server.log(this, Level.FINE, "Sending request %d '%s' to %s (quorum=%d)", opNumber, command, replicas, quorum);
 
           for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
             try {

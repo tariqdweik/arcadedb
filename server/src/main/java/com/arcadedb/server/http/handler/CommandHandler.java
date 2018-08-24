@@ -5,9 +5,7 @@
 package com.arcadedb.server.http.handler;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ServerMetrics;
-import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.sql.executor.ResultSet;
 import io.undertow.server.HttpServerExchange;
@@ -23,10 +21,6 @@ public class CommandHandler extends DatabaseAbstractHandler {
 
   @Override
   public void execute(final HttpServerExchange exchange, final Database database) throws IOException {
-    final HAServer ha = httpServer.getServer().getHA();
-    if (ha != null && !ha.isLeader())
-      throw new ServerIsNotTheLeaderException("Cannot execute a non-idempotent command on a replica server. Use the leader instead", ha.getLeaderName());
-
     Object[] params = null;
 
     final String payload = parseRequestPayload(exchange);

@@ -34,7 +34,7 @@ public class ServerSecurity implements ServerPlugin {
     public boolean     databaseBlackList;
     public Set<String> databases = new HashSet<>();
 
-    public ServerUser(final String name, final String password, final boolean databaseBlackList, final List<String> databases) {
+    public ServerUser(final String name, final String password, final boolean databaseBlackList, final Collection<String> databases) {
       this.name = name;
       this.password = password;
       this.databaseBlackList = databaseBlackList;
@@ -111,8 +111,11 @@ public class ServerSecurity implements ServerPlugin {
     return su;
   }
 
-  public void createUser(final String name, final String password, final boolean databaseBlackList, final List<String> databases)
-      throws IOException {
+  public boolean existsUser(final String userName) {
+    return users.containsKey(userName);
+  }
+
+  public void createUser(final String name, final String password, final boolean databaseBlackList, final Collection<String> databases) throws IOException {
     users.put(name, new ServerUser(name, this.encode(password, generateRandomSalt()), databaseBlackList, databases));
     saveConfiguration();
   }
@@ -186,7 +189,7 @@ public class ServerSecurity implements ServerPlugin {
     createUser("root", "root", true, null);
   }
 
-  private void saveConfiguration() throws IOException {
+  protected void saveConfiguration() throws IOException {
     final File file = new File(configPath + "/" + FILE_NAME);
     if (!file.exists())
       file.getParentFile().mkdirs();
@@ -223,8 +226,7 @@ public class ServerSecurity implements ServerPlugin {
       for (Object o : userObject.getJSONArray("databases").toList())
         databases.add(o.toString());
 
-      this.users
-          .put(user, new ServerUser(user, userObject.getString("password"), userObject.getBoolean("databaseBlackList"), databases));
+      this.users.put(user, new ServerUser(user, userObject.getString("password"), userObject.getBoolean("databaseBlackList"), databases));
     }
   }
 }

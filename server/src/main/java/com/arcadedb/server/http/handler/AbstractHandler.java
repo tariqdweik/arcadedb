@@ -103,7 +103,7 @@ public abstract class AbstractHandler implements HttpHandler {
       exchange.setStatusCode(503);
       exchange.getResponseSender().send(
           "{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName()
-              + "\", \"exceptionArg\": \"" + e.getIndexName() + "|" + e.getKeys() + "\" }");
+              + "\", \"exceptionArg\": \"" + e.getIndexName() + "|" + e.getKeys() + "|" + e.getCurrentIndexedRID() + "\" }");
     } catch (Exception e) {
       LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(500);

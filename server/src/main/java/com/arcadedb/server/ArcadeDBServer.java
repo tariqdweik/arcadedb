@@ -19,6 +19,7 @@ import com.arcadedb.utility.LogManager;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -73,10 +74,10 @@ public class ArcadeDBServer {
       log(this, Level.INFO, "- JMX Metrics Started...");
     }
 
-    loadDatabases();
-
     security = new ServerSecurity(this, "config");
     security.startService();
+
+    loadDatabases();
 
     httpServer = new HttpServer(this);
     httpServer.startService();
@@ -193,6 +194,10 @@ public class ArcadeDBServer {
     return started;
   }
 
+  public synchronized boolean existsDatabase(final String databaseName) {
+    return databases.containsKey(databaseName);
+  }
+
   public synchronized DatabaseInternal createDatabase(final String databaseName) {
     DatabaseInternal db = databases.get(databaseName);
     if (db != null)
@@ -289,20 +294,86 @@ public class ArcadeDBServer {
     final File databaseDir = new File(configuration.getValueAsString(GlobalConfiguration.SERVER_DATABASE_DIRECTORY));
     if (!databaseDir.exists()) {
       databaseDir.mkdirs();
-      return;
+    } else {
+      if (!databaseDir.isDirectory())
+        throw new ConfigurationException("Configured database directory '" + databaseDir + "' is not a directory on file system");
+
+      final File[] databaseDirectories = databaseDir.listFiles(new FileFilter() {
+        @Override
+        public boolean accept(File pathname) {
+          return pathname.isDirectory();
+        }
+      });
+
+      for (File f : databaseDirectories)
+        getDatabase(f.getName());
     }
 
-    if (!databaseDir.isDirectory())
-      throw new ConfigurationException("Configured database directory '" + databaseDir + "' is not a directory on file system");
+    final String defaultDatabases = configuration.getValueAsString(GlobalConfiguration.SERVER_DEFAULT_DATABASES);
+    if (defaultDatabases != null) {
+      // CREATE DEFAULT DATABASES
+      final String[] dbs = defaultDatabases.split(";");
+      for (String db : dbs) {
+        final int credentialPos = db.indexOf('[');
+        if (credentialPos < 0) {
+          LogManager.instance().warn(this, "Error in default databases format: '%s'", defaultDatabases);
+          break;
+        }
 
-    final File[] databaseDirectories = databaseDir.listFiles(new FileFilter() {
-      @Override
-      public boolean accept(File pathname) {
-        return pathname.isDirectory();
+        final String dbName = db.substring(0, credentialPos);
+        final String credentials = db.substring(credentialPos + 1, db.length() - 1);
+
+        final String[] credentialPairs = credentials.split(",");
+        for (String credential : credentialPairs) {
+
+          final int passwordSeparator = credential.indexOf(":");
+
+          if (passwordSeparator < 0) {
+            if (!getSecurity().existsUser(credential)) {
+              LogManager.instance().warn(this, "Cannot create user '%s' accessing to database '%s' because the user does not exists", credential, dbName);
+              continue;
+            }
+          } else {
+            final String userName = credential.substring(0, passwordSeparator);
+            final String userPassword = credential.substring(passwordSeparator + 1);
+
+            if (getSecurity().existsUser(userName)) {
+              // EXISTING USER: CHECK CREDENTIALS
+              try {
+                final ServerSecurity.ServerUser user = getSecurity().authenticate(userName, userPassword);
+                if (!user.databaseBlackList && !user.databases.contains(dbName)) {
+                  // UPDATE DB LIST
+                  user.databases.add(dbName);
+                  try {
+                    getSecurity().saveConfiguration();
+                  } catch (IOException e) {
+                    LogManager.instance().error(this, "Cannot create database '%s' because security configuration cannot be saved", e, dbName);
+                    continue;
+                  }
+                }
+
+              } catch (ServerSecurityException e) {
+                LogManager.instance().warn(this, "Cannot create database '%s' because the user '%s' already exists with different password", dbName, userName);
+                continue;
+              }
+            } else {
+              // CREATE A NEW USER
+              try {
+                getSecurity().createUser(userName, userPassword, false, Collections.singletonList(dbName));
+              } catch (IOException e) {
+                LogManager.instance().error(this, "Cannot create database '%s' because the new user '%s' cannot be saved", e, dbName, userName);
+                continue;
+              }
+            }
+          }
+        }
+
+        // CREATE THE DATABASE
+        if (!existsDatabase(dbName)) {
+          LogManager.instance().info(this, "Creating default database '%s'...", dbName);
+          createDatabase(dbName);
+        }
       }
-    });
-
-    for (File f : databaseDirectories)
-      getDatabase(f.getName());
+    }
   }
 }

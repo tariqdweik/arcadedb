@@ -125,6 +125,11 @@ public enum GlobalConfiguration {
   SERVER_PLUGINS("arcadedb.server.plugins", "List of server plugins to install. The format to load a plugin is: `<pluginName>:<pluginFullClass>`", String.class,
       ""),
 
+  SERVER_DEFAULT_DATABASES("arcadedb.server.defaultDatabases",
+      "The default databases created when the server starts. The format is '(<database-name>[(<user-name>:<user-passwd>)[,]*])[;]*'. Pay attention on using ';'"
+          + " to separate databases and ',' to separate credentials. Example: 'Universe[elon:musk];Amiga[Jay:Miner,Jack:Tramiel]'", String.class,
+      ""),
+
   // SERVER HTTP
   SERVER_HTTP_INCOMING_HOST("arcadedb.server.httpIncomingHost", "TCP/IP host name used for incoming HTTP connections", String.class, "0.0.0.0"),
 

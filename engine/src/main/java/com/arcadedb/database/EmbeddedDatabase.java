@@ -106,6 +106,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
       throw new DatabaseOperationException("Database '" + databasePath + "' already exists");
 
     openInternal();
+
+    schema.saveConfiguration();
   }
 
   private void openInternal() {
