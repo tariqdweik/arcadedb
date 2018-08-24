@@ -522,82 +522,90 @@ public class SchemaImpl implements Schema {
   protected void readConfiguration() throws IOException {
     types.clear();
 
-    final File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
-    if (!file.exists())
-      return;
+    try {
+      final File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
+      if (!file.exists())
+        return;
 
-    final String fileContent = FileUtils.readStreamAsString(new FileInputStream(file), encoding);
+      final String fileContent = FileUtils.readStreamAsString(new FileInputStream(file), encoding);
 
-    final JSONObject root = new JSONObject(fileContent);
+      final JSONObject root = new JSONObject(fileContent);
 
-    //root.get("version", PConstants.VERSION);
+      if (root.names() == null || root.names().length() == 0)
+        // EMPTY SCHEMA
+        return;
 
-    final JSONObject settings = root.getJSONObject("settings");
+      //root.get("version", PConstants.VERSION);
 
-    timeZone = TimeZone.getTimeZone(settings.getString("timeZone"));
-    dateFormat = settings.getString("dateFormat");
-    dateTimeFormat = settings.getString("dateTimeFormat");
+      final JSONObject settings = root.getJSONObject("settings");
 
-    final JSONObject types = root.getJSONObject("types");
+      timeZone = TimeZone.getTimeZone(settings.getString("timeZone"));
+      dateFormat = settings.getString("dateFormat");
+      dateTimeFormat = settings.getString("dateTimeFormat");
 
-    final Map<String, String[]> parentTypes = new HashMap<>();
+      final JSONObject types = root.getJSONObject("types");
 
-    for (String typeName : types.keySet()) {
-      final JSONObject schemaType = types.getJSONObject(typeName);
+      final Map<String, String[]> parentTypes = new HashMap<>();
 
-      final DocumentType type;
+      for (String typeName : types.keySet()) {
+        final JSONObject schemaType = types.getJSONObject(typeName);
 
-      final String kind = (String) schemaType.get("type");
-      if ("v".equals(kind)) {
-        type = new VertexType(this, typeName);
-      } else if ("e".equals(kind)) {
-        type = new EdgeType(this, typeName);
-      } else if ("d".equals(kind)) {
-        type = new DocumentType(this, typeName);
-      } else
-        throw new ConfigurationException("Type '" + kind + "' is not supported");
+        final DocumentType type;
 
-      this.types.put(typeName, type);
+        final String kind = (String) schemaType.get("type");
+        if ("v".equals(kind)) {
+          type = new VertexType(this, typeName);
+        } else if ("e".equals(kind)) {
+          type = new EdgeType(this, typeName);
+        } else if ("d".equals(kind)) {
+          type = new DocumentType(this, typeName);
+        } else
+          throw new ConfigurationException("Type '" + kind + "' is not supported");
 
-      final JSONArray schemaParent = schemaType.getJSONArray("parents");
-      if (schemaParent != null) {
-        // SAVE THE PARENT HIERARCHY FOR LATER
-        final String[] parents = new String[schemaParent.length()];
-        parentTypes.put(typeName, parents);
-        for (int i = 0; i < schemaParent.length(); ++i)
-          parents[i] = schemaParent.getString(i);
-      }
+        this.types.put(typeName, type);
 
-      final JSONArray schemaBucket = schemaType.getJSONArray("buckets");
-      if (schemaBucket != null) {
-        for (int i = 0; i < schemaBucket.length(); ++i) {
-          final PaginatedComponent bucket = bucketMap.get(schemaBucket.getString(i));
-          if (bucket == null || !(bucket instanceof Bucket))
-            LogManager.instance().warn(this, "Cannot find bucket %s for type '%s'", schemaBucket.getInt(i), type);
-          type.addBucketInternal((Bucket) bucket);
+        final JSONArray schemaParent = schemaType.getJSONArray("parents");
+        if (schemaParent != null) {
+          // SAVE THE PARENT HIERARCHY FOR LATER
+          final String[] parents = new String[schemaParent.length()];
+          parentTypes.put(typeName, parents);
+          for (int i = 0; i < schemaParent.length(); ++i)
+            parents[i] = schemaParent.getString(i);
+        }
+
+        final JSONArray schemaBucket = schemaType.getJSONArray("buckets");
+        if (schemaBucket != null) {
+          for (int i = 0; i < schemaBucket.length(); ++i) {
+            final PaginatedComponent bucket = bucketMap.get(schemaBucket.getString(i));
+            if (bucket == null || !(bucket instanceof Bucket))
+              LogManager.instance().warn(this, "Cannot find bucket %s for type '%s'", schemaBucket.getInt(i), type);
+            type.addBucketInternal((Bucket) bucket);
+          }
+        }
+
+        final JSONObject schemaIndexes = schemaType.getJSONObject("indexes");
+        if (schemaIndexes != null) {
+          for (String indexName : schemaIndexes.keySet()) {
+            final JSONObject index = schemaIndexes.getJSONObject(indexName);
+
+            final JSONArray schemaProperties = index.getJSONArray("properties");
+
+            final String[] properties = new String[schemaProperties.length()];
+            for (int i = 0; i < properties.length; ++i)
+              properties[i] = schemaProperties.getString(i);
+            type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
+          }
         }
       }
 
-      final JSONObject schemaIndexes = schemaType.getJSONObject("indexes");
-      if (schemaIndexes != null) {
-        for (String indexName : schemaIndexes.keySet()) {
-          final JSONObject index = schemaIndexes.getJSONObject(indexName);
-
-          final JSONArray schemaProperties = index.getJSONArray("properties");
-
-          final String[] properties = new String[schemaProperties.length()];
-          for (int i = 0; i < properties.length; ++i)
-            properties[i] = schemaProperties.getString(i);
-          type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
-        }
+      // RESTORE THE INHERITANCE
+      for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
+        final DocumentType type = getType(entry.getKey());
+        for (String p : entry.getValue())
+          type.addParent(getType(p));
       }
-    }
-
-    // RESTORE THE INHERITANCE
-    for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
-      final DocumentType type = getType(entry.getKey());
-      for (String p : entry.getValue())
-        type.addParent(getType(p));
+    } catch (Exception e) {
+      LogManager.instance().error(this, "Error on loading schema. The schema will be reset", e);
     }
   }
 

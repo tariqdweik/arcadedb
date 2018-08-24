@@ -29,6 +29,8 @@ import com.arcadedb.utility.RecordTableFormatter;
 import com.arcadedb.utility.TableFormatter;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -143,7 +145,16 @@ public class HAServer implements ServerPlugin {
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST),
         configuration.getValueAsString(GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS));
 
-    serverAddress = listener.getHost() + ":" + listener.getPort();
+    serverAddress = listener.getHost();
+    if (serverAddress.equals("0.0.0.0")) {
+      try {
+        serverAddress = InetAddress.getLocalHost().getHostAddress();
+      } catch (UnknownHostException e) {
+        // IGNORE IT
+      }
+    }
+
+    serverAddress += ":" + listener.getPort();
 
     final String cfgServerList = configuration.getValueAsString(GlobalConfiguration.HA_SERVER_LIST).trim();
     if (!cfgServerList.isEmpty()) {
@@ -158,7 +169,7 @@ public class HAServer implements ServerPlugin {
         serverAddressList.add(serverEntry);
 
       for (String serverEntry : serverEntries) {
-        if (!serverAddress.equals(serverEntry) && connectToLeader(serverEntry)) {
+        if (!isCurrentServer(serverEntry) && connectToLeader(serverEntry)) {
           break;
         }
       }
@@ -177,6 +188,30 @@ public class HAServer implements ServerPlugin {
         }
       }).start();
     }
+  }
+
+  private boolean isCurrentServer(final String serverEntry) {
+    if (serverAddress.equals(serverEntry))
+      return true;
+
+    final String[] localServerParts = serverAddress.split(":");
+
+    try {
+      final String[] serverParts = serverEntry.split(":");
+      if (serverParts.length != 2)
+        throw new ConfigurationException("Found invalid server/port entry in server address '" + serverEntry + "'");
+
+      final InetAddress localhostAddress = InetAddress.getLocalHost();
+
+      if (localhostAddress.getHostAddress().equals(serverParts[0]) && localServerParts[1].equals(serverParts[1]))
+        return true;
+
+      if (localhostAddress.getHostName().equals(serverParts[0]) && localServerParts[1].equals(serverParts[1]))
+        return true;
+
+    } catch (UnknownHostException e) {
+    }
+    return false;
   }
 
   @Override
@@ -353,7 +388,7 @@ public class HAServer implements ServerPlugin {
     server.log(this, Level.INFO, "Contacting all the servers for the new leadership (turn=%d)...", lastElectionVote.getFirst());
 
     for (String serverAddress : serverAddressList) {
-      if (serverAddress.equals(localServerAddress))
+      if (isCurrentServer(serverAddress))
         // SKIP LOCAL SERVER
         continue;
 

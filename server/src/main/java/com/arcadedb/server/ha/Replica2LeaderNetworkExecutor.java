@@ -263,6 +263,11 @@ public class Replica2LeaderNetworkExecutor extends Thread {
             server.getServer()
                 .log(this, Level.INFO, "Cannot accept incoming connections: remote server joined a different cluster than '%s'", server.getClusterName());
             break;
+
+          case ReplicationProtocol.ERROR_CONNECT_SAME_SERVERNAME:
+            server.getServer()
+                .log(this, Level.INFO, "Cannot accept incoming connections: remote server has the same name as the local server '%s'", server.getServerName());
+            break;
           }
 
           channel.close();

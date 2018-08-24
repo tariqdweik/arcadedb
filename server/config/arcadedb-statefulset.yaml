@@ -9,10 +9,10 @@
 #    - a load-balancer service to view the universe dashboard UI
 #
 # Using ArcadeDB with k8s
-#    - Create cluster    : kubectl apply -f arcadedb-statefulset.yaml
+#    - Create cluster    : kubectl apply -f arcadedb-replica.yaml
 #    - List the pods     : kubectl get pods
 #    - Run console       : kubectl exec -it arcadedb-0 bin/console.sh
-#    - Destroy cluster   : kubectl delete -f arcadedb-statefulset.yaml
+#    - Destroy cluster   : kubectl delete -f arcadedb-replica.yaml
 
 apiVersion: v1
 kind: Namespace
@@ -22,16 +22,16 @@ metadata:
 apiVersion: v1
 kind: Service
 metadata:
-  name: arcade-server-http
+  name: arcadedb-server-http
   labels:
-    app: arcade-server
+    app: arcadedb-server
 spec:
   clusterIP:
   ports:
   - name: http
     port: 2480
   selector:
-    app: arcade-server
+    app: arcadedb-server
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -43,7 +43,7 @@ metadata:
   # https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/
   name: arcadedb-servers
   labels:
-    app: arcadedb-server
+    app: arcadedb-servers
 spec:
   clusterIP: None
   ports:

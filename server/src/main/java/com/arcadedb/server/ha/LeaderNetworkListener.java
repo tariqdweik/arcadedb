@@ -183,6 +183,15 @@ public class LeaderNetworkListener extends Thread {
 
     switch (command) {
     case ReplicationProtocol.COMMAND_CONNECT: {
+
+      if (remoteServerName.equals(ha.getServerName())) {
+        channel.writeBoolean(false);
+        channel.writeByte(ReplicationProtocol.ERROR_CONNECT_SAME_SERVERNAME);
+        channel.writeString("Remote server is attempting to connect with the same server name '" + ha.getServerName() + "'");
+        throw new ConnectionException(channel.socket.getInetAddress().toString(),
+            "Remote server is attempting to connect with the same server name '" + ha.getServerName() + "'");
+      }
+
       // CREATE A NEW PROTOCOL INSTANCE
       final Leader2ReplicaNetworkExecutor connection = new Leader2ReplicaNetworkExecutor(ha, channel, remoteServerName, remoteServerAddress,
           remoteServerHTTPAddress);
