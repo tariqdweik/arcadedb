@@ -45,6 +45,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
           if (getServer(i).isStarted()) {
 
             final Database db = getServer(i).getDatabase(getDatabaseName());
+            db.begin();
             try {
               final long count = db.countType(VERTEX1_TYPE_NAME, true);
               if (count > (getTxs() * getVerticesPerTx()) * 9 / 10) {
@@ -56,6 +57,8 @@ public class HARandomCrashTest extends ReplicationServerTest {
               // GENERIC ERROR, SKIP STOP
               LogManager.instance().error(this, "TEST: Skip stop of server for generic error", e);
               continue;
+            } finally {
+              db.rollback();
             }
 
             LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);
