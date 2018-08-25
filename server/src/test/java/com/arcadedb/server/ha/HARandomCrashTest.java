@@ -41,25 +41,35 @@ public class HARandomCrashTest extends ReplicationServerTest {
         if (!areAllServersOnline())
           return;
 
-        final Database db = getLeaderServer().getDatabase(getDatabaseName());
-        try {
-          final long count = db.countType(VERTEX1_TYPE_NAME, true);
-          if (count > (getTxs() * getVerticesPerTx()) * 9 / 10) {
-            LogManager.instance()
-                .info(this, "TEST: Skip stop of server because it's close to the end of the test (%d/%d)", count, getTxs() * getVerticesPerTx());
+        for (int i = 0; i < getServerCount(); ++i)
+          if (getServer(i).isStarted()) {
+
+            final Database db = getServer(i).getDatabase(getDatabaseName());
+            try {
+              final long count = db.countType(VERTEX1_TYPE_NAME, true);
+              if (count > (getTxs() * getVerticesPerTx()) * 9 / 10) {
+                LogManager.instance()
+                    .info(this, "TEST: Skip stop of server because it's close to the end of the test (%d/%d)", count, getTxs() * getVerticesPerTx());
+                return;
+              }
+            } catch (Exception e) {
+              // GENERIC ERROR, SKIP STOP
+              LogManager.instance().error(this, "TEST: Skip stop of server for generic error", e);
+              continue;
+            }
+
+            LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);
+
+            getServer(serverId).stop();
+            restarts++;
+            getServer(serverId).start();
+
             return;
+
           }
-        } catch (Exception e) {
-          // GENERIC ERROR, SKIP STOP
-          LogManager.instance().info(this, "TEST: Skip stop of server for generic error: %s", e.toString());
-          return;
-        }
 
-        LogManager.instance().info(this, "TEST: Stopping the Server %s...", serverId);
+        LogManager.instance().info(this, "TEST: Cannot restart server because unable to count vertices");
 
-        getServer(serverId).stop();
-        restarts++;
-        getServer(serverId).start();
       }
     }, 20000, 15000);
 
