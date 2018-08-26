@@ -861,7 +861,7 @@ public class HAServer implements ServerPlugin {
 
         // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
         try {
-          server.log(this, Level.INFO, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
+          server.log(this, Level.FINE, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
 
           if (min == -1)
             min = entry.getFirst().messageNumber;

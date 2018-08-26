@@ -75,7 +75,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
         } catch (TransactionException | NeedRetryException e) {
           LogManager.instance().info(this, "TEST: - RECEIVED ERROR: %s (RETRY %d/%d)", e.toString(), retry, getMaxRetry());
-          if (retry >= DEFAULT_MAX_RETRIES - 1)
+          if (retry >= getMaxRetry() - 1)
             throw e;
           counter = lastGoodCounter;
         }

@@ -6,9 +6,9 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
-import com.arcadedb.exception.DuplicatedKeyException;
+import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.exception.TransactionException;
 import com.arcadedb.remote.RemoteDatabase;
-import com.arcadedb.remote.RemoteException;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
@@ -89,9 +89,15 @@ public class HARandomCrashTest extends ReplicationServerTest {
     final int maxRetry = 10;
 
     for (int tx = 0; tx < getTxs(); ++tx) {
-      for (int i = 0; i < getVerticesPerTx(); ++i) {
-        for (int retry = 0; retry < 3; ++retry) {
-          try {
+      final long lastGoodCounter = counter;
+
+      for (int retry = 0; retry < getMaxRetry(); ++retry) {
+        try {
+
+          db.begin();
+
+          for (int i = 0; i < getVerticesPerTx(); ++i) {
+
             ResultSet resultSet = db.command("SQL", "CREATE VERTEX " + VERTEX1_TYPE_NAME + " SET id = ?, name = ?", ++counter, "distributed-test");
 
             Assertions.assertTrue(resultSet.hasNext());
@@ -103,24 +109,18 @@ public class HARandomCrashTest extends ReplicationServerTest {
             Assertions.assertEquals(counter, (int) result.getProperty("id"));
             Assertions.assertTrue(props.contains("name"));
             Assertions.assertEquals("distributed-test", result.getProperty("name"));
-            break;
-          } catch (DuplicatedKeyException e) {
-            // SKIP IT
-            LogManager.instance().info(this, "TEST: Safely caught DuplicatedKeyException (retry=%d/%d error=%s)", retry, maxRetry, e.toString());
-            break;
-          } catch (RemoteException e) {
-            // IGNORE IT
-            LogManager.instance().error(this, "TEST: Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
-            try {
-              Thread.sleep(500);
-            } catch (InterruptedException e1) {
-              Thread.currentThread().interrupt();
-            }
           }
+
+          db.commit();
+          break;
+
+        } catch (TransactionException | NeedRetryException e) {
+          LogManager.instance().info(this, "TEST: - RECEIVED ERROR: %s (RETRY %d/%d)", e.toString(), retry, getMaxRetry());
+          if (retry >= getMaxRetry() - 1)
+            throw e;
+          counter = lastGoodCounter;
         }
       }
-
-      db.commit();
 
       if (counter % 1000 == 0) {
         LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
@@ -142,8 +142,6 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
         LogManager.instance().flush();
       }
-
-      db.begin();
     }
 
     timer.cancel();

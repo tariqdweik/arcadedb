@@ -254,7 +254,7 @@ public class TransactionManager {
       try {
         file = database.getFileManager().getFile(txPage.fileId);
       } catch (Exception e) {
-        LogManager.instance().info(this, "Error on applying tx changes for page %s", txPage);
+        LogManager.instance().error(this, "Error on applying tx changes for page %s", e, txPage);
         continue;
       }
 

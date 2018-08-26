@@ -290,7 +290,7 @@ public class TransactionContext {
 
         if (p.currentPageVersion != page.getVersion() + 1)
           throw new ConcurrentModificationException(
-              "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + page.getVersion()
+              "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " expected database v." + (page.getVersion() + 1)
                   + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
 
         // APPLY THE CHANGE TO THE PAGE
@@ -306,6 +306,8 @@ public class TransactionContext {
 
       indexKeysToLocks.addAll(keysTx);
 
+    } catch (ConcurrentModificationException e) {
+      throw e;
     } catch (Exception e) {
       throw new TransactionException("Transaction error on commit", e);
     }
