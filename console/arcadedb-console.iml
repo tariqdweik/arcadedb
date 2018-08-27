@@ -14,6 +14,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Maven: org.jline:jline-terminal:3.7.0" level="project" />
     <orderEntry type="library" name="Maven: org.jline:jline-reader:3.7.0" level="project" />
+    <orderEntry type="library" name="Maven: com.univocity:univocity-parsers:2.7.5" level="project" />
     <orderEntry type="module" module-name="arcadedb-engine" />
     <orderEntry type="library" name="Maven: com.conversantmedia:disruptor:1.2.11" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.13" level="project" />

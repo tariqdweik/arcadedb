@@ -30,6 +30,7 @@
     <orderEntry type="module" module-name="arcadedb-console" />
     <orderEntry type="library" name="Maven: org.jline:jline-terminal:3.7.0" level="project" />
     <orderEntry type="library" name="Maven: org.jline:jline-reader:3.7.0" level="project" />
+    <orderEntry type="library" name="Maven: com.univocity:univocity-parsers:2.7.5" level="project" />
     <orderEntry type="module" module-name="arcadedb-network" />
     <orderEntry type="module" module-name="arcadedb-server" />
     <orderEntry type="library" name="Maven: io.undertow:undertow-core:2.0.1.Final" level="project" />

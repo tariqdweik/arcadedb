@@ -62,6 +62,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     final Binary buffer = new Binary(1024);
 
     while (!shutdown) {
+      long reqId = -1;
       try {
         final byte[] requestBytes = receiveResponse();
 
@@ -78,17 +79,19 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         final ReplicationMessage message = request.getFirst();
 
-        if (message.messageNumber > -1)
-          server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
+        reqId = message.messageNumber;
+
+        if (reqId > -1)
+          server.getServer().log(this, Level.FINE, "Received request %d from the Leader (threadId=%d)", reqId, Thread.currentThread().getId());
         else
-          server.getServer().log(this, Level.FINE, "Received response %d from the Leader (threadId=%d)", message.messageNumber, Thread.currentThread().getId());
+          server.getServer().log(this, Level.FINE, "Received response %d from the Leader (threadId=%d)", reqId, Thread.currentThread().getId());
 
         // NUMBERS <0 ARE FORWARD FROM REPLICA TO LEADER WITHOUT A VALID SEQUENCE
-        if (message.messageNumber > -1) {
+        if (reqId > -1) {
           final long lastMessage = server.getReplicationLogFile().getLastMessageNumber();
 
-          if (message.messageNumber <= lastMessage) {
-            server.getServer().log(this, Level.FINE, "Message %d already applied on local server (last=%d). Skip this", message.messageNumber, lastMessage);
+          if (reqId <= lastMessage) {
+            server.getServer().log(this, Level.FINE, "Message %d already applied on local server (last=%d). Skip this", reqId, lastMessage);
             continue;
           }
 
@@ -99,22 +102,24 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         // TODO: LOG THE TX BEFORE EXECUTING TO RECOVER THE DB IN CASE OF CRASH
 
-        final HACommand response = request.getSecond().execute(server, leaderServerName, message.messageNumber);
+        final HACommand response = request.getSecond().execute(server, leaderServerName, reqId);
 
-        if (message.messageNumber > -1)
+        if (reqId > -1)
           server.getReplicationLogFile().appendMessage(message);
 
         if (testOn)
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_MSG_RECEIVED, request);
 
         if (response != null)
-          sendCommandToLeader(buffer, response, message.messageNumber);
+          sendCommandToLeader(buffer, response, reqId);
+
+        reqId = -1;
 
       } catch (SocketTimeoutException e) {
         // IGNORE IT
       } catch (Exception e) {
         server.getServer()
-            .log(this, Level.FINE, "Exception during execution of leader request (shutdown=%s name=%s error=%s)", shutdown, getName(), e.toString());
+            .log(this, Level.INFO, "Exception during execution of request %d (shutdown=%s name=%s error=%s)", reqId, shutdown, getName(), e.toString());
         reconnect(e);
       }
     }

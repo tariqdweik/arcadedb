@@ -119,7 +119,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   protected void create() {
-    if (new File(databasePath).exists())
+    if (new File(databasePath + "/" + SchemaImpl.SCHEMA_FILE_NAME).exists())
       throw new DatabaseOperationException("Database '" + databasePath + "' already exists");
 
     openInternal();
