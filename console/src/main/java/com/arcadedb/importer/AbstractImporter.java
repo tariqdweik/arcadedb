@@ -4,9 +4,8 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.MutableDocument;
+import com.arcadedb.database.*;
+import com.arcadedb.schema.*;
 import com.arcadedb.utility.LogManager;
 
 import java.io.*;
@@ -17,7 +16,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public abstract class AbstractImporter {
-  private static final int DEFAULT_INPUT_BUFFER_SIZE = 128000;
+  private static final char[] STRING_CONTENT_SKIP       = new char[] { '\'', '\'', '"', '"' };
+  private static final int    DEFAULT_INPUT_BUFFER_SIZE = 128000;
 
   protected Database    database;
   protected InputStream inputFileStream;
@@ -27,18 +27,29 @@ public abstract class AbstractImporter {
   protected long parsed;
   protected long startedOn;
 
+  protected long createdVertices;
+  protected long createdEdges;
+  protected long createdDocuments;
+
   protected long  lastLapOn;
   protected long  lastParsed;
-  protected long  lastRecords;
+  protected long  lastDocuments;
+  protected long  lastVertices;
+  protected long  lastEdges;
   protected Timer timer;
 
   // SETTINGS
   protected String      databaseURL;
   protected String      inputFile;
-  protected String      delimiter   = ",";
-  protected RECORD_TYPE recordType  = RECORD_TYPE.DOCUMENT;
-  protected String      typeName;
-  protected int         commitEvery = 5000;
+  protected String      delimiter              = ",";
+  protected RECORD_TYPE recordType             = RECORD_TYPE.DOCUMENT;
+  protected String      edgeTypeName           = "Relationship";
+  protected String      vertexTypeName         = "Node";
+  protected String      typeIdProperty         = "id";
+  private   boolean     typeIdPropertyIsUnique = false;
+  private   String      typeIdType             = "String";
+  protected int         commitEvery            = 1000;
+  protected int         parallel               = Runtime.getRuntime().availableProcessors() / 2 - 1;
   protected boolean     forceDatabaseCreate;
 
   protected enum RECORD_TYPE {DOCUMENT, VERTEX}
@@ -52,20 +63,23 @@ public abstract class AbstractImporter {
     if (deltaInSecs == 0)
       deltaInSecs = 1;
 
-    final long lastRecordCount = database.countType(typeName, false);
-
     if (inputFileSize < 0) {
-      LogManager.instance().info(this, "Parsed %d (%d/sec) - %d records (%d/sec)", parsed, ((parsed - lastParsed) / deltaInSecs), lastRecordCount,
-          (lastRecordCount - lastRecords) / deltaInSecs);
+      LogManager.instance()
+          .info(this, "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", parsed, ((parsed - lastParsed) / deltaInSecs),
+              createdDocuments, (createdDocuments - lastDocuments) / deltaInSecs, createdVertices, (createdVertices - lastVertices) / deltaInSecs, createdEdges,
+              (createdEdges - lastEdges) / deltaInSecs);
     } else {
       final int progressPerc = (int) (getInputFilePosition() * 100 / inputFileSize);
-      LogManager.instance()
-          .info(this, "Parsed %d (%d/sec - %d%%) - %d records (%d/sec)", parsed, ((parsed - lastParsed) / deltaInSecs), progressPerc, lastRecordCount,
-              (lastRecordCount - lastRecords) / deltaInSecs);
+      LogManager.instance().info(this, "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", parsed,
+          ((parsed - lastParsed) / deltaInSecs), progressPerc, createdDocuments, (createdDocuments - lastDocuments) / deltaInSecs, createdVertices,
+          (createdVertices - lastVertices) / deltaInSecs, createdEdges, (createdEdges - lastEdges) / deltaInSecs);
     }
     lastLapOn = System.currentTimeMillis();
     lastParsed = parsed;
-    lastRecords = lastRecordCount;
+
+    lastDocuments = createdDocuments;
+    lastVertices = createdVertices;
+    lastEdges = createdEdges;
   }
 
   protected abstract long getInputFilePosition();
@@ -79,7 +93,7 @@ public abstract class AbstractImporter {
       public void run() {
         printProgress();
       }
-    }, 1000, 1000);
+    }, 5000, 5000);
   }
 
   protected void stopImporting() {
@@ -127,13 +141,17 @@ public abstract class AbstractImporter {
   }
 
   protected void closeDatabase() {
-    if (database != null)
+    if (database != null) {
+      if (database.isTransactionActive())
+        database.commit();
       database.close();
+    }
   }
 
   protected void openDatabase() {
     if (database != null && database.isOpen())
       throw new IllegalStateException("Database already open");
+
     final DatabaseFactory factory = new DatabaseFactory(databaseURL);
 
     if (forceDatabaseCreate) {
@@ -143,23 +161,23 @@ public abstract class AbstractImporter {
 
     database = factory.exists() ? factory.open() : factory.create();
 
-    if (!database.getSchema().existsType(typeName)) {
-      LogManager.instance().info(this, "Creating type '%s' of type '%s'", typeName, recordType);
-      switch (recordType) {
-      case DOCUMENT:
-        database.getSchema().createDocumentType(typeName);
-        break;
-      case VERTEX:
-        database.getSchema().createVertexType(typeName);
-        break;
-      }
-    }
+    database.begin();
+    vertexTypeName = getOrCreateVertexType(vertexTypeName).getName();
+    edgeTypeName = getOrCreateEdgeType(edgeTypeName).getName();
+    database.commit();
 
-    database.asynch().setParallelLevel(2);
+    database.setReadYourWrites(false);
+    database.asynch().setParallelLevel(parallel);
     database.asynch().setCommitEvery(commitEvery);
+
+    database.begin();
   }
 
-  protected MutableDocument createRecord() {
+  protected Cursor<RID> lookupRecord(final String typeName, final Object id) {
+    return database.lookupByKey(typeName, new String[] { typeIdProperty }, new Object[] { id });
+  }
+
+  protected MutableDocument createRecord(final RECORD_TYPE recordType, final String typeName) {
     switch (recordType) {
     case DOCUMENT:
       return database.newDocument(typeName);
@@ -186,11 +204,83 @@ public abstract class AbstractImporter {
       delimiter = value;
     } else if ("-commitEvery".equals(name)) {
       commitEvery = Integer.parseInt(value);
-    } else if ("-type".equals(name)) {
-      typeName = value;
-    } else if ("-recordType".equals(name)) {
-      recordType = RECORD_TYPE.valueOf(value.toUpperCase());
-    } else
+    } else if ("-parallel".equals(name)) {
+      parallel = Integer.parseInt(value);
+    } else if ("-vertexType".equals(name)) {
+      vertexTypeName = value;
+    } else if ("-edgeType".equals(name)) {
+      edgeTypeName = value;
+    } else if ("-id".equals(name))
+      typeIdProperty = value;
+    else if ("-idUnique".equals(name))
+      typeIdPropertyIsUnique = Boolean.parseBoolean(value);
+    else if ("-idType".equals(name))
+      typeIdType = value;
+    else
       throw new IllegalArgumentException("Invalid setting '" + name + "'");
+  }
+
+  protected String getStringContent(final String value) {
+    return getStringContent(value, STRING_CONTENT_SKIP);
+  }
+
+  protected String getStringContent(final String value, final char[] chars) {
+    if (value.length() > 1) {
+      final char begin = value.charAt(0);
+
+      for (int i = 0; i < chars.length - 1; i += 2) {
+        if (begin == chars[i]) {
+          final char end = value.charAt(value.length() - 1);
+          if (end == chars[i + 1])
+            return value.substring(1, value.length() - 1);
+        }
+      }
+    }
+    return value;
+  }
+
+  protected void beginTxIfNeeded() {
+    if (!database.isTransactionActive())
+      database.begin();
+  }
+
+  protected DocumentType getOrCreateDocumentType(final String name) {
+    if (!database.getSchema().existsType(name)) {
+      LogManager.instance().info(this, "Creating type '%s' of type DOCUMENT", name);
+
+      beginTxIfNeeded();
+      final DocumentType type = database.getSchema().createDocumentType(name, parallel);
+      type.createProperty(typeIdProperty, Type.getTypeByName(typeIdType));
+      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, typeIdPropertyIsUnique, name, new String[] { typeIdProperty });
+      return type;
+    }
+    return database.getSchema().getType(name);
+  }
+
+  protected VertexType getOrCreateVertexType(final String name) {
+    final String realName = "v_" + name;
+    if (!database.getSchema().existsType(realName)) {
+      LogManager.instance().info(this, "Creating type '%s' of type VERTEX", name);
+
+      beginTxIfNeeded();
+      final VertexType type = database.getSchema().createVertexType(realName, parallel);
+      type.createProperty(typeIdProperty, Type.getTypeByName(typeIdType));
+      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, typeIdPropertyIsUnique, realName, new String[] { typeIdProperty });
+      return type;
+    }
+
+    return (VertexType) database.getSchema().getType(realName);
+  }
+
+  protected EdgeType getOrCreateEdgeType(final String name) {
+    final String realName = "e_" + name;
+    if (!database.getSchema().existsType(realName)) {
+      LogManager.instance().info(this, "Creating type '%s' of type EDGE", name);
+
+      beginTxIfNeeded();
+      return database.getSchema().createEdgeType(realName, parallel);
+    }
+
+    return (EdgeType) database.getSchema().getType(realName);
   }
 }

@@ -12,18 +12,18 @@ import com.univocity.parsers.csv.CsvParserSettings;
 import com.univocity.parsers.tsv.TsvParser;
 import com.univocity.parsers.tsv.TsvParserSettings;
 
-import java.io.IOException;
-
 public class CSVImporter extends AbstractImporter {
-  private final CsvParserSettings csvParserSettings = new CsvParserSettings();
-  private final TsvParserSettings tsvParserSettings = new TsvParserSettings();
-  private       AbstractParser    parser;
+  protected CsvParserSettings csvParserSettings;
+  protected TsvParserSettings tsvParserSettings;
+  protected AbstractParser    parser;
 
   public CSVImporter(final String[] args) {
     super(args);
-    if ("\\t".equals(delimiter))
+    if ("\\t".equals(delimiter)) {
+      tsvParserSettings = new TsvParserSettings();
       parser = new TsvParser(tsvParserSettings);
-    else {
+    } else {
+      csvParserSettings = new CsvParserSettings();
       parser = new CsvParser(csvParserSettings);
       csvParserSettings.getFormat().setDelimiter(delimiter.charAt(0));
     }
@@ -33,21 +33,18 @@ public class CSVImporter extends AbstractImporter {
     new CSVImporter(args).load();
   }
 
-  private void load() {
+  protected void load() {
     openDatabase();
     try {
       parser.beginParsing(openInputFile());
-
-      //csvParser.getRecordMetadata().headers();
 
       startImporting();
 
       String[] row;
       while ((row = parser.parseNext()) != null) {
 
-        final MutableDocument record = createRecord();
+        onParsedLine(row);
 
-        database.asynch().createRecord(record);
         ++parsed;
       }
 
@@ -55,7 +52,7 @@ public class CSVImporter extends AbstractImporter {
 
       stopImporting();
 
-    } catch (IOException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     } finally {
       closeDatabase();
@@ -63,8 +60,21 @@ public class CSVImporter extends AbstractImporter {
     }
   }
 
+  protected void onParsedLine(final String[] row) {
+    final MutableDocument record = createRecord(recordType, vertexTypeName);
+    database.asynch().createRecord(record);
+  }
+
   @Override
   protected long getInputFilePosition() {
     return parser.getContext().currentChar();
+  }
+
+  @Override
+  protected void parseParameter(final String name, final String value) {
+    if ("-recordType".equals(name))
+      recordType = RECORD_TYPE.valueOf(value.toUpperCase());
+    else
+      super.parseParameter(name, value);
   }
 }
