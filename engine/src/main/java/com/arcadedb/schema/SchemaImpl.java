@@ -16,7 +16,6 @@ import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
 import com.arcadedb.index.lsm.LSMTreeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
-import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import org.json.JSONArray;
@@ -50,7 +49,7 @@ public class SchemaImpl implements Schema {
   private final       IndexFactory              indexFactory     = new IndexFactory();
 
   public enum INDEX_TYPE {
-    LSM_TREE, LSM_HASH
+    LSM_TREE
   }
 
   public SchemaImpl(final DatabaseInternal database, final String databasePath, final PaginatedFile.MODE mode) {
@@ -273,7 +272,7 @@ public class SchemaImpl implements Schema {
             if (property == null)
               throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
-            keyTypes[i++] = BinaryTypes.getTypeFromClass(property.getType());
+            keyTypes[i++] = property.getType().getBinaryType();
           }
 
           final List<Bucket> buckets = type.getBuckets(false);
@@ -281,7 +280,7 @@ public class SchemaImpl implements Schema {
           final Index[] indexes = new Index[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
             final Bucket b = buckets.get(idx);
-            final String indexName = b.getName() + "_" + System.nanoTime();
+            final String indexName = FileUtils.encode(b.getName(), encoding) + "_" + System.nanoTime();
 
             if (indexMap.containsKey(indexName))
               throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
@@ -316,8 +315,8 @@ public class SchemaImpl implements Schema {
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          Index index = indexFactory
-              .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
+          Index index = indexFactory.createIndex(indexType.name(), database, FileUtils.encode(indexName, encoding), unique, databasePath + "/" + indexName,
+              PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
 
           if (index instanceof PaginatedComponent)
             registerFile((PaginatedComponent) index);
@@ -414,6 +413,9 @@ public class SchemaImpl implements Schema {
   }
 
   public DocumentType createDocumentType(final String typeName, final int buckets, final int pageSize) {
+    if (typeName == null || typeName.isEmpty())
+      throw new IllegalArgumentException("Missing type");
+
     return (DocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -426,7 +428,7 @@ public class SchemaImpl implements Schema {
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
-          c.addBucket(createBucket(typeName + "_" + i, pageSize));
+          c.addBucket(createBucket(FileUtils.encode(typeName, encoding) + "_" + i, pageSize));
 
         saveConfiguration();
 
@@ -447,6 +449,9 @@ public class SchemaImpl implements Schema {
 
   @Override
   public VertexType createVertexType(String typeName, final int buckets, final int pageSize) {
+    if (typeName == null || typeName.isEmpty())
+      throw new IllegalArgumentException("Missing type");
+
     return (VertexType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -459,7 +464,7 @@ public class SchemaImpl implements Schema {
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
-          c.addBucket(createBucket(typeName + "_" + i, pageSize));
+          c.addBucket(createBucket(FileUtils.encode(typeName, encoding) + "_" + i, pageSize));
 
         database.getGraphEngine().createVertexType(database, c);
 
@@ -482,6 +487,9 @@ public class SchemaImpl implements Schema {
 
   @Override
   public EdgeType createEdgeType(final String typeName, final int buckets, final int pageSize) {
+    if (typeName == null || typeName.isEmpty())
+      throw new IllegalArgumentException("Missing type");
+
     return (EdgeType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -494,7 +502,7 @@ public class SchemaImpl implements Schema {
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
-          c.addBucket(createBucket(typeName + "_" + i, pageSize));
+          c.addBucket(createBucket(FileUtils.encode(typeName, encoding) + "_" + i, pageSize));
 
         saveConfiguration();
 
@@ -504,8 +512,6 @@ public class SchemaImpl implements Schema {
   }
 
   public void swapIndexes(final LSMTreeIndexMutable oldIndex, final LSMTreeIndexMutable newIndex) {
-    oldIndex.lazyDrop();
-
     indexMap.put(newIndex.getName(), newIndex);
 
     LogManager.instance().info(this, "Replacing index '%s' -> '%s' in schema...", oldIndex.getName(), newIndex.getName());
@@ -515,6 +521,8 @@ public class SchemaImpl implements Schema {
       t.replaceIndex(oldIndex, newIndex);
 
     newIndex.removeTempSuffix();
+
+    oldIndex.lazyDrop();
 
     saveConfiguration();
   }

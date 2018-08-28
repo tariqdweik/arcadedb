@@ -8,6 +8,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.MurmurHash;
 import com.arcadedb.exception.DatabaseMetadataException;
+import com.arcadedb.schema.Type;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -152,6 +153,10 @@ public class BinaryTypes {
       throw new DatabaseMetadataException("Cannot find type for class '" + clazz + "'");
 
     return type;
+  }
+
+  public static byte getType(final Type inputType) {
+    return inputType.getBinaryType();
   }
 
   public static Class<?> getClassFromType(final byte type) {

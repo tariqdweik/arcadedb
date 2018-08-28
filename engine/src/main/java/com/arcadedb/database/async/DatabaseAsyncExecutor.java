@@ -60,7 +60,7 @@ public class DatabaseAsyncExecutor {
     public          long                                        count         = 0;
 
     private AsyncThread(final DatabaseInternal database, final int id) {
-      super("AsyncCreateRecord-" + id);
+      super("AsyncExecutor-" + id);
       this.database = database;
       this.queue = new PushPullBlockingQueue<>(database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE) / parallelLevel);
     }
@@ -306,7 +306,7 @@ public class DatabaseAsyncExecutor {
   public DatabaseAsyncExecutor(final DatabaseInternal database) {
     this.database = database;
     this.commitEvery = database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_TX_BATCH_SIZE);
-    createThreads(Runtime.getRuntime().availableProcessors());
+    createThreads(Runtime.getRuntime().availableProcessors() - 1);
   }
 
   public PDBAsynchStats getStats() {
@@ -481,7 +481,7 @@ public class DatabaseAsyncExecutor {
    */
   public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
       final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
-      final boolean bidirectional, final Object... properties) {
+      final boolean bidirectional, final NewEdgeCallback callback, final Object... properties) {
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -496,16 +496,24 @@ public class DatabaseAsyncExecutor {
 
     final Iterator<RID> v1Result = database.lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
 
+    boolean createdSourceVertex = false;
+
     VertexInternal sourceVertex;
     if (!v1Result.hasNext()) {
       if (createVertexIfNotExist) {
         sourceVertex = database.newVertex(sourceVertexType);
         for (int i = 0; i < sourceVertexKey.length; ++i)
           ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
+
+        ((MutableVertex) sourceVertex).save();
+        createdSourceVertex = true;
+
       } else
         throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
       sourceVertex = (VertexInternal) v1Result.next().getRecord();
+
+    boolean createdDestinationVertex = false;
 
     final Iterator<RID> v2Result = database.lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
     VertexInternal destinationVertex;
@@ -514,13 +522,17 @@ public class DatabaseAsyncExecutor {
         destinationVertex = database.newVertex(destinationVertexType);
         for (int i = 0; i < destinationVertexKey.length; ++i)
           ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+
+        ((MutableVertex) destinationVertex).save();
+        createdDestinationVertex = true;
+
       } else
         throw new IllegalArgumentException(
             "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
       destinationVertex = (VertexInternal) v2Result.next().getRecord();
 
-    newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, properties);
+    newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, createdSourceVertex, createdDestinationVertex, callback, properties);
   }
 
   /**
@@ -595,7 +607,7 @@ public class DatabaseAsyncExecutor {
   }
 
   private void newEdge(VertexInternal sourceVertex, final String edgeType, VertexInternal destinationVertex, final boolean bidirectional,
-      final Object... properties) {
+      final boolean createdSourceVertex, final boolean createdDestinationVertex, final NewEdgeCallback callback, final Object... properties) {
     if (destinationVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 
@@ -629,6 +641,9 @@ public class DatabaseAsyncExecutor {
           Thread.currentThread().interrupt();
           throw new DatabaseOperationException("Error on creating edge link from out to in");
         }
+
+      if (callback != null)
+        callback.call(edge, createdSourceVertex, createdDestinationVertex);
 
     } catch (Exception e) {
       throw new DatabaseOperationException("Error on creating edge", e);

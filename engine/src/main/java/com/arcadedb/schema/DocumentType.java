@@ -99,7 +99,15 @@ public class DocumentType {
     return allProperties;
   }
 
+  public Property createProperty(final String propertyName, final String propertyType) {
+    return createProperty(propertyName, Type.getTypeByName(propertyType));
+  }
+
   public Property createProperty(final String propertyName, final Class<?> propertyType) {
+    return createProperty(propertyName, Type.getTypeByClass(propertyType));
+  }
+
+  public Property createProperty(final String propertyName, final Type propertyType) {
     if (properties.containsKey(propertyName))
       throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name + "' because it already exists");
 

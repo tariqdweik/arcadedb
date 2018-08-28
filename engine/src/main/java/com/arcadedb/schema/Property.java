@@ -9,10 +9,10 @@ import java.util.Objects;
 public class Property {
   private final DocumentType owner;
   private final String       name;
-  private final Class        type;
+  private final Type         type;
   private final int          id;
 
-  public Property(final DocumentType owner, final String name, final Class type) {
+  public Property(final DocumentType owner, final String name, final Type type) {
     this.owner = owner;
     this.name = name;
     this.type = type;
@@ -23,7 +23,7 @@ public class Property {
     return name;
   }
 
-  public Class getType() {
+  public Type getType() {
     return type;
   }
 

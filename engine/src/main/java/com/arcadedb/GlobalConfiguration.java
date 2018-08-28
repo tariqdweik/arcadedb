@@ -81,7 +81,7 @@ public enum GlobalConfiguration {
   FREE_PAGE_RAM("arcadedb.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
   ASYNC_OPERATIONS_QUEUE("arcadedb.asyncOperationsQueue",
-      "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)", Integer.class, 1024),
+      "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)", Integer.class, 128),
 
   ASYNC_TX_BATCH_SIZE("arcadedb.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class, 1024 * 10),
 

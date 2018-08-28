@@ -303,4 +303,13 @@ public class FileUtils {
       fos.close();
     }
   }
+
+  public static String encode(final String value, final String encoding) {
+    try {
+      return java.net.URLEncoder.encode(value, encoding);
+    } catch (UnsupportedEncodingException e) {
+      LogManager.instance().error(FileUtils.class, "Error on using encoding " + encoding, e);
+      return value;
+    }
+  }
 }

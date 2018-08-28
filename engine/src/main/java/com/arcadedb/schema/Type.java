@@ -7,6 +7,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
+import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.sql.executor.MultiValue;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
@@ -25,40 +26,38 @@ import java.util.*;
  * @author Luca Garulli (l.garulli--(at)--orientdb.com)
  */
 public enum Type {
-  BOOLEAN("Boolean", 0, Boolean.class, new Class<?>[] { Number.class }),
+  BOOLEAN("Boolean", 0, BinaryTypes.TYPE_BOOLEAN, Boolean.class, new Class<?>[] { Number.class }),
 
-  INTEGER("Integer", 1, Integer.class, new Class<?>[] { Number.class }),
+  INTEGER("Integer", 1, BinaryTypes.TYPE_INT, Integer.class, new Class<?>[] { Number.class }),
 
-  SHORT("Short", 2, Short.class, new Class<?>[] { Number.class }),
+  SHORT("Short", 2, BinaryTypes.TYPE_SHORT, Short.class, new Class<?>[] { Number.class }),
 
-  LONG("Long", 3, Long.class, new Class<?>[] { Number.class, }),
+  LONG("Long", 3, BinaryTypes.TYPE_LONG, Long.class, new Class<?>[] { Number.class, }),
 
-  FLOAT("Float", 4, Float.class, new Class<?>[] { Number.class }),
+  FLOAT("Float", 4, BinaryTypes.TYPE_FLOAT, Float.class, new Class<?>[] { Number.class }),
 
-  DOUBLE("Double", 5, Double.class, new Class<?>[] { Number.class }),
+  DOUBLE("Double", 5, BinaryTypes.TYPE_DOUBLE, Double.class, new Class<?>[] { Number.class }),
 
-  DATETIME("Datetime", 6, Date.class, new Class<?>[] { Date.class, Number.class }),
+  DATETIME("Datetime", 6, BinaryTypes.TYPE_DATETIME, Date.class, new Class<?>[] { Date.class, Number.class }),
 
-  STRING("String", 7, String.class, new Class<?>[] { Enum.class }),
+  STRING("String", 7, BinaryTypes.TYPE_STRING, String.class, new Class<?>[] { Enum.class }),
 
-  BINARY("Binary", 8, byte[].class, new Class<?>[] { byte[].class }),
+  BINARY("Binary", 8, BinaryTypes.TYPE_BINARY, byte[].class, new Class<?>[] { byte[].class }),
 
-  EMBEDDEDLIST("EmbeddedList", 9, List.class, new Class<?>[] { List.class, MultiIterator.class }),
+  LIST("List", 9, BinaryTypes.TYPE_LIST, List.class, new Class<?>[] { List.class, MultiIterator.class }),
 
-  EMBEDDEDMAP("EmbeddedMap", 10, Map.class, new Class<?>[] { Map.class }),
+  MAP("Map", 10, BinaryTypes.TYPE_MAP, Map.class, new Class<?>[] { Map.class }),
 
-  LINK("Link", 11, Identifiable.class, new Class<?>[] { Identifiable.class, RID.class }),
+  LINK("Link", 11, BinaryTypes.TYPE_RID, Identifiable.class, new Class<?>[] { Identifiable.class, RID.class }),
 
-  BYTE("Byte", 12, Byte.class, new Class<?>[] { Number.class }),
+  BYTE("Byte", 12, BinaryTypes.TYPE_BYTE, Byte.class, new Class<?>[] { Number.class }),
 
-  DATE("Date", 13, Date.class, new Class<?>[] { Number.class }),
+  DATE("Date", 13, BinaryTypes.TYPE_DATE, Date.class, new Class<?>[] { Number.class }),
 
-  DECIMAL("Decimal", 14, BigDecimal.class, new Class<?>[] { BigDecimal.class, Number.class }),
-
-  ANY("Any", 15, null, new Class<?>[] {});
+  DECIMAL("Decimal", 14, BinaryTypes.TYPE_DECIMAL, BigDecimal.class, new Class<?>[] { BigDecimal.class, Number.class }),;
 
   // Don't change the order, the type discover get broken if you change the order.
-  protected static final Type[] TYPES = new Type[] { EMBEDDEDLIST, EMBEDDEDMAP, LINK, STRING, DATETIME };
+  protected static final Type[] TYPES = new Type[] { LIST, MAP, LINK, STRING, DATETIME };
 
   protected static final Type[]              TYPES_BY_ID    = new Type[17];
   // Values previosly stored in javaTypes
@@ -91,8 +90,8 @@ public enum Type {
     TYPES_BY_CLASS.put(Character.class, STRING);
     TYPES_BY_CLASS.put(Character.TYPE, STRING);
     TYPES_BY_CLASS.put(BigDecimal.class, DECIMAL);
-    TYPES_BY_CLASS.put(List.class, EMBEDDEDLIST);
-    TYPES_BY_CLASS.put(Map.class, EMBEDDEDMAP);
+    TYPES_BY_CLASS.put(List.class, LIST);
+    TYPES_BY_CLASS.put(Map.class, MAP);
 
     BYTE.castable.add(BOOLEAN);
     SHORT.castable.addAll(Arrays.asList(BOOLEAN, BYTE));
@@ -105,17 +104,19 @@ public enum Type {
 
   protected final String     name;
   protected final int        id;
+  protected final byte       binaryType;
   protected final Class<?>   javaDefaultType;
   protected final Class<?>[] allowAssignmentFrom;
   protected final Set<Type>  castable;
 
-  Type(final String iName, final int iId, final Class<?> iJavaDefaultType, final Class<?>[] iAllowAssignmentBy) {
-    name = iName;
-    id = iId;
-    javaDefaultType = iJavaDefaultType;
-    allowAssignmentFrom = iAllowAssignmentBy;
-    castable = new HashSet<Type>();
-    castable.add(this);
+  Type(final String iName, final int iId, final byte binaryType, final Class<?> iJavaDefaultType, final Class<?>[] iAllowAssignmentBy) {
+    this.name = iName.toUpperCase();
+    this.id = iId;
+    this.binaryType = binaryType;
+    this.javaDefaultType = iJavaDefaultType;
+    this.allowAssignmentFrom = iAllowAssignmentBy;
+    this.castable = new HashSet<Type>();
+    this.castable.add(this);
   }
 
   /**
@@ -171,7 +172,7 @@ public enum Type {
 
   private static Type getTypeByClassInherit(final Class<?> iClass) {
     if (iClass.isArray())
-      return EMBEDDEDLIST;
+      return LIST;
     int priority = 0;
     boolean comparedAtLeastOnce;
     do {
@@ -200,6 +201,10 @@ public enum Type {
     final Type byType = getTypeByClassInherit(clazz);
 
     return byType;
+  }
+
+  public static Type getTypeByName(final String name) {
+    return valueOf(name.toUpperCase());
   }
 
   private static boolean checkLinkCollection(Collection<?> toCheck) {
@@ -680,6 +685,10 @@ public enum Type {
     throw new IllegalArgumentException("Cannot convert value " + iValue + " to double for type: " + name);
   }
 
+  public byte getBinaryType() {
+    return binaryType;
+  }
+
   /**
    * Convert the input object to a string.
    *
@@ -693,7 +702,7 @@ public enum Type {
   }
 
   public boolean isMultiValue() {
-    return this == EMBEDDEDLIST || this == EMBEDDEDMAP;
+    return this == LIST || this == MAP;
   }
 
   public boolean isLink() {
@@ -701,7 +710,7 @@ public enum Type {
   }
 
   public boolean isEmbedded() {
-    return this == EMBEDDEDLIST || this == EMBEDDEDMAP;
+    return this == LIST || this == MAP;
   }
 
   public Class<?> getDefaultJavaType() {

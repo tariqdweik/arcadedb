@@ -591,7 +591,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   @Override
-  public void setReadYourWrites(boolean readYourWrites) {
+  public void setReadYourWrites(final boolean readYourWrites) {
     this.readYourWrites = readYourWrites;
   }
 
@@ -849,6 +849,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         sourceVertex = newVertex(sourceVertexType);
         for (int i = 0; i < sourceVertexKey.length; ++i)
           ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
+        ((MutableVertex) sourceVertex).save();
       } else
         throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
@@ -861,6 +862,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
         destinationVertex = newVertex(destinationVertexType);
         for (int i = 0; i < destinationVertexKey.length; ++i)
           ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+        ((MutableVertex) destinationVertex).save();
       } else
         throw new IllegalArgumentException(
             "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));

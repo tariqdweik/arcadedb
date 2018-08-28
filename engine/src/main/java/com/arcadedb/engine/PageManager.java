@@ -42,6 +42,8 @@ public class PageManager extends LockContext {
   private final AtomicLong cacheHits                             = new AtomicLong();
   private final AtomicLong cacheMiss                             = new AtomicLong();
   private final AtomicLong totalConcurrentModificationExceptions = new AtomicLong();
+  private final AtomicLong evictionRuns                          = new AtomicLong();
+  private final AtomicLong pagesEvicted                          = new AtomicLong();
 
   private       long                   lastCheckForRAM = 0;
   private final PageManagerFlushThread flushThread;
@@ -59,6 +61,10 @@ public class PageManager extends LockContext {
     public long cacheHits;
     public long cacheMiss;
     public long concurrentModificationExceptions;
+    public long evictionRuns;
+    public long pagesEvicted;
+    public int  readCachePages;
+    public int  writeCachePages;
   }
 
   public PageManager(final FileManager fileManager, final TransactionManager txManager, final ContextConfiguration configuration) {
@@ -227,9 +233,10 @@ public class PageManager extends LockContext {
         if (!flushOnlyAtClose)
           // ONLY IF NOT ALREADY IN THE QUEUE, ENQUEUE THE PAGE TO BE FLUSHED BY A SEPARATE THREAD
           flushThread.asyncFlush(page);
-      } else
+      } else {
         // SYNCHRONOUS FLUSH
         flushPage(page);
+      }
 
       LogManager.instance().debug(this, "Updated page %s (size=%d threadId=%d)", page, page.getPhysicalSize(), Thread.currentThread().getId());
     }
@@ -252,6 +259,8 @@ public class PageManager extends LockContext {
     stats.maxRAM = maxRAM;
     stats.readCacheRAM = totalReadCacheRAM.get();
     stats.writeCacheRAM = totalWriteCacheRAM.get();
+    stats.readCachePages = readCache.size();
+    stats.writeCachePages = writeCache.size();
     stats.pagesRead = totalPagesRead.get();
     stats.pagesReadSize = totalPagesReadSize.get();
     stats.pagesWritten = totalPagesWritten.get();
@@ -260,6 +269,8 @@ public class PageManager extends LockContext {
     stats.cacheHits = cacheHits.get();
     stats.cacheMiss = cacheMiss.get();
     stats.concurrentModificationExceptions = totalConcurrentModificationExceptions.get();
+    stats.evictionRuns = evictionRuns.get();
+    stats.pagesEvicted = pagesEvicted.get();
     return stats;
   }
 
@@ -267,7 +278,7 @@ public class PageManager extends LockContext {
     if (readCache.put(page.pageId, page) == null)
       totalReadCacheRAM.addAndGet(page.getPhysicalSize());
 
-    if (System.currentTimeMillis() - lastCheckForRAM > 5) {
+    if (System.currentTimeMillis() - lastCheckForRAM > 20) {
       checkForPageDisposal();
       lastCheckForRAM = System.currentTimeMillis();
     }
@@ -334,7 +345,7 @@ public class PageManager extends LockContext {
   }
 
   private ImmutablePage loadPage(final PageId pageId, final int size) throws IOException {
-    if (System.currentTimeMillis() - lastCheckForRAM > 5) {
+    if (System.currentTimeMillis() - lastCheckForRAM > 20) {
       checkForPageDisposal();
       lastCheckForRAM = System.currentTimeMillis();
     }
@@ -359,14 +370,24 @@ public class PageManager extends LockContext {
   private synchronized void checkForPageDisposal() {
     final long totalRAM = totalReadCacheRAM.get();
 
-    if (totalRAM < maxRAM)
+    if (totalRAM < maxRAM && Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() < Runtime.getRuntime().maxMemory() * 80 / 100)
       return;
 
     final long ramToFree = maxRAM * freePageRAM / 100;
 
-    LogManager.instance().debug(this, "Freeing RAM (target=%d, current %d > %d max threadId=%d)", ramToFree, totalRAM, maxRAM, Thread.currentThread().getId());
+    evictionRuns.incrementAndGet();
+
+    if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() >= Runtime.getRuntime().maxMemory() * 80 / 100)
+      LogManager.instance()
+          .info(this, "Free heap memory <20%% of max available. Freeing pages from cache (target=%d current=%d max=%d threadId=%d)", ramToFree, totalRAM,
+              maxRAM, Thread.currentThread().getId());
+    else
+      LogManager.instance()
+          .debug(this, "Reached max RAM for page cache. Freeing pages from cache (target=%d current=%d max=%d threadId=%d)", ramToFree, totalRAM, maxRAM,
+              Thread.currentThread().getId());
 
     // GET THE <DISPOSE_PAGES_PER_CYCLE> OLDEST PAGES
+    // ORDER PAGES BY LAST ACCESS + SIZE
     long oldestPagesRAM = 0;
     final TreeSet<BasePage> oldestPages = new TreeSet<BasePage>(new Comparator<BasePage>() {
       @Override
@@ -406,19 +427,21 @@ public class PageManager extends LockContext {
     long freedRAM = 0;
     for (BasePage page : oldestPages) {
       if (page instanceof ImmutablePage) {
-
         final ImmutablePage removedPage = readCache.remove(page.pageId);
         if (removedPage != null) {
           freedRAM += page.getPhysicalSize();
           totalReadCacheRAM.addAndGet(-1 * page.getPhysicalSize());
+          pagesEvicted.incrementAndGet();
+
+          if (freedRAM > ramToFree)
+            break;
         }
       }
     }
 
     final long newTotalRAM = totalReadCacheRAM.get();
 
-    if (LogManager.instance().isDebugEnabled())
-      LogManager.instance().debug(this, "Freed %d RAM (current %d - %d max threadId=%d)", freedRAM, newTotalRAM, maxRAM, Thread.currentThread().getId());
+    LogManager.instance().debug(this, "Freed %d RAM (current %d - %d max threadId=%d)", freedRAM, newTotalRAM, maxRAM, Thread.currentThread().getId());
 
     if (newTotalRAM > maxRAM)
       LogManager.instance().warn(this, "Cannot free pages in RAM (current %d > %d max threadId=%d)", newTotalRAM, maxRAM, Thread.currentThread().getId());

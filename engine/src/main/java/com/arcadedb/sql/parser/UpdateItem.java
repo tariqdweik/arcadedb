@@ -8,10 +8,10 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -141,8 +141,8 @@ public class UpdateItem extends SimpleNode {
     }
   }
 
-  private Object convertToPropertyType(ResultInternal res, Identifier attrName, Object newValue) {
-    Document doc = res.toElement();
+  private Object convertToPropertyType(final ResultInternal res, final Identifier attrName, Object newValue) {
+    final Document doc = res.toElement();
     Optional<DocumentType> optSchema = Optional.ofNullable(doc.getDatabase().getSchema().getType(doc.getType()));
     if (!optSchema.isPresent()) {
       return newValue;
@@ -157,7 +157,7 @@ public class UpdateItem extends SimpleNode {
     }
 
     if (newValue instanceof Collection) {
-      if (prop.getType() == RID.class) {
+      if (prop.getType() == Type.LINK) {
         if (((Collection) newValue).size() == 0) {
           newValue = null;
         } else if (((Collection) newValue).size() == 1) {
