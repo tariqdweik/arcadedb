@@ -407,12 +407,12 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public Object executeInReadLock(final Callable<Object> callable) {
+  public <RET extends Object> RET executeInReadLock(final Callable<RET> callable) {
     return proxied.executeInReadLock(callable);
   }
 
   @Override
-  public Object executeInWriteLock(final Callable<Object> callable) {
+  public <RET extends Object> RET executeInWriteLock(final Callable<RET> callable) {
     return proxied.executeInWriteLock(callable);
   }
 

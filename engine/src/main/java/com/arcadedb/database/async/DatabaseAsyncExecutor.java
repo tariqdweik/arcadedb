@@ -7,11 +7,11 @@ package com.arcadedb.database.async;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.engine.RawRecordCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.*;
+import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.LogManager;
@@ -35,14 +35,14 @@ public class DatabaseAsyncExecutor {
   private       AtomicLong         transactionCounter     = new AtomicLong();
   private       AtomicLong         commandRoundRobinIndex = new AtomicLong();
 
-  // SPECIAL COMMANDS
-  public final static DatabaseAsyncCommand FORCE_COMMIT = new DatabaseAsyncCommand() {
+  // SPECIAL TASKS
+  public final static DatabaseAsyncTask FORCE_COMMIT = new DatabaseAsyncTask() {
     @Override
     public String toString() {
       return "FORCE_COMMIT";
     }
   };
-  public final static DatabaseAsyncCommand FORCE_EXIT   = new DatabaseAsyncCommand() {
+  public final static DatabaseAsyncTask FORCE_EXIT   = new DatabaseAsyncTask() {
     @Override
     public String toString() {
       return "FORCE_EXIT";
@@ -53,11 +53,11 @@ public class DatabaseAsyncExecutor {
   private ErrorCallback onErrorCallback;
 
   private class AsyncThread extends Thread {
-    public final    PushPullBlockingQueue<DatabaseAsyncCommand> queue;
-    public final    DatabaseInternal                            database;
-    public volatile boolean                                     shutdown      = false;
-    public volatile boolean                                     forceShutdown = false;
-    public          long                                        count         = 0;
+    public final    PushPullBlockingQueue<DatabaseAsyncTask> queue;
+    public final    DatabaseInternal                         database;
+    public volatile boolean                                  shutdown      = false;
+    public volatile boolean                                  forceShutdown = false;
+    public          long                                     count         = 0;
 
     private AsyncThread(final DatabaseInternal database, final int id) {
       super("AsyncExecutor-" + id);
@@ -76,7 +76,7 @@ public class DatabaseAsyncExecutor {
 
       while (!forceShutdown) {
         try {
-          final DatabaseAsyncCommand message = queue.poll(500, TimeUnit.MILLISECONDS);
+          final DatabaseAsyncTask message = queue.poll(500, TimeUnit.MILLISECONDS);
           if (message != null) {
             LogManager.instance().debug(this, "Received async message %s (threadId=%d)", message, Thread.currentThread().getId());
 
@@ -95,17 +95,17 @@ public class DatabaseAsyncExecutor {
               break;
 
             } else if (message instanceof DatabaseAsyncTransaction) {
-              final DatabaseAsyncTransaction command = (DatabaseAsyncTransaction) message;
+              final DatabaseAsyncTransaction task = (DatabaseAsyncTransaction) message;
 
               ConcurrentModificationException lastException = null;
 
               if (database.isTransactionActive())
                 database.commit();
 
-              for (int retry = 0; retry < command.retries + 1; ++retry) {
+              for (int retry = 0; retry < task.retries + 1; ++retry) {
                 try {
                   database.begin();
-                  command.tx.execute(database);
+                  task.tx.execute(database);
                   database.commit();
 
                   lastException = null;
@@ -135,17 +135,17 @@ public class DatabaseAsyncExecutor {
               beginTxIfNeeded();
 
             } else if (message instanceof DatabaseAsyncCreateRecord) {
-              final DatabaseAsyncCreateRecord command = (DatabaseAsyncCreateRecord) message;
+              final DatabaseAsyncCreateRecord task = (DatabaseAsyncCreateRecord) message;
 
               beginTxIfNeeded();
 
               try {
 
-                database.createRecordNoLock(command.record, command.bucket.getName());
+                database.createRecordNoLock(task.record, task.bucket.getName());
 
-                if (command.record instanceof MutableDocument) {
-                  final MutableDocument doc = (MutableDocument) command.record;
-                  database.getIndexer().createDocument(doc, database.getSchema().getType(doc.getType()), command.bucket);
+                if (task.record instanceof MutableDocument) {
+                  final MutableDocument doc = (MutableDocument) task.record;
+                  database.getIndexer().createDocument(doc, database.getSchema().getType(doc.getType()), task.bucket);
                 }
 
                 count++;
@@ -190,51 +190,48 @@ public class DatabaseAsyncExecutor {
 
             } else if (message instanceof DatabaseAsyncScanBucket) {
 
-              final DatabaseAsyncScanBucket command = (DatabaseAsyncScanBucket) message;
+              final DatabaseAsyncScanBucket task = (DatabaseAsyncScanBucket) message;
 
               try {
-                command.bucket.scan(new RawRecordCallback() {
-                  @Override
-                  public boolean onRecord(final RID rid, final Binary view) {
-                    if (shutdown)
-                      return false;
+                task.bucket.scan((rid, view) -> {
+                  if (shutdown)
+                    return false;
 
-                    final Record record = database.getRecordFactory()
-                        .newImmutableRecord(database, database.getSchema().getTypeNameByBucketId(rid.getBucketId()), rid, view);
+                  final Record record = database.getRecordFactory()
+                      .newImmutableRecord(database, database.getSchema().getTypeNameByBucketId(rid.getBucketId()), rid, view);
 
-                    return command.userCallback.onRecord((Document) record);
-                  }
+                  return task.userCallback.onRecord((Document) record);
                 });
               } finally {
                 // UNLOCK THE CALLER THREAD
-                command.semaphore.countDown();
+                task.semaphore.countDown();
               }
             } else if (message instanceof DatabaseAsyncCreateOutEdge) {
 
-              final DatabaseAsyncCreateOutEdge command = (DatabaseAsyncCreateOutEdge) message;
+              final DatabaseAsyncCreateOutEdge task = (DatabaseAsyncCreateOutEdge) message;
 
               try {
                 beginTxIfNeeded();
 
-                RID outEdgesHeadChunk = command.sourceVertex.getOutEdgesHeadChunk();
+                RID outEdgesHeadChunk = task.sourceVertex.getOutEdgesHeadChunk();
 
                 final VertexInternal modifiableSourceVertex;
                 if (outEdgesHeadChunk == null) {
                   final MutableEdgeChunk outChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
                   database.createRecordNoLock(outChunk,
-                      GraphEngine.getEdgesBucketName(database, command.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
+                      GraphEngine.getEdgesBucketName(database, task.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
                   outEdgesHeadChunk = outChunk.getIdentity();
 
-                  modifiableSourceVertex = (VertexInternal) command.sourceVertex.modify();
+                  modifiableSourceVertex = (VertexInternal) task.sourceVertex.modify();
                   modifiableSourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
                   database.updateRecordNoLock(modifiableSourceVertex);
                 } else
-                  modifiableSourceVertex = command.sourceVertex;
+                  modifiableSourceVertex = task.sourceVertex;
 
                 final EdgeLinkedList outLinkedList = new EdgeLinkedList(modifiableSourceVertex, Vertex.DIRECTION.OUT,
                     (EdgeChunk) database.lookupByRID(modifiableSourceVertex.getOutEdgesHeadChunk(), true));
 
-                outLinkedList.add(command.edgeRID, command.destinationVertexRID);
+                outLinkedList.add(task.edgeRID, task.destinationVertexRID);
 
               } catch (Exception e) {
                 onError(e);
@@ -244,30 +241,30 @@ public class DatabaseAsyncExecutor {
 
             } else if (message instanceof DatabaseAsyncCreateInEdge) {
 
-              final DatabaseAsyncCreateInEdge command = (DatabaseAsyncCreateInEdge) message;
+              final DatabaseAsyncCreateInEdge task = (DatabaseAsyncCreateInEdge) message;
 
               try {
                 beginTxIfNeeded();
 
-                RID inEdgesHeadChunk = command.destinationVertex.getInEdgesHeadChunk();
+                RID inEdgesHeadChunk = task.destinationVertex.getInEdgesHeadChunk();
 
                 final VertexInternal modifiableDestinationVertex;
                 if (inEdgesHeadChunk == null) {
                   final MutableEdgeChunk inChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
                   database.createRecordNoLock(inChunk,
-                      GraphEngine.getEdgesBucketName(database, command.destinationVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
+                      GraphEngine.getEdgesBucketName(database, task.destinationVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
                   inEdgesHeadChunk = inChunk.getIdentity();
 
-                  modifiableDestinationVertex = (VertexInternal) command.destinationVertex.modify();
+                  modifiableDestinationVertex = (VertexInternal) task.destinationVertex.modify();
                   modifiableDestinationVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
                   database.updateRecordNoLock(modifiableDestinationVertex);
                 } else
-                  modifiableDestinationVertex = command.destinationVertex;
+                  modifiableDestinationVertex = task.destinationVertex;
 
                 final EdgeLinkedList inLinkedList = new EdgeLinkedList(modifiableDestinationVertex, Vertex.DIRECTION.IN,
                     (EdgeChunk) database.lookupByRID(modifiableDestinationVertex.getInEdgesHeadChunk(), true));
 
-                inLinkedList.add(command.edgeRID, command.sourceVertexRID);
+                inLinkedList.add(task.edgeRID, task.sourceVertexRID);
 
               } catch (Exception e) {
                 onError(e);
@@ -275,7 +272,18 @@ public class DatabaseAsyncExecutor {
                   database.begin();
               }
 
+            } else if (message instanceof DatabaseAsyncIndexCompaction) {
+
+              final DatabaseAsyncIndexCompaction task = (DatabaseAsyncIndexCompaction) message;
+
+              try {
+                task.index.compact();
+              } catch (Exception e) {
+                LogManager.instance().error(this, "Error on executing compaction of index '%s'", e, task.index.getName());
+              }
+
             }
+
           } else if (shutdown)
             break;
 
@@ -342,6 +350,35 @@ public class DatabaseAsyncExecutor {
     onErrorCallback = callback;
   }
 
+  public void compact(final Index index) {
+    if (index.scheduleCompaction())
+      scheduleTask(getFreeSlot(), new DatabaseAsyncIndexCompaction(index));
+  }
+
+  /**
+   * Looks for an empty queue or the queue with less messages.
+   */
+  private int getFreeSlot() {
+    int minQueueSize = 0;
+    int minQueueIndex = 0;
+    for (int i = 0; i < executorThreads.length; ++i) {
+      final int qSize = executorThreads[i].queue.size();
+      if (qSize == 0)
+        // EMPTY QUEUE, USE THIS
+        return i;
+
+      if (qSize < minQueueSize) {
+        minQueueSize = qSize;
+        minQueueIndex = i;
+      }
+    }
+
+    return minQueueIndex;
+  }
+
+  /**
+   * Waits for the completition of all the pending tasks.
+   */
   public void waitCompletion() {
     if (executorThreads == null)
       return;
@@ -355,7 +392,7 @@ public class DatabaseAsyncExecutor {
       }
     }
 
-    DatabaseAsyncCommand lastMessage = null;
+    DatabaseAsyncTask lastMessage = null;
     int completed = 0;
     while (true) {
       for (int i = 0; i < executorThreads.length; ++i) {
@@ -363,7 +400,7 @@ public class DatabaseAsyncExecutor {
         if (messages == 0)
           ++completed;
         else {
-          final DatabaseAsyncCommand currentMessage = executorThreads[i].queue.peek();
+          final DatabaseAsyncTask currentMessage = executorThreads[i].queue.peek();
           if (lastMessage != null) {
             if (lastMessage == currentMessage) {
               // SAME MESSAGE, THE THREAD IS STUCK
@@ -391,14 +428,10 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  public void command(String language, final String query, final Map<String, Object> args, final SQLCallback callback) {
-    try {
-      final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
-      executorThreads[slot].queue.put(new DatabaseAsyncSQL(query, args, callback));
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new DatabaseOperationException("Error on executing sql command");
-    }
+  public void command(final String language, final String query, final Map<String, Object> args, final SQLCallback callback) {
+    // TODO: SUPPORT MULTIPLE LANGUAGES
+    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+    scheduleTask(slot, new DatabaseAsyncSQL(query, args, callback));
   }
 
   public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
@@ -410,13 +443,7 @@ public class DatabaseAsyncExecutor {
 
       for (Bucket b : buckets) {
         final int slot = b.getId() % parallelLevel;
-
-        try {
-          executorThreads[slot].queue.put(new DatabaseAsyncScanBucket(semaphore, callback, b));
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new DatabaseOperationException("Error on executing save");
-        }
+        scheduleTask(slot, new DatabaseAsyncScanBucket(semaphore, callback, b));
       }
 
       semaphore.await();
@@ -431,12 +458,7 @@ public class DatabaseAsyncExecutor {
   }
 
   public void transaction(final Database.Transaction txBlock, final int retries) {
-    try {
-      executorThreads[(int) (transactionCounter.getAndIncrement() % executorThreads.length)].queue.put(new DatabaseAsyncTransaction(txBlock, retries));
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new DatabaseOperationException("Error on executing transaction");
-    }
+    scheduleTask((int) (transactionCounter.getAndIncrement() % executorThreads.length), new DatabaseAsyncTransaction(txBlock, retries));
   }
 
   public void createRecord(final MutableDocument record) {
@@ -448,13 +470,7 @@ public class DatabaseAsyncExecutor {
       final Bucket bucket = type.getBucketToSave(false);
       final int slot = bucket.getId() % parallelLevel;
 
-      try {
-        executorThreads[slot].queue.put(new DatabaseAsyncCreateRecord(record, bucket));
-
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new DatabaseOperationException("Error on executing create record");
-      }
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket));
 
     } else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
@@ -466,12 +482,7 @@ public class DatabaseAsyncExecutor {
 
     if (record.getIdentity() == null)
       // NEW
-      try {
-        executorThreads[slot].queue.put(new DatabaseAsyncCreateRecord(record, bucket));
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new DatabaseOperationException("Error on executing create record");
-      }
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket));
     else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
@@ -670,4 +681,12 @@ public class DatabaseAsyncExecutor {
     }
   }
 
+  private void scheduleTask(final int slot, final DatabaseAsyncTask task) {
+    try {
+      executorThreads[slot].queue.put(task);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new DatabaseOperationException("Error on executing asynchronous task " + task);
+    }
+  }
 }

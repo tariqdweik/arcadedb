@@ -9,7 +9,7 @@ import com.arcadedb.engine.Bucket;
 
 import java.util.concurrent.CountDownLatch;
 
-public class DatabaseAsyncScanBucket implements DatabaseAsyncCommand {
+public class DatabaseAsyncScanBucket implements DatabaseAsyncTask {
   public final CountDownLatch   semaphore;
   public final DocumentCallback userCallback;
   public final Bucket           bucket;

@@ -9,6 +9,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
+import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LockContext;
 import com.arcadedb.utility.LogManager;
 
@@ -368,23 +369,32 @@ public class PageManager extends LockContext {
   }
 
   private synchronized void checkForPageDisposal() {
+    final long totMemory = Runtime.getRuntime().totalMemory();
+    final long freeMemory = Runtime.getRuntime().freeMemory();
+    final long maxMemory = Runtime.getRuntime().maxMemory();
+
+    if (totMemory - freeMemory >= maxMemory * 80 / 100) {
+      // UNDER HEAP/GC PRESSURE, RELEASE ALL THE IMMUTABLE PAGES
+      // TODO: REDUCE THIS LOG TO DEBUG ONLY
+      LogManager.instance().info(this, "Free heap memory (%s) is below 20%% of the max available (%s). Freeing %d pages from cache (threadId=%d)...",
+          FileUtils.getSizeAsString(maxMemory - (totMemory - freeMemory)), FileUtils.getSizeAsString(maxMemory), readCache.size(),
+          Thread.currentThread().getId());
+      clear();
+      return;
+    }
+
     final long totalRAM = totalReadCacheRAM.get();
 
-    if (totalRAM < maxRAM && Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() < Runtime.getRuntime().maxMemory() * 80 / 100)
+    if (totalRAM < maxRAM)
       return;
 
     final long ramToFree = maxRAM * freePageRAM / 100;
 
     evictionRuns.incrementAndGet();
 
-    if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() >= Runtime.getRuntime().maxMemory() * 80 / 100)
-      LogManager.instance()
-          .info(this, "Free heap memory <20%% of max available. Freeing pages from cache (target=%d current=%d max=%d threadId=%d)", ramToFree, totalRAM,
-              maxRAM, Thread.currentThread().getId());
-    else
-      LogManager.instance()
-          .debug(this, "Reached max RAM for page cache. Freeing pages from cache (target=%d current=%d max=%d threadId=%d)", ramToFree, totalRAM, maxRAM,
-              Thread.currentThread().getId());
+    LogManager.instance()
+        .debug(this, "Reached max RAM for page cache. Freeing pages from cache (target=%d current=%d max=%d threadId=%d)", ramToFree, totalRAM, maxRAM,
+            Thread.currentThread().getId());
 
     // GET THE <DISPOSE_PAGES_PER_CYCLE> OLDEST PAGES
     // ORDER PAGES BY LAST ACCESS + SIZE

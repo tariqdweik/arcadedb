@@ -4,7 +4,6 @@
 
 package com.arcadedb.database;
 
-import com.arcadedb.ContextConfiguration;
 import com.arcadedb.engine.TransactionManager;
 import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.graph.GraphEngine;
@@ -26,8 +25,6 @@ public interface DatabaseInternal extends Database {
   Map<String, Object> getStats();
 
   DatabaseInternal getEmbedded();
-
-  ContextConfiguration getConfiguration();
 
   void registerCallback(CALLBACK_EVENT event, Callable<Void> callback);
 

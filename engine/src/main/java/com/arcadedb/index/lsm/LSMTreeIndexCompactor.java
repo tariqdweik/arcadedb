@@ -19,20 +19,16 @@ import java.util.Arrays;
 import java.util.List;
 
 public class LSMTreeIndexCompactor {
-  private final LSMTreeIndexMutable index;
-
-  public LSMTreeIndexCompactor(final LSMTreeIndexMutable index) {
-    this.index = index;
+  public LSMTreeIndexCompactor() {
   }
 
-  public boolean compact() throws IOException, InterruptedException {
-    if (index.compactingStatus == LSMTreeIndex.COMPACTING_STATUS.COMPACTED)
-      throw new IllegalStateException("Cannot compact an already compacted index");
+  public static boolean compact(final LSMTreeIndex mainIndex) throws IOException, InterruptedException {
+    final LSMTreeIndexMutable index = mainIndex.getMutableIndex();
 
     final Database database = index.getDatabase();
 
     final int totalPages = index.getTotalPages();
-    LogManager.instance().info(this, "Compacting index '%s' (pages=%d pageSize=%d)...", index, totalPages, index.getPageSize());
+    LogManager.instance().info(mainIndex, "Compacting index '%s' (pages=%d pageSize=%d)...", index, totalPages, index.getPageSize());
 
     if (totalPages < 2)
       return false;
@@ -52,7 +48,7 @@ public class LSMTreeIndexCompactor {
 
     final long maxUsableRAM = Runtime.getRuntime().maxMemory() * 30 / 100;
     if (indexCompactionRAM > maxUsableRAM) {
-      LogManager.instance().warn(this, "Configured RAM for compaction (%dMB) is more than 1/3 of the max heap (%s). Forcing to %s", indexCompactionRAM,
+      LogManager.instance().warn(mainIndex, "Configured RAM for compaction (%dMB) is more than 1/3 of the max heap (%s). Forcing to %s", indexCompactionRAM,
           FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()), maxUsableRAM);
       indexCompactionRAM = maxUsableRAM;
     }
@@ -74,14 +70,13 @@ public class LSMTreeIndexCompactor {
 
       if (totalRAMNeeded > indexCompactionRAM) {
         pagesToCompact = (int) (indexCompactionRAM / index.getPageSize());
-        LogManager.instance()
-            .info(this, "- Creating partial index with %d pages by using %s (totalRAMNeeded=%s)", pagesToCompact, FileUtils.getSizeAsString(indexCompactionRAM),
-                FileUtils.getSizeAsString(totalRAMNeeded));
+        LogManager.instance().info(mainIndex, "- Creating partial index with %d pages by using %s (totalRAMNeeded=%s)", pagesToCompact,
+            FileUtils.getSizeAsString(indexCompactionRAM), FileUtils.getSizeAsString(totalRAMNeeded));
       } else
         pagesToCompact = totalPages - pageIndex;
 
       // CREATE ROOT PAGE
-      MutablePage rootPage = compactedIndex.createNewPage(pagesToCompact);
+      MutablePage rootPage = compactedIndex.createNewPage(pagesToCompact, false);
       TrackableBinary rootPageBuffer = rootPage.getTrackable();
       Object[] lastPageMaxKey = null;
 
@@ -173,11 +168,12 @@ public class LSMTreeIndexCompactor {
               final MutablePage newRootPage = compactedIndex
                   .appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, pagesToCompact, minorKey, new RID[] { new RID(database, 0, newPageNum) });
 
-              LogManager.instance().debug(this, "- Creating a new entry in root page %s->%d", Arrays.toString(minorKey), newPageNum);
+              LogManager.instance().debug(mainIndex, "- Creating a new entry in root page %s->%d", Arrays.toString(minorKey), newPageNum);
 
               if (newRootPage != rootPage) {
                 // TODO: MANAGE A LINKED LIST OF ROOT PAGES INSTEAD
-                LogManager.instance().info(this, "- End of space in root index page for index '%s' (rootEntries=%d)", index, compactedIndex.getCount(rootPage));
+                LogManager.instance()
+                    .info(mainIndex, "- End of space in root index page for index '%s' (rootEntries=%d)", index, compactedIndex.getCount(rootPage));
                 rootPage = null;
                 rootPageBuffer = null;
               }
@@ -195,7 +191,7 @@ public class LSMTreeIndexCompactor {
           totalValues += rids.size();
 
           if (totalKeys % 1000000 == 0)
-            LogManager.instance().info(this, "- keys %d values %d - iterations %d (entriesInRootPage=%d)", totalKeys, totalValues, iterations,
+            LogManager.instance().info(mainIndex, "- keys %d values %d - iterations %d (entriesInRootPage=%d)", totalKeys, totalValues, iterations,
                 compactedIndex.getCount(rootPage));
         }
 
@@ -218,14 +214,14 @@ public class LSMTreeIndexCompactor {
       if (rootPage != null && lastPageMaxKey != null) {
         // WRITE THE MAX KEY
         compactedIndex.appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, pagesToCompact, lastPageMaxKey, new RID[] { new RID(database, 0, 0) });
-        LogManager.instance()
-            .debug(this, "- Creating last entry in root page %s (entriesInRootPage=%d)", Arrays.toString(lastPageMaxKey), compactedIndex.getCount(rootPage));
+        LogManager.instance().debug(mainIndex, "- Creating last entry in root page %s (entriesInRootPage=%d)", Arrays.toString(lastPageMaxKey),
+            compactedIndex.getCount(rootPage));
       }
 
       compactedPages += pagesToCompact;
 
       LogManager.instance()
-          .info(this, "- compacted %d pages, remaining %d pages (totalKeys=%d totalValues=%d totalMergedKeys=%d totalMergedValues=%d)", compactedPages,
+          .info(mainIndex, "- compacted %d pages, remaining %d pages (totalKeys=%d totalValues=%d totalMergedKeys=%d totalMergedValues=%d)", compactedPages,
               (totalPages - compactedPages), totalKeys, totalValues, totalMergedKeys, totalMergedValues);
 
       database.commit();
@@ -237,17 +233,16 @@ public class LSMTreeIndexCompactor {
 
     database.commit();
 
-    beginTx(database);
-    final LSMTreeIndexMutable newIndex = index.copyPagesToNewFile(totalPages - 1, compactedIndex);
-    database.commit();
+    final LSMTreeIndexMutable newIndex = mainIndex.copyPagesToNewFile(totalPages - 1, compactedIndex);
 
-    LogManager.instance().info(this, "Compaction completed for index '%s'. New index file has %d mutable pages + %d compacted pages (%d iterations)", index,
-        newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations);
+    LogManager.instance()
+        .info(mainIndex, "Compaction completed for index '%s'. New index file has %d mutable pages + %d compacted pages (%d iterations)", index,
+            newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations);
 
     return true;
   }
 
-  private void beginTx(final Database database) {
+  private static void beginTx(final Database database) {
     database.begin();
     database.getTransaction().setUseWAL(false);
     database.getTransaction().setAsyncFlush(false);

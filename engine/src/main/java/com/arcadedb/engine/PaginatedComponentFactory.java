@@ -15,7 +15,7 @@ public class PaginatedComponentFactory {
   private final Database                                      database;
 
   public interface PaginatedComponentFactoryHandler {
-    PaginatedComponent create(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
+    PaginatedComponent createOnLoad(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
         final int pageSize) throws IOException;
   }
 
@@ -37,6 +37,6 @@ public class PaginatedComponentFactory {
     if (handler == null)
       throw new IllegalArgumentException("Cannot create component from file extension '" + fileExt + "'");
 
-    return handler.create(database, fileName, file.getFilePath(), fileId, mode, pageSize);
+    return handler.createOnLoad(database, fileName, file.getFilePath(), fileId, mode, pageSize);
   }
 }

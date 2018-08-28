@@ -25,6 +25,8 @@ public class FileManager {
   private final Set<String>                               supportedFileExt = new HashSet<>();
   private final AtomicLong                                maxFilesOpened   = new AtomicLong();
 
+  private final static PaginatedFile RESERVED_SLOT = new PaginatedFile();
+
   public class PFileManagerStats {
     public long maxOpenFiles;
     public long totalOpenFiles;
@@ -111,26 +113,6 @@ public class FileManager {
     return f;
   }
 
-  public PaginatedFile getFile(final String fileName) throws IOException {
-    PaginatedFile file = fileNameMap.get(fileName);
-    if (file == null) {
-      synchronized (this) {
-        file = new PaginatedFile(fileName, mode);
-        final PaginatedFile prev = fileNameMap.putIfAbsent(fileName, file);
-        if (prev == null) {
-          file.setFileId(newFileId());
-          registerFile(file);
-        } else
-          file = prev;
-      }
-    }
-    return file;
-  }
-
-  public PaginatedFile getOrCreateFile(final String filePath, final PaginatedFile.MODE mode) throws IOException {
-    return getOrCreateFile(PaginatedFile.getFileNameFromPath(filePath), filePath, mode);
-  }
-
   public PaginatedFile getOrCreateFile(final String fileName, final String filePath, final PaginatedFile.MODE mode) throws IOException {
     PaginatedFile file = fileNameMap.get(fileName);
     if (file != null)
@@ -151,21 +133,30 @@ public class FileManager {
     return file;
   }
 
-  public int newFileId() {
+  public synchronized int newFileId() {
     // LOOK FOR AN HOLE
     for (int i = 0; i < files.size(); ++i) {
-      if (files.get(i) == null)
+      if (files.get(i) == null) {
+        files.set(i, RESERVED_SLOT);
         return i;
+      }
     }
-    return files.size();
+
+    files.add(RESERVED_SLOT);
+    return files.size() - 1;
   }
 
   private void registerFile(final PaginatedFile file) {
-    while (files.size() < file.getFileId() + 1)
+    final int pos = file.getFileId();
+    while (files.size() < pos + 1)
       files.add(null);
-    files.set(file.getFileId(), file);
+    final PaginatedFile prev = files.get(pos);
+    if (prev != null && prev != RESERVED_SLOT)
+      throw new IllegalArgumentException("Cannot register file '" + file + "' at position " + pos + " because already occupied by file '" + prev + "'");
+
+    files.set(pos, file);
     fileNameMap.put(file.getComponentName(), file);
-    fileIdMap.put(file.getFileId(), file);
+    fileIdMap.put(pos, file);
     maxFilesOpened.incrementAndGet();
   }
 

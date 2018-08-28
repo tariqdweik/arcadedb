@@ -4,106 +4,75 @@
 
 package com.arcadedb.index.lsm;
 
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
-import com.arcadedb.engine.*;
+import com.arcadedb.database.TrackableBinary;
+import com.arcadedb.engine.BasePage;
+import com.arcadedb.engine.MutablePage;
+import com.arcadedb.engine.PageId;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
+import com.arcadedb.exception.DatabaseOperationException;
+import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
-import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
-/**
- * LSM-Tree index. The first page contains 2 bytes to store key and value types. The pages are populated from the head of the page
- * with the pointers to the pair key/value that starts from the tail. A page is full when there is no space anymore between the head
- * (key pointers) and the tail (key/value pairs).
- * <p>
- * When a page is full, another page is created, waiting for a compaction.
- * <p>
- * HEADER ROOT PAGES (1st) = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),compactedPages(int:4),subIndexFileId(int:4),numberOfKeys(byte:1),keyType(byte:1)*]
- * <p>
- * HEADER Nst PAGE         = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4)]
- */
-public class LSMTreeIndexMutable extends LSMTreeIndex {
+public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
   private int                   subIndexFileId = -1;
   private LSMTreeIndexCompacted subIndex       = null;
 
-  private AtomicLong statsAdjacentSteps = new AtomicLong();
-
-  public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
-    @Override
-    public Index create(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-        final byte[] keyTypes, final int pageSize) throws IOException {
-      return new LSMTreeIndexMutable(database, name, unique, filePath, mode, keyTypes, pageSize);
-    }
-  }
-
-  public static class PaginatedComponentFactoryHandlerUnique implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
-    @Override
-    public PaginatedComponent create(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
-        final int pageSize) throws IOException {
-      return new LSMTreeIndexMutable(database, name, true, filePath, id, mode, pageSize);
-    }
-  }
-
-  public static class PaginatedComponentFactoryHandlerNotUnique implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
-    @Override
-    public PaginatedComponent create(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
-        final int pageSize) throws IOException {
-      return new LSMTreeIndexMutable(database, name, false, filePath, id, mode, pageSize);
-    }
-  }
+  private   AtomicLong statsAdjacentSteps  = new AtomicLong();
+  private   int        minPagesToScheduleACompaction;
+  protected int        currentMutablePages = 0;
 
   /**
    * Called at creation time.
    */
-  public LSMTreeIndexMutable(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-      final byte[] keyTypes, final int pageSize) throws IOException {
-    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
+  protected LSMTreeIndexMutable(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+      final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
+    super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
     database.checkTransactionIsActive();
-    createNewPage(0);
+    createNewPage(0, false);
+    minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
   }
 
   /**
    * Called at cloning time.
    */
-  public LSMTreeIndexMutable(final Database database, final String name, final boolean unique, final String filePath, final byte[] keyTypes, final int pageSize,
-      final COMPACTING_STATUS compactingStatus, final LSMTreeIndexCompacted subIndex) throws IOException {
-    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
-    this.compactingStatus = compactingStatus;
+  protected LSMTreeIndexMutable(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+      final byte[] keyTypes, final int pageSize, final COMPACTING_STATUS compactingStatus, final LSMTreeIndexCompacted subIndex) throws IOException {
+    super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
     this.subIndex = subIndex;
-    database.checkTransactionIsActive();
+    minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
   }
 
   /**
    * Called at load time (1st page only).
    */
-  public LSMTreeIndexMutable(final Database database, final String name, final boolean unique, final String filePath, final int id,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
-    super(database, name, unique, filePath, id, mode, pageSize);
+  protected LSMTreeIndexMutable(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+      final int id, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+    super(mainIndex, database, name, unique, filePath, id, mode, pageSize);
 
     final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
 
-    int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE;
-    final int compactedPages = currentPage.readInt(pos);
-    if (compactedPages > 0)
-      compactingStatus = COMPACTING_STATUS.COMPACTED;
-    else
-      compactingStatus = COMPACTING_STATUS.NO;
+    int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE;
 
+    // TODO: COUNT THE MUTABLE PAGE FROM THE TAIL BACK TO THE HEAD
+    currentMutablePages = 1;
+
+    final int compactedPages = currentPage.readInt(pos);
     pos += INT_SERIALIZED_SIZE;
 
     subIndexFileId = currentPage.readInt(pos);
@@ -114,6 +83,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
     this.keyTypes = new byte[len];
     for (int i = 0; i < len; ++i)
       this.keyTypes[i] = currentPage.readByte(pos++);
+
+    minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
   }
 
   @Override
@@ -134,67 +105,49 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
     }
   }
 
+  @Override
+  public void put(final Object[] keys, final RID rid) {
+    put(keys, rid, true);
+  }
+
+  @Override
+  public void put(final Object[] keys, final RID rid, final boolean checkForUnique) {
+    if (rid == null)
+      throw new IllegalArgumentException("RID is null");
+
+    internalPut(keys, rid, checkForUnique);
+  }
+
+  @Override
+  public void remove(final Object[] keys) {
+    internalRemove(keys, null);
+  }
+
+  @Override
+  public void remove(final Object[] keys, final RID rid) {
+    internalRemove(keys, rid);
+  }
+
+  @Override
+  public boolean compact() throws IOException, InterruptedException {
+    return false;
+  }
+
+  @Override
+  public boolean scheduleCompaction() {
+    return false;
+  }
+
   public LSMTreeIndexCompacted createNewForCompaction() throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
 
-    return new LSMTreeIndexCompacted(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize);
-  }
-
-  public boolean compact() throws IOException, InterruptedException {
-    if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
-      throw new DatabaseIsReadOnlyException("Cannot update the index '" + name + "'");
-
-    if (compactingStatus == COMPACTING_STATUS.IN_PROGRESS)
-      throw new IllegalStateException("Index '" + name + "' is already compacting");
-
-    compactingStatus = COMPACTING_STATUS.IN_PROGRESS;
-    try {
-      final LSMTreeIndexCompactor compactor = new LSMTreeIndexCompactor(this);
-      return compactor.compact();
-    } finally {
-      compactingStatus = COMPACTING_STATUS.COMPACTED;
-    }
+    return new LSMTreeIndexCompacted(mainIndex, database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize);
   }
 
   @Override
   public void finalize() {
     close();
-  }
-
-  public LSMTreeIndexMutable copyPagesToNewFile(final int startingFromPage, final LSMTreeIndexCompacted subIndex) throws IOException {
-    int last_ = name.lastIndexOf('_');
-    final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
-
-    final LSMTreeIndexMutable newIndex = new LSMTreeIndexMutable(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize,
-        COMPACTING_STATUS.NO, subIndex);
-    ((SchemaImpl) database.getSchema()).registerFile(newIndex);
-
-    // KEEP METADATA AND LEAVE IT EMPTY
-    newIndex.createNewPage(0);
-
-    lock.executeInLock(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        for (int i = 0; i < getTotalPages() - startingFromPage; ++i) {
-          final BasePage currentPage = database.getTransaction().getPage(new PageId(newIndex.file.getFileId(), i + startingFromPage), pageSize);
-
-          // COPY THE ENTIRE PAGE TO THE NEW INDEX
-          final MutablePage newPage = newIndex.createNewPage(0);
-
-          final ByteBuffer pageContent = currentPage.getContent();
-          pageContent.rewind();
-          newPage.getContent().put(pageContent);
-        }
-
-        // SWAP OLD WITH NEW INDEX
-        ((SchemaImpl) database.getSchema()).swapIndexes(LSMTreeIndexMutable.this, newIndex);
-
-        return null;
-      }
-    });
-
-    return newIndex;
   }
 
   @Override
@@ -364,11 +317,14 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
   }
 
   @Override
-  protected MutablePage createNewPage(final int compactedPages) {
+  protected MutablePage createNewPage(final int compactedPages, final boolean checkForCompaction) throws IOException {
     // NEW FILE, CREATE HEADER PAGE
     final int txPageCounter = getTotalPages();
 
-    final MutablePage currentPage = database.getTransaction().addPage(new PageId(file.getFileId(), txPageCounter), pageSize);
+    final PageId pageId = new PageId(file.getFileId(), txPageCounter);
+    final MutablePage currentPage = database.isTransactionActive() ?
+        database.getTransaction().addPage(pageId, pageSize) :
+        database.getPageManager().getPage(pageId, pageSize, true).modify();
 
     int pos = 0;
     currentPage.writeInt(pos, currentPage.getMaxContentSize());
@@ -376,6 +332,9 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
 
     currentPage.writeInt(pos, 0); // ENTRIES COUNT
     pos += INT_SERIALIZED_SIZE;
+
+    currentPage.writeByte(pos, (byte) 1); // MUTABLE PAGE
+    pos += BYTE_SERIALIZED_SIZE;
 
     if (txPageCounter == 0) {
       currentPage.writeInt(pos, compactedPages); // COMPACTED PAGES
@@ -387,6 +346,13 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
       currentPage.writeByte(pos++, (byte) keyTypes.length);
       for (int i = 0; i < keyTypes.length; ++i)
         currentPage.writeByte(pos++, keyTypes[i]);
+    }
+
+    ++currentMutablePages;
+
+    if (checkForCompaction && currentMutablePages > minPagesToScheduleACompaction) {
+      LogManager.instance().info(this, "Scheduled compaction of index '%s' (currentMutablePages=%d totalPages=%d)", name, currentMutablePages, txPageCounter);
+      database.asynch().compact(mainIndex);
     }
 
     return currentPage;
@@ -418,5 +384,224 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
         return null;
       }
     });
+  }
+
+  protected void internalPut(final Object[] keys, final RID rid, final boolean checkForUnique) {
+    if (keys == null)
+      throw new IllegalArgumentException("Keys parameter is null");
+
+    if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
+      throw new DatabaseIsReadOnlyException("Cannot update the index '" + name + "'");
+
+    if (keys.length != keyTypes.length)
+      throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
+
+    if (unique && checkForUnique) {
+      final Set<RID> result = get(keys, 1);
+      if (!result.isEmpty())
+        throw new DuplicatedKeyException(name, Arrays.toString(keys), result.iterator().next());
+    }
+
+    checkForNulls(keys);
+
+    database.checkTransactionIsActive();
+
+    lock.executeInLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        final int txPageCounter = getTotalPages();
+
+        if (txPageCounter < 1)
+          throw new IllegalArgumentException("Cannot update the index '" + name + "' because the file is invalid");
+
+        int pageNum = txPageCounter - 1;
+
+        try {
+          MutablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
+
+          assert isMutable(currentPage);
+
+          TrackableBinary currentPageBuffer = currentPage.getTrackable();
+
+          int count = getCount(currentPage);
+
+          final Object[] convertedKeys = convertKeys(keys, keyTypes);
+
+          final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, convertedKeys, unique ? 0 : 1);
+
+          // WRITE KEY/VALUE PAIRS FIRST
+          final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
+          writeEntry(keyValueContent, convertedKeys, rid);
+
+          int keyValueFreePosition = getValuesFreePosition(currentPage);
+
+          int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
+          boolean newPage = false;
+          if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
+            setMutable(currentPage, false);
+
+            // NO SPACE LEFT, CREATE A NEW PAGE
+            newPage = true;
+
+            currentPage = createNewPage(0, true);
+
+            assert isMutable(currentPage);
+
+            currentPageBuffer = currentPage.getTrackable();
+            pageNum = currentPage.getPageId().getPageNumber();
+            count = 0;
+            keyIndex = 0;
+            keyValueFreePosition = currentPage.getMaxContentSize();
+          }
+
+          keyValueFreePosition -= keyValueContent.size();
+
+          // WRITE KEY/VALUE PAIR CONTENT
+          currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
+
+          final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
+          if (keyIndex < count)
+            // NOT LAST KEY, SHIFT POINTERS TO THE RIGHT
+            currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
+
+          currentPageBuffer.putInt(startPos, keyValueFreePosition);
+
+          setCount(currentPage, count + 1);
+          setValuesFreePosition(currentPage, keyValueFreePosition);
+
+          LogManager.instance()
+              .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
+                  count + 1, newPage);
+
+        } catch (IOException e) {
+          throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
+        }
+        return null;
+      }
+    });
+  }
+
+  protected void internalRemove(final Object[] keys, final RID rid) {
+    if (keys == null)
+      throw new IllegalArgumentException("Keys parameter is null");
+
+    if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
+      throw new DatabaseIsReadOnlyException("Cannot update the index '" + name + "'");
+
+    if (keys.length != keyTypes.length)
+      throw new IllegalArgumentException("Cannot remove an entry in the index with a partial key");
+
+    checkForNulls(keys);
+
+    database.checkTransactionIsActive();
+
+    lock.executeInLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        final int txPageCounter = getTotalPages();
+
+        if (txPageCounter < 1)
+          throw new IllegalArgumentException("Cannot update the index '" + name + "' because the file is invalid");
+
+        int pageNum = txPageCounter - 1;
+
+        try {
+          MutablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
+
+          assert isMutable(currentPage);
+
+          TrackableBinary currentPageBuffer = currentPage.getTrackable();
+
+          int count = getCount(currentPage);
+
+          final RID removedRID = rid != null ? getRemovedRID(rid) : REMOVED_ENTRY_RID;
+
+          final Object[] convertedKeys = convertKeys(keys, keyTypes);
+
+          final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, convertedKeys, 1);
+          if (result.found) {
+            boolean exit = false;
+
+            for (int i = result.valueBeginPositions.length - 1; !exit && i > -1; --i) {
+              currentPageBuffer.position(result.valueBeginPositions[i]);
+
+              final Object[] values = readEntryValues(currentPageBuffer);
+
+              for (int v = values.length - 1; v > -1; --v) {
+                final RID currentRID = (RID) values[v];
+
+                if (rid != null) {
+                  if (rid.equals(currentRID)) {
+                    // FOUND
+                    exit = true;
+                    break;
+                  } else if (removedRID.equals(currentRID))
+                    // ALREADY DELETED
+                    return null;
+                }
+
+                if (currentRID.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && currentRID.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
+                  // ALREADY DELETED
+                  return null;
+                }
+              }
+            }
+          }
+
+          // WRITE KEY/VALUE PAIRS FIRST
+          final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
+          writeEntry(keyValueContent, keys, removedRID);
+
+          int keyValueFreePosition = getValuesFreePosition(currentPage);
+
+          int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
+          boolean newPage = false;
+          if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
+            // NO SPACE LEFT, CREATE A NEW PAGE
+            setMutable(currentPage, false);
+
+            newPage = true;
+
+            currentPage = createNewPage(0, true);
+
+            assert isMutable(currentPage);
+
+            currentPageBuffer = currentPage.getTrackable();
+            pageNum = currentPage.getPageId().getPageNumber();
+            count = 0;
+            keyIndex = 0;
+            keyValueFreePosition = currentPage.getMaxContentSize();
+          }
+
+          keyValueFreePosition -= keyValueContent.size();
+
+          // WRITE KEY/VALUE PAIR CONTENT
+          currentPageBuffer.putByteArray(keyValueFreePosition, keyValueContent.toByteArray());
+
+          final int startPos = getHeaderSize(pageNum) + (keyIndex * INT_SERIALIZED_SIZE);
+          if (keyIndex < count)
+            // NOT LAST KEY, SHIFT POINTERS TO THE RIGHT
+            currentPageBuffer.move(startPos, startPos + INT_SERIALIZED_SIZE, (count - keyIndex) * INT_SERIALIZED_SIZE);
+
+          currentPageBuffer.putInt(startPos, keyValueFreePosition);
+
+          setCount(currentPage, count + 1);
+          setValuesFreePosition(currentPage, keyValueFreePosition);
+
+          LogManager.instance()
+              .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
+                  count + 1, newPage);
+
+        } catch (IOException e) {
+          throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
+        }
+
+        return null;
+      }
+    });
+  }
+
+  protected RID getRemovedRID(final RID rid) {
+    return new RID(database, (rid.getBucketId() + 2) * -1, rid.getPosition());
   }
 }

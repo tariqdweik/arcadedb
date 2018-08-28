@@ -4,6 +4,7 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.FileManager;
 import com.arcadedb.engine.PageManager;
@@ -22,6 +23,8 @@ public interface Database extends AutoCloseable {
   interface Transaction {
     void execute(Database database);
   }
+
+  ContextConfiguration getConfiguration();
 
   String getName();
 
@@ -103,9 +106,9 @@ public interface Database extends AutoCloseable {
 
   ResultSet query(String language, String query, Map<String, Object> args);
 
-  Object executeInReadLock(Callable<Object> callable);
+  <RET extends Object> RET executeInReadLock(Callable<RET> callable);
 
-  Object executeInWriteLock(Callable<Object> callable);
+  <RET extends Object> RET executeInWriteLock(Callable<RET> callable);
 
   boolean isReadYourWrites();
 

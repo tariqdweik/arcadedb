@@ -36,7 +36,7 @@ public class Dictionary extends PaginatedComponent {
 
   public static class PaginatedComponentFactoryHandler implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
     @Override
-    public PaginatedComponent create(Database database, String name, String filePath, final int fileId, PaginatedFile.MODE mode, int pageSize)
+    public PaginatedComponent createOnLoad(Database database, String name, String filePath, final int fileId, PaginatedFile.MODE mode, int pageSize)
         throws IOException {
       return new Dictionary(database, name, filePath, fileId, mode, pageSize);
     }
@@ -46,7 +46,7 @@ public class Dictionary extends PaginatedComponent {
    * Called at creation time.
    */
   public Dictionary(final Database database, final String name, String filePath, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
-    super(database, name, filePath, database.getFileManager().newFileId(), DICT_EXT, mode, pageSize);
+    super(database, name, filePath, DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
       final MutablePage header = database.getTransaction().addPage(new PageId(file.getFileId(), 0), pageSize);

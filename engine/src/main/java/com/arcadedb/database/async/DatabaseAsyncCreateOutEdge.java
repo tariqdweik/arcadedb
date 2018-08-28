@@ -7,7 +7,7 @@ package com.arcadedb.database.async;
 import com.arcadedb.database.RID;
 import com.arcadedb.graph.VertexInternal;
 
-public class DatabaseAsyncCreateOutEdge implements DatabaseAsyncCommand {
+public class DatabaseAsyncCreateOutEdge implements DatabaseAsyncTask {
   public final VertexInternal sourceVertex;
   public final RID            edgeRID;
   public final RID            destinationVertexRID;

@@ -35,7 +35,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class EmbeddedDatabase extends RWLockContext implements Database, DatabaseInternal {
+public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal {
   protected final String                name;
   protected final PaginatedFile.MODE    mode;
   protected final ContextConfiguration  configuration;
@@ -146,6 +146,8 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
           schema.load(mode);
 
         checkForRecovery();
+
+        asynch = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
 
         Profiler.INSTANCE.registerDatabase(this);
 
@@ -261,16 +263,6 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
   }
 
   public DatabaseAsyncExecutor asynch() {
-    if (asynch == null) {
-      executeInWriteLock(new Callable<Object>() {
-        @Override
-        public Object call() {
-          if (asynch == null)
-            asynch = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
-          return null;
-        }
-      });
-    }
     return asynch;
   }
 
@@ -1014,7 +1006,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
    * Executes a callback in an shared lock.
    */
   @Override
-  public Object executeInReadLock(final Callable<Object> callable) {
+  public <RET extends Object> RET executeInReadLock(final Callable<RET> callable) {
     readLock();
     try {
 
@@ -1040,7 +1032,7 @@ public class EmbeddedDatabase extends RWLockContext implements Database, Databas
    * Executes a callback in an exclusive lock.
    */
   @Override
-  public Object executeInWriteLock(final Callable<Object> callable) {
+  public <RET extends Object> RET executeInWriteLock(final Callable<RET> callable) {
     writeLock();
     try {
 

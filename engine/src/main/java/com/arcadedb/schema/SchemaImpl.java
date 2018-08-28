@@ -15,6 +15,7 @@ import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
 import com.arcadedb.index.lsm.LSMTreeIndex;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
@@ -59,10 +60,10 @@ public class SchemaImpl implements Schema {
     paginatedComponentFactory = new PaginatedComponentFactory(database);
     paginatedComponentFactory.registerComponent(Dictionary.DICT_EXT, new Dictionary.PaginatedComponentFactoryHandler());
     paginatedComponentFactory.registerComponent(Bucket.BUCKET_EXT, new Bucket.PaginatedComponentFactoryHandler());
-    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndexMutable.PaginatedComponentFactoryHandlerUnique());
-    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndexMutable.PaginatedComponentFactoryHandlerNotUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
 
-    indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new LSMTreeIndexMutable.IndexFactoryHandler());
+    indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new LSMTreeIndex.IndexFactoryHandler());
   }
 
   public void create(final PaginatedFile.MODE mode) {
@@ -102,7 +103,7 @@ public class SchemaImpl implements Schema {
         if (pf instanceof Bucket)
           bucketMap.put(pf.getName(), (Bucket) pf);
         else if (pf instanceof Index)
-          indexMap.put(pf.getName(), (Index) pf);
+          indexMap.put(pf.getName(), (Index) pf.getMainComponent());
 
         if (pf != null)
           registerFile(pf);
@@ -249,7 +250,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public Index[] createClassIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames) {
-    return createClassIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndex.DEF_PAGE_SIZE);
+    return createClassIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE);
   }
 
   @Override
@@ -288,8 +289,7 @@ public class SchemaImpl implements Schema {
             indexes[idx] = indexFactory
                 .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
 
-            if (indexes[idx] instanceof PaginatedComponent)
-              registerFile((PaginatedComponent) indexes[idx]);
+            registerFile(indexes[idx].getPaginatedComponent());
 
             indexMap.put(indexName, indexes[idx]);
 
@@ -512,6 +512,7 @@ public class SchemaImpl implements Schema {
   }
 
   public void swapIndexes(final LSMTreeIndexMutable oldIndex, final LSMTreeIndexMutable newIndex) {
+    newIndex.removeTempSuffix();
     indexMap.put(newIndex.getName(), newIndex);
 
     LogManager.instance().info(this, "Replacing index '%s' -> '%s' in schema...", oldIndex.getName(), newIndex.getName());
@@ -520,11 +521,9 @@ public class SchemaImpl implements Schema {
     for (DocumentType t : getTypes())
       t.replaceIndex(oldIndex, newIndex);
 
-    newIndex.removeTempSuffix();
+    saveConfiguration();
 
     oldIndex.lazyDrop();
-
-    saveConfiguration();
   }
 
   protected void readConfiguration() throws IOException {
@@ -686,7 +685,7 @@ public class SchemaImpl implements Schema {
       files.add(null);
 
     if (files.get(file.getId()) != null)
-      throw new SchemaException("File with id '" + file.getId() + "' already exists (" + files.get(file.getId()) + ")");
+      throw new SchemaException("File with id '" + file.getId() + "' already exists (previous=" + files.get(file.getId()) + " new=" + file + ")");
 
     files.set(file.getId(), file);
   }

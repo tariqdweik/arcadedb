@@ -7,9 +7,6 @@ package com.arcadedb.importer.rdf;
 import com.arcadedb.database.async.NewEdgeCallback;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.importer.csv.CSVImporter;
-import com.arcadedb.index.Index;
-import com.arcadedb.index.lsm.LSMTreeIndexMutable;
-import com.arcadedb.utility.LogManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,21 +50,6 @@ public class RDFImporter extends CSVImporter {
 
     if (parsed % commitEvery == 0) {
       database.commit();
-
-      if (System.currentTimeMillis() - lastCompaction > 10000) {
-        final Index[] indexes = database.getSchema().getIndexes();
-        LogManager.instance().info(this, "Compacting %d indexes...", indexes.length);
-        for (Index idx : indexes) {
-          try {
-            ((LSMTreeIndexMutable) idx).compact();
-          } catch (Exception e) {
-            LogManager.instance().error(this, "Error on executing compaction of index %s", e, idx);
-          }
-        }
-        LogManager.instance().info(this, "Indexes compacted");
-        lastCompaction = System.currentTimeMillis();
-      }
-
       database.begin();
     }
   }

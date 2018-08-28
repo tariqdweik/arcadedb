@@ -24,9 +24,9 @@ public abstract class PaginatedComponent {
   protected final int              pageSize;
   protected final AtomicInteger    pageCount = new AtomicInteger();
 
-  protected PaginatedComponent(final Database database, final String name, String filePath, final int id, final String ext, final PaginatedFile.MODE mode,
-      final int pageSize) throws IOException {
-    this(database, name, filePath + "." + id + "." + pageSize + "." + ext, id, mode, pageSize);
+  protected PaginatedComponent(final Database database, final String name, String filePath, final String ext, final PaginatedFile.MODE mode, final int pageSize)
+      throws IOException {
+    this(database, name, filePath, ext, database.getFileManager().newFileId(), mode, pageSize);
   }
 
   protected PaginatedComponent(final Database database, final String name, String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
@@ -43,6 +43,11 @@ public abstract class PaginatedComponent {
       pageCount.set(0);
     else
       pageCount.set((int) (file.getSize() / getPageSize()));
+  }
+
+  private PaginatedComponent(final Database database, final String name, String filePath, final String ext, final int id, final PaginatedFile.MODE mode,
+      final int pageSize) throws IOException {
+    this(database, name, filePath + "." + id + "." + pageSize + "." + ext, id, mode, pageSize);
   }
 
   public void onAfterLoad() {
@@ -87,5 +92,9 @@ public abstract class PaginatedComponent {
         return txPageCounter;
     }
     return pageCount.get();
+  }
+
+  public Object getMainComponent() {
+    return this;
   }
 }

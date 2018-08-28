@@ -20,54 +20,38 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
-/**
- * LSM-Tree index. The first page contains 2 bytes to store key and value types. The pages are populated from the head of the page
- * with the pointers to the pair key/value that starts from the tail. A page is full when there is no space anymore between the head
- * (key pointers) and the tail (key/value pairs).
- * <p>
- * When a page is full, another page is created, waiting for a compaction.
- * <p>
- * HEADER ROOT PAGES (1st) = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),compactedPages(int:4),subIndexFileId(int:4),numberOfKeys(byte:1),keyType(byte:1)*]
- * <p>
- * HEADER Nst PAGE         = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4)]
- */
-public class LSMTreeIndexCompacted extends LSMTreeIndex {
+public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
   /**
    * Called at creation time.
    */
-  public LSMTreeIndexCompacted(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-      final byte[] keyTypes, final int pageSize) throws IOException {
-    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
-    createNewPage(0);
+  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+      final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
+    super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
+    createNewPage(0, false);
   }
 
   /**
    * Called at cloning time.
    */
-  public LSMTreeIndexCompacted(final Database database, final String name, final boolean unique, final String filePath, final byte[] keyTypes,
-      final int pageSize) throws IOException {
-    super(database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
-    this.compactingStatus = COMPACTING_STATUS.COMPACTED;
+  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+      final byte[] keyTypes, final int pageSize) throws IOException {
+    super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
   }
 
   /**
    * Called at load time (1st page only).
    */
-  public LSMTreeIndexCompacted(final Database database, final String name, final boolean unique, final String filePath, final int id,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
-    super(database, name, unique, filePath, id, mode, pageSize);
+  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+      final int id, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+    super(mainIndex, database, name, unique, filePath, id, mode, pageSize);
 
     final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
 
     int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE;
     final int compactedPages = currentPage.readInt(pos);
-    if (compactedPages > 0)
-      compactingStatus = COMPACTING_STATUS.COMPACTED;
-    else
-      compactingStatus = COMPACTING_STATUS.NO;
-
     pos += INT_SERIALIZED_SIZE;
     pos += INT_SERIALIZED_SIZE; // SKIP SUBINDEX IT
 
@@ -150,7 +134,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndex {
       database.getPageManager().updatePage(currentPage, true, false);
       setPageCount(pageNum + 1);
 
-      currentPage = createNewPage(pagesToCompact);
+      currentPage = createNewPage(pagesToCompact, false);
       currentPageBuffer = currentPage.getTrackable();
       pageNum = currentPage.getPageId().getPageNumber();
       count = 0;
@@ -207,7 +191,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndex {
   }
 
   @Override
-  protected MutablePage createNewPage(final int compactedPages) {
+  protected MutablePage createNewPage(final int compactedPages, final boolean checkForCompaction) {
     // NEW FILE, CREATE HEADER PAGE
     final int txPageCounter = getTotalPages();
 
@@ -219,6 +203,9 @@ public class LSMTreeIndexCompacted extends LSMTreeIndex {
 
     currentPage.writeInt(pos, 0); // ENTRIES COUNT
     pos += INT_SERIALIZED_SIZE;
+
+    currentPage.writeByte(pos, (byte) 0); // IMMUTABLE PAGE
+    pos += BYTE_SERIALIZED_SIZE;
 
     if (txPageCounter == 0) {
       currentPage.writeInt(pos, compactedPages); // COMPACTED PAGES

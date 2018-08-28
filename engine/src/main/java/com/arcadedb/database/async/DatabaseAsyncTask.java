@@ -4,5 +4,5 @@
 
 package com.arcadedb.database.async;
 
-public interface DatabaseAsyncCommand {
+public interface DatabaseAsyncTask {
 }

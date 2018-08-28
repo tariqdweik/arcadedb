@@ -26,6 +26,10 @@ public class PaginatedFile {
   private       String      fileExtension;
   private       boolean     open;
 
+  public PaginatedFile() {
+    this.mode = MODE.READ_ONLY;
+  }
+
   protected PaginatedFile(final String filePath, final MODE mode) throws FileNotFoundException {
     this.mode = mode;
     open(filePath, mode);
