@@ -16,7 +16,6 @@ import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.DuplicatedKeyException;
-import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
@@ -29,13 +28,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
-public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
+public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
+  public static final String UNIQUE_INDEX_EXT    = "umtidx";
+  public static final String NOTUNIQUE_INDEX_EXT = "numtidx";
+
   private int                   subIndexFileId = -1;
   private LSMTreeIndexCompacted subIndex       = null;
 
-  private   AtomicLong statsAdjacentSteps  = new AtomicLong();
-  private   int        minPagesToScheduleACompaction;
-  protected int        currentMutablePages = 0;
+  private AtomicLong statsAdjacentSteps  = new AtomicLong();
+  private int        minPagesToScheduleACompaction;
+  private int        currentMutablePages = 0;
 
   /**
    * Called at creation time.
@@ -44,7 +46,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
       final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
     database.checkTransactionIsActive();
-    createNewPage(0, false);
+    createNewPage(0);
     minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
   }
 
@@ -52,7 +54,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
    * Called at cloning time.
    */
   protected LSMTreeIndexMutable(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
-      final byte[] keyTypes, final int pageSize, final COMPACTING_STATUS compactingStatus, final LSMTreeIndexCompacted subIndex) throws IOException {
+      final byte[] keyTypes, final int pageSize, final LSMTreeIndexCompacted subIndex) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
     this.subIndex = subIndex;
     minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
@@ -89,9 +91,9 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
 
   @Override
   public void close() {
-    super.close();
     if (subIndex != null)
       subIndex.close();
+    super.close();
   }
 
   @Override
@@ -106,11 +108,17 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
   }
 
   @Override
+  public void onAfterCommit() {
+    if (minPagesToScheduleACompaction > 0 && currentMutablePages >= minPagesToScheduleACompaction) {
+      LogManager.instance().info(this, "Scheduled compaction of index '%s' (currentMutablePages=%d totalPages=%d)", name, currentMutablePages, getTotalPages());
+      database.asynch().compact(mainIndex);
+    }
+  }
+
   public void put(final Object[] keys, final RID rid) {
     put(keys, rid, true);
   }
 
-  @Override
   public void put(final Object[] keys, final RID rid, final boolean checkForUnique) {
     if (rid == null)
       throw new IllegalArgumentException("RID is null");
@@ -118,24 +126,12 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
     internalPut(keys, rid, checkForUnique);
   }
 
-  @Override
   public void remove(final Object[] keys) {
     internalRemove(keys, null);
   }
 
-  @Override
   public void remove(final Object[] keys, final RID rid) {
     internalRemove(keys, rid);
-  }
-
-  @Override
-  public boolean compact() throws IOException, InterruptedException {
-    return false;
-  }
-
-  @Override
-  public boolean scheduleCompaction() {
-    return false;
   }
 
   public LSMTreeIndexCompacted createNewForCompaction() throws IOException {
@@ -150,12 +146,10 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
     close();
   }
 
-  @Override
   public IndexCursor iterator(final boolean ascendingOrder) throws IOException {
     return new LSMTreeIndexCursor(this, ascendingOrder);
   }
 
-  @Override
   public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
     if (ascendingOrder)
       return range(fromKeys, null);
@@ -163,12 +157,10 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
     return range(null, fromKeys);
   }
 
-  @Override
   public IndexCursor iterator(final Object[] fromKeys) throws IOException {
     return range(fromKeys, fromKeys);
   }
 
-  @Override
   public IndexCursor range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
     return new LSMTreeIndexCursor(this, true, fromKeys, toKeys);
   }
@@ -182,7 +174,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
     return subIndex;
   }
 
-  @Override
   public Set<RID> get(final Object[] keys, final int limit) {
     checkForNulls(keys);
 
@@ -288,6 +279,14 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
     return mid;
   }
 
+  public int getCurrentMutablePages() {
+    return currentMutablePages;
+  }
+
+  public void setCurrentMutablePages(final int currentMutablePages) {
+    this.currentMutablePages = currentMutablePages;
+  }
+
   private int findFirstEntryOfSameKey(final Binary currentPageBuffer, final Object[] keys, final int startIndexArray, int mid) {
     int result;
     for (int i = mid - 1; i >= 0; --i) {
@@ -317,14 +316,14 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
   }
 
   @Override
-  protected MutablePage createNewPage(final int compactedPages, final boolean checkForCompaction) throws IOException {
+  protected MutablePage createNewPage(final int compactedPages) throws IOException {
     // NEW FILE, CREATE HEADER PAGE
     final int txPageCounter = getTotalPages();
 
     final PageId pageId = new PageId(file.getFileId(), txPageCounter);
     final MutablePage currentPage = database.isTransactionActive() ?
         database.getTransaction().addPage(pageId, pageSize) :
-        database.getPageManager().getPage(pageId, pageSize, true).modify();
+        new MutablePage(database.getPageManager(), new PageId(getFileId(), txPageCounter), pageSize);
 
     int pos = 0;
     currentPage.writeInt(pos, currentPage.getMaxContentSize());
@@ -349,11 +348,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
     }
 
     ++currentMutablePages;
-
-    if (checkForCompaction && currentMutablePages > minPagesToScheduleACompaction) {
-      LogManager.instance().info(this, "Scheduled compaction of index '%s' (currentMutablePages=%d totalPages=%d)", name, currentMutablePages, txPageCounter);
-      database.asynch().compact(mainIndex);
-    }
 
     return currentPage;
   }
@@ -437,13 +431,18 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
 
           int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
           boolean newPage = false;
-          if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
-            setMutable(currentPage, false);
+
+          final boolean mutablePage = isMutable(currentPage);
+
+          if (!mutablePage || keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
+
+            if (mutablePage)
+              setMutable(currentPage, false);
 
             // NO SPACE LEFT, CREATE A NEW PAGE
             newPage = true;
 
-            currentPage = createNewPage(0, true);
+            currentPage = createNewPage(0);
 
             assert isMutable(currentPage);
 
@@ -556,13 +555,17 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract implements Index {
 
           int keyIndex = result.found ? result.keyIndex + 1 : result.keyIndex;
           boolean newPage = false;
-          if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
+
+          final boolean mutablePage = isMutable(currentPage);
+
+          if (!mutablePage || keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
             // NO SPACE LEFT, CREATE A NEW PAGE
-            setMutable(currentPage, false);
+            if (mutablePage)
+              setMutable(currentPage, false);
 
             newPage = true;
 
-            currentPage = createNewPage(0, true);
+            currentPage = createNewPage(0);
 
             assert isMutable(currentPage);
 

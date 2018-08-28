@@ -34,9 +34,9 @@ public class PaginatedComponentFactory {
     final int pageSize = file.getPageSize();
 
     final PaginatedComponentFactoryHandler handler = map.get(fileExt);
-    if (handler == null)
-      throw new IllegalArgumentException("Cannot create component from file extension '" + fileExt + "'");
+    if (handler != null)
+      return handler.createOnLoad(database, fileName, file.getFilePath(), fileId, mode, pageSize);
 
-    return handler.createOnLoad(database, fileName, file.getFilePath(), fileId, mode, pageSize);
+    return null;
   }
 }

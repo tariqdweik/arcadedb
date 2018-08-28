@@ -208,7 +208,6 @@ public class LSMTreeIndexTest extends BaseTest {
           for (Index index : indexes)
             Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
         }
-
       }
     });
   }

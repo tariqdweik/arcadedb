@@ -8,14 +8,12 @@ import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.index.Index;
-import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -38,17 +36,22 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
     try {
       GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(COMPACTION_RAM_MB);
 
+      // INSERT DATA AND CHECK WITH LOKUPS (EVERY 100)
+      LogManager.instance().info(this, "TEST: INSERT DATA AND CHECK WITH LOKUPS (EVERY 100)");
       insertData();
       checkLookups(100, 1);
 
-      final CountDownLatch semaphore1 = new CountDownLatch(1);
-
       // THIS TIME LOOK UP FOR KEYS WHILE COMPACTION
+      LogManager.instance().info(this, "TEST: THIS TIME LOOK UP FOR KEYS WHILE COMPACTION");
+      final CountDownLatch semaphore1 = new CountDownLatch(1);
       new Timer().schedule(new TimerTask() {
         @Override
         public void run() {
-          compaction();
-          semaphore1.countDown();
+          try {
+            compaction();
+          } finally {
+            semaphore1.countDown();
+          }
         }
       }, 0);
 
@@ -56,13 +59,31 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
 
       semaphore1.await();
 
+      // INSERT DATA ON TOP OF THE MIXED MUTABLE-COMPACTED INDEX AND CHECK WITH LOOKUPS
+      LogManager.instance().info(this, "TEST: INSERT DATA ON TOP OF THE MIXED MUTABLE-COMPACTED INDEX AND CHECK WITH LOOKUPS");
+      insertData();
+      checkLookups(1, 2);
+      compaction();
+      checkLookups(1, 2);
+
+      // INSERT DATA WHILE COMPACTING AND CHECK AGAIN
+      LogManager.instance().info(this, "TEST: INSERT DATA WHILE COMPACTING AND CHECK AGAIN");
+      final CountDownLatch semaphore2 = new CountDownLatch(1);
+      new Timer().schedule(new TimerTask() {
+        @Override
+        public void run() {
+          compaction();
+          semaphore2.countDown();
+        }
+      }, 0);
+
       insertData();
 
-      checkLookups(1, 2);
+      semaphore2.await();
 
+      checkLookups(1, 3);
       compaction();
-
-      checkLookups(1, 2);
+      checkLookups(1, 3);
 
     } catch (InterruptedException e) {
       Assertions.fail(e);
@@ -72,13 +93,15 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
   }
 
   private void compaction() {
-    for (Index index : database.getSchema().getIndexes()) {
-      try {
-        Assertions.assertTrue(((LSMTreeIndexMutable) index).compact());
-      } catch (IOException e) {
-        Assertions.fail(e);
+    if (database.isOpen())
+      for (Index index : database.getSchema().getIndexes()) {
+        if (database.isOpen())
+          try {
+            index.compact();
+          } catch (Exception e) {
+            Assertions.fail(e);
+          }
       }
-    }
   }
 
   private void insertData() {

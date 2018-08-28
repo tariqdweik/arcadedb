@@ -35,17 +35,17 @@ public class PaginatedFile {
     open(filePath, mode);
   }
 
-  public void close() throws IOException {
-    channel.close();
+  public void close() {
+    try {
+      channel.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
     this.open = false;
   }
 
   public void rename(final String newFileName) throws FileNotFoundException {
-    try {
-      close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    close();
 
     final int pos = filePath.indexOf(fileName);
     final String dir = filePath.substring(0, pos);

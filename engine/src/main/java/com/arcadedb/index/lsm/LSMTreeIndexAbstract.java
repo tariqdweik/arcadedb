@@ -12,19 +12,15 @@ import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.IndexException;
-import com.arcadedb.index.ReadOnlyIndex;
-import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.Type;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LockContext;
-import com.arcadedb.utility.LogManager;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Callable;
 
 import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
@@ -40,24 +36,21 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * <p>
  * HEADER Nst PAGE        = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),mutable(boolean:1)]
  */
-public abstract class LSMTreeIndexAbstract extends PaginatedComponent implements ReadOnlyIndex {
+public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   public static final    int    DEF_PAGE_SIZE       = 2 * 1024 * 1024;
   public static final    RID    REMOVED_ENTRY_RID   = new RID(null, -1, -1l);
-  public static final    String UNIQUE_INDEX_EXT    = "utidx";
-  public static final    String NOTUNIQUE_INDEX_EXT = "nutidx";
   protected static final String TEMP_EXT            = "temp_";
 
   protected static final LSMTreeIndexCompacted.LookupResult LOWER  = new LSMTreeIndexCompacted.LookupResult(false, true, 0, null);
   protected static final LSMTreeIndexCompacted.LookupResult HIGHER = new LSMTreeIndexCompacted.LookupResult(false, true, 0, null);
 
-  protected final    LSMTreeIndex     mainIndex;
-  protected final    BinaryComparator comparator;
-  protected final    BinarySerializer serializer;
-  protected final    byte             valueType         = BinaryTypes.TYPE_COMPRESSED_RID;
-  protected final    boolean          unique;
-  protected          byte[]           keyTypes;
-  protected          LockContext      lock              = new LockContext();
-  protected volatile boolean          dropWhenCollected = false;
+  protected final LSMTreeIndex     mainIndex;
+  protected final BinaryComparator comparator;
+  protected final BinarySerializer serializer;
+  protected final byte             valueType = BinaryTypes.TYPE_COMPRESSED_RID;
+  protected final boolean          unique;
+  protected       byte[]           keyTypes;
+  protected       LockContext      lock      = new LockContext();
 
   public enum COMPACTING_STATUS {NO, SCHEDULED, IN_PROGRESS}
 
@@ -113,57 +106,19 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent implements
     this.unique = unique;
   }
 
-  protected abstract MutablePage createNewPage(int compactedPages, boolean checkForCompaction) throws IOException;
+  protected abstract MutablePage createNewPage(int compactedPages) throws IOException;
 
   protected abstract LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] convertedKeys, int mid, final int count,
       final int purpose);
 
-  @Override
-  public void finalize() {
-    close();
-  }
-
-  @Override
   public PaginatedComponent getPaginatedComponent() {
     return this;
-  }
-
-  public void lazyDrop() {
-    dropWhenCollected = true;
-    ((SchemaImpl) database.getSchema()).removeIndex(getName());
-    database.getPageManager().deleteFile(id);
-  }
-
-  @Override
-  public void close() {
-    lock.executeInLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        if (dropWhenCollected) {
-          try {
-            LogManager.instance().info(this, "Finalizing deletion of index '%s'...", name);
-            if (database.isOpen())
-              ((SchemaImpl) database.getSchema()).removeIndex(getName());
-            drop();
-          } catch (IOException e) {
-            LogManager.instance().error(this, "Error on dropping the index '%s'", e, name);
-          }
-        }
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public Set<RID> get(final Object[] keys) {
-    return get(keys, -1);
   }
 
   public boolean isUnique() {
     return unique;
   }
 
-  @Override
   public int getFileId() {
     return file.getFileId();
   }

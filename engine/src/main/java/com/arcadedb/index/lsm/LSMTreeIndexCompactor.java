@@ -5,7 +5,10 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.*;
+import com.arcadedb.database.Binary;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryComparator;
@@ -28,12 +31,11 @@ public class LSMTreeIndexCompactor {
     final Database database = index.getDatabase();
 
     final int totalPages = index.getTotalPages();
-    LogManager.instance().info(mainIndex, "Compacting index '%s' (pages=%d pageSize=%d)...", index, totalPages, index.getPageSize());
+    LogManager.instance()
+        .info(mainIndex, "Compacting index '%s' (pages=%d pageSize=%d threadId=%d)...", index, totalPages, index.getPageSize(), Thread.currentThread().getId());
 
     if (totalPages < 2)
       return false;
-
-    beginTx(database);
 
     LSMTreeIndexCompacted compactedIndex = index.getSubIndex();
     if (compactedIndex == null) {
@@ -44,7 +46,7 @@ public class LSMTreeIndexCompactor {
 
     final byte[] keyTypes = index.getKeyTypes();
 
-    long indexCompactionRAM = ((EmbeddedDatabase) database).getConfiguration().getValueAsLong(GlobalConfiguration.INDEX_COMPACTION_RAM_MB) * 1024 * 1024;
+    long indexCompactionRAM = database.getConfiguration().getValueAsLong(GlobalConfiguration.INDEX_COMPACTION_RAM_MB) * 1024 * 1024;
 
     final long maxUsableRAM = Runtime.getRuntime().maxMemory() * 30 / 100;
     if (indexCompactionRAM > maxUsableRAM) {
@@ -64,6 +66,7 @@ public class LSMTreeIndexCompactor {
     int pagesToCompact;
     int compactedPages = 0;
 
+    // TODO: NOT LAST PAGE BUT RATHER LAST IMMUTABLE PAGE
     for (int pageIndex = 0; pageIndex < totalPages - 1; ) {
 
       final long totalRAMNeeded = (totalPages - pageIndex) * (long) index.getPageSize();
@@ -76,7 +79,7 @@ public class LSMTreeIndexCompactor {
         pagesToCompact = totalPages - pageIndex;
 
       // CREATE ROOT PAGE
-      MutablePage rootPage = compactedIndex.createNewPage(pagesToCompact, false);
+      MutablePage rootPage = compactedIndex.createNewPage(pagesToCompact);
       TrackableBinary rootPageBuffer = rootPage.getTrackable();
       Object[] lastPageMaxKey = null;
 
@@ -218,33 +221,25 @@ public class LSMTreeIndexCompactor {
             compactedIndex.getCount(rootPage));
       }
 
+      database.getPageManager().updatePage(lastPage, true, false);
+      if (rootPage != null)
+        database.getPageManager().updatePage(rootPage, true, false);
+
       compactedPages += pagesToCompact;
 
       LogManager.instance()
           .info(mainIndex, "- compacted %d pages, remaining %d pages (totalKeys=%d totalValues=%d totalMergedKeys=%d totalMergedValues=%d)", compactedPages,
               (totalPages - compactedPages), totalKeys, totalValues, totalMergedKeys, totalMergedValues);
 
-      database.commit();
-
-      beginTx(database);
-
       pageIndex += pagesToCompact;
     }
 
-    database.commit();
-
-    final LSMTreeIndexMutable newIndex = mainIndex.copyPagesToNewFile(totalPages - 1, compactedIndex);
+    final LSMTreeIndexMutable newIndex = mainIndex.splitIndex(totalPages - 1, compactedIndex);
 
     LogManager.instance()
-        .info(mainIndex, "Compaction completed for index '%s'. New index file has %d mutable pages + %d compacted pages (%d iterations)", index,
-            newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations);
+        .info(mainIndex, "Compaction completed for index '%s'. New index file has %d mutable pages + %d compacted pages (iterations=%d threadId=%d)", index,
+            newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations, Thread.currentThread().getId());
 
     return true;
-  }
-
-  private static void beginTx(final Database database) {
-    database.begin();
-    database.getTransaction().setUseWAL(false);
-    database.getTransaction().setAsyncFlush(false);
   }
 }

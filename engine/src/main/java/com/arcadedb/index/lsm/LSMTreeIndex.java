@@ -5,12 +5,14 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.SchemaImpl;
+import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.RWLockContext;
 
 import java.io.IOException;
@@ -89,43 +91,62 @@ public class LSMTreeIndex implements Index {
     }
   }
 
-  public LSMTreeIndexMutable copyPagesToNewFile(final int startingFromPage, final LSMTreeIndexCompacted subIndex) {
+  public LSMTreeIndexMutable splitIndex(final int startingFromPage, final LSMTreeIndexCompacted subIndex) {
     final Database database = mutable.getDatabase();
 
-    // COPY MUTABLE PAGES TO THE NEW FILE
-    final LSMTreeIndexMutable newIndex = lock.executeInReadLock(() -> {
-      final int pageSize = mutable.getPageSize();
+    final int fileId = mutable.getFileId();
 
-      int last_ = mutable.getName().lastIndexOf('_');
-      final String newName = mutable.getName().substring(0, last_) + "_" + System.currentTimeMillis();
+    ((EmbeddedDatabase) database).getTransactionManager().tryLockFile(fileId, 0);
 
-      final LSMTreeIndexMutable newMutableIndex = new LSMTreeIndexMutable(this, database, newName, mutable.isUnique(),
-          database.getDatabasePath() + "/" + newName, mutable.getKeyTypes(), pageSize, LSMTreeIndexAbstract.COMPACTING_STATUS.NO, subIndex);
+    LogManager.instance().info(this, "split index locking file %d", fileId);
 
-      // KEEP METADATA AND LEAVE IT EMPTY
-      newMutableIndex.createNewPage(0, false);
+    try {
+      // COPY MUTABLE PAGES TO THE NEW FILE
+      return lock.executeInWriteLock(() -> {
+        final int pageSize = mutable.getPageSize();
 
-      for (int i = 0; i < mutable.getTotalPages() - startingFromPage; ++i) {
-        final BasePage currentPage = database.getTransaction().getPage(new PageId(newMutableIndex.getFileId(), i + startingFromPage), pageSize);
+        int last_ = mutable.getName().lastIndexOf('_');
+        final String newName = mutable.getName().substring(0, last_) + "_" + System.currentTimeMillis();
 
-        // COPY THE ENTIRE PAGE TO THE NEW INDEX
-        final MutablePage newPage = newMutableIndex.createNewPage(0, false);
+        final LSMTreeIndexMutable newMutableIndex = new LSMTreeIndexMutable(this, database, newName, mutable.isUnique(),
+            database.getDatabasePath() + "/" + newName, mutable.getKeyTypes(), pageSize, subIndex);
+        ((SchemaImpl) database.getSchema()).registerFile(newMutableIndex);
 
-        final ByteBuffer pageContent = currentPage.getContent();
-        pageContent.rewind();
-        newPage.getContent().put(pageContent);
-      }
+        // KEEP METADATA AND LEAVE IT EMPTY
+        final MutablePage rootPage = newMutableIndex.createNewPage(0);
+        database.getPageManager().updatePage(rootPage, true, false);
+        newMutableIndex.setPageCount(1);
 
-      newMutableIndex.currentMutablePages = newMutableIndex.getTotalPages();
+        for (int i = 0; i < mutable.getTotalPages() - startingFromPage; ++i) {
+          final BasePage currentPage = database.getTransaction().getPage(new PageId(mutable.getFileId(), i + startingFromPage), pageSize);
 
-      return newMutableIndex;
-    });
+          // COPY THE ENTIRE PAGE TO THE NEW INDEX
+          final MutablePage newPage = newMutableIndex.createNewPage(0);
 
-    // SWAP OLD WITH NEW INDEX IN EXCLUSIVE LOCK (NO READ/WRITE ARE POSSIBLE IN THE MEANTIME)
-    return lock.executeInWriteLock(() -> {
-      ((SchemaImpl) database.getSchema()).swapIndexes(mutable, newIndex);
-      return newIndex;
-    });
+          final ByteBuffer pageContent = currentPage.getContent();
+          pageContent.rewind();
+          newPage.getContent().put(pageContent);
+
+          database.getPageManager().updatePage(newPage, true, false);
+          newMutableIndex.setPageCount(i + 2);
+        }
+
+        newMutableIndex.setCurrentMutablePages(newMutableIndex.getTotalPages());
+
+        // SWAP OLD WITH NEW INDEX IN EXCLUSIVE LOCK (NO READ/WRITE ARE POSSIBLE IN THE MEANTIME)
+        newMutableIndex.removeTempSuffix();
+
+        ((SchemaImpl) database.getSchema()).changeIndexName(mutable.getName(), newMutableIndex.getName());
+
+        mutable.drop();
+        mutable = newMutableIndex;
+
+        return newMutableIndex;
+      });
+    } finally {
+      ((EmbeddedDatabase) database).getTransactionManager().unlockFile(fileId);
+      LogManager.instance().info(this, "split index unlocked file %d", fileId);
+    }
   }
 
   @Override
@@ -133,6 +154,19 @@ public class LSMTreeIndex implements Index {
     lock.executeInWriteLock(() -> {
       if (mutable != null)
         mutable.close();
+      return null;
+    });
+  }
+
+  public void drop() {
+    lock.executeInWriteLock(() -> {
+      ((SchemaImpl) mutable.getDatabase().getSchema()).removeIndex(getName());
+      final LSMTreeIndexCompacted subIndex = mutable.getSubIndex();
+      if (subIndex != null)
+        subIndex.drop();
+
+      mutable.drop();
+
       return null;
     });
   }
@@ -164,7 +198,7 @@ public class LSMTreeIndex implements Index {
 
   @Override
   public Set<RID> get(final Object[] keys) {
-    return lock.executeInReadLock(() -> mutable.get(keys));
+    return lock.executeInReadLock(() -> mutable.get(keys, -1));
   }
 
   @Override

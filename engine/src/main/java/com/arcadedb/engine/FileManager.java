@@ -4,7 +4,6 @@
 
 package com.arcadedb.engine;
 
-import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.utility.LogManager;
 
 import java.io.File;
@@ -61,11 +60,7 @@ public class FileManager {
 
   public void close() {
     for (PaginatedFile f : fileNameMap.values())
-      try {
-        f.close();
-      } catch (IOException e) {
-        throw new DatabaseOperationException("Error on closing file '" + f.getComponentName() + "'");
-      }
+      f.close();
 
     files.clear();
     fileNameMap.clear();

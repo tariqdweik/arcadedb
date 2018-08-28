@@ -161,6 +161,7 @@ public class SchemaImpl implements Schema {
   public void removeFile(final int fileId) {
     if (fileId >= files.size())
       return;
+    LogManager.instance().info(this, "Removing file id %d", fileId);
     files.set(fileId, null);
   }
 
@@ -225,6 +226,15 @@ public class SchemaImpl implements Schema {
   @Override
   public boolean existsIndex(final String indexName) {
     return indexMap.containsKey(indexName);
+  }
+
+  public void changeIndexName(final String oldIndexName, final String newIndexName) {
+    final Index idx = indexMap.remove(oldIndexName);
+    if (idx != null) {
+      LogManager.instance().info(this, "Changing name '%s' -> '%s' for index fileId=%d", oldIndexName, newIndexName, idx.getFileId());
+      indexMap.put(newIndexName, idx);
+      saveConfiguration();
+    }
   }
 
   @Override
@@ -308,15 +318,16 @@ public class SchemaImpl implements Schema {
   }
 
   public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
-    return (LSMTreeIndexMutable) database.executeInWriteLock(new Callable<Object>() {
+    return (Index) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         if (indexMap.containsKey(indexName))
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          Index index = indexFactory.createIndex(indexType.name(), database, FileUtils.encode(indexName, encoding), unique, databasePath + "/" + indexName,
-              PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
+          final Index index = indexFactory
+              .createIndex(indexType.name(), database, FileUtils.encode(indexName, encoding), unique, databasePath + "/" + indexName,
+                  PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
 
           if (index instanceof PaginatedComponent)
             registerFile((PaginatedComponent) index);
@@ -511,22 +522,7 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  public void swapIndexes(final LSMTreeIndexMutable oldIndex, final LSMTreeIndexMutable newIndex) {
-    newIndex.removeTempSuffix();
-    indexMap.put(newIndex.getName(), newIndex);
-
-    LogManager.instance().info(this, "Replacing index '%s' -> '%s' in schema...", oldIndex.getName(), newIndex.getName());
-
-    // SCAN ALL THE TYPES TO FIND WHERE THE INDEX WAS DEFINED TO REPLACE IT
-    for (DocumentType t : getTypes())
-      t.replaceIndex(oldIndex, newIndex);
-
-    saveConfiguration();
-
-    oldIndex.lazyDrop();
-  }
-
-  protected void readConfiguration() throws IOException {
+  protected void readConfiguration() {
     types.clear();
 
     try {
@@ -681,6 +677,8 @@ public class SchemaImpl implements Schema {
   }
 
   public void registerFile(final PaginatedComponent file) {
+    LogManager.instance().info(this, "Registering file %s with id %d", file, file.getId());
+
     while (files.size() < file.getId() + 1)
       files.add(null);
 

@@ -13,7 +13,6 @@ import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseOperationException;
-import com.arcadedb.index.IndexCursor;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -24,13 +23,16 @@ import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
 public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
+  public static final String UNIQUE_INDEX_EXT    = "uctidx";
+  public static final String NOTUNIQUE_INDEX_EXT = "nuctidx";
+
   /**
    * Called at creation time.
    */
   public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
       final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
-    createNewPage(0, false);
+    createNewPage(0);
   }
 
   /**
@@ -61,27 +63,6 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
       this.keyTypes[i] = currentPage.readByte(pos++);
   }
 
-  @Override
-  public IndexCursor iterator(final boolean ascendingOrder) throws IOException {
-    throw new UnsupportedOperationException("range");
-  }
-
-  @Override
-  public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
-    throw new UnsupportedOperationException("range");
-  }
-
-  @Override
-  public IndexCursor iterator(final Object[] fromKeys) throws IOException {
-    throw new UnsupportedOperationException("range");
-  }
-
-  @Override
-  public IndexCursor range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
-    throw new UnsupportedOperationException("range");
-  }
-
-  @Override
   public Set<RID> get(final Object[] keys, final int limit) {
     checkForNulls(keys);
 
@@ -109,14 +90,8 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
     if (currentPage == null) {
       // CREATE A NEW PAGE
-      final int txPageCounter = getTotalPages();
-      try {
-        currentPage = database.getPageManager().getPage(new PageId(file.getFileId(), txPageCounter), pageSize, true).modify();
-        currentPageBuffer = currentPage.getTrackable();
-      } catch (IOException e) {
-        throw new DatabaseOperationException(
-            "Cannot append key '" + Arrays.toString(keys) + "' with value " + Arrays.toString(rids) + " in index '" + name + "'", e);
-      }
+      currentPage = createNewPage(pagesToCompact);
+      currentPageBuffer = currentPage.getTrackable();
     }
 
     int count = getCount(currentPage);
@@ -132,9 +107,8 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
     if (keyValueFreePosition - (getHeaderSize(pageNum) + (count * INT_SERIALIZED_SIZE) + INT_SERIALIZED_SIZE) < keyValueContent.size()) {
       // NO SPACE LEFT, CREATE A NEW PAGE AND FLUSH TO THE DATABASE THE CURRENT ONE (NO WAL)
       database.getPageManager().updatePage(currentPage, true, false);
-      setPageCount(pageNum + 1);
 
-      currentPage = createNewPage(pagesToCompact, false);
+      currentPage = createNewPage(pagesToCompact);
       currentPageBuffer = currentPage.getTrackable();
       pageNum = currentPage.getPageId().getPageNumber();
       count = 0;
@@ -191,7 +165,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
   }
 
   @Override
-  protected MutablePage createNewPage(final int compactedPages, final boolean checkForCompaction) {
+  protected MutablePage createNewPage(final int compactedPages) {
     // NEW FILE, CREATE HEADER PAGE
     final int txPageCounter = getTotalPages();
 
@@ -218,6 +192,8 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
       for (int i = 0; i < keyTypes.length; ++i)
         currentPage.writeByte(pos++, keyTypes[i]);
     }
+
+    setPageCount(txPageCounter + 1);
 
     return currentPage;
   }

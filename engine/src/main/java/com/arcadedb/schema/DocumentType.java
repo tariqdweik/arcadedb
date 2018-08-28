@@ -10,7 +10,6 @@ import com.arcadedb.database.Document;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
-import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 
 import java.util.*;
 
@@ -374,17 +373,6 @@ public class DocumentType {
 
     buckets.add(bucket);
     bucketSelectionStrategy.setTotalBuckets(buckets.size());
-  }
-
-  protected void replaceIndex(final LSMTreeIndexMutable oldIndex, final LSMTreeIndexMutable newIndex) {
-    for (List<DocumentType.IndexMetadata> metadata : indexesByBucket.values()) {
-      for (DocumentType.IndexMetadata m : metadata) {
-        if (m.index.equals(oldIndex)) {
-          m.index = newIndex;
-          break;
-        }
-      }
-    }
   }
 
   protected Map<String, Property> getPolymorphicProperties() {

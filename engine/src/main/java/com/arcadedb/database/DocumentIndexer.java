@@ -5,13 +5,11 @@
 package com.arcadedb.database;
 
 import com.arcadedb.engine.Bucket;
-import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 public class DocumentIndexer {
 
@@ -148,25 +146,5 @@ public class DocumentIndexer {
   private void postponeUniqueInsertion(final Index index, final String typeName, final String[] keyNames, final Object[] keyValues, final RID rid) {
     // ADD THE KEY TO CHECK AT COMMIT TIME DURING THE LOCK
     database.getTransaction().addIndexKeyLock(new IndexKey(index, typeName, keyNames, keyValues, rid));
-  }
-
-  /**
-   * Called at commit time in the middle of the lock to avoid concurrent insertion of the same key.
-   */
-  public void indexUniqueInsertionInTx(final IndexKey key) {
-    final DocumentType type = database.getSchema().getType(key.typeName);
-
-    // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-    final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.keyNames);
-    if (typeIndexes != null) {
-      for (DocumentType.IndexMetadata i : typeIndexes) {
-        final Set<RID> found = i.index.get(key.keyValues, 1);
-        if (!found.isEmpty())
-          throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
-      }
-    }
-
-    // AVOID CHECKING FOR UNIQUENESS BECAUSE IT HAS ALREADY BEEN CHECKED
-    key.index.put(key.keyValues, key.rid, false);
   }
 }

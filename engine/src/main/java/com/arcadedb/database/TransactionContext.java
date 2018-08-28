@@ -340,7 +340,7 @@ public class TransactionContext {
       if (isLeader)
         // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
         for (int i = 0; i < indexKeysToLocks.size(); ++i)
-          database.getIndexer().indexUniqueInsertionInTx(indexKeysToLocks.get(i));
+          indexInsertionInTx(indexKeysToLocks.get(i));
 
       // CHECK THE VERSIONS FIRST
       final List<MutablePage> pages = new ArrayList<>();
@@ -421,6 +421,9 @@ public class TransactionContext {
       for (Record r : modifiedRecordsCache.values())
         ((RecordInternal) r).unsetDirty();
 
+      for (int fileId : lockedFiles)
+        database.getSchema().getFileById(fileId).onAfterCommit();
+
     } catch (ConcurrentModificationException e) {
       throw e;
     } catch (Exception e) {
@@ -452,7 +455,7 @@ public class TransactionContext {
       for (PageId p : newPages.keySet())
         modifiedFiles.add(p.getFileId());
 
-    // LOCK ALL THE FILE IMPACTED BY THE INDEX KEYS
+    // LOCK ALL THE FILES IMPACTED BY THE INDEX KEYS
     for (DocumentIndexer.IndexKey key : indexKeysToLocks) {
       final DocumentType type = database.getSchema().getType(key.typeName);
       final List<Bucket> buckets = type.getBuckets(false);
@@ -460,7 +463,11 @@ public class TransactionContext {
         modifiedFiles.add(b.getId());
     }
 
+    modifiedFiles.addAll(newPageCounters.keySet());
+
     final long timeout = database.getConfiguration().getValueAsLong(GlobalConfiguration.COMMIT_LOCK_TIMEOUT);
+
+    LogManager.instance().info(this, "tx locking files %s...", modifiedFiles);
 
     return database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
   }
@@ -469,6 +476,7 @@ public class TransactionContext {
     final TransactionManager txManager = database.getTransactionManager();
 
     if (lockedFiles != null) {
+      LogManager.instance().info(this, "tx unlocking files %s...", lockedFiles);
       txManager.unlockFilesInOrder(lockedFiles);
       lockedFiles = null;
     }
@@ -485,5 +493,27 @@ public class TransactionContext {
 
   public List<DocumentIndexer.IndexKey> getIndexKeys() {
     return indexKeysToLocks;
+  }
+
+  /**
+   * Called at commit time in the middle of the lock to avoid concurrent insertion of the same key.
+   */
+  private void indexInsertionInTx(final DocumentIndexer.IndexKey key) {
+    if (key.index.isUnique()) {
+      final DocumentType type = database.getSchema().getType(key.typeName);
+
+      // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
+      final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.keyNames);
+      if (typeIndexes != null) {
+        for (DocumentType.IndexMetadata i : typeIndexes) {
+          final Set<RID> found = i.index.get(key.keyValues, 1);
+          if (!found.isEmpty())
+            throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
+        }
+      }
+    }
+
+    // AVOID CHECKING FOR UNIQUENESS BECAUSE IT HAS ALREADY BEEN CHECKED
+    key.index.put(key.keyValues, key.rid, false);
   }
 }

@@ -13,6 +13,7 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
+import com.arcadedb.index.lsm.LSMTreeIndexCompacted;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
@@ -55,8 +56,9 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   protected          boolean autoTransaction = false;
   protected volatile boolean open            = false;
 
-  protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(
-      Arrays.asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, LSMTreeIndexMutable.UNIQUE_INDEX_EXT));
+  protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(Arrays
+      .asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, LSMTreeIndexMutable.UNIQUE_INDEX_EXT,
+          LSMTreeIndexCompacted.NOTUNIQUE_INDEX_EXT, LSMTreeIndexCompacted.UNIQUE_INDEX_EXT));
   private                File                                      lockFile;
   private                FileLock                                  lockFileIO;
   private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;

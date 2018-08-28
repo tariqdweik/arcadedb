@@ -14,6 +14,8 @@ import java.util.Set;
 public interface ReadOnlyIndex {
   void close();
 
+  void drop();
+
   String getName();
 
   /**

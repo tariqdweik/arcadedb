@@ -97,8 +97,8 @@ public enum GlobalConfiguration {
   // INDEXES
   INDEX_COMPACTION_RAM_MB("arcadedb.indexCompactionRAM", "Maximum amount of RAM to use for index compaction, in MB", Long.class, 300),
 
-  INDEX_COMPACTION_MIN_PAGES_SCHEDULE("arcadedb.indexCompactionMinPagesSchedule", "Minimum number of mutable pages for an index to be schedule for compaction",
-      Integer.class, 10),
+  INDEX_COMPACTION_MIN_PAGES_SCHEDULE("arcadedb.indexCompactionMinPagesSchedule",
+      "Minimum number of mutable pages for an index to be schedule for automatic compaction. 0 = disabled", Integer.class, 0),
 
   // NETWORK
   NETWORK_SOCKET_BUFFER_SIZE("arcadedb.network.socketBufferSize", "TCP/IP Socket buffer size, if 0 use the OS default", Integer.class, 0),
