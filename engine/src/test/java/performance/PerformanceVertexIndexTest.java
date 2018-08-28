@@ -40,7 +40,7 @@ public class PerformanceVertexIndexTest {
       public void run() {
         try {
           compaction();
-        } catch (IOException e) {
+        } catch (Exception e) {
           Assertions.fail(e);
         }
       }
@@ -49,7 +49,7 @@ public class PerformanceVertexIndexTest {
     checkLookups(10);
   }
 
-  private void compaction() throws IOException {
+  private void compaction() throws IOException, InterruptedException {
     try (Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open()) {
       for (Index index : database.getSchema().getIndexes())
         Assertions.assertTrue(((LSMTreeIndexMutable) index).compact());

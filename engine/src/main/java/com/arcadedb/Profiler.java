@@ -81,98 +81,114 @@ public class Profiler {
     long iterateBucket = 0;
     long countType = 0;
     long countBucket = 0;
-
-    for (DatabaseInternal db : databases) {
-      final Map<String, Object> dbStats = db.getStats();
-      txCommits += (long) dbStats.get("txCommits");
-      txRollbacks += (long) dbStats.get("txRollbacks");
-      createRecord += (long) dbStats.get("createRecord");
-      readRecord += (long) dbStats.get("readRecord");
-      updateRecord += (long) dbStats.get("updateRecord");
-      deleteRecord += (long) dbStats.get("deleteRecord");
-      queries += (long) dbStats.get("queries");
-      commands += (long) dbStats.get("commands");
-      scanType += (long) dbStats.get("scanType");
-      scanBucket += (long) dbStats.get("scanBucket");
-      iterateType += (long) dbStats.get("iterateType");
-      iterateBucket += (long) dbStats.get("iterateBucket");
-      countType += (long) dbStats.get("countType");
-      countBucket += (long) dbStats.get("countBucket");
-
-      final PageManager.PPageManagerStats pStats = db.getPageManager().getStats();
-      readCacheUsed += pStats.readCacheRAM;
-      writeCacheUsed += pStats.writeCacheRAM;
-      cacheMax += pStats.maxRAM;
-      pagesRead += pStats.pagesRead;
-      pagesReadSize += pStats.pagesReadSize;
-      pagesWritten += pStats.pagesWritten;
-      pagesWrittenSize += pStats.pagesWrittenSize;
-      pageFlushQueueLength += pStats.pageFlushQueueLength;
-      pageCacheHits += pStats.cacheHits;
-      pageCacheMiss += pStats.cacheMiss;
-      concurrentModificationExceptions += pStats.concurrentModificationExceptions;
-
-      final FileManager.PFileManagerStats fStats = db.getFileManager().getStats();
-      totalOpenFiles += fStats.totalOpenFiles;
-      maxOpenFiles += fStats.maxOpenFiles;
-
-      final DatabaseAsyncExecutor.PDBAsynchStats aStats = db.asynch().getStats();
-      asynchQueueLength += aStats.queueSize;
-
-      final Map<String, Object> walStats = db.getTransactionManager().getStats();
-      walPagesWritten += (Long) walStats.get("pagesWritten");
-      walBytesWritten += (Long) walStats.get("bytesWritten");
-      walTotalFiles += (Long) walStats.get("logFiles");
-    }
-
-    buffer.append(String.format("ARCADEDB %s Profiler", Constants.VERSION));
-
-    final Runtime runtime = Runtime.getRuntime();
-
-    final long gcTime = getGarbageCollectionTime();
+    long evictionRuns = 0;
+    long pagesEvicted = 0;
+    int readCachePages = 0;
+    int writeCachePages = 0;
 
     try {
-      MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-      ObjectName osMBeanName = ObjectName.getInstance(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
+      for (DatabaseInternal db : databases) {
+        final Map<String, Object> dbStats = db.getStats();
+        txCommits += (long) dbStats.get("txCommits");
+        txRollbacks += (long) dbStats.get("txRollbacks");
+        createRecord += (long) dbStats.get("createRecord");
+        readRecord += (long) dbStats.get("readRecord");
+        updateRecord += (long) dbStats.get("updateRecord");
+        deleteRecord += (long) dbStats.get("deleteRecord");
+        queries += (long) dbStats.get("queries");
+        commands += (long) dbStats.get("commands");
+        scanType += (long) dbStats.get("scanType");
+        scanBucket += (long) dbStats.get("scanBucket");
+        iterateType += (long) dbStats.get("iterateType");
+        iterateBucket += (long) dbStats.get("iterateBucket");
+        countType += (long) dbStats.get("countType");
+        countBucket += (long) dbStats.get("countBucket");
 
-      if (mbs.isInstanceOf(osMBeanName, "com.sun.management.OperatingSystemMXBean")) {
-        final long osTotalMem = ((Number) mbs.getAttribute(osMBeanName, "TotalPhysicalMemorySize")).longValue();
-        final long osUsedMem = osTotalMem - ((Number) mbs.getAttribute(osMBeanName, "FreePhysicalMemorySize")).longValue();
+        final PageManager.PPageManagerStats pStats = db.getPageManager().getStats();
+        readCacheUsed += pStats.readCacheRAM;
+        writeCacheUsed += pStats.writeCacheRAM;
+        cacheMax += pStats.maxRAM;
+        pagesRead += pStats.pagesRead;
+        pagesReadSize += pStats.pagesReadSize;
+        pagesWritten += pStats.pagesWritten;
+        pagesWrittenSize += pStats.pagesWrittenSize;
+        pageFlushQueueLength += pStats.pageFlushQueueLength;
+        pageCacheHits += pStats.cacheHits;
+        pageCacheMiss += pStats.cacheMiss;
+        concurrentModificationExceptions += pStats.concurrentModificationExceptions;
+        evictionRuns += pStats.evictionRuns;
+        pagesEvicted += pStats.pagesEvicted;
+        readCachePages += pStats.readCachePages;
+        writeCachePages += pStats.writeCachePages;
 
-        buffer.append(String.format("\n JVM HEAP=%s/%s OS=%s/%s GC=%dms", FileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
-            FileUtils.getSizeAsString(runtime.maxMemory()), FileUtils.getSizeAsString(osUsedMem), FileUtils.getSizeAsString(osTotalMem), gcTime));
+        final FileManager.PFileManagerStats fStats = db.getFileManager().getStats();
+        totalOpenFiles += fStats.totalOpenFiles;
+        maxOpenFiles += fStats.maxOpenFiles;
 
-        buffer.append(String.format("\n PAGECACHE read=%s write=%s max=%s", FileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
-            FileUtils.getSizeAsString(runtime.maxMemory()), FileUtils.getSizeAsString(readCacheUsed), FileUtils.getSizeAsString(writeCacheUsed),
-            FileUtils.getSizeAsString(cacheMax)));
+        final DatabaseAsyncExecutor.PDBAsynchStats aStats = db.asynch().getStats();
+        asynchQueueLength += aStats.queueSize;
+
+        final Map<String, Object> walStats = db.getTransactionManager().getStats();
+        walPagesWritten += (Long) walStats.get("pagesWritten");
+        walBytesWritten += (Long) walStats.get("bytesWritten");
+        walTotalFiles += (Long) walStats.get("logFiles");
       }
 
+      buffer.append(String.format("ARCADEDB %s Profiler", Constants.VERSION));
+
+      final Runtime runtime = Runtime.getRuntime();
+
+      final long gcTime = getGarbageCollectionTime();
+
+      boolean dumpWithJmx = false;
+      try {
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        ObjectName osMBeanName = ObjectName.getInstance(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
+
+        if (mbs.isInstanceOf(osMBeanName, "com.sun.management.OperatingSystemMXBean")) {
+          final long osTotalMem = ((Number) mbs.getAttribute(osMBeanName, "TotalPhysicalMemorySize")).longValue();
+          final long osUsedMem = osTotalMem - ((Number) mbs.getAttribute(osMBeanName, "FreePhysicalMemorySize")).longValue();
+
+          buffer.append(String.format("\n JVM heap=%s/%s os=%s/%s gc=%dms", FileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
+              FileUtils.getSizeAsString(runtime.maxMemory()), FileUtils.getSizeAsString(osUsedMem), FileUtils.getSizeAsString(osTotalMem), gcTime));
+
+          dumpWithJmx = true;
+        }
+      } catch (Exception e) {
+        // JMX NOT AVAILABLE, AVOID OS DATA
+      }
+
+      if (!dumpWithJmx)
+        buffer.append(String.format("\n JVM heap=%s/%s gc=%dms", FileUtils.getSizeAsString(runtime.totalMemory() - runtime.freeMemory()),
+            FileUtils.getSizeAsString(runtime.maxMemory()), gcTime));
+
+      buffer.append(String
+          .format("\n PAGE-CACHE read=%s (pages=%d) write=%s (pages=%d) max=%s readOps=%d (%s) writeOps=%d (%s)", FileUtils.getSizeAsString(readCacheUsed),
+              readCachePages, FileUtils.getSizeAsString(writeCacheUsed), writeCachePages, FileUtils.getSizeAsString(cacheMax), pagesRead,
+              FileUtils.getSizeAsString(pagesReadSize), pagesWritten, FileUtils.getSizeAsString(pagesWrittenSize)));
+
+      buffer.append(String
+          .format("\n DB databases=%d asynchQueue=%d txCommits=%d txRollbacks=%d queries=%d commands=%d", databases.size(), asynchQueueLength, txCommits,
+              txRollbacks, queries, commands));
+      buffer.append(String.format("\n    createRecord=%d readRecord=%d updateRecord=%d deleteRecord=%d", createRecord, readRecord, updateRecord, deleteRecord));
+      buffer.append(String
+          .format("\n    scanType=%d scanBucket=%d iterateType=%d iterateBucket=%d countType=%d countBucket=%d", scanType, scanBucket, iterateType,
+              iterateBucket, countType, countBucket));
+
+      buffer.append(String
+          .format("\n PAGE-MANAGER flushQueue=%d cacheHits=%d cacheMiss=%d concModExceptions=%d evictionRuns=%d pagesEvicted=%d", pageFlushQueueLength,
+              pageCacheHits, pageCacheMiss, concurrentModificationExceptions, evictionRuns, pagesEvicted));
+
+      buffer.append(
+          String.format("\n WAL totalFiles=%d pagesWritten=%d bytesWritten=%s", walTotalFiles, walPagesWritten, FileUtils.getSizeAsString(walBytesWritten)));
+
+      buffer.append(String.format("\n FILE-MANAGER FS=%s/%s openFiles=%d maxFilesOpened=%d", FileUtils.getSizeAsString(freeSpaceInMB),
+          FileUtils.getSizeAsString(totalSpaceInMB), totalOpenFiles, maxOpenFiles));
+
+      out.println(buffer.toString());
     } catch (Exception e) {
-      // JMX NOT AVAILABLE, AVOID OS DATA
-      buffer.append(String.format("\n PAGECACHE read=%s write=%s max=%s", FileUtils.getSizeAsString(readCacheUsed), FileUtils.getSizeAsString(writeCacheUsed),
-          FileUtils.getSizeAsString(cacheMax)));
+      out.println("Error on displaying metrics (" + e + ")");
     }
-
-    buffer.append(String
-        .format("\n DB databases=%d asynchQueue=%d txCommits=%d txRollbacks=%d queries=%d commands=%d", databases.size(), asynchQueueLength, txCommits,
-            txRollbacks, queries, commands));
-    buffer.append(String.format("\n    createRecord=%d readRecord=%d updateRecord=%d deleteRecord=%d", createRecord, readRecord, updateRecord, deleteRecord));
-    buffer.append(String
-        .format("\n    scanType=%d scanBucket=%d iterateType=%d iterateBucket=%d countType=%d countBucket=%d", scanType, scanBucket, iterateType, iterateBucket,
-            countType, countBucket));
-
-    buffer.append(String.format("\n PAGE-MANAGER read=%d (%s) write=%d (%s) flushQueue=%d cacheHits=%d cacheMiss=%d concModExceptions=%d", pagesRead,
-        FileUtils.getSizeAsString(pagesReadSize), pagesWritten, FileUtils.getSizeAsString(pagesWrittenSize), pageFlushQueueLength, pageCacheHits, pageCacheMiss,
-        concurrentModificationExceptions));
-
-    buffer.append(
-        String.format("\n WAL totalFiles=%d pagesWritten=%d bytesWritten=%s", walTotalFiles, walPagesWritten, FileUtils.getSizeAsString(walBytesWritten)));
-
-    buffer.append(String
-        .format("\n FILE-MANAGER FS=%s/%s openFiles=%d maxFilesOpened=%d", FileUtils.getSizeAsString(freeSpaceInMB), FileUtils.getSizeAsString(totalSpaceInMB),
-            totalOpenFiles, maxOpenFiles));
-
-    out.println(buffer.toString());
   }
 
   private static long getGarbageCollectionTime() {

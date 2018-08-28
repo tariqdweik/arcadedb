@@ -13,6 +13,7 @@ import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryTypes;
+import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -117,22 +118,20 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
 
   @Override
   public void close() {
-    lock.executeInLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        LSMTreeIndexMutable.super.close();
-
-        if (subIndex != null)
-          subIndex.close();
-        return null;
-      }
-    });
+    super.close();
+    if (subIndex != null)
+      subIndex.close();
   }
 
   @Override
   public void onAfterLoad() {
-    if (subIndexFileId > -1)
-      subIndex = (LSMTreeIndexCompacted) database.getSchema().getFileById(subIndexFileId);
+    if (subIndexFileId > -1) {
+      try {
+        subIndex = (LSMTreeIndexCompacted) database.getSchema().getFileById(subIndexFileId);
+      } catch (Exception e) {
+        LogManager.instance().info(this, "Invalid subindex for index '%s', ignoring it", name);
+      }
+    }
   }
 
   public LSMTreeIndexCompacted createNewForCompaction() throws IOException {
@@ -142,7 +141,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
     return new LSMTreeIndexCompacted(database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize);
   }
 
-  public boolean compact() throws IOException {
+  public boolean compact() throws IOException, InterruptedException {
     if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update the index '" + name + "'");
 
@@ -163,11 +162,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
     close();
   }
 
-  public void lazyDrop() {
-    dropWhenCollected = true;
-  }
-
-  public void copyPagesToNewFile(final int startingFromPage, final LSMTreeIndexCompacted subIndex) throws IOException {
+  public LSMTreeIndexMutable copyPagesToNewFile(final int startingFromPage, final LSMTreeIndexCompacted subIndex) throws IOException {
     int last_ = name.lastIndexOf('_');
     final String newName = name.substring(0, last_) + "_" + System.currentTimeMillis();
 
@@ -198,6 +193,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndex {
         return null;
       }
     });
+
+    return newIndex;
   }
 
   @Override

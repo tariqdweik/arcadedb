@@ -115,6 +115,8 @@ public abstract class LSMTreeIndex extends PaginatedComponent implements Index {
 
   public void lazyDrop() {
     dropWhenCollected = true;
+    ((SchemaImpl) database.getSchema()).removeIndex(getName());
+    database.getPageManager().deleteFile(id);
   }
 
   @Override
@@ -124,7 +126,7 @@ public abstract class LSMTreeIndex extends PaginatedComponent implements Index {
       public Object call() {
         if (dropWhenCollected) {
           try {
-            LogManager.instance().debug(this, "Finalizing deletion of index '%s'...", name);
+            LogManager.instance().info(this, "Finalizing deletion of index '%s'...", name);
             if (database.isOpen())
               ((SchemaImpl) database.getSchema()).removeIndex(getName());
             drop();

@@ -21,7 +21,7 @@ public class PerformanceIndexCompaction {
     new PerformanceIndexCompaction().run();
   }
 
-  private void run() throws IOException {
+  private void run() throws IOException, InterruptedException {
     GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(5);
 
     final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open(PaginatedFile.MODE.READ_WRITE);

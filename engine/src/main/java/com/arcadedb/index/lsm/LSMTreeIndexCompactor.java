@@ -25,7 +25,7 @@ public class LSMTreeIndexCompactor {
     this.index = index;
   }
 
-  public boolean compact() throws IOException {
+  public boolean compact() throws IOException, InterruptedException {
     if (index.compactingStatus == LSMTreeIndex.COMPACTING_STATUS.COMPACTED)
       throw new IllegalStateException("Cannot compact an already compacted index");
 
@@ -236,19 +236,18 @@ public class LSMTreeIndexCompactor {
     }
 
     database.commit();
-    database.getPageManager().flushPagesOfFile(compactedIndex.getId());
 
     beginTx(database);
-    index.copyPagesToNewFile(totalPages - 1, compactedIndex);
+    final LSMTreeIndexMutable newIndex = index.copyPagesToNewFile(totalPages - 1, compactedIndex);
     database.commit();
 
-    LogManager.instance()
-        .info(this, "Compaction completed for index '%s'. New File has %d ordered pages (%d iterations)", index, compactedIndex.getTotalPages(), iterations);
+    LogManager.instance().info(this, "Compaction completed for index '%s'. New index file has %d mutable pages + %d compacted pages (%d iterations)", index,
+        newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations);
 
     return true;
   }
 
-  private void beginTx(Database database) {
+  private void beginTx(final Database database) {
     database.begin();
     database.getTransaction().setUseWAL(false);
     database.getTransaction().setAsyncFlush(false);

@@ -119,7 +119,7 @@ public class PokecLoader {
       final int id1 = Integer.parseInt(profiles[0]);
       final int id2 = Integer.parseInt(profiles[1]);
 
-      db.asynch().newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false, "E", true);
+      db.asynch().newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false, "E", true, null);
 
       if (i % 20000 == 0) {
         LogManager.instance().info(this, "Committing %d edges...", i);
