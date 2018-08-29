@@ -100,13 +100,16 @@ public class SchemaImpl implements Schema {
       if (!Dictionary.DICT_EXT.equals(file.getFileExtension())) {
         final PaginatedComponent pf = paginatedComponentFactory.createComponent(file, mode);
 
-        if (pf instanceof Bucket)
-          bucketMap.put(pf.getName(), (Bucket) pf);
-        else if (pf instanceof Index)
-          indexMap.put(pf.getName(), (Index) pf.getMainComponent());
+        if (pf != null) {
+          final Object mainComponent = pf.getMainComponent();
 
-        if (pf != null)
+          if (mainComponent instanceof Bucket)
+            bucketMap.put(pf.getName(), (Bucket) mainComponent);
+          else if (mainComponent instanceof Index)
+            indexMap.put(pf.getName(), (Index) mainComponent);
+
           registerFile(pf);
+        }
       }
     }
 
@@ -346,8 +349,6 @@ public class SchemaImpl implements Schema {
     files.clear();
     types.clear();
     bucketMap.clear();
-    for (Index i : indexMap.values())
-      i.close();
     indexMap.clear();
     dictionary = null;
   }

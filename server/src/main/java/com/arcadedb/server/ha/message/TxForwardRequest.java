@@ -132,7 +132,7 @@ public class TxForwardRequest extends TxRequestAbstract {
 
       final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
 
-      final Index index = (Index) database.getSchema().getFileById(indexFileId);
+      final Index index = (Index) database.getSchema().getFileById(indexFileId).getMainComponent();
 
       final TransactionContext.IndexKey key = new TransactionContext.IndexKey(add, index, keyValues, rid);
       keys.add(key);

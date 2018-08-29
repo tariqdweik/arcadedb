@@ -16,7 +16,6 @@ import com.arcadedb.schema.Type;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
-import com.arcadedb.utility.LockContext;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -37,9 +36,9 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * HEADER Nst PAGE        = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),mutable(boolean:1)]
  */
 public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
-  public static final    int    DEF_PAGE_SIZE       = 2 * 1024 * 1024;
-  public static final    RID    REMOVED_ENTRY_RID   = new RID(null, -1, -1l);
-  protected static final String TEMP_EXT            = "temp_";
+  public static final    int    DEF_PAGE_SIZE     = 2 * 1024 * 1024;
+  public static final    RID    REMOVED_ENTRY_RID = new RID(null, -1, -1l);
+  protected static final String TEMP_EXT          = "temp_";
 
   protected static final LSMTreeIndexCompacted.LookupResult LOWER  = new LSMTreeIndexCompacted.LookupResult(false, true, 0, null);
   protected static final LSMTreeIndexCompacted.LookupResult HIGHER = new LSMTreeIndexCompacted.LookupResult(false, true, 0, null);
@@ -50,7 +49,6 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   protected final byte             valueType = BinaryTypes.TYPE_COMPRESSED_RID;
   protected final boolean          unique;
   protected       byte[]           keyTypes;
-  protected       LockContext      lock      = new LockContext();
 
   public enum COMPACTING_STATUS {NO, SCHEDULED, IN_PROGRESS}
 
@@ -97,8 +95,8 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Called at load time (1st page only).
    */
-  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath, final int id,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath,
+      final int id, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     this.mainIndex = mainIndex;
     this.serializer = database.getSerializer();

@@ -4,6 +4,8 @@
 
 package com.arcadedb.engine;
 
+import com.arcadedb.utility.LogManager;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -39,7 +41,7 @@ public class PaginatedFile {
     try {
       channel.close();
     } catch (IOException e) {
-      e.printStackTrace();
+      LogManager.instance().error(this, "Error on closing file %s (id=%d)", e, filePath, fileId);
     }
     this.open = false;
   }
