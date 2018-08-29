@@ -32,7 +32,7 @@ public class LSMTreeIndexCompactor {
 
     final int totalPages = index.getTotalPages();
     LogManager.instance()
-        .info(mainIndex, "Compacting index '%s' (pages=%d pageSize=%d threadId=%d)...", index, totalPages, index.getPageSize(), Thread.currentThread().getId());
+        .debug(mainIndex, "Compacting index '%s' (pages=%d pageSize=%d threadId=%d)...", index, totalPages, index.getPageSize(), Thread.currentThread().getId());
 
     if (totalPages < 2)
       return false;
