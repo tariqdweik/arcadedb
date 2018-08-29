@@ -8,8 +8,4 @@ public class ConcurrentModificationException extends NeedRetryException {
   public ConcurrentModificationException(final String s) {
     super(s);
   }
-
-  public ConcurrentModificationException(String s, Exception e) {
-    super(s, e);
-  }
 }

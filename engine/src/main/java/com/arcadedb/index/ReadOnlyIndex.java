@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 public interface ReadOnlyIndex {
-  void setMetadata(String name, String[] propertyNames);
+  void setMetadata(String name, String[] propertyNames, int associatedBucketId);
 
   String getTypeName();
 
@@ -55,4 +55,6 @@ public interface ReadOnlyIndex {
   boolean isUnique();
 
   PaginatedComponent getPaginatedComponent();
+
+  int getAssociatedBucketId();
 }

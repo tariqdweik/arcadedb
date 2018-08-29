@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 public abstract class ReplicationServerTest extends BaseGraphServerTest {
-  private static final int DEFAULT_MAX_RETRIES = 3;
+  private static final int DEFAULT_MAX_RETRIES = 30;
 
   public ReplicationServerTest() {
     GlobalConfiguration.HA_REPLICATION_INCOMING_PORTS.setValue("2424-2500");
@@ -60,8 +60,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
       for (int retry = 0; retry < getMaxRetry(); ++retry) {
         try {
-          if (!db.isTransactionActive())
-            db.begin();
+          db.begin();
 
           for (int i = 0; i < getVerticesPerTx(); ++i) {
             final MutableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);

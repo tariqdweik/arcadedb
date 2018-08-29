@@ -310,6 +310,8 @@ public class TransactionContext implements Transaction {
         final PaginatedFile file = database.getFileManager().getFile(p.fileId);
         final int pageSize = file.getPageSize();
 
+        assert !(database.getSchema().getFileById(p.fileId).getMainComponent() instanceof Index);
+
         final PageId pageId = new PageId(p.fileId, p.pageNumber);
 
         final boolean isNew = p.pageNumber >= file.getTotalPages();
@@ -318,8 +320,8 @@ public class TransactionContext implements Transaction {
 
         if (p.currentPageVersion != page.getVersion() + 1)
           throw new ConcurrentModificationException(
-              "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " expected database v." + (page.getVersion() + 1)
-                  + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+              "Concurrent modification on page " + page.getPageId() + " in file '" + file.getFileName() + "' (current v." + page.getVersion()
+                  + " expected database v." + (page.getVersion() + 1) + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
 
         // APPLY THE CHANGE TO THE PAGE
         page.writeByteArray(p.changesFrom - BasePage.PAGE_HEADER_SIZE, p.currentContent.content);
@@ -370,10 +372,12 @@ public class TransactionContext implements Transaction {
       lockedFiles = new ArrayList<>();
 
     try {
-      if (isLeader)
+      if (isLeader && !indexKeysToLocks.isEmpty()) {
         // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
         for (int i = 0; i < indexKeysToLocks.size(); ++i)
           applyIndexChangesAtCommit(indexKeysToLocks.get(i));
+        indexKeysToLocks.clear();
+      }
 
       // CHECK THE VERSIONS FIRST
       final List<MutablePage> pages = new ArrayList<>();
@@ -549,12 +553,16 @@ public class TransactionContext implements Transaction {
       for (PageId p : newPages.keySet())
         modifiedFiles.add(p.getFileId());
 
-    // LOCK ALL THE FILES IMPACTED BY THE INDEX KEYS
     for (IndexKey key : indexKeysToLocks) {
-      final DocumentType type = database.getSchema().getType(key.index.getTypeName());
-      final List<Bucket> buckets = type.getBuckets(false);
-      for (Bucket b : buckets)
-        modifiedFiles.add(b.getId());
+      modifiedFiles.add(key.index.getFileId());
+      if (key.index.isUnique()) {
+        // LOCK ALL THE FILES IMPACTED BY THE INDEX KEYS TO CHECK FOR UNIQUE CONSTRAINT
+        final DocumentType type = database.getSchema().getType(key.index.getTypeName());
+        final List<Bucket> buckets = type.getBuckets(false);
+        for (Bucket b : buckets)
+          modifiedFiles.add(b.getId());
+      } else
+        modifiedFiles.add(key.index.getAssociatedBucketId());
     }
 
     modifiedFiles.addAll(newPageCounters.keySet());

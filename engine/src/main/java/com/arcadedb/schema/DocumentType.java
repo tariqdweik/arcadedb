@@ -362,7 +362,7 @@ public class DocumentType {
     }
     list2.add(metadata);
 
-    index.setMetadata(name, propertyNames);
+    index.setMetadata(name, propertyNames, bucket.getId());
   }
 
   protected void addBucketInternal(final Bucket bucket) {

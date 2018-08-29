@@ -5,7 +5,6 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TransactionContext;
 import com.arcadedb.engine.*;
@@ -24,11 +23,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * LSM-Tree index implementation. It relies on a mutable index and its underlying immutable, compacted index.
  */
 public class LSMTreeIndex implements Index {
+  private   int                                                     associatedBucketId = -1;
   private   String                                                  typeName;
   private   String[]                                                propertyNames;
   private   LSMTreeIndexMutable                                     mutable;
-  private   RWLockContext                                           lock             = new RWLockContext();
-  protected AtomicReference<LSMTreeIndexAbstract.COMPACTING_STATUS> compactingStatus = new AtomicReference<>(LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
+  private   RWLockContext                                           lock               = new RWLockContext();
+  protected AtomicReference<LSMTreeIndexAbstract.COMPACTING_STATUS> compactingStatus   = new AtomicReference<>(LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
 
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
@@ -43,7 +43,7 @@ public class LSMTreeIndex implements Index {
     public PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id,
         final PaginatedFile.MODE mode, final int pageSize) throws IOException {
       final LSMTreeIndex mainIndex = new LSMTreeIndex(database, name, true, filePath, id, mode, pageSize);
-      return new LSMTreeIndexMutable(mainIndex, database, name, true, filePath, id, mode, pageSize);
+      return mainIndex.mutable;
     }
   }
 
@@ -76,9 +76,10 @@ public class LSMTreeIndex implements Index {
     return compactingStatus.compareAndSet(LSMTreeIndexAbstract.COMPACTING_STATUS.NO, LSMTreeIndexAbstract.COMPACTING_STATUS.SCHEDULED);
   }
 
-  public void setMetadata(final String typeName, final String[] propertyNames) {
+  public void setMetadata(final String typeName, final String[] propertyNames, final int associatedBucketId) {
     this.typeName = typeName;
     this.propertyNames = propertyNames;
+    this.associatedBucketId = associatedBucketId;
   }
 
   @Override
@@ -112,7 +113,7 @@ public class LSMTreeIndex implements Index {
 
     final int fileId = mutable.getFileId();
 
-    ((EmbeddedDatabase) database).getTransactionManager().tryLockFile(fileId, 0);
+    database.getTransactionManager().tryLockFile(fileId, 0);
 
     try {
       // COPY MUTABLE PAGES TO THE NEW FILE
@@ -149,7 +150,6 @@ public class LSMTreeIndex implements Index {
 
         // SWAP OLD WITH NEW INDEX IN EXCLUSIVE LOCK (NO READ/WRITE ARE POSSIBLE IN THE MEANTIME)
         newMutableIndex.removeTempSuffix();
-
         ((SchemaImpl) database.getSchema()).changeIndexName(mutable.getName(), newMutableIndex.getName());
 
         mutable.drop();
@@ -158,7 +158,7 @@ public class LSMTreeIndex implements Index {
         return newMutableIndex;
       });
     } finally {
-      ((EmbeddedDatabase) database).getTransactionManager().unlockFile(fileId);
+      database.getTransactionManager().unlockFile(fileId);
     }
   }
 
@@ -307,5 +307,10 @@ public class LSMTreeIndex implements Index {
   @Override
   public PaginatedComponent getPaginatedComponent() {
     return mutable;
+  }
+
+  @Override
+  public int getAssociatedBucketId() {
+    return associatedBucketId;
   }
 }

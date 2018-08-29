@@ -186,8 +186,8 @@ public class PageManager extends LockContext {
       totalConcurrentModificationExceptions.incrementAndGet();
 
       throw new ConcurrentModificationException(
-          "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + p.getVersion()
-              + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+          "Concurrent modification on page " + page.getPageId() + " in file '" + fileManager.getFile(page.pageId.getFileId()).getFileName() + "' (current v."
+              + page.getVersion() + " <> database v." + p.getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
     }
 
     if (p != null)
@@ -218,8 +218,8 @@ public class PageManager extends LockContext {
       if (p.getVersion() != page.getVersion()) {
         totalConcurrentModificationExceptions.incrementAndGet();
         throw new ConcurrentModificationException(
-            "Concurrent modification on page " + page.getPageId() + " (current v." + page.getVersion() + " <> database v." + p.getVersion()
-                + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+            "Concurrent modification on page " + page.getPageId() + " in file '" + fileManager.getFile(page.pageId.getFileId()).getFileName() + "' (current v."
+                + page.getVersion() + " <> database v." + p.getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
       }
 
       page.incrementVersion();

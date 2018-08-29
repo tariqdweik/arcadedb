@@ -23,8 +23,7 @@ public class TwoServersTest extends BaseGraphServerTest {
 
   @Test
   public void checkQuery() throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph/sql/select%20from%20V1%20limit%201")
-        .openConnection();
+    HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:2480/query/graph/sql/select%20from%20V1%20limit%201").openConnection();
 
     connection.setRequestMethod("GET");
     connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString("root:root".getBytes()));
@@ -33,7 +32,7 @@ public class TwoServersTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().info(this, "TEST: Response: ", response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -58,7 +57,7 @@ public class TwoServersTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().info(this, "TEST: Response: ", response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -95,7 +94,7 @@ public class TwoServersTest extends BaseGraphServerTest {
       Assertions.assertEquals(200, connection.getResponseCode());
       Assertions.assertEquals("OK", connection.getResponseMessage());
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().info(this, "TEST: Response: ", response);
 
       Assertions.assertTrue(response.contains("#"));
 

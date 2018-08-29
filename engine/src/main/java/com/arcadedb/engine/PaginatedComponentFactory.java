@@ -15,8 +15,7 @@ public class PaginatedComponentFactory {
   private final DatabaseInternal                              database;
 
   public interface PaginatedComponentFactoryHandler {
-    PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
-        final int pageSize) throws IOException;
+    PaginatedComponent createOnLoad(DatabaseInternal database, String name, String filePath, int id, PaginatedFile.MODE mode, int pageSize) throws IOException;
   }
 
   public PaginatedComponentFactory(final DatabaseInternal database) {

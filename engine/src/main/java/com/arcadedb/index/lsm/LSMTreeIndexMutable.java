@@ -387,8 +387,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     try {
       MutablePage currentPage = database.getTransaction().getPageToModify(new PageId(file.getFileId(), pageNum), pageSize, false);
 
-      assert isMutable(currentPage);
-
       TrackableBinary currentPageBuffer = currentPage.getTrackable();
 
       int count = getCount(currentPage);

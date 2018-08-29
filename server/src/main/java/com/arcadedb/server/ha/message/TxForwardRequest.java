@@ -67,6 +67,8 @@ public class TxForwardRequest extends TxRequestAbstract {
     try {
       tx.commitFromReplica(walTx, keysTx);
     } catch (NeedRetryException | TransactionException e) {
+      return new ErrorResponse(e);
+    } catch (Exception e) {
       LogManager.instance().error(this, "Error with the execution of the forwarded message %d", e, messageNumber);
       return new ErrorResponse(e);
     }
