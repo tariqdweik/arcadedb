@@ -5,10 +5,7 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.TrackableBinary;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryComparator;
@@ -28,7 +25,7 @@ public class LSMTreeIndexCompactor {
   public static boolean compact(final LSMTreeIndex mainIndex) throws IOException, InterruptedException {
     final LSMTreeIndexMutable index = mainIndex.getMutableIndex();
 
-    final Database database = index.getDatabase();
+    final DatabaseInternal database = index.getDatabase();
 
     final int totalPages = index.getTotalPages();
     LogManager.instance()

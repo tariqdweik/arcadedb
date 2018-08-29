@@ -4,7 +4,7 @@
 
 package com.arcadedb.index;
 
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.engine.PaginatedFile;
 
 import java.io.IOException;
@@ -18,7 +18,7 @@ public class IndexFactory {
     map.put(type, handler);
   }
 
-  public Index createIndex(final String indexType, final Database database, final String indexName, final boolean unique, final String filePath,
+  public Index createIndex(final String indexType, final DatabaseInternal database, final String indexName, final boolean unique, final String filePath,
       final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     final IndexFactoryHandler handler = map.get(indexType);
     if (handler == null)

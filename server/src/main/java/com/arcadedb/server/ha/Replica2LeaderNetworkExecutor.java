@@ -6,7 +6,6 @@ package com.arcadedb.server.ha;
 import com.arcadedb.Constants;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseContext;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.engine.MutablePage;
@@ -331,7 +330,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           sendCommandToLeader(buffer, new DatabaseStructureRequest(db), -1);
           final DatabaseStructureResponse dbStructure = (DatabaseStructureResponse) receiveCommandFromLeaderDuringJoining(buffer);
 
-          final Database database = server.getServer().getOrCreateDatabase(db);
+          final DatabaseInternal database = (DatabaseInternal) server.getServer().getOrCreateDatabase(db);
 
           installDatabase(buffer, db, dbStructure, database);
         }
@@ -352,7 +351,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     }
   }
 
-  private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure, final Database database) throws IOException {
+  private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure, final DatabaseInternal database) throws IOException {
 
     // WRITE THE SCHEMA
     final FileWriter schemaFile = new FileWriter(database.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
@@ -373,7 +372,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     ((SchemaImpl) database.getSchema()).load(PaginatedFile.MODE.READ_ONLY);
   }
 
-  private void installFile(final Binary buffer, final String db, final Database database, final int fileId, final String fileName) throws IOException {
+  private void installFile(final Binary buffer, final String db, final DatabaseInternal database, final int fileId, final String fileName) throws IOException {
     final PageManager pageManager = database.getPageManager();
 
     final PaginatedFile file = database.getFileManager().getOrCreateFile(fileId, database.getDatabasePath() + "/" + fileName);

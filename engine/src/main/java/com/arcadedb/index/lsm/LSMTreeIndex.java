@@ -4,7 +4,7 @@
 
 package com.arcadedb.index.lsm;
 
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TransactionContext;
@@ -32,7 +32,7 @@ public class LSMTreeIndex implements Index {
 
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
-    public Index create(final Database database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
+    public Index create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
         final byte[] keyTypes, final int pageSize) throws IOException {
       return new LSMTreeIndex(database, name, unique, filePath, mode, keyTypes, pageSize);
     }
@@ -40,8 +40,8 @@ public class LSMTreeIndex implements Index {
 
   public static class PaginatedComponentFactoryHandlerUnique implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
     @Override
-    public PaginatedComponent createOnLoad(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
-        final int pageSize) throws IOException {
+    public PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id,
+        final PaginatedFile.MODE mode, final int pageSize) throws IOException {
       final LSMTreeIndex mainIndex = new LSMTreeIndex(database, name, true, filePath, id, mode, pageSize);
       return new LSMTreeIndexMutable(mainIndex, database, name, true, filePath, id, mode, pageSize);
     }
@@ -49,8 +49,8 @@ public class LSMTreeIndex implements Index {
 
   public static class PaginatedComponentFactoryHandlerNotUnique implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
     @Override
-    public PaginatedComponent createOnLoad(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
-        final int pageSize) throws IOException {
+    public PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id,
+        final PaginatedFile.MODE mode, final int pageSize) throws IOException {
       final LSMTreeIndex mainIndex = new LSMTreeIndex(database, name, false, filePath, id, mode, pageSize);
       return new LSMTreeIndexMutable(mainIndex, database, name, false, filePath, id, mode, pageSize);
     }
@@ -59,15 +59,15 @@ public class LSMTreeIndex implements Index {
   /**
    * Called at creation time.
    */
-  public LSMTreeIndex(final Database database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode, final byte[] keyTypes,
-      final int pageSize) throws IOException {
+  public LSMTreeIndex(final DatabaseInternal database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode,
+      final byte[] keyTypes, final int pageSize) throws IOException {
     mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, mode, keyTypes, pageSize);
   }
 
   /**
    * Called at load time (1st page only).
    */
-  public LSMTreeIndex(final Database database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
+  public LSMTreeIndex(final DatabaseInternal database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
       final int pageSize) throws IOException {
     mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, id, mode, pageSize);
   }
@@ -108,7 +108,7 @@ public class LSMTreeIndex implements Index {
   }
 
   public LSMTreeIndexMutable splitIndex(final int startingFromPage, final LSMTreeIndexCompacted subIndex) {
-    final Database database = mutable.getDatabase();
+    final DatabaseInternal database = mutable.getDatabase();
 
     final int fileId = mutable.getFileId();
 

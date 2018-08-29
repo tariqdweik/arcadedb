@@ -24,7 +24,7 @@ public class QueryTest extends BaseTest {
 
   @Override
   protected void beginTest() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))
@@ -45,7 +45,7 @@ public class QueryTest extends BaseTest {
   @Test
   public void testScan() {
 
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         ResultSet rs = db.command("SQL", "SELECT FROM V", new HashMap<>());
@@ -75,7 +75,7 @@ public class QueryTest extends BaseTest {
   @Test
   public void testEqualsFiltering() {
 
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -108,7 +108,7 @@ public class QueryTest extends BaseTest {
   @Test
   public void testCachedStatementAndExecutionPlan() {
 
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -168,7 +168,7 @@ public class QueryTest extends BaseTest {
 
   @Test
   public void testMajorFiltering() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -189,7 +189,7 @@ public class QueryTest extends BaseTest {
 
   @Test
   public void testMajorEqualsFiltering() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -210,7 +210,7 @@ public class QueryTest extends BaseTest {
 
   @Test
   public void testMinorFiltering() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -231,7 +231,7 @@ public class QueryTest extends BaseTest {
 
   @Test
   public void testMinorEqualsFiltering() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -252,7 +252,7 @@ public class QueryTest extends BaseTest {
 
   @Test
   public void testNotFiltering() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();

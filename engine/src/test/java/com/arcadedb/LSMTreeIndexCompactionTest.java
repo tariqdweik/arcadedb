@@ -107,7 +107,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
   }
 
   private void insertData() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType(TYPE_NAME)) {

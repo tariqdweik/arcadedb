@@ -4,7 +4,7 @@
 package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.network.binary.NetworkProtocolException;
 import com.arcadedb.schema.SchemaImpl;
@@ -29,7 +29,7 @@ public class DatabaseStructureRequest extends HAAbstractCommand {
 
   @Override
   public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
-    final Database db = server.getServer().getDatabase(databaseName);
+    final DatabaseInternal db = (DatabaseInternal) server.getServer().getDatabase(databaseName);
 
     final File file = new File(db.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
     try {

@@ -21,7 +21,7 @@ public class FunctionTest extends BaseTest {
 
   @Override
   protected void beginTest() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))
@@ -41,7 +41,7 @@ public class FunctionTest extends BaseTest {
 
   @Test
   public void testCountFunction() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -63,7 +63,7 @@ public class FunctionTest extends BaseTest {
 
   @Test
   public void testAvgFunction() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -85,7 +85,7 @@ public class FunctionTest extends BaseTest {
 
   @Test
   public void testMaxFunction() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();
@@ -106,7 +106,7 @@ public class FunctionTest extends BaseTest {
 
   @Test
   public void testMinFunction() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database db) {
         Map<String, Object> params = new HashMap<>();

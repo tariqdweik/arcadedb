@@ -731,17 +731,17 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
   @Override
   public boolean isTransactionActive() {
-    final TransactionContext tx = getTransaction();
+    final Transaction tx = getTransaction();
     return tx != null && tx.isActive();
   }
 
   @Override
-  public void transaction(final Transaction txBlock) {
+  public void transaction(final TransactionScope txBlock) {
     transaction(txBlock, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
   }
 
   @Override
-  public void transaction(final Transaction txBlock, final int retries) {
+  public void transaction(final TransactionScope txBlock, final int retries) {
     if (txBlock == null)
       throw new IllegalArgumentException("Transaction block is null");
 
@@ -761,7 +761,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         lastException = e;
         continue;
       } catch (Exception e) {
-        final TransactionContext tx = getTransaction();
+        final Transaction tx = getTransaction();
         if (tx != null && tx.isActive())
           rollback();
         throw e;

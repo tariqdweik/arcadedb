@@ -225,7 +225,7 @@ public class PokecBenchmark {
     LogManager.instance().info(this, "- elapsed: " + (System.currentTimeMillis() - begin));
   }
 
-  private void warmup(Database db) throws IOException {
+  private void warmup(DatabaseInternal db) throws IOException {
     LogManager.instance().info(this, "Warming up...");
 
     final long begin = System.currentTimeMillis();

@@ -419,11 +419,11 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  public void transaction(final Database.Transaction txBlock) {
+  public void transaction(final Database.TransactionScope txBlock) {
     transaction(txBlock, database.getConfiguration().getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
   }
 
-  public void transaction(final Database.Transaction txBlock, final int retries) {
+  public void transaction(final Database.TransactionScope txBlock, final int retries) {
     scheduleTask((int) (transactionCounter.getAndIncrement() % executorThreads.length), new DatabaseAsyncTransaction(txBlock, retries));
   }
 

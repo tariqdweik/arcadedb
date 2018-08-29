@@ -27,7 +27,7 @@ import java.util.*;
  * <p>
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
-public class TransactionContext {
+public class TransactionContext implements Transaction {
   protected     DatabaseInternal         database;
   private       Map<PageId, MutablePage> modifiedPages;
   private       Map<PageId, MutablePage> newPages;
@@ -69,6 +69,7 @@ public class TransactionContext {
     this.useWAL = database.getConfiguration().getValueAsBoolean(GlobalConfiguration.TX_WAL);
   }
 
+  @Override
   public void begin() {
     if (status != STATUS.INACTIVE)
       throw new TransactionException("Transaction already begun");
@@ -82,6 +83,7 @@ public class TransactionContext {
       newPages = new LinkedHashMap<>();
   }
 
+  @Override
   public Binary commit() {
     if (status == STATUS.INACTIVE)
       throw new TransactionException("Transaction not begun");
@@ -148,14 +150,17 @@ public class TransactionContext {
     }
   }
 
+  @Override
   public void setUseWAL(final boolean useWAL) {
     this.useWAL = useWAL;
   }
 
+  @Override
   public void setWALFlush(final WALFile.FLUSH_TYPE flush) {
     this.walFlush = flush;
   }
 
+  @Override
   public void rollback() {
     LogManager.instance()
         .debug(this, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
@@ -253,6 +258,7 @@ public class TransactionContext {
     return newPageCounters.get(indexFileId);
   }
 
+  @Override
   public boolean isActive() {
     return modifiedPages != null;
   }
@@ -467,10 +473,12 @@ public class TransactionContext {
     indexKeysToLocks.add(indexKey);
   }
 
+  @Override
   public boolean isAsyncFlush() {
     return asyncFlush;
   }
 
+  @Override
   public void setAsyncFlush(final boolean value) {
     this.asyncFlush = value;
   }

@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ACIDTransactionTest extends BaseTest {
   @Override
   protected void beginTest() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V")) {

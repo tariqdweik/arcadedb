@@ -4,7 +4,7 @@
 package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.network.binary.NetworkProtocolException;
@@ -28,7 +28,7 @@ public class FileContentRequest extends HAAbstractCommand {
 
   @Override
   public HACommand execute(final HAServer server, final String remoteServerName, final long messageNumber) {
-    final Database db = server.getServer().getDatabase(databaseName);
+    final DatabaseInternal db = (DatabaseInternal) server.getServer().getDatabase(databaseName);
     final int pageSize = db.getFileManager().getFile(fileId).getPageSize();
 
     try {

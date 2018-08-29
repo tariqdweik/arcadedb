@@ -4,9 +4,12 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.engine.FileManager;
+import com.arcadedb.engine.PageManager;
 import com.arcadedb.engine.TransactionManager;
 import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.graph.GraphEngine;
+import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.StatementCache;
 
@@ -25,6 +28,16 @@ public interface DatabaseInternal extends Database {
   Map<String, Object> getStats();
 
   DatabaseInternal getEmbedded();
+
+  DatabaseContext.DatabaseContextTL getContext();
+
+  FileManager getFileManager();
+
+  RecordFactory getRecordFactory();
+
+  BinarySerializer getSerializer();
+
+  PageManager getPageManager();
 
   void registerCallback(CALLBACK_EVENT event, Callable<Void> callback);
 

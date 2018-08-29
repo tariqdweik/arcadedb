@@ -28,7 +28,7 @@ public abstract class BaseGraphTest extends BaseTest {
   public void beginTest() {
     FileUtils.deleteRecursively(new File(DB_PATH));
 
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));

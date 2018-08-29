@@ -27,10 +27,10 @@ public class DatabaseComparator {
 
   public void compare(final Database db1, final Database db2) {
     compareTypes(db1, db2);
-    compareBuckets(db1, db2);
+    compareBuckets((DatabaseInternal) db1, (DatabaseInternal) db2);
   }
 
-  public void compareBuckets(final Database db1, final Database db2) {
+  public void compareBuckets(final DatabaseInternal db1, final DatabaseInternal db2) {
     final Collection<Bucket> buckets1 = db1.getSchema().getBuckets();
     final Collection<Bucket> buckets2 = db2.getSchema().getBuckets();
     if (buckets1.size() != buckets2.size())

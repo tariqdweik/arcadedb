@@ -30,7 +30,7 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     this.bufferSize = buffer.size();
   }
 
-  public MutableEdgeChunk(final Database database, final int bufferSize) {
+  public MutableEdgeChunk(final DatabaseInternal database, final int bufferSize) {
     super(database, null, new Binary(bufferSize));
     this.buffer.setAutoResizable(false);
     this.bufferSize = bufferSize;

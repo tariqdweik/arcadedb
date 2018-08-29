@@ -7,10 +7,7 @@ package com.arcadedb.server;
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseComparator;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.RID;
+import com.arcadedb.database.*;
 import com.arcadedb.graph.MutableEdge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.SchemaImpl;
@@ -68,7 +65,7 @@ public abstract class BaseGraphServerTest {
       databases = new Database[0];
 
     if (isPopulateDatabase()) {
-      getDatabase(0).transaction(new Database.Transaction() {
+      getDatabase(0).transaction(new Database.TransactionScope() {
         @Override
         public void execute(Database database) {
           Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
@@ -326,8 +323,8 @@ public abstract class BaseGraphServerTest {
       LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
 
       for (int i = 1; i < servers2Check.length; ++i) {
-        final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
-        final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());
+        final DatabaseInternal db1 = (DatabaseInternal) getServerDatabase(servers2Check[0], getDatabaseName());
+        final DatabaseInternal db2 = (DatabaseInternal) getServerDatabase(servers2Check[i], getDatabaseName());
 
         LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
         new DatabaseComparator().compare(db1, db2);

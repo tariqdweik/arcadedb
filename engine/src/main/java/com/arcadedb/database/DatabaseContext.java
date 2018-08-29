@@ -31,7 +31,7 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
       } else {
         if (current.transaction != null) {
           // ROLLBACK PREVIOUS TX
-          final TransactionContext tx = current.transaction;
+          final Transaction tx = current.transaction;
           current.transaction = null;
           tx.rollback();
         }

@@ -5,7 +5,7 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.utility.RWLockContext;
@@ -36,7 +36,7 @@ public class Dictionary extends PaginatedComponent {
 
   public static class PaginatedComponentFactoryHandler implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
     @Override
-    public PaginatedComponent createOnLoad(Database database, String name, String filePath, final int fileId, PaginatedFile.MODE mode, int pageSize)
+    public PaginatedComponent createOnLoad(DatabaseInternal database, String name, String filePath, final int fileId, PaginatedFile.MODE mode, int pageSize)
         throws IOException {
       return new Dictionary(database, name, filePath, fileId, mode, pageSize);
     }
@@ -45,7 +45,7 @@ public class Dictionary extends PaginatedComponent {
   /**
    * Called at creation time.
    */
-  public Dictionary(final Database database, final String name, String filePath, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  public Dictionary(final DatabaseInternal database, final String name, String filePath, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, DICT_EXT, mode, pageSize);
     if (file.getSize() == 0) {
       // NEW FILE, CREATE HEADER PAGE
@@ -58,7 +58,7 @@ public class Dictionary extends PaginatedComponent {
   /**
    * Called at load time.
    */
-  public Dictionary(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
+  public Dictionary(final DatabaseInternal database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
       throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     if (file.getSize() == 0) {

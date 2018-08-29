@@ -4,7 +4,7 @@
 
 package com.arcadedb.engine;
 
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -12,14 +12,14 @@ import java.util.Map;
 
 public class PaginatedComponentFactory {
   private final Map<String, PaginatedComponentFactoryHandler> map = new HashMap<>();
-  private final Database                                      database;
+  private final DatabaseInternal                              database;
 
   public interface PaginatedComponentFactoryHandler {
-    PaginatedComponent createOnLoad(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
+    PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
         final int pageSize) throws IOException;
   }
 
-  public PaginatedComponentFactory(final Database database) {
+  public PaginatedComponentFactory(final DatabaseInternal database) {
     this.database = database;
   }
 

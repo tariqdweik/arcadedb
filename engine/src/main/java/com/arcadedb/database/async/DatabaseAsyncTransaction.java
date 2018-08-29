@@ -7,10 +7,10 @@ package com.arcadedb.database.async;
 import com.arcadedb.database.Database;
 
 public class DatabaseAsyncTransaction extends DatabaseAsyncAbstractTask {
-  public final Database.Transaction tx;
-  public final int                  retries;
+  public final Database.TransactionScope tx;
+  public final int                       retries;
 
-  public DatabaseAsyncTransaction(final Database.Transaction tx, final int retries) {
+  public DatabaseAsyncTransaction(final Database.TransactionScope tx, final int retries) {
     this.tx = tx;
     this.retries = retries;
   }

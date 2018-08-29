@@ -6,13 +6,10 @@ package com.arcadedb.database;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
-import com.arcadedb.engine.FileManager;
-import com.arcadedb.engine.PageManager;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.Schema;
-import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Iterator;
@@ -20,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface Database extends AutoCloseable {
-  interface Transaction {
+  interface TransactionScope {
     void execute(Database database);
   }
 
@@ -47,9 +44,9 @@ public interface Database extends AutoCloseable {
 
   boolean checkTransactionIsActive();
 
-  void transaction(Transaction txBlock);
+  void transaction(TransactionScope txBlock);
 
-  void transaction(Transaction txBlock, int retries);
+  void transaction(TransactionScope txBlock, int retries);
 
   void setAutoTransaction(boolean autoTransaction);
 
@@ -85,18 +82,6 @@ public interface Database extends AutoCloseable {
       Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
 
   Schema getSchema();
-
-  //TODO: MOVE TO DATABASE INTERNAL
-  FileManager getFileManager();
-
-  //TODO: MOVE TO DATABASE INTERNAL
-  RecordFactory getRecordFactory();
-
-  //TODO: MOVE TO DATABASE INTERNAL
-  BinarySerializer getSerializer();
-
-  //TODO: MOVE TO DATABASE INTERNAL
-  PageManager getPageManager();
 
   ResultSet command(String language, String query, Map<String, Object> args);
 

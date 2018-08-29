@@ -34,7 +34,7 @@ public class Bucket extends PaginatedComponent {
 
   public static class PaginatedComponentFactoryHandler implements PaginatedComponentFactory.PaginatedComponentFactoryHandler {
     @Override
-    public PaginatedComponent createOnLoad(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
+    public PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode,
         final int pageSize) throws IOException {
       return new Bucket(database, name, filePath, id, mode, pageSize);
     }
@@ -43,14 +43,14 @@ public class Bucket extends PaginatedComponent {
   /**
    * Called at creation time.
    */
-  public Bucket(final Database database, final String name, final String filePath, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  public Bucket(final DatabaseInternal database, final String name, final String filePath, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, BUCKET_EXT, mode, pageSize);
   }
 
   /**
    * Called at load time.
    */
-  public Bucket(final Database database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
+  public Bucket(final DatabaseInternal database, final String name, final String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize)
       throws IOException {
     super(database, name, filePath, id, mode, pageSize);
   }

@@ -107,7 +107,7 @@ public class SerializerTest extends BaseTest {
   public void testLiteralPropertiesInDocument() {
     final BinarySerializer serializer = new BinarySerializer();
 
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
@@ -160,7 +160,7 @@ public class SerializerTest extends BaseTest {
   public void testListPropertiesInDocument() {
     final BinarySerializer serializer = new BinarySerializer();
 
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");
@@ -268,7 +268,7 @@ public class SerializerTest extends BaseTest {
   public void testMapPropertiesInDocument() {
     final BinarySerializer serializer = new BinarySerializer();
 
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         database.getSchema().createDocumentType("Test");

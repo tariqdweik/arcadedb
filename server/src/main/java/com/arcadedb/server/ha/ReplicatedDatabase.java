@@ -137,6 +137,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public DatabaseContext.DatabaseContextTL getContext() {
+    return proxied.getContext();
+  }
+
+  @Override
   public void close() {
     proxied.close();
   }
@@ -262,7 +267,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public void transaction(final Transaction txBlock) {
+  public void transaction(final TransactionScope txBlock) {
     proxied.transaction(txBlock);
   }
 
@@ -356,7 +361,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public void transaction(final Transaction txBlock, final int retries) {
+  public void transaction(final TransactionScope txBlock, final int retries) {
     proxied.transaction(txBlock, retries);
   }
 

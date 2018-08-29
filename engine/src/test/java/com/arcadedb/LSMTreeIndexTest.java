@@ -27,7 +27,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testGet() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -55,7 +55,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testRemoveKeys() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         int total = 0;
@@ -92,7 +92,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testRemoveEntries() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -132,7 +132,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testRemoveEntriesMultipleTimes() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         int total = 0;
@@ -172,7 +172,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testRemoveAndPutEntries() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -214,7 +214,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testUpdateKeys() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -289,7 +289,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testPutDuplicates() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -329,7 +329,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testScanIndexAscending() throws IOException {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -364,7 +364,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testScanIndexDescending() throws IOException {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -399,7 +399,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testScanIndexAscendingPartial() throws IOException {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -435,7 +435,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testScanIndexDescendingPartial() throws IOException {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -470,7 +470,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testScanIndexRange() throws IOException {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
 
@@ -615,7 +615,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   protected void beginTest() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));

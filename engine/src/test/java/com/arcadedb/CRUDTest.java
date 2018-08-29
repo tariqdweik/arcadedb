@@ -143,7 +143,7 @@ public class CRUDTest extends BaseTest {
   }
 
   private void createAll() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType("V"))

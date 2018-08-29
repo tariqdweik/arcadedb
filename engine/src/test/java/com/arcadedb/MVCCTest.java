@@ -63,7 +63,7 @@ public class MVCCTest extends BaseTest {
         final Random rnd = new Random();
 
         for (long txId = 0; txId < TOT_TX; ++txId) {
-          database.asynch().transaction(new Database.Transaction() {
+          database.asynch().transaction(new Database.TransactionScope() {
             @Override
             public void execute(Database database) {
               Assertions.assertTrue(database.getTransaction().getModifiedPages() == 0);
@@ -111,7 +111,7 @@ public class MVCCTest extends BaseTest {
     long begin = System.currentTimeMillis();
 
     try {
-      database.transaction(new Database.Transaction() {
+      database.transaction(new Database.TransactionScope() {
         @Override
         public void execute(Database database) {
           for (long row = 0; row < TOT_ACCOUNT; ++row) {

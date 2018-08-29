@@ -176,7 +176,7 @@ public class TransactionTypeTest extends BaseTest {
 
   @Override
   protected void beginTest() {
-    database.transaction(new Database.Transaction() {
+    database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         if (!database.getSchema().existsType(TYPE_NAME)) {

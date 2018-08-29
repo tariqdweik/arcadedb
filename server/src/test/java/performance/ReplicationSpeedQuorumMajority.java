@@ -50,7 +50,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
       databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
     }
 
-    getDatabase(0).transaction(new Database.Transaction() {
+    getDatabase(0).transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
         if (isPopulateDatabase()) {

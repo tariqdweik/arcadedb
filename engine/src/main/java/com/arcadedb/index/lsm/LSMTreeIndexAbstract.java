@@ -5,7 +5,7 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.MutablePage;
@@ -71,7 +71,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Called at creation time.
    */
-  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, String filePath,
+  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath,
       final String ext, final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     super(database, name, filePath, ext, mode, pageSize);
     this.mainIndex = mainIndex;
@@ -84,7 +84,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Called at cloning time.
    */
-  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, String filePath,
+  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath,
       final String ext, final byte[] keyTypes, final int pageSize) throws IOException {
     super(database, name, filePath, TEMP_EXT + ext, PaginatedFile.MODE.READ_WRITE, pageSize);
     this.mainIndex = mainIndex;
@@ -97,7 +97,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Called at load time (1st page only).
    */
-  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, String filePath, final int id,
+  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath, final int id,
       final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     this.mainIndex = mainIndex;

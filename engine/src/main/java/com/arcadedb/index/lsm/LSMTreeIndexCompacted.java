@@ -4,10 +4,7 @@
 
 package com.arcadedb.index.lsm;
 
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.TrackableBinary;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PageId;
@@ -29,7 +26,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
   /**
    * Called at creation time.
    */
-  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, final String filePath,
       final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
     createNewPage(0);
@@ -38,7 +35,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
   /**
    * Called at cloning time.
    */
-  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, final String filePath,
       final byte[] keyTypes, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
   }
@@ -46,7 +43,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
   /**
    * Called at load time (1st page only).
    */
-  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final Database database, final String name, final boolean unique, final String filePath,
+  public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, final String filePath,
       final int id, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, id, mode, pageSize);
 
