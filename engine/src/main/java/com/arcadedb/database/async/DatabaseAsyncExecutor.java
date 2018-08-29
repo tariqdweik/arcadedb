@@ -36,13 +36,7 @@ public class DatabaseAsyncExecutor {
   private       AtomicLong         commandRoundRobinIndex = new AtomicLong();
 
   // SPECIAL TASKS
-  public final static DatabaseAsyncTask FORCE_COMMIT = new DatabaseAsyncTask() {
-    @Override
-    public String toString() {
-      return "FORCE_COMMIT";
-    }
-  };
-  public final static DatabaseAsyncTask FORCE_EXIT   = new DatabaseAsyncTask() {
+  public final static DatabaseAsyncTask FORCE_EXIT = new DatabaseAsyncAbstractTask() {
     @Override
     public String toString() {
       return "FORCE_EXIT";
@@ -80,8 +74,11 @@ public class DatabaseAsyncExecutor {
           if (message != null) {
             LogManager.instance().debug(this, "Received async message %s (threadId=%d)", message, Thread.currentThread().getId());
 
-            if (message == FORCE_COMMIT) {
-              // COMMIT SPECIAL CASE
+            if (message == FORCE_EXIT) {
+
+              break;
+
+            } else if (message instanceof DatabaseAsyncCommit) {
               try {
                 database.commit();
                 onOk();
@@ -89,10 +86,6 @@ public class DatabaseAsyncExecutor {
                 onError(e);
               }
               database.begin();
-
-            } else if (message == FORCE_EXIT) {
-
-              break;
 
             } else if (message instanceof DatabaseAsyncTransaction) {
               final DatabaseAsyncTransaction task = (DatabaseAsyncTransaction) message;
@@ -284,6 +277,8 @@ public class DatabaseAsyncExecutor {
 
             }
 
+            message.completed();
+
           } else if (shutdown)
             break;
 
@@ -298,14 +293,10 @@ public class DatabaseAsyncExecutor {
         }
       }
 
-      try
-
-      {
+      try {
         database.commit();
         onOk();
-      } catch (Exception e)
-
-      {
+      } catch (Exception e) {
         onError(e);
       }
     }
@@ -383,49 +374,24 @@ public class DatabaseAsyncExecutor {
     if (executorThreads == null)
       return;
 
-    for (int i = 0; i < executorThreads.length; ++i) {
+    final DatabaseAsyncCommit[] semaphores = new DatabaseAsyncCommit[executorThreads.length];
+
+    for (int i = 0; i < executorThreads.length; ++i)
       try {
-        executorThreads[i].queue.put(FORCE_COMMIT);
+        semaphores[i] = new DatabaseAsyncCommit();
+        executorThreads[i].queue.put(semaphores[i]);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         return;
       }
-    }
 
-    DatabaseAsyncTask lastMessage = null;
-    int completed = 0;
-    while (true) {
-      for (int i = 0; i < executorThreads.length; ++i) {
-        int messages = executorThreads[i].queue.size();
-        if (messages == 0)
-          ++completed;
-        else {
-          final DatabaseAsyncTask currentMessage = executorThreads[i].queue.peek();
-          if (lastMessage != null) {
-            if (lastMessage == currentMessage) {
-              // SAME MESSAGE, THE THREAD IS STUCK
-              completed++;
-            }
-          }
-
-          lastMessage = currentMessage;
-
-          LogManager.instance().debug(this, "Waiting for completion async thread %s found %d messages still to be processed", executorThreads[i], messages);
-          break;
-        }
+    for (int i = 0; i < semaphores.length; ++i)
+      try {
+        semaphores[i].waitForCompletition(2000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
       }
-
-      if (completed < executorThreads.length) {
-        try {
-          Thread.sleep(500);
-          continue;
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          break;
-        }
-      }
-      break;
-    }
   }
 
   public void command(final String language, final String query, final Map<String, Object> args, final SQLCallback callback) {

@@ -6,7 +6,7 @@ package com.arcadedb.database.async;
 
 import com.arcadedb.index.Index;
 
-public class DatabaseAsyncIndexCompaction implements DatabaseAsyncTask {
+public class DatabaseAsyncIndexCompaction extends DatabaseAsyncAbstractTask {
   public final Index index;
 
   public DatabaseAsyncIndexCompaction(final Index index) {

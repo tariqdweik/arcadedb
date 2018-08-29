@@ -4,6 +4,7 @@
 
 package com.arcadedb.database.async;
 
-public interface DatabaseAsyncTask {
-  void completed();
+public abstract class DatabaseAsyncAbstractTask implements DatabaseAsyncTask {
+  public void completed() {
+  }
 }
