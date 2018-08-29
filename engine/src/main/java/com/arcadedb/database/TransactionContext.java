@@ -9,6 +9,7 @@ import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.TransactionException;
+import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
@@ -27,18 +28,40 @@ import java.util.*;
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class TransactionContext {
-  protected     DatabaseInternal               database;
-  private       Map<PageId, MutablePage>       modifiedPages;
-  private       Map<PageId, MutablePage>       newPages;
-  private final Map<Integer, Integer>          newPageCounters       = new HashMap<>();
-  private final Map<RID, Record>               immutableRecordsCache = new HashMap<>(1024);
-  private final Map<RID, Record>               modifiedRecordsCache  = new HashMap<>(1024);
-  private       boolean                        useWAL;
-  private       boolean                        asyncFlush            = true;
-  private       WALFile.FLUSH_TYPE             walFlush;
-  private       Collection<Integer>            lockedFiles;
-  private final List<DocumentIndexer.IndexKey> indexKeysToLocks      = new ArrayList<>();
-  private       long                           txId                  = -1;
+  protected     DatabaseInternal         database;
+  private       Map<PageId, MutablePage> modifiedPages;
+  private       Map<PageId, MutablePage> newPages;
+  private final Map<Integer, Integer>    newPageCounters       = new HashMap<>();
+  private final Map<RID, Record>         immutableRecordsCache = new HashMap<>(1024);
+  private final Map<RID, Record>         modifiedRecordsCache  = new HashMap<>(1024);
+  private       boolean                  useWAL;
+  private       boolean                  asyncFlush            = true;
+  private       WALFile.FLUSH_TYPE       walFlush;
+  private       Collection<Integer>      lockedFiles;
+  private final List<IndexKey>           indexKeysToLocks      = new ArrayList<>();
+  private       long                     txId                  = -1;
+  private       STATUS                   status                = STATUS.INACTIVE;
+
+  public enum STATUS {INACTIVE, BEGUN, COMMIT_1ST_PHASE, COMMIT_2ND_PHASE}
+
+  public static class IndexKey {
+    public final boolean  add;
+    public final Index    index;
+    public final Object[] keyValues;
+    public final RID      rid;
+
+    public IndexKey(final boolean add, final Index index, final Object[] keyValues, final RID rid) {
+      this.add = add;
+      this.index = index;
+      this.keyValues = keyValues;
+      this.rid = rid;
+    }
+
+    @Override
+    public String toString() {
+      return "IndexKey(" + (add ? "add" : "del") + index.getName() + "=" + Arrays.toString(keyValues) + ")";
+    }
+  }
 
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
@@ -47,8 +70,11 @@ public class TransactionContext {
   }
 
   public void begin() {
-    if (modifiedPages != null)
+    if (status != STATUS.INACTIVE)
       throw new TransactionException("Transaction already begun");
+
+    status = STATUS.BEGUN;
+
     modifiedPages = new HashMap<>();
 
     if (newPages == null)
@@ -57,8 +83,11 @@ public class TransactionContext {
   }
 
   public Binary commit() {
-    if (modifiedPages == null)
+    if (status == STATUS.INACTIVE)
       throw new TransactionException("Transaction not begun");
+
+    if (status != STATUS.BEGUN)
+      throw new TransactionException("Transaction already in commit phase");
 
     final Pair<Binary, List<MutablePage>> changes = commit1stPhase(true);
 
@@ -107,13 +136,6 @@ public class TransactionContext {
         it.remove();
       }
     }
-//
-//    for (Iterator<Record> it = modifiedRecordsCache.values().iterator(); it.hasNext(); ) {
-//      final BaseRecord r = (BaseRecord) it.next();
-//      if (r.getIdentity().getBucketId() == bucketId && r.getIdentity().getPosition() / Bucket.MAX_RECORDS_IN_PAGE == pageNum) {
-//        r.removeBuffer();
-//      }
-//    }
   }
 
   public void removeRecordFromCache(final Record record) {
@@ -276,7 +298,7 @@ public class TransactionContext {
   /**
    * Executes 1st phase from a replica.
    */
-  public void commitFromReplica(final WALFile.WALTransaction buffer, final List<DocumentIndexer.IndexKey> keysTx) throws TransactionException {
+  public void commitFromReplica(final WALFile.WALTransaction buffer, final List<IndexKey> keysTx) throws TransactionException {
     try {
       for (WALFile.WALPage p : buffer.pages) {
         final PaginatedFile file = database.getFileManager().getFile(p.fileId);
@@ -319,11 +341,16 @@ public class TransactionContext {
    * Locks the files in order, then checks all the pre-conditions.
    */
   public Pair<Binary, List<MutablePage>> commit1stPhase(final boolean isLeader) {
-    if (lockedFiles != null)
-      throw new TransactionException("Cannot execute 1st phase commit because it was already started");
+    if (status == STATUS.INACTIVE)
+      throw new TransactionException("Transaction not started");
+
+    if (status != STATUS.BEGUN)
+      throw new TransactionException("Transaction already in commit phase");
+
+    status = STATUS.COMMIT_1ST_PHASE;
 
     final int totalImpactedPages = modifiedPages.size() + (newPages != null ? newPages.size() : 0);
-    if (totalImpactedPages == 0) {
+    if (totalImpactedPages == 0 && indexKeysToLocks.isEmpty()) {
       // EMPTY TRANSACTION = NO CHANGES
       modifiedPages = null;
       return null;
@@ -340,7 +367,7 @@ public class TransactionContext {
       if (isLeader)
         // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
         for (int i = 0; i < indexKeysToLocks.size(); ++i)
-          indexInsertionInTx(indexKeysToLocks.get(i));
+          applyIndexChangesAtCommit(indexKeysToLocks.get(i));
 
       // CHECK THE VERSIONS FIRST
       final List<MutablePage> pages = new ArrayList<>();
@@ -394,8 +421,10 @@ public class TransactionContext {
   }
 
   public void commit2ndPhase(final Pair<Binary, List<MutablePage>> changes) {
-    if (lockedFiles == null)
+    if (status != STATUS.COMMIT_1ST_PHASE)
       throw new TransactionException("Cannot execute 2nd phase commit without having started the 1st phase");
+
+    status = STATUS.COMMIT_2ND_PHASE;
 
     final PageManager pageManager = database.getPageManager();
 
@@ -434,7 +463,7 @@ public class TransactionContext {
     }
   }
 
-  public void addIndexKeyLock(final DocumentIndexer.IndexKey indexKey) {
+  public void addIndexKeyLock(final IndexKey indexKey) {
     indexKeysToLocks.add(indexKey);
   }
 
@@ -446,37 +475,12 @@ public class TransactionContext {
     this.asyncFlush = value;
   }
 
-  private List<Integer> lockFilesInOrder() {
-    final Set<Integer> modifiedFiles = new HashSet<>();
-
-    for (PageId p : modifiedPages.keySet())
-      modifiedFiles.add(p.getFileId());
-    if (newPages != null)
-      for (PageId p : newPages.keySet())
-        modifiedFiles.add(p.getFileId());
-
-    // LOCK ALL THE FILES IMPACTED BY THE INDEX KEYS
-    for (DocumentIndexer.IndexKey key : indexKeysToLocks) {
-      final DocumentType type = database.getSchema().getType(key.typeName);
-      final List<Bucket> buckets = type.getBuckets(false);
-      for (Bucket b : buckets)
-        modifiedFiles.add(b.getId());
-    }
-
-    modifiedFiles.addAll(newPageCounters.keySet());
-
-    final long timeout = database.getConfiguration().getValueAsLong(GlobalConfiguration.COMMIT_LOCK_TIMEOUT);
-
-    LogManager.instance().info(this, "tx locking files %s...", modifiedFiles);
-
-    return database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
-  }
-
   public void reset() {
+    status = STATUS.INACTIVE;
+
     final TransactionManager txManager = database.getTransactionManager();
 
     if (lockedFiles != null) {
-      LogManager.instance().info(this, "tx unlocking files %s...", lockedFiles);
       txManager.unlockFilesInOrder(lockedFiles);
       lockedFiles = null;
     }
@@ -491,29 +495,64 @@ public class TransactionContext {
     txId = -1;
   }
 
-  public List<DocumentIndexer.IndexKey> getIndexKeys() {
+  public List<IndexKey> getIndexKeys() {
     return indexKeysToLocks;
+  }
+
+  public STATUS getStatus() {
+    return status;
+  }
+
+  public void setStatus(final STATUS status) {
+    this.status = status;
   }
 
   /**
    * Called at commit time in the middle of the lock to avoid concurrent insertion of the same key.
    */
-  private void indexInsertionInTx(final DocumentIndexer.IndexKey key) {
-    if (key.index.isUnique()) {
-      final DocumentType type = database.getSchema().getType(key.typeName);
+  private void applyIndexChangesAtCommit(final IndexKey key) {
+    if (key.add) {
+      if (key.index.isUnique()) {
+        final DocumentType type = database.getSchema().getType(key.index.getTypeName());
 
-      // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-      final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.keyNames);
-      if (typeIndexes != null) {
-        for (DocumentType.IndexMetadata i : typeIndexes) {
-          final Set<RID> found = i.index.get(key.keyValues, 1);
-          if (!found.isEmpty())
-            throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
+        // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
+        final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.index.getPropertyNames());
+        if (typeIndexes != null) {
+          for (DocumentType.IndexMetadata i : typeIndexes) {
+            final Set<RID> found = i.index.get(key.keyValues, 1);
+            if (!found.isEmpty())
+              throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
+          }
         }
       }
+
+      // AVOID CHECKING FOR UNIQUENESS BECAUSE IT HAS ALREADY BEEN CHECKED
+      key.index.put(key.keyValues, key.rid);
+    } else
+      key.index.remove(key.keyValues, key.rid);
+  }
+
+  private List<Integer> lockFilesInOrder() {
+    final Set<Integer> modifiedFiles = new HashSet<>();
+
+    for (PageId p : modifiedPages.keySet())
+      modifiedFiles.add(p.getFileId());
+    if (newPages != null)
+      for (PageId p : newPages.keySet())
+        modifiedFiles.add(p.getFileId());
+
+    // LOCK ALL THE FILES IMPACTED BY THE INDEX KEYS
+    for (IndexKey key : indexKeysToLocks) {
+      final DocumentType type = database.getSchema().getType(key.index.getTypeName());
+      final List<Bucket> buckets = type.getBuckets(false);
+      for (Bucket b : buckets)
+        modifiedFiles.add(b.getId());
     }
 
-    // AVOID CHECKING FOR UNIQUENESS BECAUSE IT HAS ALREADY BEEN CHECKED
-    key.index.put(key.keyValues, key.rid, false);
+    modifiedFiles.addAll(newPageCounters.keySet());
+
+    final long timeout = database.getConfiguration().getValueAsLong(GlobalConfiguration.COMMIT_LOCK_TIMEOUT);
+
+    return database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
   }
 }

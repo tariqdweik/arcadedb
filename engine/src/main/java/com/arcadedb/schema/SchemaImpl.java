@@ -161,7 +161,6 @@ public class SchemaImpl implements Schema {
   public void removeFile(final int fileId) {
     if (fileId >= files.size())
       return;
-    LogManager.instance().info(this, "Removing file id %d", fileId);
     files.set(fileId, null);
   }
 
@@ -231,7 +230,7 @@ public class SchemaImpl implements Schema {
   public void changeIndexName(final String oldIndexName, final String newIndexName) {
     final Index idx = indexMap.remove(oldIndexName);
     if (idx != null) {
-      LogManager.instance().info(this, "Changing name '%s' -> '%s' for index fileId=%d", oldIndexName, newIndexName, idx.getFileId());
+      LogManager.instance().debug(this, "Changing name '%s' -> '%s' for index fileId=%d", oldIndexName, newIndexName, idx.getFileId());
       indexMap.put(newIndexName, idx);
       saveConfiguration();
     }
@@ -677,8 +676,6 @@ public class SchemaImpl implements Schema {
   }
 
   public void registerFile(final PaginatedComponent file) {
-    LogManager.instance().info(this, "Registering file %s with id %d", file, file.getId());
-
     while (files.size() < file.getId() + 1)
       files.add(null);
 

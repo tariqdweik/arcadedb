@@ -15,7 +15,6 @@ import com.arcadedb.engine.PageId;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.exception.DatabaseOperationException;
-import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
@@ -116,14 +115,10 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
   }
 
   public void put(final Object[] keys, final RID rid) {
-    put(keys, rid, true);
-  }
-
-  public void put(final Object[] keys, final RID rid, final boolean checkForUnique) {
     if (rid == null)
       throw new IllegalArgumentException("RID is null");
 
-    internalPut(keys, rid, checkForUnique);
+    internalPut(keys, rid);
   }
 
   public void remove(final Object[] keys) {
@@ -380,7 +375,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     });
   }
 
-  protected void internalPut(final Object[] keys, final RID rid, final boolean checkForUnique) {
+  protected void internalPut(final Object[] keys, final RID rid) {
     if (keys == null)
       throw new IllegalArgumentException("Keys parameter is null");
 
@@ -389,12 +384,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
     if (keys.length != keyTypes.length)
       throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
-
-    if (unique && checkForUnique) {
-      final Set<RID> result = get(keys, 1);
-      if (!result.isEmpty())
-        throw new DuplicatedKeyException(name, Arrays.toString(keys), result.iterator().next());
-    }
 
     checkForNulls(keys);
 

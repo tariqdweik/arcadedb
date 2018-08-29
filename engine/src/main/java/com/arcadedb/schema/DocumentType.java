@@ -361,6 +361,8 @@ public class DocumentType {
       indexesByProperties.put(propertyList, list2);
     }
     list2.add(metadata);
+
+    index.setMetadata(name, propertyNames);
   }
 
   protected void addBucketInternal(final Bucket bucket) {

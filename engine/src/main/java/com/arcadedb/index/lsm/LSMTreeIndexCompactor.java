@@ -37,6 +37,8 @@ public class LSMTreeIndexCompactor {
     if (totalPages < 2)
       return false;
 
+    final long startTime = System.currentTimeMillis();
+
     LSMTreeIndexCompacted compactedIndex = index.getSubIndex();
     if (compactedIndex == null) {
       // CREATE A NEW INDEX
@@ -228,7 +230,7 @@ public class LSMTreeIndexCompactor {
       compactedPages += pagesToCompact;
 
       LogManager.instance()
-          .info(mainIndex, "- compacted %d pages, remaining %d pages (totalKeys=%d totalValues=%d totalMergedKeys=%d totalMergedValues=%d)", compactedPages,
+          .debug(mainIndex, "- compacted %d pages, remaining %d pages (totalKeys=%d totalValues=%d totalMergedKeys=%d totalMergedValues=%d)", compactedPages,
               (totalPages - compactedPages), totalKeys, totalValues, totalMergedKeys, totalMergedValues);
 
       pageIndex += pagesToCompact;
@@ -237,8 +239,9 @@ public class LSMTreeIndexCompactor {
     final LSMTreeIndexMutable newIndex = mainIndex.splitIndex(totalPages - 1, compactedIndex);
 
     LogManager.instance()
-        .info(mainIndex, "Compaction completed for index '%s'. New index file has %d mutable pages + %d compacted pages (iterations=%d threadId=%d)", index,
-            newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations, Thread.currentThread().getId());
+        .info(mainIndex, "Compaction completed for index '%s' in %dms. New index file has %d mutable pages + %d compacted pages (iterations=%d threadId=%d)",
+            index, (System.currentTimeMillis() - startTime), newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations,
+            Thread.currentThread().getId());
 
     return true;
   }

@@ -8,7 +8,6 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.database.TransactionContext;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.utility.LogManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,7 +83,6 @@ public abstract class PaginatedComponent {
   }
 
   public void drop() throws IOException {
-    LogManager.instance().info(this, "Dropping file %s", file);
     if (database.isOpen()) {
       ((SchemaImpl) database.getSchema()).removeFile(file.getFileId());
       database.getPageManager().deleteFile(file.getFileId());

@@ -3,7 +3,10 @@
  */
 package com.arcadedb.server.ha.message;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.Binary;
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.TransactionContext;
 import com.arcadedb.engine.CompressionFactory;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.NeedRetryException;
@@ -29,7 +32,7 @@ public class TxForwardRequest extends TxRequestAbstract {
   public TxForwardRequest() {
   }
 
-  public TxForwardRequest(final DatabaseInternal database, final Binary bufferChanges, final List<DocumentIndexer.IndexKey> keysTx) {
+  public TxForwardRequest(final DatabaseInternal database, final Binary bufferChanges, final List<TransactionContext.IndexKey> keysTx) {
     super(database.getName(), bufferChanges);
     writeIndexKeysToBuffer(database, keysTx);
   }
@@ -55,7 +58,7 @@ public class TxForwardRequest extends TxRequestAbstract {
       throw new ReplicationException("Database '" + databaseName + "' is closed");
 
     final WALFile.WALTransaction walTx = readTxFromBuffer();
-    final List<DocumentIndexer.IndexKey> keysTx = readIndexKeysFromBuffer(db);
+    final List<TransactionContext.IndexKey> keysTx = readIndexKeysFromBuffer(db);
 
     // FORWARDED FROM A REPLICA
     db.begin();
@@ -76,7 +79,7 @@ public class TxForwardRequest extends TxRequestAbstract {
     return "tx-forward(" + databaseName + ")";
   }
 
-  protected void writeIndexKeysToBuffer(final DatabaseInternal database, final List<DocumentIndexer.IndexKey> keys) {
+  protected void writeIndexKeysToBuffer(final DatabaseInternal database, final List<TransactionContext.IndexKey> keys) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer = new Binary();
@@ -84,16 +87,14 @@ public class TxForwardRequest extends TxRequestAbstract {
     uniqueKeysBuffer.putNumber(keys.size());
 
     for (int i = 0; i < keys.size(); ++i) {
-      final DocumentIndexer.IndexKey key = keys.get(i);
+      final TransactionContext.IndexKey key = keys.get(i);
 
+      uniqueKeysBuffer.putByte((byte) (key.add ? 1 : 0));
       uniqueKeysBuffer.putNumber(key.index.getFileId());
-      uniqueKeysBuffer.putString(key.typeName);
 
-      uniqueKeysBuffer.putNumber(key.keyNames.length);
-      for (int k = 0; k < key.keyNames.length; ++k) {
+      uniqueKeysBuffer.putNumber(key.keyValues.length);
+      for (int k = 0; k < key.keyValues.length; ++k) {
         final byte keyType = BinaryTypes.getTypeFromValue(key.keyValues[k]);
-
-        uniqueKeysBuffer.putString(key.keyNames[k]);
         uniqueKeysBuffer.putByte(keyType);
         serializer.serializeValue(uniqueKeysBuffer, keyType, key.keyValues[k]);
       }
@@ -107,26 +108,24 @@ public class TxForwardRequest extends TxRequestAbstract {
     uniqueKeysBuffer = CompressionFactory.getDefault().compress(uniqueKeysBuffer);
   }
 
-  protected List<DocumentIndexer.IndexKey> readIndexKeysFromBuffer(final DatabaseInternal database) {
+  protected List<TransactionContext.IndexKey> readIndexKeysFromBuffer(final DatabaseInternal database) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer.position(0);
 
     final int keyCount = (int) uniqueKeysBuffer.getNumber();
 
-    final List<DocumentIndexer.IndexKey> keys = new ArrayList<>(keyCount);
+    final List<TransactionContext.IndexKey> keys = new ArrayList<>(keyCount);
 
     for (int i = 0; i < keyCount; ++i) {
+      final boolean add = uniqueKeysBuffer.getByte() == 1;
       final int indexFileId = (int) uniqueKeysBuffer.getNumber();
-      final String typeName = uniqueKeysBuffer.getString();
 
       final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
 
-      final String[] keyNames = new String[keyEntryCount];
       final Object[] keyValues = new Object[keyEntryCount];
 
       for (int k = 0; k < keyEntryCount; ++k) {
-        keyNames[k] = uniqueKeysBuffer.getString();
         final byte keyType = uniqueKeysBuffer.getByte();
         keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
       }
@@ -135,7 +134,7 @@ public class TxForwardRequest extends TxRequestAbstract {
 
       final Index index = (Index) database.getSchema().getFileById(indexFileId);
 
-      final DocumentIndexer.IndexKey key = new DocumentIndexer.IndexKey(index, typeName, keyNames, keyValues, rid);
+      final TransactionContext.IndexKey key = new TransactionContext.IndexKey(add, index, keyValues, rid);
       keys.add(key);
     }
 

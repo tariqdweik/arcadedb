@@ -8,32 +8,9 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class DocumentIndexer {
-
-  public static class IndexKey {
-    public final Index    index;
-    public final String   typeName;
-    public final String[] keyNames;
-    public final Object[] keyValues;
-    public final RID      rid;
-
-    public IndexKey(final Index index, final String typeName, final String[] keyNames, final Object[] keyValues, final RID rid) {
-      this.index = index;
-      this.typeName = typeName;
-      this.keyNames = keyNames;
-      this.keyValues = keyValues;
-      this.rid = rid;
-    }
-
-    @Override
-    public String toString() {
-      return "IndexKey(" + typeName + Arrays.toString(keyNames) + "=" + Arrays.toString(keyValues) + ")";
-    }
-  }
-
   private final EmbeddedDatabase database;
 
   protected DocumentIndexer(final EmbeddedDatabase database) {
@@ -56,10 +33,7 @@ public class DocumentIndexer {
         for (int i = 0; i < keyValues.length; ++i)
           keyValues[i] = record.get(keyNames[i]);
 
-        if (index.isUnique())
-          postponeUniqueInsertion(index, type.getName(), keyNames, keyValues, rid);
-        else
-          index.put(keyValues, rid, false);
+        index.put(keyValues, rid);
       }
     }
   }
@@ -104,11 +78,7 @@ public class DocumentIndexer {
 
         // REMOVE THE OLD ENTRY KEYS/VALUE AND INSERT THE NEW ONE
         index.remove(oldKeyValues, rid);
-
-        if (index.isUnique())
-          postponeUniqueInsertion(index, type.getName(), keyNames, newKeyValues, rid);
-        else
-          index.put(newKeyValues, rid, false);
+        index.put(newKeyValues, rid);
       }
     }
   }
@@ -141,10 +111,5 @@ public class DocumentIndexer {
         index.remove(keyValues, record.getIdentity());
       }
     }
-  }
-
-  private void postponeUniqueInsertion(final Index index, final String typeName, final String[] keyNames, final Object[] keyValues, final RID rid) {
-    // ADD THE KEY TO CHECK AT COMMIT TIME DURING THE LOCK
-    database.getTransaction().addIndexKeyLock(new IndexKey(index, typeName, keyNames, keyValues, rid));
   }
 }

@@ -308,10 +308,12 @@ public class LSMTreeIndexTest extends BaseTest {
             if (!value.isEmpty()) {
               try {
                 index.put(key, new RID(database, 10, 10));
+                database.commit();
                 Assertions.fail();
               } catch (DuplicatedKeyException e) {
                 // OK
               }
+              database.begin();
               found++;
               total++;
             }

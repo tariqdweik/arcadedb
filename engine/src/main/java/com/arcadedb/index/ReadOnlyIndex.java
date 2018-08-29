@@ -12,6 +12,12 @@ import java.util.Map;
 import java.util.Set;
 
 public interface ReadOnlyIndex {
+  void setMetadata(String name, String[] propertyNames);
+
+  String getTypeName();
+
+  String[] getPropertyNames();
+
   void close();
 
   void drop();
@@ -40,7 +46,7 @@ public interface ReadOnlyIndex {
 
   Set<RID> get(Object[] keys);
 
-  Set<RID> get(Object[] keys, final int limit);
+  Set<RID> get(Object[] keys, int limit);
 
   Map<String, Long> getStats();
 

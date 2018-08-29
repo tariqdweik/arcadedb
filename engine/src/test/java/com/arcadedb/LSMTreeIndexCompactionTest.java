@@ -35,6 +35,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
   public void testCompaction() {
     try {
       GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(COMPACTION_RAM_MB);
+      GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE.setValue(0);
 
       // INSERT DATA AND CHECK WITH LOKUPS (EVERY 100)
       LogManager.instance().info(this, "TEST: INSERT DATA AND CHECK WITH LOKUPS (EVERY 100)");
@@ -89,6 +90,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       Assertions.fail(e);
     } finally {
       GlobalConfiguration.INDEX_COMPACTION_RAM_MB.setValue(300);
+      GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE.setValue(10);
     }
   }
 
@@ -180,13 +182,11 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
   }
 
   private void checkLookups(final int step, final int expectedItems) {
-    long begin = System.currentTimeMillis();
-
-//      Assertions.assertEquals(TOT * expectedItems, database.countType(TYPE_NAME, false));
+    Assertions.assertEquals(TOT * expectedItems, database.countType(TYPE_NAME, false));
 
     LogManager.instance().info(this, "TEST: Lookup all the keys...");
 
-    begin = System.currentTimeMillis();
+    long begin = System.currentTimeMillis();
 
     int checked = 0;
 
