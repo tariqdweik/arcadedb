@@ -274,7 +274,7 @@ public class HAServer implements ServerPlugin {
       final HashSet<String> serverAddressListCopy = new HashSet<>(serverAddressList);
 
       for (String serverAddress : serverAddressListCopy) {
-        if (serverAddress.equals(localServerAddress))
+        if (isCurrentServer(serverAddress))
           // SKIP LOCAL SERVER
           continue;
 

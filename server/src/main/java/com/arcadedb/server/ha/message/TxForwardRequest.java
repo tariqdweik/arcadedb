@@ -8,7 +8,6 @@ import com.arcadedb.engine.CompressionFactory;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.TransactionException;
-import com.arcadedb.index.Index;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.server.ha.HAServer;
@@ -135,7 +134,6 @@ public class TxForwardRequest extends TxRequestAbstract {
 
       for (int keyIdx = 0; keyIdx < keyCount; ++keyIdx) {
         final boolean add = uniqueKeysBuffer.getByte() == 1;
-        final int indexFileId = (int) uniqueKeysBuffer.getNumber();
 
         final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
 
@@ -147,8 +145,6 @@ public class TxForwardRequest extends TxRequestAbstract {
         }
 
         final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
-
-        final Index index = (Index) database.getSchema().getFileById(indexFileId).getMainComponent();
 
         final TransactionIndexContext.IndexKey key = new TransactionIndexContext.IndexKey(add, keyValues, rid);
         keys.add(key);
