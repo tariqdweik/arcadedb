@@ -199,7 +199,7 @@ public class RemoteDatabase extends RWLockContext {
 
     Exception lastException = null;
 
-    final int maxRetry = requiresLeader ? 10 : replicaServerList.size() + 1;
+    final int maxRetry = requiresLeader ? 3: replicaServerList.size() + 1;
 
     Pair<String, Integer> connectToServer = requiresLeader ? leaderServer : new Pair<>(currentServer, currentPort);
 
@@ -318,10 +318,8 @@ public class RemoteDatabase extends RWLockContext {
           LogManager.instance()
               .warn(this, "Remote server seems unreachable, switching to server %s:%d...", connectToServer.getFirst(), connectToServer.getSecond());
 
-      } catch (NeedRetryException e) {
-        // RETRY IT
-        lastException = e;
-        continue;
+      } catch (NeedRetryException|DuplicatedKeyException e) {
+        throw e;
       } catch (Exception e) {
         throw new RemoteException("Error on executing remote operation " + operation, e);
       }

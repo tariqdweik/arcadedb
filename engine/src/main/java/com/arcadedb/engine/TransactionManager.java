@@ -255,7 +255,7 @@ public class TransactionManager {
         file = database.getFileManager().getFile(txPage.fileId);
       } catch (Exception e) {
         LogManager.instance().error(this, "Error on applying tx changes for page %s", e, txPage);
-        continue;
+        throw e;
       }
 
       final PageId pageId = new PageId(txPage.fileId, txPage.pageNumber);
