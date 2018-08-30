@@ -5,7 +5,10 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.*;
+import com.arcadedb.database.Binary;
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryComparator;
@@ -28,8 +31,8 @@ public class LSMTreeIndexCompactor {
     final DatabaseInternal database = index.getDatabase();
 
     final int totalPages = index.getTotalPages();
-    LogManager.instance()
-        .debug(mainIndex, "Compacting index '%s' (pages=%d pageSize=%d threadId=%d)...", index, totalPages, index.getPageSize(), Thread.currentThread().getId());
+    LogManager.instance().debug(mainIndex, "Compacting index '%s' (pages=%d pageSize=%d threadId=%d)...", index, totalPages, index.getPageSize(),
+        Thread.currentThread().getId());
 
     if (totalPages < 2)
       return false;
@@ -174,8 +177,9 @@ public class LSMTreeIndexCompactor {
 
               if (newRootPage != rootPage) {
                 // TODO: MANAGE A LINKED LIST OF ROOT PAGES INSTEAD
-                LogManager.instance()
-                    .info(mainIndex, "- End of space in root index page for index '%s' (rootEntries=%d)", index, compactedIndex.getCount(rootPage));
+                LogManager.instance().info(mainIndex, "- End of space in root index page for index '%s' (rootEntries=%d)", compactedIndex.getName(),
+                    compactedIndex.getCount(rootPage));
+                database.getPageManager().updatePage(rootPage, true, false);
                 rootPage = null;
                 rootPageBuffer = null;
               }
@@ -220,7 +224,8 @@ public class LSMTreeIndexCompactor {
             compactedIndex.getCount(rootPage));
       }
 
-      database.getPageManager().updatePage(lastPage, true, false);
+      if (lastPage != null)
+        database.getPageManager().updatePage(lastPage, true, false);
       if (rootPage != null)
         database.getPageManager().updatePage(rootPage, true, false);
 
@@ -233,12 +238,16 @@ public class LSMTreeIndexCompactor {
       pageIndex += pagesToCompact;
     }
 
+    final String oldMutableFileName = index.getName();
+    final int oldMutableFileId = index.getFileId();
+
     final LSMTreeIndexMutable newIndex = mainIndex.splitIndex(totalPages - 1, compactedIndex);
 
-    LogManager.instance()
-        .info(mainIndex, "Compaction completed for index '%s' in %dms. New index file has %d mutable pages + %d compacted pages (iterations=%d threadId=%d)",
-            index, (System.currentTimeMillis() - startTime), newIndex.getTotalPages(), compactedIndex.getTotalPages(), iterations,
-            Thread.currentThread().getId());
+    LogManager.instance().info(mainIndex,
+        "Index '%s' compacted in %dms (keys=%d values=%d mutablePages=%d immutablePages=%d iterations=%d oldLevel0File=%s(%d) newLevel0File=%s(%d) newLevel1File=%s(%d) threadId=%d)",
+        mainIndex.getName(), (System.currentTimeMillis() - startTime), totalKeys, totalValues, newIndex.getTotalPages(), compactedIndex.getTotalPages(),
+        iterations, oldMutableFileName, oldMutableFileId, mainIndex.getMutableIndex().getName(), mainIndex.getMutableIndex().getFileId(),
+        compactedIndex.getName(), compactedIndex.getFileId(), Thread.currentThread().getId());
 
     return true;
   }

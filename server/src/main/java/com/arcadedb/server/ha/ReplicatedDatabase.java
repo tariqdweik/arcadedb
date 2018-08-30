@@ -71,7 +71,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
               replicateTx(tx, changes, bufferChanges);
             else {
               // USE A BIGGER TIMEOUT CONSIDERING THE DOUBLE LATENCY
-              final TxForwardRequest command = new TxForwardRequest(ReplicatedDatabase.this, bufferChanges, tx.getIndexKeys());
+              final TxForwardRequest command = new TxForwardRequest(ReplicatedDatabase.this, bufferChanges, tx.getIndexChanges().toMap());
               server.getHA().forwardCommandToLeader(command, timeout * 2);
               tx.reset();
             }

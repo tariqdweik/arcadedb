@@ -7,6 +7,7 @@ package com.arcadedb.index.lsm;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TransactionContext;
+import com.arcadedb.database.TransactionIndexContext;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
@@ -23,12 +24,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * LSM-Tree index implementation. It relies on a mutable index and its underlying immutable, compacted index.
  */
 public class LSMTreeIndex implements Index {
-  private   int                                                     associatedBucketId = -1;
-  private   String                                                  typeName;
-  private   String[]                                                propertyNames;
-  private   LSMTreeIndexMutable                                     mutable;
-  private   RWLockContext                                           lock               = new RWLockContext();
-  protected AtomicReference<LSMTreeIndexAbstract.COMPACTING_STATUS> compactingStatus   = new AtomicReference<>(LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
+  private final String                                                  name;
+  private       int                                                     associatedBucketId = -1;
+  private       String                                                  typeName;
+  private       String[]                                                propertyNames;
+  private       LSMTreeIndexMutable                                     mutable;
+  private       RWLockContext                                           lock               = new RWLockContext();
+  protected     AtomicReference<LSMTreeIndexAbstract.COMPACTING_STATUS> compactingStatus   = new AtomicReference<>(LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
 
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
@@ -61,6 +63,7 @@ public class LSMTreeIndex implements Index {
    */
   public LSMTreeIndex(final DatabaseInternal database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode,
       final byte[] keyTypes, final int pageSize) throws IOException {
+    this.name = name;
     mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, mode, keyTypes, pageSize);
   }
 
@@ -69,6 +72,7 @@ public class LSMTreeIndex implements Index {
    */
   public LSMTreeIndex(final DatabaseInternal database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
       final int pageSize) throws IOException {
+    this.name = name;
     mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, id, mode, pageSize);
   }
 
@@ -121,7 +125,7 @@ public class LSMTreeIndex implements Index {
         final int pageSize = mutable.getPageSize();
 
         int last_ = mutable.getName().lastIndexOf('_');
-        final String newName = mutable.getName().substring(0, last_) + "_" + System.currentTimeMillis();
+        final String newName = mutable.getName().substring(0, last_) + "_" + System.nanoTime();
 
         final LSMTreeIndexMutable newMutableIndex = new LSMTreeIndexMutable(this, database, newName, mutable.isUnique(),
             database.getDatabasePath() + "/" + newName, mutable.getKeyTypes(), pageSize, subIndex);
@@ -150,7 +154,6 @@ public class LSMTreeIndex implements Index {
 
         // SWAP OLD WITH NEW INDEX IN EXCLUSIVE LOCK (NO READ/WRITE ARE POSSIBLE IN THE MEANTIME)
         newMutableIndex.removeTempSuffix();
-        ((SchemaImpl) database.getSchema()).changeIndexName(mutable.getName(), newMutableIndex.getName());
 
         mutable.drop();
         mutable = newMutableIndex;
@@ -186,7 +189,7 @@ public class LSMTreeIndex implements Index {
 
   @Override
   public String getName() {
-    return mutable.getName();
+    return name;
   }
 
   @Override
@@ -219,10 +222,10 @@ public class LSMTreeIndex implements Index {
     if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN) {
       Set<RID> txChanges = null;
 
-      final List<TransactionContext.IndexKey> indexChanges = mutable.getDatabase().getTransaction().getIndexKeys();
-      for (int i = indexChanges.size() - 1; i > -1; --i) {
-        final TransactionContext.IndexKey indexChange = indexChanges.get(i);
-        if (indexChange.index == this) {
+      final List<TransactionIndexContext.IndexKey> indexChanges = mutable.getDatabase().getTransaction().getIndexChanges().getIndexKeys(getName());
+      if (indexChanges != null)
+        for (int i = indexChanges.size() - 1; i > -1; --i) {
+          final TransactionIndexContext.IndexKey indexChange = indexChanges.get(i);
           if (Arrays.equals(keys, indexChange.keyValues)) {
             if (!indexChange.add)
               // REMOVED
@@ -232,13 +235,17 @@ public class LSMTreeIndex implements Index {
               txChanges = new HashSet<>();
 
             txChanges.add(indexChange.rid);
+
+            if (limit > -1 && txChanges.size() > limit)
+              // LIMIT REACHED
+              return txChanges;
           }
         }
-      }
 
       final Set<RID> result = lock.executeInReadLock(() -> mutable.get(keys, limit));
 
       if (txChanges != null) {
+        // MERGE SETS
         txChanges.addAll(result);
         return txChanges;
       }
@@ -253,7 +260,7 @@ public class LSMTreeIndex implements Index {
   public void put(final Object[] keys, final RID rid) {
     if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
       // KEY ADDED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexKeyLock(new TransactionContext.IndexKey(true, this, keys, rid));
+      mutable.getDatabase().getTransaction().addIndexOperation(this, true, keys, rid);
     else
       lock.executeInReadLock(() -> {
         mutable.put(keys, rid);
@@ -265,7 +272,7 @@ public class LSMTreeIndex implements Index {
   public void remove(final Object[] keys) {
     if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
       // KEY REMOVED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexKeyLock(new TransactionContext.IndexKey(false, this, keys, null));
+      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, null);
     else
       lock.executeInReadLock(() -> {
         mutable.remove(keys);
@@ -277,7 +284,7 @@ public class LSMTreeIndex implements Index {
   public void remove(final Object[] keys, final RID rid) {
     if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
       // KEY REMOVED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexKeyLock(new TransactionContext.IndexKey(false, this, keys, rid));
+      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, rid);
     else
       lock.executeInReadLock(() -> {
         mutable.remove(keys, rid);

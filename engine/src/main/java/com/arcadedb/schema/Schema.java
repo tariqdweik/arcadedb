@@ -22,6 +22,8 @@ public interface Schema {
 
   Bucket getBucketByName(String name);
 
+  PaginatedComponent getFileByIdIfExists(int id);
+
   Collection<Bucket> getBuckets();
 
   Bucket getBucketById(int id);

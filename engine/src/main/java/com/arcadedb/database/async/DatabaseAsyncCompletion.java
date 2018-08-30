@@ -4,12 +4,12 @@
 
 package com.arcadedb.database.async;
 
-public class DatabaseAsyncCommit extends DatabaseAsyncAbstractCallbackTask {
-  public DatabaseAsyncCommit() {
+public class DatabaseAsyncCompletion extends DatabaseAsyncAbstractCallbackTask {
+  public DatabaseAsyncCompletion() {
   }
 
   @Override
   public String toString() {
-    return "Commit";
+    return "Completion";
   }
 }

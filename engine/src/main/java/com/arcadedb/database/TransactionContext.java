@@ -10,7 +10,6 @@ import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.index.Index;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 
@@ -28,45 +27,27 @@ import java.util.*;
  * txId:long|pages:int|&lt;segmentSize:int|fileId:int|pageNumber:long|pageModifiedFrom:int|pageModifiedTo:int|&lt;prevContent&gt;&lt;newContent&gt;segmentSize:int&gt;MagicNumber:long
  */
 public class TransactionContext implements Transaction {
-  protected     DatabaseInternal         database;
-  private       Map<PageId, MutablePage> modifiedPages;
-  private       Map<PageId, MutablePage> newPages;
+  private final DatabaseInternal         database;
   private final Map<Integer, Integer>    newPageCounters       = new HashMap<>();
   private final Map<RID, Record>         immutableRecordsCache = new HashMap<>(1024);
   private final Map<RID, Record>         modifiedRecordsCache  = new HashMap<>(1024);
+  private final TransactionIndexContext  indexChanges;
+  private       Map<PageId, MutablePage> modifiedPages;
+  private       Map<PageId, MutablePage> newPages;
   private       boolean                  useWAL;
   private       boolean                  asyncFlush            = true;
   private       WALFile.FLUSH_TYPE       walFlush;
   private       Collection<Integer>      lockedFiles;
-  private final List<IndexKey>           indexKeysToLocks      = new ArrayList<>();
   private       long                     txId                  = -1;
   private       STATUS                   status                = STATUS.INACTIVE;
 
   public enum STATUS {INACTIVE, BEGUN, COMMIT_1ST_PHASE, COMMIT_2ND_PHASE}
 
-  public static class IndexKey {
-    public final boolean  add;
-    public final Index    index;
-    public final Object[] keyValues;
-    public final RID      rid;
-
-    public IndexKey(final boolean add, final Index index, final Object[] keyValues, final RID rid) {
-      this.add = add;
-      this.index = index;
-      this.keyValues = keyValues;
-      this.rid = rid;
-    }
-
-    @Override
-    public String toString() {
-      return "IndexKey(" + (add ? "add" : "del") + index.getName() + "=" + Arrays.toString(keyValues) + ")";
-    }
-  }
-
   public TransactionContext(final DatabaseInternal database) {
     this.database = database;
     this.walFlush = WALFile.getWALFlushType(database.getConfiguration().getValueAsInteger(GlobalConfiguration.TX_WAL_FLUSH));
     this.useWAL = database.getConfiguration().getValueAsBoolean(GlobalConfiguration.TX_WAL);
+    this.indexChanges = new TransactionIndexContext(database);
   }
 
   @Override
@@ -148,6 +129,10 @@ public class TransactionContext implements Transaction {
       modifiedRecordsCache.remove(rid);
       immutableRecordsCache.remove(rid);
     }
+  }
+
+  public DatabaseInternal getDatabase() {
+    return database;
   }
 
   @Override
@@ -304,7 +289,8 @@ public class TransactionContext implements Transaction {
   /**
    * Executes 1st phase from a replica.
    */
-  public void commitFromReplica(final WALFile.WALTransaction buffer, final List<IndexKey> keysTx) throws TransactionException {
+  public void commitFromReplica(final WALFile.WALTransaction buffer, final Map<String, List<TransactionIndexContext.IndexKey>> keysTx)
+      throws TransactionException {
     try {
       for (WALFile.WALPage p : buffer.pages) {
         final PaginatedFile file = database.getFileManager().getFile(p.fileId);
@@ -334,7 +320,7 @@ public class TransactionContext implements Transaction {
           modifiedPages.put(pageId, page);
       }
 
-      indexKeysToLocks.addAll(keysTx);
+      indexChanges.addAll(keysTx);
 
     } catch (ConcurrentModificationException e) {
       throw e;
@@ -358,7 +344,7 @@ public class TransactionContext implements Transaction {
     status = STATUS.COMMIT_1ST_PHASE;
 
     final int totalImpactedPages = modifiedPages.size() + (newPages != null ? newPages.size() : 0);
-    if (totalImpactedPages == 0 && indexKeysToLocks.isEmpty()) {
+    if (totalImpactedPages == 0 && indexChanges.isEmpty()) {
       // EMPTY TRANSACTION = NO CHANGES
       modifiedPages = null;
       return null;
@@ -372,12 +358,9 @@ public class TransactionContext implements Transaction {
       lockedFiles = new ArrayList<>();
 
     try {
-      if (isLeader && !indexKeysToLocks.isEmpty()) {
+      if (isLeader)
         // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
-        for (int i = 0; i < indexKeysToLocks.size(); ++i)
-          applyIndexChangesAtCommit(indexKeysToLocks.get(i));
-        indexKeysToLocks.clear();
-      }
+        indexChanges.applyChangesToIndexes();
 
       // CHECK THE VERSIONS FIRST
       final List<MutablePage> pages = new ArrayList<>();
@@ -460,8 +443,12 @@ public class TransactionContext implements Transaction {
       for (Record r : modifiedRecordsCache.values())
         ((RecordInternal) r).unsetDirty();
 
-      for (int fileId : lockedFiles)
-        database.getSchema().getFileById(fileId).onAfterCommit();
+      for (int fileId : lockedFiles) {
+        final PaginatedComponent file = database.getSchema().getFileByIdIfExists(fileId);
+        if (file != null)
+          // THE FILE COULD BE NULL IN CASE OF INDEX COMPACTION
+          file.onAfterCommit();
+      }
 
     } catch (ConcurrentModificationException e) {
       throw e;
@@ -473,8 +460,8 @@ public class TransactionContext implements Transaction {
     }
   }
 
-  public void addIndexKeyLock(final IndexKey indexKey) {
-    indexKeysToLocks.add(indexKey);
+  public void addIndexOperation(final Index index, final boolean add, final Object[] keys, final RID rid) {
+    indexChanges.addIndexKeyLock(index.getName(), add, keys, rid);
   }
 
   @Override
@@ -497,7 +484,7 @@ public class TransactionContext implements Transaction {
       lockedFiles = null;
     }
 
-    indexKeysToLocks.clear();
+    indexChanges.reset();
 
     modifiedPages = null;
     newPages = null;
@@ -507,8 +494,8 @@ public class TransactionContext implements Transaction {
     txId = -1;
   }
 
-  public List<IndexKey> getIndexKeys() {
-    return indexKeysToLocks;
+  public TransactionIndexContext getIndexChanges() {
+    return indexChanges;
   }
 
   public STATUS getStatus() {
@@ -517,31 +504,6 @@ public class TransactionContext implements Transaction {
 
   public void setStatus(final STATUS status) {
     this.status = status;
-  }
-
-  /**
-   * Called at commit time in the middle of the lock to avoid concurrent insertion of the same key.
-   */
-  private void applyIndexChangesAtCommit(final IndexKey key) {
-    if (key.add) {
-      if (key.index.isUnique()) {
-        final DocumentType type = database.getSchema().getType(key.index.getTypeName());
-
-        // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-        final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(key.index.getPropertyNames());
-        if (typeIndexes != null) {
-          for (DocumentType.IndexMetadata i : typeIndexes) {
-            final Set<RID> found = i.index.get(key.keyValues, 1);
-            if (!found.isEmpty())
-              throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
-          }
-        }
-      }
-
-      // AVOID CHECKING FOR UNIQUENESS BECAUSE IT HAS ALREADY BEEN CHECKED
-      key.index.put(key.keyValues, key.rid);
-    } else
-      key.index.remove(key.keyValues, key.rid);
   }
 
   private List<Integer> lockFilesInOrder() {
@@ -553,17 +515,7 @@ public class TransactionContext implements Transaction {
       for (PageId p : newPages.keySet())
         modifiedFiles.add(p.getFileId());
 
-    for (IndexKey key : indexKeysToLocks) {
-      modifiedFiles.add(key.index.getFileId());
-      if (key.index.isUnique()) {
-        // LOCK ALL THE FILES IMPACTED BY THE INDEX KEYS TO CHECK FOR UNIQUE CONSTRAINT
-        final DocumentType type = database.getSchema().getType(key.index.getTypeName());
-        final List<Bucket> buckets = type.getBuckets(false);
-        for (Bucket b : buckets)
-          modifiedFiles.add(b.getId());
-      } else
-        modifiedFiles.add(key.index.getAssociatedBucketId());
-    }
+    indexChanges.addFilesToLock(modifiedFiles);
 
     modifiedFiles.addAll(newPageCounters.keySet());
 

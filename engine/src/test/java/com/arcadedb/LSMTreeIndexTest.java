@@ -532,10 +532,13 @@ public class LSMTreeIndexTest extends BaseTest {
             for (int i = TOT; i < TOT + total; ++i) {
               boolean keyPresent = false;
               for (int retry = 0; retry < maxRetries && !keyPresent; ++retry) {
+
                 try {
                   Thread.sleep(new Random().nextInt(10));
                 } catch (InterruptedException e) {
                   e.printStackTrace();
+                  Thread.currentThread().interrupt();
+                  return;
                 }
 
                 database.begin();
@@ -560,18 +563,15 @@ public class LSMTreeIndexTest extends BaseTest {
 
                 } catch (NeedRetryException e) {
                   needRetryExceptions.incrementAndGet();
-                  if (database.isTransactionActive())
-                    database.rollback();
+                  Assertions.assertFalse(database.isTransactionActive());
                   continue;
                 } catch (DuplicatedKeyException e) {
                   duplicatedExceptions.incrementAndGet();
                   keyPresent = true;
-                  if (database.isTransactionActive())
-                    database.rollback();
+                  Assertions.assertFalse(database.isTransactionActive());
                 } catch (Exception e) {
                   LogManager.instance().error(this, "%s Thread %d Generic Exception", e, getClass(), Thread.currentThread().getId());
-                  if (database.isTransactionActive())
-                    database.rollback();
+                  Assertions.assertFalse(database.isTransactionActive());
                   return;
                 }
               }
@@ -606,6 +606,38 @@ public class LSMTreeIndexTest extends BaseTest {
 
     LogManager.instance().info(this, "%s Completed (inserted=%d needRetryExceptions=%d duplicatedExceptions=%d)", getClass(), crossThreadsInserted.get(),
         needRetryExceptions.get(), duplicatedExceptions.get());
+
+    if (total != crossThreadsInserted.get()) {
+      LogManager.instance().info(this, "DUMP OF INSERTED RECORDS (ORDERED BY ID)");
+      final ResultSet resultset = database
+          .query("sql", "select id, count(*) as total from ( select from " + TYPE_NAME + " group by id ) where total > 1 order by id");
+      while (resultset.hasNext())
+        LogManager.instance().info(this, "- %s", resultset.next());
+
+      LogManager.instance().info(this, "COUNT OF INSERTED RECORDS (ORDERED BY ID)");
+      final Map<Integer, Integer> result = new HashMap<>();
+      database.scanType(TYPE_NAME, true, new DocumentCallback() {
+        @Override
+        public boolean onRecord(Document record) {
+          final int id = (int) record.get("id");
+          Integer key = result.get(id);
+          if (key == null)
+            result.put(id, 1);
+          else
+            result.put(id, key + 1);
+          return true;
+        }
+      });
+
+      LogManager.instance().info(this, "FOUND %d ENTRIES", result.size());
+
+      Iterator<Map.Entry<Integer, Integer>> it = result.entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<Integer, Integer> next = it.next();
+        if (next.getValue() > 1)
+          LogManager.instance().info(this, "- %d = %d", next.getKey(), next.getValue());
+      }
+    }
 
     Assertions.assertEquals(total, crossThreadsInserted.get());
 //    Assertions.assertTrue(needRetryExceptions.get() > 0);

@@ -100,6 +100,10 @@ public class FileManager {
     return fileNameMap.values();
   }
 
+  public boolean existsFile(final int fileId) {
+    return fileIdMap.containsKey(fileId);
+  }
+
   public PaginatedFile getFile(final int fileId) {
     PaginatedFile f = fileIdMap.get(fileId);
     if (f == null)
@@ -129,14 +133,14 @@ public class FileManager {
   }
 
   public synchronized int newFileId() {
-    // LOOK FOR AN HOLE
-    for (int i = 0; i < files.size(); ++i) {
-      if (files.get(i) == null) {
-        files.set(i, RESERVED_SLOT);
-        return i;
-      }
-    }
-
+//    // LOOK FOR AN HOLE
+//    for (int i = 0; i < files.size(); ++i) {
+//      if (files.get(i) == null) {
+//        files.set(i, RESERVED_SLOT);
+//        return i;
+//      }
+//    }
+//
     files.add(RESERVED_SLOT);
     return files.size() - 1;
   }

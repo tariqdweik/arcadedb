@@ -3,10 +3,7 @@
  */
 package com.arcadedb.server.ha.message;
 
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.TransactionContext;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.CompressionFactory;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.NeedRetryException;
@@ -19,7 +16,9 @@ import com.arcadedb.server.ha.ReplicationException;
 import com.arcadedb.utility.LogManager;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Forward a transaction to the Leader server to be executed. Apart the TX content (like with TxRequest), unique keys list is
@@ -32,7 +31,7 @@ public class TxForwardRequest extends TxRequestAbstract {
   public TxForwardRequest() {
   }
 
-  public TxForwardRequest(final DatabaseInternal database, final Binary bufferChanges, final List<TransactionContext.IndexKey> keysTx) {
+  public TxForwardRequest(final DatabaseInternal database, final Binary bufferChanges, final Map<String, List<TransactionIndexContext.IndexKey>> keysTx) {
     super(database.getName(), bufferChanges);
     writeIndexKeysToBuffer(database, keysTx);
   }
@@ -58,7 +57,7 @@ public class TxForwardRequest extends TxRequestAbstract {
       throw new ReplicationException("Database '" + databaseName + "' is closed");
 
     final WALFile.WALTransaction walTx = readTxFromBuffer();
-    final List<TransactionContext.IndexKey> keysTx = readIndexKeysFromBuffer(db);
+    final Map<String, List<TransactionIndexContext.IndexKey>> keysTx = readIndexKeysFromBuffer(db);
 
     // FORWARDED FROM A REPLICA
     db.begin();
@@ -81,28 +80,34 @@ public class TxForwardRequest extends TxRequestAbstract {
     return "tx-forward(" + databaseName + ")";
   }
 
-  protected void writeIndexKeysToBuffer(final DatabaseInternal database, final List<TransactionContext.IndexKey> keys) {
+  protected void writeIndexKeysToBuffer(final DatabaseInternal database, final Map<String, List<TransactionIndexContext.IndexKey>> indexChanges) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer = new Binary();
 
-    uniqueKeysBuffer.putNumber(keys.size());
+    uniqueKeysBuffer.putNumber(indexChanges.size());
 
-    for (int i = 0; i < keys.size(); ++i) {
-      final TransactionContext.IndexKey key = keys.get(i);
+    for (Map.Entry<String, List<TransactionIndexContext.IndexKey>> entry : indexChanges.entrySet()) {
+      uniqueKeysBuffer.putString(entry.getKey());
+      final List<TransactionIndexContext.IndexKey> keys = entry.getValue();
 
-      uniqueKeysBuffer.putByte((byte) (key.add ? 1 : 0));
-      uniqueKeysBuffer.putNumber(key.index.getFileId());
+      uniqueKeysBuffer.putNumber(keys.size());
 
-      uniqueKeysBuffer.putNumber(key.keyValues.length);
-      for (int k = 0; k < key.keyValues.length; ++k) {
-        final byte keyType = BinaryTypes.getTypeFromValue(key.keyValues[k]);
-        uniqueKeysBuffer.putByte(keyType);
-        serializer.serializeValue(uniqueKeysBuffer, keyType, key.keyValues[k]);
+      for (int i = 0; i < keys.size(); ++i) {
+        final TransactionIndexContext.IndexKey key = keys.get(i);
+
+        uniqueKeysBuffer.putByte((byte) (key.add ? 1 : 0));
+
+        uniqueKeysBuffer.putNumber(key.keyValues.length);
+        for (int k = 0; k < key.keyValues.length; ++k) {
+          final byte keyType = BinaryTypes.getTypeFromValue(key.keyValues[k]);
+          uniqueKeysBuffer.putByte(keyType);
+          serializer.serializeValue(uniqueKeysBuffer, keyType, key.keyValues[k]);
+        }
+
+        uniqueKeysBuffer.putNumber(key.rid.getBucketId());
+        uniqueKeysBuffer.putNumber(key.rid.getPosition());
       }
-
-      uniqueKeysBuffer.putNumber(key.rid.getBucketId());
-      uniqueKeysBuffer.putNumber(key.rid.getPosition());
     }
 
     uniqueKeysUncompressedLength = uniqueKeysBuffer.size();
@@ -110,36 +115,46 @@ public class TxForwardRequest extends TxRequestAbstract {
     uniqueKeysBuffer = CompressionFactory.getDefault().compress(uniqueKeysBuffer);
   }
 
-  protected List<TransactionContext.IndexKey> readIndexKeysFromBuffer(final DatabaseInternal database) {
+  protected Map<String, List<TransactionIndexContext.IndexKey>> readIndexKeysFromBuffer(final DatabaseInternal database) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer.position(0);
 
-    final int keyCount = (int) uniqueKeysBuffer.getNumber();
+    final int indexesCount = (int) uniqueKeysBuffer.getNumber();
 
-    final List<TransactionContext.IndexKey> keys = new ArrayList<>(keyCount);
+    final Map<String, List<TransactionIndexContext.IndexKey>> entries = new HashMap<>(indexesCount);
 
-    for (int i = 0; i < keyCount; ++i) {
-      final boolean add = uniqueKeysBuffer.getByte() == 1;
-      final int indexFileId = (int) uniqueKeysBuffer.getNumber();
+    for (int indexIdx = 0; indexIdx < indexesCount; ++indexIdx) {
+      final String indexName = uniqueKeysBuffer.getString();
 
-      final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
+      final int keyCount = (int) uniqueKeysBuffer.getNumber();
 
-      final Object[] keyValues = new Object[keyEntryCount];
+      final List<TransactionIndexContext.IndexKey> keys = new ArrayList<>(keyCount);
 
-      for (int k = 0; k < keyEntryCount; ++k) {
-        final byte keyType = uniqueKeysBuffer.getByte();
-        keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
+      entries.put(indexName, keys);
+
+      for (int keyIdx = 0; keyIdx < keyCount; ++keyIdx) {
+        final boolean add = uniqueKeysBuffer.getByte() == 1;
+        final int indexFileId = (int) uniqueKeysBuffer.getNumber();
+
+        final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
+
+        final Object[] keyValues = new Object[keyEntryCount];
+
+        for (int k = 0; k < keyEntryCount; ++k) {
+          final byte keyType = uniqueKeysBuffer.getByte();
+          keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
+        }
+
+        final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
+
+        final Index index = (Index) database.getSchema().getFileById(indexFileId).getMainComponent();
+
+        final TransactionIndexContext.IndexKey key = new TransactionIndexContext.IndexKey(add, keyValues, rid);
+        keys.add(key);
       }
-
-      final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
-
-      final Index index = (Index) database.getSchema().getFileById(indexFileId).getMainComponent();
-
-      final TransactionContext.IndexKey key = new TransactionContext.IndexKey(add, index, keyValues, rid);
-      keys.add(key);
     }
 
-    return keys;
+    return entries;
   }
 }

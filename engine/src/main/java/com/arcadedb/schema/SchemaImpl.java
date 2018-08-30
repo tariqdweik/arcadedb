@@ -161,6 +161,14 @@ public class SchemaImpl implements Schema {
     return p;
   }
 
+  @Override
+  public PaginatedComponent getFileByIdIfExists(final int id) {
+    if (id >= files.size())
+      return null;
+
+    return files.get(id);
+  }
+
   public void removeFile(final int fileId) {
     if (fileId >= files.size())
       return;
@@ -228,15 +236,6 @@ public class SchemaImpl implements Schema {
   @Override
   public boolean existsIndex(final String indexName) {
     return indexMap.containsKey(indexName);
-  }
-
-  public void changeIndexName(final String oldIndexName, final String newIndexName) {
-    final Index idx = indexMap.remove(oldIndexName);
-    if (idx != null) {
-      LogManager.instance().debug(this, "Changing name '%s' -> '%s' for index fileId=%d", oldIndexName, newIndexName, idx.getFileId());
-      indexMap.put(newIndexName, idx);
-      saveConfiguration();
-    }
   }
 
   @Override

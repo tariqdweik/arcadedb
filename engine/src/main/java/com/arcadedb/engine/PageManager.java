@@ -139,18 +139,19 @@ public class PageManager extends LockContext {
   }
 
   public void deleteFile(final int fileId) {
-    for (Iterator<ImmutablePage> it = readCache.values().iterator(); it.hasNext(); ) {
-      final ImmutablePage p = it.next();
-      if (p.getPageId().getFileId() == fileId) {
-        totalReadCacheRAM.addAndGet(-1 * p.getPhysicalSize());
-        it.remove();
-      }
-    }
-
+    // REMOVE WRITE CACHE 1ST TO REDUCE THE CHANCE TO FLUSH PAGES FOR THE FILE TO DROP
     for (Iterator<MutablePage> it = writeCache.values().iterator(); it.hasNext(); ) {
       final MutablePage p = it.next();
       if (p.getPageId().getFileId() == fileId) {
         totalWriteCacheRAM.addAndGet(-1 * p.getPhysicalSize());
+        it.remove();
+      }
+    }
+
+    for (Iterator<ImmutablePage> it = readCache.values().iterator(); it.hasNext(); ) {
+      final ImmutablePage p = it.next();
+      if (p.getPageId().getFileId() == fileId) {
+        totalReadCacheRAM.addAndGet(-1 * p.getPhysicalSize());
         it.remove();
       }
     }
@@ -180,14 +181,20 @@ public class PageManager extends LockContext {
   }
 
   public BasePage checkPageVersion(final MutablePage page, final boolean isNew) throws IOException {
-    final BasePage p = getPage(page.getPageId(), page.getPhysicalSize(), isNew);
+    final PageId pageId = page.getPageId();
+
+    if (!fileManager.existsFile(pageId.getFileId()))
+      throw new ConcurrentModificationException("Concurrent modification on page " + pageId + " file with id " + pageId.getFileId()
+          + " does not exists anymore. Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+
+    final BasePage p = getPage(pageId, page.getPhysicalSize(), isNew);
 
     if (p != null && p.getVersion() != page.getVersion()) {
       totalConcurrentModificationExceptions.incrementAndGet();
 
       throw new ConcurrentModificationException(
-          "Concurrent modification on page " + page.getPageId() + " in file '" + fileManager.getFile(page.pageId.getFileId()).getFileName() + "' (current v."
-              + page.getVersion() + " <> database v." + p.getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
+          "Concurrent modification on page " + pageId + " in file '" + fileManager.getFile(pageId.getFileId()).getFileName() + "' (current v." + page
+              .getVersion() + " <> database v." + p.getVersion() + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
     }
 
     if (p != null)
@@ -323,23 +330,29 @@ public class PageManager extends LockContext {
   }
 
   protected void flushPage(final MutablePage page) throws IOException {
-    final PaginatedFile file = fileManager.getFile(page.pageId.getFileId());
-    if (!file.isOpen())
-      throw new DatabaseMetadataException("Cannot flush pages on disk because file is closed");
+    try {
+      if (fileManager.existsFile(page.pageId.getFileId())) {
+        final PaginatedFile file = fileManager.getFile(page.pageId.getFileId());
+        if (!file.isOpen())
+          throw new DatabaseMetadataException("Cannot flush pages on disk because file is closed");
 
-    LogManager.instance().debug(this, "Flushing page %s (threadId=%d)...", page, Thread.currentThread().getId());
+        LogManager.instance().debug(this, "Flushing page %s (threadId=%d)...", page, Thread.currentThread().getId());
 
-    if (!flushOnlyAtClose) {
-      putPageInCache(page.createImmutableView());
+        if (!flushOnlyAtClose) {
+          putPageInCache(page.createImmutableView());
 
-      final int written = file.write(page);
+          final int written = file.write(page);
 
+          totalPagesWritten.incrementAndGet();
+          totalPagesWrittenSize.addAndGet(written);
+        }
+      } else
+        LogManager.instance().debug(this, "Cannot flush page %s because the file has been dropped (threadId=%d)...", page, Thread.currentThread().getId());
+
+    } finally {
       // DELETE ONLY CURRENT VERSION OF THE PAGE (THIS PREVENT TO REMOVE NEWER PAGES)
       if (writeCache.remove(page.pageId, page))
         totalWriteCacheRAM.addAndGet(-1 * page.getPhysicalSize());
-
-      totalPagesWritten.incrementAndGet();
-      totalPagesWrittenSize.addAndGet(written);
 
       txManager.notifyPageFlushed(page);
     }

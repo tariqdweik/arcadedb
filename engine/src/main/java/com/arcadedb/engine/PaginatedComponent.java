@@ -83,9 +83,9 @@ public abstract class PaginatedComponent {
 
   public void drop() throws IOException {
     if (database.isOpen()) {
-      ((SchemaImpl) database.getSchema()).removeFile(file.getFileId());
       database.getPageManager().deleteFile(file.getFileId());
       database.getFileManager().dropFile(file.getFileId());
+      ((SchemaImpl) database.getSchema()).removeFile(file.getFileId());
     } else {
       new File(file.getFilePath()).delete();
     }

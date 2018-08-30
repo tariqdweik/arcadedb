@@ -298,7 +298,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (dbContext != null) {
       final TransactionContext tx = dbContext.transaction;
       if (tx != null) {
-        final DatabaseInternal txDb = tx.database;
+        final DatabaseInternal txDb = tx.getDatabase();
         if (txDb == null)
           throw new TransactionException("Invalid transactional context (db is null)");
         if (txDb.getEmbedded() != this)

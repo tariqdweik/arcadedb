@@ -78,7 +78,7 @@ public class DatabaseAsyncExecutor {
 
               break;
 
-            } else if (message instanceof DatabaseAsyncCommit) {
+            } else if (message instanceof DatabaseAsyncCompletion) {
               try {
                 database.commit();
                 onOk();
@@ -368,17 +368,17 @@ public class DatabaseAsyncExecutor {
   }
 
   /**
-   * Waits for the completition of all the pending tasks.
+   * Waits for the completion of all the pending tasks.
    */
   public void waitCompletion() {
     if (executorThreads == null)
       return;
 
-    final DatabaseAsyncCommit[] semaphores = new DatabaseAsyncCommit[executorThreads.length];
+    final DatabaseAsyncCompletion[] semaphores = new DatabaseAsyncCompletion[executorThreads.length];
 
     for (int i = 0; i < executorThreads.length; ++i)
       try {
-        semaphores[i] = new DatabaseAsyncCommit();
+        semaphores[i] = new DatabaseAsyncCompletion();
         executorThreads[i].queue.put(semaphores[i]);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
