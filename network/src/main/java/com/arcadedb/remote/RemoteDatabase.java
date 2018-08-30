@@ -10,6 +10,7 @@ import com.arcadedb.database.RID;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.exception.TransactionException;
 import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.sql.executor.InternalResultSet;
@@ -198,7 +199,7 @@ public class RemoteDatabase extends RWLockContext {
 
     Exception lastException = null;
 
-    final int maxRetry = requiresLeader ? 3 : replicaServerList.size() + 1;
+    final int maxRetry = requiresLeader ? 10 : replicaServerList.size() + 1;
 
     Pair<String, Integer> connectToServer = requiresLeader ? leaderServer : new Pair<>(currentServer, currentPort);
 
@@ -268,7 +269,11 @@ public class RemoteDatabase extends RWLockContext {
                 throw new DuplicatedKeyException(exceptionArgs[0], exceptionArgs[1], new RID(null, exceptionArgs[2]));
               } else if (exception.equals(ConcurrentModificationException.class.getName())) {
                 throw new ConcurrentModificationException(detail);
-              }
+              } else if (exception.equals(TransactionException.class.getName())) {
+                throw new TransactionException(detail);
+              } else
+                // ELSE
+                throw new RemoteException("Error on executing remote operation " + operation + " (cause:" + exception + ")");
             }
 
             final String httpErrorDescription = connection.getResponseMessage();
@@ -315,6 +320,7 @@ public class RemoteDatabase extends RWLockContext {
 
       } catch (NeedRetryException e) {
         // RETRY IT
+        lastException = e;
         continue;
       } catch (Exception e) {
         throw new RemoteException("Error on executing remote operation " + operation, e);

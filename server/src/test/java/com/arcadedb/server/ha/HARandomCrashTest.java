@@ -119,6 +119,9 @@ public class HARandomCrashTest extends ReplicationServerTest {
           if (retry >= getMaxRetry() - 1)
             throw e;
           counter = lastGoodCounter;
+        } catch (Exception e) {
+          LogManager.instance().error(this, "TEST: - RECEIVED UNKNOWN ERROR: %s", e, e.toString());
+          throw e;
         }
       }
 
@@ -127,13 +130,13 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
         for (int i = 0; i < getServerCount(); ++i) {
           final Database database = getServerDatabase(i, getDatabaseName());
+          database.begin();
           try {
             final long tot = database.countType(VERTEX1_TYPE_NAME, false);
             LogManager.instance().info(this, "TEST: -- DB '%s' - %d records", database, tot);
+            database.rollback();
           } catch (Exception e) {
             LogManager.instance().error(this, "TEST: -- ERROR ON RETRIEVING COUNT FROM DATABASE '%s'", e, database);
-          } finally {
-            database.close();
           }
         }
 

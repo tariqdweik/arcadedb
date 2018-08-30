@@ -368,7 +368,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     return (Long) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        checkDatabaseIsOpen();
+        checkTransactionIsActive();
         return schema.getBucketByName(bucketName).count();
       }
     });
@@ -381,7 +381,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     return (Long) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        checkDatabaseIsOpen();
+        checkTransactionIsActive();
         final DocumentType type = schema.getType(typeName);
 
         long total = 0;
@@ -401,7 +401,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       @Override
       public Object call() {
 
-        checkDatabaseIsOpen();
+        checkTransactionIsActive();
 
         final DocumentType type = schema.getType(typeName);
 
