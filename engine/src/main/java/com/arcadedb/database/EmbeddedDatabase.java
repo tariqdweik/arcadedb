@@ -741,11 +741,14 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
-  public void transaction(final TransactionScope txBlock, final int retries) {
+  public void transaction(final TransactionScope txBlock, int retries) {
     if (txBlock == null)
       throw new IllegalArgumentException("Transaction block is null");
 
     ConcurrentModificationException lastException = null;
+
+    if (retries < 1)
+      retries = 1;
 
     for (int retry = 0; retry < retries; ++retry) {
       try {
