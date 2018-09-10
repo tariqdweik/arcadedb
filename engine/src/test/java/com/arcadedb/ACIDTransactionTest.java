@@ -80,7 +80,13 @@ public class ACIDTransactionTest extends BaseTest {
     verifyWALFilesAreStillPresent();
 
     verifyDatabaseWasNotClosedProperly();
-    Assertions.assertEquals(TOT, database.countType("V", true));
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(TOT, database.countType("V", true));
+      }
+    });
   }
 
   @Test
@@ -99,7 +105,13 @@ public class ACIDTransactionTest extends BaseTest {
     }
 
     verifyDatabaseWasNotClosedProperly();
-    Assertions.assertEquals(0, database.countType("V", true));
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(0, database.countType("V", true));
+      }
+    });
   }
 
   @Test
@@ -133,7 +145,13 @@ public class ACIDTransactionTest extends BaseTest {
     verifyWALFilesAreStillPresent();
 
     verifyDatabaseWasNotClosedProperly();
-    Assertions.assertEquals(1, database.countType("V", true));
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(1, database.countType("V", true));
+      }
+    });
   }
 
   @Test
@@ -197,7 +215,13 @@ public class ACIDTransactionTest extends BaseTest {
     verifyWALFilesAreStillPresent();
 
     verifyDatabaseWasNotClosedProperly();
-    Assertions.assertEquals(TOT, database.countType("V", true));
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(TOT, database.countType("V", true));
+      }
+    });
   }
 
   @Test
@@ -252,7 +276,12 @@ public class ACIDTransactionTest extends BaseTest {
 
     verifyDatabaseWasNotClosedProperly();
 
-    Assertions.assertEquals(TOT, database.countType("V", true));
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(TOT, database.countType("V", true));
+      }
+    });
   }
 
   private void verifyDatabaseWasNotClosedProperly() {

@@ -138,6 +138,8 @@ public class TransactionTypeTest extends BaseTest {
 
     Assertions.assertEquals(TOT, total.get());
 
+    database.begin();
+
     Assertions.assertEquals(0, database.countType(TYPE_NAME, true));
 
     // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
@@ -149,7 +151,12 @@ public class TransactionTypeTest extends BaseTest {
 
     beginTest();
 
-    Assertions.assertEquals(TOT, database.countType(TYPE_NAME, true));
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(TOT, database.countType(TYPE_NAME, true));
+      }
+    });
   }
 
   @Test

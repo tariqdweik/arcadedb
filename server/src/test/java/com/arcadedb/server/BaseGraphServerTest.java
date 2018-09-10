@@ -326,7 +326,7 @@ public abstract class BaseGraphServerTest {
         final DatabaseInternal db1 = (DatabaseInternal) getServerDatabase(servers2Check[0], getDatabaseName());
         final DatabaseInternal db2 = (DatabaseInternal) getServerDatabase(servers2Check[i], getDatabaseName());
 
-        LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
+        LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1.getDatabasePath(), db2.getDatabasePath());
         new DatabaseComparator().compare(db1, db2);
       }
     }

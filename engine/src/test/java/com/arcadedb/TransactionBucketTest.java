@@ -128,17 +128,22 @@ public class TransactionBucketTest extends BaseTest {
         }
       });
 
-      database.commit();
-
     } finally {
       Assertions.assertEquals(0, database.countBucket("V_0"));
     }
+
+    database.commit();
 
     Assertions.assertEquals(TOT, total.get());
 
     beginTest();
 
-    Assertions.assertEquals(TOT, database.countBucket("V_0"));
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(TOT, database.countBucket("V_0"));
+      }
+    });
   }
 
   @Test
