@@ -7,7 +7,6 @@ package com.arcadedb.index.lsm;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TransactionContext;
-import com.arcadedb.database.TransactionIndexContext;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
@@ -17,7 +16,8 @@ import com.arcadedb.utility.RWLockContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -112,57 +112,9 @@ public class LSMTreeIndex implements Index {
     }
   }
 
-  public LSMTreeIndexMutable splitIndex(final int startingFromPage, final LSMTreeIndexCompacted subIndex) {
-    final DatabaseInternal database = mutable.getDatabase();
-
-    final int fileId = mutable.getFileId();
-
-    database.getTransactionManager().tryLockFile(fileId, 0);
-
-    try {
-      // COPY MUTABLE PAGES TO THE NEW FILE
-      return lock.executeInWriteLock(() -> {
-        final int pageSize = mutable.getPageSize();
-
-        int last_ = mutable.getName().lastIndexOf('_');
-        final String newName = mutable.getName().substring(0, last_) + "_" + System.nanoTime();
-
-        final LSMTreeIndexMutable newMutableIndex = new LSMTreeIndexMutable(this, database, newName, mutable.isUnique(),
-            database.getDatabasePath() + "/" + newName, mutable.getKeyTypes(), pageSize, subIndex);
-        ((SchemaImpl) database.getSchema()).registerFile(newMutableIndex);
-
-        // KEEP METADATA AND LEAVE IT EMPTY
-        final MutablePage rootPage = newMutableIndex.createNewPage(0);
-        database.getPageManager().updatePage(rootPage, true, false);
-        newMutableIndex.setPageCount(1);
-
-        for (int i = 0; i < mutable.getTotalPages() - startingFromPage; ++i) {
-          final BasePage currentPage = database.getTransaction().getPage(new PageId(mutable.getFileId(), i + startingFromPage), pageSize);
-
-          // COPY THE ENTIRE PAGE TO THE NEW INDEX
-          final MutablePage newPage = newMutableIndex.createNewPage(0);
-
-          final ByteBuffer pageContent = currentPage.getContent();
-          pageContent.rewind();
-          newPage.getContent().put(pageContent);
-
-          database.getPageManager().updatePage(newPage, true, false);
-          newMutableIndex.setPageCount(i + 2);
-        }
-
-        newMutableIndex.setCurrentMutablePages(newMutableIndex.getTotalPages());
-
-        // SWAP OLD WITH NEW INDEX IN EXCLUSIVE LOCK (NO READ/WRITE ARE POSSIBLE IN THE MEANTIME)
-        newMutableIndex.removeTempSuffix();
-
-        mutable.drop();
-        mutable = newMutableIndex;
-
-        return newMutableIndex;
-      });
-    } finally {
-      database.getTransactionManager().unlockFile(fileId);
-    }
+  @Override
+  public boolean isCompacting() {
+    return compactingStatus.get() == LSMTreeIndexAbstract.COMPACTING_STATUS.IN_PROGRESS;
   }
 
   @Override
@@ -219,77 +171,35 @@ public class LSMTreeIndex implements Index {
 
   @Override
   public Set<RID> get(final Object[] keys, final int limit) {
-    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN) {
-      Set<RID> txChanges = null;
-
-      final List<TransactionIndexContext.IndexKey> indexChanges = mutable.getDatabase().getTransaction().getIndexChanges().getIndexKeys(getName());
-      if (indexChanges != null)
-        for (int i = indexChanges.size() - 1; i > -1; --i) {
-          final TransactionIndexContext.IndexKey indexChange = indexChanges.get(i);
-          if (Arrays.equals(keys, indexChange.keyValues)) {
-            if (!indexChange.add)
-              // REMOVED
-              return Collections.EMPTY_SET;
-
-            if (txChanges == null)
-              txChanges = new HashSet<>();
-
-            txChanges.add(indexChange.rid);
-
-            if (limit > -1 && txChanges.size() > limit)
-              // LIMIT REACHED
-              return txChanges;
-          }
-        }
-
-      final Set<RID> result = lock.executeInReadLock(() -> mutable.get(keys, limit));
-
-      if (txChanges != null) {
-        // MERGE SETS
-        txChanges.addAll(result);
-        return txChanges;
-      }
-
-      return result;
-    }
-
     return lock.executeInReadLock(() -> mutable.get(keys, limit));
   }
 
   @Override
   public void put(final Object[] keys, final RID rid) {
-    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
+    if (mutable.isUnique() && mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
       // KEY ADDED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexOperation(this, true, keys, rid);
-    else
-      lock.executeInReadLock(() -> {
-        mutable.put(keys, rid);
-        return null;
-      });
+      mutable.getDatabase().getTransaction().addIndexOperation(this, keys, rid);
+
+    lock.executeInReadLock(() -> {
+      mutable.put(keys, rid);
+      return null;
+    });
   }
 
   @Override
   public void remove(final Object[] keys) {
-    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
-      // KEY REMOVED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, null);
-    else
-      lock.executeInReadLock(() -> {
-        mutable.remove(keys);
-        return null;
-      });
+    lock.executeInReadLock(() -> {
+      mutable.remove(keys);
+      return null;
+    });
   }
 
   @Override
   public void remove(final Object[] keys, final RID rid) {
-    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
-      // KEY REMOVED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, rid);
-    else
-      lock.executeInReadLock(() -> {
-        mutable.remove(keys, rid);
-        return null;
-      });
+    lock.executeInReadLock(() -> {
+      mutable.remove(keys, rid);
+      return null;
+    });
   }
 
   @Override
@@ -319,5 +229,63 @@ public class LSMTreeIndex implements Index {
   @Override
   public int getAssociatedBucketId() {
     return associatedBucketId;
+  }
+
+  @Override
+  public String toString() {
+    return name;
+  }
+
+  protected LSMTreeIndexMutable splitIndex(final int startingFromPage, final LSMTreeIndexCompacted subIndex) {
+    final DatabaseInternal database = mutable.getDatabase();
+
+    final int fileId = mutable.getFileId();
+
+    database.getTransactionManager().tryLockFile(fileId, 0);
+
+    try {
+      // COPY MUTABLE PAGES TO THE NEW FILE
+      return lock.executeInWriteLock(() -> {
+        final int pageSize = mutable.getPageSize();
+
+        int last_ = mutable.getName().lastIndexOf('_');
+        final String newName = mutable.getName().substring(0, last_) + "_" + System.nanoTime();
+
+        final LSMTreeIndexMutable newMutableIndex = new LSMTreeIndexMutable(this, database, newName, mutable.isUnique(),
+            database.getDatabasePath() + "/" + newName, mutable.getKeyTypes(), pageSize, subIndex);
+        ((SchemaImpl) database.getSchema()).registerFile(newMutableIndex);
+
+        // KEEP METADATA AND LEAVE IT EMPTY
+        final MutablePage rootPage = newMutableIndex.createNewPage(0);
+        database.getPageManager().updatePage(rootPage, true, false);
+        newMutableIndex.setPageCount(1);
+
+        for (int i = 0; i < mutable.getTotalPages() - startingFromPage; ++i) {
+          final BasePage currentPage = database.getTransaction().getPage(new PageId(mutable.getFileId(), i + startingFromPage), pageSize);
+
+          // COPY THE ENTIRE PAGE TO THE NEW INDEX
+          final MutablePage newPage = newMutableIndex.createNewPage(0);
+
+          final ByteBuffer pageContent = currentPage.getContent();
+          pageContent.rewind();
+          newPage.getContent().put(pageContent);
+
+          database.getPageManager().updatePage(newPage, true, false);
+          newMutableIndex.setPageCount(i + 2);
+        }
+
+        newMutableIndex.setCurrentMutablePages(newMutableIndex.getTotalPages() - 1);
+
+        // SWAP OLD WITH NEW INDEX IN EXCLUSIVE LOCK (NO READ/WRITE ARE POSSIBLE IN THE MEANTIME)
+        newMutableIndex.removeTempSuffix();
+
+        mutable.drop();
+        mutable = newMutableIndex;
+
+        return newMutableIndex;
+      });
+    } finally {
+      database.getTransactionManager().unlockFile(fileId);
+    }
   }
 }

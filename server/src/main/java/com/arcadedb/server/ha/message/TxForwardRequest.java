@@ -63,7 +63,7 @@ public class TxForwardRequest extends TxRequestAbstract {
     final TransactionContext tx = db.getTransaction();
 
     try {
-      tx.commitFromReplica(walTx, keysTx);
+      tx.commitFromReplica(changesBuffer, walTx, keysTx);
     } catch (NeedRetryException | TransactionException e) {
       return new ErrorResponse(e);
     } catch (Exception e) {
@@ -94,8 +94,6 @@ public class TxForwardRequest extends TxRequestAbstract {
 
       for (int i = 0; i < keys.size(); ++i) {
         final TransactionIndexContext.IndexKey key = keys.get(i);
-
-        uniqueKeysBuffer.putByte((byte) (key.add ? 1 : 0));
 
         uniqueKeysBuffer.putNumber(key.keyValues.length);
         for (int k = 0; k < key.keyValues.length; ++k) {
@@ -133,8 +131,6 @@ public class TxForwardRequest extends TxRequestAbstract {
       entries.put(indexName, keys);
 
       for (int keyIdx = 0; keyIdx < keyCount; ++keyIdx) {
-        final boolean add = uniqueKeysBuffer.getByte() == 1;
-
         final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
 
         final Object[] keyValues = new Object[keyEntryCount];
@@ -146,7 +142,7 @@ public class TxForwardRequest extends TxRequestAbstract {
 
         final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
 
-        final TransactionIndexContext.IndexKey key = new TransactionIndexContext.IndexKey(add, keyValues, rid);
+        final TransactionIndexContext.IndexKey key = new TransactionIndexContext.IndexKey(keyValues, rid);
         keys.add(key);
       }
     }

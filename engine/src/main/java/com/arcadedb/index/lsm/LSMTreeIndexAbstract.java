@@ -123,7 +123,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
 
   @Override
   public String toString() {
-    return name;
+    return name + "(" + getFileId() + ")";
   }
 
   public byte[] getKeyTypes() {

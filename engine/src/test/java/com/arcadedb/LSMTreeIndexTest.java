@@ -83,11 +83,29 @@ public class LSMTreeIndexTest extends BaseTest {
 
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
-          for (Index index : indexes)
-            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+          for (Index index : indexes) {
+            if (!index.get(new Object[] { i }).isEmpty()) {
+              LogManager.instance().info(this, "FOUND KEY " + i + " -> " + index.get(new Object[] { i }));
+            }
+
+//            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+          }
         }
       }
-    });
+    },0);
+
+    // CHECK ALSO AFTER THE TX HAS BEEN COMMITTED
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        final Index[] indexes = database.getSchema().getIndexes();
+        for (int i = 0; i < TOT; ++i) {
+          for (Index index : indexes) {
+            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+          }
+        }
+      }
+    },0);
   }
 
   @Test
@@ -510,12 +528,15 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testUnique() {
+    GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE.setValue(0);
+
+    database.begin();
     final long startingWith = database.countType(TYPE_NAME, true);
 
-    final long total = 5000;
+    final long total = 2000;
     final int maxRetries = 100;
 
-    final Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors()];
+    final Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors() * 4];
 
     final AtomicLong needRetryExceptions = new AtomicLong();
     final AtomicLong duplicatedExceptions = new AtomicLong();

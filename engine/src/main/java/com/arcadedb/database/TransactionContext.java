@@ -289,14 +289,40 @@ public class TransactionContext implements Transaction {
   /**
    * Executes 1st phase from a replica.
    */
-  public void commitFromReplica(final WALFile.WALTransaction buffer, final Map<String, List<TransactionIndexContext.IndexKey>> keysTx)
-      throws TransactionException {
+  public void commitFromReplica(final Binary changesBuffer, final WALFile.WALTransaction buffer,
+      final Map<String, List<TransactionIndexContext.IndexKey>> keysTx) throws TransactionException {
+
+    status = STATUS.COMMIT_1ST_PHASE;
+
+    final int totalImpactedPages = buffer.pages.length;
+    if (totalImpactedPages == 0 && keysTx.isEmpty()) {
+      // EMPTY TRANSACTION = NO CHANGES
+      modifiedPages = null;
+      return;
+    }
+
     try {
+      // LOCK FILES (IN ORDER, SO TO AVOID DEADLOCK)
+      final Set<Integer> modifiedFiles = new HashSet<>();
+
+      for (WALFile.WALPage p : buffer.pages)
+        modifiedFiles.add(p.fileId);
+
+      indexChanges.addAll(keysTx);
+      indexChanges.addFilesToLock(modifiedFiles);
+
+      final long timeout = database.getConfiguration().getValueAsLong(GlobalConfiguration.COMMIT_LOCK_TIMEOUT);
+
+      lockedFiles = database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
+
+      // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
+      indexChanges.checkUniqueIndexKeys();
+
+      final List<MutablePage> pages = new ArrayList<>();
+
       for (WALFile.WALPage p : buffer.pages) {
         final PaginatedFile file = database.getFileManager().getFile(p.fileId);
         final int pageSize = file.getPageSize();
-
-        assert !(database.getSchema().getFileById(p.fileId).getMainComponent() instanceof Index);
 
         final PageId pageId = new PageId(p.fileId, p.pageNumber);
 
@@ -318,17 +344,21 @@ public class TransactionContext implements Transaction {
           newPageCounters.put(pageId.getFileId(), pageId.getPageNumber() + 1);
         } else
           modifiedPages.put(pageId, page);
+
+        pages.add(page);
       }
 
-      indexChanges.addAll(keysTx);
+      final Pair<Binary, List<MutablePage>> changes = new Pair<>(changesBuffer, pages);
+
+      commit2ndPhase(changes);
 
     } catch (ConcurrentModificationException e) {
+      rollback();
       throw e;
     } catch (Exception e) {
+      rollback();
       throw new TransactionException("Transaction error on commit", e);
     }
-
-    database.commit();
   }
 
   /**
@@ -360,7 +390,7 @@ public class TransactionContext implements Transaction {
     try {
       if (isLeader)
         // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
-        indexChanges.applyChangesToIndexes();
+        indexChanges.checkUniqueIndexKeys();
 
       // CHECK THE VERSIONS FIRST
       final List<MutablePage> pages = new ArrayList<>();
@@ -460,8 +490,8 @@ public class TransactionContext implements Transaction {
     }
   }
 
-  public void addIndexOperation(final Index index, final boolean add, final Object[] keys, final RID rid) {
-    indexChanges.addIndexKeyLock(index.getName(), add, keys, rid);
+  public void addIndexOperation(final Index index, final Object[] keys, final RID rid) {
+    indexChanges.addIndexKeyLock(index.getName(), keys, rid);
   }
 
   @Override

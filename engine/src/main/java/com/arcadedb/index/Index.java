@@ -31,5 +31,7 @@ public interface Index extends ReadOnlyIndex {
 
   boolean compact() throws IOException, InterruptedException;
 
+  boolean isCompacting();
+
   boolean scheduleCompaction();
 }

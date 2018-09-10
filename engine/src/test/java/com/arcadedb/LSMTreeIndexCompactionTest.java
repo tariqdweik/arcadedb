@@ -147,33 +147,39 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
 
       final int totalToInsert = TOT;
       final long startTimer = System.currentTimeMillis();
-      long lastLap = startTimer;
-      long lastLapCounter = 0;
 
-      long counter = 0;
-      for (; counter < totalToInsert; ++counter) {
-        final MutableDocument v = database.newDocument("Device");
+      database.asynch().transaction(new Database.TransactionScope() {
+        @Override
+        public void execute(Database database) {
+          long lastLap = startTimer;
+          long lastLapCounter = 0;
 
-        final String randomString = "" + counter;
+          long counter = 0;
+          for (; counter < totalToInsert; ++counter) {
+            final MutableDocument v = database.newDocument("Device");
 
-        v.set("id", randomString); // INDEXED
-        v.set("number", "" + counter); // INDEXED
-        v.set("relativeName", "/shelf=" + counter + "/slot=1"); // INDEXED
+            final String randomString = "" + counter;
 
-        v.set("Name", "1" + counter);
+            v.set("id", randomString); // INDEXED
+            v.set("number", "" + counter); // INDEXED
+            v.set("relativeName", "/shelf=" + counter + "/slot=1"); // INDEXED
 
-        database.asynch().createRecord(v);
+            v.set("Name", "1" + counter);
 
-        if (counter % 1000 == 0) {
-          if (System.currentTimeMillis() - lastLap > 1000) {
-            LogManager.instance().info(this, "TEST: - Progress %d/%d (%d records/sec)", counter, totalToInsert, counter - lastLapCounter);
-            lastLap = System.currentTimeMillis();
-            lastLapCounter = counter;
+            v.save();
+
+            if (counter % 1000 == 0) {
+              if (System.currentTimeMillis() - lastLap > 1000) {
+                LogManager.instance().info(this, "TEST: - Progress %d/%d (%d records/sec)", counter, totalToInsert, counter - lastLapCounter);
+                lastLap = System.currentTimeMillis();
+                lastLapCounter = counter;
+              }
+            }
           }
         }
-      }
+      });
 
-      LogManager.instance().info(this, "TEST: Inserted " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().info(this, "TEST: Inserted " + totalToInsert + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
       LogManager.instance().info(this, "TEST: Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
@@ -183,7 +189,12 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
   }
 
   private void checkLookups(final int step, final int expectedItems) {
-    Assertions.assertEquals(TOT * expectedItems, database.countType(TYPE_NAME, false));
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertEquals(TOT * expectedItems, database.countType(TYPE_NAME, false));
+      }
+    });
 
     LogManager.instance().info(this, "TEST: Lookup all the keys...");
 

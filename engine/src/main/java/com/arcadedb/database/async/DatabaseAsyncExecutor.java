@@ -109,7 +109,6 @@ public class DatabaseAsyncExecutor {
                 } catch (ConcurrentModificationException e) {
                   // RETRY
                   lastException = e;
-                  beginTxIfNeeded();
 
                   continue;
                 } catch (Exception e) {
@@ -269,12 +268,16 @@ public class DatabaseAsyncExecutor {
 
               final DatabaseAsyncIndexCompaction task = (DatabaseAsyncIndexCompaction) message;
 
+              if (database.isTransactionActive())
+                database.commit();
+
               try {
                 task.index.compact();
               } catch (Exception e) {
                 LogManager.instance().error(this, "Error on executing compaction of index '%s'", e, task.index.getName());
               }
 
+              beginTxIfNeeded();
             }
 
             message.completed();
