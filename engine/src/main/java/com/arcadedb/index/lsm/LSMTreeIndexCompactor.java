@@ -19,7 +19,9 @@ import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class LSMTreeIndexCompactor {
   public LSMTreeIndexCompactor() {
@@ -118,8 +120,6 @@ public class LSMTreeIndexCompactor {
 
       final List<RID> rids = new ArrayList<>();
 
-      final Set<RID> deletedRids = new HashSet<>();
-
       boolean moreItems = true;
       for (; moreItems; ++iterations) {
         moreItems = false;
@@ -159,8 +159,6 @@ public class LSMTreeIndexCompactor {
           final LSMTreeIndexPageIterator iter = iterators[idx];
 
           // BROWSE THE SAME ITERATOR TO CHECK IF NEXT VALUES HAVE THE SAME KEY
-          deletedRids.clear();
-
           while (true) {
             if (iter == null)
               break;
@@ -168,40 +166,29 @@ public class LSMTreeIndexCompactor {
             final Object[] value = iter.getValue();
             if (value != null) {
               // NOT DELETED
-              boolean deleted = false;
               for (int r = 0; r < value.length; ++r) {
                 final RID rid = (RID) value[r];
-                if (rid.equals(LSMTreeIndexAbstract.REMOVED_ENTRY_RID)) {
-                  // DELETED KEY
-                  rids.clear();
-                  deleted = true;
-                  break;
-                } else if (rid.getBucketId() < 0)
-                  deletedRids.add(rid);
-                else
-                  rids.add(rid);
+                // ADD ALSO REMOVED RIDS. ONCE THE COMPACTING OF COMPACTED INDEXES (2nd LEVEL) IS DONE, REMOVED ENTRIES CAN BE REMOVED
+                rids.add(rid);
               }
-
-              if (deleted)
-                break;
 
               if (!rids.isEmpty())
                 totalMergedValues += rids.size();
+            }
 
-              // CHECK IF THE NEXT ELEMENT HAS THE SAME KEY
-              if (iter.hasNext()) {
-                iter.next();
-                keys[idx] = iterators[idx].getKeys();
+            // CHECK IF THE NEXT ELEMENT HAS THE SAME KEY
+            if (iter.hasNext()) {
+              iter.next();
+              keys[idx] = iterators[idx].getKeys();
 
-                if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[idx], minorKey) != 0)
-                  break;
-
-              } else {
-                iterators[idx].close();
-                iterators[idx] = null;
-                keys[idx] = null;
+              if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[idx], minorKey) != 0)
                 break;
-              }
+
+            } else {
+              iterators[idx].close();
+              iterators[idx] = null;
+              keys[idx] = null;
+              break;
             }
           }
         }

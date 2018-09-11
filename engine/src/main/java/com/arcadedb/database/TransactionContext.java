@@ -315,8 +315,8 @@ public class TransactionContext implements Transaction {
 
       lockedFiles = database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
 
-      // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
-      indexChanges.checkUniqueIndexKeys();
+      // CHECK INDEX UNIQUE PUT + COMMIT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
+      indexChanges.commit();
 
       final List<MutablePage> pages = new ArrayList<>();
 
@@ -388,9 +388,10 @@ public class TransactionContext implements Transaction {
       lockedFiles = new ArrayList<>();
 
     try {
-      if (isLeader)
-        // CHECK INDEX UNIQUE PUT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
-        indexChanges.checkUniqueIndexKeys();
+      if (isLeader) {
+        // COMMIT INDEX CHANGES (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
+        indexChanges.commit();
+      }
 
       // CHECK THE VERSIONS FIRST
       final List<MutablePage> pages = new ArrayList<>();
@@ -490,8 +491,8 @@ public class TransactionContext implements Transaction {
     }
   }
 
-  public void addIndexOperation(final Index index, final Object[] keys, final RID rid) {
-    indexChanges.addIndexKeyLock(index.getName(), keys, rid);
+  public void addIndexOperation(final Index index, final boolean addOperation, final Object[] keys, final RID rid) {
+    indexChanges.addIndexKeyLock(index.getName(), addOperation, keys, rid);
   }
 
   @Override

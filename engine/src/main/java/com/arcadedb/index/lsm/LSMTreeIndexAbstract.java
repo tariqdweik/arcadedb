@@ -381,7 +381,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   }
 
   protected boolean lookupInPageAndAddInResultset(final BasePage currentPage, final Binary currentPageBuffer, final int count, final Object[] convertedKeys,
-      int limit, final Set<RID> set, final Set<RID> removedRIDs) {
+      final int limit, final Set<RID> set, final Set<RID> removedRIDs) {
     final LookupResult result = lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, convertedKeys, 1);
     if (result.found) {
       // REAL ALL THE ENTRIES
@@ -391,14 +391,10 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
       for (int i = allValues.size() - 1; i > -1; --i) {
         final RID rid = allValues.get(i);
 
-        if (rid.getBucketId() == REMOVED_ENTRY_RID.getBucketId() && rid.getPosition() == REMOVED_ENTRY_RID.getPosition()) {
-          if (set.contains(rid))
-            continue;
-          else {
-            // DELETED ITEM
-            set.clear();
-            return false;
-          }
+        if (REMOVED_ENTRY_RID.equals(rid)) {
+          // DELETED ITEM
+          set.clear();
+          return false;
         }
 
         if (rid.getBucketId() < 0) {

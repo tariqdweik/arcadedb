@@ -440,9 +440,10 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       setCount(currentPage, count + 1);
       setValuesFreePosition(currentPage, keyValueFreePosition);
 
-      LogManager.instance()
-          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
-              count + 1, newPage);
+      if (LogManager.instance().isDebugEnabled())
+        LogManager.instance()
+            .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
+                count + 1, newPage);
 
     } catch (IOException e) {
       throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
@@ -557,9 +558,10 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       setCount(currentPage, count + 1);
       setValuesFreePosition(currentPage, keyValueFreePosition);
 
-      LogManager.instance()
-          .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
-              count + 1, newPage);
+      if (LogManager.instance().isDebugEnabled())
+        LogManager.instance()
+            .debug(this, "Put removed entry %s=%s (original=%s) in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), removedRID, rid,
+                name, currentPage.getPageId(), count + 1, newPage);
 
     } catch (IOException e) {
       throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);

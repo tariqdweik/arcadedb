@@ -14,20 +14,45 @@ import java.util.*;
 
 public class TransactionIndexContext {
   private final DatabaseInternal            database;
-  private final Map<String, List<IndexKey>> indexKeysToLocks = new HashMap<>();
+  private final Map<String, List<IndexKey>> indexEntries = new HashMap<>();
+
+  public static class IndexKey {
+    public final boolean  addOperation;
+    public final Object[] keyValues;
+    public final RID      rid;
+
+    public IndexKey(final boolean addOperation, final Object[] keyValues, final RID rid) {
+      this.addOperation = addOperation;
+      this.keyValues = keyValues;
+      this.rid = rid;
+    }
+
+    @Override
+    public String toString() {
+      return "IndexKey(" + (addOperation ? "add " : "remove ") + Arrays.toString(keyValues) + ")";
+    }
+  }
 
   public TransactionIndexContext(final DatabaseInternal database) {
     this.database = database;
   }
 
-  public void checkUniqueIndexKeys() {
-    for (Map.Entry<String, List<IndexKey>> entry : indexKeysToLocks.entrySet()) {
+  public void commit() {
+    checkUniqueIndexKeys();
+
+    for (Map.Entry<String, List<IndexKey>> entry : indexEntries.entrySet()) {
       final Index index = database.getSchema().getIndexByName(entry.getKey());
       final List<IndexKey> keys = entry.getValue();
-      for (int i = 0; i < keys.size(); ++i)
-        checkUniqueIndexKeys(index, keys.get(i));
+      for (int i = 0; i < keys.size(); ++i) {
+        final IndexKey key = keys.get(i);
+        if (key.addOperation)
+          index.put(key.keyValues, key.rid);
+        else
+          index.remove(key.keyValues, key.rid);
+      }
     }
-    indexKeysToLocks.clear();
+
+    indexEntries.clear();
   }
 
   public void addFilesToLock(Set<Integer> modifiedFiles) {
@@ -35,7 +60,7 @@ public class TransactionIndexContext {
 
     final Set<Index> lockedIndexes = new HashSet<>();
 
-    for (Map.Entry<String, List<IndexKey>> entry : indexKeysToLocks.entrySet()) {
+    for (Map.Entry<String, List<IndexKey>> entry : indexEntries.entrySet()) {
       final Index index = schema.getIndexByName(entry.getKey());
 
       if (lockedIndexes.contains(index))
@@ -63,54 +88,42 @@ public class TransactionIndexContext {
   }
 
   public Map<String, List<IndexKey>> toMap() {
-    return indexKeysToLocks;
-  }
-
-  public static class IndexKey {
-    public final Object[] keyValues;
-    public final RID      rid;
-
-    public IndexKey(final Object[] keyValues, final RID rid) {
-      this.keyValues = keyValues;
-      this.rid = rid;
-    }
-
-    @Override
-    public String toString() {
-      return "IndexKey(" + Arrays.toString(keyValues) + ")";
-    }
+    return indexEntries;
   }
 
   public void addAll(final Map<String, List<IndexKey>> keysTx) {
-    indexKeysToLocks.clear();
-    indexKeysToLocks.putAll(keysTx);
+    indexEntries.clear();
+    indexEntries.putAll(keysTx);
   }
 
   public boolean isEmpty() {
-    return indexKeysToLocks.isEmpty();
+    return indexEntries.isEmpty();
   }
 
-  public void addIndexKeyLock(final String indexName, final Object[] keysValues, final RID rid) {
-    List<IndexKey> keys = indexKeysToLocks.get(indexName);
+  public void addIndexKeyLock(final String indexName, final boolean addOperation, final Object[] keysValues, final RID rid) {
+    List<IndexKey> keys = indexEntries.get(indexName);
     if (keys == null) {
       keys = new ArrayList<>();
-      indexKeysToLocks.put(indexName, keys);
+      indexEntries.put(indexName, keys);
     }
-    keys.add(new IndexKey(keysValues, rid));
+    keys.add(new IndexKey(addOperation, keysValues, rid));
   }
 
   public void reset() {
-    indexKeysToLocks.clear();
+    indexEntries.clear();
   }
 
   public List<IndexKey> getIndexKeys(final String indexName) {
-    return indexKeysToLocks.get(indexName);
+    return indexEntries.get(indexName);
   }
 
   /**
    * Called at commit time in the middle of the lock to avoid concurrent insertion of the same key.
    */
   private void checkUniqueIndexKeys(final Index index, final IndexKey key) {
+    if (!key.addOperation)
+      return;
+
     final DocumentType type = database.getSchema().getType(index.getTypeName());
 
     // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
@@ -121,6 +134,17 @@ public class TransactionIndexContext {
 
         if (found.size() > 1 || (found.size() == 1 && !found.iterator().next().equals(key.rid)))
           throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
+      }
+    }
+  }
+
+  private void checkUniqueIndexKeys() {
+    for (Map.Entry<String, List<IndexKey>> entry : indexEntries.entrySet()) {
+      final Index index = database.getSchema().getIndexByName(entry.getKey());
+      if (index.isUnique()) {
+        final List<IndexKey> keys = entry.getValue();
+        for (int i = 0; i < keys.size(); ++i)
+          checkUniqueIndexKeys(index, keys.get(i));
       }
     }
   }

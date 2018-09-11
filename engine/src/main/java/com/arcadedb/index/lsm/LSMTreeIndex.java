@@ -7,6 +7,7 @@ package com.arcadedb.index.lsm;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.TransactionContext;
+import com.arcadedb.database.TransactionIndexContext;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
@@ -16,8 +17,7 @@ import com.arcadedb.utility.RWLockContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -171,35 +171,77 @@ public class LSMTreeIndex implements Index {
 
   @Override
   public Set<RID> get(final Object[] keys, final int limit) {
+    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN) {
+      Set<RID> txChanges = null;
+
+      final List<TransactionIndexContext.IndexKey> indexChanges = mutable.getDatabase().getTransaction().getIndexChanges().getIndexKeys(getName());
+      if (indexChanges != null)
+        for (int i = indexChanges.size() - 1; i > -1; --i) {
+          final TransactionIndexContext.IndexKey indexChange = indexChanges.get(i);
+          if (Arrays.equals(keys, indexChange.keyValues)) {
+            if (!indexChange.addOperation)
+              // REMOVED
+              return Collections.EMPTY_SET;
+
+            if (txChanges == null)
+              txChanges = new HashSet<>();
+
+            txChanges.add(indexChange.rid);
+
+            if (limit > -1 && txChanges.size() > limit)
+              // LIMIT REACHED
+              return txChanges;
+          }
+        }
+
+      final Set<RID> result = lock.executeInReadLock(() -> mutable.get(keys, limit));
+
+      if (txChanges != null) {
+        // MERGE SETS
+        txChanges.addAll(result);
+        return txChanges;
+      }
+
+      return result;
+    }
+
     return lock.executeInReadLock(() -> mutable.get(keys, limit));
   }
 
   @Override
   public void put(final Object[] keys, final RID rid) {
-    if (mutable.isUnique() && mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
+    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
       // KEY ADDED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexOperation(this, keys, rid);
-
-    lock.executeInReadLock(() -> {
-      mutable.put(keys, rid);
-      return null;
-    });
+      mutable.getDatabase().getTransaction().addIndexOperation(this, true, keys, rid);
+    else
+      lock.executeInReadLock(() -> {
+        mutable.put(keys, rid);
+        return null;
+      });
   }
 
   @Override
   public void remove(final Object[] keys) {
-    lock.executeInReadLock(() -> {
-      mutable.remove(keys);
-      return null;
-    });
+    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
+      // KEY REMOVED AT COMMIT TIME (IN A LOCK)
+      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, null);
+    else
+      lock.executeInReadLock(() -> {
+        mutable.remove(keys);
+        return null;
+      });
   }
 
   @Override
   public void remove(final Object[] keys, final RID rid) {
-    lock.executeInReadLock(() -> {
-      mutable.remove(keys, rid);
-      return null;
-    });
+    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
+      // KEY REMOVED AT COMMIT TIME (IN A LOCK)
+      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, rid);
+    else
+      lock.executeInReadLock(() -> {
+        mutable.remove(keys, rid);
+        return null;
+      });
   }
 
   @Override
