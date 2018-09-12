@@ -297,8 +297,11 @@ public class LSMTreeIndex implements Index {
             database.getDatabasePath() + "/" + newName, mutable.getKeyTypes(), pageSize, subIndex);
         ((SchemaImpl) database.getSchema()).registerFile(newMutableIndex);
 
+        final MutablePage subIndexMainPage = subIndex.setCompactedTotalPages();
+        database.getPageManager().updatePage(subIndexMainPage, false, false);
+
         // KEEP METADATA AND LEAVE IT EMPTY
-        final MutablePage rootPage = newMutableIndex.createNewPage(0);
+        final MutablePage rootPage = newMutableIndex.createNewPage();
         database.getPageManager().updatePage(rootPage, true, false);
         newMutableIndex.setPageCount(1);
 
@@ -306,7 +309,7 @@ public class LSMTreeIndex implements Index {
           final BasePage currentPage = database.getTransaction().getPage(new PageId(mutable.getFileId(), i + startingFromPage), pageSize);
 
           // COPY THE ENTIRE PAGE TO THE NEW INDEX
-          final MutablePage newPage = newMutableIndex.createNewPage(0);
+          final MutablePage newPage = newMutableIndex.createNewPage();
 
           final ByteBuffer pageContent = currentPage.getContent();
           pageContent.rewind();

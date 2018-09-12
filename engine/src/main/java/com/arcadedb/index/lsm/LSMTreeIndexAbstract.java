@@ -31,9 +31,9 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * <p>
  * When a page is full, another page is created, waiting for a compaction.
  * <p>
- * HEADER ROOT PAGE (1st) = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),mutable(boolean:1),compactedPages(int:4),subIndexFileId(int:4),numberOfKeys(byte:1),keyType(byte:1)*]
+ * HEADER ROOT PAGE (1st) = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),mutable(boolean:1),compactedPageNumberOfSeries(int:4),subIndexFileId(int:4),numberOfKeys(byte:1),keyType(byte:1)*]
  * <p>
- * HEADER Nst PAGE        = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),mutable(boolean:1)]
+ * HEADER Nst PAGE        = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),mutable(boolean:1),compactedPageNumberOfSeries(int:4)]
  */
 public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   public static final    int    DEF_PAGE_SIZE     = 2 * 1024 * 1024;
@@ -103,8 +103,6 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
     this.comparator = serializer.getComparator();
     this.unique = unique;
   }
-
-  protected abstract MutablePage createNewPage(int compactedPages) throws IOException;
 
   protected abstract LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] convertedKeys, int mid, final int count,
       final int purpose);
@@ -200,8 +198,9 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
     else if (result != LOWER)
       return result;
 
+    int mid;
     while (low <= high) {
-      int mid = (low + high) / 2;
+      mid = (low + high) / 2;
 
       result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, mid, count, purpose);
 
@@ -262,6 +261,30 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
     return keys;
   }
 
+  protected Object[] getPageBound(final BasePage currentPage, final Binary currentPageBuffer) {
+    final Object[] min = getKeyInPagePosition(currentPage.getPageId().getPageNumber(), currentPageBuffer, 0);
+
+    final int count = getCount(currentPage);
+
+    if (count > 1)
+      return new Object[] { min, getKeyInPagePosition(currentPage.getPageId().getPageNumber(), currentPageBuffer, count - 1) };
+    else
+      return new Object[] { min, min };
+  }
+
+  protected Object[] getKeyInPagePosition(final int pageNum, final Binary currentPageBuffer, final int position) {
+    final int startIndexArray = getHeaderSize(pageNum);
+    final int contentPos = currentPageBuffer.getInt(startIndexArray + (position * INT_SERIALIZED_SIZE));
+    currentPageBuffer.position(contentPos);
+
+    final Object[] key = new Object[keyTypes.length];
+
+    for (int keyIndex = 0; keyIndex < keyTypes.length; ++keyIndex)
+      key[keyIndex] = serializer.deserializeValue(database, currentPageBuffer, keyTypes[keyIndex]);
+
+    return key;
+  }
+
   protected int compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object keys[], final int mid, final int count) {
     final int contentPos = currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE));
     if (contentPos < startIndexArray + (count * INT_SERIALIZED_SIZE))
@@ -290,9 +313,9 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   }
 
   protected int getHeaderSize(final int pageNum) {
-    int size = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE;
+    int size = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE + INT_SERIALIZED_SIZE;
     if (pageNum == 0)
-      size += INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE + keyTypes.length;
+      size += INT_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE + keyTypes.length;
 
     return size;
   }

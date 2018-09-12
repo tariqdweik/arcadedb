@@ -92,7 +92,7 @@ public class LSMTreeIndexTest extends BaseTest {
           }
         }
       }
-    },0);
+    }, 0);
 
     // CHECK ALSO AFTER THE TX HAS BEEN COMMITTED
     database.transaction(new Database.TransactionScope() {
@@ -105,7 +105,7 @@ public class LSMTreeIndexTest extends BaseTest {
           }
         }
       }
-    },0);
+    }, 0);
   }
 
   @Test
@@ -281,6 +281,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
           for (Index index : indexes) {
             final Set<RID> value = index.get(key);
+
             if (!value.isEmpty()) {
               for (RID r : value) {
                 index.remove(key, r);

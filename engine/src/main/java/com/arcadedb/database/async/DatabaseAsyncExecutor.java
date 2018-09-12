@@ -290,7 +290,7 @@ public class DatabaseAsyncExecutor {
           queue.clear();
           break;
         } catch (Exception e) {
-          LogManager.instance().error(this, "Error on saving record (asyncThread=%s)", e, getName());
+          LogManager.instance().error(this, "Error on executing asynchronous operation (asyncThread=%s)", e, getName());
           if (!database.getTransaction().isActive())
             database.begin();
         }

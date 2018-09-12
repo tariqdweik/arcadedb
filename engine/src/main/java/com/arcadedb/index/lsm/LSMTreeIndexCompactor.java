@@ -92,9 +92,11 @@ public class LSMTreeIndexCompactor {
         pagesToCompact = lastImmutablePage - pageIndex + 1;
 
       // CREATE ROOT PAGE
-      MutablePage rootPage = compactedIndex.createNewPage(pagesToCompact);
+      MutablePage rootPage = compactedIndex.createNewPage(0);
       TrackableBinary rootPageBuffer = rootPage.getTrackable();
       Object[] lastPageMaxKey = null;
+
+      int compactedPageNumberInSeries = 1;
 
       final LSMTreeIndexPageIterator[] iterators = new LSMTreeIndexPageIterator[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
@@ -197,19 +199,28 @@ public class LSMTreeIndexCompactor {
           final RID[] ridsArray = new RID[rids.size()];
           rids.toArray(ridsArray);
 
-          final MutablePage newPage = compactedIndex.appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, pagesToCompact, minorKey, ridsArray);
+          final MutablePage newPage = compactedIndex
+              .appendDuringCompaction(keyValueContent, lastPage, currentPageBuffer, compactedPageNumberInSeries, minorKey, ridsArray);
+
           if (newPage != lastPage) {
+            ++compactedPageNumberInSeries;
+
             if (rootPage != null) {
               // NEW PAGE: STORE THE MIN KEY IN THE ROOT PAGE
               final int newPageNum = newPage.getPageId().getPageNumber();
 
               final MutablePage newRootPage = compactedIndex
-                  .appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, pagesToCompact, minorKey, new RID[] { new RID(database, 0, newPageNum) });
+                  .appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, compactedPageNumberInSeries, minorKey,
+                      new RID[] { new RID(database, 0, newPageNum) });
 
-              LogManager.instance().debug(mainIndex, "- Creating a new entry in root page %s->%d", Arrays.toString(minorKey), newPageNum);
+              LogManager.instance()
+                  .debug(mainIndex, "- Creating a new entry in index '%s' root page %s->%d (entry in page=%d)", index, Arrays.toString(minorKey), newPageNum,
+                      index.getCount(rootPage)-1);
 
               if (newRootPage != rootPage) {
                 // TODO: MANAGE A LINKED LIST OF ROOT PAGES INSTEAD
+                ++compactedPageNumberInSeries;
+
                 LogManager.instance().info(mainIndex, "- End of space in root index page for index '%s' (rootEntries=%d)", compactedIndex.getName(),
                     compactedIndex.getCount(rootPage));
                 database.getPageManager().updatePage(rootPage, true, false);
@@ -230,15 +241,16 @@ public class LSMTreeIndexCompactor {
           totalValues += rids.size();
 
           if (totalKeys % 1000000 == 0)
-            LogManager.instance().info(mainIndex, "- keys %d values %d - iterations %d (entriesInRootPage=%d)", totalKeys, totalValues, iterations,
+            LogManager.instance().debug(mainIndex, "- Keys %d values %d - iterations %d (entriesInRootPage=%d)", totalKeys, totalValues, iterations,
                 compactedIndex.getCount(rootPage));
         }
       }
 
       if (rootPage != null && lastPageMaxKey != null) {
         // WRITE THE MAX KEY
-        compactedIndex.appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, pagesToCompact, lastPageMaxKey, new RID[] { new RID(database, 0, 0) });
-        LogManager.instance().debug(mainIndex, "- Creating last entry in root page %s (entriesInRootPage=%d)", Arrays.toString(lastPageMaxKey),
+        compactedIndex.appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, compactedPageNumberInSeries, lastPageMaxKey,
+            new RID[] { new RID(database, 0, 0) });
+        LogManager.instance().debug(mainIndex, "- Creating last entry in index '%s' root page %s (entriesInRootPage=%d)", index, Arrays.toString(lastPageMaxKey),
             compactedIndex.getCount(rootPage));
       }
 

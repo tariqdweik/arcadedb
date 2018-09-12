@@ -44,7 +44,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
     database.checkTransactionIsActive();
-    createNewPage(0);
+    createNewPage();
     minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
   }
 
@@ -67,13 +67,10 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
     final BasePage currentPage = this.database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
 
-    int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE;
+    int pos = INT_SERIALIZED_SIZE + INT_SERIALIZED_SIZE + BYTE_SERIALIZED_SIZE + INT_SERIALIZED_SIZE;
 
-    // TODO: COUNT THE MUTABLE PAGE FROM THE TAIL BACK TO THE HEAD
+    // TODO: COUNT THE MUTABLE PAGES FROM THE TAIL BACK TO THE HEAD
     currentMutablePages = 1;
-
-    final int compactedPages = currentPage.readInt(pos);
-    pos += INT_SERIALIZED_SIZE;
 
     subIndexFileId = currentPage.readInt(pos);
 
@@ -305,8 +302,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     return mid;
   }
 
-  @Override
-  protected MutablePage createNewPage(final int compactedPages) throws IOException {
+  protected MutablePage createNewPage() throws IOException {
     // NEW FILE, CREATE HEADER PAGE
     final int txPageCounter = getTotalPages();
 
@@ -325,10 +321,10 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     currentPage.writeByte(pos, (byte) 1); // MUTABLE PAGE
     pos += BYTE_SERIALIZED_SIZE;
 
-    if (txPageCounter == 0) {
-      currentPage.writeInt(pos, compactedPages); // COMPACTED PAGES
-      pos += INT_SERIALIZED_SIZE;
+    currentPage.writeInt(pos, 0); // COMPACTED PAGES
+    pos += INT_SERIALIZED_SIZE;
 
+    if (txPageCounter == 0) {
       currentPage.writeInt(pos, subIndex != null ? subIndex.getId() : -1); // SUB-INDEX FILE ID
       pos += INT_SERIALIZED_SIZE;
 
@@ -414,7 +410,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
         // NO SPACE LEFT, CREATE A NEW PAGE
         newPage = true;
 
-        currentPage = createNewPage(0);
+        currentPage = createNewPage();
 
         assert isMutable(currentPage);
 
@@ -532,7 +528,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
         newPage = true;
 
-        currentPage = createNewPage(0);
+        currentPage = createNewPage();
 
         assert isMutable(currentPage);
 
