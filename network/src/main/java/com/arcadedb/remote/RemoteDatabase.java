@@ -318,7 +318,7 @@ public class RemoteDatabase extends RWLockContext {
           LogManager.instance()
               .warn(this, "Remote server seems unreachable, switching to server %s:%d...", connectToServer.getFirst(), connectToServer.getSecond());
 
-      } catch (NeedRetryException|DuplicatedKeyException e) {
+      } catch (NeedRetryException|DuplicatedKeyException|TransactionException e) {
         throw e;
       } catch (Exception e) {
         throw new RemoteException("Error on executing remote operation " + operation, e);

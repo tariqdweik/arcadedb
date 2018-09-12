@@ -292,8 +292,6 @@ public class TransactionContext implements Transaction {
   public void commitFromReplica(final Binary changesBuffer, final WALFile.WALTransaction buffer,
       final Map<String, List<TransactionIndexContext.IndexKey>> keysTx) throws TransactionException {
 
-    status = STATUS.COMMIT_1ST_PHASE;
-
     final int totalImpactedPages = buffer.pages.length;
     if (totalImpactedPages == 0 && keysTx.isEmpty()) {
       // EMPTY TRANSACTION = NO CHANGES
@@ -311,15 +309,6 @@ public class TransactionContext implements Transaction {
       indexChanges.addAll(keysTx);
       indexChanges.addFilesToLock(modifiedFiles);
 
-      final long timeout = database.getConfiguration().getValueAsLong(GlobalConfiguration.COMMIT_LOCK_TIMEOUT);
-
-      lockedFiles = database.getTransactionManager().tryLockFiles(modifiedFiles, timeout);
-
-      // CHECK INDEX UNIQUE PUT + COMMIT (IN CASE OF REPLICA THIS IS DEMANDED TO THE LEADER EXECUTION)
-      indexChanges.commit();
-
-      final List<MutablePage> pages = new ArrayList<>();
-
       for (WALFile.WALPage p : buffer.pages) {
         final PaginatedFile file = database.getFileManager().getFile(p.fileId);
         final int pageSize = file.getPageSize();
@@ -330,11 +319,6 @@ public class TransactionContext implements Transaction {
 
         final MutablePage page = getPageToModify(pageId, pageSize, isNew);
 
-        if (p.currentPageVersion != page.getVersion() + 1)
-          throw new ConcurrentModificationException(
-              "Concurrent modification on page " + page.getPageId() + " in file '" + file.getFileName() + "' (current v." + page.getVersion()
-                  + " expected database v." + (page.getVersion() + 1) + "). Please retry the operation (threadId=" + Thread.currentThread().getId() + ")");
-
         // APPLY THE CHANGE TO THE PAGE
         page.writeByteArray(p.changesFrom - BasePage.PAGE_HEADER_SIZE, p.currentContent.content);
         page.setContentSize(p.currentPageSize);
@@ -344,13 +328,9 @@ public class TransactionContext implements Transaction {
           newPageCounters.put(pageId.getFileId(), pageId.getPageNumber() + 1);
         } else
           modifiedPages.put(pageId, page);
-
-        pages.add(page);
       }
 
-      final Pair<Binary, List<MutablePage>> changes = new Pair<>(changesBuffer, pages);
-
-      commit2ndPhase(changes);
+      database.commit();
 
     } catch (ConcurrentModificationException e) {
       rollback();
