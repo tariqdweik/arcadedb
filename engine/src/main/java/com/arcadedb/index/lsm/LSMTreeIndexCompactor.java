@@ -98,7 +98,7 @@ public class LSMTreeIndexCompactor {
 
       int compactedPageNumberInSeries = 1;
 
-      final LSMTreeIndexPageIterator[] iterators = new LSMTreeIndexPageIterator[pagesToCompact];
+      final LSMTreeIndexUnderlyingPageCursor[] iterators = new LSMTreeIndexUnderlyingPageCursor[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
         iterators[i] = index.newPageIterator(pageIndex + i, 0, true);
 
@@ -158,7 +158,7 @@ public class LSMTreeIndexCompactor {
         rids.clear();
         for (int i = 0; i < minorKeyIndexes.size(); ++i) {
           final int idx = minorKeyIndexes.get(i);
-          final LSMTreeIndexPageIterator iter = iterators[idx];
+          final LSMTreeIndexUnderlyingPageCursor iter = iterators[idx];
 
           // BROWSE THE SAME ITERATOR TO CHECK IF NEXT VALUES HAVE THE SAME KEY
           while (true) {

@@ -15,9 +15,7 @@ import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
@@ -171,6 +169,59 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
     return currentPage;
   }
 
+  public List<LSMTreeIndexUnderlyingCompactedSeriesCursor> newIterators(final boolean ascendingOrder) throws IOException {
+    final BasePage mainPage = database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
+    final int mainPageCount = getCompactedPageNumberOfSeries(mainPage);
+
+    final int totalPages = getTotalPages();
+
+    if (mainPageCount == 0) {
+      // NO PAGES. THIS SHOULD NEVER HAPPEN
+      LogManager.instance().warn(this, "Compacted index '%s' main page 0 has pageNumber=%d totalPages=%d", getName(), totalPages);
+      return Collections.emptyList();
+    }
+
+    if (mainPageCount > totalPages) {
+      // PAGES > TOTAL PAGES. THIS SHOULD NEVER HAPPEN
+      LogManager.instance().warn(this, "Compacted index '%s' main page 0 has an invalid pageNumber=%d totalPages=%d", getName(), mainPageCount, totalPages);
+      return Collections.emptyList();
+    }
+
+    final List<LSMTreeIndexUnderlyingCompactedSeriesCursor> iterators = new ArrayList<>();
+
+    for (int pageNumber = mainPageCount - 1; pageNumber > 0; ) {
+      final BasePage lastPage = database.getTransaction().getPage(new PageId(file.getFileId(), pageNumber), pageSize);
+
+      final int rootPageCount = getCompactedPageNumberOfSeries(lastPage);
+
+      if (rootPageCount == 0) {
+        // EMPTY ROOT PAGE, GET THE PREVIOUS ONE. THIS SHOULD NEVER HAPPEN
+        pageNumber--;
+        continue;
+      }
+
+      pageNumber -= rootPageCount;
+
+      final PageId pageId = new PageId(file.getFileId(), pageNumber);
+      BasePage rootPage = database.getTransaction().getPage(pageId, pageSize);
+
+      if (pageId.getPageNumber() > 0) {
+        final int rootPageId = getCompactedPageNumberOfSeries(rootPage);
+        if (rootPageId != 0) {
+          // COMPACTED PAGE NUMBER IS NOT 0. THIS SHOULD NEVER HAPPEN
+          LogManager.instance().warn(this, "Compacted index '%s' root page %s has an invalid pageNumber=%d", getName(), pageId, rootPageId);
+          return Collections.emptyList();
+        }
+      }
+
+      iterators.add(new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, pageNumber + 1, pageNumber + 1 + rootPageCount, keyTypes, ascendingOrder));
+
+      --pageNumber;
+    }
+
+    return iterators;
+  }
+
   protected void searchInCompactedIndex(final Object[] convertedKeys, final int limit, final Set<RID> set, final Set<RID> removedRIDs) throws IOException {
     // JUMP ROOT PAGES BEFORE LOADING THE PAGE WITH THE KEY/VALUES
     final BasePage mainPage = database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
@@ -195,9 +246,6 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
       final int rootPageCount = getCompactedPageNumberOfSeries(lastPage);
 
-//      LogManager.instance()
-//          .info(this, "Search in compacted index '%s' rootPage=%d rootPageCount=%d nextRootPage=%d", getName(), i, rootPageCount, (i - rootPageCount));
-//
       if (rootPageCount == 0) {
         // EMPTY ROOT PAGE, GET THE PREVIOUS ONE. THIS SHOULD NEVER HAPPEN
         pageNumber--;

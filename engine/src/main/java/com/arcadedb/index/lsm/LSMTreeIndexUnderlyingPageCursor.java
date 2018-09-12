@@ -7,36 +7,27 @@ package com.arcadedb.index.lsm;
 import com.arcadedb.database.Binary;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
-import com.arcadedb.serializer.BinarySerializer;
 
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
-public class LSMTreeIndexPageIterator {
-  private final LSMTreeIndexMutable index;
-  private final PageId              pageId;
-  private final Binary              buffer;
-  private final byte[]              keyTypes;
-  private final int                 keyStartPosition;
-  private final BinarySerializer    serializer;
-  private final int                 totalKeys;
-  private final boolean             ascendingOrder;
+public class LSMTreeIndexUnderlyingPageCursor extends LSMTreeIndexUnderlyingAbstractCursor {
+  protected final PageId pageId;
+  protected final Binary buffer;
+  protected final int    keyStartPosition;
 
-  private int      currentEntryIndex;
-  private int      valuePosition = -1;
-  private Object[] nextKeys;
-  private Object[] nextValue;
+  protected int      currentEntryIndex;
+  protected int      valuePosition = -1;
+  protected Object[] nextKeys;
+  protected Object[] nextValue;
 
-  public LSMTreeIndexPageIterator(final LSMTreeIndexMutable index, final BasePage page, final int currentEntryInPage, final int keyStartPosition, final byte[] keyTypes,
-      final int totalKeys, final boolean ascendingOrder) {
-    this.index = index;
+  public LSMTreeIndexUnderlyingPageCursor(final LSMTreeIndexAbstract index, final BasePage page, final int currentEntryInPage, final int keyStartPosition,
+      final byte[] keyTypes, final int totalKeys, final boolean ascendingOrder) {
+    super(index, keyTypes, totalKeys, ascendingOrder);
+
+    this.keyStartPosition = keyStartPosition;
     this.pageId = page.getPageId();
     this.buffer = new Binary(page.slice());
-    this.keyStartPosition = keyStartPosition;
-    this.keyTypes = keyTypes;
-    this.serializer = index.getDatabase().getSerializer();
-    this.totalKeys = totalKeys;
     this.currentEntryIndex = currentEntryInPage;
-    this.ascendingOrder = ascendingOrder;
   }
 
   public boolean hasNext() {
@@ -54,6 +45,9 @@ public class LSMTreeIndexPageIterator {
   public Object[] getKeys() {
     if (nextKeys != null)
       return nextKeys;
+
+    if (currentEntryIndex < 0)
+      throw new IllegalStateException("Invalid page cursor index " + currentEntryIndex);
 
     final int contentPos = buffer.getInt(keyStartPosition + (currentEntryIndex * INT_SERIALIZED_SIZE));
     buffer.position(contentPos);
@@ -76,16 +70,5 @@ public class LSMTreeIndexPageIterator {
       nextValue = index.readEntryValues(buffer);
     }
     return nextValue;
-  }
-
-  public void close() {
-  }
-
-  public int getCurrentPosition() {
-    return currentEntryIndex;
-  }
-
-  public int getTotalEntries() {
-    return totalKeys;
   }
 }

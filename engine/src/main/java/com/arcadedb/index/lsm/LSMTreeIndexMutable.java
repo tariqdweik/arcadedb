@@ -152,9 +152,9 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     return new LSMTreeIndexCursor(this, true, fromKeys, toKeys);
   }
 
-  public LSMTreeIndexPageIterator newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {
+  public LSMTreeIndexUnderlyingPageCursor newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {
     final BasePage page = database.getTransaction().getPage(new PageId(file.getFileId(), pageId), pageSize);
-    return new LSMTreeIndexPageIterator(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page), ascendingOrder);
+    return new LSMTreeIndexUnderlyingPageCursor(this, page, currentEntryInPage, getHeaderSize(pageId), keyTypes, getCount(page), ascendingOrder);
   }
 
   public LSMTreeIndexCompacted getSubIndex() {
