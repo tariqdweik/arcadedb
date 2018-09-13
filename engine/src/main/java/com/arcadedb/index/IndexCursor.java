@@ -12,4 +12,6 @@ public interface IndexCursor {
   Object next();
 
   void close();
+
+  String dumpStats();
 }

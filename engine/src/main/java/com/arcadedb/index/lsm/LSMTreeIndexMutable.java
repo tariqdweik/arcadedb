@@ -133,10 +133,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     return new LSMTreeIndexCompacted(mainIndex, database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize);
   }
 
-  public IndexCursor iterator(final boolean ascendingOrder) throws IOException {
-    return new LSMTreeIndexCursor(this, ascendingOrder);
-  }
-
   public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
     if (ascendingOrder)
       return range(fromKeys, null);

@@ -151,7 +151,7 @@ public class LSMTreeIndex implements Index {
 
   @Override
   public IndexCursor iterator(final boolean ascendingOrder) {
-    return lock.executeInReadLock(() -> mutable.iterator(ascendingOrder));
+    return lock.executeInReadLock(() -> new LSMTreeIndexCursor(mutable, ascendingOrder));
   }
 
   @Override

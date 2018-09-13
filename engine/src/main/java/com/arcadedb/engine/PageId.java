@@ -47,12 +47,12 @@ public class PageId implements Comparable<PageId> {
 
   @Override
   public String toString() {
-    return "fileId=" + fileId + " pageNumber=" + pageNumber;
+    return "PageId(" + fileId + "/" + pageNumber + ")";
   }
 
   @Override
   public int compareTo(final PageId o) {
-    if( o == this )
+    if (o == this)
       return 0;
 
     if (!(o instanceof PageId))

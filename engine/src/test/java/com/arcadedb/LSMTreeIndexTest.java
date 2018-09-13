@@ -361,6 +361,10 @@ public class LSMTreeIndexTest extends BaseTest {
           final IndexCursor iterator;
           try {
             iterator = index.iterator(true);
+
+//            LogManager.instance()
+//                .info(this, "*****************************************************************************\nCURSOR BEGIN%s", iterator.dumpStats());
+
             Assertions.assertNotNull(iterator);
 
             while (iterator.hasNext()) {
@@ -371,6 +375,10 @@ public class LSMTreeIndexTest extends BaseTest {
 
               total++;
             }
+
+//            LogManager.instance().info(this, "*****************************************************************************\nCURSOR END total=%d %s", total,
+//                iterator.dumpStats());
+
           } catch (IOException e) {
             Assertions.fail(e);
           }

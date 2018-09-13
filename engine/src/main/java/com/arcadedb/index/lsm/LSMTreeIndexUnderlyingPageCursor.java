@@ -71,4 +71,14 @@ public class LSMTreeIndexUnderlyingPageCursor extends LSMTreeIndexUnderlyingAbst
     }
     return nextValue;
   }
+
+  @Override
+  public PageId getCurrentPageId() {
+    return pageId;
+  }
+
+  @Override
+  public int getCurrentPositionInPage() {
+    return currentEntryIndex;
+  }
 }
