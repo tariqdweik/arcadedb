@@ -1,16 +1,13 @@
-package com.arcadedb.mongodbw;
-
 /*
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
+package com.arcadedb.mongodbw;
+
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseComparator;
-import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.RID;
+import com.arcadedb.database.*;
 import com.arcadedb.graph.MutableEdge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.SchemaImpl;
@@ -24,6 +21,8 @@ import org.junit.jupiter.api.BeforeEach;
 
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -35,7 +34,6 @@ public abstract class BaseGraphServerTest {
   protected static final String VERTEX2_TYPE_NAME = "V2";
   protected static final String EDGE1_TYPE_NAME   = "E1";
   protected static final String EDGE2_TYPE_NAME   = "E2";
-  protected static final String DB_PATH           = "./target/databases";
 
   protected static RID              root;
   private          ArcadeDBServer[] servers;
@@ -56,18 +54,21 @@ public abstract class BaseGraphServerTest {
 
     LogManager.instance().info(this, "Starting test %s...", getClass().getName());
 
-    deleteDatabaseFolders();
+    if (isCreateDatabases()) {
+      deleteDatabaseFolders();
 
-    databases = new Database[getServerCount()];
-    for (int i = 0; i < getServerCount(); ++i) {
-      GlobalConfiguration.SERVER_DATABASE_DIRECTORY.setValue("./target/databases");
-      databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
-    }
+      databases = new Database[getServerCount()];
+      for (int i = 0; i < getServerCount(); ++i) {
+        GlobalConfiguration.SERVER_DATABASE_DIRECTORY.setValue("./target/databases");
+        databases[i] = new DatabaseFactory(getDatabasePath(i)).create();
+      }
+    } else
+      databases = new Database[0];
 
-    getDatabase(0).transaction(new Database.TransactionScope() {
-      @Override
-      public void execute(Database database) {
-        if (isPopulateDatabase()) {
+    if (isPopulateDatabase()) {
+      getDatabase(0).transaction(new Database.TransactionScope() {
+        @Override
+        public void execute(Database database) {
           Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
 
           VertexType v = database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
@@ -83,10 +84,8 @@ public abstract class BaseGraphServerTest {
 
           database.getSchema().createDocumentType("Person");
         }
-      }
-    });
+      });
 
-    if (isPopulateDatabase()) {
       final Database db = getDatabase(0);
       db.begin();
 
@@ -125,13 +124,19 @@ public abstract class BaseGraphServerTest {
       root = v1.getIdentity();
     }
 
+    // CLOSE ALL DATABASES BEFORE TO START THE SERVERS
+    LogManager.instance().info(this, "TEST: Closing databases before starting");
+    for (int i = 0; i < databases.length; ++i) {
+      databases[i].close();
+      databases[i] = null;
+    }
+
     startServers();
   }
 
   @AfterEach
   public void endTest() {
     try {
-      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
       checkDatabasesAreIdentical();
     } finally {
       LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
@@ -168,7 +173,12 @@ public abstract class BaseGraphServerTest {
     for (int i = 0; i < totalServers; ++i) {
       if (i > 0)
         serverURLs += ",";
-      serverURLs += "localhost:" + (port++);
+
+      try {
+        serverURLs += (InetAddress.getLocalHost().getHostName()) + ":" + (port++);
+      } catch (UnknownHostException e) {
+        e.printStackTrace();
+      }
     }
 
     for (int i = 0; i < totalServers; ++i) {
@@ -176,7 +186,10 @@ public abstract class BaseGraphServerTest {
       config.setValue(GlobalConfiguration.SERVER_NAME, Constants.PRODUCT + "_" + i);
       config.setValue(GlobalConfiguration.SERVER_DATABASE_DIRECTORY, "./target/databases" + i);
       config.setValue(GlobalConfiguration.HA_SERVER_LIST, serverURLs);
+      config.setValue(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST, "0.0.0.0");
       config.setValue(GlobalConfiguration.HA_ENABLED, getServerCount() > 1);
+
+      onServerConfiguration(config);
 
       servers[i] = new ArcadeDBServer(config);
       onBeforeStarting(servers[i]);
@@ -191,7 +204,14 @@ public abstract class BaseGraphServerTest {
     }
   }
 
+  protected void onServerConfiguration(final ContextConfiguration config) {
+  }
+
   protected void onBeforeStarting(ArcadeDBServer server) {
+  }
+
+  protected boolean isCreateDatabases() {
+    return true;
   }
 
   protected boolean isPopulateDatabase() {
@@ -227,7 +247,7 @@ public abstract class BaseGraphServerTest {
   }
 
   protected String getDatabasePath(final int serverId) {
-    return GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + serverId + "/" + getDatabaseName();
+    return GlobalConfiguration.SERVER_DATABASE_DIRECTORY.getValueAsString() + serverId + "/" + getDatabaseName();
   }
 
   protected String readResponse(final HttpURLConnection connection) throws IOException {
@@ -291,15 +311,25 @@ public abstract class BaseGraphServerTest {
     FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
   }
 
+  protected void deleteAllDatabases() {
+    for (int i = 0; i < getServerCount(); ++i)
+      FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_DATABASE_DIRECTORY.getValueAsString() + i + "/"));
+    FileUtils.deleteRecursively(new File(GlobalConfiguration.SERVER_ROOT_PATH.getValueAsString() + "/replication"));
+  }
+
   protected void checkDatabasesAreIdentical() {
     final int[] servers2Check = getServerToCheck();
 
-    for (int i = 1; i < servers2Check.length; ++i) {
-      final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
-      final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());
+    if (servers2Check.length > 1) {
+      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
 
-      LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
-      new DatabaseComparator().compare(db1, db2);
+      for (int i = 1; i < servers2Check.length; ++i) {
+        final DatabaseInternal db1 = (DatabaseInternal) getServerDatabase(servers2Check[0], getDatabaseName());
+        final DatabaseInternal db2 = (DatabaseInternal) getServerDatabase(servers2Check[i], getDatabaseName());
+
+        LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1.getDatabasePath(), db2.getDatabasePath());
+        new DatabaseComparator().compare(db1, db2);
+      }
     }
   }
 }
