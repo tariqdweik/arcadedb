@@ -27,8 +27,8 @@ public class WALFile extends LockContext {
     NO, YES_NOMETADATA, YES_FULL
   }
 
-  // TXID (long) + PAGES (int) + SEGMENT_SIZE (int)
-  private static final int TX_HEADER_SIZE = Binary.LONG_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
+  // TXID (long) + TIMESTAMP (long) + PAGES (int) + SEGMENT_SIZE (int)
+  private static final int TX_HEADER_SIZE = Binary.LONG_SERIALIZED_SIZE + Binary.LONG_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE;
   // SEGMENT_SIZE (int) + MAGIC_NUMBER (long)
   private static final int TX_FOOTER_SIZE = Binary.INT_SERIALIZED_SIZE + Binary.LONG_SERIALIZED_SIZE;
 
@@ -54,6 +54,7 @@ public class WALFile extends LockContext {
 
   public static class WALTransaction {
     public long      txId;
+    public long      timestamp;
     public WALPage[] pages;
     public long      startPositionInLog;
     public long      endPositionInLog;
@@ -139,6 +140,9 @@ public class WALFile extends LockContext {
       tx.txId = readLong(pos);
       pos += Binary.LONG_SERIALIZED_SIZE;
 
+      tx.timestamp = readLong(pos);
+      pos += Binary.LONG_SERIALIZED_SIZE;
+
       final int pages = readInt(pos);
       pos += Binary.INT_SERIALIZED_SIZE;
 
@@ -211,8 +215,9 @@ public class WALFile extends LockContext {
     final Binary bufferChanges = new Binary(TX_HEADER_SIZE + TX_FOOTER_SIZE + segmentSize);
     bufferChanges.setAutoResizable(false);
 
-    // WRITE TX HEADER (TXID, PAGES, SEGMENT-SIZE)
+    // WRITE TX HEADER (TXID, TIMESTAMP, PAGES, SEGMENT-SIZE)
     bufferChanges.putLong(txId);
+    bufferChanges.putLong(System.currentTimeMillis());
     bufferChanges.putInt(pages.size());
     bufferChanges.putInt(segmentSize);
 
@@ -253,8 +258,8 @@ public class WALFile extends LockContext {
     return bufferChanges;
   }
 
-  public void writeTransactionToFile(final DatabaseInternal database, final List<MutablePage> pages, final FLUSH_TYPE sync, final WALFile file,
-      final long txId, final Binary buffer) throws IOException {
+  public void writeTransactionToFile(final DatabaseInternal database, final List<MutablePage> pages, final FLUSH_TYPE sync, final WALFile file, final long txId,
+      final Binary buffer) throws IOException {
 
     LogManager.instance().debug(this, "Appending WAL for txId=%d (size=%d file=%s threadId=%d)", txId, buffer.size(), filePath, Thread.currentThread().getId());
 
