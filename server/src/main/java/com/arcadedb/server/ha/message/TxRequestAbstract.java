@@ -47,6 +47,9 @@ public abstract class TxRequestAbstract extends HAAbstractCommand {
     tx.txId = bufferChange.getLong(pos);
     pos += Binary.LONG_SERIALIZED_SIZE;
 
+    tx.timestamp = bufferChange.getLong(pos);
+    pos += Binary.LONG_SERIALIZED_SIZE;
+
     final int pages = bufferChange.getInt(pos);
     pos += Binary.INT_SERIALIZED_SIZE;
 
