@@ -215,17 +215,19 @@ public class LSMTreeIndexCompactor {
 
               LogManager.instance()
                   .debug(mainIndex, "- Creating a new entry in index '%s' root page %s->%d (entry in page=%d)", index, Arrays.toString(minorKey), newPageNum,
-                      index.getCount(rootPage)-1);
+                      index.getCount(rootPage) - 1);
 
               if (newRootPage != rootPage) {
-                // TODO: MANAGE A LINKED LIST OF ROOT PAGES INSTEAD
-                ++compactedPageNumberInSeries;
-
-                LogManager.instance().info(mainIndex, "- End of space in root index page for index '%s' (rootEntries=%d)", compactedIndex.getName(),
-                    compactedIndex.getCount(rootPage));
-                database.getPageManager().updatePage(rootPage, true, false);
-                rootPage = null;
-                rootPageBuffer = null;
+                throw new UnsupportedOperationException("Root index page overflow");
+//
+//                // TODO: MANAGE A LINKED LIST OF ROOT PAGES INSTEAD
+//                ++compactedPageNumberInSeries;
+//
+//                LogManager.instance().info(mainIndex, "- End of space in root index page for index '%s' (rootEntries=%d)", compactedIndex.getName(),
+//                    compactedIndex.getCount(rootPage));
+//                database.getPageManager().updatePage(rootPage, true, false);
+//                rootPage = null;
+//                rootPageBuffer = null;
               }
             }
 
@@ -250,8 +252,9 @@ public class LSMTreeIndexCompactor {
         // WRITE THE MAX KEY
         compactedIndex.appendDuringCompaction(keyValueContent, rootPage, rootPageBuffer, compactedPageNumberInSeries, lastPageMaxKey,
             new RID[] { new RID(database, 0, 0) });
-        LogManager.instance().debug(mainIndex, "- Creating last entry in index '%s' root page %s (entriesInRootPage=%d)", index, Arrays.toString(lastPageMaxKey),
-            compactedIndex.getCount(rootPage));
+        LogManager.instance()
+            .debug(mainIndex, "- Creating last entry in index '%s' root page %s (entriesInRootPage=%d)", index, Arrays.toString(lastPageMaxKey),
+                compactedIndex.getCount(rootPage));
       }
 
       if (lastPage != null)

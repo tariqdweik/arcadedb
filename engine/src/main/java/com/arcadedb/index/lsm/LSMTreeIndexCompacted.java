@@ -184,20 +184,20 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
     final List<LSMTreeIndexUnderlyingCompactedSeriesCursor> iterators = new ArrayList<>();
 
-    for (int pageNumber = mainPageCount - 1; pageNumber > 0; ) {
-      final BasePage lastPage = database.getTransaction().getPage(new PageId(file.getFileId(), pageNumber), pageSize);
+    for (int rootPageNumber = mainPageCount - 1; rootPageNumber > 0; ) {
+      final BasePage lastPage = database.getTransaction().getPage(new PageId(file.getFileId(), rootPageNumber), pageSize);
 
       final int rootPageCount = getCompactedPageNumberOfSeries(lastPage);
 
       if (rootPageCount == 0) {
         // EMPTY ROOT PAGE, GET THE PREVIOUS ONE. THIS SHOULD NEVER HAPPEN
-        pageNumber--;
+        rootPageNumber--;
         continue;
       }
 
-      pageNumber -= rootPageCount;
+      rootPageNumber -= rootPageCount;
 
-      final PageId pageId = new PageId(file.getFileId(), pageNumber);
+      final PageId pageId = new PageId(file.getFileId(), rootPageNumber);
       BasePage rootPage = database.getTransaction().getPage(pageId, pageSize);
 
       if (pageId.getPageNumber() > 0) {
@@ -213,10 +213,10 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
       if (fromKeys != null) {
         final Binary rootPageBuffer = new Binary(rootPage.slice());
-        final LookupResult resultInRootPage = lookupInPage(rootPage.getPageId().getPageNumber(), rootPageCount + 1, rootPageBuffer, convertedFromKeys, 0);
+        final LookupResult resultInRootPage = lookupInPage(rootPageNumber, rootPageCount + 1, rootPageBuffer, convertedFromKeys, 0);
 
         if (!resultInRootPage.outside) {
-          // IT'S IN PAGE RANGE
+          // IT'S IN THE PAGE RANGE
           int pageInSeries = resultInRootPage.keyIndex;
 
           if (resultInRootPage.found) {
@@ -227,7 +227,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
             // NOT FOUND: GET THE PREVIOUS PAGE
             --pageInSeries;
 
-          final int firstPageNumber = rootPage.getPageId().getPageNumber() + 1 + pageInSeries;
+          final int firstPageNumber = rootPageNumber + 1 + pageInSeries;
 
           final BasePage firstPage = database.getTransaction().getPage(new PageId(rootPage.getPageId().getFileId(), firstPageNumber), pageSize);
           final Binary firstPageBuffer = new Binary(firstPage.slice());
@@ -235,28 +235,29 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
           final LookupResult result = lookupInPage(firstPageNumber, getCount(firstPage), firstPageBuffer, convertedFromKeys, ascendingOrder ? 2 : 3);
 
           final int startingPageNumber;
-          final int posInPage;
+          int posInPage;
 
           if (result.outside) {
             // STARTS FROM THE BEGINNING OF THE NEXT PAGE
-            startingPageNumber = firstPageNumber + 2;
+            startingPageNumber = firstPageNumber + 1;
             posInPage = 0;
           } else {
-            startingPageNumber = firstPageNumber + 1;
-            posInPage = result.keyIndex - 1;
+            startingPageNumber = firstPageNumber;
+            posInPage = result.keyIndex;
+            --posInPage;
           }
 
-          iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, startingPageNumber, firstPageNumber + 1 + rootPageCount, keyTypes, ascendingOrder,
+          iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, startingPageNumber, rootPageNumber + 1 + rootPageCount, keyTypes, ascendingOrder,
               posInPage);
         }
 
       } else
-        iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, pageNumber + 1, pageNumber + 1 + rootPageCount, keyTypes, ascendingOrder, -1);
+        iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, rootPageNumber + 1, rootPageNumber + 1 + rootPageCount, keyTypes, ascendingOrder, -1);
 
       if (iterator != null)
         iterators.add(iterator);
 
-      --pageNumber;
+      --rootPageNumber;
     }
 
     return iterators;
