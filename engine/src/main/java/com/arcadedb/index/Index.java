@@ -5,10 +5,25 @@
 package com.arcadedb.index;
 
 import com.arcadedb.database.RID;
+import com.arcadedb.engine.PaginatedComponent;
 
 import java.io.IOException;
+import java.util.Map;
 
-public interface Index extends ReadOnlyIndex {
+/**
+ * Basic Index interface.
+ */
+public interface Index {
+  /**
+   * Retrieves the set of RIDs associated to a key.
+   */
+  IndexCursor get(Object[] keys);
+
+  /**
+   * Retrieves the set of RIDs associated to a key with a limit for the result.
+   */
+  IndexCursor get(Object[] keys, int limit);
+
   /**
    * Add a key in the index. If the index is UNIQUE and the key is already present, a {@link com.arcadedb.exception.DuplicatedKeyException} exception is thrown.
    *
@@ -34,4 +49,26 @@ public interface Index extends ReadOnlyIndex {
   boolean isCompacting();
 
   boolean scheduleCompaction();
+
+  void setMetadata(String name, String[] propertyNames, int associatedBucketId);
+
+  String getTypeName();
+
+  String[] getPropertyNames();
+
+  void close();
+
+  void drop();
+
+  String getName();
+
+  Map<String, Long> getStats();
+
+  int getFileId();
+
+  boolean isUnique();
+
+  PaginatedComponent getPaginatedComponent();
+
+  int getAssociatedBucketId();
 }

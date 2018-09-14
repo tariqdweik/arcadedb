@@ -4,14 +4,24 @@
 
 package com.arcadedb.index;
 
-public interface IndexCursor {
-  Object[] getKeys();
+import com.arcadedb.database.RID;
 
+import java.util.Iterator;
+
+public interface IndexCursor extends Iterable<RID>, Iterator<RID> {
   boolean hasNext();
 
-  Object next();
+  RID next();
+
+  Object[] getKeys();
+
+  RID getRID();
+
+  int getScore();
 
   void close();
 
   String dumpStats();
+
+  int size();
 }

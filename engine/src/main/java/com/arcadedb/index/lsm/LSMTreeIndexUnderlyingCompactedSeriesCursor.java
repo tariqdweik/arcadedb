@@ -4,6 +4,7 @@
 
 package com.arcadedb.index.lsm;
 
+import com.arcadedb.database.RID;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.index.IndexException;
@@ -65,7 +66,7 @@ public class LSMTreeIndexUnderlyingCompactedSeriesCursor extends LSMTreeIndexUnd
   }
 
   @Override
-  public Object[] getValue() {
+  public RID[] getValue() {
     return pageCursor.getValue();
   }
 

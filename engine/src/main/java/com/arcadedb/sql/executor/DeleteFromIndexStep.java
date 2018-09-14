@@ -7,8 +7,8 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.sql.parser.*;
 import com.arcadedb.utility.Pair;
 
@@ -20,7 +20,7 @@ import java.util.Optional;
  * Created by luigidellaquila on 11/08/16.
  */
 public class DeleteFromIndexStep extends AbstractExecutionStep {
-  protected final Index             index;
+  protected final RangeIndex        index;
   private final   BinaryCondition   additional;
   private final   BooleanExpression ridCondition;
   private final   boolean           orderAsc;
@@ -34,13 +34,13 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
 
   private long cost = 0;
 
-  public DeleteFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      BooleanExpression ridCondition, CommandContext ctx, boolean profilingEnabled) {
+  public DeleteFromIndexStep(RangeIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition, BooleanExpression ridCondition,
+      CommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, ridCondition, true, ctx, profilingEnabled);
   }
 
-  public DeleteFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition,
-      BooleanExpression ridCondition, boolean orderAsc, CommandContext ctx, boolean profilingEnabled) {
+  public DeleteFromIndexStep(RangeIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition, BooleanExpression ridCondition,
+      boolean orderAsc, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
     this.condition = condition;
@@ -283,8 +283,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);
         BinaryCompareOperator operator = binaryCond.getOperator();
-        if ((operator instanceof EqualsCompareOperator) || (operator instanceof GtOperator)
-            || (operator instanceof GeOperator)) {
+        if ((operator instanceof EqualsCompareOperator) || (operator instanceof GtOperator) || (operator instanceof GeOperator)) {
           result.add(binaryCond.getRight());
         } else if (additional != null) {
           result.add(additional.getRight());
@@ -302,8 +301,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
       if (exp instanceof BinaryCondition) {
         BinaryCondition binaryCond = ((BinaryCondition) exp);
         BinaryCompareOperator operator = binaryCond.getOperator();
-        if ((operator instanceof EqualsCompareOperator) || (operator instanceof LtOperator)
-            || (operator instanceof LeOperator)) {
+        if ((operator instanceof EqualsCompareOperator) || (operator instanceof LtOperator) || (operator instanceof LeOperator)) {
           result.add(binaryCond.getRight());
         } else if (additional != null) {
           result.add(additional.getRight());
@@ -372,9 +370,7 @@ public class DeleteFromIndexStep extends AbstractExecutionStep {
     }
     result += (condition == null ?
         "" :
-        ("\n" + ExecutionStepInternal.getIndent(depth, indent) + "  " + condition + (additional == null ?
-            "" :
-            " and " + additional)));
+        ("\n" + ExecutionStepInternal.getIndent(depth, indent) + "  " + condition + (additional == null ? "" : " and " + additional)));
     return result;
   }
 

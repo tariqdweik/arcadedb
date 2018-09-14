@@ -15,7 +15,9 @@ import com.arcadedb.server.ha.ReplicationException;
 import com.arcadedb.utility.LogManager;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Forward a transaction to the Leader server to be executed. Apart the TX content (like with TxRequest), unique keys list is
@@ -29,7 +31,7 @@ public class TxForwardRequest extends TxRequestAbstract {
   }
 
   public TxForwardRequest(final DatabaseInternal database, final Binary bufferChanges,
-      final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> keysTx) {
+      final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> keysTx) {
     super(database.getName(), bufferChanges);
     writeIndexKeysToBuffer(database, keysTx);
   }
@@ -55,7 +57,7 @@ public class TxForwardRequest extends TxRequestAbstract {
       throw new ReplicationException("Database '" + databaseName + "' is closed");
 
     final WALFile.WALTransaction walTx = readTxFromBuffer();
-    final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> keysTx = readIndexKeysFromBuffer(db);
+    final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> keysTx = readIndexKeysFromBuffer(db);
 
     // FORWARDED FROM A REPLICA
     db.begin();
@@ -79,31 +81,38 @@ public class TxForwardRequest extends TxRequestAbstract {
   }
 
   protected void writeIndexKeysToBuffer(final DatabaseInternal database,
-      final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> indexChanges) {
+      final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> indexesChanges) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer = new Binary();
 
-    uniqueKeysBuffer.putNumber(indexChanges.size());
+    uniqueKeysBuffer.putNumber(indexesChanges.size());
 
-    for (Map.Entry<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> entry : indexChanges.entrySet()) {
+    for (Map.Entry<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> entry : indexesChanges.entrySet()) {
       uniqueKeysBuffer.putString(entry.getKey());
-      final Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey> keys = entry.getValue();
+      final Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> indexChanges = entry.getValue();
 
-      uniqueKeysBuffer.putNumber(keys.size());
+      uniqueKeysBuffer.putNumber(indexChanges.size());
 
-      for (TransactionIndexContext.IndexKey key : keys.values()) {
-        uniqueKeysBuffer.putByte((byte) (key.addOperation ? 1 : 0));
+      for (Map.Entry<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> keyChange : indexChanges.entrySet()) {
+        final TransactionIndexContext.ComparableKey entryKey = keyChange.getKey();
 
-        uniqueKeysBuffer.putNumber(key.keyValues.length);
-        for (int k = 0; k < key.keyValues.length; ++k) {
-          final byte keyType = BinaryTypes.getTypeFromValue(key.keyValues[k]);
+        uniqueKeysBuffer.putNumber(entryKey.values.length);
+        for (int k = 0; k < entryKey.values.length; ++k) {
+          final byte keyType = BinaryTypes.getTypeFromValue(entryKey.values[k]);
           uniqueKeysBuffer.putByte(keyType);
-          serializer.serializeValue(uniqueKeysBuffer, keyType, key.keyValues[k]);
+          serializer.serializeValue(uniqueKeysBuffer, keyType, entryKey.values[k]);
         }
 
-        uniqueKeysBuffer.putNumber(key.rid.getBucketId());
-        uniqueKeysBuffer.putNumber(key.rid.getPosition());
+        final Set<TransactionIndexContext.IndexKey> entryValue = keyChange.getValue();
+
+        uniqueKeysBuffer.putNumber(entryValue.size());
+
+        for (TransactionIndexContext.IndexKey key : entryValue) {
+          uniqueKeysBuffer.putByte((byte) (key.addOperation ? 1 : 0));
+          uniqueKeysBuffer.putNumber(key.rid.getBucketId());
+          uniqueKeysBuffer.putNumber(key.rid.getPosition());
+        }
       }
     }
 
@@ -112,42 +121,46 @@ public class TxForwardRequest extends TxRequestAbstract {
     uniqueKeysBuffer = CompressionFactory.getDefault().compress(uniqueKeysBuffer);
   }
 
-  protected Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> readIndexKeysFromBuffer(final DatabaseInternal database) {
+  protected Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> readIndexKeysFromBuffer(
+      final DatabaseInternal database) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer.position(0);
 
-    final int indexesCount = (int) uniqueKeysBuffer.getNumber();
+    final int totalIndexes = (int) uniqueKeysBuffer.getNumber();
 
-    final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> entries = new HashMap<>(indexesCount);
+    final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> indexesMap = new HashMap<>(totalIndexes);
 
-    for (int indexIdx = 0; indexIdx < indexesCount; ++indexIdx) {
+    for (int indexIdx = 0; indexIdx < totalIndexes; ++indexIdx) {
       final String indexName = uniqueKeysBuffer.getString();
 
-      final int keyCount = (int) uniqueKeysBuffer.getNumber();
+      final int totalIndexEntries = (int) uniqueKeysBuffer.getNumber();
 
-      final Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey> keys = new HashMap<>(keyCount);
+      final Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> indexMap = new HashMap<>(totalIndexEntries);
+      indexesMap.put(indexName, indexMap);
 
-      entries.put(indexName, keys);
+      // READ THE KEY
+      final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
+      final Object[] keyValues = new Object[keyEntryCount];
+      for (int k = 0; k < keyEntryCount; ++k) {
+        final byte keyType = uniqueKeysBuffer.getByte();
+        keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
+      }
 
-      for (int keyIdx = 0; keyIdx < keyCount; ++keyIdx) {
+      final int totalKeyEntries = (int) uniqueKeysBuffer.getNumber();
+
+      final Set<TransactionIndexContext.IndexKey> values = new HashSet<>(totalKeyEntries);
+      indexMap.put(new TransactionIndexContext.ComparableKey(keyValues), values);
+
+      for (int i = 0; i < totalKeyEntries; ++i) {
         final boolean addOperation = uniqueKeysBuffer.getByte() == 1;
-        final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
-
-        final Object[] keyValues = new Object[keyEntryCount];
-
-        for (int k = 0; k < keyEntryCount; ++k) {
-          final byte keyType = uniqueKeysBuffer.getByte();
-          keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
-        }
 
         final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
 
-        final TransactionIndexContext.IndexKey key = new TransactionIndexContext.IndexKey(addOperation, keyValues, rid);
-        keys.put(new TransactionIndexContext.ComparableKey(keyValues), key);
+        values.add(new TransactionIndexContext.IndexKey(addOperation, keyValues, rid));
       }
     }
 
-    return entries;
+    return indexesMap;
   }
 }

@@ -10,6 +10,7 @@ import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.BaseGraphServerTest;
 import com.arcadedb.utility.LogManager;
@@ -146,7 +147,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       final List<DocumentType.IndexMetadata> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
       long total = 0;
       for (int i = 0; i < indexes.size(); ++i) {
-        for (IndexCursor it = indexes.get(i).index.iterator(true); it.hasNext(); ) {
+        for (IndexCursor it = ((RangeIndex) indexes.get(i).index).iterator(true); it.hasNext(); ) {
           it.next();
           ++total;
         }

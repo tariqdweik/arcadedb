@@ -17,6 +17,7 @@ import com.arcadedb.index.IndexFactory;
 import com.arcadedb.index.lsm.LSMTreeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
+import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import org.json.JSONArray;
@@ -50,7 +51,7 @@ public class SchemaImpl implements Schema {
   private final       IndexFactory              indexFactory     = new IndexFactory();
 
   public enum INDEX_TYPE {
-    LSM_TREE
+    LSM_TREE, FULL_TEXT
   }
 
   public SchemaImpl(final DatabaseInternal database, final String databasePath, final PaginatedFile.MODE mode) {
@@ -64,6 +65,7 @@ public class SchemaImpl implements Schema {
     paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
 
     indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new LSMTreeIndex.IndexFactoryHandler());
+    indexFactory.register(INDEX_TYPE.FULL_TEXT.name(), new LSMTreeFullTextIndex.IndexFactoryHandler());
   }
 
   public void create(final PaginatedFile.MODE mode) {

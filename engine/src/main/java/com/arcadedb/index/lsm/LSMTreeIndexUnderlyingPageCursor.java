@@ -5,6 +5,7 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.database.RID;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
 
@@ -18,7 +19,7 @@ public class LSMTreeIndexUnderlyingPageCursor extends LSMTreeIndexUnderlyingAbst
   protected int      currentEntryIndex;
   protected int      valuePosition = -1;
   protected Object[] nextKeys;
-  protected Object[] nextValue;
+  protected RID[]    nextValue;
 
   public LSMTreeIndexUnderlyingPageCursor(final LSMTreeIndexAbstract index, final BasePage page, final int currentEntryInPage, final int keyStartPosition,
       final byte[] keyTypes, final int totalKeys, final boolean ascendingOrder) {
@@ -62,7 +63,7 @@ public class LSMTreeIndexUnderlyingPageCursor extends LSMTreeIndexUnderlyingAbst
     return nextKeys;
   }
 
-  public Object[] getValue() {
+  public RID[] getValue() {
     if (nextValue == null) {
       if (valuePosition < 0)
         getKeys();

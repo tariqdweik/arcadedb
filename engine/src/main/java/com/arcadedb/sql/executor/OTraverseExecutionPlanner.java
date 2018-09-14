@@ -8,7 +8,7 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.index.Index;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.parser.*;
 
@@ -169,7 +169,7 @@ public class OTraverseExecutionPlanner {
 
   private void handleIndexAsTarget(SelectExecutionPlan result, IndexIdentifier indexIdentifier, CommandContext ctx, boolean profilingEnabled) {
     String indexName = indexIdentifier.getIndexName();
-    Index index = ctx.getDatabase().getSchema().getIndexByName(indexName);
+    RangeIndex index = (RangeIndex) ctx.getDatabase().getSchema().getIndexByName(indexName);
     if (index == null) {
       throw new CommandExecutionException("Index not found: " + indexName);
     }

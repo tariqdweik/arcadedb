@@ -290,7 +290,7 @@ public class TransactionContext implements Transaction {
    * Executes 1st phase from a replica.
    */
   public void commitFromReplica(final WALFile.WALTransaction buffer,
-      final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> keysTx) throws TransactionException {
+      final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> keysTx) throws TransactionException {
 
     final int totalImpactedPages = buffer.pages.length;
     if (totalImpactedPages == 0 && keysTx.isEmpty()) {

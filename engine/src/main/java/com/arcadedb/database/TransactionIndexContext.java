@@ -7,14 +7,15 @@ package com.arcadedb.database;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 
 import java.util.*;
 
 public class TransactionIndexContext {
-  private final DatabaseInternal                          database;
-  private       Map<String, Map<ComparableKey, IndexKey>> indexEntries = new HashMap<>();
+  private final DatabaseInternal                               database;
+  private       Map<String, Map<ComparableKey, Set<IndexKey>>> indexEntries = new HashMap<>();
 
   public static class IndexKey {
     public final boolean  addOperation;
@@ -34,7 +35,7 @@ public class TransactionIndexContext {
   }
 
   public static class ComparableKey {
-    private final Object[] values;
+    public final Object[] values;
 
     public ComparableKey(final Object[] values) {
       this.values = values;
@@ -63,16 +64,17 @@ public class TransactionIndexContext {
   public void commit() {
     checkUniqueIndexKeys();
 
-    for (Map.Entry<String, Map<ComparableKey, IndexKey>> entry : indexEntries.entrySet()) {
+    for (Map.Entry<String, Map<ComparableKey, Set<IndexKey>>> entry : indexEntries.entrySet()) {
       final Index index = database.getSchema().getIndexByName(entry.getKey());
-      final Map<ComparableKey, IndexKey> keys = entry.getValue();
+      final Map<ComparableKey, Set<IndexKey>> keys = entry.getValue();
 
-      for (IndexKey key : keys.values()) {
-        if (key.addOperation)
-          index.put(key.keyValues, key.rid);
-        else
-          index.remove(key.keyValues, key.rid);
-      }
+      for (Set<IndexKey> values : keys.values())
+        for (IndexKey key : values) {
+          if (key.addOperation)
+            index.put(key.keyValues, key.rid);
+          else
+            index.remove(key.keyValues, key.rid);
+        }
     }
 
     indexEntries.clear();
@@ -110,11 +112,11 @@ public class TransactionIndexContext {
     }
   }
 
-  public Map<String, Map<ComparableKey, IndexKey>> toMap() {
+  public Map<String, Map<ComparableKey, Set<IndexKey>>> toMap() {
     return indexEntries;
   }
 
-  public void setKeys(final Map<String, Map<ComparableKey, IndexKey>> keysTx) {
+  public void setKeys(final Map<String, Map<ComparableKey, Set<IndexKey>>> keysTx) {
     indexEntries = keysTx;
   }
 
@@ -123,19 +125,34 @@ public class TransactionIndexContext {
   }
 
   public void addIndexKeyLock(final String indexName, final boolean addOperation, final Object[] keysValues, final RID rid) {
-    Map<ComparableKey, IndexKey> keys = indexEntries.get(indexName);
+    Map<ComparableKey, Set<IndexKey>> keys = indexEntries.get(indexName);
+
+    final ComparableKey k = new ComparableKey(keysValues);
+    final IndexKey v = new IndexKey(addOperation, keysValues, rid);
+
+    Set<IndexKey> values;
     if (keys == null) {
       keys = new HashMap<>();
       indexEntries.put(indexName, keys);
+
+      values = new HashSet<>();
+      keys.put(k, values);
+    } else {
+      values = keys.get(k);
+      if (values == null) {
+        values = new HashSet<>();
+        keys.put(k, values);
+      }
     }
-    keys.put(new ComparableKey(keysValues), new IndexKey(addOperation, keysValues, rid));
+
+    values.add(v);
   }
 
   public void reset() {
     indexEntries.clear();
   }
 
-  public Map<ComparableKey, IndexKey> getIndexKeys(final String indexName) {
+  public Map<ComparableKey, Set<IndexKey>> getIndexKeys(final String indexName) {
     return indexEntries.get(indexName);
   }
 
@@ -152,21 +169,22 @@ public class TransactionIndexContext {
     final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(index.getPropertyNames());
     if (typeIndexes != null) {
       for (DocumentType.IndexMetadata i : typeIndexes) {
-        final Set<RID> found = i.index.get(key.keyValues, 2);
+        final IndexCursor found = i.index.get(key.keyValues, 2);
 
-        if (found.size() > 1 || (found.size() == 1 && !found.iterator().next().equals(key.rid)))
-          throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.iterator().next());
+        if (found.size() > 1 || (found.size() == 1 && !found.next().equals(key.rid)))
+          throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.getRID());
       }
     }
   }
 
   private void checkUniqueIndexKeys() {
-    for (Map.Entry<String, Map<ComparableKey, IndexKey>> indexEntry : indexEntries.entrySet()) {
+    for (Map.Entry<String, Map<ComparableKey, Set<IndexKey>>> indexEntry : indexEntries.entrySet()) {
       final Index index = database.getSchema().getIndexByName(indexEntry.getKey());
       if (index.isUnique()) {
-        final Map<ComparableKey, IndexKey> keys = indexEntry.getValue();
-        for (IndexKey entry : keys.values())
-          checkUniqueIndexKeys(index, entry);
+        final Map<ComparableKey, Set<IndexKey>> entries = indexEntry.getValue();
+        for (Set<IndexKey> keys : entries.values())
+          for (IndexKey entry : keys)
+            checkUniqueIndexKeys(index, entry);
       }
     }
   }

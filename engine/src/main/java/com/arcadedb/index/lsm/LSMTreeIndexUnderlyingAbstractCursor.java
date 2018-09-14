@@ -4,6 +4,7 @@
 
 package com.arcadedb.index.lsm;
 
+import com.arcadedb.database.RID;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.serializer.BinarySerializer;
 
@@ -28,7 +29,7 @@ public abstract class LSMTreeIndexUnderlyingAbstractCursor {
 
   public abstract Object[] getKeys();
 
-  public abstract Object[] getValue();
+  public abstract RID[] getValue();
 
   public abstract PageId getCurrentPageId();
 

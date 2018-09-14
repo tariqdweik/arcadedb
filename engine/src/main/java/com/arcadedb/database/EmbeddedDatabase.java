@@ -13,6 +13,7 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.lsm.LSMTreeIndexCompacted;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.schema.DocumentType;
@@ -541,10 +542,13 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
         final Set<RID> result = new HashSet<>();
-        for (DocumentType.IndexMetadata m : metadata)
-          result.addAll(m.index.get(keys));
+        for (DocumentType.IndexMetadata m : metadata) {
+          final IndexCursor cursor = m.index.get(keys);
+          while (cursor.hasNext())
+            result.add(cursor.next());
+        }
 
-        return new CursorCollection<RID>(result);
+        return new CursorCollection<>(result);
       }
     });
   }

@@ -146,7 +146,7 @@ public class TransactionTypeTest extends BaseTest {
     final Index[] indexes = database.getSchema().getIndexes();
     for (int i = 0; i < TOT; ++i) {
       for (Index index : indexes)
-        Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+        Assertions.assertTrue(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
     }
 
     beginTest();

@@ -10,14 +10,12 @@ import com.arcadedb.database.TransactionContext;
 import com.arcadedb.database.TransactionIndexContext;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
-import com.arcadedb.index.Index;
-import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.*;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.RWLockContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -26,14 +24,16 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * LSM-Tree index implementation. It relies on a mutable index and its underlying immutable, compacted index.
  */
-public class LSMTreeIndex implements Index {
-  private final String                                                  name;
-  private       int                                                     associatedBucketId = -1;
-  private       String                                                  typeName;
-  private       String[]                                                propertyNames;
-  private       LSMTreeIndexMutable                                     mutable;
-  private       RWLockContext                                           lock               = new RWLockContext();
-  protected     AtomicReference<LSMTreeIndexAbstract.COMPACTING_STATUS> compactingStatus   = new AtomicReference<>(LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
+public class LSMTreeIndex implements RangeIndex {
+  private static final IndexCursor                                             EMPTY_CURSOR       = new EmptyIndexCursor();
+  private final        String                                                  name;
+  private              int                                                     associatedBucketId = -1;
+  private              String                                                  typeName;
+  private              String[]                                                propertyNames;
+  protected            LSMTreeIndexMutable                                     mutable;
+  private              RWLockContext                                           lock               = new RWLockContext();
+  protected            AtomicReference<LSMTreeIndexAbstract.COMPACTING_STATUS> compactingStatus   = new AtomicReference<>(
+      LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
 
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
@@ -57,7 +57,7 @@ public class LSMTreeIndex implements Index {
     public PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id,
         final PaginatedFile.MODE mode, final int pageSize) throws IOException {
       final LSMTreeIndex mainIndex = new LSMTreeIndex(database, name, false, filePath, id, mode, pageSize);
-      return new LSMTreeIndexMutable(mainIndex, database, name, false, filePath, id, mode, pageSize);
+      return mainIndex.mutable;
     }
   }
 
@@ -67,7 +67,7 @@ public class LSMTreeIndex implements Index {
   public LSMTreeIndex(final DatabaseInternal database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode,
       final byte[] keyTypes, final int pageSize) throws IOException {
     this.name = name;
-    mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, mode, keyTypes, pageSize);
+    this.mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, mode, keyTypes, pageSize);
   }
 
   /**
@@ -76,7 +76,7 @@ public class LSMTreeIndex implements Index {
   public LSMTreeIndex(final DatabaseInternal database, final String name, final boolean unique, String filePath, final int id, final PaginatedFile.MODE mode,
       final int pageSize) throws IOException {
     this.name = name;
-    mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, id, mode, pageSize);
+    this.mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, id, mode, pageSize);
   }
 
   public boolean scheduleCompaction() {
@@ -168,41 +168,46 @@ public class LSMTreeIndex implements Index {
   }
 
   @Override
-  public Set<RID> get(final Object[] keys) {
+  public IndexCursor get(final Object[] keys) {
     return get(keys, -1);
   }
 
   @Override
-  public Set<RID> get(final Object[] keys, final int limit) {
+  public IndexCursor get(final Object[] keys, final int limit) {
     if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN) {
-      Set<RID> txChanges = null;
+      Set<IndexCursorEntry> txChanges = null;
 
-      final Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey> indexChanges = mutable.getDatabase().getTransaction().getIndexChanges()
-          .getIndexKeys(getName());
+      final Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> indexChanges = mutable.getDatabase().getTransaction()
+          .getIndexChanges().getIndexKeys(getName());
       if (indexChanges != null) {
-        TransactionIndexContext.IndexKey value = indexChanges.get(new TransactionIndexContext.ComparableKey(keys));
-        if (value != null) {
-          if (!value.addOperation)
-            // REMOVED
-            return Collections.EMPTY_SET;
+        final Set<TransactionIndexContext.IndexKey> values = indexChanges.get(new TransactionIndexContext.ComparableKey(keys));
+        if (values != null) {
+          for (final TransactionIndexContext.IndexKey value : values) {
+            if (value != null) {
+              if (!value.addOperation)
+                // REMOVED
+                return EMPTY_CURSOR;
 
-          if (txChanges == null)
-            txChanges = new HashSet<>();
+              if (txChanges == null)
+                txChanges = new HashSet<>();
 
-          txChanges.add(value.rid);
+              txChanges.add(new IndexCursorEntry(keys, value.rid, 1));
 
-          if (limit > -1 && txChanges.size() > limit)
-            // LIMIT REACHED
-            return txChanges;
+              if (limit > -1 && txChanges.size() > limit)
+                // LIMIT REACHED
+                return new TempIndexCursor(txChanges);
+            }
+          }
         }
       }
 
-      final Set<RID> result = lock.executeInReadLock(() -> mutable.get(keys, limit));
+      final IndexCursor result = lock.executeInReadLock(() -> mutable.get(keys, limit));
 
       if (txChanges != null) {
         // MERGE SETS
-        txChanges.addAll(result);
-        return txChanges;
+        while (result.hasNext())
+          txChanges.add(new IndexCursorEntry(keys, result.next(), 1));
+        return new TempIndexCursor(txChanges);
       }
 
       return result;

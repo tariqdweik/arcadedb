@@ -2,8 +2,10 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb;
+package com.arcadedb.index;
 
+import com.arcadedb.BaseTest;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;

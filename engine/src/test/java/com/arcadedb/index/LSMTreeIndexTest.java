@@ -2,13 +2,13 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb;
+package com.arcadedb.index;
 
+import com.arcadedb.BaseTest;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
-import com.arcadedb.index.Index;
-import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.Result;
@@ -39,9 +39,9 @@ public class LSMTreeIndexTest extends BaseTest {
         for (int i = 0; i < TOT; ++i) {
           final List<Integer> results = new ArrayList<>();
           for (Index index : indexes) {
-            final Set<RID> value = index.get(new Object[] { i });
-            if (!value.isEmpty())
-              results.add((Integer) ((Document) value.iterator().next().getRecord()).get("id"));
+            final IndexCursor value = index.get(new Object[] { i });
+            if (value.hasNext())
+              results.add((Integer) ((Document) value.next().getRecord()).get("id"));
           }
 
           total++;
@@ -69,8 +69,8 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
-            final Set<RID> value = index.get(key);
-            if (!value.isEmpty()) {
+            final IndexCursor value = index.get(key);
+            if (value.hasNext()) {
               index.remove(key);
               found++;
               total++;
@@ -85,7 +85,7 @@ public class LSMTreeIndexTest extends BaseTest {
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes) {
-            if (!index.get(new Object[] { i }).isEmpty()) {
+            if (!index.get(new Object[] { i }).hasNext()) {
               LogManager.instance().info(this, "FOUND KEY " + i + " -> " + index.get(new Object[] { i }));
             }
 
@@ -102,7 +102,7 @@ public class LSMTreeIndexTest extends BaseTest {
         final Index[] indexes = database.getSchema().getIndexes();
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes) {
-            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
           }
         }
       }
@@ -125,8 +125,8 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
-            final Set<RID> value = index.get(key);
-            if (!value.isEmpty()) {
+            final IndexCursor value = index.get(key);
+            if (value.hasNext()) {
               for (RID r : value)
                 index.remove(key, r);
               found++;
@@ -142,7 +142,7 @@ public class LSMTreeIndexTest extends BaseTest {
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes)
-            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
         }
 
       }
@@ -164,8 +164,8 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
-            final Set<RID> value = index.get(key);
-            if (!value.isEmpty()) {
+            final IndexCursor value = index.get(key);
+            if (value.hasNext()) {
               for (RID r : value) {
                 for (int k = 0; k < 10; ++k)
                   index.remove(key, r);
@@ -183,7 +183,7 @@ public class LSMTreeIndexTest extends BaseTest {
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes)
-            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
         }
       }
     });
@@ -205,8 +205,8 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
-            final Set<RID> value = index.get(key);
-            if (!value.isEmpty()) {
+            final IndexCursor value = index.get(key);
+            if (value.hasNext()) {
               for (RID r : value) {
                 index.remove(key, r);
                 index.put(key, r);
@@ -225,7 +225,7 @@ public class LSMTreeIndexTest extends BaseTest {
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes)
-            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
         }
       }
     });
@@ -260,8 +260,8 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
-            final Set<RID> value = index.get(key);
-            if (!value.isEmpty()) {
+            final IndexCursor value = index.get(key);
+            if (value.hasNext()) {
               found++;
               total++;
             }
@@ -281,9 +281,9 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
-            final Set<RID> value = index.get(key);
+            final IndexCursor value = index.get(key);
 
-            if (!value.isEmpty()) {
+            if (value.hasNext()) {
               for (RID r : value) {
                 index.remove(key, r);
                 found++;
@@ -300,7 +300,7 @@ public class LSMTreeIndexTest extends BaseTest {
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes)
-            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
         }
 
       }
@@ -324,8 +324,8 @@ public class LSMTreeIndexTest extends BaseTest {
 
           for (Index index : indexes) {
 
-            final Set<RID> value = index.get(key);
-            if (!value.isEmpty()) {
+            final IndexCursor value = index.get(key);
+            if (value.hasNext()) {
               try {
                 index.put(key, new RID(database, 10, 10));
                 database.commit();
@@ -361,7 +361,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = index.iterator(true);
+            iterator = ((RangeIndex) index).iterator(true);
 
 //            LogManager.instance()
 //                .info(this, "*****************************************************************************\nCURSOR BEGIN%s", iterator.dumpStats());
@@ -404,7 +404,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = index.iterator(false);
+            iterator = ((RangeIndex) index).iterator(false);
             Assertions.assertNotNull(iterator);
 
             while (iterator.hasNext()) {
@@ -439,7 +439,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = index.iterator(true, new Object[] { 10 });
+            iterator = ((RangeIndex) index).iterator(true, new Object[] { 10 });
 
             Assertions.assertNotNull(iterator);
 
@@ -475,7 +475,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = index.iterator(false, new Object[] { 9 });
+            iterator = ((RangeIndex) index).iterator(false, new Object[] { 9 });
             Assertions.assertNotNull(iterator);
 
             while (iterator.hasNext()) {
@@ -510,7 +510,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = index.range(new Object[] { 10 }, new Object[] { 19 });
+            iterator = ((RangeIndex) index).range(new Object[] { 10 }, new Object[] { 19 });
             Assertions.assertNotNull(iterator);
 
             while (iterator.hasNext()) {

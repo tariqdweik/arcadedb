@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.index.Index;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.sql.parser.*;
 
 import java.util.List;
@@ -60,7 +60,7 @@ public class ODeleteExecutionPlanner {
       return false;
     }
     String indexName = indexIdentifier.getIndexName();
-    Index index = ctx.getDatabase().getSchema().getIndexByName(indexName);
+    RangeIndex index = (RangeIndex) ctx.getDatabase().getSchema().getIndexByName(indexName);
     if (index == null) {
       throw new CommandExecutionException("Index not found: " + indexName);
     }

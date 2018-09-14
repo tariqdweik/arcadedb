@@ -10,6 +10,7 @@ import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.sql.parser.*;
 import com.arcadedb.utility.Pair;
 
@@ -21,7 +22,7 @@ import java.util.*;
  * Created by luigidellaquila on 23/07/16.
  */
 public class FetchFromIndexStep extends AbstractExecutionStep {
-  protected Index             index;
+  protected RangeIndex        index;
   protected BooleanExpression condition;
   private   BinaryCondition   additionalRangeCondition;
 
@@ -41,11 +42,11 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   private Iterator                   nullKeyIterator;
   private Pair<Object, Identifiable> nextEntry = null;
 
-  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition, CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexStep(RangeIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition, CommandContext ctx, boolean profilingEnabled) {
     this(index, condition, additionalRangeCondition, true, ctx, profilingEnabled);
   }
 
-  public FetchFromIndexStep(Index index, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc, CommandContext ctx,
+  public FetchFromIndexStep(RangeIndex index, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc, CommandContext ctx,
       boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.index = index;
@@ -190,7 +191,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
   private void init(BooleanExpression condition, Database db) {
     long begin = profilingEnabled ? System.nanoTime() : 0;
     if (index == null) {
-      index = db.getSchema().getIndexByName(indexName);
+      index = (RangeIndex) db.getSchema().getIndexByName(indexName);
     }
     try {
       if (condition == null) {

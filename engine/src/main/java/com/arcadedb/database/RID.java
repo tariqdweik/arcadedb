@@ -23,7 +23,7 @@ public class RID implements Identifiable, Comparable<Identifiable>, Serializable
   public RID(final Database database, String value) {
     this.database = database;
     if (!value.startsWith("#"))
-      throw new IllegalArgumentException("RID as string is not valid");
+      throw new IllegalArgumentException("The RID '" + value + "' is not valid");
 
     value = value.substring(1);
 

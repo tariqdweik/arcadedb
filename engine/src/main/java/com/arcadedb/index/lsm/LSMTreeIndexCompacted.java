@@ -12,6 +12,7 @@ import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.exception.DatabaseOperationException;
+import com.arcadedb.index.IndexCursorEntry;
 import com.arcadedb.utility.LogManager;
 
 import java.io.IOException;
@@ -35,18 +36,18 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
   }
 
-  public Set<RID> get(final Object[] keys, final int limit) {
+  public Set<IndexCursorEntry> get(final Object[] keys, final int limit) {
     checkForNulls(keys);
 
     final Object[] convertedKeys = convertKeys(keys, keyTypes);
 
     try {
-      final Set<RID> set = new HashSet<>();
+      final Set<IndexCursorEntry> set = new HashSet<>();
 
       final Set<RID> removedRIDs = new HashSet<>();
 
       // SEARCH IN COMPACTED INDEX
-      searchInCompactedIndex(convertedKeys, limit, set, removedRIDs);
+      searchInCompactedIndex(keys, convertedKeys, limit, set, removedRIDs);
 
       return set;
 
@@ -263,7 +264,8 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
     return iterators;
   }
 
-  protected void searchInCompactedIndex(final Object[] convertedKeys, final int limit, final Set<RID> set, final Set<RID> removedRIDs) throws IOException {
+  protected void searchInCompactedIndex(final Object[] originalKeys, final Object[] convertedKeys, final int limit, final Set<IndexCursorEntry> set,
+      final Set<RID> removedRIDs) throws IOException {
     // JUMP ROOT PAGES BEFORE LOADING THE PAGE WITH THE KEY/VALUES
     final BasePage mainPage = database.getTransaction().getPage(new PageId(file.getFileId(), 0), pageSize);
     final int mainPageCount = getCompactedPageNumberOfSeries(mainPage);
@@ -327,13 +329,12 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = getCount(currentPage);
 
-        if (!lookupInPageAndAddInResultset(currentPage, currentPageBuffer, count, convertedKeys, limit, set, removedRIDs))
+        if (!lookupInPageAndAddInResultset(currentPage, currentPageBuffer, count, originalKeys, convertedKeys, limit, set, removedRIDs))
           return;
       }
 
       --pageNumber;
     }
-
   }
 
   private int getCompactedPageNumberOfSeries(final BasePage currentPage) {

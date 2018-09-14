@@ -4,7 +4,7 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.index.Index;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.sql.parser.AndBlock;
 import com.arcadedb.sql.parser.BinaryCompareOperator;
 import com.arcadedb.sql.parser.BinaryCondition;
@@ -14,12 +14,12 @@ import com.arcadedb.sql.parser.BooleanExpression;
  * Created by luigidellaquila on 26/07/16.
  */
 public class IndexSearchDescriptor {
-  protected Index             idx;
+  protected RangeIndex        idx;
   protected AndBlock          keyCondition;
   protected BinaryCondition   additionalRangeCondition;
   protected BooleanExpression remainingCondition;
 
-  public IndexSearchDescriptor(Index idx, AndBlock keyCondition, BinaryCondition additional,
+  public IndexSearchDescriptor(RangeIndex idx, AndBlock keyCondition, BinaryCondition additional,
       BooleanExpression remainingCondition) {
     this.idx = idx;
     this.keyCondition = keyCondition;

@@ -5,6 +5,7 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.database.RID;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.index.IndexCursor;
@@ -12,10 +13,7 @@ import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * Index cursor doesn't remove the deleted entries.
@@ -26,7 +24,7 @@ public class LSMTreeIndexCursor implements IndexCursor {
   private final LSMTreeIndexUnderlyingAbstractCursor[] pageCursors;
   private       LSMTreeIndexUnderlyingAbstractCursor   currentCursor;
   private       Object[]                               currentKeys;
-  private       Object[]                               currentValues;
+  private       RID[]                                  currentValues;
   private       int                                    currentValueIndex = 0;
   private final int                                    totalCursors;
   private       byte[]                                 keyTypes;
@@ -142,15 +140,20 @@ public class LSMTreeIndexCursor implements IndexCursor {
   }
 
   @Override
+  public int size() {
+    return 0;
+  }
+
+  @Override
   public boolean hasNext() {
     return validIterators > 0 || (currentValues != null && currentValueIndex < currentValues.length);
   }
 
   @Override
-  public Object next() {
+  public RID next() {
     do {
       if (currentValues != null && currentValueIndex < currentValues.length) {
-        final Object value = currentValues[currentValueIndex++];
+        final RID value = currentValues[currentValueIndex++];
         if (!index.isDeletedEntry(value))
           return value;
 
@@ -215,10 +218,30 @@ public class LSMTreeIndexCursor implements IndexCursor {
   }
 
   @Override
+  public RID getRID() {
+    if (currentValues != null && currentValueIndex < currentValues.length) {
+      final RID value = currentValues[currentValueIndex];
+      if (!index.isDeletedEntry(value))
+        return value;
+    }
+    return null;
+  }
+
+  @Override
+  public int getScore() {
+    return 1;
+  }
+
+  @Override
   public void close() {
     for (LSMTreeIndexUnderlyingAbstractCursor it : pageCursors)
       if (it != null)
         it.close();
     Arrays.fill(pageCursors, null);
+  }
+
+  @Override
+  public Iterator<RID> iterator() {
+    return this;
   }
 }

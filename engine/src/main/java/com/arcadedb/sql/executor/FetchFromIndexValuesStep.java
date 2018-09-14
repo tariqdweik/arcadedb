@@ -5,7 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.index.Index;
+import com.arcadedb.index.RangeIndex;
 
 /**
  * Created by luigidellaquila on 02/08/16.
@@ -14,7 +14,7 @@ public class FetchFromIndexValuesStep extends FetchFromIndexStep {
 
   private boolean asc;
 
-  public FetchFromIndexValuesStep(Index index, boolean asc, CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromIndexValuesStep(RangeIndex index, boolean asc, CommandContext ctx, boolean profilingEnabled) {
     super(index, null, null, ctx, profilingEnabled);
     this.asc = asc;
   }

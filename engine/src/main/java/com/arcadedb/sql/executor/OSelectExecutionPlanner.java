@@ -10,6 +10,7 @@ import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.parser.*;
 
@@ -1161,7 +1162,7 @@ public class OSelectExecutionPlanner {
   private void handleIndexAsTarget(SelectExecutionPlan result, QueryPlanningInfo info, IndexIdentifier indexIdentifier, Set<String> filterClusters,
       CommandContext ctx, boolean profilingEnabled) {
     String indexName = indexIdentifier.getIndexName();
-    Index index = ctx.getDatabase().getSchema().getIndexByName(indexName);
+    RangeIndex index = (RangeIndex) ctx.getDatabase().getSchema().getIndexByName(indexName);
     if (index == null) {
       throw new CommandExecutionException("Index not found: " + indexName);
     }
@@ -2072,7 +2073,7 @@ public class OSelectExecutionPlanner {
    */
   private List<IndexSearchDescriptor> commonFactor(List<IndexSearchDescriptor> indexSearchDescriptors) {
     //index, key condition, additional filter (to aggregate in OR)
-    Map<Index, Map<IndexCondPair, OrBlock>> aggregation = new HashMap<>();
+    Map<RangeIndex, Map<IndexCondPair, OrBlock>> aggregation = new HashMap<>();
     for (IndexSearchDescriptor item : indexSearchDescriptors) {
       Map<IndexCondPair, OrBlock> filtersForIndex = aggregation.get(item.idx);
       if (filtersForIndex == null) {
@@ -2089,7 +2090,7 @@ public class OSelectExecutionPlanner {
       existingAdditionalConditions.getSubBlocks().add(item.remainingCondition);
     }
     List<IndexSearchDescriptor> result = new ArrayList<>();
-    for (Map.Entry<Index, Map<IndexCondPair, OrBlock>> item : aggregation.entrySet()) {
+    for (Map.Entry<RangeIndex, Map<IndexCondPair, OrBlock>> item : aggregation.entrySet()) {
       for (Map.Entry<IndexCondPair, OrBlock> filters : item.getValue().entrySet()) {
         result.add(new IndexSearchDescriptor(item.getKey(), filters.getKey().mainCondition, filters.getKey().additionalRange, filters.getValue()));
       }

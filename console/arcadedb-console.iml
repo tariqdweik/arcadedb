@@ -20,6 +20,8 @@
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.13" level="project" />
     <orderEntry type="library" name="Maven: org.json:json:20180130" level="project" />
     <orderEntry type="library" name="Maven: org.lz4:lz4-java:1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.lucene:lucene-analyzers-common:7.4.0" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.lucene:lucene-core:7.4.0" level="project" />
     <orderEntry type="module" module-name="arcadedb-network" />
     <orderEntry type="module" module-name="arcadedb-server" scope="TEST" />
     <orderEntry type="library" scope="TEST" name="Maven: io.undertow:undertow-core:2.0.1.Final" level="project" />

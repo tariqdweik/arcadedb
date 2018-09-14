@@ -16,6 +16,8 @@ import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.IndexCursorEntry;
+import com.arcadedb.index.TempIndexCursor;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.LogManager;
 
@@ -157,19 +159,19 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     return subIndex;
   }
 
-  public Set<RID> get(final Object[] keys, final int limit) throws IOException {
+  public IndexCursor get(final Object[] keys, final int limit) throws IOException {
     checkForNulls(keys);
 
     final Object[] convertedKeys = convertKeys(keys, keyTypes);
 
-    final Set<RID> set = new HashSet<>();
+    final Set<IndexCursorEntry> set = new HashSet<>();
 
     final Set<RID> removedRIDs = new HashSet<>();
 
     // NON COMPACTED INDEX, SEARCH IN ALL THE PAGES
-    searchInNonCompactedIndex(convertedKeys, limit, set, removedRIDs);
+    searchInNonCompactedIndex(keys, convertedKeys, limit, set, removedRIDs);
 
-    return set;
+    return new TempIndexCursor(set);
   }
 
   @Override
@@ -334,7 +336,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     return currentPage;
   }
 
-  private void searchInNonCompactedIndex(final Object[] convertedKeys, final int limit, final Set<RID> set, final Set<RID> removedRIDs) throws IOException {
+  private void searchInNonCompactedIndex(final Object[] originalKeys, final Object[] convertedKeys, final int limit, final Set<IndexCursorEntry> set,
+      final Set<RID> removedRIDs) throws IOException {
     // SEARCH FROM THE LAST PAGE BACK
     final int totalPages = getTotalPages();
 
@@ -346,13 +349,13 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       if (count < 1)
         continue;
 
-      if (!lookupInPageAndAddInResultset(currentPage, currentPageBuffer, count, convertedKeys, limit, set, removedRIDs))
+      if (!lookupInPageAndAddInResultset(currentPage, currentPageBuffer, count, originalKeys, convertedKeys, limit, set, removedRIDs))
         return;
     }
 
     if (subIndex != null)
       // CONTINUE ON THE SUB-INDEX
-      subIndex.searchInCompactedIndex(convertedKeys, limit, set, removedRIDs);
+      subIndex.searchInCompactedIndex(originalKeys, convertedKeys, limit, set, removedRIDs);
   }
 
   protected void internalPut(final Object[] keys, final RID rid) {

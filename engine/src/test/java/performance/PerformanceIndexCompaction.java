@@ -10,6 +10,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.RangeIndex;
 import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 
@@ -53,7 +54,7 @@ public class PerformanceIndexCompaction {
   private long countIndexedItems(Database database) throws IOException {
     long totalIndexed = 0;
     for (Index index : database.getSchema().getIndexes()) {
-      IndexCursor it = index.iterator(true);
+      IndexCursor it = ((RangeIndex)index).iterator(true);
       while (it.hasNext()) {
         it.next();
         ++totalIndexed;

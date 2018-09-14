@@ -11,6 +11,7 @@ import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.index.IndexCursorEntry;
 import com.arcadedb.index.IndexException;
 import com.arcadedb.schema.Type;
 import com.arcadedb.serializer.BinaryComparator;
@@ -403,8 +404,8 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
     return keys;
   }
 
-  protected boolean lookupInPageAndAddInResultset(final BasePage currentPage, final Binary currentPageBuffer, final int count, final Object[] convertedKeys,
-      final int limit, final Set<RID> set, final Set<RID> removedRIDs) {
+  protected boolean lookupInPageAndAddInResultset(final BasePage currentPage, final Binary currentPageBuffer, final int count, final Object[] originalKeys,
+      final Object[] convertedKeys, final int limit, final Set<IndexCursorEntry> set, final Set<RID> removedRIDs) {
     final LookupResult result = lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, convertedKeys, 1);
     if (result.found) {
       // REAL ALL THE ENTRIES
@@ -432,7 +433,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
           // ALREADY FOUND AS DELETED
           continue;
 
-        set.add(rid);
+        set.add(new IndexCursorEntry(originalKeys, rid, 1));
 
         if (limit > -1 && set.size() >= limit) {
           return false;

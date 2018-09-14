@@ -4,26 +4,12 @@
 
 package com.arcadedb.index;
 
-import com.arcadedb.database.RID;
-import com.arcadedb.engine.PaginatedComponent;
-
 import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
 
-public interface ReadOnlyIndex {
-  void setMetadata(String name, String[] propertyNames, int associatedBucketId);
-
-  String getTypeName();
-
-  String[] getPropertyNames();
-
-  void close();
-
-  void drop();
-
-  String getName();
-
+/**
+ * Basic Range Index interface. Supports range queries and iterations.
+ */
+public interface RangeIndex extends Index {
   /**
    * The returning iterator does not skip deleted entries.
    */
@@ -43,18 +29,4 @@ public interface ReadOnlyIndex {
    * The returning iterator does not skip deleted entries.
    */
   IndexCursor range(Object[] beginKeys, Object[] endKeys) throws IOException;
-
-  Set<RID> get(Object[] keys);
-
-  Set<RID> get(Object[] keys, int limit);
-
-  Map<String, Long> getStats();
-
-  int getFileId();
-
-  boolean isUnique();
-
-  PaginatedComponent getPaginatedComponent();
-
-  int getAssociatedBucketId();
 }
