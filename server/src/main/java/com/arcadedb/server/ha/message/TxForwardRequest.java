@@ -55,7 +55,7 @@ public class TxForwardRequest extends TxRequestAbstract {
       throw new ReplicationException("Database '" + databaseName + "' is closed");
 
     final WALFile.WALTransaction walTx = readTxFromBuffer();
-    final Map<String, Map<Object[], TransactionIndexContext.IndexKey>> keysTx = readIndexKeysFromBuffer(db);
+    final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> keysTx = readIndexKeysFromBuffer(db);
 
     // FORWARDED FROM A REPLICA
     db.begin();
@@ -112,21 +112,21 @@ public class TxForwardRequest extends TxRequestAbstract {
     uniqueKeysBuffer = CompressionFactory.getDefault().compress(uniqueKeysBuffer);
   }
 
-  protected Map<String, Map<Object[], TransactionIndexContext.IndexKey>> readIndexKeysFromBuffer(final DatabaseInternal database) {
+  protected Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> readIndexKeysFromBuffer(final DatabaseInternal database) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer.position(0);
 
     final int indexesCount = (int) uniqueKeysBuffer.getNumber();
 
-    final Map<String, Map<Object[], TransactionIndexContext.IndexKey>> entries = new HashMap<>(indexesCount);
+    final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> entries = new HashMap<>(indexesCount);
 
     for (int indexIdx = 0; indexIdx < indexesCount; ++indexIdx) {
       final String indexName = uniqueKeysBuffer.getString();
 
       final int keyCount = (int) uniqueKeysBuffer.getNumber();
 
-      final Map<Object[], TransactionIndexContext.IndexKey> keys = new HashMap<>(keyCount);
+      final Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey> keys = new HashMap<>(keyCount);
 
       entries.put(indexName, keys);
 
@@ -144,7 +144,7 @@ public class TxForwardRequest extends TxRequestAbstract {
         final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
 
         final TransactionIndexContext.IndexKey key = new TransactionIndexContext.IndexKey(addOperation, keyValues, rid);
-        keys.put(keyValues, key);
+        keys.put(new TransactionIndexContext.ComparableKey(keyValues), key);
       }
     }
 
