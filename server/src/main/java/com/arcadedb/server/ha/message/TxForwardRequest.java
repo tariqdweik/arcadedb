@@ -14,9 +14,7 @@ import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicationException;
 import com.arcadedb.utility.LogManager;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,7 +28,8 @@ public class TxForwardRequest extends TxRequestAbstract {
   public TxForwardRequest() {
   }
 
-  public TxForwardRequest(final DatabaseInternal database, final Binary bufferChanges, final Map<String, List<TransactionIndexContext.IndexKey>> keysTx) {
+  public TxForwardRequest(final DatabaseInternal database, final Binary bufferChanges,
+      final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> keysTx) {
     super(database.getName(), bufferChanges);
     writeIndexKeysToBuffer(database, keysTx);
   }
@@ -56,14 +55,14 @@ public class TxForwardRequest extends TxRequestAbstract {
       throw new ReplicationException("Database '" + databaseName + "' is closed");
 
     final WALFile.WALTransaction walTx = readTxFromBuffer();
-    final Map<String, List<TransactionIndexContext.IndexKey>> keysTx = readIndexKeysFromBuffer(db);
+    final Map<String, Map<Object[], TransactionIndexContext.IndexKey>> keysTx = readIndexKeysFromBuffer(db);
 
     // FORWARDED FROM A REPLICA
     db.begin();
     final TransactionContext tx = db.getTransaction();
 
     try {
-      tx.commitFromReplica(changesBuffer, walTx, keysTx);
+      tx.commitFromReplica(walTx, keysTx);
     } catch (NeedRetryException | TransactionException e) {
       return new ErrorResponse(e);
     } catch (Exception e) {
@@ -79,22 +78,21 @@ public class TxForwardRequest extends TxRequestAbstract {
     return "tx-forward(" + databaseName + ")";
   }
 
-  protected void writeIndexKeysToBuffer(final DatabaseInternal database, final Map<String, List<TransactionIndexContext.IndexKey>> indexChanges) {
+  protected void writeIndexKeysToBuffer(final DatabaseInternal database,
+      final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> indexChanges) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer = new Binary();
 
     uniqueKeysBuffer.putNumber(indexChanges.size());
 
-    for (Map.Entry<String, List<TransactionIndexContext.IndexKey>> entry : indexChanges.entrySet()) {
+    for (Map.Entry<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> entry : indexChanges.entrySet()) {
       uniqueKeysBuffer.putString(entry.getKey());
-      final List<TransactionIndexContext.IndexKey> keys = entry.getValue();
+      final Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey> keys = entry.getValue();
 
       uniqueKeysBuffer.putNumber(keys.size());
 
-      for (int i = 0; i < keys.size(); ++i) {
-        final TransactionIndexContext.IndexKey key = keys.get(i);
-
+      for (TransactionIndexContext.IndexKey key : keys.values()) {
         uniqueKeysBuffer.putByte((byte) (key.addOperation ? 1 : 0));
 
         uniqueKeysBuffer.putNumber(key.keyValues.length);
@@ -114,21 +112,21 @@ public class TxForwardRequest extends TxRequestAbstract {
     uniqueKeysBuffer = CompressionFactory.getDefault().compress(uniqueKeysBuffer);
   }
 
-  protected Map<String, List<TransactionIndexContext.IndexKey>> readIndexKeysFromBuffer(final DatabaseInternal database) {
+  protected Map<String, Map<Object[], TransactionIndexContext.IndexKey>> readIndexKeysFromBuffer(final DatabaseInternal database) {
     final BinarySerializer serializer = database.getSerializer();
 
     uniqueKeysBuffer.position(0);
 
     final int indexesCount = (int) uniqueKeysBuffer.getNumber();
 
-    final Map<String, List<TransactionIndexContext.IndexKey>> entries = new HashMap<>(indexesCount);
+    final Map<String, Map<Object[], TransactionIndexContext.IndexKey>> entries = new HashMap<>(indexesCount);
 
     for (int indexIdx = 0; indexIdx < indexesCount; ++indexIdx) {
       final String indexName = uniqueKeysBuffer.getString();
 
       final int keyCount = (int) uniqueKeysBuffer.getNumber();
 
-      final List<TransactionIndexContext.IndexKey> keys = new ArrayList<>(keyCount);
+      final Map<Object[], TransactionIndexContext.IndexKey> keys = new HashMap<>(keyCount);
 
       entries.put(indexName, keys);
 
@@ -146,7 +144,7 @@ public class TxForwardRequest extends TxRequestAbstract {
         final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
 
         final TransactionIndexContext.IndexKey key = new TransactionIndexContext.IndexKey(addOperation, keyValues, rid);
-        keys.add(key);
+        keys.put(keyValues, key);
       }
     }
 

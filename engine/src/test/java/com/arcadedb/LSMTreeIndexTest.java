@@ -22,8 +22,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class LSMTreeIndexTest extends BaseTest {
-  private static final int    TOT       = 10000;
+  private static final int    TOT       = 100000;
   private static final String TYPE_NAME = "V";
+  private static final int    PAGE_SIZE = 20000;
 
   @Test
   public void testGet() {
@@ -684,7 +685,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
-        final Index[] indexes = database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, 1000);
+        final Index[] indexes = database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);

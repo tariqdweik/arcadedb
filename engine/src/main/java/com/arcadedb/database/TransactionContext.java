@@ -289,8 +289,8 @@ public class TransactionContext implements Transaction {
   /**
    * Executes 1st phase from a replica.
    */
-  public void commitFromReplica(final Binary changesBuffer, final WALFile.WALTransaction buffer,
-      final Map<String, List<TransactionIndexContext.IndexKey>> keysTx) throws TransactionException {
+  public void commitFromReplica(final WALFile.WALTransaction buffer,
+      final Map<String, Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey>> keysTx) throws TransactionException {
 
     final int totalImpactedPages = buffer.pages.length;
     if (totalImpactedPages == 0 && keysTx.isEmpty()) {
@@ -306,7 +306,7 @@ public class TransactionContext implements Transaction {
       for (WALFile.WALPage p : buffer.pages)
         modifiedFiles.add(p.fileId);
 
-      indexChanges.addAll(keysTx);
+      indexChanges.setKeys(keysTx);
       indexChanges.addFilesToLock(modifiedFiles);
 
       for (WALFile.WALPage p : buffer.pages) {

@@ -17,7 +17,10 @@ import com.arcadedb.utility.RWLockContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -174,25 +177,25 @@ public class LSMTreeIndex implements Index {
     if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN) {
       Set<RID> txChanges = null;
 
-      final List<TransactionIndexContext.IndexKey> indexChanges = mutable.getDatabase().getTransaction().getIndexChanges().getIndexKeys(getName());
-      if (indexChanges != null)
-        for (int i = indexChanges.size() - 1; i > -1; --i) {
-          final TransactionIndexContext.IndexKey indexChange = indexChanges.get(i);
-          if (Arrays.equals(keys, indexChange.keyValues)) {
-            if (!indexChange.addOperation)
-              // REMOVED
-              return Collections.EMPTY_SET;
+      final Map<TransactionIndexContext.ComparableKey, TransactionIndexContext.IndexKey> indexChanges = mutable.getDatabase().getTransaction().getIndexChanges()
+          .getIndexKeys(getName());
+      if (indexChanges != null) {
+        TransactionIndexContext.IndexKey value = indexChanges.get(new TransactionIndexContext.ComparableKey(keys));
+        if (value != null) {
+          if (!value.addOperation)
+            // REMOVED
+            return Collections.EMPTY_SET;
 
-            if (txChanges == null)
-              txChanges = new HashSet<>();
+          if (txChanges == null)
+            txChanges = new HashSet<>();
 
-            txChanges.add(indexChange.rid);
+          txChanges.add(value.rid);
 
-            if (limit > -1 && txChanges.size() > limit)
-              // LIMIT REACHED
-              return txChanges;
-          }
+          if (limit > -1 && txChanges.size() > limit)
+            // LIMIT REACHED
+            return txChanges;
         }
+      }
 
       final Set<RID> result = lock.executeInReadLock(() -> mutable.get(keys, limit));
 

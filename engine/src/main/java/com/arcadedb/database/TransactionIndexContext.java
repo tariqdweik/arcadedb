@@ -13,8 +13,8 @@ import com.arcadedb.schema.Schema;
 import java.util.*;
 
 public class TransactionIndexContext {
-  private final DatabaseInternal            database;
-  private final Map<String, List<IndexKey>> indexEntries = new HashMap<>();
+  private final DatabaseInternal                          database;
+  private       Map<String, Map<ComparableKey, IndexKey>> indexEntries = new HashMap<>();
 
   public static class IndexKey {
     public final boolean  addOperation;
@@ -33,6 +33,29 @@ public class TransactionIndexContext {
     }
   }
 
+  public static class ComparableKey {
+    private final Object[] values;
+
+    public ComparableKey(final Object[] values) {
+      this.values = values;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o)
+        return true;
+      if (o == null || getClass() != o.getClass())
+        return false;
+      final ComparableKey that = (ComparableKey) o;
+      return Arrays.equals(values, that.values);
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(values);
+    }
+  }
+
   public TransactionIndexContext(final DatabaseInternal database) {
     this.database = database;
   }
@@ -40,11 +63,11 @@ public class TransactionIndexContext {
   public void commit() {
     checkUniqueIndexKeys();
 
-    for (Map.Entry<String, List<IndexKey>> entry : indexEntries.entrySet()) {
+    for (Map.Entry<String, Map<ComparableKey, IndexKey>> entry : indexEntries.entrySet()) {
       final Index index = database.getSchema().getIndexByName(entry.getKey());
-      final List<IndexKey> keys = entry.getValue();
-      for (int i = 0; i < keys.size(); ++i) {
-        final IndexKey key = keys.get(i);
+      final Map<ComparableKey, IndexKey> keys = entry.getValue();
+
+      for (IndexKey key : keys.values()) {
         if (key.addOperation)
           index.put(key.keyValues, key.rid);
         else
@@ -60,8 +83,8 @@ public class TransactionIndexContext {
 
     final Set<Index> lockedIndexes = new HashSet<>();
 
-    for (Map.Entry<String, List<IndexKey>> entry : indexEntries.entrySet()) {
-      final Index index = schema.getIndexByName(entry.getKey());
+    for (String indexName : indexEntries.keySet()) {
+      final Index index = schema.getIndexByName(indexName);
 
       if (lockedIndexes.contains(index))
         continue;
@@ -87,13 +110,12 @@ public class TransactionIndexContext {
     }
   }
 
-  public Map<String, List<IndexKey>> toMap() {
+  public Map<String, Map<ComparableKey, IndexKey>> toMap() {
     return indexEntries;
   }
 
-  public void addAll(final Map<String, List<IndexKey>> keysTx) {
-    indexEntries.clear();
-    indexEntries.putAll(keysTx);
+  public void setKeys(final Map<String, Map<ComparableKey, IndexKey>> keysTx) {
+    indexEntries = keysTx;
   }
 
   public boolean isEmpty() {
@@ -101,19 +123,19 @@ public class TransactionIndexContext {
   }
 
   public void addIndexKeyLock(final String indexName, final boolean addOperation, final Object[] keysValues, final RID rid) {
-    List<IndexKey> keys = indexEntries.get(indexName);
+    Map<ComparableKey, IndexKey> keys = indexEntries.get(indexName);
     if (keys == null) {
-      keys = new ArrayList<>();
+      keys = new HashMap<>();
       indexEntries.put(indexName, keys);
     }
-    keys.add(new IndexKey(addOperation, keysValues, rid));
+    keys.put(new ComparableKey(keysValues), new IndexKey(addOperation, keysValues, rid));
   }
 
   public void reset() {
     indexEntries.clear();
   }
 
-  public List<IndexKey> getIndexKeys(final String indexName) {
+  public Map<ComparableKey, IndexKey> getIndexKeys(final String indexName) {
     return indexEntries.get(indexName);
   }
 
@@ -139,12 +161,12 @@ public class TransactionIndexContext {
   }
 
   private void checkUniqueIndexKeys() {
-    for (Map.Entry<String, List<IndexKey>> entry : indexEntries.entrySet()) {
-      final Index index = database.getSchema().getIndexByName(entry.getKey());
+    for (Map.Entry<String, Map<ComparableKey, IndexKey>> indexEntry : indexEntries.entrySet()) {
+      final Index index = database.getSchema().getIndexByName(indexEntry.getKey());
       if (index.isUnique()) {
-        final List<IndexKey> keys = entry.getValue();
-        for (int i = 0; i < keys.size(); ++i)
-          checkUniqueIndexKeys(index, keys.get(i));
+        final Map<ComparableKey, IndexKey> keys = indexEntry.getValue();
+        for (IndexKey entry : keys.values())
+          checkUniqueIndexKeys(index, entry);
       }
     }
   }
