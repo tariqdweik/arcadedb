@@ -8,17 +8,19 @@ import com.arcadedb.BaseTest;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
+import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 public class LSMTreeFullTextIndexTest extends BaseTest {
-  private static final int    TOT       = 100;
+  private static final int    TOT       = 1000;
   private static final String TYPE_NAME = "V";
-  private static final int    PAGE_SIZE = 20000;
+  private static final int    PAGE_SIZE = LSMTreeIndexAbstract.DEF_PAGE_SIZE;
 
   @Test
   public void testIndexing() {
@@ -27,9 +29,13 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
       public void execute(Database database) {
         Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
 
-        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
+        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 1);
         type.createProperty("text", String.class);
-        final Index[] indexes = database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.FULL_TEXT, false, TYPE_NAME, new String[] { "text" }, PAGE_SIZE);
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.FULL_TEXT, false, TYPE_NAME, new String[] { "text" }, PAGE_SIZE);
+
+        Assertions.assertTrue(database.getSchema().existsType(TYPE_NAME));
+
+        final Index[] indexes = database.getSchema().getIndexes();
 
         final String text =
             "Jay Glenn Miner (May 31, 1932 – June 20, 1994) was an American integrated circuit designer, known primarily for developing multimedia chips for the Atari 2600 and Atari 8-bit family and as the \"father of the Amiga\". He received a BS in EECS from UC Berkeley in 1959.[2]\n"
@@ -49,6 +55,8 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
                 + "\n"
                 + "Jay endured kidney problems for most of his life, according to his wife, and relied on dialysis. His sister donated one of her own. Miner died due to complications from kidney failure at the age of 62, just two months after Commodore declared bankruptcy.";
 
+        LogManager.instance().info(this, "Indexing %d documents...", TOT);
+
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);
           v.set("id", i);
@@ -56,10 +64,16 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
           v.save();
         }
 
+        LogManager.instance().info(this, "Done, committing...");
+
         database.commit();
+
+        LogManager.instance().info(this, "Committed");
 
         final List<String> keywords = ((LSMTreeFullTextIndex) indexes[0]).analyzeText(((LSMTreeFullTextIndex) indexes[0]).getAnalyzer(), new Object[] { text });
         Assertions.assertFalse(keywords.isEmpty());
+
+        LogManager.instance().info(this, "Checking keywords...");
 
         for (String k : keywords) {
           int totalPerKeyword = 0;
@@ -80,8 +94,26 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
           Assertions.assertEquals(totalPerKeyword, TOT);
         }
 
+        LogManager.instance().info(this, "Check completed");
+
         database.begin();
       }
     });
   }
+//
+//  @Override
+//  protected void beginTest() {
+//    database.transaction(new Database.TransactionScope() {
+//      @Override
+//      public void execute(Database database) {
+//        Assertions.assertFalse(database.getSchema().existsType(TYPE_NAME));
+//
+//        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
+//        type.createProperty("text", String.class);
+//        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.FULL_TEXT, false, TYPE_NAME, new String[] { "text" }, PAGE_SIZE);
+//      }
+//    });
+//
+//    reopenDatabase();
+//  }
 }
