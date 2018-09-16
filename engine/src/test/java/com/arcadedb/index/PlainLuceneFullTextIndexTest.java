@@ -16,6 +16,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.store.FSDirectory;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -37,9 +38,10 @@ public class PlainLuceneFullTextIndexTest {
                         + "\n"
                         + "In the early 1980s, Jay, along with other Atari staffers, had become fed up with management and decamped. They set up another chipset project under a new company in Santa Clara, called Hi-Toro (later renamed to Amiga Corporation), where they could have creative freedom. There, they started to create a new Motorola 68000-based games console, codenamed Lorraine that could be upgraded to a computer. To raise money for the Lorraine project, Amiga Corp. designed and sold joysticks and game cartridges for popular game consoles such as the Atari 2600 and ColecoVision, as well as an odd input device called the Joyboard, essentially a joystick the player stood on. Atari continued to be interested in the team's efforts throughout this period, and funded them with $500,000 in capital in return for first use of their resulting chipset.\n"
                         + "\n"
-                        + "Also in the early 1980s, Jay worked on a project with Intermedics, Inc. to create their first microprocessor-based cardiac pacemaker. The microprocessor was called Lazarus and the pacemaker was eventually called Cosmos. Jay was listed co-inventor on two patents. US patent 4390022, Richard V. Calfee & Jay Miner, \"Implantable device with microprocessor control\", issued 1983-06-28, assigned to Intermedics, Inc. US patent 4404972, Pat L. Gordon; Richard V. Calfee & Jay Miner, \"Implantable device with microprocessor control\", issued 1983-06-28, assigned to Intermedics, Inc.\n"
-                        + "\n"
-                        + "The Amiga crew, having continuing serious financial problems, had sought more monetary support from investors that entire Spring. Amiga entered into discussions with Commodore. The discussions ultimately led to Commodore wanting to purchase Amiga outright, which would (from Commodore's viewpoint) cancel any outstanding contracts - including Atari Inc.'s. So instead of Amiga delivering the chipset, Commodore delivered a check of $500,000 to Atari on Amiga's behalf, in effect returning the funds invested into Amiga for completion of the Lorraine chipset.\n"
+                        + "Also in the early 1980s, Jay worked on a project with Intermedics, Inc. to create their first microprocessor-based cardiac pacemaker. The microprocessor was called Lazarus and the pacemaker was eventually called Cosmos. Jay was listed co-inventor on two patents. US patent 4390022, Richard V. Calfee & Jay Miner, \"Implantable device with microprocessor control\", issued 1983-06-28, assigned to Intermedics, Inc. US patent 4404972, Pat L. Gordon; Richard V. Calfee & Jay Miner, \"Implantable device with microprocessor control\", issued 1983-06-28, assigned to Intermedics, Inc.\n";
+
+        final String text2 =
+                "The Amiga crew, having continuing serious financial problems, had sought more monetary support from investors that entire Spring. Amiga entered into discussions with Commodore. The discussions ultimately led to Commodore wanting to purchase Amiga outright, which would (from Commodore's viewpoint) cancel any outstanding contracts - including Atari Inc.'s. So instead of Amiga delivering the chipset, Commodore delivered a check of $500,000 to Atari on Amiga's behalf, in effect returning the funds invested into Amiga for completion of the Lorraine chipset.\n"
                         + "\n" + "\n" + "The original Amiga (1985)\n"
                         + "Jay worked at Commodore-Amiga for several years, in Los Gatos, California. They made good progress at the beginning, but as Commodore management changed, they became marginalised and the original Amiga staff was fired or left out on a one-by-one basis, until the entire Los Gatos office was closed. Miner later worked as a consultant for Commodore until it went bankrupt. He was known as the 'Padre' (father) of the Amiga among Amiga users.\n"
                         + "\n"
@@ -67,8 +69,12 @@ public class PlainLuceneFullTextIndexTest {
         IntStream.rangeClosed(0, 1000).forEach(i -> {
             try {
                 Document doc = new Document();
-                doc.add(new Field("id", "" + i, StringField.TYPE_STORED));
-                doc.add(new Field("text", text, TextField.TYPE_NOT_STORED));
+                doc.add(new StringField("id", "" + i, Field.Store.YES));
+
+                if (i % 2 == 0)
+                    doc.add(new TextField("text", text, Field.Store.NO));
+                else
+                    doc.add(new TextField("text", text2, Field.Store.NO));
 
                 writer.addDocument(doc);
             } catch (IOException e) {
@@ -84,14 +90,15 @@ public class PlainLuceneFullTextIndexTest {
         IndexSearcher searcher = new IndexSearcher(reader);
 
         QueryParser parser = new QueryParser("text", analyzer);
-        Query query = parser.parse("electronics");
+        Query query = parser.parse("elec*");
         ScoreDoc[] hits = searcher.search(query, 1000, Sort.RELEVANCE).scoreDocs;
 
 
+        Assertions.assertEquals(501, hits.length);
         // Iterate through the results:
         for (int i = 0; i < hits.length; i++) {
             Document hitDoc = searcher.doc(hits[i].doc);
-//            System.out.println("hitDoc = " + hitDoc.get("id"));
+            System.out.print(hitDoc.get("id") + " - ");
         }
 
 
