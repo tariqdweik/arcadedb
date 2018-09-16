@@ -25,12 +25,12 @@ public interface Index {
   IndexCursor get(Object[] keys, int limit);
 
   /**
-   * Add a key in the index. If the index is UNIQUE and the key is already present, a {@link com.arcadedb.exception.DuplicatedKeyException} exception is thrown.
+   * Add multiple values for one key in the index.
    *
    * @param keys
-   * @param rid
+   * @param rid  as an array of RIDs
    */
-  void put(Object[] keys, RID rid);
+  void put(Object[] keys, RID[] rid);
 
   /**
    * Removes the keys from the index.

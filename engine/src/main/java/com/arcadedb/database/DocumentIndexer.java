@@ -33,7 +33,7 @@ public class DocumentIndexer {
         for (int i = 0; i < keyValues.length; ++i)
           keyValues[i] = record.get(keyNames[i]);
 
-        index.put(keyValues, rid);
+        index.put(keyValues, new RID[] { rid });
       }
     }
   }
@@ -78,7 +78,7 @@ public class DocumentIndexer {
 
         // REMOVE THE OLD ENTRY KEYS/VALUE AND INSERT THE NEW ONE
         index.remove(oldKeyValues, rid);
-        index.put(newKeyValues, rid);
+        index.put(newKeyValues, new RID[] { rid });
       }
     }
   }

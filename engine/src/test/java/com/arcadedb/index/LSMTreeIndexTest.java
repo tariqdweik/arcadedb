@@ -209,7 +209,7 @@ public class LSMTreeIndexTest extends BaseTest {
             if (value.hasNext()) {
               for (RID r : value) {
                 index.remove(key, r);
-                index.put(key, r);
+                index.put(key, new RID[] { r });
                 index.remove(key, r);
               }
               found++;
@@ -327,7 +327,7 @@ public class LSMTreeIndexTest extends BaseTest {
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
               try {
-                index.put(key, new RID(database, 10, 10));
+                index.put(key, new RID[] { new RID(database, 10, 10) });
                 database.commit();
                 Assertions.fail();
               } catch (DuplicatedKeyException e) {

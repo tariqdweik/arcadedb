@@ -130,10 +130,10 @@ public class LSMTreeFullTextIndex implements Index {
   }
 
   @Override
-  public void put(final Object[] keys, final RID rid) {
+  public void put(final Object[] keys, final RID[] rids) {
     final List<String> keywords = analyzeText(analyzer, keys);
     for (String k : keywords)
-      underlyingIndex.put(new String[] { k }, rid);
+      underlyingIndex.put(new String[] { k }, rids);
   }
 
   @Override

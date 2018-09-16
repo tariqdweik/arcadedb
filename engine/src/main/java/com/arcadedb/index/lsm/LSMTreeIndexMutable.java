@@ -113,11 +113,11 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     }
   }
 
-  public void put(final Object[] keys, final RID rid) {
-    if (rid == null)
-      throw new IllegalArgumentException("RID is null");
+  public void put(final Object[] keys, final RID[] rids) {
+    if (rids == null)
+      throw new IllegalArgumentException("RIDs is null");
 
-    internalPut(keys, rid);
+    internalPut(keys, rids);
   }
 
   public void remove(final Object[] keys) {
@@ -358,7 +358,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       subIndex.searchInCompactedIndex(originalKeys, convertedKeys, limit, set, removedRIDs);
   }
 
-  protected void internalPut(final Object[] keys, final RID rid) {
+  protected void internalPut(final Object[] keys, final RID[] rids) {
     if (keys == null)
       throw new IllegalArgumentException("Keys parameter is null");
 
@@ -392,7 +392,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
       // WRITE KEY/VALUE PAIRS FIRST
       final Binary keyValueContent = database.getContext().getTemporaryBuffer1();
-      writeEntry(keyValueContent, convertedKeys, rid);
+      writeEntry(keyValueContent, convertedKeys, rids);
 
       int keyValueFreePosition = getValuesFreePosition(currentPage);
 
@@ -437,11 +437,12 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
       if (LogManager.instance().isDebugEnabled())
         LogManager.instance()
-            .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), rid, name, currentPage.getPageId(),
-                count + 1, newPage);
+            .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), Arrays.toString(rids), name,
+                currentPage.getPageId(), count + 1, newPage);
 
     } catch (IOException e) {
-      throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);
+      throw new DatabaseOperationException(
+          "Cannot index key '" + Arrays.toString(keys) + "' with value '" + Arrays.toString(rids) + "' in index '" + name + "'", e);
     }
   }
 

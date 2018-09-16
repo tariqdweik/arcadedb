@@ -68,13 +68,37 @@ public class TransactionIndexContext {
       final Index index = database.getSchema().getIndexByName(entry.getKey());
       final Map<ComparableKey, Set<IndexKey>> keys = entry.getValue();
 
-      for (Set<IndexKey> values : keys.values())
-        for (IndexKey key : values) {
-          if (key.addOperation)
-            index.put(key.keyValues, key.rid);
-          else
-            index.remove(key.keyValues, key.rid);
+      // TODO: STORE ALL THE RIDS FOR THE SAME KEY IN ONE OPERATION. THIS ALLOWS TO WRITE ONE COMPACTED "CONTENT" ONLY
+
+      for (Map.Entry<ComparableKey, Set<IndexKey>> keyValueEntries : keys.entrySet()) {
+        final Set<IndexKey> values = keyValueEntries.getValue();
+
+        if (values.size() > 1) {
+          // BATCH MODE
+          final List<RID> rids2Insert = new ArrayList<>(values.size());
+
+          for (IndexKey key : values) {
+            if (key.addOperation)
+              rids2Insert.add(key.rid);
+            else
+              index.remove(key.keyValues, key.rid);
+          }
+
+          if (!rids2Insert.isEmpty()) {
+            final RID[] rids = new RID[rids2Insert.size()];
+            rids2Insert.toArray(rids);
+            index.put(keyValueEntries.getKey().values, rids);
+          }
+
+        } else {
+          for (IndexKey key : values) {
+            if (key.addOperation)
+              index.put(key.keyValues, new RID[] { key.rid });
+            else
+              index.remove(key.keyValues, key.rid);
+          }
         }
+      }
     }
 
     indexEntries.clear();

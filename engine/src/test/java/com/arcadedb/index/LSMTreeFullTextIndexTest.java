@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 public class LSMTreeFullTextIndexTest extends BaseTest {
-  private static final int    TOT       = 1000;
+  private static final int    TOT       = 10000;
   private static final String TYPE_NAME = "V";
   private static final int    PAGE_SIZE = LSMTreeIndexAbstract.DEF_PAGE_SIZE;
 
@@ -100,7 +100,12 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
       }
     });
   }
-//
+
+  @Override
+  public void afterTest() {
+  }
+
+  //
 //  @Override
 //  protected void beginTest() {
 //    database.transaction(new Database.TransactionScope() {

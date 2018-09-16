@@ -217,13 +217,15 @@ public class LSMTreeIndex implements RangeIndex {
   }
 
   @Override
-  public void put(final Object[] keys, final RID rid) {
-    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
+  public void put(final Object[] keys, final RID[] rids) {
+    if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN) {
       // KEY ADDED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexOperation(this, true, keys, rid);
-    else
+      final TransactionContext tx = mutable.getDatabase().getTransaction();
+      for (RID rid : rids)
+        tx.addIndexOperation(this, true, keys, rid);
+    } else
       lock.executeInReadLock(() -> {
-        mutable.put(keys, rid);
+        mutable.put(keys, rids);
         return null;
       });
   }
