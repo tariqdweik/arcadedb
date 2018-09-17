@@ -4,11 +4,14 @@
 
 package com.arcadedb.importer;
 
+import com.arcadedb.analyzer.Analyzer;
 import com.arcadedb.database.*;
 import com.arcadedb.schema.*;
 import com.arcadedb.utility.LogManager;
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.zip.GZIPInputStream;
@@ -53,6 +56,20 @@ public abstract class AbstractImporter {
   protected boolean     forceDatabaseCreate;
 
   protected enum RECORD_TYPE {DOCUMENT, VERTEX}
+
+  public static class ImporterConfiguration {
+    public final Analyzer.FILE_TYPE  fileType;
+    public final Map<String, String> options = new HashMap<>();
+
+    public ImporterConfiguration(final Analyzer.FILE_TYPE fileType) {
+      this.fileType = fileType;
+    }
+
+    public ImporterConfiguration set(final String option, final String value) {
+      options.put(option, value);
+      return this;
+    }
+  }
 
   protected AbstractImporter(final String[] args) {
     parseParameters(args);

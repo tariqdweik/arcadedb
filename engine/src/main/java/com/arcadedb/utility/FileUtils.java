@@ -264,11 +264,15 @@ public class FileUtils {
   }
 
   public static String readStreamAsString(final InputStream iStream, final String iCharset) throws IOException {
+    return readStreamAsString(iStream, iCharset, 0);
+  }
+
+  public static String readStreamAsString(final InputStream iStream, final String iCharset, final long limit) throws IOException {
     final StringBuffer fileData = new StringBuffer(1000);
     final BufferedReader reader = new BufferedReader(new InputStreamReader(iStream, iCharset));
     try {
       final char[] buf = new char[1024];
-      int numRead = 0;
+      int numRead;
 
       while ((numRead = reader.read(buf)) != -1) {
         String readData = String.valueOf(buf, 0, numRead);
@@ -277,7 +281,16 @@ public class FileUtils {
           // SKIP UTF-8 BOM IF ANY
           readData = readData.substring(1);
 
-        fileData.append(readData);
+        if (limit > 0 && fileData.length() + readData.length() > limit) {
+          // LIMIT REACHED
+          fileData.append(readData.substring(0, (int) (limit - fileData.length())));
+          break;
+        } else
+          fileData.append(readData);
+
+        if (limit > 0 && fileData.length() >= limit)
+          // LIMIT REACHED
+          break;
       }
     } finally {
       reader.close();
