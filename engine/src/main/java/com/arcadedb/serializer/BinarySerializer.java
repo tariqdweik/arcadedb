@@ -166,8 +166,10 @@ public class BinarySerializer {
     int lastHeaderPosition;
 
     final int[] fieldIds = new int[fieldNames.length];
+
+    final Dictionary dictionary = database.getSchema().getDictionary();
     for (int i = 0; i < fieldNames.length; ++i)
-      fieldIds[i] = database.getSchema().getDictionary().getIdByName(fieldNames[i], false);
+      fieldIds[i] = dictionary.getIdByName(fieldNames[i], false);
 
     for (int i = 0; i < properties; ++i) {
       final int nameId = (int) buffer.getNumber();
@@ -188,11 +190,16 @@ public class BinarySerializer {
           continue;
       }
 
-      final String name = database.getSchema().getDictionary().getNameById(nameId);
+      final String name = dictionary.getNameById(nameId);
 
       buffer.position(headerSize + contentPosition);
 
-      final Object value = deserializeValue(database, buffer, buffer.getByte());
+      final byte type = buffer.getByte();
+
+      Object value = deserializeValue(database, buffer, type);
+
+      if (type == BinaryTypes.TYPE_COMPRESSED_STRING)
+        value = dictionary.getNameById(((Long) value).intValue());
 
       values.put(name, value);
 
@@ -209,6 +216,9 @@ public class BinarySerializer {
   public void serializeValue(final Binary content, final byte type, final Object value) {
     switch (type) {
     case BinaryTypes.TYPE_NULL:
+      break;
+    case BinaryTypes.TYPE_COMPRESSED_STRING:
+      content.putNumber(((Integer) value).intValue());
       break;
     case BinaryTypes.TYPE_STRING:
       if (value instanceof byte[])
@@ -337,6 +347,9 @@ public class BinarySerializer {
     case BinaryTypes.TYPE_STRING:
       value = content.getString();
       break;
+    case BinaryTypes.TYPE_COMPRESSED_STRING:
+      value = content.getNumber();
+      break;
     case BinaryTypes.TYPE_BYTE:
       value = content.getByte();
       break;
@@ -427,13 +440,22 @@ public class BinarySerializer {
       // TODO: USE UNSIGNED SHORT
       header.putNumber(dictionary.getIdByName(p, true));
 
-      final Object value = record.get(p);
+      Object value = record.get(p);
 
       final int startContentPosition = content.position();
 
-      final byte type = BinaryTypes.getTypeFromValue(value);
-      content.putByte(type);
+      byte type = BinaryTypes.getTypeFromValue(value);
 
+      if (value != null && type == BinaryTypes.TYPE_STRING) {
+        final int id = dictionary.getIdByName((String) value, false);
+        if (id > -1) {
+          // WRITE THE COMPRESSED STRING
+          type = BinaryTypes.TYPE_COMPRESSED_STRING;
+          value = id;
+        }
+      }
+
+      content.putByte(type);
       serializeValue(content, type, value);
 
       // WRITE PROPERTY CONTENT POSITION

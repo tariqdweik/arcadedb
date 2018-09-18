@@ -346,7 +346,7 @@ public class DatabaseAsyncExecutor {
 
   public void compact(final Index index) {
     if (index.scheduleCompaction())
-      scheduleTask(getFreeSlot(), new DatabaseAsyncIndexCompaction(index));
+      scheduleTask(getFreeSlot(), new DatabaseAsyncIndexCompaction(index), false);
   }
 
   /**
@@ -400,7 +400,7 @@ public class DatabaseAsyncExecutor {
   public void command(final String language, final String query, final Map<String, Object> args, final SQLCallback callback) {
     // TODO: SUPPORT MULTIPLE LANGUAGES
     final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
-    scheduleTask(slot, new DatabaseAsyncSQL(query, args, callback));
+    scheduleTask(slot, new DatabaseAsyncSQL(query, args, callback), true);
   }
 
   public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
@@ -412,7 +412,7 @@ public class DatabaseAsyncExecutor {
 
       for (Bucket b : buckets) {
         final int slot = b.getId() % parallelLevel;
-        scheduleTask(slot, new DatabaseAsyncScanBucket(semaphore, callback, b));
+        scheduleTask(slot, new DatabaseAsyncScanBucket(semaphore, callback, b), true);
       }
 
       semaphore.await();
@@ -427,7 +427,7 @@ public class DatabaseAsyncExecutor {
   }
 
   public void transaction(final Database.TransactionScope txBlock, final int retries) {
-    scheduleTask((int) (transactionCounter.getAndIncrement() % executorThreads.length), new DatabaseAsyncTransaction(txBlock, retries));
+    scheduleTask((int) (transactionCounter.getAndIncrement() % executorThreads.length), new DatabaseAsyncTransaction(txBlock, retries), true);
   }
 
   public void createRecord(final MutableDocument record) {
@@ -439,7 +439,7 @@ public class DatabaseAsyncExecutor {
       final Bucket bucket = type.getBucketToSave(false);
       final int slot = bucket.getId() % parallelLevel;
 
-      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket));
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket), true);
 
     } else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
@@ -451,7 +451,7 @@ public class DatabaseAsyncExecutor {
 
     if (record.getIdentity() == null)
       // NEW
-      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket));
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket), true);
     else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
@@ -650,9 +650,13 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private void scheduleTask(final int slot, final DatabaseAsyncTask task) {
+  private void scheduleTask(final int slot, final DatabaseAsyncTask task, final boolean waitIfQueueIsFull) {
     try {
-      executorThreads[slot].queue.put(task);
+      if (waitIfQueueIsFull)
+        executorThreads[slot].queue.put(task);
+      else
+        executorThreads[slot].queue.offer(task);
+
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new DatabaseOperationException("Error on executing asynchronous task " + task);

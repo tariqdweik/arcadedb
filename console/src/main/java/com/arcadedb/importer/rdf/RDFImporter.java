@@ -14,7 +14,6 @@ import java.util.Map;
 public class RDFImporter extends CSVImporter {
   private static final char[]              STRING_CONTENT_SKIP = new char[] { '\'', '\'', '"', '"', '<', '>' };
   private              Map<String, String> mapping;
-  private              long                lastCompaction      = System.currentTimeMillis();
 
   public RDFImporter(final String[] args) {
     super(args);

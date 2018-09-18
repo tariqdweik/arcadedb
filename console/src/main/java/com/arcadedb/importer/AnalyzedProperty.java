@@ -2,7 +2,7 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.analyzer;
+package com.arcadedb.importer;
 
 import com.arcadedb.schema.Type;
 

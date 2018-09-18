@@ -2,119 +2,118 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.analyzer;
+package com.arcadedb.importer;
 
-import com.arcadedb.importer.AbstractImporter;
-import com.arcadedb.schema.Type;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import com.sun.xml.internal.stream.XMLInputFactoryImpl;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-public class Analyzer {
+public class ContentAnalyzer {
   private String  url;
-  private long    limitBytes       = 1000000;
+  private long    limitBytes       = 10000000;
   private long    limitEntries     = 0;
   private int     objectNestLevel  = 1;
-  private int     maxValueSampling = 100;
+  private int     maxValueSampling = 300;
   private boolean trimText         = true;
 
   public enum FILE_TYPE {JSON, XML, CSV, TSV}
 
-  public Analyzer(final String[] args) {
+  public ContentAnalyzer(final String[] args) {
     parseParameters(args);
   }
 
-  public static void main(final String[] args) throws IOException {
-    new Analyzer(args).analyze();
+  public ContentAnalyzer(final String url) {
+    this.url = url;
   }
 
-  public void analyze() throws IOException {
-    final AbstractImporter.ImporterConfiguration format;
+  public static void main(final String[] args) throws IOException {
+    new ContentAnalyzer(args).analyzeSchema();
+  }
 
+  public AbstractImporter.SourceInfo analyzeSchema() throws IOException {
     LogManager.instance().info(this, "Analyzing url: %s...", url);
 
-    if (url.startsWith("http://") || url.startsWith("https://"))
-      format = analyzeHttp(url);
-    else
-      format = analyzeFile(url);
+    final Source source = getSource();
 
-    if (format == null)
+    final AbstractImporter.SourceInfo sourceInfo = analyzeText(source, limitBytes);
+
+    if (sourceInfo == null)
       LogManager.instance().info(this, "Unknown format");
     else {
-      LogManager.instance().info(this, "Recognized format %s", format.fileType);
-      if (!format.options.isEmpty()) {
-        for (Map.Entry<String, String> o : format.options.entrySet())
+      LogManager.instance().info(this, "Recognized format %s", sourceInfo.fileType);
+      if (!sourceInfo.options.isEmpty()) {
+        for (Map.Entry<String, String> o : sourceInfo.options.entrySet())
           LogManager.instance().info(this, "- %s = %s", o.getKey(), o.getValue());
       }
     }
+
+    source.close();
+
+    return sourceInfo;
   }
 
-  private AbstractImporter.ImporterConfiguration analyzeHttp(final String url) throws IOException {
+  public Source getSource() throws IOException {
+    final Source source;
+    if (url.startsWith("http://") || url.startsWith("https://"))
+      source = analyzeHttp(url);
+    else
+      source = analyzeFile(url);
+    return source;
+  }
+
+  private Source analyzeHttp(final String url) throws IOException {
     final HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
     connection.setRequestMethod("GET");
     connection.setDoOutput(true);
 
-    try {
-      connection.connect();
-      final int contentLength = connection.getContentLength();
-      return analyzeInputStream(new BufferedInputStream(connection.getInputStream()), contentLength);
-    } finally {
-      connection.disconnect();
-    }
+    connection.connect();
+
+    return getSource(new BufferedInputStream(connection.getInputStream()), connection.getContentLengthLong(), new Callable<Void>() {
+      @Override
+      public Void call() throws Exception {
+        connection.disconnect();
+        return null;
+      }
+    });
   }
 
-  private AbstractImporter.ImporterConfiguration analyzeFile(final String url) throws IOException {
+  private Source analyzeFile(final String url) throws IOException {
     final File file = new File(url);
-    try (final BufferedInputStream fis = new BufferedInputStream(new FileInputStream(file))) {
-      return analyzeInputStream(fis, (int) file.length());
-    }
+    final BufferedInputStream fis = new BufferedInputStream(new FileInputStream(file));
+
+    return getSource(fis, file.length(), new Callable<Void>() {
+      @Override
+      public Void call() throws Exception {
+        fis.close();
+        return null;
+      }
+    });
   }
 
-  private AbstractImporter.ImporterConfiguration analyzeInputStream(final BufferedInputStream in, final int total) throws IOException {
-    in.mark(0);
+  private AbstractImporter.SourceInfo analyzeText(final Source source, final long limit) throws IOException {
+    final Parser parser = new Parser(source, limit);
 
-    final ZipInputStream zip = new ZipInputStream(in);
-    final ZipEntry entry = zip.getNextEntry();
-    if (entry != null) {
-      // ZIPPED FILE
-      return analyzeText(in, total, limitBytes, true);
-    }
+    parser.nextChar();
 
-    in.reset();
-    in.mark(0);
-
-    try {
-      final GZIPInputStream gzip = new GZIPInputStream(in);
-      return analyzeText(gzip, total, limitBytes, true);
-    } catch (IOException e) {
-      // NOT GZIP
-    }
-
-    in.reset();
-
-    // ANALYZE THE INPUT AS TEXT
-    return analyzeText(in, total, limitBytes, false);
-  }
-
-  private AbstractImporter.ImporterConfiguration analyzeText(final InputStream is, final int total, final long limit, final boolean compressed)
-      throws IOException {
-    final Parser parser = new Parser(is, total, limit, compressed);
-
-    AbstractImporter.ImporterConfiguration format = analyzeChar(parser);
+    AbstractImporter.SourceInfo format = analyzeChar(parser);
     if (format != null)
       return format;
 
@@ -169,11 +168,11 @@ public class Analyzer {
         LogManager.instance().info(this, "Best separator candidate=%s (all candidates=%s)", bestSeparator.getKey(), list);
 
         if (bestSeparator.getKey() == ',')
-          return new AbstractImporter.ImporterConfiguration(FILE_TYPE.CSV);
+          return new AbstractImporter.SourceInfo(FILE_TYPE.CSV, null);
         if (bestSeparator.getKey() == '\t')
-          return new AbstractImporter.ImporterConfiguration(FILE_TYPE.TSV);
+          return new AbstractImporter.SourceInfo(FILE_TYPE.TSV, null);
         else
-          return new AbstractImporter.ImporterConfiguration(FILE_TYPE.TSV).set("separator", "" + bestSeparator.getKey());
+          return new AbstractImporter.SourceInfo(FILE_TYPE.TSV, null).set("separator", "" + bestSeparator.getKey());
       }
     }
 
@@ -186,17 +185,17 @@ public class Analyzer {
       ;
   }
 
-  private AbstractImporter.ImporterConfiguration analyzeChar(final Parser parser) {
+  private AbstractImporter.SourceInfo analyzeChar(final Parser parser) {
     final char currentChar = parser.getCurrentChar();
     if (currentChar == '<')
       return analyzeXML(parser);
     else if (currentChar == '{')
-      return new AbstractImporter.ImporterConfiguration(FILE_TYPE.JSON);
+      return new AbstractImporter.SourceInfo(FILE_TYPE.JSON, null);
 
     return null;
   }
 
-  private AbstractImporter.ImporterConfiguration analyzeXML(final Parser parser) {
+  private AbstractImporter.SourceInfo analyzeXML(final Parser parser) {
 
     long parsedObjects = 0;
     final AnalyzedSchema schema = new AnalyzedSchema(maxValueSampling);
@@ -215,6 +214,7 @@ public class Analyzer {
 
       boolean parsedStructure = false;
 
+      String entityName = null;
       String lastName = null;
       String lastContent = null;
 
@@ -231,17 +231,17 @@ public class Analyzer {
           LogManager.instance().debug(this, "<%s> attributes=%d (nestLevel=%d)", xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
 
           if (nestLevel == objectNestLevel) {
-            ++parsedObjects;
+            entityName = xmlReader.getName().toString();
 
             // GET ELEMENT'S ATTRIBUTES AS PROPERTIES
             for (int i = 0; i < xmlReader.getAttributeCount(); ++i) {
-              schema.set(xmlReader.getAttributeName(i).toString(), xmlReader.getAttributeValue(i));
+              schema.setProperty(entityName, xmlReader.getAttributeName(i).toString(), xmlReader.getAttributeValue(i));
               lastName = null;
             }
           } else if (nestLevel == objectNestLevel + 1) {
             // GET ELEMENT'S SUB-NODES AS PROPERTIES
             if (lastName != null)
-              schema.set(lastName, lastContent);
+              schema.setProperty(entityName, lastName, lastContent);
 
             lastName = xmlReader.getName().toString();
           }
@@ -251,13 +251,15 @@ public class Analyzer {
 
         case XMLStreamReader.END_ELEMENT:
           if (lastName != null)
-            schema.set(lastName, lastContent);
+            schema.setProperty(entityName, lastName, lastContent);
 
           LogManager.instance().debug(this, "</%s> (nestLevel=%d)", xmlReader.getName(), nestLevel);
 
           --nestLevel;
 
           if (nestLevel == objectNestLevel) {
+            ++parsedObjects;
+
             if (!parsedStructure)
               parsedStructure = true;
 
@@ -310,29 +312,23 @@ public class Analyzer {
 
     dumpSchema(schema, parsedObjects);
 
-    return new AbstractImporter.ImporterConfiguration(FILE_TYPE.XML);
+    return new AbstractImporter.SourceInfo(FILE_TYPE.XML, schema);
   }
 
   private void dumpSchema(final AnalyzedSchema schema, final long parsedObjects) {
     LogManager.instance().info(this, "---------------------------------------------------------------");
 
     LogManager.instance()
-        .info(this, "\nXML objects found %d (limitBytes=%s limitEntries=%d)", parsedObjects, FileUtils.getSizeAsString(limitBytes), limitEntries);
-    LogManager.instance().info(this, "XML schema properties found:");
-    for (Map.Entry<String, AnalyzedProperty> p : schema.properties()) {
-      LogManager.instance().info(this, "- %s (%s)", p.getKey(), p.getValue().getType());
-      if (p.getValue().isCollectingSamples())
-        LogManager.instance().info(this, "    contents (%d items): %s", p.getValue().getContents().size(), p.getValue().getContents());
-    }
+        .info(this, "XML objects found %d (limitBytes=%s limitEntries=%d)", parsedObjects, FileUtils.getSizeAsString(limitBytes), limitEntries);
 
-    LogManager.instance().info(this, "---------------------------------------------------------------");
-    LogManager.instance().info(this, "ADVICE:");
+    for (String entity : schema.getEntities()) {
+      LogManager.instance().info(this, "---------------------------------------------------------------");
+      LogManager.instance().info(this, "Entity '%s':", entity);
 
-    int advice = 1;
-    for (Map.Entry<String, AnalyzedProperty> p : schema.properties()) {
-      if (p.getValue().getType() == Type.STRING && p.getValue().isCollectingSamples() && !p.getValue().getContents().isEmpty()) {
-        LogManager.instance().info(this, "%d) Property '%s' could be linked to a vertex type containing the values:", advice++, p.getKey());
-        LogManager.instance().info(this, "    %s", p.getValue().getContents());
+      for (Map.Entry<String, AnalyzedProperty> p : schema.getProperties(entity)) {
+        LogManager.instance().info(this, "- %s (%s)", p.getKey(), p.getValue().getType());
+        if (p.getValue().isCollectingSamples())
+          LogManager.instance().info(this, "    contents (%d items): %s", p.getValue().getContents().size(), p.getValue().getContents());
       }
     }
     LogManager.instance().info(this, "---------------------------------------------------------------");
@@ -349,15 +345,43 @@ public class Analyzer {
   protected void parseParameter(final String name, final String value) {
     if ("-url".equals(name))
       url = value;
-    else if ("-limitBytes".equals(name))
+    else if ("-analyzeLimitBytes".equals(name))
       limitBytes = FileUtils.getSizeAsNumber(value);
-    else if ("-limitEntries".equals(name))
+    else if ("-analyzeLimitEntries".equals(name))
       limitEntries = Long.parseLong(value);
-    else if ("-maxValueSampling".equals(name))
+    else if ("-analyzeMaxValueSampling".equals(name))
       maxValueSampling = Integer.parseInt(value);
-    else if ("-trimText".equals(name))
+    else if ("-analyzeTrimText".equals(name))
       trimText = Boolean.parseBoolean(value);
+    else if ("-objectNestLevel".equals(name))
+      objectNestLevel = Integer.parseInt(value);
     else
       throw new IllegalArgumentException("Invalid setting '" + name + "'");
+  }
+
+  private Source getSource(final BufferedInputStream in, final long totalSize, final Callable<Void> closeCallback) throws IOException {
+    in.mark(0);
+
+    final ZipInputStream zip = new ZipInputStream(in);
+    final ZipEntry entry = zip.getNextEntry();
+    if (entry != null) {
+      // ZIPPED FILE
+      return new Source(url, zip, totalSize, true, closeCallback);
+    }
+
+    in.reset();
+    in.mark(0);
+
+    try {
+      final GZIPInputStream gzip = new GZIPInputStream(in, 8192);
+      return new Source(url, gzip, totalSize, true, closeCallback);
+    } catch (IOException e) {
+      // NOT GZIP
+    }
+
+    in.reset();
+
+    // ANALYZE THE INPUT AS TEXT
+    return new Source(url, in, totalSize, false, closeCallback);
   }
 }

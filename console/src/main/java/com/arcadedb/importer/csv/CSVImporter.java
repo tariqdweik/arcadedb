@@ -6,16 +6,22 @@ package com.arcadedb.importer.csv;
 
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.importer.AbstractImporter;
+import com.arcadedb.importer.ContentAnalyzer;
 import com.univocity.parsers.common.AbstractParser;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import com.univocity.parsers.tsv.TsvParser;
 import com.univocity.parsers.tsv.TsvParserSettings;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 public class CSVImporter extends AbstractImporter {
+  protected String            delimiter = ",";
   protected CsvParserSettings csvParserSettings;
   protected TsvParserSettings tsvParserSettings;
   protected AbstractParser    parser;
+  private   InputStreamReader inputFileReader;
 
   public CSVImporter(final String[] args) {
     super(args);
@@ -36,7 +42,12 @@ public class CSVImporter extends AbstractImporter {
   protected void load() {
     openDatabase();
     try {
-      parser.beginParsing(openInputFile());
+
+      source = new ContentAnalyzer(url).getSource();
+
+      inputFileReader = new InputStreamReader(source.inputStream);
+
+      parser.beginParsing(inputFileReader);
 
       startImporting();
 
@@ -48,13 +59,11 @@ public class CSVImporter extends AbstractImporter {
         ++parsed;
       }
 
-      database.asynch().waitCompletion();
-
-      stopImporting();
-
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
+      database.asynch().waitCompletion();
+      stopImporting();
       closeDatabase();
       closeInputFile();
     }
@@ -71,9 +80,24 @@ public class CSVImporter extends AbstractImporter {
   }
 
   @Override
+  protected void closeInputFile() {
+    super.closeInputFile();
+
+    if (inputFileReader != null) {
+      try {
+        inputFileReader.close();
+      } catch (IOException e) {
+        // IGNORE IT
+      }
+    }
+  }
+
+  @Override
   protected void parseParameter(final String name, final String value) {
     if ("-recordType".equals(name))
       recordType = RECORD_TYPE.valueOf(value.toUpperCase());
+    else if ("-delimiter".equals(name))
+      delimiter = value;
     else
       super.parseParameter(name, value);
   }

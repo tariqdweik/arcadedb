@@ -17,24 +17,25 @@ import java.util.Map;
 import java.util.UUID;
 
 public class BinaryTypes {
-  public final static byte TYPE_NULL           = 0;
-  public final static byte TYPE_STRING         = 1;
-  public final static byte TYPE_BYTE           = 2;
-  public final static byte TYPE_SHORT          = 3;
-  public final static byte TYPE_INT            = 4;
-  public final static byte TYPE_LONG           = 5;
-  public final static byte TYPE_FLOAT          = 6;
-  public final static byte TYPE_DOUBLE         = 7;
-  public final static byte TYPE_DATE           = 8;
-  public final static byte TYPE_DATETIME       = 9;
-  public final static byte TYPE_DECIMAL        = 10;
-  public final static byte TYPE_BOOLEAN        = 11;
-  public final static byte TYPE_BINARY         = 12;
-  public final static byte TYPE_COMPRESSED_RID = 13;
-  public final static byte TYPE_RID            = 14;
-  public final static byte TYPE_UUID           = 15;
-  public final static byte TYPE_LIST           = 16;
-  public final static byte TYPE_MAP            = 17;
+  public final static byte TYPE_NULL              = 0;
+  public final static byte TYPE_STRING            = 1;
+  public final static byte TYPE_BYTE              = 2;
+  public final static byte TYPE_SHORT             = 3;
+  public final static byte TYPE_INT               = 4;
+  public final static byte TYPE_LONG              = 5;
+  public final static byte TYPE_FLOAT             = 6;
+  public final static byte TYPE_DOUBLE            = 7;
+  public final static byte TYPE_DATE              = 8;
+  public final static byte TYPE_DATETIME          = 9;
+  public final static byte TYPE_DECIMAL           = 10;
+  public final static byte TYPE_BOOLEAN           = 11;
+  public final static byte TYPE_BINARY            = 12;
+  public final static byte TYPE_COMPRESSED_RID    = 13;
+  public final static byte TYPE_RID               = 14;
+  public final static byte TYPE_UUID              = 15;
+  public final static byte TYPE_LIST              = 16;
+  public final static byte TYPE_MAP               = 17;
+  public final static byte TYPE_COMPRESSED_STRING = 18;
 
   public static byte getTypeFromValue(final Object value) {
     final byte type;
@@ -162,6 +163,7 @@ public class BinaryTypes {
   public static Class<?> getClassFromType(final byte type) {
     switch (type) {
     case BinaryTypes.TYPE_STRING:
+    case BinaryTypes.TYPE_COMPRESSED_STRING:
       return String.class;
 
     case BinaryTypes.TYPE_INT:

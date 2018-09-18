@@ -2,12 +2,9 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.analyzer;
+package com.arcadedb.importer;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Parser {
@@ -19,8 +16,8 @@ public class Parser {
   private       char              currentChar;
   private       boolean           compressed;
 
-  public Parser(final InputStream is, final long total, final long limit, final boolean compressed) throws IOException {
-    final BufferedInputStream wrapped = new BufferedInputStream(is) {
+  public Parser(final Source source, final long limit) throws IOException {
+    this.is = new BufferedInputStream(source.inputStream) {
       @Override
       public int read() throws IOException {
         position.incrementAndGet();
@@ -30,7 +27,7 @@ public class Parser {
       @Override
       public int read(final byte[] b) throws IOException {
         if (limit > 0 && position.get() > limit)
-          return 0;
+          throw new EOFException();
 
         final int res = super.read(b);
         position.addAndGet(res);
@@ -40,7 +37,7 @@ public class Parser {
       @Override
       public int read(final byte[] b, final int off, final int len) throws IOException {
         if (limit > 0 && position.get() > limit)
-          return 0;
+          throw new EOFException();
 
         int res = super.read(b, off, len);
         position.addAndGet(res);
@@ -52,19 +49,16 @@ public class Parser {
         if (limit > 0 && position.get() > limit)
           return 0;
 
-        return is.available();
+        return super.available();
       }
     };
 
-    this.is = new BufferedInputStream(wrapped);
-    this.reader = new InputStreamReader(this.is);
-    this.total = total;
-    this.limit = limit;
-    this.compressed = compressed;
-    this.is.mark(0);
+    this.compressed = source.compressed;
+    this.total = source.totalSize;
 
-    if (this.is.available() > 0)
-      this.currentChar = (char) this.reader.read();
+    this.reader = new InputStreamReader(this.is);
+    this.limit = limit;
+    this.is.mark(0);
   }
 
   public char getCurrentChar() {
@@ -78,10 +72,11 @@ public class Parser {
   }
 
   public void mark() {
-    is.mark((int) position.get());
+    is.mark(0);
   }
 
   public void reset() throws IOException {
+    position.set(0);
     is.reset();
   }
 

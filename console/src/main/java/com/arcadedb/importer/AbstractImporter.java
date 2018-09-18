@@ -4,28 +4,20 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.analyzer.Analyzer;
 import com.arcadedb.database.*;
 import com.arcadedb.schema.*;
 import com.arcadedb.utility.LogManager;
 
-import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 public abstract class AbstractImporter {
-  private static final char[] STRING_CONTENT_SKIP       = new char[] { '\'', '\'', '"', '"' };
-  private static final int    DEFAULT_INPUT_BUFFER_SIZE = 128000;
+  private static final char[] STRING_CONTENT_SKIP = new char[] { '\'', '\'', '"', '"' };
 
-  protected Database    database;
-  protected InputStream inputFileStream;
-  protected Reader      inputFileReader;
-  protected long        inputFileSize;
+  protected Database database;
+  protected Source   source;
 
   protected long parsed;
   protected long startedOn;
@@ -42,13 +34,12 @@ public abstract class AbstractImporter {
   protected Timer timer;
 
   // SETTINGS
-  protected String      databaseURL;
-  protected String      inputFile;
-  protected String      delimiter              = ",";
+  protected String      databaseURL            = "./databases/imported";
+  protected String      url;
   protected RECORD_TYPE recordType             = RECORD_TYPE.DOCUMENT;
   protected String      edgeTypeName           = "Relationship";
   protected String      vertexTypeName         = "Node";
-  protected String      typeIdProperty         = "id";
+  protected String      typeIdProperty         = null;
   private   boolean     typeIdPropertyIsUnique = false;
   private   String      typeIdType             = "String";
   protected int         commitEvery            = 1000;
@@ -57,17 +48,23 @@ public abstract class AbstractImporter {
 
   protected enum RECORD_TYPE {DOCUMENT, VERTEX}
 
-  public static class ImporterConfiguration {
-    public final Analyzer.FILE_TYPE  fileType;
-    public final Map<String, String> options = new HashMap<>();
+  public static class SourceInfo {
+    public final ContentAnalyzer.FILE_TYPE fileType;
+    public final AnalyzedSchema            schema;
+    public final Map<String, String>       options = new HashMap<>();
 
-    public ImporterConfiguration(final Analyzer.FILE_TYPE fileType) {
+    public SourceInfo(final ContentAnalyzer.FILE_TYPE fileType, final AnalyzedSchema schema) {
       this.fileType = fileType;
+      this.schema = schema;
     }
 
-    public ImporterConfiguration set(final String option, final String value) {
+    public SourceInfo set(final String option, final String value) {
       options.put(option, value);
       return this;
+    }
+
+    public AnalyzedSchema getSchema() {
+      return schema;
     }
   }
 
@@ -80,13 +77,13 @@ public abstract class AbstractImporter {
     if (deltaInSecs == 0)
       deltaInSecs = 1;
 
-    if (inputFileSize < 0) {
+    if (source == null || source.totalSize < 0) {
       LogManager.instance()
           .info(this, "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", parsed, ((parsed - lastParsed) / deltaInSecs),
               createdDocuments, (createdDocuments - lastDocuments) / deltaInSecs, createdVertices, (createdVertices - lastVertices) / deltaInSecs, createdEdges,
               (createdEdges - lastEdges) / deltaInSecs);
     } else {
-      final int progressPerc = (int) (getInputFilePosition() * 100 / inputFileSize);
+      final int progressPerc = (int) (getInputFilePosition() * 100 / source.totalSize);
       LogManager.instance().info(this, "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", parsed,
           ((parsed - lastParsed) / deltaInSecs), progressPerc, createdDocuments, (createdDocuments - lastDocuments) / deltaInSecs, createdVertices,
           (createdVertices - lastVertices) / deltaInSecs, createdEdges, (createdEdges - lastEdges) / deltaInSecs);
@@ -119,42 +116,9 @@ public abstract class AbstractImporter {
     printProgress();
   }
 
-  protected Reader openInputFile() throws IOException {
-    File file = new File(inputFile);
-    if (!file.exists())
-      throw new IllegalArgumentException("Cannot browse input file '" + inputFile + "' because it does not exist");
-
-    if (file.getName().endsWith(".zip")) {
-      final ZipFile zip = new ZipFile(file);
-      if (zip.size() != 1)
-        throw new IllegalArgumentException("Cannot browse zipped input file '" + inputFile + "' because contains more than one file inside");
-      final ZipEntry f = zip.entries().nextElement();
-      inputFileStream = zip.getInputStream(f);
-      inputFileSize = f.getSize();
-    } else if (file.getName().endsWith(".gz")) {
-      inputFileStream = new GZIPInputStream(new FileInputStream(file));
-      inputFileSize = -1;
-    } else {
-      inputFileStream = new FileInputStream(file);
-      inputFileSize = file.length();
-    }
-
-    inputFileStream = new BufferedInputStream(inputFileStream, DEFAULT_INPUT_BUFFER_SIZE);
-    inputFileReader = new InputStreamReader(inputFileStream);
-
-    return inputFileReader;
-  }
-
   protected void closeInputFile() {
-    try {
-      if (inputFileStream != null)
-        inputFileStream.close();
-
-      if (inputFileReader != null)
-        inputFileReader.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    if (source != null)
+      source.close();
   }
 
   protected void closeDatabase() {
@@ -210,33 +174,6 @@ public abstract class AbstractImporter {
       parseParameter(args[i], args[i + 1]);
   }
 
-  protected void parseParameter(final String name, final String value) {
-    if ("-file".equals(name)) {
-      inputFile = value;
-    } else if ("-database".equals(name)) {
-      databaseURL = value;
-    } else if ("-forceDatabaseCreate".equals(name)) {
-      forceDatabaseCreate = Boolean.parseBoolean(value);
-    } else if ("-delimiter".equals(name)) {
-      delimiter = value;
-    } else if ("-commitEvery".equals(name)) {
-      commitEvery = Integer.parseInt(value);
-    } else if ("-parallel".equals(name)) {
-      parallel = Integer.parseInt(value);
-    } else if ("-vertexType".equals(name)) {
-      vertexTypeName = value;
-    } else if ("-edgeType".equals(name)) {
-      edgeTypeName = value;
-    } else if ("-id".equals(name))
-      typeIdProperty = value;
-    else if ("-idUnique".equals(name))
-      typeIdPropertyIsUnique = Boolean.parseBoolean(value);
-    else if ("-idType".equals(name))
-      typeIdType = value;
-    else
-      throw new IllegalArgumentException("Invalid setting '" + name + "'");
-  }
-
   protected String getStringContent(final String value) {
     return getStringContent(value, STRING_CONTENT_SKIP);
   }
@@ -267,8 +204,10 @@ public abstract class AbstractImporter {
 
       beginTxIfNeeded();
       final DocumentType type = database.getSchema().createDocumentType(name, parallel);
-      type.createProperty(typeIdProperty, Type.getTypeByName(typeIdType));
-      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, typeIdPropertyIsUnique, name, new String[] { typeIdProperty });
+      if (typeIdProperty != null) {
+        type.createProperty(typeIdProperty, Type.getTypeByName(typeIdType));
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, typeIdPropertyIsUnique, name, new String[] { typeIdProperty });
+      }
       return type;
     }
     return database.getSchema().getType(name);
@@ -281,8 +220,10 @@ public abstract class AbstractImporter {
 
       beginTxIfNeeded();
       final VertexType type = database.getSchema().createVertexType(realName, parallel);
-      type.createProperty(typeIdProperty, Type.getTypeByName(typeIdType));
-      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, typeIdPropertyIsUnique, realName, new String[] { typeIdProperty });
+      if (typeIdProperty != null) {
+        type.createProperty(typeIdProperty, Type.getTypeByName(typeIdType));
+        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, typeIdPropertyIsUnique, realName, new String[] { typeIdProperty });
+      }
       return type;
     }
 
@@ -299,5 +240,30 @@ public abstract class AbstractImporter {
     }
 
     return (EdgeType) database.getSchema().getType(realName);
+  }
+
+  protected void parseParameter(final String name, final String value) {
+    if ("-url".equals(name))
+      url = value;
+    else if ("-database".equals(name))
+      databaseURL = value;
+    else if ("-forceDatabaseCreate".equals(name))
+      forceDatabaseCreate = Boolean.parseBoolean(value);
+    else if ("-commitEvery".equals(name))
+      commitEvery = Integer.parseInt(value);
+    else if ("-parallel".equals(name))
+      parallel = Integer.parseInt(value);
+    else if ("-vertexType".equals(name))
+      vertexTypeName = value;
+    else if ("-edgeType".equals(name))
+      edgeTypeName = value;
+    else if ("-id".equals(name))
+      typeIdProperty = value;
+    else if ("-idUnique".equals(name))
+      typeIdPropertyIsUnique = Boolean.parseBoolean(value);
+    else if ("-idType".equals(name))
+      typeIdType = value;
+    else
+      throw new IllegalArgumentException("Invalid setting '" + name + "'");
   }
 }
