@@ -4,32 +4,31 @@
 
 package com.arcadedb.importer.xml;
 
-import com.arcadedb.engine.Dictionary;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.importer.*;
-import com.arcadedb.schema.Property;
-import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import com.sun.xml.internal.stream.XMLInputFactoryImpl;
 
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class XMLImporter extends AbstractImporter {
-
-  private final String[] args;
-  private       Parser   parser;
-  private       int      objectNestLevel = 1;
-  private       boolean  trimText        = true;
-  private       long     limitBytes;
-  private       long     limitEntries;
+  private Parser  parser;
+  private int     objectNestLevel = 1;
+  private boolean trimText        = true;
+  private long    limitBytes;
+  private long    limitEntries;
 
   public XMLImporter(final String[] args) {
     super(args);
-    this.args = args;
+  }
+
+  public XMLImporter(final String url) {
+    super(null);
+    this.url = url;
   }
 
   public static void main(final String[] args) {
@@ -39,13 +38,15 @@ public class XMLImporter extends AbstractImporter {
   protected void load() {
     openDatabase();
     try {
-      final ContentAnalyzer analyzer = new ContentAnalyzer(args);
+      final SourceDiscovery analyzer = new SourceDiscovery(url);
 
-      final SourceInfo sourceInfo = analyzer.analyzeSchema();
-      if (sourceInfo == null)
+      final SourceSchema sourceSchema = analyzer.getSchema();
+      if (sourceSchema == null) {
+        LogManager.instance().warn(this, "XML importing aborted because unable to determine the schema");
         return;
+      }
 
-      updateSchema(sourceInfo.schema);
+      updateDatabaseSchema(sourceSchema.getSchema());
 
       source = analyzer.getSource();
       parser = new Parser(source, 0);
@@ -59,7 +60,7 @@ public class XMLImporter extends AbstractImporter {
 
       int nestLevel = 0;
 
-      String entitytName = null;
+      String entityName = null;
       String lastName = null;
       String lastContent = null;
 
@@ -76,7 +77,7 @@ public class XMLImporter extends AbstractImporter {
 
         case XMLStreamReader.START_ELEMENT:
           if (nestLevel == objectNestLevel) {
-            entitytName = "v_" + xmlReader.getName().toString();
+            entityName = "v_" + xmlReader.getName().toString();
 
             // GET ELEMENT'S ATTRIBUTES AS PROPERTIES
             for (int i = 0; i < xmlReader.getAttributeCount(); ++i) {
@@ -105,7 +106,7 @@ public class XMLImporter extends AbstractImporter {
           if (nestLevel == objectNestLevel) {
             ++parsed;
 
-            final MutableVertex record = database.newVertex(entitytName);
+            final MutableVertex record = database.newVertex(entityName);
             record.fromMap(object);
             database.asynch().createRecord(record);
             ++createdVertices;
@@ -146,45 +147,123 @@ public class XMLImporter extends AbstractImporter {
     }
   }
 
-  private void updateSchema(final AnalyzedSchema schema) {
-    if (schema == null)
-      return;
+  public SourceSchema analyze(final Parser parser, final int maxValueSampling) {
+    long parsedObjects = 0;
+    final AnalyzedSchema schema = new AnalyzedSchema(maxValueSampling);
 
-    final Dictionary dictionary = database.getSchema().getDictionary();
+    final String currentUnit = parser.isCompressed() ? "uncompressed " : "";
+    final String totalUnit = parser.isCompressed() ? "compressed " : "";
 
-    LogManager.instance().info(this, "Checking schema...");
+    try {
 
-    for (String entity : schema.getEntities()) {
-      final VertexType type = getOrCreateVertexType(entity);
+      parser.reset();
 
-      for (Map.Entry<String, AnalyzedProperty> p : schema.getProperties(entity)) {
-        final String propName = p.getKey();
-        final AnalyzedProperty propValue = p.getValue();
+      final XMLInputFactoryImpl xmlFactory = new XMLInputFactoryImpl();
+      final XMLStreamReader xmlReader = xmlFactory.createXMLStreamReader(parser.getInputStream());
 
-        if (type.existsProperty(propName)) {
-          // CHECK TYPE
-          final Property property = type.getProperty(propName);
-          if (property.getType() != propValue.getType()) {
-            LogManager.instance()
-                .warn(this, "- found schema property %s.%s of type %s, while analyzing the source type %s was found", entity, propName, property.getType(),
-                    propValue.getType());
+      int nestLevel = 0;
+
+      boolean parsedStructure = false;
+
+      String entityName = null;
+      String lastName = null;
+      String lastContent = null;
+
+      while (xmlReader.hasNext()) {
+        final int eventType = xmlReader.next();
+
+        switch (eventType) {
+        case XMLStreamReader.COMMENT:
+        case XMLStreamReader.SPACE:
+          // IGNORE IT
+          break;
+
+        case XMLStreamReader.START_ELEMENT:
+          LogManager.instance().debug(this, "<%s> attributes=%d (nestLevel=%d)", xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+
+          if (nestLevel == objectNestLevel) {
+            entityName = xmlReader.getName().toString();
+
+            // GET ELEMENT'S ATTRIBUTES AS PROPERTIES
+            for (int i = 0; i < xmlReader.getAttributeCount(); ++i) {
+              schema.setProperty(entityName, xmlReader.getAttributeName(i).toString(), xmlReader.getAttributeValue(i));
+              lastName = null;
+            }
+          } else if (nestLevel == objectNestLevel + 1) {
+            // GET ELEMENT'S SUB-NODES AS PROPERTIES
+            if (lastName != null)
+              schema.setProperty(entityName, lastName, lastContent);
+
+            lastName = xmlReader.getName().toString();
           }
-        } else {
-          // CREATE IT
-          LogManager.instance().info(this, "- creating property %s.%s of type %s", entity, propName, propValue.getType());
-          type.createProperty(propName, propValue.getType());
+
+          ++nestLevel;
+          break;
+
+        case XMLStreamReader.END_ELEMENT:
+          if (lastName != null)
+            schema.setProperty(entityName, lastName, lastContent);
+
+          LogManager.instance().debug(this, "</%s> (nestLevel=%d)", xmlReader.getName(), nestLevel);
+
+          --nestLevel;
+
+          if (nestLevel == objectNestLevel) {
+            ++parsedObjects;
+
+            if (!parsedStructure)
+              parsedStructure = true;
+
+            if (parsedObjects % 10000 == 0) {
+              LogManager.instance()
+                  .info(this, "- Parsed %d XML objects (%s%s/%s%s)", parsedObjects, currentUnit, FileUtils.getSizeAsString(parser.getPosition()), totalUnit,
+                      FileUtils.getSizeAsString(parser.getTotal()));
+
+              if (parsedObjects % 100000 == 0)
+                dumpSchema(schema, parsedObjects);
+            }
+          }
+          break;
+
+        case XMLStreamReader.ATTRIBUTE:
+          ++nestLevel;
+          LogManager.instance().debug(this, "- attribute %s attributes=%d (nestLevel=%d)", xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+          break;
+
+        case XMLStreamReader.CHARACTERS:
+        case XMLStreamReader.CDATA:
+          final String text = xmlReader.getText();
+          if (!text.isEmpty() && !text.equals("\n")) {
+            if (trimText)
+              lastContent = text.trim();
+            else
+              lastContent = text;
+          } else
+            lastContent = null;
+          break;
+
+        default:
+          // IGNORE IT
         }
 
-        for (String sample : propValue.getContents()) {
-          dictionary.getIdByName(sample, true);
-        }
+        if (limitEntries > 0 && parsedObjects > limitEntries)
+          break;
       }
+
+    } catch (XMLStreamException e) {
+      // IGNORE IT
+
+    } catch (Exception e) {
+      LogManager.instance().error(this, "Error on parsing XML", e);
+      return null;
     }
 
-    ((SchemaImpl) database.getSchema()).saveConfiguration();
+    // END OF PARSING. THIS DETERMINES THE TYPE
+    schema.endParsing();
 
-    database.commit();
-    database.begin();
+    dumpSchema(schema, parsedObjects);
+
+    return new SourceSchema(parser.getSource(), SourceDiscovery.FILE_TYPE.XML, schema);
   }
 
   @Override

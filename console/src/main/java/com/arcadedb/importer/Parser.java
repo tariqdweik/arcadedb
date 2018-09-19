@@ -8,6 +8,7 @@ import java.io.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Parser {
+  private final Source            source;
   private final InputStream       is;
   private final InputStreamReader reader;
   private final long              limit;
@@ -17,6 +18,7 @@ public class Parser {
   private       boolean           compressed;
 
   public Parser(final Source source, final long limit) throws IOException {
+    this.source = source;
     this.is = new BufferedInputStream(source.inputStream) {
       @Override
       public int read() throws IOException {
@@ -100,5 +102,9 @@ public class Parser {
 
   public boolean isCompressed() {
     return compressed;
+  }
+
+  public Source getSource() {
+    return source;
   }
 }

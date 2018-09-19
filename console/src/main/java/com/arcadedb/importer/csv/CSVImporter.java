@@ -6,7 +6,7 @@ package com.arcadedb.importer.csv;
 
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.importer.AbstractImporter;
-import com.arcadedb.importer.ContentAnalyzer;
+import com.arcadedb.importer.SourceDiscovery;
 import com.univocity.parsers.common.AbstractParser;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -43,7 +43,7 @@ public class CSVImporter extends AbstractImporter {
     openDatabase();
     try {
 
-      source = new ContentAnalyzer(url).getSource();
+      source = new SourceDiscovery(url).getSource();
 
       inputFileReader = new InputStreamReader(source.inputStream);
 

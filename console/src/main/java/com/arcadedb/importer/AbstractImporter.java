@@ -5,10 +5,10 @@
 package com.arcadedb.importer;
 
 import com.arcadedb.database.*;
+import com.arcadedb.engine.Dictionary;
 import com.arcadedb.schema.*;
 import com.arcadedb.utility.LogManager;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -47,26 +47,6 @@ public abstract class AbstractImporter {
   protected boolean     forceDatabaseCreate;
 
   protected enum RECORD_TYPE {DOCUMENT, VERTEX}
-
-  public static class SourceInfo {
-    public final ContentAnalyzer.FILE_TYPE fileType;
-    public final AnalyzedSchema            schema;
-    public final Map<String, String>       options = new HashMap<>();
-
-    public SourceInfo(final ContentAnalyzer.FILE_TYPE fileType, final AnalyzedSchema schema) {
-      this.fileType = fileType;
-      this.schema = schema;
-    }
-
-    public SourceInfo set(final String option, final String value) {
-      options.put(option, value);
-      return this;
-    }
-
-    public AnalyzedSchema getSchema() {
-      return schema;
-    }
-  }
 
   protected AbstractImporter(final String[] args) {
     parseParameters(args);
@@ -170,8 +150,9 @@ public abstract class AbstractImporter {
   }
 
   protected void parseParameters(final String[] args) {
-    for (int i = 0; i < args.length - 1; i += 2)
-      parseParameter(args[i], args[i + 1]);
+    if (args != null)
+      for (int i = 0; i < args.length - 1; i += 2)
+        parseParameter(args[i], args[i + 1]);
   }
 
   protected String getStringContent(final String value) {
@@ -240,6 +221,63 @@ public abstract class AbstractImporter {
     }
 
     return (EdgeType) database.getSchema().getType(realName);
+  }
+
+  protected void updateDatabaseSchema(final AnalyzedSchema schema) {
+    if (schema == null)
+      return;
+
+    final Dictionary dictionary = database.getSchema().getDictionary();
+
+    LogManager.instance().info(this, "Checking schema...");
+
+    for (String entity : schema.getEntities()) {
+      final VertexType type = getOrCreateVertexType(entity);
+
+      for (Map.Entry<String, AnalyzedProperty> p : schema.getProperties(entity)) {
+        final String propName = p.getKey();
+        final AnalyzedProperty propValue = p.getValue();
+
+        if (type.existsProperty(propName)) {
+          // CHECK TYPE
+          final Property property = type.getProperty(propName);
+          if (property.getType() != propValue.getType()) {
+            LogManager.instance()
+                .warn(this, "- found schema property %s.%s of type %s, while analyzing the source type %s was found", entity, propName, property.getType(),
+                    propValue.getType());
+          }
+        } else {
+          // CREATE IT
+          LogManager.instance().info(this, "- creating property %s.%s of type %s", entity, propName, propValue.getType());
+          type.createProperty(propName, propValue.getType());
+        }
+
+        for (String sample : propValue.getContents()) {
+          dictionary.getIdByName(sample, true);
+        }
+      }
+    }
+
+    ((SchemaImpl) database.getSchema()).saveConfiguration();
+
+    database.commit();
+    database.begin();
+  }
+
+  protected void dumpSchema(final AnalyzedSchema schema, final long parsedObjects) {
+    LogManager.instance().info(this, "---------------------------------------------------------------");
+    LogManager.instance().info(this, "Objects found %d", parsedObjects);
+    for (String entity : schema.getEntities()) {
+      LogManager.instance().info(this, "---------------------------------------------------------------");
+      LogManager.instance().info(this, "Entity '%s':", entity);
+
+      for (Map.Entry<String, AnalyzedProperty> p : schema.getProperties(entity)) {
+        LogManager.instance().info(this, "- %s (%s)", p.getKey(), p.getValue().getType());
+        if (p.getValue().isCollectingSamples())
+          LogManager.instance().info(this, "    contents (%d items): %s", p.getValue().getContents().size(), p.getValue().getContents());
+      }
+    }
+    LogManager.instance().info(this, "---------------------------------------------------------------");
   }
 
   protected void parseParameter(final String name, final String value) {
