@@ -2,61 +2,36 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.importer.xml;
+package com.arcadedb.importer;
 
+import com.arcadedb.database.Database;
 import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.importer.*;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import com.sun.xml.internal.stream.XMLInputFactoryImpl;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class XMLImporter extends AbstractImporter {
-  private Parser  parser;
-  private int     objectNestLevel = 1;
-  private boolean trimText        = true;
-  private long    limitBytes;
-  private long    limitEntries;
-
-  public XMLImporter(final String[] args) {
-    super(args);
-  }
-
-  public XMLImporter(final String url) {
-    super(null);
-    this.url = url;
-  }
-
-  public static void main(final String[] args) {
-    new XMLImporter(args).load();
-  }
-
-  protected void load() {
-    openDatabase();
+public class XMLImporter implements ContentImporter {
+  @Override
+  public void load(final Parser parser, final Database database, final ImporterContext context, final ImporterSettings settings) throws IOException {
     try {
-      final SourceDiscovery analyzer = new SourceDiscovery(url);
+      int objectNestLevel = 1;
+      long maxValueSampling = 300;
 
-      final SourceSchema sourceSchema = analyzer.getSchema();
-      if (sourceSchema == null) {
-        LogManager.instance().warn(this, "XML importing aborted because unable to determine the schema");
-        return;
+      for (Map.Entry<String, String> entry : settings.options.entrySet()) {
+        if ("objectNestLevel".equals(entry.getKey()))
+          objectNestLevel = Integer.parseInt(entry.getValue());
+        else if ("maxValueSampling".equals(entry.getKey()))
+          maxValueSampling = Integer.parseInt(entry.getValue());
       }
 
-      updateDatabaseSchema(sourceSchema.getSchema());
-
-      source = analyzer.getSource();
-      parser = new Parser(source, 0);
-
-      parser.reset();
-
       final XMLInputFactoryImpl xmlFactory = new XMLInputFactoryImpl();
-      final XMLStreamReader xmlReader = xmlFactory.createXMLStreamReader(source.inputStream);
-
-      startImporting();
+      final XMLStreamReader xmlReader = xmlFactory.createXMLStreamReader(parser.getInputStream());
 
       int nestLevel = 0;
 
@@ -104,12 +79,12 @@ public class XMLImporter extends AbstractImporter {
           --nestLevel;
 
           if (nestLevel == objectNestLevel) {
-            ++parsed;
+            ++context.parsed;
 
             final MutableVertex record = database.newVertex(entityName);
             record.fromMap(object);
             database.asynch().createRecord(record);
-            ++createdVertices;
+            ++context.createdVertices;
           }
           break;
 
@@ -122,7 +97,7 @@ public class XMLImporter extends AbstractImporter {
         case XMLStreamReader.CDATA:
           final String text = xmlReader.getText();
           if (!text.isEmpty() && !text.equals("\n")) {
-            if (trimText)
+            if (settings.trimText)
               lastContent = text.trim();
             else
               lastContent = text;
@@ -134,20 +109,32 @@ public class XMLImporter extends AbstractImporter {
           // IGNORE IT
         }
 
-        if (limitEntries > 0 && parsed > limitEntries)
+        if (settings.limitEntries > 0 && context.parsed > settings.limitEntries)
           break;
       }
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on parsing XML", e);
-    } finally {
-      database.asynch().waitCompletion();
-      stopImporting();
-      closeDatabase();
-      closeInputFile();
+      throw new ImportException("Error on importing from source '" + parser.getSource() + "'", e);
     }
   }
 
-  public SourceSchema analyze(final Parser parser, final int maxValueSampling) {
+  @Override
+  public SourceSchema analyze(final Parser parser, final ImporterSettings settings) {
+    int objectNestLevel = 1;
+    long limitBytes = 0;
+    long limitEntries = 0;
+    long maxValueSampling = 300;
+
+    for (Map.Entry<String, String> entry : settings.options.entrySet()) {
+      if ("limitBytes".equals(entry.getKey()))
+        limitBytes = FileUtils.getSizeAsNumber(entry.getValue());
+      else if ("limitEntries".equals(entry.getKey()))
+        limitEntries = Long.parseLong(entry.getValue());
+      else if ("objectNestLevel".equals(entry.getKey()))
+        objectNestLevel = Integer.parseInt(entry.getValue());
+      else if ("maxValueSampling".equals(entry.getKey()))
+        maxValueSampling = Integer.parseInt(entry.getValue());
+    }
+
     long parsedObjects = 0;
     final AnalyzedSchema schema = new AnalyzedSchema(maxValueSampling);
 
@@ -218,9 +205,6 @@ public class XMLImporter extends AbstractImporter {
               LogManager.instance()
                   .info(this, "- Parsed %d XML objects (%s%s/%s%s)", parsedObjects, currentUnit, FileUtils.getSizeAsString(parser.getPosition()), totalUnit,
                       FileUtils.getSizeAsString(parser.getTotal()));
-
-              if (parsedObjects % 100000 == 0)
-                dumpSchema(schema, parsedObjects);
             }
           }
           break;
@@ -234,7 +218,7 @@ public class XMLImporter extends AbstractImporter {
         case XMLStreamReader.CDATA:
           final String text = xmlReader.getText();
           if (!text.isEmpty() && !text.equals("\n")) {
-            if (trimText)
+            if (settings.trimText)
               lastContent = text.trim();
             else
               lastContent = text;
@@ -261,29 +245,11 @@ public class XMLImporter extends AbstractImporter {
     // END OF PARSING. THIS DETERMINES THE TYPE
     schema.endParsing();
 
-    dumpSchema(schema, parsedObjects);
-
-    return new SourceSchema(parser.getSource(), SourceDiscovery.FILE_TYPE.XML, schema);
+    return new SourceSchema(this, parser.getSource(), schema);
   }
 
   @Override
-  protected long getInputFilePosition() {
-    return parser.getPosition();
-  }
-
-  @Override
-  protected void parseParameter(final String name, final String value) {
-    if ("-recordType".equals(name))
-      recordType = RECORD_TYPE.valueOf(value.toUpperCase());
-    else if ("-analyzeTrimText".equals(name))
-      trimText = Boolean.parseBoolean(value);
-    else if ("-limitBytes".equals(name))
-      limitBytes = FileUtils.getSizeAsNumber(value);
-    else if ("-limitEntries".equals(name))
-      limitEntries = Long.parseLong(value);
-    else if ("-objectNestLevel".equals(name))
-      objectNestLevel = Integer.parseInt(value);
-    else
-      super.parseParameter(name, value);
+  public String getFormat() {
+    return "XML";
   }
 }

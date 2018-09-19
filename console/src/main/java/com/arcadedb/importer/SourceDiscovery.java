@@ -4,7 +4,6 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.importer.xml.XMLImporter;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 
@@ -14,10 +13,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
@@ -32,32 +28,26 @@ public class SourceDiscovery {
   private int     maxValueSampling = 300;
   private boolean trimText         = true;
 
-  public enum FILE_TYPE {JSON, XML, CSV, TSV}
-
-  public SourceDiscovery(final String[] args) {
-    parseParameters(args);
-  }
-
   public SourceDiscovery(final String url) {
     this.url = url;
   }
 
-  public static void main(final String[] args) throws IOException {
-    new SourceDiscovery(args).getSchema();
-  }
-
-  public SourceSchema getSchema() throws IOException {
+  public SourceSchema getSchema(final ImporterSettings settings) throws IOException {
     LogManager.instance().info(this, "Analyzing url: %s...", url);
 
     final Source source = getSource();
 
-    final SourceSchema sourceSchema = analyzeSourceContent(source, limitBytes);
+    final Parser parser = new Parser(source, limitBytes);
 
-    if (sourceSchema == null)
+    final ContentImporter contentImporter = analyzeSourceContent(parser, settings);
+
+    final SourceSchema sourceSchema = contentImporter.analyze(parser, settings);
+
+    if (contentImporter == null)
       LogManager.instance().info(this, "Unknown format");
     else {
       LogManager.instance()
-          .info(this, "Recognized format %s (limitBytes=%s limitEntries=%d)", sourceSchema.getFileType(), FileUtils.getSizeAsString(limitBytes), limitEntries);
+          .info(this, "Recognized format %s (limitBytes=%s limitEntries=%d)", contentImporter.getFormat(), FileUtils.getSizeAsString(limitBytes), limitEntries);
       if (!sourceSchema.getOptions().isEmpty()) {
         for (Map.Entry<String, String> o : sourceSchema.getOptions().entrySet())
           LogManager.instance().info(this, "- %s = %s", o.getKey(), o.getValue());
@@ -107,12 +97,10 @@ public class SourceDiscovery {
     });
   }
 
-  private SourceSchema analyzeSourceContent(final Source source, final long limit) throws IOException {
-    final Parser parser = new Parser(source, limit);
-
+  private ContentImporter analyzeSourceContent(final Parser parser, final ImporterSettings settings) throws IOException {
     parser.nextChar();
 
-    SourceSchema format = analyzeChar(source, parser);
+    ContentImporter format = analyzeChar(parser, settings);
     if (format != null)
       return format;
 
@@ -121,7 +109,7 @@ public class SourceDiscovery {
     // SKIP COMMENTS '#' IF ANY
     while (parser.isAvailable() && parser.getCurrentChar() == '#') {
       skipLine(parser);
-      format = analyzeChar(source, parser);
+      format = analyzeChar(parser, settings);
       if (format != null)
         return format;
     }
@@ -131,7 +119,7 @@ public class SourceDiscovery {
 
     while (parser.nextChar() == '/' && parser.nextChar() == '/') {
       skipLine(parser);
-      format = analyzeChar(source, parser);
+      format = analyzeChar(parser, settings);
       if (format != null)
         return format;
     }
@@ -166,12 +154,8 @@ public class SourceDiscovery {
 
         LogManager.instance().info(this, "Best separator candidate=%s (all candidates=%s)", bestSeparator.getKey(), list);
 
-        if (bestSeparator.getKey() == ',')
-          return new SourceSchema(source, FILE_TYPE.CSV, null);
-        if (bestSeparator.getKey() == '\t')
-          return new SourceSchema(source, FILE_TYPE.TSV, null);
-        else
-          return new SourceSchema(source, FILE_TYPE.TSV, null).set("separator", "" + bestSeparator.getKey());
+        settings.options.put("delimiter", "" + bestSeparator.getKey());
+        return new CSVImporter();
       }
     }
 
@@ -184,12 +168,53 @@ public class SourceDiscovery {
       ;
   }
 
-  private SourceSchema analyzeChar(final Source source, final Parser parser) {
+  private ContentImporter analyzeChar(final Parser parser, final ImporterSettings settings) throws IOException {
     final char currentChar = parser.getCurrentChar();
-    if (currentChar == '<')
-      return new XMLImporter(url).analyze(parser, maxValueSampling);
-    else if (currentChar == '{')
-      return new SourceSchema(source, FILE_TYPE.JSON, null);
+    if (currentChar == '<') {
+      // READ THE FIRST LINE
+      int beginTag = 1;
+      int endTag = 0;
+      boolean insideTag = true;
+      final List<Character> delimiters = new ArrayList<>();
+      while (parser.isAvailable() && parser.nextChar() != '\n') {
+        final char c = parser.getCurrentChar();
+
+        if (insideTag) {
+          if (c == '>') {
+            endTag++;
+            insideTag = false;
+          }
+        } else {
+          if (c == '<') {
+            beginTag++;
+            insideTag = true;
+          } else
+            delimiters.add(c);
+        }
+      }
+
+      if (!delimiters.isEmpty() && beginTag == endTag) {
+        boolean allDelimitersAreTheSame = true;
+        char delimiter = delimiters.get(0);
+        for (int i = 1; i < delimiters.size() - 1; ++i) {
+          if (delimiters.get(i) != delimiter) {
+            allDelimitersAreTheSame = false;
+            break;
+          }
+        }
+
+        if (allDelimitersAreTheSame) {
+          // RDF
+          settings.recordType = Importer.RECORD_TYPE.VERTEX;
+          settings.typeIdProperty = "id";
+          settings.options.put("delimiter", "" + delimiters.get(0));
+          return new RDFImporter();
+        }
+      }
+
+      return new XMLImporter();
+    } else if (currentChar == '{')
+      return new JSONImporter();
 
     return null;
   }
@@ -203,17 +228,17 @@ public class SourceDiscovery {
   }
 
   protected void parseParameter(final String name, final String value) {
-    if ("-url".equals(name))
+    if ("url".equals(name))
       url = value;
-    else if ("-analyzeLimitBytes".equals(name))
+    else if ("analyzeLimitBytes".equals(name))
       limitBytes = FileUtils.getSizeAsNumber(value);
-    else if ("-analyzeLimitEntries".equals(name))
+    else if ("analyzeLimitEntries".equals(name))
       limitEntries = Long.parseLong(value);
-    else if ("-analyzeMaxValueSampling".equals(name))
+    else if ("analyzeMaxValueSampling".equals(name))
       maxValueSampling = Integer.parseInt(value);
-    else if ("-analyzeTrimText".equals(name))
+    else if ("analyzeTrimText".equals(name))
       trimText = Boolean.parseBoolean(value);
-    else if ("-objectNestLevel".equals(name))
+    else if ("objectNestLevel".equals(name))
       objectNestLevel = Integer.parseInt(value);
     else
       throw new IllegalArgumentException("Invalid setting '" + name + "'");

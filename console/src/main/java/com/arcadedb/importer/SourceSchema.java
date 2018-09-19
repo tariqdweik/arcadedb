@@ -8,14 +8,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SourceSchema {
-  private final Source                    source;
-  private final SourceDiscovery.FILE_TYPE fileType;
-  private final AnalyzedSchema            schema;
-  private final Map<String, String>       options = new HashMap<>();
+  private final ContentImporter     contentImporter;
+  private final Source              source;
+  private final AnalyzedSchema      schema;
+  private final Map<String, String> options = new HashMap<>();
 
-  public SourceSchema(final Source source, final SourceDiscovery.FILE_TYPE fileType, final AnalyzedSchema schema) {
+  public SourceSchema(final ContentImporter contentImporter, final Source source, final AnalyzedSchema schema) {
+    this.contentImporter = contentImporter;
     this.source = source;
-    this.fileType = fileType;
     this.schema = schema;
   }
 
@@ -32,11 +32,11 @@ public class SourceSchema {
     return source;
   }
 
-  public SourceDiscovery.FILE_TYPE getFileType() {
-    return fileType;
-  }
-
   public Map<String, String> getOptions() {
     return options;
+  }
+
+  public ContentImporter getContentImporter() {
+    return contentImporter;
   }
 }
