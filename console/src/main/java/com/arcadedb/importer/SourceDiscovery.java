@@ -21,12 +21,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class SourceDiscovery {
-  private String  url;
-  private long    limitBytes       = 10000000;
-  private long    limitEntries     = 0;
-  private int     objectNestLevel  = 1;
-  private int     maxValueSampling = 300;
-  private boolean trimText         = true;
+  private static final String  RESOURCE_SEPARATOR = ":::";
+  private              String  url;
+  private              long    limitBytes         = 10000000;
+  private              long    limitEntries       = 0;
+  private              int     objectNestLevel    = 1;
+  private              int     maxValueSampling   = 300;
+  private              boolean trimText           = true;
 
   public SourceDiscovery(final String url) {
     this.url = url;
@@ -69,13 +70,17 @@ public class SourceDiscovery {
   }
 
   private Source getSourceFromURL(final String url) throws IOException {
-    final HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+    final int sep = url.lastIndexOf(RESOURCE_SEPARATOR);
+    final String urlPath = sep > -1 ? url.substring(0, sep) : url;
+    final String resource = sep > -1 ? url.substring(sep + RESOURCE_SEPARATOR.length()) : null;
+
+    final HttpURLConnection connection = (HttpURLConnection) new URL(urlPath).openConnection();
     connection.setRequestMethod("GET");
     connection.setDoOutput(true);
 
     connection.connect();
 
-    return getSourceFromContent(new BufferedInputStream(connection.getInputStream()), connection.getContentLengthLong(), new Callable<Void>() {
+    return getSourceFromContent(new BufferedInputStream(connection.getInputStream()), connection.getContentLengthLong(), resource, new Callable<Void>() {
       @Override
       public Void call() throws Exception {
         connection.disconnect();
@@ -85,10 +90,14 @@ public class SourceDiscovery {
   }
 
   private Source getSourceFromFile(final String path) throws IOException {
-    final File file = new File(path);
+    final int sep = path.lastIndexOf(RESOURCE_SEPARATOR);
+    final String filePath = sep > -1 ? path.substring(0, sep) : path;
+    final String resource = sep > -1 ? path.substring(sep + RESOURCE_SEPARATOR.length()) : null;
+
+    final File file = new File(filePath);
     final BufferedInputStream fis = new BufferedInputStream(new FileInputStream(file));
 
-    return getSourceFromContent(fis, file.length(), new Callable<Void>() {
+    return getSourceFromContent(fis, file.length(), resource, new Callable<Void>() {
       @Override
       public Void call() throws Exception {
         fis.close();
@@ -244,13 +253,26 @@ public class SourceDiscovery {
       throw new IllegalArgumentException("Invalid setting '" + name + "'");
   }
 
-  private Source getSourceFromContent(final BufferedInputStream in, final long totalSize, final Callable<Void> closeCallback) throws IOException {
+  private Source getSourceFromContent(final BufferedInputStream in, final long totalSize, final String resource, final Callable<Void> closeCallback)
+      throws IOException {
     in.mark(0);
 
     final ZipInputStream zip = new ZipInputStream(in);
-    final ZipEntry entry = zip.getNextEntry();
+
+    ZipEntry entry = zip.getNextEntry();
     if (entry != null) {
       // ZIPPED FILE
+      if (resource != null) {
+        // SEARCH FOR THE RIGHT ENTRY
+        while (entry != null) {
+          if (resource.equals(entry.getName()))
+            return new Source(url, zip, totalSize, true, closeCallback);
+          entry = zip.getNextEntry();
+        }
+
+        throw new IllegalArgumentException("Resource '" + resource + "' not found");
+      }
+
       return new Source(url, zip, totalSize, true, closeCallback);
     }
 

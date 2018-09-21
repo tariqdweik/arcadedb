@@ -140,8 +140,12 @@ public class Importer {
     database = factory.exists() ? factory.open() : factory.create();
 
     database.begin();
-    settings.vertexTypeName = getOrCreateVertexType(settings.vertexTypeName).getName();
-    settings.edgeTypeName = getOrCreateEdgeType(settings.edgeTypeName).getName();
+    if (settings.recordType == RECORD_TYPE.VERTEX) {
+      settings.vertexTypeName = getOrCreateVertexType(settings.vertexTypeName).getName();
+      settings.edgeTypeName = getOrCreateEdgeType(settings.edgeTypeName).getName();
+    } else
+      settings.documentTypeName = getOrCreateDocumentType(settings.documentTypeName).getName();
+
     database.commit();
 
     database.setReadYourWrites(false);

@@ -13,8 +13,9 @@ public class ImporterSettings {
   String               databaseURL            = "./databases/imported";
   String               url;
   Importer.RECORD_TYPE recordType             = Importer.RECORD_TYPE.DOCUMENT;
-  String               edgeTypeName           = "Relationship";
+  String               documentTypeName       = "Document";
   String               vertexTypeName         = "Node";
+  String               edgeTypeName           = "Relationship";
   String               typeIdProperty         = null;
   boolean              typeIdPropertyIsUnique = false;
   String               typeIdType             = "String";
@@ -38,6 +39,8 @@ public class ImporterSettings {
       commitEvery = Integer.parseInt(value);
     else if ("parallel".equals(name))
       parallel = Integer.parseInt(value);
+    else if ("documentType".equals(name))
+      documentTypeName = value;
     else if ("vertexType".equals(name))
       vertexTypeName = value;
     else if ("edgeType".equals(name))
