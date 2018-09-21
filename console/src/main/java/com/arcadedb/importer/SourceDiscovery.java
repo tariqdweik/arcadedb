@@ -267,6 +267,8 @@ public class SourceDiscovery {
         while (entry != null) {
           if (resource.equals(entry.getName()))
             return new Source(url, zip, totalSize, true, closeCallback);
+
+          zip.closeEntry();
           entry = zip.getNextEntry();
         }
 
