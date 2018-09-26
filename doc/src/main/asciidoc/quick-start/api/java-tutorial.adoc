@@ -17,93 +17,160 @@ To create a new database from scratch, use the `.create()` method in `DatabaseFa
 Syntax:
 
 ```java
-Database database = new DatabaseFactory("/databases/mydb").create();
-```
-
-The database instance `db` is ready to be used. If you want to open an existent database, use the `open()` method instead:
-
-```java
-Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).open();
-```
-
-Note that in this case we open the database in `MODE.READ_ONLY` to avoid any changes to the database. This is the suggested method if you're going to execute reads and queries only. By letting know to ArcadeDB that you're not changing the database, in a distributed high-available configuration a REPLICA server could be used instead of the busy MASTER.
-
-Either if you create or open a database, remember to always embrace any operation to the database in a `try/finally` block, where in the `finally` section you close the used database. Example:
-
-```java
-Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
-try {
+DatabaseFactory databaseFactory = new DatabaseFactory("/databases/mydb");
+try( Database db = databaseFactory.create(); ){
   // YOUR CODE
+}
+```
+
+The database instance `db` is ready to be used inside the try block. The `Database` instance extends Java7 `AutoClosable` interface, that means the database is closed automatically when the Database variable reaches out of the scope.
+
+If you want to open an existent database, use the `open()` method instead:
+
+```java
+DatabaseFactory databaseFactory = new DatabaseFactory("/databases/mydb");
+try( Database db = databaseFactory.open(); ){
+  // YOUR CODE
+}
+```
+
+By default a database is open in `READ_WRITE` mode, but you can open it in `READ_ONLY` in this way:
+
+```java
+databaseFactory.open(PaginatedFile.MODE.READ_ONLY);
+```
+
+Using `READ_ONLY` denys any changes to the database. This is the suggested method if you're going to execute reads and queries only. By letting know to ArcadeDB that you're not changing the database, a lot of optimizations will be used, like in a distributed high-available configuration a REPLICA server could be used instead of the busy MASTER.
+
+If you open a database in READ_ONLY mode, no lock file is created, so the same database could be opened in READ_ONLY mode by another process at the same time.
+
+Either if you create or open a database, in order to use it, you have to execute your code inside a transaction, in this way:
+
+
+```java
+try( Database db = databaseFactory.open(); ){
+  db.transaction(new Database.TransactionScope() {
+    @Override
+    public void execute(Database db) {
+      // YOUR CODE
+    }
+  });
+}
+```
+
+Or if you're using Java8+, you can simplify with a clojure:
+
+```java
+try( Database db = databaseFactory.open(); ){
+  db.transaction( () -> {
+    @Override
+    public void execute(Database db) {
+      // YOUR CODE
+    }
+  });
+}
+```
+
+
+Using the database's auto-close and the `transaction()` method allows to forget to manage begin/commit/rollback/close operations like you would do with a normal DBMS. Anyway, you an control the transaction with explicit methods if you prefer. This code block is equivalent to the previous one:
+
+```java
+Database db = databaseFactory.open();
+try {
+  db.begin();
+
+  // YOUR CHANGES HERE
+
+  db.commit();
+
+} catch (Exception e) {
+  db.rollback();
 } finally {
   db.close();
 }
 ```
 
-In this way you never forget a database instance open. We provided also a useful method to use the database without expressely open/close it, via the `.execute()` method. Example:
+Remember that every change in the database must be executed inside a transaction. ArcadeDB is a fully transactional DBMS, ACID compliant.
+The usage of transactions is like with a Relational DBMS: `.begin()` starts a new transaction and `.commit()` commit all the changes in the database. In case you want to rollback the transaction, you can call `.rollback()`.
 
-```java
-new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).execute(new DatabaseFactory.POperation() {
-  @Override
-  public void execute(Database db) {
-    // YOUR CODE
-  }
-});
-```
 
 Once you have your database instance (in this tutorial the variable `db` is used), you can create/update/delete records and execute queries.
 
-Every change in the database must be executed inside a transaction. ArcadeDB is a fully transactional DBMS, ACID compliant. The usage of transactions is like with Relational DBMS: `.begin()` starts a new transaction and `.commit()` commit all the changes in the database. In case you want to rollback the transaction, you can call `.rollback()`. In order to use transaction properly, use a `try/catch/finally` block in this way:
+Let's start now populating the database by creating our first document of type "Customer". In ArcadeDB it's mandatory to specify a type when you want tot create a document, a vertex or an edge.
+
+Let's create the new document type "Customer" without any properties:
 
 ```java
-Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
-try {
-  db.begin();
-  // YOUR CHANGES HERE
-  db.commit();
-} catch (Exception e) {
-  db.rollback();
-} finally {
-  db.close();
+try( Database db = databaseFactory.open(); ){
+  db.transaction( () -> {
+    @Override
+    public void execute(Database db) {
+      // CREATE THE CUSTOMER TYPE
+      db.getSchema().createDocumentType("Customer");
+    }
+  });
 }
 ```
 
-Example of creating a new type with a record in it:
+Once the "Customer" type has been created, we can create our first document:
 
 ```java
-Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_WRITE).open();
-try {
-  db.begin();
-  
-  // CREATE THE CUSTOMER TYPE
-  db.getSchema().createDocumentType("Customer");
+try( Database db = databaseFactory.open(); ){
+  db.transaction( () -> {
+    @Override
+    public void execute(Database db) {
 
-  // CREATE A CUSTOMER INSTANCE
-  ModifiableDocument customer = database.newDocument("Customer");
-  customer.set("name", "Jay");
-  customer.set("surname", "Miner");
+      // CREATE A CUSTOMER INSTANCE
+      ModifiableDocument customer = db.newDocument("Customer");
+      customer.set("name", "Jay");
+      customer.set("surname", "Miner");
 
-  db.commit();
-} catch (Exception e) {
-  db.rollback();
-} finally {
-  db.close();
+    }
+  });
 }
 ```
 
+Of course you can create types and records in the same transaction.
 
----
-
-Example of executing a prepared query:
+Once we have our database populated, how to extract data from it? Simple, with a query. Example of executing a prepared query:
 
 ```java
-Database db = new DatabaseFactory("/databases/mydb", PaginatedFile.MODE.READ_ONLY).open();
-try {
-  ResultSet resultset = database.query("sql", "select from V where age > ? and city = ?", 18, "Melbourne");
-  while (resultset.hasNext()) {
-    Result record = resultset.next();
-    System.out.println( "Found record, name = " + record.getProperty("name"));
-  }
-} finally {
-  db.close();
+try( Database db = databaseFactory.open(); ){
+  db.transaction( () -> {
+    @Override
+    public void execute(Database db) {
+
+      ResultSet result = db.query("SQL", "select from V where age > ? and city = ?", 18, "Melbourne");
+      while (result.hasNext()) {
+        Result record = result.next();
+        System.out.println( "Found record, name = " + record.getProperty("name"));
+      }
+    }
+  });
 }
 ```
+
+The first parameter of the query method is the language to be used. In this case the common "SQL" is used. The prepared statement is cached in the database, so further executions will be faster than the first one. With prepared statements, the parameters can be passed in positional way, like in this case, or with a `Map<String,Object>` where the keys are the parameter names and the values the parameter values. Example:
+
+```java
+try( Database db = databaseFactory.open(); ){
+  db.transaction( () -> {
+    @Override
+    public void execute(Database db) {
+
+      Map<String,Object> parameters = new HashMap<>();
+      parameters.put( "age", 18 );
+      parameters.put( "city", "Melbourne" );
+
+      ResultSet result = db.query("SQL", "select from V where age > :age and city = :city", parameters);
+      while (result.hasNext()) {
+        Result record = result.next();
+        System.out.println( "Found record, name = " + record.getProperty("name"));
+      }
+    }
+  });
+}
+```
+
+By using a map, parameters are referenced by name (`:age` and `:city` in this example).
+

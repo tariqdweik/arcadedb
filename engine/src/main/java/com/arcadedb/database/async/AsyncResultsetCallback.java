@@ -6,7 +6,7 @@ package com.arcadedb.database.async;
 
 import com.arcadedb.sql.executor.ResultSet;
 
-public interface SQLCallback {
+public interface AsyncResultsetCallback {
   void onOk(ResultSet resultset);
 
   void onError(Exception exception);

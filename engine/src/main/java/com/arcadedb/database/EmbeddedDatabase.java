@@ -946,29 +946,29 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
-  public ResultSet command(String language, String query, final Object... args) {
+  public ResultSet command(final String language, final String query, final Object... parameters) {
     checkDatabaseIsOpen();
 
     statsCommands.incrementAndGet();
 
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
     return original;
   }
 
   @Override
-  public ResultSet command(String language, String query, final Map<String, Object> args) {
+  public ResultSet command(final String language, final String query, final Map<String, Object> parameters) {
     checkDatabaseIsOpen();
 
     statsCommands.incrementAndGet();
 
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
     return original;
   }
 
   @Override
-  public ResultSet query(String language, String query, final Object... args) {
+  public ResultSet query(final String language, final String query, final Object... parameters) {
     checkDatabaseIsOpen();
 
     statsQueries.incrementAndGet();
@@ -976,12 +976,12 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
     return original;
   }
 
   @Override
-  public ResultSet query(String language, String query, Map<String, Object> args) {
+  public ResultSet query(final String language, final String query, final Map<String, Object> parameters) {
     checkDatabaseIsOpen();
 
     statsQueries.incrementAndGet();
@@ -989,7 +989,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
     if (!statement.isIdempotent())
       throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, args);
+    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
     return original;
   }
 

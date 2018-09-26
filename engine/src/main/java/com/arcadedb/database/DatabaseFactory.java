@@ -16,10 +16,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class DatabaseFactory implements AutoCloseable {
-  public interface DatabaseOperation {
-    void execute(Database database);
-  }
-
   private final ContextConfiguration                                       contextConfiguration = new ContextConfiguration();
   private final String                                                     databasePath;
   private       boolean                                                    autoTransaction      = false;

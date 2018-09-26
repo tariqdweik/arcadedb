@@ -6,7 +6,7 @@ package performance;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.async.SQLCallback;
+import com.arcadedb.database.async.AsyncResultsetCallback;
 import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,7 +36,7 @@ public class PerformanceSQLInsert {
       final long begin = System.currentTimeMillis();
 
       for (int i = 0; i < MAX_LOOPS; ++i) {
-        database.asynch().command("SQL", "insert into " + TYPE_NAME + " set name = 'Luca'", null, new SQLCallback() {
+        database.asynch().command("SQL", "insert into " + TYPE_NAME + " set name = 'Luca'", new AsyncResultsetCallback() {
           @Override
           public void onOk(ResultSet resultset) {
             oks.incrementAndGet();

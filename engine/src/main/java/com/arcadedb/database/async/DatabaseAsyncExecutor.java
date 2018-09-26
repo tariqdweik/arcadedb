@@ -156,27 +156,28 @@ public class DatabaseAsyncExecutor {
                   database.begin();
               }
 
-            } else if (message instanceof DatabaseAsyncSQL) {
+            } else if (message instanceof DatabaseAsyncCommand) {
 
-              final DatabaseAsyncSQL sql = (DatabaseAsyncSQL) message;
+              final DatabaseAsyncCommand command = (DatabaseAsyncCommand) message;
 
               try {
-                final ResultSet resultset = database.command("SQL", sql.command, sql.args);
+                final ResultSet resultset = command.idempotent ?
+                    database.query(command.language, command.command, command.parameters) :
+                    database.command(command.language, command.command, command.parameters);
 
                 count++;
 
-                if (count % commitEvery == 0) {
+                if (!command.idempotent && count % commitEvery == 0)
                   database.commit();
-                }
 
-                if (sql.userCallback != null)
-                  sql.userCallback.onOk(resultset);
+                if (command.userCallback != null)
+                  command.userCallback.onOk(resultset);
 
               } catch (Exception e) {
-                if (sql.userCallback != null)
-                  sql.userCallback.onError(e);
+                if (command.userCallback != null)
+                  command.userCallback.onError(e);
               } finally {
-                if (!database.isTransactionActive())
+                if (!command.idempotent && !database.isTransactionActive())
                   database.begin();
               }
 
@@ -397,10 +398,24 @@ public class DatabaseAsyncExecutor {
       }
   }
 
-  public void command(final String language, final String query, final Map<String, Object> args, final SQLCallback callback) {
-    // TODO: SUPPORT MULTIPLE LANGUAGES
+  public void query(final String language, final String query, final AsyncResultsetCallback callback, final Object... parameters) {
     final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
-    scheduleTask(slot, new DatabaseAsyncSQL(query, args, callback), true);
+    scheduleTask(slot, new DatabaseAsyncCommand(true, language, query, parameters, callback), true);
+  }
+
+  public void query(final String language, final String query, final AsyncResultsetCallback callback, final Map<String, Object> parameters) {
+    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+    scheduleTask(slot, new DatabaseAsyncCommand(true, language, query, parameters, callback), true);
+  }
+
+  public void command(final String language, final String query, final AsyncResultsetCallback callback, final Object... parameters) {
+    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+    scheduleTask(slot, new DatabaseAsyncCommand(false, language, query, parameters, callback), true);
+  }
+
+  public void command(final String language, final String query, final AsyncResultsetCallback callback, final Map<String, Object> parameters) {
+    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+    scheduleTask(slot, new DatabaseAsyncCommand(false, language, query, parameters, callback), true);
   }
 
   public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {

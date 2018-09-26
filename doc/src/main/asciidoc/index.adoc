@@ -9,3 +9,5 @@ ifndef::server-sourcedir[:sourcedir: ../../../../server/src/main/java]
 
 
 include::quick-start/part.adoc[]
+
+include::footer.adoc[]

@@ -1,19 +1,24 @@
 === Run ArcadeDB
 
-You can run ArcadeDB on the cloud or on-premise. You can embed it or use it remotely as with any other DBMS (client/server mode).
+You can run ArcadeDB in the following ways:
+- On the cloud, we support Amazon AWS, Microsoft Azure and Google Cloud Engine
+- On-premise, on your servers, any OS is good.
+- Embedded, if you develop with a language that runs on the (Java* Virtual Machine) JVM*
 
-To reach the best performance, use ArcadeDB in embedded mode to reach 2 Million insertions per second on common hardware. If you need to scale up with the queries, run a HA configuration with at least 3 servers.
+To reach the best performance, use ArcadeDB in embedded mode to reach 2 Million insertions per second on common hardware. If you need to scale up with the queries, run a HA configuration with at least 3 servers, with a load balancer in front. Run ArcadeDB with Kubernates to have an automatic setup of servers in HA with a load balancer upfront.
 
 ===== Embedded
 
-This mode is possible only if your application is running in a JVM (Java Virtual Machine). In this configuration ArcadeDB runs in the same JVM of your application. In this way you completely avoid the client/server communication cost (TCP/IP, marshalling/unmarshalling, etc.).
+This mode is possible only if your application is running in a JVM* (Java* Virtual Machine). In this configuration ArcadeDB runs in the same JVM of your application.
+In this way you completely avoid the client/server communication cost (TCP/IP, marshalling/unmarshalling, etc.). If the JVM that hosts your application crashes, then also ArcadeDB crashes, but don't worry, ArcadeDB uses a WAL to recover partially committed transactions. Your data is safe.
 
 ===== Client-Server
 
-This is the classic way people use a DBMS. The ArcadeDB server exposes HTTP/JSON API, so you can connect to ArcadeDB from any language without even using drivers. We have created the RemoteDatabase class in Java that hide the HTTP calls. Feel free to use it if your application is running on a JVM.
+This is the classic way people use a DBMS, like with Relational Databases. The ArcadeDB server exposes HTTP/JSON API, so you can connect to ArcadeDB from any language without even using drivers. We have created the `RemoteDatabase` class in Java that hide the HTTP calls.
+Feel free to use it if your application is running on a JVM.
 
 ===== High Availability (HA)
 
-You can spin up as many ArcadeDB servers you want to have a HA setup and scale up with queries that can be executed on any servers. ArcadeDB uses a Master/Slave architecture.
+You can spin up as many ArcadeDB servers you want to have a HA setup and scale up with queries that can be executed on any servers. ArcadeDB uses a RAFT based election system to guarantee the consistency of the database.
 
-* Java is a registered trademark of Oracle Corporation
+

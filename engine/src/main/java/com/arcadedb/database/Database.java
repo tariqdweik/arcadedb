@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 
 public interface Database extends AutoCloseable {
   interface TransactionScope {
-    void execute(Database database);
+    void execute(Database db);
   }
 
   ContextConfiguration getConfiguration();

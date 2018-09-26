@@ -1,0 +1,256 @@
+== Class `Database`
+
+It's the main class to operate with ArcadeDB. To obtain an instance of Database, use the class link:java-ref-database-factory.adoc[DatabaseFactory].
+
+=== Methods
+
+
+[cols=5]
+|===
+|<<_asynch,asynch()>>
+|<<_begin,begin()>>
+|<<_close,close()>>
+|<<_commit,commit()>>
+|<<_drop,drop()>>
+|<<_isopen,isOpen()>>
+|<<_query_language_command_positionalparameters,query() positional parameters>>
+|<<_query_language_command_parametermap,query() (parameter map)>>
+|<<_command_language_command_positionalparameters,command() positional parameters>>
+|<<_command_language_command_parametermap,command() (parameter map)>>
+|<<_lookupbyrid(rid_boolean_loadContent,lookupByRID()>>
+|<<_rollback,rollback()>>
+|
+|
+|
+|===
+
+==== close()
+
+Closes a database. This method should be called at the end of the application. By using Java7+ AutoClosed statement, the `close()` method is executed automatically at the end of the scope of the database variable.
+
+Syntax:
+
+```java
+void close()
+```
+
+Example:
+
+```java
+Database db = new DatabaseFactory("/temp/mydb").open();
+try{
+  // YOUR CODE HERE
+} finally {
+  db.close();
+}
+```
+
+The suggested method is using Java7+ AutoClosed statement, to avoid the explicit `close()` calling:
+
+```java
+try( Database db = new DatabaseFactory("/temp/mydb").open(); ) {
+  // YOUR CODE
+}
+```
+
+==== drop()
+
+Drops a database. The database will be completely removed from the filesystem.
+
+Syntax:
+
+```java
+void drop()
+```
+
+Example:
+
+```java
+new DatabaseFactory("/temp/mydb").open().drop();
+```
+
+==== isOpen()
+
+Returns `true` if the database is open, otherwise `false`.
+
+Syntax:
+
+```java
+boolean isOpen()
+```
+
+Example:
+
+```java
+if( db.isOpen() ){
+  // YOUR CODE HERE
+}
+```
+
+==== query( language, command, positionalParameters )
+
+Executes a query, with optional positional parameters. This method only executes idempotent statements, namely `SELECT` and `MATCH`, that cannot change the database. The execution of any other commands will throw a `IllegalArgumentException` exception.
+
+Syntax:
+
+```java
+Resultset query( String language, String command, Object... positionalParameters )
+```
+
+Where:
+
+- `language`             is the language to use. Only "SQL" language is supported for now, but in the future multiple languages could be used
+- `command`              is the command to execute. If the language supports prepared statements (SQL does), you can specify parameters by using `?` for positional replacement
+- `positionalParameters` optional variable array of parameters to execute with the query
+
+It returns a `Resultset` object where the result can be iterated.
+
+Examples:
+
+Simple query:
+
+```java
+ResultSet resultset = db.query("sql", "select from V");
+while (resultset.hasNext()) {
+  Result record = resultset.next();
+  System.out.println( "Found record, name = " + record.getProperty("name"));
+}
+```
+
+Query passing positional parameters:
+
+```java
+ResultSet resultset = db.query("sql", "select from V where age > ? and city = ?", 18, "Melbourne");
+while (resultset.hasNext()) {
+  Result record = resultset.next();
+  System.out.println( "Found record, name = " + record.getProperty("name"));
+}
+```
+
+==== query( language, command, parameterMap )
+
+Executes a query taking a map for parameters. This method only executes idempotent statements, namely `SELECT` and `MATCH`, that cannot change the database. The execution of any other commands will throw a `IllegalArgumentException` exception.
+
+Syntax:
+
+```java
+Resultset query( String language, String command, Map<String,Object> parameterMap )
+```
+
+Where:
+
+- `language`     is the language to use. Only "SQL" language is supported for now, but in the future multiple languages could be used
+- `command`      is the command to execute. If the language supports prepared statements (SQL does), you can specify parameters by name by using `:<arg-name>`
+- `parameterMap` this map is used to extract the named parameters
+
+It returns a `Resultset` object where the result can be iterated.
+
+Examples:
+
+```java
+Map<String,Object> parameters = new HashMap<>();
+parameters.put("age", 18);
+parameters.put("city", "Melbourne");
+
+ResultSet resultset = db.query("sql", "select from V where age > :age and city = :city", parameters);
+while (resultset.hasNext()) {
+  Result record = resultset.next();
+  System.out.println( "Found record, name = " + record.getProperty("name"));
+}
+```
+
+==== command( language, command, positionalParameters )
+
+Executes a command that could change the database. This is the equivalent to `query()`, but allows the command to modify the database. Only "SQL" language is supported, but in the future multiple languages could be used.
+
+Syntax:
+
+```java
+Resultset command( String language, String command, Object... positionalParameters )
+```
+
+Where:
+
+- `language`             is the language to use. Only "SQL" is supported
+- `command`              is the command to execute. If the language supports prepared statements (SQL does), you can specify parameters by using `?` for positional replacement or by name by using `:<arg-name>`
+- `positionalParameters` optional variable array of parameters to execute with the query
+
+
+It returns a `Resultset` object where the result can be iterated.
+
+Examples:
+
+Create a new record:
+
+```java
+db.command("sql", insert into V set name = 'Jay', surname = 'Miner'");
+```
+
+Create a new record by passing position parameters:
+
+```java
+db.command("sql", insert into V set name = ?, surname = ?", "Jay", "Miner");
+```
+
+
+==== command( language, command, parameterMap )
+
+Executes a command that could change the database. This is the equivalent to `query()`, but allows the command to modify the database. Only "SQL" language is supported, but in the future multiple languages could be used.
+
+Syntax:
+
+```java
+Resultset command( String language, String command, Map<String,Object> parameterMap )
+```
+
+Where:
+
+- `language`     is the language to use. Only "SQL" is supported
+- `command`      is the command to execute. If the language supports prepared statements (SQL does), you can specify parameters by using `?` for positional replacement or by name by using `:<arg-name>`
+- `parameterMap` this map is used to extract the named parameters
+
+
+It returns a `Resultset` object where the result can be iterated.
+
+Examples:
+
+Create a new record by passing a map of parameters:
+
+```java
+Map<String,Object> parameters = new HashMap<>();
+parameters.put("name", "Jay");
+parameters.put("surname", "Miner");
+
+db.command("sql", insert into V set name = :name, surname = :surname", parameters);
+```
+
+==== asynch()
+
+It returns an instance of link:java-ref-database-async.adoc[DatabaseAsyncExecutor] to execute asynchronous calls.
+
+Syntax:
+
+```java
+DatabaseAsyncExecutor asynch()
+```
+
+Example:
+
+Execute an asynchronous query:
+
+```java
+db.asynch().query("sql", "select from V", null, null, new SQLCallback() {
+  @Override
+  public void onOk(ResultSet resultset) {
+    while (resultset.hasNext()) {
+      Result record = resultset.next();
+      System.out.println( "Found record, name = " + record.getProperty("name"));
+    }
+  }
+
+  @Override
+    public void onError(Exception exception) {
+    System.err.println("Error on executing the query: " + exception );
+  }
+});
+```

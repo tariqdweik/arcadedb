@@ -6,7 +6,7 @@ package performance;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.async.SQLCallback;
+import com.arcadedb.database.async.AsyncResultsetCallback;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
@@ -43,7 +43,7 @@ public class PerformanceParsing {
 
       for (int i = 0; i < MAX_LOOPS; ++i) {
 
-        database.asynch().command("SQL", "select from " + TYPE_NAME + " limit 1", null, new SQLCallback() {
+        database.asynch().command("SQL", "select from " + TYPE_NAME + " limit 1", new AsyncResultsetCallback() {
           @Override
           public void onOk(final ResultSet rs) {
             ok.incrementAndGet();
