@@ -63,10 +63,7 @@ Or if you're using Java8+, you can simplify with a clojure:
 ```java
 try( Database db = databaseFactory.open(); ){
   db.transaction( () -> {
-    @Override
-    public void execute(Database db) {
-      // YOUR CODE
-    }
+    // YOUR CODE HERE
   });
 }
 ```
@@ -103,11 +100,8 @@ Let's create the new document type "Customer" without any properties:
 ```java
 try( Database db = databaseFactory.open(); ){
   db.transaction( () -> {
-    @Override
-    public void execute(Database db) {
-      // CREATE THE CUSTOMER TYPE
-      db.getSchema().createDocumentType("Customer");
-    }
+    // CREATE THE CUSTOMER TYPE
+    db.getSchema().createDocumentType("Customer");
   });
 }
 ```
@@ -117,15 +111,10 @@ Once the "Customer" type has been created, we can create our first document:
 ```java
 try( Database db = databaseFactory.open(); ){
   db.transaction( () -> {
-    @Override
-    public void execute(Database db) {
-
-      // CREATE A CUSTOMER INSTANCE
-      ModifiableDocument customer = db.newDocument("Customer");
-      customer.set("name", "Jay");
-      customer.set("surname", "Miner");
-
-    }
+    // CREATE A CUSTOMER INSTANCE
+    ModifiableDocument customer = db.newDocument("Customer");
+    customer.set("name", "Jay");
+    customer.set("surname", "Miner");
   });
 }
 ```
@@ -137,14 +126,10 @@ Once we have our database populated, how to extract data from it? Simple, with a
 ```java
 try( Database db = databaseFactory.open(); ){
   db.transaction( () -> {
-    @Override
-    public void execute(Database db) {
-
-      ResultSet result = db.query("SQL", "select from V where age > ? and city = ?", 18, "Melbourne");
-      while (result.hasNext()) {
-        Result record = result.next();
-        System.out.println( "Found record, name = " + record.getProperty("name"));
-      }
+    ResultSet result = db.query("SQL", "select from V where age > ? and city = ?", 18, "Melbourne");
+    while (result.hasNext()) {
+      Result record = result.next();
+      System.out.println( "Found record, name = " + record.getProperty("name"));
     }
   });
 }
@@ -155,18 +140,14 @@ The first parameter of the query method is the language to be used. In this case
 ```java
 try( Database db = databaseFactory.open(); ){
   db.transaction( () -> {
-    @Override
-    public void execute(Database db) {
+    Map<String,Object> parameters = new HashMap<>();
+    parameters.put( "age", 18 );
+    parameters.put( "city", "Melbourne" );
 
-      Map<String,Object> parameters = new HashMap<>();
-      parameters.put( "age", 18 );
-      parameters.put( "city", "Melbourne" );
-
-      ResultSet result = db.query("SQL", "select from V where age > :age and city = :city", parameters);
-      while (result.hasNext()) {
-        Result record = result.next();
-        System.out.println( "Found record, name = " + record.getProperty("name"));
-      }
+    ResultSet result = db.query("SQL", "select from V where age > :age and city = :city", parameters);
+    while (result.hasNext()) {
+      Result record = result.next();
+      System.out.println( "Found record, name = " + record.getProperty("name"));
     }
   });
 }
