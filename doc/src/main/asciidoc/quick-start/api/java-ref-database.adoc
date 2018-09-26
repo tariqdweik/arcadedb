@@ -1,6 +1,6 @@
-== Class `Database`
+== `Database` Interface
 
-It's the main class to operate with ArcadeDB. To obtain an instance of Database, use the class link:java-ref-database-factory.adoc[DatabaseFactory].
+It's the main class to operate with ArcadeDB. To obtain an instance of Database, use the class `<<java-ref-database-factory.adoc#,DatabaseFactory>>`.
 
 === Methods (Alphabetic order)
 
@@ -10,7 +10,9 @@ It's the main class to operate with ArcadeDB. To obtain an instance of Database,
 |<<_begin,begin()>>
 |<<_close,close()>>
 |<<_commit,commit()>>
+|<<_deleterecord_record,deleteRecord()>>
 |<<_drop,drop()>>
+|<<_getschema,getSchema()>>
 |<<_isopen,isOpen()>>
 |<<_iteratebucket_bucketname,iterateBucket()>>
 |<<_iteratetype_classname_polymorphic,iterateType()>>
@@ -18,7 +20,11 @@ It's the main class to operate with ArcadeDB. To obtain an instance of Database,
 |<<_query_language_command_parametermap,query() (parameter map)>>
 |<<_command_language_command_positionalparameters,command() positional parameters>>
 |<<_command_language_command_parametermap,command() (parameter map)>>
+|<<_lookupbykey_type_properties_keys,lookupByKey()>>
 |<<_lookupbyrid_rid_loadcontent,lookupByRID()>>
+|<<_newdocument_typename,newDocument()>>
+|<<_newedgebykeys_sourcevertextype_sourcevertexkey_sourcevertexvalue_destinationvertextype_destinationvertexkey_destinationvertexvalue_createvertexifnotexist_edgetype_bidirectional_properties,newEdgeByKeys()>>
+|<<_newvertex_typename,newVertex()>>
 |<<_rollback,rollback()>>
 |<<_scanbucket_bucketname_callback,scanBucket()>>
 |<<_scantype_classname_polymorphic_callback,scanType()>>
@@ -33,43 +39,61 @@ It's the main class to operate with ArcadeDB. To obtain an instance of Database,
 
 [%header,cols=5]
 |===
-|Transaction|Lifecycle|Commands|Records|Misc
+|Transaction|Lifecycle|Query|Records|Misc
+
 |<<_transaction_txblock,transaction() default>>
 |<<_close,close()>>
 |<<_query_language_command_positionalparameters,query() positional parameters>>
-|<<_iteratetype_classname_polymorphic,iterateType()>>
+|<<_newdocument_typename,newDocument()>>
 |<<_asynch,asynch()>>
 
 |<<_transaction_txblock_retries,transaction() with retries>>
 |<<_drop,drop()>>
 |<<_query_language_command_parametermap,query() (parameter map)>>
-|<<_iteratebucket_bucketname,iterateBucket()>>
-|
+|<<_newvertex_typename,newVertex()>>
+|<<_command_language_command_positionalparameters,command() positional parameters>>
 
 |<<_begin,begin()>>
 |<<_isopen,isOpen()>>
-|<<_command_language_command_positionalparameters,command() positional parameters>>
-|<<_lookupbyrid_rid_loadcontent,lookupByRID()>>
-|
+|<<_lookupbykey_type_properties_keys,lookupByKey()>>
+|<<_newedgebykeys_sourcevertextype_sourcevertexkey_sourcevertexvalue_destinationvertextype_destinationvertexkey_destinationvertexvalue_createvertexifnotexist_edgetype_bidirectional_properties,newEdgeByKeys()>>
+|<<_command_language_command_parametermap,command() (parameter map)>>
 
 |<<_commit,commit()>>
 |
-|<<_command_language_command_parametermap,command() (parameter map)>>
-|<<_scantype_classname_polymorphic_callback,scanType()>>
-|
+|<<_lookupbyrid_rid_loadcontent,lookupByRID()>>
+|<<_deleterecord_record,deleteRecord()>>
+|<<_getschema,getSchema()>>
 
 |<<_rollback,rollback()>>
+|
+|<<_iteratetype_classname_polymorphic,iterateType()>>
+|
+|
+
+|
+|
+|<<_iteratebucket_bucketname,iterateBucket()>>
+|
+|
+
 |
 |
 |<<_scanbucket_bucketname_callback,scanBucket()>>
 |
+|
 
+|
+|
+|<<_scantype_classname_polymorphic_callback,scanType()>>
+|
+|
 
 |===
 
 ==== asynch()
 
-It returns an instance of link:java-ref-database-async.adoc[DatabaseAsyncExecutor] to execute asynchronous calls.
+It returns an instance of `<<java-ref-database-async.adoc#,DatabaseAsyncExecutor>>` to execute asynchronous calls.
 
 Syntax:
 
@@ -167,6 +191,22 @@ Example:
 
 ```java
 new DatabaseFactory("/temp/mydb").open().drop();
+```
+
+==== getSchema()
+
+Returns the Schema instance for the database.
+
+Syntax:
+
+```java
+Schema getSchema()
+```
+
+Example:
+
+```java
+db.getSchema().createVertexType("Song");
 ```
 
 ==== isOpen()
@@ -323,32 +363,6 @@ parameters.put("surname", "Miner");
 db.command("sql", insert into V set name = :name, surname = :surname", parameters);
 ```
 
-==== lookupByRID( rid, loadContent )
-
-Look ups for a record (document, vertex or edge) by its RID (Record Identifier).
-
-Syntax:
-
-```java
-Record lookupByRID( RID rid, boolean loadContent )
-```
-
-Where:
-
-- `rid`         is the record identifier
-- `loadContent` forces the load of the content too. If the content is not loaded will be lazy loaded at the first access. Use `true` if you are going to access to the record content for sure, otherwise, use `false`
-
-It returns a `Record` implementation (document, vertex or edge).
-
-Examples:
-
-Load the vertex by RID and its content:
-
-```java
-Vertex v = (Vertex) db.lookupByRID(new RID(db, "#3:47"));
-```
-
-
 ==== commit()
 
 Commits the thread's active transaction. All the pending changes in the transaction are made persistent.
@@ -376,6 +390,22 @@ try{
 }
 ```
 
+==== deleteRecord( record )
+
+Deleted a record. The record will be persistently deleted only at commit time.
+
+Syntax:
+
+```java
+void deleteRecord( Record record )
+```
+
+Examples:
+
+
+```java
+db.deleteRecord( customer );
+```
 
 ==== iterateBucket( bucketName )
 
@@ -458,6 +488,154 @@ while( result.hasNext() ){
 }
 ```
 
+==== lookupByKey( type, properties, keys )
+
+Look ups for one or more records (document, vertex or edge) that match one or more indexed keys.
+
+Syntax:
+
+```java
+Cursor<RID> lookupByKey( String type, String[] properties, Object[] keys )
+```
+
+Where:
+
+- `type`       type name
+- `properties` array of property names to match
+- `keys`       array of keys
+
+It returns a `Cursor<RID>` (like an iterator).
+
+Examples:
+
+Look up for an author with name "Jay" and surname "Miner". This requires an index on the type "Author", properties "name" and "surname".
+
+```java
+Cursor<RID> jayMiner = database.lookupByKey("Author", new String[] { "name", "surname" }, new Object[] { "Jay", "Miner" });
+while( jayMiner.hasNext() ){
+  System.out.println( "Found Jay! " + jayMiner.next().getProperty("name"));
+}
+```
+
+==== lookupByRID( rid, loadContent )
+
+Look ups for a record (document, vertex or edge) by its RID (Record Identifier).
+
+Syntax:
+
+```java
+Record lookupByRID( RID rid, boolean loadContent )
+```
+
+Where:
+
+- `rid`         is the record identifier
+- `loadContent` forces the load of the content too. If the content is not loaded will be lazy loaded at the first access. Use `true` if you are going to access to the record content for sure, otherwise, use `false`
+
+It returns a `Record` implementation (document, vertex or edge).
+
+Examples:
+
+Load the vertex by RID and its content:
+
+```java
+Vertex v = (Vertex) db.lookupByRID(new RID(db, "#3:47"));
+```
+
+==== newDocument( typeName )
+
+Creates a new document of a certain type. The type must be of type "document" and must be created beforehand. In order to be saved, the method `MutableDocument.save()` must be called.
+
+Syntax:
+
+```java
+MutableDocument newDocument( typeName )
+```
+
+Where:
+
+- `typeName`    type name
+
+It returns a `MutableDocument` instance.
+
+Examples:
+
+Create a new document of type "Customer":
+
+```java
+MutableDocument doc = db.newDocument("Customer");
+doc.set("name", "Jay");
+doc.set("surname", "Miner");
+doc.save();
+```
+
+==== newVertex( typeName )
+
+Creates a new vertex of a certain type. The type must be of type "vertex" and must be created beforehand. In order to be saved, the method `MutableVertex.save()` must be called.
+
+Syntax:
+
+```java
+MutableVertex newVertex( typeName )
+```
+
+Where:
+
+- `typeName`    type name
+
+It returns a `MutableVertex` instance.
+
+Examples:
+
+Create a new document of type "Customer":
+
+```java
+MutableVertex v = db.newVertex("Customer");
+v.set("name", "Jay");
+v.set("surname", "Miner");
+v.save();
+```
+
+==== newEdgeByKeys( sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey, destinationVertexValue, createVertexIfNotExist, edgeType, bidirectional, properties )
+
+Creates a new edge between two vertices found by their keys.
+
+Syntax:
+
+```java
+Edge newEdgeByKeys( String sourceVertexType, String[] sourceVertexKey,
+                    Object[] sourceVertexValue,
+                    String destinationVertexType, String[] destinationVertexKey,
+                    Object[] destinationVertexValue,
+                    boolean createVertexIfNotExist, String edgeType, boolean bidirectional,
+                    Object... properties )
+```
+
+Where:
+
+- `sourceVertexType`       source vertex type name
+- `sourceVertexKey`        source vertex key properties
+- `sourceVertexValue`      source vertex key values
+- `destinationVertexType`  destination vertex type name
+- `destinationVertexKey`   destination vertex key properties
+- `destinationVertexValue` destination vertex key values
+- `createVertexIfNotExist` creates source and/or destination vertices if not exist
+- `edgeType`               edge type name
+- `bidirectional`          `true` if the edge must be bidirectional, otherwise `false`
+- `properties`             optional property array with pairs of name (as string) and value
+
+It returns a `MutableEdge` instance.
+
+Examples:
+
+Create a new document of type "Customer":
+
+```java
+Edge likes = db.newEdgeByKeys( "Account", new String[] {"id"}, new Object[] {322323},
+                               "Song", new String[] {"title"}, new Object[] {"Chasing Cars"},
+                               false, "Likes", true);
+likes.save();
+```
 
 ==== rollback()
 

@@ -1,6 +1,7 @@
 
-==== Java API Reference
+=== Java API Reference
 
-- link:java-ref-database-factory.adoc[DatabaseFactory]
-- link:java-ref-database.adoc[Database]
+- <<quick-start/api/java-ref-database-factory.adoc#,DatabaseFactory>>
+- <<quick-start/api/java-ref-database.adoc#,Database>>
+- <<quick-start/api/java-ref-database-async.adoc#,DatabaseAsyncExecutor>>
 

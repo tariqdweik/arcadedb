@@ -62,11 +62,11 @@ public interface Database extends AutoCloseable {
 
   Record lookupByRID(RID rid, boolean loadContent);
 
+  Cursor<RID> lookupByKey(String type, String[] properties, Object[] keys);
+
   Iterator<Record> iterateType(String typeName, boolean polymorphic);
 
   Iterator<Record> iterateBucket(String bucketName);
-
-  Cursor<RID> lookupByKey(String type, String[] properties, Object[] keys);
 
   void deleteRecord(Record record);
 
