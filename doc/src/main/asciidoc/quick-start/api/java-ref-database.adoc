@@ -1,8 +1,8 @@
-== `Database` Interface
+==== `Database` Interface
 
-It's the main class to operate with ArcadeDB. To obtain an instance of Database, use the class `<<java-ref-database-factory.adoc#,DatabaseFactory>>`.
+It's the main class to operate with ArcadeDB. To obtain an instance of Database, use the class `<<#_-code-databasefactory-code-class,DatabaseFactory>>`.
 
-=== Methods (Alphabetic order)
+===== Methods (Alphabetic order)
 
 [cols=5]
 |===
@@ -10,21 +10,21 @@ It's the main class to operate with ArcadeDB. To obtain an instance of Database,
 |<<_begin,begin()>>
 |<<_close,close()>>
 |<<_commit,commit()>>
-|<<_deleterecord_record,deleteRecord()>>
+|<<_deleterecord-record,deleteRecord()>>
 |<<_drop,drop()>>
 |<<_getschema,getSchema()>>
 |<<_isopen,isOpen()>>
-|<<_iteratebucket_bucketname,iterateBucket()>>
-|<<_iteratetype_classname_polymorphic,iterateType()>>
-|<<_query_language_command_positionalparameters,query() positional parameters>>
-|<<_query_language_command_parametermap,query() (parameter map)>>
-|<<_command_language_command_positionalparameters,command() positional parameters>>
-|<<_command_language_command_parametermap,command() (parameter map)>>
-|<<_lookupbykey_type_properties_keys,lookupByKey()>>
-|<<_lookupbyrid_rid_loadcontent,lookupByRID()>>
+|<<_iteratebucket-bucketname,iterateBucket()>>
+|<<_iteratetype-classname-polymorphic,iterateType()>>
+|<<_query-language_command-positionalparameters,query() positional parameters>>
+|<<_query-language_command-parametermap,query() (parameter map)>>
+|<<_command-language-command-positionalparameters,command() positional parameters>>
+|<<_command-language-command-parametermap,command() (parameter map)>>
+|<<_lookupbykey-type-properties-keys,lookupByKey()>>
+|<<_lookupbyrid-rid-loadcontent,lookupByRID()>>
 |<<_newdocument_typename,newDocument()>>
-|<<_newedgebykeys_sourcevertextype_sourcevertexkey_sourcevertexvalue_destinationvertextype_destinationvertexkey_destinationvertexvalue_createvertexifnotexist_edgetype_bidirectional_properties,newEdgeByKeys()>>
-|<<_newvertex_typename,newVertex()>>
+|<<_newedgebykeys-sourcevertextype-sourcevertexkey-sourcevertexvalue-destinationvertextype-destinationvertexkey-destinationvertexvalue-createvertexifnotexist-edgetype-bidirectional-properties,newEdgeByKeys()>>
+|<<_newvertex-typename,newVertex()>>
 |<<_rollback,rollback()>>
 |<<_scanbucket_bucketname_callback,scanBucket()>>
 |<<_scantype_classname_polymorphic_callback,scanType()>>
@@ -35,65 +35,65 @@ It's the main class to operate with ArcadeDB. To obtain an instance of Database,
 |===
 
 
-=== Methods (By category)
+===== Methods (By category)
 
 [%header,cols=5]
 |===
 |Transaction|Lifecycle|Query|Records|Misc
 
-|<<_transaction_txblock,transaction() default>>
+|<<_transaction-txblock,transaction() default>>
 |<<_close,close()>>
-|<<_query_language_command_positionalparameters,query() positional parameters>>
-|<<_newdocument_typename,newDocument()>>
+|<<_query-language-command-positionalparameters,query() positional parameters>>
+|<<_newdocument-typename,newDocument()>>
 |<<_asynch,asynch()>>
 
-|<<_transaction_txblock_retries,transaction() with retries>>
+|<<_transaction-txblock-retries,transaction() with retries>>
 |<<_drop,drop()>>
-|<<_query_language_command_parametermap,query() (parameter map)>>
-|<<_newvertex_typename,newVertex()>>
-|<<_command_language_command_positionalparameters,command() positional parameters>>
+|<<_query-language-command-parametermap,query() (parameter map)>>
+|<<_newvertex-typename,newVertex()>>
+|<<_command-language-command-positionalparameters,command() positional parameters>>
 
 |<<_begin,begin()>>
 |<<_isopen,isOpen()>>
-|<<_lookupbykey_type_properties_keys,lookupByKey()>>
-|<<_newedgebykeys_sourcevertextype_sourcevertexkey_sourcevertexvalue_destinationvertextype_destinationvertexkey_destinationvertexvalue_createvertexifnotexist_edgetype_bidirectional_properties,newEdgeByKeys()>>
-|<<_command_language_command_parametermap,command() (parameter map)>>
+|<<_lookupbykey-type-properties-keys,lookupByKey()>>
+|<<_newedgebykeys-sourcevertextype-sourcevertexkey-sourcevertexvalue-destinationvertextype-destinationvertexkey-destinationvertexvalue-createvertexifnotexist-edgetype-bidirectional-properties,newEdgeByKeys()>>
+|<<_command-language-command-parametermap,command() (parameter map)>>
 
 |<<_commit,commit()>>
 |
-|<<_lookupbyrid_rid_loadcontent,lookupByRID()>>
-|<<_deleterecord_record,deleteRecord()>>
+|<<_lookupbyrid-rid-loadcontent,lookupByRID()>>
+|<<_deleterecord-record,deleteRecord()>>
 |<<_getschema,getSchema()>>
 
 |<<_rollback,rollback()>>
 |
-|<<_iteratetype_classname_polymorphic,iterateType()>>
+|<<_iteratetype-classname-polymorphic,iterateType()>>
 |
 |
 
 |
 |
-|<<_iteratebucket_bucketname,iterateBucket()>>
+|<<_iteratebucket-bucketname,iterateBucket()>>
 |
 |
 
 |
 |
-|<<_scanbucket_bucketname_callback,scanBucket()>>
+|<<_scanbucket-bucketname-callback,scanBucket()>>
 |
 |
 
 |
 |
-|<<_scantype_classname_polymorphic_callback,scanType()>>
+|<<_scantype-classname-polymorphic-callback,scanType()>>
 |
 |
 
 |===
 
-==== asynch()
+====== asynch()
 
-It returns an instance of `<<java-ref-database-async.adoc#,DatabaseAsyncExecutor>>` to execute asynchronous calls.
+It returns an instance of `<<#_-code-databaseasyncexecutor-code-interface,DatabaseAsyncExecutor>>` to execute asynchronous calls.
 
 Syntax:
 
@@ -122,8 +122,7 @@ db.asynch().query("sql", "select from V", null, null, new SQLCallback() {
 });
 ```
 
-
-==== begin()
+====== begin()
 
 Starts a transaction on the current thread. Each thread can have only one active transaction.
 All the modification to the database become persistent only at pending changes in the transaction are made persistent only when the `<<_commit,commit()>>` method is called.
@@ -148,7 +147,7 @@ try{
 }
 ```
 
-==== close()
+====== close()
 
 Closes a database. This method should be called at the end of the application. By using Java7+ AutoClosed statement, the `close()` method is executed automatically at the end of the scope of the database variable.
 
@@ -177,7 +176,7 @@ try( Database db = new DatabaseFactory("/temp/mydb").open(); ) {
 }
 ```
 
-==== drop()
+====== drop()
 
 Drops a database. The database will be completely removed from the filesystem.
 
@@ -193,7 +192,7 @@ Example:
 new DatabaseFactory("/temp/mydb").open().drop();
 ```
 
-==== getSchema()
+====== getSchema()
 
 Returns the Schema instance for the database.
 
@@ -209,7 +208,7 @@ Example:
 db.getSchema().createVertexType("Song");
 ```
 
-==== isOpen()
+====== isOpen()
 
 Returns `true` if the database is open, otherwise `false`.
 
@@ -227,7 +226,7 @@ if( db.isOpen() ){
 }
 ```
 
-==== query( language, command, positionalParameters )
+====== query( language, command, positionalParameters )
 
 Executes a query, with optional positional parameters. This method only executes idempotent statements, namely `SELECT` and `MATCH`, that cannot change the database. The execution of any other commands will throw a `IllegalArgumentException` exception.
 
@@ -267,7 +266,7 @@ while (resultset.hasNext()) {
 }
 ```
 
-==== query( language, command, parameterMap )
+====== query( language, command, parameterMap )
 
 Executes a query taking a map for parameters. This method only executes idempotent statements, namely `SELECT` and `MATCH`, that cannot change the database. The execution of any other commands will throw a `IllegalArgumentException` exception.
 
@@ -299,7 +298,7 @@ while (resultset.hasNext()) {
 }
 ```
 
-==== command( language, command, positionalParameters )
+====== command( language, command, positionalParameters )
 
 Executes a command that could change the database. This is the equivalent to `query()`, but allows the command to modify the database. Only "SQL" language is supported, but in the future multiple languages could be used.
 
@@ -332,7 +331,7 @@ Create a new record by passing position parameters:
 db.command("sql", insert into V set name = ?, surname = ?", "Jay", "Miner");
 ```
 
-==== command( language, command, parameterMap )
+====== command( language, command, parameterMap )
 
 Executes a command that could change the database. This is the equivalent to `query()`, but allows the command to modify the database. Only "SQL" language is supported, but in the future multiple languages could be used.
 
@@ -363,7 +362,7 @@ parameters.put("surname", "Miner");
 db.command("sql", insert into V set name = :name, surname = :surname", parameters);
 ```
 
-==== commit()
+====== commit()
 
 Commits the thread's active transaction. All the pending changes in the transaction are made persistent.
 A transaction must be begun by calling the `<<_begin,begin()>>` method. Rolled back transactions cannot be committed.
@@ -390,7 +389,7 @@ try{
 }
 ```
 
-==== deleteRecord( record )
+====== deleteRecord( record )
 
 Deleted a record. The record will be persistently deleted only at commit time.
 
@@ -407,7 +406,7 @@ Examples:
 db.deleteRecord( customer );
 ```
 
-==== iterateBucket( bucketName )
+====== iterateBucket( bucketName )
 
 Iterates all the records contained in a bucket.
 To scan a type (with all its buckets), use the method <<_iteratetype_classname_polymorphic,iterateType()>> instead.
@@ -455,7 +454,7 @@ while( result.hasNext() ){
 }
 ```
 
-==== iterateType( className, polymorphic )
+====== iterateType( className, polymorphic )
 
 Iterates all the records contained in the buckets relative to a type. If `polymorphic` is `true`, then also the sub-types buckets are considered.
 To iterate one bucket only check out the <<_iteratebucket_bucketname,iterateBucket()>> method.
@@ -488,7 +487,7 @@ while( result.hasNext() ){
 }
 ```
 
-==== lookupByKey( type, properties, keys )
+====== lookupByKey( type, properties, keys )
 
 Look ups for one or more records (document, vertex or edge) that match one or more indexed keys.
 
@@ -517,7 +516,7 @@ while( jayMiner.hasNext() ){
 }
 ```
 
-==== lookupByRID( rid, loadContent )
+====== lookupByRID( rid, loadContent )
 
 Look ups for a record (document, vertex or edge) by its RID (Record Identifier).
 
@@ -542,7 +541,7 @@ Load the vertex by RID and its content:
 Vertex v = (Vertex) db.lookupByRID(new RID(db, "#3:47"));
 ```
 
-==== newDocument( typeName )
+====== newDocument( typeName )
 
 Creates a new document of a certain type. The type must be of type "document" and must be created beforehand. In order to be saved, the method `MutableDocument.save()` must be called.
 
@@ -569,7 +568,7 @@ doc.set("surname", "Miner");
 doc.save();
 ```
 
-==== newVertex( typeName )
+====== newVertex( typeName )
 
 Creates a new vertex of a certain type. The type must be of type "vertex" and must be created beforehand. In order to be saved, the method `MutableVertex.save()` must be called.
 
@@ -596,7 +595,7 @@ v.set("surname", "Miner");
 v.save();
 ```
 
-==== newEdgeByKeys( sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey, destinationVertexValue, createVertexIfNotExist, edgeType, bidirectional, properties )
+====== newEdgeByKeys( sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey, destinationVertexValue, createVertexIfNotExist, edgeType, bidirectional, properties )
 
 Creates a new edge between two vertices found by their keys.
 
@@ -637,7 +636,7 @@ Edge likes = db.newEdgeByKeys( "Account", new String[] {"id"}, new Object[] {322
 likes.save();
 ```
 
-==== rollback()
+====== rollback()
 
 Aborts the thread's active transaction by rolling back all the pending changes. Usually the transaction rollback is executed in case of errors.
 If an exception happens during the call `<<_commit,commit()>>`, the transaction is roll backed automatically.
@@ -661,7 +660,7 @@ try{
 }
 ```
 
-==== scanBucket( bucketName, callback )
+====== scanBucket( bucketName, callback )
 
 Scans all the records contained in a buckets. For each record found, the callback is called passing the current record.
 To scan a type (with all its buckets), use the method <<_scantype_classname_polymorphic_callback,scanType()>> instead.
@@ -687,7 +686,7 @@ db.scanBucket("Customer", (record) -> {
 });
 ```
 
-==== scanType( className, polymorphic, callback )
+====== scanType( className, polymorphic, callback )
 
 Scans all the records contained in all the buckets relative to a type. If `polymorphic` is `true`, then also the sub-types buckets are considered. For each record found, the callback is called passing the current record.
 To scan one bucket only check out the <<_scanbucket_bucketname_callback,scanBucket()>> method.
@@ -720,11 +719,11 @@ db.scanType("V", true, (record) -> {
 });
 ```
 
-==== transaction( txBlock )
+====== transaction( txBlock )
 
 This methods wraps a call to the method <<_transaction_txblock_retries,transaction with retries>> by using the default retries specified in the database setting `arcadedb.mvccRetries`.
 
-==== transaction( txBlock, retries )
+====== transaction( txBlock, retries )
 
 Executes a transaction block as a callback or a clojure. Before calling the callback in `TransactionScope`, the transaction is begun and after the end of the callback, the transaction is committed. In case of any exceptions, the transaction is rolled back.
 In case a `NeedRetryException` exceptions is thrown, the transaction is repeated up to `retries` times

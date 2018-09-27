@@ -1,12 +1,12 @@
 = ArcadeDB Manual
-Roberto Franchini <r.franchini@arcadeanalytics.com>
-2014-09-09
+:toc:
+:toclevels: 3
+:sectnums:
+:sectnumlevels: 3
 :revnumber: {project-version}
 :example-caption!:
 ifndef::imagesdir[:imagesdir: images]
 ifndef::server-sourcedir[:sourcedir: ../../../../server/src/main/java]
-:sectnums:
-
 
 include::quick-start/part.adoc[]
 

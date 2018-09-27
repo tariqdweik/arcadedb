@@ -1,4 +1,4 @@
-=== 10 minutes Tutorial
+==== 10 Minutes Tutorial
 
 In order to work with a database, the reference to the database to use must be taken. You can create a new database from scratch or open an existent one. Most of the API works in both synchronous and asynchronous modes. The asynchronous API are available from the `<db>.asynch()` object.
 
@@ -10,7 +10,7 @@ DatabaseFactory arcade = new DatabaseFactory("/databases/mydb");
 
 A `<<java-ref-database-factory.adoc#,DatabaseFactory>>` object doesn't keep any state and its only goal is creating a `<<java-ref-database.adoc#,Database>>` instance.
 
-==== Create a new database
+===== Create a new database
 
 To create a new database from scratch, use the `.create()` method in `<<java-ref-database-factory.adoc#,DatabaseFactory>>` class. If the database already exists, an exception is thrown.
 
@@ -25,7 +25,7 @@ try( Database db = databaseFactory.create(); ){
 
 The database instance `db` is ready to be used inside the try block. The `<<java-ref-database.adoc#,Database>>` instance extends Java7 `AutoClosable` interface, that means the database is closed automatically when the Database variable reaches out of the scope.
 
-==== Open an existent database
+===== Open an existent database
 
 If you want to open an existent database, use the `open()` method instead:
 
@@ -46,7 +46,7 @@ Using `READ_ONLY` denys any changes to the database. This is the suggested metho
 
 If you open a database in READ_ONLY mode, no lock file is created, so the same database could be opened in READ_ONLY mode by another process at the same time.
 
-==== Write your first transaction
+===== Write your first transaction
 
 Either if you create or open a database, in order to use it, you have to execute your code inside a transaction, in this way:
 
@@ -95,7 +95,7 @@ The usage of transactions is like with a Relational DBMS: `.begin()` starts a ne
 
 Once you have your database instance (in this tutorial the variable `db` is used), you can create/update/delete records and execute queries.
 
-==== Write your first document object
+===== Write your first document object
 
 Let's start now populating the database by creating our first document of type "Customer". In ArcadeDB it's mandatory to specify a type when you want tot create a document, a vertex or an edge.
 
@@ -125,7 +125,7 @@ try( Database db = databaseFactory.open(); ){
 
 Of course you can create types and records in the same transaction.
 
-==== Execute a Query
+===== Execute a Query
 
 Once we have our database populated, how to extract data from it? Simple, with a query. Example of executing a prepared query:
 
@@ -161,9 +161,9 @@ try( Database db = databaseFactory.open(); ){
 
 By using a map, parameters are referenced by name (`:age` and `:city` in this example).
 
-==== Create a Graph
+===== Create a Graph
 Coming soon
 
-==== Traverse the Graph
+===== Traverse the Graph
 Coming soon
 

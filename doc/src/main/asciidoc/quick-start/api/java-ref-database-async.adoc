@@ -1,10 +1,10 @@
-== `DatabaseAsyncExecutor` Interface
+==== `DatabaseAsyncExecutor` Interface
 
-This is the class to manage asynchronous operations. To obtain an instance of DatabaseAsyncExecutor, use the method `.async()` in `<<java-ref-database.adoc#,Database>>`.
+This is the class to manage asynchronous operations. To obtain an instance of DatabaseAsyncExecutor, use the method `.async()` in `<<#_-code-database-code-interface,Database>>`.
 
 The Asynchronous API schedule the operation to be executed as soon as possible, but by a different thread. ArcadeDB optimizes the usage of asynchronous threads to be equals to the number of cores found in the machine (but it is still configurable). Use Asynchronous API if the response of the operation can be managed in asynchronous way and if you want to avoid developing Multi-Threads application by yourself.
 
-=== Methods
+===== Methods
 
 [cols=5]
 |===
@@ -15,7 +15,7 @@ The Asynchronous API schedule the operation to be executed as soon as possible, 
 |
 |===
 
-==== query( language, command, callback, positionalParameters )
+====== query( language, command, callback, positionalParameters )
 
 Executes a query in asynchronous way, with optional positional parameters. This method returns immediately. This method only executes idempotent statements, namely `SELECT` and `MATCH`, that cannot change the database. The execution of any other commands will throw a `IllegalArgumentException` exception.
 
@@ -65,7 +65,7 @@ while (resultset.hasNext()) {
 }
 ```
 
-==== query( language, command, callback, parameterMap )
+====== query( language, command, callback, parameterMap )
 
 Executes a query taking a map for parameters. This method returns immediately. This method only executes idempotent statements, namely `SELECT` and `MATCH`, that cannot change the database. The execution of any other commands will throw a `IllegalArgumentException` exception.
 
@@ -98,7 +98,7 @@ while (resultset.hasNext()) {
 }
 ```
 
-==== command( language, command, callback, positionalParameters )
+====== command( language, command, callback, positionalParameters )
 
 Executes a command that could change the database. This method returns immediately. This is the equivalent to `query()`, but allows the command to modify the database. Only "SQL" language is supported, but in the future multiple languages could be used.
 
@@ -154,7 +154,7 @@ db.asynch().command("sql", "insert into V set name = ? surname = ?", new SQLCall
 ```
 
 
-==== command( language, command, callback, parameterMap )
+====== command( language, command, callback, parameterMap )
 
 Executes a command that could change the database. This method returns immediately. This is the equivalent to `query()`, but allows the command to modify the database. Only "SQL" language is supported, but in the future multiple languages could be used.
 
