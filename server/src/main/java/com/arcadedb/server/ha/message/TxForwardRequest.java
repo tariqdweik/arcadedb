@@ -56,15 +56,16 @@ public class TxForwardRequest extends TxRequestAbstract {
     if (!db.isOpen())
       throw new ReplicationException("Database '" + databaseName + "' is closed");
 
-    final WALFile.WALTransaction walTx = readTxFromBuffer();
-    final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> keysTx = readIndexKeysFromBuffer(db);
-
-    // FORWARDED FROM A REPLICA
-    db.begin();
-    final TransactionContext tx = db.getTransaction();
-
     try {
+      final WALFile.WALTransaction walTx = readTxFromBuffer();
+      final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> keysTx = readIndexKeysFromBuffer(db);
+
+      // FORWARDED FROM A REPLICA
+      db.begin();
+      final TransactionContext tx = db.getTransaction();
+
       tx.commitFromReplica(walTx, keysTx);
+
     } catch (NeedRetryException | TransactionException e) {
       return new ErrorResponse(e);
     } catch (Exception e) {
@@ -139,25 +140,27 @@ public class TxForwardRequest extends TxRequestAbstract {
       final Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> indexMap = new HashMap<>(totalIndexEntries);
       indexesMap.put(indexName, indexMap);
 
-      // READ THE KEY
-      final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
-      final Object[] keyValues = new Object[keyEntryCount];
-      for (int k = 0; k < keyEntryCount; ++k) {
-        final byte keyType = uniqueKeysBuffer.getByte();
-        keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
-      }
+      for (int entryIndex = 0; entryIndex < totalIndexEntries; ++entryIndex) {
+        // READ THE KEY
+        final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
+        final Object[] keyValues = new Object[keyEntryCount];
+        for (int k = 0; k < keyEntryCount; ++k) {
+          final byte keyType = uniqueKeysBuffer.getByte();
+          keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
+        }
 
-      final int totalKeyEntries = (int) uniqueKeysBuffer.getNumber();
+        final int totalKeyEntries = (int) uniqueKeysBuffer.getNumber();
 
-      final Set<TransactionIndexContext.IndexKey> values = new HashSet<>(totalKeyEntries);
-      indexMap.put(new TransactionIndexContext.ComparableKey(keyValues), values);
+        final Set<TransactionIndexContext.IndexKey> values = new HashSet<>(totalKeyEntries);
+        indexMap.put(new TransactionIndexContext.ComparableKey(keyValues), values);
 
-      for (int i = 0; i < totalKeyEntries; ++i) {
-        final boolean addOperation = uniqueKeysBuffer.getByte() == 1;
+        for (int i = 0; i < totalKeyEntries; ++i) {
+          final boolean addOperation = uniqueKeysBuffer.getByte() == 1;
 
-        final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
+          final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
 
-        values.add(new TransactionIndexContext.IndexKey(addOperation, keyValues, rid));
+          values.add(new TransactionIndexContext.IndexKey(addOperation, keyValues, rid));
+        }
       }
     }
 
