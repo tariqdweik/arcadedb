@@ -8,10 +8,10 @@ The Asynchronous API schedule the operation to be executed as soon as possible, 
 
 [cols=5]
 |===
-|<<_query_language_command_callback_positionalparameters,query() positional parameters>>
-|<<_query_language_command_callback_parametermap,query() parameter map>>
-|<<_command_language_command_callback_positionalparameters,command() positional parameters>>
-|<<_command_language_command_callback_parametermap,command() parameter map>>
+|<<_query-language-command-callback-positionalparameters,query() positional parameters>>
+|<<_query-language-command-callback-parametermap,query() parameter map>>
+|<<_command-language-command-callback-positionalparameters,command() positional parameters>>
+|<<_command-language-command-callback-parametermap,command() parameter map>>
 |
 |===
 
@@ -39,7 +39,7 @@ Examples:
 Simple query:
 
 ```java
-db.asynch().query("sql",  "select from V", new SQLCallback() {
+db.asynch().query("sql", "select from V", new SQLCallback() {
   @Override
   public void onOk(ResultSet resultset) {
     while (resultset.hasNext()) {
@@ -91,7 +91,7 @@ Map<String,Object> parameters = new HashMap<>();
 parameters.put("age", 18);
 parameters.put("city", "Melbourne");
 
-ResultSet resultset = db.query("sql", select from V where age > :age and city = :city", parameters);
+ResultSet resultset = db.query("sql", "select from V where age > :age and city = :city", parameters);
 while (resultset.hasNext()) {
   Result record = resultset.next();
   System.out.println( "Found record, name = " + record.getProperty("name"));
@@ -124,15 +124,15 @@ Create a new record:
 
 ```java
 db.asynch().command("sql", "insert into V set name = 'Jay', surname = 'Miner'", new SQLCallback() {
-	@Override
-	public void onOk(ResultSet resultset) {
-		System.out.println("Created new record: " + resultset.next() );
-	}
+  @Override
+  public void onOk(ResultSet resultset) {
+    System.out.println("Created new record: " + resultset.next() );
+  }
 
-	@Override
-	public void onError(Exception exception) {
-		System.err.println("Error on creating new record: " + exception );
-	}
+  @Override
+  public void onError(Exception exception) {
+    System.err.println("Error on creating new record: " + exception );
+  }
 });
 ```
 
@@ -141,15 +141,15 @@ Create a new record by passing position parameters:
 
 ```java
 db.asynch().command("sql", "insert into V set name = ? surname = ?", new SQLCallback() {
-	@Override
-	public void onOk(ResultSet resultset) {
-		System.out.println("Created new record: " + resultset.next() );
-	}
+  @Override
+  public void onOk(ResultSet resultset) {
+    System.out.println("Created new record: " + resultset.next() );
+  }
 
-	@Override
-	public void onError(Exception exception) {
-		System.err.println("Error on creating new record: " + exception );
-	}
+  @Override
+  public void onError(Exception exception) {
+    System.err.println("Error on creating new record: " + exception );
+  }
 }, "Jay", "Miner");
 ```
 
@@ -183,14 +183,14 @@ parameters.put("name", "Jay");
 parameters.put("surname", "Miner");
 
 db.asynch().command("sql", "insert into V set name = :name, surname = :surname", new SQLCallback() {
-	@Override
-	public void onOk(ResultSet resultset) {
-		System.out.println("Created new record: " + resultset.next() );
-	}
+  @Override
+  public void onOk(ResultSet resultset) {
+    System.out.println("Created new record: " + resultset.next() );
+  }
 
-	@Override
-	public void onError(Exception exception) {
-		System.err.println("Error on creating new record: " + exception );
-	}
+  @Override
+  public void onError(Exception exception) {
+    System.err.println("Error on creating new record: " + exception );
+  }
 }, parameters);
 ```
