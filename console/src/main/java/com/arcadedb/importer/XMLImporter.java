@@ -8,8 +8,8 @@ import com.arcadedb.database.Database;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
-import com.sun.xml.internal.stream.XMLInputFactoryImpl;
 
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
@@ -30,7 +30,7 @@ public class XMLImporter implements ContentImporter {
           maxValueSampling = Integer.parseInt(entry.getValue());
       }
 
-      final XMLInputFactoryImpl xmlFactory = new XMLInputFactoryImpl();
+      final XMLInputFactory xmlFactory = XMLInputFactory.newInstance();
       final XMLStreamReader xmlReader = xmlFactory.createXMLStreamReader(parser.getInputStream());
 
       int nestLevel = 0;
@@ -145,7 +145,7 @@ public class XMLImporter implements ContentImporter {
 
       parser.reset();
 
-      final XMLInputFactoryImpl xmlFactory = new XMLInputFactoryImpl();
+      final XMLInputFactory xmlFactory = XMLInputFactory.newInstance();
       final XMLStreamReader xmlReader = xmlFactory.createXMLStreamReader(parser.getInputStream());
 
       int nestLevel = 0;
