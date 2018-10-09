@@ -20,7 +20,7 @@ public class ConsoleTest {
   @BeforeEach
   public void populate() throws IOException {
     console = new Console(false);
-    Assertions.assertTrue(console.parse("create database " + DB_PATH));
+    Assertions.assertTrue(console.parse("create database " + DB_PATH, false));
   }
 
   @AfterEach
@@ -31,13 +31,13 @@ public class ConsoleTest {
 
   @Test
   public void testConnect() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + DB_PATH + ";info types"));
+    Assertions.assertTrue(console.parse("connect " + DB_PATH + ";info types", false));
   }
 
   @Test
   public void testCreateClass() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + DB_PATH));
-    Assertions.assertTrue(console.parse("create type Person"));
+    Assertions.assertTrue(console.parse("connect " + DB_PATH, false));
+    Assertions.assertTrue(console.parse("create type Person", false));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -46,15 +46,15 @@ public class ConsoleTest {
         buffer.append(output);
       }
     });
-    Assertions.assertTrue(console.parse("info types"));
+    Assertions.assertTrue(console.parse("info types", false));
     Assertions.assertTrue(buffer.toString().contains("Person"));
   }
 
   @Test
   public void testInsertAndSelectRecord() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + DB_PATH));
-    Assertions.assertTrue(console.parse("create type Person"));
-    Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'"));
+    Assertions.assertTrue(console.parse("connect " + DB_PATH, false));
+    Assertions.assertTrue(console.parse("create type Person", false));
+    Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'", false));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -63,17 +63,17 @@ public class ConsoleTest {
         buffer.append(output);
       }
     });
-    Assertions.assertTrue(console.parse("select from Person"));
+    Assertions.assertTrue(console.parse("select from Person", false));
     Assertions.assertTrue(buffer.toString().contains("Jay"));
   }
 
   @Test
   public void testInsertAndRollback() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + DB_PATH));
-    Assertions.assertTrue(console.parse("begin"));
-    Assertions.assertTrue(console.parse("create type Person"));
-    Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'"));
-    Assertions.assertTrue(console.parse("rollback"));
+    Assertions.assertTrue(console.parse("connect " + DB_PATH, false));
+    Assertions.assertTrue(console.parse("begin", false));
+    Assertions.assertTrue(console.parse("create type Person", false));
+    Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'", false));
+    Assertions.assertTrue(console.parse("rollback", false));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -82,7 +82,7 @@ public class ConsoleTest {
         buffer.append(output);
       }
     });
-    Assertions.assertTrue(console.parse("select from Person"));
+    Assertions.assertTrue(console.parse("select from Person", false));
     Assertions.assertFalse(buffer.toString().contains("Jay"));
   }
 
@@ -95,7 +95,7 @@ public class ConsoleTest {
         buffer.append(output);
       }
     });
-    Assertions.assertTrue(console.parse("?"));
+    Assertions.assertTrue(console.parse("?", false));
     Assertions.assertTrue(buffer.toString().contains("quit"));
   }
 }

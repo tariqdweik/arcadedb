@@ -37,9 +37,9 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
 
     try {
       console = new Console(false);
-      Assertions.assertTrue(console.parse("create database " + URL));
+      Assertions.assertTrue(console.parse("create database " + URL, false));
 
-      console.parse("close");
+      console.parse("close", false);
     } catch (IOException e) {
       Assertions.fail(e);
     }
@@ -54,18 +54,18 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
 
   @Test
   public void testConnect() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + URL));
+    Assertions.assertTrue(console.parse("connect " + URL, false));
   }
 
   @Test
   public void testConnectShortURL() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + URL_SHORT));
+    Assertions.assertTrue(console.parse("connect " + URL_SHORT, false));
   }
 
   @Test
   public void testConnectNoCredentials() throws IOException {
     try {
-      Assertions.assertTrue(console.parse("connect " + URL_NOCREDENTIALS + ";create type VVVV"));
+      Assertions.assertTrue(console.parse("connect " + URL_NOCREDENTIALS + ";create type VVVV", false));
       Assertions.fail("Security was bypassed!");
     } catch (ConsoleException e) {
     }
@@ -74,7 +74,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @Test
   public void testConnectWrongPassword() throws IOException {
     try {
-      Assertions.assertTrue(console.parse("connect " + URL_WRONGPASSWD + ";create type VVVV"));
+      Assertions.assertTrue(console.parse("connect " + URL_WRONGPASSWD + ";create type VVVV", false));
       Assertions.fail("Security was bypassed!");
     } catch (RemoteException e) {
     }
@@ -82,8 +82,8 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
 
   @Test
   public void testCreateType() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + URL));
-    Assertions.assertTrue(console.parse("create type Person2"));
+    Assertions.assertTrue(console.parse("connect " + URL, false));
+    Assertions.assertTrue(console.parse("create type Person2", false));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -92,16 +92,16 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
         buffer.append(output);
       }
     });
-    Assertions.assertTrue(console.parse("info types"));
+    Assertions.assertTrue(console.parse("info types", false));
     Assertions.assertTrue(buffer.toString().contains("Person2"));
-    Assertions.assertTrue(console.parse("drop type Person2"));
+    Assertions.assertTrue(console.parse("drop type Person2", false));
   }
 
   @Test
   public void testInsertAndSelectRecord() throws IOException {
-    Assertions.assertTrue(console.parse("connect " + URL));
-    Assertions.assertTrue(console.parse("create type Person2"));
-    Assertions.assertTrue(console.parse("insert into Person2 set name = 'Jay', lastname='Miner'"));
+    Assertions.assertTrue(console.parse("connect " + URL, false));
+    Assertions.assertTrue(console.parse("create type Person2", false));
+    Assertions.assertTrue(console.parse("insert into Person2 set name = 'Jay', lastname='Miner'", false));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -110,9 +110,9 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
         buffer.append(output);
       }
     });
-    Assertions.assertTrue(console.parse("select from Person2"));
+    Assertions.assertTrue(console.parse("select from Person2", false));
     Assertions.assertTrue(buffer.toString().contains("Jay"));
-    Assertions.assertTrue(console.parse("drop type Person2"));
+    Assertions.assertTrue(console.parse("drop type Person2", false));
   }
 //
 //  @Test
@@ -143,7 +143,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
         buffer.append(output);
       }
     });
-    Assertions.assertTrue(console.parse("?"));
+    Assertions.assertTrue(console.parse("?", false));
     Assertions.assertTrue(buffer.toString().contains("quit"));
   }
 }

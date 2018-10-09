@@ -12,6 +12,7 @@ image::arcadedb-logo.png[]
 
 include::introduction/chapter.adoc[]
 include::api/chapter.adoc[]
+include::tools/chapter.adoc[]
 include::settings.adoc[]
 include::comparison/chapter.adoc[]
 

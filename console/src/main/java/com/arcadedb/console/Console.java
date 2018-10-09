@@ -58,7 +58,7 @@ public class Console {
           if (line == null)
             continue;
 
-          if (!parse(line))
+          if (!parse(line, false))
             return;
 
         } catch (UserInterruptException e) {
@@ -281,14 +281,16 @@ public class Console {
     BufferedReader bufferedReader = new BufferedReader(fr);
 
     while (bufferedReader.ready())
-      parse(bufferedReader.readLine());
+      parse(bufferedReader.readLine(), true);
   }
 
-  public boolean parse(final String line) throws IOException {
+  public boolean parse(final String line, final boolean printCommand) throws IOException {
     final ParsedLine parsed = parser.parse(line, 0);
 
     for (String w : parsed.words()) {
-      terminal.writer().printf(getPrompt() + w);
+      if (printCommand)
+        terminal.writer().printf(getPrompt() + w);
+
       if (!execute(w))
         return false;
     }
@@ -303,6 +305,9 @@ public class Console {
   }
 
   private void executeInfo(final String subject) {
+    if (subject == null || subject.isEmpty())
+      return;
+
     checkDatabaseIsOpen();
 
     if (subject.equalsIgnoreCase("types")) {
@@ -347,15 +352,17 @@ public class Console {
   }
 
   private void executeHelp() {
-    output("HELP\n");
-    output("connect <path> -> connect to a database stored on <path>");
-    output("close          -> close the database");
-    output("begin          -> begins a new transaction");
-    output("commit         -> commits current transaction");
-    output("rollback       -> rollbacks current transaction");
-    output("quit or exit   -> exit from the console");
-    output("info           -> help");
-    output("");
+    output("\nHELP");
+    output("\nbegin                               -> begins a new transaction");
+    output("\nclose                               -> closes the database");
+    output("\ncreate database <path>|remote:<url> -> creates a new database");
+    output("\ncommit                              -> commits current transaction");
+    output("\nconnect <path>|remote:<url>         -> connects to a database stored on <path>");
+    output("\nhelp|?                              -> ask for this help");
+    output("\ninfo types                          -> print available types");
+    output("\nrollback                            -> rollbacks current transaction");
+    output("\nquit or exit                        -> exits from the console");
+    output("\n");
   }
 
   private void checkDatabaseIsOpen() {
