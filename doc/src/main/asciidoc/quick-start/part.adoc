@@ -1,5 +1,0 @@
-image::arcadedb-logo.png[]
-
-include::introduction/chapter.adoc[]
-include::api/chapter.adoc[]
-include::comparison/chapter.adoc[]
