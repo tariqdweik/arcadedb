@@ -105,6 +105,9 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
     this.unique = unique;
   }
 
+  /**
+   * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator inclusive, 3 = ascending iterator not-inclusive, 4 = descending iterator inclusive, 5 = descending iterator not-inclusive
+   */
   protected abstract LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] convertedKeys, int mid, final int count,
       final int purpose);
 
@@ -160,7 +163,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Lookups for an entry in the index by using dichotomy search.
    *
-   * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator, 3 = descending iterator
+   * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator inclusive, 3 = ascending iterator not-inclusive, 4 = descending iterator inclusive, 5 = descending iterator not-inclusive
    *
    * @return always an LookupResult object, never null
    */

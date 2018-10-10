@@ -135,19 +135,20 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     return new LSMTreeIndexCompacted(mainIndex, database, newName, unique, database.getDatabasePath() + "/" + newName, keyTypes, pageSize);
   }
 
-  public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
+  public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys, final boolean inclusive) throws IOException {
     if (ascendingOrder)
-      return range(fromKeys, null);
+      return range(fromKeys, inclusive, null, true);
 
-    return range(null, fromKeys);
+    return range(null, true, fromKeys, inclusive);
   }
 
-  public IndexCursor iterator(final Object[] fromKeys) throws IOException {
-    return range(fromKeys, fromKeys);
+  public IndexCursor iterator(final Object[] fromKeys, final boolean fromKeysInclusive) throws IOException {
+    return range(fromKeys, fromKeysInclusive, fromKeys, true);
   }
 
-  public IndexCursor range(final Object[] fromKeys, final Object[] toKeys) throws IOException {
-    return new LSMTreeIndexCursor(this, true, fromKeys, toKeys);
+  public IndexCursor range(final Object[] fromKeys, final boolean beginKeysInclusive, final Object[] toKeys, final boolean endKeysInclusive)
+      throws IOException {
+    return new LSMTreeIndexCursor(this, true, fromKeys, beginKeysInclusive, toKeys, endKeysInclusive);
   }
 
   public LSMTreeIndexUnderlyingPageCursor newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {

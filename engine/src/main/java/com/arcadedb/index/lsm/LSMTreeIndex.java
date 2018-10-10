@@ -148,8 +148,8 @@ public class LSMTreeIndex implements RangeIndex {
   }
 
   @Override
-  public IndexCursor iterator(final Object[] fromKeys) {
-    return lock.executeInReadLock(() -> mutable.iterator(fromKeys));
+  public IndexCursor iterator(final Object[] fromKeys, final boolean inclusive) {
+    return lock.executeInReadLock(() -> mutable.iterator(fromKeys, inclusive));
   }
 
   @Override
@@ -158,13 +158,13 @@ public class LSMTreeIndex implements RangeIndex {
   }
 
   @Override
-  public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys) throws IOException {
-    return lock.executeInReadLock(() -> mutable.iterator(ascendingOrder, fromKeys));
+  public IndexCursor iterator(final boolean ascendingOrder, final Object[] fromKeys, final boolean inclusive) {
+    return lock.executeInReadLock(() -> mutable.iterator(ascendingOrder, fromKeys, inclusive));
   }
 
   @Override
-  public IndexCursor range(final Object[] beginKeys, final Object[] endKeys) throws IOException {
-    return lock.executeInReadLock(() -> mutable.range(beginKeys, endKeys));
+  public IndexCursor range(final Object[] beginKeys, final boolean beginKeysInclusive, final Object[] endKeys, final boolean endKeysInclusive) {
+    return lock.executeInReadLock(() -> mutable.range(beginKeys, beginKeysInclusive, endKeys, endKeysInclusive));
   }
 
   @Override

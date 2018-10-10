@@ -17,7 +17,6 @@ import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -348,7 +347,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   @Test
-  public void testScanIndexAscending() throws IOException {
+  public void testScanIndexAscending(){
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -380,7 +379,7 @@ public class LSMTreeIndexTest extends BaseTest {
 //            LogManager.instance().info(this, "*****************************************************************************\nCURSOR END total=%d %s", total,
 //                iterator.dumpStats());
 
-          } catch (IOException e) {
+          } catch (Exception e) {
             Assertions.fail(e);
           }
         }
@@ -391,7 +390,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   @Test
-  public void testScanIndexDescending() throws IOException {
+  public void testScanIndexDescending()  {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -415,7 +414,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
               total++;
             }
-          } catch (IOException e) {
+          } catch (Exception e) {
             Assertions.fail(e);
           }
         }
@@ -426,7 +425,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   @Test
-  public void testScanIndexAscendingPartial() throws IOException {
+  public void testScanIndexAscendingPartialInclusive() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -439,7 +438,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = ((RangeIndex) index).iterator(true, new Object[] { 10 });
+            iterator = ((RangeIndex) index).iterator(true, new Object[] { 10 }, true);
 
             Assertions.assertNotNull(iterator);
 
@@ -451,7 +450,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
               total++;
             }
-          } catch (IOException e) {
+          } catch (Exception e) {
             Assertions.fail(e);
           }
         }
@@ -461,8 +460,9 @@ public class LSMTreeIndexTest extends BaseTest {
     });
   }
 
+
   @Test
-  public void testScanIndexDescendingPartial() throws IOException {
+  public void testScanIndexAscendingPartialExclusive() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -475,7 +475,8 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = ((RangeIndex) index).iterator(false, new Object[] { 9 });
+            iterator = ((RangeIndex) index).iterator(true, new Object[] { 10 }, false);
+
             Assertions.assertNotNull(iterator);
 
             while (iterator.hasNext()) {
@@ -486,7 +487,42 @@ public class LSMTreeIndexTest extends BaseTest {
 
               total++;
             }
-          } catch (IOException e) {
+          } catch (Exception e) {
+            Assertions.fail(e);
+          }
+        }
+
+        Assertions.assertEquals(TOT - 11, total);
+      }
+    });
+  }
+
+  @Test
+  public void testScanIndexDescendingPartialInclusive() {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+
+        int total = 0;
+
+        final Index[] indexes = database.getSchema().getIndexes();
+        for (Index index : indexes) {
+          Assertions.assertNotNull(index);
+
+          final IndexCursor iterator;
+          try {
+            iterator = ((RangeIndex) index).iterator(false, new Object[] { 9 }, true);
+            Assertions.assertNotNull(iterator);
+
+            while (iterator.hasNext()) {
+              Assertions.assertNotNull(iterator.next());
+
+              Assertions.assertNotNull(iterator.getKeys());
+              Assertions.assertEquals(1, iterator.getKeys().length);
+
+              total++;
+            }
+          } catch (Exception e) {
             Assertions.fail(e);
           }
         }
@@ -497,7 +533,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   @Test
-  public void testScanIndexRange() throws IOException {
+  public void testScanIndexDescendingPartialExclusive() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -510,11 +546,46 @@ public class LSMTreeIndexTest extends BaseTest {
 
           final IndexCursor iterator;
           try {
-            iterator = ((RangeIndex) index).range(new Object[] { 10 }, new Object[] { 19 });
+            iterator = ((RangeIndex) index).iterator(false, new Object[] { 9 }, false);
             Assertions.assertNotNull(iterator);
 
             while (iterator.hasNext()) {
-              Identifiable value = (Identifiable) iterator.next();
+              Assertions.assertNotNull(iterator.next());
+
+              Assertions.assertNotNull(iterator.getKeys());
+              Assertions.assertEquals(1, iterator.getKeys().length);
+
+              total++;
+            }
+          } catch (Exception e) {
+            Assertions.fail(e);
+          }
+        }
+
+        Assertions.assertEquals(9, total);
+      }
+    });
+  }
+
+  @Test
+  public void testScanIndexRangeInclusive2Inclusive()  {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+
+        int total = 0;
+
+        final Index[] indexes = database.getSchema().getIndexes();
+        for (Index index : indexes) {
+          Assertions.assertNotNull(index);
+
+          final IndexCursor iterator;
+          try {
+            iterator = ((RangeIndex) index).range(new Object[] { 10 }, true, new Object[] { 19 }, true);
+            Assertions.assertNotNull(iterator);
+
+            while (iterator.hasNext()) {
+              Identifiable value = iterator.next();
 
               Assertions.assertNotNull(value);
 
@@ -526,7 +597,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
               total++;
             }
-          } catch (IOException e) {
+          } catch (Exception e) {
             Assertions.fail(e);
           }
         }
@@ -535,6 +606,130 @@ public class LSMTreeIndexTest extends BaseTest {
       }
     });
   }
+
+
+  @Test
+  public void testScanIndexRangeInclusive2Exclusive()  {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+
+        int total = 0;
+
+        final Index[] indexes = database.getSchema().getIndexes();
+        for (Index index : indexes) {
+          Assertions.assertNotNull(index);
+
+          final IndexCursor iterator;
+          try {
+            iterator = ((RangeIndex) index).range(new Object[] { 10 }, true, new Object[] { 19 }, false);
+            Assertions.assertNotNull(iterator);
+
+            while (iterator.hasNext()) {
+              Identifiable value = iterator.next();
+
+              Assertions.assertNotNull(value);
+
+              int fieldValue = (int) ((Document) value.getRecord()).get("id");
+              Assertions.assertTrue(fieldValue >= 10 && fieldValue < 19);
+
+              Assertions.assertNotNull(iterator.getKeys());
+              Assertions.assertEquals(1, iterator.getKeys().length);
+
+              total++;
+            }
+          } catch (Exception e) {
+            Assertions.fail(e);
+          }
+        }
+
+        Assertions.assertEquals(9, total);
+      }
+    });
+  }
+
+
+  @Test
+  public void testScanIndexRangeExclusive2Inclusive()  {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+
+        int total = 0;
+
+        final Index[] indexes = database.getSchema().getIndexes();
+        for (Index index : indexes) {
+          Assertions.assertNotNull(index);
+
+          final IndexCursor iterator;
+          try {
+            iterator = ((RangeIndex) index).range(new Object[] { 10 }, false, new Object[] { 19 }, true);
+            Assertions.assertNotNull(iterator);
+
+            while (iterator.hasNext()) {
+              Identifiable value = iterator.next();
+
+              Assertions.assertNotNull(value);
+
+              int fieldValue = (int) ((Document) value.getRecord()).get("id");
+              Assertions.assertTrue(fieldValue > 10 && fieldValue <= 19);
+
+              Assertions.assertNotNull(iterator.getKeys());
+              Assertions.assertEquals(1, iterator.getKeys().length);
+
+              total++;
+            }
+          } catch (Exception e) {
+            Assertions.fail(e);
+          }
+        }
+
+        Assertions.assertEquals(9, total);
+      }
+    });
+  }
+
+
+  @Test
+  public void testScanIndexRangeExclusive2Exclusive()  {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+
+        int total = 0;
+
+        final Index[] indexes = database.getSchema().getIndexes();
+        for (Index index : indexes) {
+          Assertions.assertNotNull(index);
+
+          final IndexCursor iterator;
+          try {
+            iterator = ((RangeIndex) index).range(new Object[] { 10 }, false, new Object[] { 19 }, false);
+            Assertions.assertNotNull(iterator);
+
+            while (iterator.hasNext()) {
+              Identifiable value = iterator.next();
+
+              Assertions.assertNotNull(value);
+
+              int fieldValue = (int) ((Document) value.getRecord()).get("id");
+              Assertions.assertTrue(fieldValue > 10 && fieldValue < 19);
+
+              Assertions.assertNotNull(iterator.getKeys());
+              Assertions.assertEquals(1, iterator.getKeys().length);
+
+              total++;
+            }
+          } catch (Exception e) {
+            Assertions.fail(e);
+          }
+        }
+
+        Assertions.assertEquals(8, total);
+      }
+    });
+  }
+
 
   @Test
   public void testUnique() {

@@ -14,8 +14,6 @@ import java.util.TimeZone;
 
 public interface Schema {
 
-  void setDateTimeFormat(String dateTimeFormat);
-
   PaginatedComponent getFileById(int id);
 
   boolean existsBucket(String bucketName);
@@ -83,6 +81,8 @@ public interface Schema {
   void setDateFormat(String dateFormat);
 
   String getDateTimeFormat();
+
+  void setDateTimeFormat(String dateTimeFormat);
 
   String getEncoding();
 }

@@ -21,6 +21,7 @@ import java.util.*;
 public class LSMTreeIndexCursor implements IndexCursor {
   private final LSMTreeIndexMutable                    index;
   private final Object[]                               toKeys;
+  private final boolean                                toKeysInclusive;
   private final LSMTreeIndexUnderlyingAbstractCursor[] pageCursors;
   private       LSMTreeIndexUnderlyingAbstractCursor   currentCursor;
   private       Object[]                               currentKeys;
@@ -35,15 +36,18 @@ public class LSMTreeIndexCursor implements IndexCursor {
   private int validIterators;
 
   public LSMTreeIndexCursor(final LSMTreeIndexMutable index, final boolean ascendingOrder) throws IOException {
-    this(index, ascendingOrder, null, null);
+    this(index, ascendingOrder, null, true, null, true);
   }
 
-  public LSMTreeIndexCursor(final LSMTreeIndexMutable index, final boolean ascendingOrder, Object[] fromKeys, final Object[] toKeys) throws IOException {
+  public LSMTreeIndexCursor(final LSMTreeIndexMutable index, final boolean ascendingOrder, Object[] fromKeys, final boolean beginKeysInclusive,
+      final Object[] toKeys, final boolean endKeysInclusive) throws IOException {
     this.index = index;
     this.keyTypes = index.getKeyTypes();
 
     fromKeys = index.convertKeys(index.checkForNulls(fromKeys), keyTypes);
+
     this.toKeys = index.convertKeys(index.checkForNulls(toKeys), keyTypes);
+    this.toKeysInclusive = endKeysInclusive;
 
     this.serializer = index.getDatabase().getSerializer();
     this.comparator = this.serializer.getComparator();
@@ -69,18 +73,16 @@ public class LSMTreeIndexCursor implements IndexCursor {
 
     for (int i = 0; i < compactedSeriesIterators.size(); ++i) {
       pageCursors[i] = compactedSeriesIterators.get(i);
-      if (pageCursors[i].hasNext()) {
-        pageCursors[i].next();
-        keys[i] = pageCursors[i].getKeys();
-        validIterators++;
-      } else
-        pageCursors[i] = null;
+      if (pageCursors[i] != null) {
+        if (pageCursors[i].hasNext()) {
+          pageCursors[i].next();
+          keys[i] = pageCursors[i].getKeys();
+        }
+      }
     }
 
     for (int pageId = 0; pageId < totalPages; ++pageId) {
       final int cursorIdx = compactedSeriesIterators.size() + pageId;
-
-      keys[cursorIdx] = null;
 
       if (fromKeys != null) {
         // SEEK FOR THE FROM RANGE
@@ -92,11 +94,7 @@ public class LSMTreeIndexCursor implements IndexCursor {
             .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 2 : 3);
 
         pageCursors[cursorIdx] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
-
-        if (toKeys == null || (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, pageCursors[pageId].getKeys(), toKeys) <= 0)) {
-          keys[cursorIdx] = pageCursors[cursorIdx].getKeys();
-          validIterators++;
-        }
+        keys[cursorIdx] = pageCursors[cursorIdx].getKeys();
 
       } else {
         if (ascendingOrder) {
@@ -108,13 +106,41 @@ public class LSMTreeIndexCursor implements IndexCursor {
 
         if (pageCursors[cursorIdx].hasNext()) {
           pageCursors[cursorIdx].next();
-
-          if (toKeys == null || (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, pageCursors[cursorIdx].getKeys(), toKeys) <= 0)) {
-            keys[cursorIdx] = pageCursors[cursorIdx].getKeys();
-            validIterators++;
-          }
+          keys[cursorIdx] = pageCursors[cursorIdx].getKeys();
         } else
           pageCursors[cursorIdx] = null;
+      }
+    }
+
+    // CHECK THE VALIDITY OF CURSORS
+    for (int i = 0; i < pageCursors.length; ++i) {
+      final LSMTreeIndexUnderlyingAbstractCursor pageCursor = pageCursors[i];
+
+      if (pageCursor != null) {
+        if (fromKeys != null && !beginKeysInclusive) {
+          if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[i], fromKeys) == 0) {
+            // SKIP THIS
+            if (pageCursor.hasNext()) {
+              pageCursor.next();
+              keys[i] = pageCursor.getKeys();
+            } else
+              // INVALID
+              pageCursors[i] = null;
+          }
+        }
+
+        if (this.toKeys != null) {
+          final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, pageCursor.getKeys(), this.toKeys);
+
+          if ((endKeysInclusive && compare <= 0) || (!endKeysInclusive && compare < 0))
+            ;
+          else
+            // INVALID
+            pageCursors[i] = null;
+        }
+
+        if (pageCursors[i] != null)
+          validIterators++;
       }
     }
   }
@@ -193,12 +219,16 @@ public class LSMTreeIndexCursor implements IndexCursor {
         currentCursor.next();
         keys[minorKeyIndex] = currentCursor.getKeys();
 
-        if (toKeys != null && (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys) > 0)) {
-          currentCursor.close();
-          currentCursor = null;
-          pageCursors[minorKeyIndex] = null;
-          keys[minorKeyIndex] = null;
-          --validIterators;
+        if (toKeys != null) {
+          final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys);
+
+          if ((toKeysInclusive && compare > 0) || (!toKeysInclusive && compare >= 0)) {
+            currentCursor.close();
+            currentCursor = null;
+            pageCursors[minorKeyIndex] = null;
+            keys[minorKeyIndex] = null;
+            --validIterators;
+          }
         }
       } else {
         currentCursor.close();
