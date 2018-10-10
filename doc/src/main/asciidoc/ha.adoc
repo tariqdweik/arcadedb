@@ -24,3 +24,22 @@ XNIO NIO Implementation Version 3.3.8.Final [nio]
 <ArcadeDB_0> Change election status from VOTING_FOR_ME to LEADER_WAITING_FOR_QUORUM [HAServer]
 <ArcadeDB_0> Contacting all the servers for the new leadership (turn=1)... [HAServer]
 ```
+
+==== Architecture
+
+ArcadeDB has a Leader/Replica model by using RAFT consensus for election and replication.
+
+More coming soon.
+
+==== Starting multiple servers in cluster
+
+More coming soon.
+
+==== Auto fail-over
+
+More coming soon.
+
+==== Auto balancing of the clients
+
+More coming soon.
+

@@ -1,5 +1,4 @@
-ROADMAP
+CONFIDENTIALITY NOTICE
 
-v1.0
-- when the db is open, set db.lock file to catch soft shutdown
-
+This document is intended for personal use only and may not be distributed or reproduced for distribution in any form without
+express written permission of Arcade Analytics Ltd.
