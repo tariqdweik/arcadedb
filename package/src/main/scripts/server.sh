@@ -67,4 +67,4 @@ exec "$JAVA" $JAVA_OPTS \
     $ARCADEDB_JMX \
     $ARCADEDB_SETTINGS \
     -cp "$ARCADEDB_HOME/lib/*" \
-    $ARGS "$@" com.arcadedb.server.ArcadeDBServer
+    $ARGS "$@" com.arcadedb.server.ArcadeDBServer $*

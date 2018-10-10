@@ -1,4 +1,8 @@
 
 == Tools
 
+include::server.adoc[]
+
 include::console.adoc[]
+
+include::importer.adoc[]
