@@ -1,6 +1,15 @@
+----------
+CONFIDENTIALITY NOTICE
+
+This document is intended for personal use only and may not be distributed or reproduced for distribution in any form without express
+written permission of Arcade Analytics Ltd.
+
+----------
+
 include::introduction/chapter.adoc[]
 include::api/chapter.adoc[]
 include::tools/chapter.adoc[]
+include::ha.adoc[]
 include::http.adoc[]
 include::settings.adoc[]
 include::comparison/chapter.adoc[]
