@@ -1,7 +1,8 @@
---------
 
+----------
 * Java and JVM are registered trademarks of Oracle Corporation
 * * All the trademarks are property of their owner. ArcadeDB does not own such trademarks.
+----------
 
 
 ----------
@@ -10,3 +11,4 @@ CONFIDENTIALITY NOTICE
 This document is intended for personal use only and may not be distributed or reproduced for distribution in any form without express written permission of Arcade Analytics Ltd.
 
 ----------
+
