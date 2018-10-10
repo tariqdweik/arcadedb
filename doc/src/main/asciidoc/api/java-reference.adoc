@@ -1,6 +1,6 @@
 
-
-===== Reference
+[discrete]
+== Java Reference
 
 include::java-ref-database-factory.adoc[]
 include::java-ref-database.adoc[]

@@ -29,6 +29,23 @@ XNIO NIO Implementation Version 3.3.8.Final [nio]
 
 ArcadeDB has a Leader/Replica model by using RAFT consensus for election and replication.
 
+[ditaa,asciidoctor-diagram-process]
+....
+ +------------+        +------------+        +------------+
+ | ArcadeDB_1 |<-------| ArcadeDB_0 |------->| ArcadeDB_2 |
+ |  Replica   |        |   Leader   |        |  Replica   |
+ +------------+        +------------+        +------------+
+       |                     |                     |
+       |                     |                     |
+       V                     V                     V
+  +----------+          +----------+          +----------+
+  |   WAL    |          |   WAL    |          |   WAL    |
+  |      {d} |          |      {d} |          |      {d} |
+  +----------+          +----------+          +----------+
+
+....
+
+
 More coming soon.
 
 ==== Starting multiple servers in cluster
@@ -43,3 +60,20 @@ More coming soon.
 
 More coming soon.
 
+==== Kubernates (K8S)
+
+In order to scale up or down with the number of replicas, use this:
+
+```
+kubectl scale statefulsets arcadedb-server --replicas=<new-number-of-replicas>
+```
+
+Where the value of `<new-number-of-replicas>` is the new number of replicas. Example:
+
+```
+kubectl scale statefulsets arcadedb-server --replicas=3
+```
+
+Scaling up and down doesn't affect current workload. There are no pauses when a server enters/exits from the cluster.
+
+More coming soon.

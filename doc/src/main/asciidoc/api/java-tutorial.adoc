@@ -1,8 +1,8 @@
-==== 10 Minutes Tutorial
+==== 10-Minute Tutorial
 
 In order to work with a database, the reference to the database to use must be taken. You can create a new database from scratch or open an existent one. Most of the API works in both synchronous and asynchronous modes. The asynchronous API are available from the `<db>.asynch()` object.
 
-To start from scratch, let's create a new database. The entry point it's the `<<java-ref-database-factory.adoc#,DatabaseFactory>>` class that allows to create and open a database.
+To start from scratch, let's create a new database. The entry point it's the `<<#_-code-databasefactory-code-class,DatabaseFactory>>` class that allows to create and open a database.
 
 ```java
 DatabaseFactory arcade = new DatabaseFactory("/databases/mydb");
@@ -175,7 +175,15 @@ try( Database db = databaseFactory.open(); ){
 }
 ```
 
-Now let's create two "Profile" vertices and let's connect them with the friendship relationship "IsFriendOf":
+Now let's create two "Profile" vertices and let's connect them with the friendship relationship "IsFriendOf", like in the chart below:
+
+
+[graphviz, dot-example, svg]
+----
+graph g {
+    Elon -- Steve [label = "IsFriendOf" dir = "both"]
+}
+----
 
 ```java
 try( Database db = databaseFactory.open(); ){
@@ -335,7 +343,7 @@ try( Database db = databaseFactory.open(); ){
 
 ====== Traverse via Apache GREMLIN
 
-Since ArcadeDB is 100% compliant with Gremlin 3.x, you can run this query against an Apache Gremlin Server:
+Since ArcadeDB is 100% compliant with Gremlin 3.x, you can run this query against the Apache Gremlin Server configured with ArcadeDB:
 
 ```
 g.V().has('name','Steve').has('lastName','Jobs').out('IsFriendOf');

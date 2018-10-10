@@ -7,6 +7,7 @@
 :revnumber: 0.8
 :example-caption!:
 :imagesdir: images
+ifdef::backend-pdf[:imagesdir: {docdir}/{imagesdir}]
 :doctype: book
 :encoding: utf-8
 :lang: en
