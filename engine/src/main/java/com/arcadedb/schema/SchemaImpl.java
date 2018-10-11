@@ -539,8 +539,6 @@ public class SchemaImpl implements Schema {
         // EMPTY SCHEMA
         return;
 
-      //root.get("version", PConstants.VERSION);
-
       final JSONObject settings = root.getJSONObject("settings");
 
       timeZone = TimeZone.getTimeZone(settings.getString("timeZone"));
@@ -587,16 +585,26 @@ public class SchemaImpl implements Schema {
           }
         }
 
+        if (schemaType.has("properties")) {
+          final JSONObject schemaProperties = schemaType.getJSONObject("properties");
+          if (schemaProperties != null) {
+            for (String propName : schemaProperties.keySet()) {
+              final JSONObject prop = schemaProperties.getJSONObject(propName);
+              type.createProperty(propName, (String) prop.get("type"));
+            }
+          }
+        }
+
         final JSONObject schemaIndexes = schemaType.getJSONObject("indexes");
         if (schemaIndexes != null) {
           for (String indexName : schemaIndexes.keySet()) {
             final JSONObject index = schemaIndexes.getJSONObject(indexName);
 
-            final JSONArray schemaProperties = index.getJSONArray("properties");
+            final JSONArray schemaIndexProperties = index.getJSONArray("properties");
 
-            final String[] properties = new String[schemaProperties.length()];
+            final String[] properties = new String[schemaIndexProperties.length()];
             for (int i = 0; i < properties.length; ++i)
-              properties[i] = schemaProperties.getString(i);
+              properties[i] = schemaIndexProperties.getString(i);
             type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
           }
         }
@@ -654,6 +662,17 @@ public class SchemaImpl implements Schema {
           buckets[i] = originalBuckets.get(i).getName();
 
         type.put("buckets", buckets);
+
+        final JSONObject properties = new JSONObject();
+        type.put("properties", properties);
+
+        for (String propName : t.getPropertyNames()) {
+          final JSONObject prop = new JSONObject();
+          properties.put(propName, prop);
+
+          final Property p = t.getProperty(propName);
+          prop.put("type", p.getType());
+        }
 
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);

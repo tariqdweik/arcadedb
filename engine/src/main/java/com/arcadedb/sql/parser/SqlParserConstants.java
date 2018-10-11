@@ -197,7 +197,7 @@ public interface SqlParserConstants {
   /** RegularExpression Id. */
   int FORCE = 101;
   /** RegularExpression Id. */
-  int METADATA = 102;
+  int SCHEMA = 102;
   /** RegularExpression Id. */
   int INDEX = 103;
   /** RegularExpression Id. */
@@ -499,7 +499,7 @@ public interface SqlParserConstants {
   /** RegularExpression Id. */
   int BUCKET_NUMBER_IDENTIFIER = 252;
   /** RegularExpression Id. */
-  int METADATA_IDENTIFIER = 253;
+  int SCHEMA_IDENTIFIER = 253;
   /** RegularExpression Id. */
   int LETTER = 254;
   /** RegularExpression Id. */
@@ -616,7 +616,7 @@ public interface SqlParserConstants {
     "<DROP>",
     "<PROPERTY>",
     "<FORCE>",
-    "<METADATA>",
+    "<SCHEMA>",
     "<INDEX>",
     "<COLLATE>",
     "<ENGINE>",
@@ -767,7 +767,7 @@ public interface SqlParserConstants {
     "<INDEXVALUESDESC_IDENTIFIER>",
     "<BUCKET_IDENTIFIER>",
     "<BUCKET_NUMBER_IDENTIFIER>",
-    "<METADATA_IDENTIFIER>",
+    "<SCHEMA_IDENTIFIER>",
     "<LETTER>",
     "<PART_LETTER>",
     "\"#\"",

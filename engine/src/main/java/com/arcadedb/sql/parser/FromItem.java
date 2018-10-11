@@ -21,7 +21,7 @@ public class FromItem extends SimpleNode {
   protected Bucket               bucket;
   protected BucketList           bucketList;
   protected IndexIdentifier      index;
-  protected MetadataIdentifier   metadata;
+  protected SchemaIdentifier     schema;
   protected Statement            statement;
   protected InputParameter       inputParam;
   protected Identifier           identifier;
@@ -86,8 +86,8 @@ public class FromItem extends SimpleNode {
     } else if (bucketList != null) {
       bucketList.toString(params, builder);
       return;
-    } else if (metadata != null) {
-      metadata.toString(params, builder);
+    } else if (schema != null) {
+      schema.toString(params, builder);
       return;
     } else if (statement != null) {
       builder.append("(");
@@ -129,8 +129,8 @@ public class FromItem extends SimpleNode {
     return index;
   }
 
-  public MetadataIdentifier getMetadata() {
-    return metadata;
+  public SchemaIdentifier getSchema() {
+    return schema;
   }
 
   public Statement getStatement() {
@@ -164,7 +164,7 @@ public class FromItem extends SimpleNode {
     result.bucket = bucket == null ? null : bucket.copy();
     result.bucketList = bucketList == null ? null : bucketList.copy();
     result.index = index == null ? null : index.copy();
-    result.metadata = metadata == null ? null : metadata.copy();
+    result.schema = schema == null ? null : schema.copy();
     result.statement = statement == null ? null : statement.copy();
     result.inputParam = inputParam == null ? null : inputParam.copy();
     result.identifier = identifier == null ? null : identifier.copy();
@@ -193,7 +193,7 @@ public class FromItem extends SimpleNode {
       return false;
     if (index != null ? !index.equals(oFromItem.index) : oFromItem.index != null)
       return false;
-    if (metadata != null ? !metadata.equals(oFromItem.metadata) : oFromItem.metadata != null)
+    if (schema != null ? !schema.equals(oFromItem.schema) : oFromItem.schema != null)
       return false;
     if (statement != null ? !statement.equals(oFromItem.statement) : oFromItem.statement != null)
       return false;
@@ -213,7 +213,7 @@ public class FromItem extends SimpleNode {
     result = 31 * result + (bucket != null ? bucket.hashCode() : 0);
     result = 31 * result + (bucketList != null ? bucketList.hashCode() : 0);
     result = 31 * result + (index != null ? index.hashCode() : 0);
-    result = 31 * result + (metadata != null ? metadata.hashCode() : 0);
+    result = 31 * result + (schema != null ? schema.hashCode() : 0);
     result = 31 * result + (statement != null ? statement.hashCode() : 0);
     result = 31 * result + (inputParam != null ? inputParam.hashCode() : 0);
     result = 31 * result + (identifier != null ? identifier.hashCode() : 0);
@@ -238,8 +238,8 @@ public class FromItem extends SimpleNode {
     this.index = index;
   }
 
-  public void setMetadata(MetadataIdentifier metadata) {
-    this.metadata = metadata;
+  public void setSchema(SchemaIdentifier schema) {
+    this.schema = schema;
   }
 
   public void setStatement(Statement statement) {
@@ -283,8 +283,8 @@ public class FromItem extends SimpleNode {
     if (index != null) {
       result.setProperty("index", index.serialize());
     }
-    if (metadata != null) {
-      result.setProperty("metadata", metadata.serialize());
+    if (schema != null) {
+      result.setProperty("schema", schema.serialize());
     }
     if (statement != null) {
       result.setProperty("statement", statement.serialize());
@@ -337,9 +337,9 @@ public class FromItem extends SimpleNode {
       index = new IndexIdentifier(-1);
       index.deserialize(fromResult.getProperty("index"));
     }
-    if (fromResult.getProperty("metadata") != null) {
-      metadata = new MetadataIdentifier(-1);
-      metadata.deserialize(fromResult.getProperty("metadata"));
+    if (fromResult.getProperty("schema") != null) {
+      schema = new SchemaIdentifier(-1);
+      schema.deserialize(fromResult.getProperty("schema"));
     }
     if (fromResult.getProperty("statement") != null) {
       statement = Statement.deserializeFromOResult(fromResult.getProperty("statement"));
@@ -374,7 +374,7 @@ public class FromItem extends SimpleNode {
     if (statement != null) {
       return statement.executinPlanCanBeCached();
     }
-    if(functionCall!=null){
+    if (functionCall != null) {
       return functionCall.isCacheable();
     }
 

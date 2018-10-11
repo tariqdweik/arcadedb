@@ -277,7 +277,7 @@ public class ResultInternal implements Result {
     if (element != null)
       return element.toString();
 
-    return "{\n" + content.entrySet().stream().map(x -> x.getKey() + ": " + x.getValue()).reduce("", (a, b) -> a + b + "\n") + "}\n";
+    return "{ " + content.entrySet().stream().map(x -> x.getKey() + ": " + x.getValue()).reduce("", (a, b) -> a + b + "\n") + " }";
   }
 
   @Override

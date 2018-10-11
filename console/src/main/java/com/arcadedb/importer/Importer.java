@@ -137,7 +137,13 @@ public class Importer {
         factory.open().drop();
     }
 
-    database = factory.exists() ? factory.open() : factory.create();
+    if (factory.exists()) {
+      LogManager.instance().info(this, "Opening database '%s'...", settings.databaseURL);
+      database = factory.open();
+    } else {
+      LogManager.instance().info(this, "Creating database '%s'...", settings.databaseURL);
+      database = factory.create();
+    }
 
     database.begin();
     if (settings.recordType == RECORD_TYPE.VERTEX) {

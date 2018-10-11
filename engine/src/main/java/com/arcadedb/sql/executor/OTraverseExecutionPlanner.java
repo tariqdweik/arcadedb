@@ -98,8 +98,8 @@ public class OTraverseExecutionPlanner {
       handleInputParamAsTarget(result, target.getInputParam(), ctx, profilingEnabled);
     } else if (target.getIndex() != null) {
       handleIndexAsTarget(result, target.getIndex(), ctx, profilingEnabled);
-    } else if (target.getMetadata() != null) {
-      handleMetadataAsTarget(result, target.getMetadata(), ctx, profilingEnabled);
+    } else if (target.getSchema() != null) {
+      handleMetadataAsTarget(result, target.getSchema(), ctx, profilingEnabled);
     } else if (target.getRids() != null && target.getRids().size() > 0) {
       handleRidsAsTarget(result, target.getRids(), ctx, profilingEnabled);
     } else {
@@ -176,34 +176,32 @@ public class OTraverseExecutionPlanner {
 
     switch (indexIdentifier.getType()) {
     case INDEX:
-
-//      if (!index.supportsOrderedIterations()) {
-//        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
-//      }
-
+      if (!index.supportsOrderedIterations()) {
+        throw new CommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
+      }
       result.chain(new FetchFromIndexStep(index, null, null, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
     case VALUES:
     case VALUESASC:
-//      if (!index.supportsOrderedIterations()) {
-//        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
-//      }
+      if (!index.supportsOrderedIterations()) {
+        throw new CommandExecutionException("Index " + indexName + " does not allow iteration on values");
+      }
       result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
     case VALUESDESC:
-//      if (!index.supportsOrderedIterations()) {
-//        throw new PCommandExecutionException("Index " + indexName + " does not allow iteration on values");
-//      }
+      if (!index.supportsOrderedIterations()) {
+        throw new CommandExecutionException("Index " + indexName + " does not allow iteration on values");
+      }
       result.chain(new FetchFromIndexValuesStep(index, false, ctx, profilingEnabled));
       result.chain(new GetValueFromIndexEntryStep(ctx, null, profilingEnabled));
       break;
     }
   }
 
-  private void handleMetadataAsTarget(SelectExecutionPlan plan, MetadataIdentifier metadata, CommandContext ctx, boolean profilingEnabled) {
-    Database db = ctx.getDatabase();
+  private void handleMetadataAsTarget(final SelectExecutionPlan plan, SchemaIdentifier metadata, CommandContext ctx, boolean profilingEnabled) {
+    final Database db = ctx.getDatabase();
     throw new UnsupportedOperationException();
 //    String schemaRecordIdAsString = null;
 //    if (metadata.getName().equalsIgnoreCase(OCommandExecutorSQLAbstract.METADATA_SCHEMA)) {

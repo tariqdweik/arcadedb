@@ -26,7 +26,7 @@ public class CreateIndexStatement extends ODDLStatement {
   protected Identifier       type;
   protected Identifier       engine;
   protected List<Identifier> keyTypes = new ArrayList<Identifier>();
-  protected Json             metadata;
+  protected Json             schema;
 
   public CreateIndexStatement(int id) {
     super(id);
@@ -226,9 +226,9 @@ public class CreateIndexStatement extends ODDLStatement {
         first = false;
       }
     }
-    if (metadata != null) {
+    if (schema != null) {
       builder.append(" METADATA ");
-      metadata.toString(params, builder);
+      schema.toString(params, builder);
     }
   }
 
@@ -241,7 +241,7 @@ public class CreateIndexStatement extends ODDLStatement {
     result.type = type == null ? null : type.copy();
     result.engine = engine == null ? null : engine.copy();
     result.keyTypes = keyTypes == null ? null : keyTypes.stream().map(x -> x.copy()).collect(Collectors.toList());
-    result.metadata = metadata == null ? null : metadata.copy();
+    result.schema = schema == null ? null : schema.copy();
     return result;
   }
 
@@ -266,7 +266,7 @@ public class CreateIndexStatement extends ODDLStatement {
       return false;
     if (keyTypes != null ? !keyTypes.equals(that.keyTypes) : that.keyTypes != null)
       return false;
-    return metadata != null ? metadata.equals(that.metadata) : that.metadata == null;
+    return schema != null ? schema.equals(that.schema) : that.schema == null;
   }
 
   @Override
@@ -277,7 +277,7 @@ public class CreateIndexStatement extends ODDLStatement {
     result = 31 * result + (type != null ? type.hashCode() : 0);
     result = 31 * result + (engine != null ? engine.hashCode() : 0);
     result = 31 * result + (keyTypes != null ? keyTypes.hashCode() : 0);
-    result = 31 * result + (metadata != null ? metadata.hashCode() : 0);
+    result = 31 * result + (schema != null ? schema.hashCode() : 0);
     return result;
   }
 

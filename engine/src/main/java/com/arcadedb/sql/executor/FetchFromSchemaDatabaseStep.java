@@ -4,31 +4,28 @@
 
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.database.Database;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.schema.DocumentType;
-import com.arcadedb.schema.Schema;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Returns an OResult containing metadata regarding the schema.
+ * Returns an OResult containing metadata regarding the database
  *
  * @author Luigi Dell'Aquila (l.dellaquila - at - orientdb.com)
  */
-public class FetchFromSchemaMetadataStep extends AbstractExecutionStep {
+public class FetchFromSchemaDatabaseStep extends AbstractExecutionStep {
 
   boolean served = false;
   long    cost   = 0;
 
-  public FetchFromSchemaMetadataStep(CommandContext ctx, boolean profilingEnabled) {
+  public FetchFromSchemaDatabaseStep(final CommandContext ctx,final  boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
   @Override
-  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+  public ResultSet syncPull(final CommandContext ctx, final int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new ResultSet() {
       @Override
@@ -44,20 +41,12 @@ public class FetchFromSchemaMetadataStep extends AbstractExecutionStep {
           if (!served) {
             final ResultInternal result = new ResultInternal();
 
-            final Schema schema = ctx.getDatabase().getSchema();
-
-            final List<ResultInternal> types = new ArrayList<>();
-
-            for (DocumentType type : schema.getTypes()) {
-              final ResultInternal r = new ResultInternal();
-              types.add(r);
-
-              r.setProperty("name", type.getName());
-//              r.setProperty("buckets", type.getBuckets(false));
-//              r.setProperty("properties", type.getPropertyNames());
-            }
-
-            result.setProperty("types", types);
+            final Database db = ctx.getDatabase();
+            result.setProperty("name", db.getName());
+            result.setProperty("dateFormat", db.getSchema().getDateFormat());
+            result.setProperty("dateTimeFormat", db.getSchema().getDateTimeFormat());
+            result.setProperty("timezone", db.getSchema().getTimeZone().getDisplayName());
+            result.setProperty("encoding", db.getSchema().getEncoding());
 
             served = true;
             return result;

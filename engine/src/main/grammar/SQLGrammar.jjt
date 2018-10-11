@@ -259,7 +259,7 @@ TOKEN:
 	|
 	< FORCE: ( "f" | "F" ) ( "o" | "O" ) ( "r" | "R" ) ( "c" | "C" ) ( "e" | "E" ) >
 	|
-	< METADATA: ( "m" | "M" ) ( "e" | "E" ) ( "t" | "T" ) ( "a" | "A" ) ( "d" | "D" ) ( "a" | "A" ) ( "t" | "T" ) ( "a" | "A" )   >
+	< SCHEMA: ( "s" | "S" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) ( "m" | "M" ) ( "a" | "A" )  >
 	|
     < INDEX: ( "I" | "i") ( "N" | "n") ( "D" | "d") ( "E" | "e") ( "X" | "x")  >
     |
@@ -577,7 +577,7 @@ TOKEN :
 |
   < BUCKET_NUMBER_IDENTIFIER: <BUCKET> <COLON> <INTEGER_LITERAL>  >
 |
-  < METADATA_IDENTIFIER: "metadata:" <IDENTIFIER>  >
+  < SCHEMA_IDENTIFIER: "schema:" <IDENTIFIER>  >
 |
   < #LETTER:
       [  "A"-"Z",
@@ -775,7 +775,7 @@ Identifier Identifier():
 	|
 	token = <FORCE>
 	|
-	token = <METADATA>
+	token = <SCHEMA>
 	|
 	token = <COLLATE>
 	|
@@ -2449,7 +2449,7 @@ FromItem FromItem():
     	LOOKAHEAD(IndexIdentifier())
     	jjtThis.index = IndexIdentifier()
     	|
-        jjtThis.metadata = MetadataIdentifier()
+        jjtThis.schema = SchemaIdentifier()
     	|
     	(
     	    <LPAREN> jjtThis.statement = QueryStatement() <RPAREN>
@@ -2508,11 +2508,11 @@ BucketList BucketList():
     { return jjtThis; }
 }
 
-MetadataIdentifier MetadataIdentifier():
+SchemaIdentifier SchemaIdentifier():
 { Token mdName; }
 {
     (
-	    mdName = <METADATA_IDENTIFIER> {jjtThis.name = mdName.image.split(":")[1];}
+	    mdName = <SCHEMA_IDENTIFIER> {jjtThis.name = mdName.image.split(":")[1];}
 	)
     { return jjtThis; }
 }
@@ -4264,7 +4264,7 @@ CreateIndexStatement CreateIndexStatement():
             [
                 LOOKAHEAD(2)
                 (
-                   <METADATA> jjtThis.metadata = Json()
+                   <SCHEMA> jjtThis.schema = Json()
                 )
                 |
                 (
@@ -4272,7 +4272,7 @@ CreateIndexStatement CreateIndexStatement():
                     (
                         <COMMA> lastIdentifier = Identifier() {jjtThis.keyTypes.add(lastIdentifier);}
                     )*
-                    [ <METADATA> jjtThis.metadata = Json() ]
+                    [ <SCHEMA> jjtThis.schema = Json() ]
                 )
             ]
         )
@@ -4281,7 +4281,7 @@ CreateIndexStatement CreateIndexStatement():
             [
                 LOOKAHEAD(2)
                 (
-                   <METADATA> jjtThis.metadata = Json()
+                   <SCHEMA> jjtThis.schema = Json()
                 )
                 |
                 (
@@ -4289,7 +4289,7 @@ CreateIndexStatement CreateIndexStatement():
                     (
                         <COMMA> lastIdentifier = Identifier() {jjtThis.keyTypes.add(lastIdentifier);}
                     )*
-                    [ <METADATA> jjtThis.metadata = Json() ]
+                    [ <SCHEMA> jjtThis.schema = Json() ]
                 )
             ]
         )

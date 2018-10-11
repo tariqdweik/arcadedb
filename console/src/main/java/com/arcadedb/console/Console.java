@@ -132,6 +132,8 @@ public class Console {
       }
     }
 
+    output("\n");
+
     return true;
   }
 

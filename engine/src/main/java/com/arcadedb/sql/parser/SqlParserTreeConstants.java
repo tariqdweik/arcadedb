@@ -74,7 +74,7 @@ public interface SqlParserTreeConstants
   public int JJTFROMITEM = 68;
   public int JJTBUCKET = 69;
   public int JJTBUCKETLIST = 70;
-  public int JJTMETADATAIDENTIFIER = 71;
+  public int JJTSCHEMAIDENTIFIER = 71;
   public int JJTINDEXNAME = 72;
   public int JJTINDEXIDENTIFIER = 73;
   public int JJTWHERECLAUSE = 74;
@@ -245,7 +245,7 @@ public interface SqlParserTreeConstants
     "FromItem",
     "Bucket",
     "BucketList",
-    "MetadataIdentifier",
+    "SchemaIdentifier",
     "IndexName",
     "IndexIdentifier",
     "WhereClause",
@@ -344,4 +344,4 @@ public interface SqlParserTreeConstants
     "SleepStatement",
   };
 }
-/* JavaCC - OriginalChecksum=f68f86dc72725751d73efca564872c62 (do not edit this line) */
+/* JavaCC - OriginalChecksum=0f537ee2c2ebb49328c96098a19ad3c5 (do not edit this line) */

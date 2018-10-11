@@ -980,8 +980,8 @@ public class OSelectExecutionPlanner {
         if (info.serverToClusters.size() > 1) {
           shardedPlan.getValue().chain(new FilterByClustersStep(info.serverToClusters.get(shardedPlan.getKey()), ctx, profilingEnabled));
         }
-      } else if (target.getMetadata() != null) {
-        handleMetadataAsTarget(shardedPlan.getValue(), target.getMetadata(), ctx, profilingEnabled);
+      } else if (target.getSchema() != null) {
+        handleSchemaAsTarget(shardedPlan.getValue(), target.getSchema(), ctx, profilingEnabled);
       } else if (target.getRids() != null && target.getRids().size() > 0) {
         Set<String> filterClusters = info.serverToClusters.get(shardedPlan.getKey());
         List<Rid> rids = new ArrayList<>();
@@ -1255,25 +1255,26 @@ public class OSelectExecutionPlanner {
     return null;
   }
 
-  private void handleMetadataAsTarget(SelectExecutionPlan plan, MetadataIdentifier metadata, CommandContext ctx, boolean profilingEnabled) {
-    if (metadata.getName().equalsIgnoreCase("schema")) {
-      plan.chain(new FetchFromSchemaMetadataStep(ctx, profilingEnabled));
+  private void handleSchemaAsTarget(final SelectExecutionPlan plan, final SchemaIdentifier metadata, final CommandContext ctx,
+      final boolean profilingEnabled) {
+    if (metadata.getName().equalsIgnoreCase("types")) {
+      plan.chain(new FetchFromSchemaTypesStep(ctx, profilingEnabled));
     } else if (metadata.getName().equalsIgnoreCase("database")) {
-      plan.chain(new FetchFromDatabaseMetadataStep(ctx, profilingEnabled));
+      plan.chain(new FetchFromSchemaDatabaseStep(ctx, profilingEnabled));
     } else {
       throw new UnsupportedOperationException("Invalid metadata: " + metadata.getName());
     }
   }
 
-  private void handleRidsAsTarget(SelectExecutionPlan plan, List<Rid> rids, CommandContext ctx, boolean profilingEnabled) {
-    List<RID> actualRids = new ArrayList<>();
+  private void handleRidsAsTarget(final SelectExecutionPlan plan, final List<Rid> rids, final CommandContext ctx, final boolean profilingEnabled) {
+    final List<RID> actualRids = new ArrayList<>();
     for (Rid rid : rids) {
       actualRids.add(rid.toRecordId((Result) null, ctx));
     }
     plan.chain(new FetchFromRidsStep(actualRids, ctx, profilingEnabled));
   }
 
-  private static void handleExpand(SelectExecutionPlan result, QueryPlanningInfo info, CommandContext ctx, boolean profilingEnabled) {
+  private static void handleExpand(final SelectExecutionPlan result, final QueryPlanningInfo info, final CommandContext ctx, final boolean profilingEnabled) {
     if (info.expand) {
       result.chain(new ExpandStep(ctx, profilingEnabled));
     }
