@@ -126,11 +126,8 @@ public class TransactionIndexContext {
         for (Bucket b : buckets)
           modifiedFiles.add(b.getId());
 
-        for (List<DocumentType.IndexMetadata> idxMetadatas : type.getAllIndexesMetadata()) {
-          for (DocumentType.IndexMetadata idxMetadata : idxMetadatas) {
-            modifiedFiles.add(idxMetadata.index.getFileId());
-          }
-        }
+        for (DocumentType.IndexMetadata idxMetadata : type.getAllIndexesMetadata())
+          modifiedFiles.add(idxMetadata.index.getFileId());
       } else
         modifiedFiles.add(index.getAssociatedBucketId());
     }

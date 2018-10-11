@@ -96,6 +96,11 @@ public class LSMTreeIndexCursor implements IndexCursor {
         pageCursors[cursorIdx] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
         keys[cursorIdx] = pageCursors[cursorIdx].getKeys();
 
+        if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[cursorIdx], fromKeys) < 0) {
+          pageCursors[cursorIdx] = null;
+          keys[cursorIdx] = null;
+        }
+
       } else {
         if (ascendingOrder) {
           pageCursors[cursorIdx] = index.newPageIterator(pageId, -1, ascendingOrder);

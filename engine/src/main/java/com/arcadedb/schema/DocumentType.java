@@ -176,8 +176,12 @@ public class DocumentType {
 
   }
 
-  public Collection<List<IndexMetadata>> getAllIndexesMetadata() {
-    return indexesByBucket.values();
+  public Collection<IndexMetadata> getAllIndexesMetadata() {
+    final List<IndexMetadata> list = new ArrayList<>();
+    for (List<IndexMetadata> ms : indexesByBucket.values())
+      for (IndexMetadata m : ms)
+        list.add(m);
+    return list;
   }
 
   public List<IndexMetadata> getIndexMetadataByBucketId(final int bucketId) {

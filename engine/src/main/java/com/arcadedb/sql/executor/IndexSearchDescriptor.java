@@ -19,8 +19,8 @@ public class IndexSearchDescriptor {
   protected BinaryCondition   additionalRangeCondition;
   protected BooleanExpression remainingCondition;
 
-  public IndexSearchDescriptor(RangeIndex idx, AndBlock keyCondition, BinaryCondition additional,
-      BooleanExpression remainingCondition) {
+  public IndexSearchDescriptor(final RangeIndex idx, final AndBlock keyCondition, final BinaryCondition additional,
+      final BooleanExpression remainingCondition) {
     this.idx = idx;
     this.keyCondition = keyCondition;
     this.additionalRangeCondition = additional;
@@ -31,19 +31,19 @@ public class IndexSearchDescriptor {
 
   }
 
-  public int cost(CommandContext ctx) {
-    OQueryStats stats = OQueryStats.get(ctx.getDatabase());
+  public int cost(final CommandContext ctx) {
+    final OQueryStats stats = OQueryStats.get(ctx.getDatabase());
 
-    String indexName = idx.getName();
-    int size = keyCondition.getSubBlocks().size();
+    final String indexName = idx.getName();
+    final int size = keyCondition.getSubBlocks().size();
     boolean range = false;
-    BooleanExpression lastOp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
+    final BooleanExpression lastOp = keyCondition.getSubBlocks().get(keyCondition.getSubBlocks().size() - 1);
     if (lastOp instanceof BinaryCondition) {
       BinaryCompareOperator op = ((BinaryCondition) lastOp).getOperator();
       range = op.isRangeOperator();
     }
 
-    long val = stats.getIndexStats(indexName, size, range, additionalRangeCondition != null);
+    final long val = stats.getIndexStats(indexName, size, range, additionalRangeCondition != null);
     if (val >= 0) {
       return val > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) val;
     }

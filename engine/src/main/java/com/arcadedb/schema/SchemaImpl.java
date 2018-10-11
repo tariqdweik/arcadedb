@@ -14,10 +14,10 @@ import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
+import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
 import com.arcadedb.index.lsm.LSMTreeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
-import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LogManager;
 import org.json.JSONArray;
@@ -658,14 +658,12 @@ public class SchemaImpl implements Schema {
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);
 
-        for (List<DocumentType.IndexMetadata> list : t.getAllIndexesMetadata()) {
-          for (DocumentType.IndexMetadata entry : list) {
-            final JSONObject index = new JSONObject();
-            indexes.put(entry.index.getName(), index);
+        for (DocumentType.IndexMetadata entry : t.getAllIndexesMetadata()) {
+          final JSONObject index = new JSONObject();
+          indexes.put(entry.index.getName(), index);
 
-            index.put("bucket", getBucketById(entry.bucketId).getName());
-            index.put("properties", entry.propertyNames);
-          }
+          index.put("bucket", getBucketById(entry.bucketId).getName());
+          index.put("properties", entry.propertyNames);
         }
       }
 

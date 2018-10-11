@@ -71,4 +71,6 @@ public interface Index {
   PaginatedComponent getPaginatedComponent();
 
   int getAssociatedBucketId();
+
+  boolean supportsOrderedIterations();
 }

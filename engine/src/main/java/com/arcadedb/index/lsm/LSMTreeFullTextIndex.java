@@ -220,6 +220,11 @@ public class LSMTreeFullTextIndex implements Index {
     return underlyingIndex.getAssociatedBucketId();
   }
 
+  @Override
+  public boolean supportsOrderedIterations() {
+    return false;
+  }
+
   public Analyzer getAnalyzer() {
     return analyzer;
   }

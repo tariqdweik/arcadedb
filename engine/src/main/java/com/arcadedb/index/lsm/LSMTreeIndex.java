@@ -168,6 +168,11 @@ public class LSMTreeIndex implements RangeIndex {
   }
 
   @Override
+  public boolean supportsOrderedIterations() {
+    return true;
+  }
+
+  @Override
   public IndexCursor get(final Object[] keys) {
     return get(keys, -1);
   }

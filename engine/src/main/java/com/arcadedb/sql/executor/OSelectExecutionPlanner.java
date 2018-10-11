@@ -1177,9 +1177,9 @@ public class OSelectExecutionPlanner {
       BooleanExpression keyCondition = null;
       BooleanExpression ridCondition = null;
       if (info.flattenedWhereClause == null || info.flattenedWhereClause.size() == 0) {
-//        if (!index.supportsOrderedIterations()) {
-        throw new CommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
-//        }
+        if (!index.supportsOrderedIterations()) {
+          throw new CommandExecutionException("Index " + indexName + " does not allow iteration without a condition");
+        }
       } else if (info.flattenedWhereClause.size() > 1) {
         throw new CommandExecutionException("Index queries with this kind of condition are not supported yet: " + info.whereClause);
       } else {
@@ -1213,20 +1213,19 @@ public class OSelectExecutionPlanner {
       break;
     case VALUES:
     case VALUESASC:
-//      if (!index.supportsOrderedIterations()) {
-      throw new CommandExecutionException("Index " + indexName + " does not allow iteration on values");
-//      }
-//      result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
-//      result.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
-
-//      break;
+      if (!index.supportsOrderedIterations()) {
+        throw new CommandExecutionException("Index " + indexName + " does not allow iteration on values");
+      }
+      result.chain(new FetchFromIndexValuesStep(index, true, ctx, profilingEnabled));
+      result.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
+      break;
     case VALUESDESC:
-//      if (!index.supportsOrderedIterations()) {
-      throw new CommandExecutionException("Index " + indexName + " does not allow iteration on values");
-//      }
-//      result.chain(new FetchFromIndexValuesStep(index, false, ctx, profilingEnabled));
-//      result.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
-//      break;
+      if (!index.supportsOrderedIterations()) {
+        throw new CommandExecutionException("Index " + indexName + " does not allow iteration on values");
+      }
+      result.chain(new FetchFromIndexValuesStep(index, false, ctx, profilingEnabled));
+      result.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
+      break;
     }
   }
 
@@ -1413,43 +1412,43 @@ public class OSelectExecutionPlanner {
     boolean indexedFunctionsFound = false;
 
     for (AndBlock block : info.flattenedWhereClause) {
-//      List<OBinaryCondition> indexedFunctionConditions = block.getIndexedFunctionConditions(clazz, ctx.getDatabase());
-      List<BinaryCondition> indexedFunctionConditions = new ArrayList<>();
+      List<BinaryCondition> indexedFunctionConditions = block.getIndexedFunctionConditions(clazz, ctx.getDatabase());
 
       indexedFunctionConditions = filterIndexedFunctionsWithoutIndex(indexedFunctionConditions, info.target, ctx);
 
       if (indexedFunctionConditions == null || indexedFunctionConditions.size() == 0) {
-//        IndexSearchDescriptor bestIndex = findBestIndexFor(ctx, clazz.getIndexes(), block, clazz);
-//        if (bestIndex != null) {
-        //TODO implement search on indexes
-//
-//          FetchFromIndexStep step = new FetchFromIndexStep(bestIndex.idx, bestIndex.keyCondition,
-//              bestIndex.additionalRangeCondition, true, ctx, profilingEnabled);
-//
-//          OSelectExecutionPlan subPlan = new OSelectExecutionPlan(ctx);
-//          subPlan.chain(step);
-//          int[] filterClusterIds = null;
-//          if (filterClusters != null) {
-//            filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getClusterIdByName(name)).mapToInt(i -> i)
-//                .toArray();
-//          }
-//          subPlan.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
-//          if (requiresMultipleIndexLookups(bestIndex.keyCondition)) {
-//            subPlan.chain(new DistinctExecutionStep(ctx, profilingEnabled));
-//          }
-//          if (!block.getSubBlocks().isEmpty()) {
-//            subPlan.chain(new FilterStep(createWhereFrom(block), ctx, profilingEnabled));
-//          }
-//          resultSubPlans.add(subPlan);
-//        } else {
-        FetchFromClassExecutionStep step = new FetchFromClassExecutionStep(clazz.getName(), filterClusters, ctx, true, profilingEnabled);
-        SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
-        subPlan.chain(step);
-        if (!block.getSubBlocks().isEmpty()) {
-          subPlan.chain(new FilterStep(createWhereFrom(block), ctx, profilingEnabled));
+        final List<IndexSearchDescriptor> bestIndexes = findBestIndexesFor(ctx, clazz.getAllIndexesMetadata(), block, clazz);
+        if (!bestIndexes.isEmpty()) {
+
+          for (IndexSearchDescriptor bestIndex : bestIndexes) {
+            final FetchFromIndexStep step = new FetchFromIndexStep(bestIndex.idx, bestIndex.keyCondition, bestIndex.additionalRangeCondition, true, ctx,
+                profilingEnabled);
+
+            SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
+            subPlan.chain(step);
+            int[] filterClusterIds = null;
+            if (filterClusters != null) {
+              filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getSchema().getBucketByName(name).getId()).mapToInt(i -> i).toArray();
+            }
+            subPlan.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
+            if (requiresMultipleIndexLookups(bestIndex.keyCondition)) {
+              subPlan.chain(new DistinctExecutionStep(ctx, profilingEnabled));
+            }
+            if (!block.getSubBlocks().isEmpty()) {
+              subPlan.chain(new FilterStep(createWhereFrom(block), ctx, profilingEnabled));
+            }
+            resultSubPlans.add(subPlan);
+          }
+
+        } else {
+          FetchFromClassExecutionStep step = new FetchFromClassExecutionStep(clazz.getName(), filterClusters, ctx, true, profilingEnabled);
+          SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
+          subPlan.chain(step);
+          if (!block.getSubBlocks().isEmpty()) {
+            subPlan.chain(new FilterStep(createWhereFrom(block), ctx, profilingEnabled));
+          }
+          resultSubPlans.add(subPlan);
         }
-        resultSubPlans.add(subPlan);
-//        }
       } else {
         BinaryCondition blockCandidateFunction = null;
         for (BinaryCondition cond : indexedFunctionConditions) {
@@ -1552,45 +1551,43 @@ public class OSelectExecutionPlanner {
       throw new CommandExecutionException("Class not found: " + queryTarget.getStringValue());
     }
 
-    //TODO search on indexes
-//    for (PIndex idx : clazz.getIndexes().stream().filter(i -> i.supportsOrderedIterations()).filter(i -> i.getDefinition() != null)
-//        .collect(Collectors.toList())) {
-//      List<String> indexFields = idx.getDefinition().getFields();
-//      if (indexFields.size() < info.orderBy.getItems().size()) {
-//        continue;
-//      }
-//      boolean indexFound = true;
-//      String orderType = null;
-//      for (int i = 0; i < info.orderBy.getItems().size(); i++) {
-//        OOrderByItem orderItem = info.orderBy.getItems().get(i);
-//        String indexField = indexFields.get(i);
-//        if (i == 0) {
-//          orderType = orderItem.getType();
-//        } else {
-//          if (orderType == null || !orderType.equals(orderItem.getType())) {
-//            indexFound = false;
-//            break;//ASC/DESC interleaved, cannot be used with index.
-//          }
-//        }
-//        if (!indexField.equals(orderItem.getAlias())) {
-//          indexFound = false;
-//          break;
-//        }
-//      }
-//      if (indexFound && orderType != null) {
-//        plan.chain(new FetchFromIndexValuesStep(idx, orderType.equals(OOrderByItem.ASC), ctx, profilingEnabled));
-//        int[] filterClusterIds = null;
-//        if (filterClusters != null) {
-//          filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getClusterIdByName(name)).mapToInt(i -> i)
-//              .toArray();
-//        }
-//        plan.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
-//        if (info.serverToClusters.size() == 1) {
-//          info.orderApplied = true;
-//        }
-//        return true;
-//      }
-//    }
+    for (DocumentType.IndexMetadata idx : clazz.getAllIndexesMetadata().stream().filter(i -> i.index.supportsOrderedIterations())
+        .collect(Collectors.toList())) {
+      String[] indexFields = idx.propertyNames;
+      if (indexFields.length < info.orderBy.getItems().size()) {
+        continue;
+      }
+      boolean indexFound = true;
+      String orderType = null;
+      for (int i = 0; i < info.orderBy.getItems().size(); i++) {
+        OrderByItem orderItem = info.orderBy.getItems().get(i);
+        String indexField = indexFields[i];
+        if (i == 0) {
+          orderType = orderItem.getType();
+        } else {
+          if (orderType == null || !orderType.equals(orderItem.getType())) {
+            indexFound = false;
+            break;//ASC/DESC interleaved, cannot be used with index.
+          }
+        }
+        if (!indexField.equals(orderItem.getAlias())) {
+          indexFound = false;
+          break;
+        }
+      }
+      if (indexFound && orderType != null) {
+        plan.chain(new FetchFromIndexValuesStep((RangeIndex) idx.index, orderType.equals(OrderByItem.ASC), ctx, profilingEnabled));
+        int[] filterClusterIds = null;
+        if (filterClusters != null) {
+          filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getSchema().getBucketByName(name).getId()).mapToInt(i -> i).toArray();
+        }
+        plan.chain(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
+        if (info.serverToClusters.size() == 1) {
+          info.orderApplied = true;
+        }
+        return true;
+      }
+    }
     return false;
   }
 
@@ -1605,32 +1602,31 @@ public class OSelectExecutionPlanner {
       return true;
     }
     //TODO
-//    PDocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass.getStringValue());
-//    if (clazz == null) {
-//      throw new PCommandExecutionException("Cannot find class " + targetClass);
-//    }
-//    if (clazz.count(false) != 0 || clazz.getSubclasses().size() == 0 || isDiamondHierarchy(clazz)) {
+    DocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass.getStringValue());
+    if (clazz == null) {
+      throw new CommandExecutionException("Cannot find class " + targetClass);
+    }
+
+    //    if (clazz.count(false) != 0 || clazz.getSubclasses().size() == 0 || isDiamondHierarchy(clazz)) {
 //      return false;
 //    }
-//    //try subclasses
-//
-//    Collection<OClass> subclasses = clazz.getSubclasses();
-//
-//    List<OInternalExecutionPlan> subclassPlans = new ArrayList<>();
-//    for (OClass subClass : subclasses) {
-//      List<OExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subClass.getName(), filterClusters, info, ctx,
-//          profilingEnabled);
-//      if (subSteps == null || subSteps.size() == 0) {
-//        return false;
-//      }
-//      OSelectExecutionPlan subPlan = new OSelectExecutionPlan(ctx);
-//      subSteps.stream().forEach(x -> subPlan.chain(x));
-//      subclassPlans.add(subPlan);
-//    }
-//    if (subclassPlans.size() > 0) {
-//      plan.chain(new ParallelExecStep(subclassPlans, ctx, profilingEnabled));
-//      return true;
-//    }
+
+    final Collection<DocumentType> subclasses = clazz.getSubTypes();
+
+    List<InternalExecutionPlan> subclassPlans = new ArrayList<>();
+    for (DocumentType subClass : subclasses) {
+      List<ExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subClass.getName(), filterClusters, info, ctx, profilingEnabled);
+      if (subSteps == null || subSteps.size() == 0) {
+        return false;
+      }
+      SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
+      subSteps.stream().forEach(x -> subPlan.chain(x));
+      subclassPlans.add(subPlan);
+    }
+    if (subclassPlans.size() > 0) {
+      plan.chain(new ParallelExecStep(subclassPlans, ctx, profilingEnabled));
+      return true;
+    }
     return false;
   }
 
@@ -1641,22 +1637,21 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private boolean isDiamondHierarchy(DocumentType clazz) {
-    //TODO no class hierarchies..?
-//    Set<OClass> traversed = new HashSet<>();
-//    List<OClass> stack = new ArrayList<>();
-//    stack.add(clazz);
-//    while (!stack.isEmpty()) {
-//      OClass current = stack.remove(0);
-//      traversed.add(current);
-//      for (OClass sub : current.getSubclasses()) {
-//        if (traversed.contains(sub)) {
-//          return true;
-//        }
-//        stack.add(sub);
-//        traversed.add(sub);
-//      }
-//    }
+  private boolean isDiamondHierarchy(final DocumentType clazz) {
+    Set<DocumentType> traversed = new HashSet<>();
+    List<DocumentType> stack = new ArrayList<>();
+    stack.add(clazz);
+    while (!stack.isEmpty()) {
+      DocumentType current = stack.remove(0);
+      traversed.add(current);
+      for (DocumentType sub : current.getSubTypes()) {
+        if (traversed.contains(sub)) {
+          return true;
+        }
+        stack.add(sub);
+        traversed.add(sub);
+      }
+    }
     return false;
   }
 
@@ -1670,25 +1665,24 @@ public class OSelectExecutionPlanner {
         throw new CommandExecutionException("Cannot find class " + targetClass);
       }
 //      if (clazz.count(false) != 0 || clazz.getSubclasses().size() == 0 || isDiamondHierarchy(clazz)) {
-      return null;
+//      return null;
 //      }
 
-//      Collection<OClass> subclasses = clazz.getSubclasses();
-//
-//      List<OInternalExecutionPlan> subclassPlans = new ArrayList<>();
-//      for (OClass subClass : subclasses) {
-//        List<OExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subClass.getName(), filterClusters, info, ctx,
-//            profilingEnabled);
-//        if (subSteps == null || subSteps.size() == 0) {
-//          return null;
-//        }
-//        OSelectExecutionPlan subPlan = new OSelectExecutionPlan(ctx);
-//        subSteps.stream().forEach(x -> subPlan.chain(x));
-//        subclassPlans.add(subPlan);
-//      }
-//      if (subclassPlans.size() > 0) {
-//        result.add(new ParallelExecStep(subclassPlans, ctx, profilingEnabled));
-//      }
+      final Collection<DocumentType> subclasses = clazz.getSubTypes();
+
+      List<InternalExecutionPlan> subclassPlans = new ArrayList<>();
+      for (DocumentType subClass : subclasses) {
+        List<ExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subClass.getName(), filterClusters, info, ctx, profilingEnabled);
+        if (subSteps == null || subSteps.size() == 0) {
+          return null;
+        }
+        SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
+        subSteps.stream().forEach(x -> subPlan.chain(x));
+        subclassPlans.add(subPlan);
+      }
+      if (subclassPlans.size() > 0) {
+        result.add(new ParallelExecStep(subclassPlans, ctx, profilingEnabled));
+      }
     }
     return result.size() == 0 ? null : result;
   }
@@ -1704,113 +1698,109 @@ public class OSelectExecutionPlanner {
       throw new CommandExecutionException("Cannot find class " + targetClass);
     }
 
-    //TODO!!!
-//    Set<PIndex> indexes = clazz.getIndexes();
-    Set<Index> indexes = new HashSet<>();
+    final Collection<DocumentType.IndexMetadata> indexes = clazz.getAllIndexesMetadata();
 
-    List<IndexSearchDescriptor> indexSearchDescriptors = info.flattenedWhereClause.stream().map(x -> findBestIndexFor(ctx, indexes, x, clazz))
-        .filter(Objects::nonNull).collect(Collectors.toList());
+    final List<IndexSearchDescriptor> indexSearchDescriptors = new ArrayList<>();
+
+    for (AndBlock entry : info.flattenedWhereClause)
+      indexSearchDescriptors.addAll(findBestIndexesFor(ctx, indexes, entry, clazz));
+
     if (indexSearchDescriptors.size() != info.flattenedWhereClause.size()) {
       return null; //some blocks could not be managed with an index
     }
 
     List<ExecutionStepInternal> result = new ArrayList<>();
-    //TODO!!!
-//    List<IndexSearchDescriptor> optimumIndexSearchDescriptors = commonFactor(indexSearchDescriptors);
-//
-//    if (indexSearchDescriptors.size() == 1) {
-//      IndexSearchDescriptor desc = indexSearchDescriptors.get(0);
-//      result = new ArrayList<>();
-//      Boolean orderAsc = getOrderDirection(info);
-//      result.add(
-//          new FetchFromIndexStep(desc.idx, desc.keyCondition, desc.additionalRangeCondition, !Boolean.FALSE.equals(orderAsc), ctx,
-//              profilingEnabled));
-//      int[] filterClusterIds = null;
-//      if (filterClusters != null) {
-//        filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getClusterIdByName(name)).mapToInt(i -> i)
-//            .toArray();
-//      }
-//      result.add(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
-//      if (requiresMultipleIndexLookups(desc.keyCondition)) {
-//        result.add(new DistinctExecutionStep(ctx, profilingEnabled));
-//      }
-//      if (orderAsc != null && info.orderBy != null && fullySorted(info.orderBy, desc.keyCondition, desc.idx)
-//          && info.serverToClusters.size() == 1) {
-//        info.orderApplied = true;
-//      }
-//      if (desc.remainingCondition != null && !desc.remainingCondition.isEmpty()) {
-//        result.add(new FilterStep(createWhereFrom(desc.remainingCondition), ctx, profilingEnabled));
-//      }
-//    } else {
-//      result = new ArrayList<>();
-//      result.add(createParallelIndexFetch(optimumIndexSearchDescriptors, filterClusters, ctx, profilingEnabled));
-//    }
+
+    List<IndexSearchDescriptor> optimumIndexSearchDescriptors = commonFactor(indexSearchDescriptors);
+
+    if (indexSearchDescriptors.size() == 1) {
+      IndexSearchDescriptor desc = indexSearchDescriptors.get(0);
+      result = new ArrayList<>();
+      Boolean orderAsc = getOrderDirection(info);
+      result.add(new FetchFromIndexStep(desc.idx, desc.keyCondition, desc.additionalRangeCondition, !Boolean.FALSE.equals(orderAsc), ctx, profilingEnabled));
+      int[] filterClusterIds = null;
+      if (filterClusters != null) {
+        filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getSchema().getBucketByName(name).getId()).mapToInt(i -> i).toArray();
+      }
+      result.add(new GetValueFromIndexEntryStep(ctx, filterClusterIds, profilingEnabled));
+      if (requiresMultipleIndexLookups(desc.keyCondition)) {
+        result.add(new DistinctExecutionStep(ctx, profilingEnabled));
+      }
+      if (orderAsc != null && info.orderBy != null && fullySorted(info.orderBy, desc.keyCondition, desc.idx) && info.serverToClusters.size() == 1) {
+        info.orderApplied = true;
+      }
+      if (desc.remainingCondition != null && !desc.remainingCondition.isEmpty()) {
+        result.add(new FilterStep(createWhereFrom(desc.remainingCondition), ctx, profilingEnabled));
+      }
+    } else {
+      result = new ArrayList<>();
+      result.add(createParallelIndexFetch(optimumIndexSearchDescriptors, filterClusters, ctx, profilingEnabled));
+    }
     return result;
   }
 
-  private boolean fullySorted(OrderBy orderBy, AndBlock conditions, Index idx) {
-//    if (!idx.supportsOrderedIterations())
-    return false;
-//
-//    List<String> orderItems = new ArrayList<>();
-//    String order = null;
-//
-//    for (OOrderByItem item : orderBy.getItems()) {
-//      if (order == null) {
-//        order = item.getType();
-//      } else if (!order.equals(item.getType())) {
-//        return false;
-//      }
-//      orderItems.add(item.getAlias());
-//    }
-//
-//    List<String> conditionItems = new ArrayList<>();
-//
-//    for (int i = 0; i < conditions.getSubBlocks().size(); i++) {
-//      OBooleanExpression item = conditions.getSubBlocks().get(i);
-//      if (item instanceof OBinaryCondition) {
-//        if (((OBinaryCondition) item).getOperator() instanceof OEqualsCompareOperator) {
-//          conditionItems.add(((OBinaryCondition) item).getLeft().toString());
-//        } else if (i != conditions.getSubBlocks().size() - 1) {
-//          return false;
-//        }
-//
-//      } else if (i != conditions.getSubBlocks().size() - 1) {
-//        return false;
-//      }
-//    }
-//
-//    List<String> orderedFields = new ArrayList<>();
-//    boolean overlapping = false;
-//    for (String s : conditionItems) {
-//      if (orderItems.isEmpty()) {
-//        return true;//nothing to sort, the conditions completely overlap the ORDER BY
-//      }
-//      if (s.equals(orderItems.get(0))) {
-//        orderItems.remove(0);
-//        overlapping = true; //start overlapping
-//      } else if (overlapping) {
-//        return false; //overlapping, but next order item does not match...
-//      }
-//      orderedFields.add(s);
-//    }
-//    orderedFields.addAll(orderItems);
-//
-//    final OIndexDefinition definition = idx.getDefinition();
-//    final List<String> fields = definition.getFields();
-//    if (fields.size() < orderedFields.size()) {
-//      return false;
-//    }
-//
-//    for (int i = 0; i < orderedFields.size(); i++) {
-//      final String orderFieldName = orderedFields.get(i);
-//      final String indexFieldName = fields.get(i);
-//      if (!orderFieldName.equals(indexFieldName)) {
-//        return false;
-//      }
-//    }
-//
-//    return true;
+  private boolean fullySorted(final OrderBy orderBy, final AndBlock conditions, final Index idx) {
+    if (!idx.supportsOrderedIterations())
+      return false;
+
+    List<String> orderItems = new ArrayList<>();
+    String order = null;
+
+    for (OrderByItem item : orderBy.getItems()) {
+      if (order == null) {
+        order = item.getType();
+      } else if (!order.equals(item.getType())) {
+        return false;
+      }
+      orderItems.add(item.getAlias());
+    }
+
+    List<String> conditionItems = new ArrayList<>();
+
+    for (int i = 0; i < conditions.getSubBlocks().size(); i++) {
+      BooleanExpression item = conditions.getSubBlocks().get(i);
+      if (item instanceof BinaryCondition) {
+        if (((BinaryCondition) item).getOperator() instanceof EqualsCompareOperator) {
+          conditionItems.add(((BinaryCondition) item).getLeft().toString());
+        } else if (i != conditions.getSubBlocks().size() - 1) {
+          return false;
+        }
+
+      } else if (i != conditions.getSubBlocks().size() - 1) {
+        return false;
+      }
+    }
+
+    List<String> orderedFields = new ArrayList<>();
+    boolean overlapping = false;
+    for (String s : conditionItems) {
+      if (orderItems.isEmpty()) {
+        return true;//nothing to sort, the conditions completely overlap the ORDER BY
+      }
+      if (s.equals(orderItems.get(0))) {
+        orderItems.remove(0);
+        overlapping = true; //start overlapping
+      } else if (overlapping) {
+        return false; //overlapping, but next order item does not match...
+      }
+      orderedFields.add(s);
+    }
+    orderedFields.addAll(orderItems);
+
+    final String[] fields = idx.getPropertyNames();
+    if (fields.length < orderedFields.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < orderedFields.size(); i++) {
+      final String orderFieldName = orderedFields.get(i);
+      final String indexFieldName = fields[i];
+      if (!orderFieldName.equals(indexFieldName)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
@@ -1890,11 +1880,19 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private IndexSearchDescriptor findBestIndexFor(CommandContext ctx, Set<Index> indexes, AndBlock block, DocumentType clazz) {
-    return indexes.stream()
+  private List<IndexSearchDescriptor> findBestIndexesFor(CommandContext ctx, Collection<DocumentType.IndexMetadata> indexes, AndBlock block,
+      DocumentType clazz) {
+    final Iterator<IndexSearchDescriptor> it = indexes.stream()
         //.filter(index -> index.getInternal().canBeUsedInEqualityOperators())
         .map(index -> buildIndexSearchDescriptor(ctx, index, block, clazz)).filter(Objects::nonNull).filter(x -> x.keyCondition != null)
-        .filter(x -> x.keyCondition.getSubBlocks().size() > 0).min(Comparator.comparing(x -> x.cost(ctx))).orElse(null);
+        .filter(x -> x.keyCondition.getSubBlocks().size() > 0).sorted(Comparator.comparing(x -> x.cost(ctx))).iterator();
+
+    final List<IndexSearchDescriptor> list = new ArrayList<>();
+
+    while (it.hasNext())
+      list.add(it.next());
+
+    return list;
   }
 
   /**
@@ -1908,135 +1906,128 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private IndexSearchDescriptor buildIndexSearchDescriptor(CommandContext ctx, Index index, AndBlock block, DocumentType clazz) {
-    //TODO!!!
-//    List<String> indexFields = index.getDefinition().getFields();
-//    OBinaryCondition keyCondition = new OBinaryCondition(-1);
-//    OIdentifier key = new OIdentifier("key");
-//    keyCondition.setLeft(new OExpression(key));
-//    boolean allowsRange = allowsRangeQueries(index);
-//    boolean found = false;
-//
-//    OAndBlock blockCopy = block.copy();
-//    Iterator<OBooleanExpression> blockIterator;
-//
-//    OAndBlock indexKeyValue = new OAndBlock(-1);
-//    IndexSearchDescriptor result = new IndexSearchDescriptor();
-//    result.idx = index;
-//    result.keyCondition = indexKeyValue;
-//    for (String indexField : indexFields) {
-//      blockIterator = blockCopy.getSubBlocks().iterator();
-//      boolean breakHere = false;
-//      boolean indexFieldFound = false;
-//      while (blockIterator.hasNext()) {
-//        OBooleanExpression singleExp = blockIterator.next();
-//        if (singleExp instanceof OBinaryCondition) {
-//          OExpression left = ((OBinaryCondition) singleExp).getLeft();
-//          if (left.isBaseIdentifier()) {
-//            String fieldName = left.getDefaultAlias().getStringValue();
-//            if (indexField.equals(fieldName)) {
-//              OBinaryCompareOperator operator = ((OBinaryCondition) singleExp).getOperator();
-//              if (!((OBinaryCondition) singleExp).getRight().isEarlyCalculated()) {
-//                continue; //this cannot be used because the value depends on single record
-//              }
-//              if (operator instanceof OEqualsCompareOperator) {
-//                found = true;
-//                indexFieldFound = true;
-//                OBinaryCondition condition = new OBinaryCondition(-1);
-//                condition.setLeft(left);
-//                condition.setOperator(operator);
-//                condition.setRight(((OBinaryCondition) singleExp).getRight().copy());
-//                indexKeyValue.getSubBlocks().add(condition);
-//                blockIterator.remove();
-//                break;
-//              } else if (allowsRange && operator.isRangeOperator()) {
-//                found = true;
-//                indexFieldFound = true;
-//                breakHere = true;//this is last element, no other fields can be added to the key because this is a range condition
-//                OBinaryCondition condition = new OBinaryCondition(-1);
-//                condition.setLeft(left);
-//                condition.setOperator(operator);
-//                condition.setRight(((OBinaryCondition) singleExp).getRight().copy());
-//                indexKeyValue.getSubBlocks().add(condition);
-//                blockIterator.remove();
-//                //look for the opposite condition, on the same field, for range queries (the other side of the range)
-//                while (blockIterator.hasNext()) {
-//                  OBooleanExpression next = blockIterator.next();
-//                  if (createsRangeWith((OBinaryCondition) singleExp, next)) {
-//                    result.additionalRangeCondition = (OBinaryCondition) next;
-//                    blockIterator.remove();
-//                    break;
-//                  }
-//                }
-//                break;
-//              }
-//            }
-//          }
-//        } else if (singleExp instanceof OContainsAnyCondition) {
-//          OExpression left = ((OContainsAnyCondition) singleExp).getLeft();
-//          if (left.isBaseIdentifier()) {
-//            String fieldName = left.getDefaultAlias().getStringValue();
-//            if (indexField.equals(fieldName)) {
-//              if (!((OContainsAnyCondition) singleExp).getRight().isEarlyCalculated()) {
-//                continue; //this cannot be used because the value depends on single record
-//              }
-//              found = true;
-//              indexFieldFound = true;
-//              OContainsAnyCondition condition = new OContainsAnyCondition(-1);
-//              condition.setLeft(left);
-//              condition.setRight(((OContainsAnyCondition) singleExp).getRight().copy());
-//              indexKeyValue.getSubBlocks().add(condition);
-//              blockIterator.remove();
-//              break;
-//            }
-//          }
-//        } else if (singleExp instanceof OInCondition) {
-//          OExpression left = ((OInCondition) singleExp).getLeft();
-//          if (left.isBaseIdentifier()) {
-//            String fieldName = left.getDefaultAlias().getStringValue();
-//            if (indexField.equals(fieldName)) {
-//              if (((OInCondition) singleExp).getRightMathExpression() != null) {
-//
-//                if (!((OInCondition) singleExp).getRightMathExpression().isEarlyCalculated()) {
-//                  continue; //this cannot be used because the value depends on single record
-//                }
-//                found = true;
-//                indexFieldFound = true;
-//                OInCondition condition = new OInCondition(-1);
-//                condition.setLeft(left);
-//                condition.setRightMathExpression(((OInCondition) singleExp).getRightMathExpression().copy());
-//                indexKeyValue.getSubBlocks().add(condition);
-//                blockIterator.remove();
-//                break;
-//              } else if (((OInCondition) singleExp).getRightParam() != null) {
-//                found = true;
-//                indexFieldFound = true;
-//                OInCondition condition = new OInCondition(-1);
-//                condition.setLeft(left);
-//                condition.setRightParam(((OInCondition) singleExp).getRightParam().copy());
-//                indexKeyValue.getSubBlocks().add(condition);
-//                blockIterator.remove();
-//                break;
-//              }
-//            }
-//          }
-//        }
-//      }
-//      if (breakHere || !indexFieldFound) {
-//        break;
-//      }
-//    }
-//
-//    if (result.keyCondition.getSubBlocks().size() < index.getDefinition().getFields().size() && !index
-//        .supportsOrderedIterations()) {
-//      //hash indexes do not support partial key match
-//      return null;
-//    }
-//
-//    if (found) {
-//      result.remainingCondition = blockCopy;
-//      return result;
-//    }
+  private IndexSearchDescriptor buildIndexSearchDescriptor(CommandContext ctx, DocumentType.IndexMetadata index, AndBlock block, DocumentType clazz) {
+    String[] indexFields = index.propertyNames;
+    BinaryCondition keyCondition = new BinaryCondition(-1);
+    Identifier key = new Identifier("key");
+    keyCondition.setLeft(new Expression(key));
+    boolean allowsRange = allowsRangeQueries(index.index);
+    boolean found = false;
+
+    AndBlock blockCopy = block.copy();
+    Iterator<BooleanExpression> blockIterator;
+
+    AndBlock indexKeyValue = new AndBlock(-1);
+    IndexSearchDescriptor result = new IndexSearchDescriptor();
+    result.idx = (RangeIndex) index.index;
+    result.keyCondition = indexKeyValue;
+    for (String indexField : indexFields) {
+      blockIterator = blockCopy.getSubBlocks().iterator();
+      boolean breakHere = false;
+      boolean indexFieldFound = false;
+      while (blockIterator.hasNext()) {
+        BooleanExpression singleExp = blockIterator.next();
+        if (singleExp instanceof BinaryCondition) {
+          Expression left = ((BinaryCondition) singleExp).getLeft();
+          if (left.isBaseIdentifier()) {
+            String fieldName = left.getDefaultAlias().getStringValue();
+            if (indexField.equals(fieldName)) {
+              BinaryCompareOperator operator = ((BinaryCondition) singleExp).getOperator();
+              if (!((BinaryCondition) singleExp).getRight().isEarlyCalculated()) {
+                continue; //this cannot be used because the value depends on single record
+              }
+              if (operator instanceof EqualsCompareOperator) {
+                found = true;
+                indexFieldFound = true;
+                BinaryCondition condition = new BinaryCondition(-1);
+                condition.setLeft(left);
+                condition.setOperator(operator);
+                condition.setRight(((BinaryCondition) singleExp).getRight().copy());
+                indexKeyValue.getSubBlocks().add(condition);
+                blockIterator.remove();
+                break;
+              } else if (allowsRange && operator.isRangeOperator()) {
+                found = true;
+                indexFieldFound = true;
+                breakHere = true;//this is last element, no other fields can be added to the key because this is a range condition
+                BinaryCondition condition = new BinaryCondition(-1);
+                condition.setLeft(left);
+                condition.setOperator(operator);
+                condition.setRight(((BinaryCondition) singleExp).getRight().copy());
+                indexKeyValue.getSubBlocks().add(condition);
+                blockIterator.remove();
+                //look for the opposite condition, on the same field, for range queries (the other side of the range)
+                while (blockIterator.hasNext()) {
+                  BooleanExpression next = blockIterator.next();
+                  if (createsRangeWith((BinaryCondition) singleExp, next)) {
+                    result.additionalRangeCondition = (BinaryCondition) next;
+                    blockIterator.remove();
+                    break;
+                  }
+                }
+                break;
+              }
+            }
+          }
+        } else if (singleExp instanceof ContainsAnyCondition) {
+          Expression left = ((ContainsAnyCondition) singleExp).getLeft();
+          if (left.isBaseIdentifier()) {
+            String fieldName = left.getDefaultAlias().getStringValue();
+            if (indexField.equals(fieldName)) {
+              if (!((ContainsAnyCondition) singleExp).getRight().isEarlyCalculated()) {
+                continue; //this cannot be used because the value depends on single record
+              }
+              found = true;
+              indexFieldFound = true;
+              ContainsAnyCondition condition = new ContainsAnyCondition(-1);
+              condition.setLeft(left);
+              condition.setRight(((ContainsAnyCondition) singleExp).getRight().copy());
+              indexKeyValue.getSubBlocks().add(condition);
+              blockIterator.remove();
+              break;
+            }
+          }
+        } else if (singleExp instanceof InCondition) {
+          Expression left = ((InCondition) singleExp).getLeft();
+          if (left.isBaseIdentifier()) {
+            String fieldName = left.getDefaultAlias().getStringValue();
+            if (indexField.equals(fieldName)) {
+              if (((InCondition) singleExp).getRightMathExpression() != null) {
+
+                if (!((InCondition) singleExp).getRightMathExpression().isEarlyCalculated()) {
+                  continue; //this cannot be used because the value depends on single record
+                }
+                found = true;
+                indexFieldFound = true;
+                InCondition condition = new InCondition(-1);
+                condition.setLeft(left);
+                condition.setRightMathExpression(((InCondition) singleExp).getRightMathExpression().copy());
+                indexKeyValue.getSubBlocks().add(condition);
+                blockIterator.remove();
+                break;
+              } else if (((InCondition) singleExp).getRightParam() != null) {
+                found = true;
+                indexFieldFound = true;
+                InCondition condition = new InCondition(-1);
+                condition.setLeft(left);
+                condition.setRightParam(((InCondition) singleExp).getRightParam().copy());
+                indexKeyValue.getSubBlocks().add(condition);
+                blockIterator.remove();
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (breakHere || !indexFieldFound) {
+        break;
+      }
+    }
+
+    if (found) {
+      result.remainingCondition = blockCopy;
+      return result;
+    }
     return null;
   }
 
@@ -2059,9 +2050,8 @@ public class OSelectExecutionPlanner {
     return false;
   }
 
-  private boolean allowsRangeQueries(Index index) {
-//    return index.supportsOrderedIterations();
-    return false;
+  private boolean allowsRangeQueries(final Index index) {
+    return index.supportsOrderedIterations();
   }
 
   /**

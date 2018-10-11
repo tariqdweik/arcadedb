@@ -147,6 +147,8 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
         count++;
         return;
       }
+
+      cursor = null;
     }
   }
 
@@ -309,7 +311,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 //    }
   }
 
-  private void init(PCollection fromKey, boolean fromKeyIncluded, PCollection toKey, boolean toKeyIncluded) throws IOException {
+  private void init(PCollection fromKey, boolean fromKeyIncluded, PCollection toKey, boolean toKeyIncluded) {
     List<PCollection> secondValueCombinations = cartesianProduct(fromKey);
     List<PCollection> thirdValueCombinations = cartesianProduct(toKey);
 
@@ -321,13 +323,13 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       secondValue = convertToIndexDefinitionTypes(secondValue);
       thirdValue = convertToIndexDefinitionTypes(thirdValue);
       IndexCursor cursor;
-//      if (index.supportsOrderedIterations()) {
-      cursor = index.range(new Object[] { secondValue }, fromKeyIncluded, new Object[] { thirdValue }, toKeyIncluded);
-//      } else if (additionalRangeCondition == null && allEqualities((OAndBlock) condition)) {
-//        cursor = index.iterateEntries(toIndexKey(indexDef, secondValue), isOrderAsc());
-//      } else {
-//        throw new UnsupportedOperationException("Cannot evaluate " + this.condition + " on index " + index);
-//      }
+      if (index.supportsOrderedIterations()) {
+        cursor = index.range(convertToObjectArray(secondValue), fromKeyIncluded, convertToObjectArray(thirdValue), toKeyIncluded);
+      } else if (additionalRangeCondition == null && allEqualities((AndBlock) condition)) {
+        cursor = index.iterator(isOrderAsc(), convertToObjectArray(secondValue), true);
+      } else {
+        throw new UnsupportedOperationException("Cannot evaluate " + this.condition + " on index " + index);
+      }
       nextCursors.add(cursor);
 
     }
@@ -335,6 +337,16 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       cursor = nextCursors.remove(0);
       fetchNextEntry();
     }
+  }
+
+  private Object[] convertToObjectArray(final Object value) {
+    if (value instanceof Object[])
+      return (Object[]) value;
+
+    if (value instanceof Collection)
+      return ((Collection) value).toArray();
+
+    return new Object[] { value };
   }
 
   private List<PCollection> cartesianProduct(PCollection key) {
