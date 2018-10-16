@@ -62,7 +62,7 @@ try( Database db = databaseFactory.open(); ){
 }
 ```
 
-Or if you're using Java8+, you can simplify with a clojure:
+Or if you're using Java8+, you can simplify with a closure:
 
 ```java
 try( Database db = databaseFactory.open(); ){
