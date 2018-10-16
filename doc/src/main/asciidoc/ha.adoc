@@ -29,7 +29,7 @@ XNIO NIO Implementation Version 3.3.8.Final [nio]
 
 ArcadeDB has a Leader/Replica model by using RAFT consensus for election and replication.
 
-[ditaa,asciidoctor-diagram-process]
+[ditaa,ha-architecture]
 ....
  +------------+        +------------+        +------------+
  | ArcadeDB_1 |<-------| ArcadeDB_0 |------->| ArcadeDB_2 |
