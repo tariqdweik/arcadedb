@@ -5,6 +5,7 @@
 package com.arcadedb.console;
 
 import com.arcadedb.Constants;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Document;
@@ -36,12 +37,15 @@ public class Console {
   private              ConsoleOutput   output;
   private              DatabaseFactory databaseFactory;
   private              Database        database;
+  private              int             limit  = 20;
 
   private String getPrompt() {
     return String.format(PROMPT, database != null ? "{" + database.getName() + "}" : "");
   }
 
   public Console(final boolean interactive) throws IOException {
+    GlobalConfiguration.PROFILE.setValue("low-cpu");
+
     terminal = TerminalBuilder.builder().system(system).streams(System.in, System.out).jansi(true).build();
     lineReader = LineReaderBuilder.builder().terminal(terminal).parser(parser).build();
 
@@ -104,29 +108,31 @@ public class Console {
 
   private boolean execute(final String line) throws IOException {
     if (line != null && !line.isEmpty()) {
-      if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
-        executeClose();
-        return false;
-      } else if (line.startsWith("info"))
-        executeInfo(line.substring("info".length()).trim());
-      else if (line.startsWith("load"))
-        executeLoad(line.substring("load".length()).trim());
-      else if (line.equalsIgnoreCase("help") || line.equals("?"))
-        executeHelp();
-      else if (line.startsWith("begin"))
+      if (line.startsWith("begin"))
         executeBegin();
-      else if (line.startsWith("commit"))
-        executeCommit();
-      else if (line.startsWith("rollback"))
-        executeRollback();
       else if (line.startsWith("close"))
         executeClose();
+      else if (line.startsWith("commit"))
+        executeCommit();
       else if (line.startsWith("connect"))
         executeConnect(line);
       else if (line.startsWith("create database"))
         executeCreateDatabase(line);
       else if (line.startsWith("drop database"))
         executeDropDatabase(line);
+      else if (line.equalsIgnoreCase("help") || line.equals("?"))
+        executeHelp();
+      else if (line.startsWith("info"))
+        executeInfo(line.substring("info".length()).trim());
+      else if (line.startsWith("load"))
+        executeLoad(line.substring("load".length()).trim());
+      else if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
+        executeClose();
+        return false;
+      } else if (line.startsWith("rollback"))
+        executeRollback();
+      else if (line.startsWith("set"))
+        executeSet(line.substring("set".length()).trim());
       else {
         executeSQL(line);
       }
@@ -135,6 +141,20 @@ public class Console {
     output("\n");
 
     return true;
+  }
+
+  private void executeSet(final String line) {
+    if (line == null || line.isEmpty())
+      return;
+
+    final String[] parts = line.split("=");
+    if (parts.length != 2)
+      return;
+
+    if ("limit".equalsIgnoreCase(parts[0].trim())) {
+      limit = Integer.parseInt(parts[1].trim());
+      output("Set new limit = %d", limit);
+    }
   }
 
   private void executeBegin() {
@@ -251,7 +271,7 @@ public class Console {
     else
       result = database.command("SQL", line);
 
-    final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
+    final TableFormatter table = new TableFormatter(new TableFormatter.TableOutput() {
       @Override
       public void onMessage(String text, Object... args) {
         output(text, args);
@@ -259,14 +279,17 @@ public class Console {
     });
     table.setPrefixedColumns("@RID", "@TYPE");
 
-    final List<RecordTableFormatter.PTableRecordRow> list = new ArrayList<>();
+    final List<RecordTableFormatter.TableRecordRow> list = new ArrayList<>();
     while (result.hasNext()) {
-      list.add(new RecordTableFormatter.PTableRecordRow(result.next()));
+      list.add(new RecordTableFormatter.TableRecordRow(result.next()));
+
+      if (limit > -1 && list.size() > limit)
+        break;
     }
 
     final long elapsed = System.currentTimeMillis() - beginTime;
 
-    table.writeRows(list, 20);
+    table.writeRows(list, limit);
 
     terminal.writer().printf("\nCommand executed in %dms\n", elapsed);
   }
@@ -315,7 +338,7 @@ public class Console {
     if (subject.equalsIgnoreCase("types")) {
       output("\nAVAILABLE TYPES");
 
-      final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
+      final TableFormatter table = new TableFormatter(new TableFormatter.TableOutput() {
         @Override
         public void onMessage(String text, Object... args) {
           output(text, args);
@@ -327,9 +350,9 @@ public class Console {
         return;
       }
 
-      final List<TableFormatter.PTableMapRow> rows = new ArrayList<>();
+      final List<TableFormatter.TableMapRow> rows = new ArrayList<>();
       for (DocumentType type : database.getSchema().getTypes()) {
-        final TableFormatter.PTableMapRow row = new TableFormatter.PTableMapRow();
+        final TableFormatter.TableMapRow row = new TableFormatter.TableMapRow();
         row.setField("NAME", type.getName());
 
         final byte kind = type.getType();

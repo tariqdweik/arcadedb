@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,16 +49,28 @@ public class DatabaseAsyncExecutor {
   private ErrorCallback onErrorCallback;
 
   private class AsyncThread extends Thread {
-    public final    PushPullBlockingQueue<DatabaseAsyncTask> queue;
-    public final    DatabaseInternal                         database;
-    public volatile boolean                                  shutdown      = false;
-    public volatile boolean                                  forceShutdown = false;
-    public          long                                     count         = 0;
+    public final    BlockingQueue<DatabaseAsyncTask> queue;
+    public final    DatabaseInternal                 database;
+    public volatile boolean                          shutdown      = false;
+    public volatile boolean                          forceShutdown = false;
+    public          long                             count         = 0;
 
     private AsyncThread(final DatabaseInternal database, final int id) {
       super("AsyncExecutor-" + id);
       this.database = database;
-      this.queue = new PushPullBlockingQueue<>(database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE) / parallelLevel);
+
+      final String cfgQueueImpl = database.getConfiguration().getValueAsString(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_IMPL);
+      if ("fast".equalsIgnoreCase(cfgQueueImpl))
+        this.queue = new PushPullBlockingQueue<>(
+            database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_SIZE) / parallelLevel);
+      else if ("standard".equalsIgnoreCase(cfgQueueImpl))
+        this.queue = new ArrayBlockingQueue<>(database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_SIZE) / parallelLevel);
+      else {
+        // WARNING AND THEN USE THE DEFAULT
+        LogManager.instance().warn(this, "Error on async operation queue implementation setting: %s is not supported", cfgQueueImpl);
+        this.queue = new PushPullBlockingQueue<>(
+            database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_SIZE) / parallelLevel);
+      }
     }
 
     @Override
@@ -309,7 +323,7 @@ public class DatabaseAsyncExecutor {
   public DatabaseAsyncExecutor(final DatabaseInternal database) {
     this.database = database;
     this.commitEvery = database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_TX_BATCH_SIZE);
-    createThreads(Runtime.getRuntime().availableProcessors() - 1);
+    createThreads(database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_WORKER_THREADS));
   }
 
   public PDBAsynchStats getStats() {

@@ -780,17 +780,17 @@ public class HAServer implements ServerPlugin {
 
   public void printClusterConfiguration() {
     final StringBuilder buffer = new StringBuilder("NEW CLUSTER CONFIGURATION\n");
-    final TableFormatter table = new TableFormatter(new TableFormatter.OTableOutput() {
+    final TableFormatter table = new TableFormatter(new TableFormatter.TableOutput() {
       @Override
       public void onMessage(final String text, final Object... args) {
         buffer.append(String.format(text, args));
       }
     });
 
-    final List<RecordTableFormatter.PTableRecordRow> list = new ArrayList<>();
+    final List<RecordTableFormatter.TableRecordRow> list = new ArrayList<>();
 
     ResultInternal line = new ResultInternal();
-    list.add(new RecordTableFormatter.PTableRecordRow(line));
+    list.add(new RecordTableFormatter.TableRecordRow(line));
 
     line.setProperty("SERVER", getServerName());
     line.setProperty("HOST/PORT", getServerAddress());
@@ -803,7 +803,7 @@ public class HAServer implements ServerPlugin {
 
     for (Leader2ReplicaNetworkExecutor c : replicaConnections.values()) {
       line = new ResultInternal();
-      list.add(new RecordTableFormatter.PTableRecordRow(line));
+      list.add(new RecordTableFormatter.TableRecordRow(line));
 
       final Leader2ReplicaNetworkExecutor.STATUS status = c.getStatus();
 

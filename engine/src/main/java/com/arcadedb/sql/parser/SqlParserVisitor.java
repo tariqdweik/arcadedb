@@ -79,7 +79,7 @@ public interface SqlParserVisitor
   Object visit(FromItem node, Object data);
   Object visit(Bucket node, Object data);
   Object visit(BucketList node, Object data);
-  Object visit(MetadataIdentifier node, Object data);
+  Object visit(SchemaIdentifier node, Object data);
   Object visit(IndexName node, Object data);
   Object visit(IndexIdentifier node, Object data);
   Object visit(WhereClause node, Object data);

@@ -23,38 +23,38 @@ public class TableFormatter {
   protected final static String           MORE           = "...";
   protected final static SimpleDateFormat DEF_DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
-  protected       Pair<String, Boolean>            columnSorting   = null;
-  protected final Map<String, ALIGNMENT>           columnAlignment = new HashMap<String, ALIGNMENT>();
-  protected final Map<String, Map<String, String>> columnMetadata  = new HashMap<String, Map<String, String>>();
-  protected final Set<String>                      columnHidden    = new HashSet<String>();
-  protected       Set<String>                      prefixedColumns = new LinkedHashSet<String>(Arrays.asList(new String[] {}));
-  protected final OTableOutput                     out;
+  protected       Pair<String, Boolean>            columnSorting        = null;
+  protected final Map<String, ALIGNMENT>           columnAlignment      = new HashMap<String, ALIGNMENT>();
+  protected final Map<String, Map<String, String>> columnMetadata       = new HashMap<String, Map<String, String>>();
+  protected final Set<String>                      columnHidden         = new HashSet<String>();
+  protected       Set<String>                      prefixedColumns      = new LinkedHashSet<String>(Arrays.asList(new String[] {}));
+  protected final TableOutput                      out;
   protected       int                              maxMultiValueEntries = 10;
   protected       int                              minColumnSize        = 4;
   protected       int                              maxWidthSize         = 150;
   protected       String                           nullValue            = "";
   protected       boolean                          leftBorder           = true;
   protected       boolean                          rightBorder          = true;
-  protected       PTableRow                        footer;
+  protected       TableRow                         footer;
 
-  public interface OTableOutput {
+  public interface TableOutput {
     void onMessage(String text, Object... args);
   }
 
-  public interface PTableRow {
+  public interface TableRow {
     Object getField(String field);
 
     Set<String> getFields();
   }
 
-  public static class PTableMapRow implements PTableRow {
+  public static class TableMapRow implements TableRow {
     private final Map<String, Object> map;
 
-    public PTableMapRow(final Map<String, Object> map) {
+    public TableMapRow(final Map<String, Object> map) {
       this.map = map;
     }
 
-    public PTableMapRow() {
+    public TableMapRow() {
       map = new LinkedHashMap<>();
     }
 
@@ -73,7 +73,7 @@ public class TableFormatter {
     }
   }
 
-  public TableFormatter(final OTableOutput iConsole) {
+  public TableFormatter(final TableOutput iConsole) {
     this.out = iConsole;
   }
 
@@ -93,7 +93,7 @@ public class TableFormatter {
     columnHidden.add(column);
   }
 
-  public void writeRows(final List<? extends PTableRow> rows, final int limit) {
+  public void writeRows(final List<? extends TableRow> rows, final int limit) {
     final Map<String, Integer> columns = parseColumns(rows, limit);
 
     if (columnSorting != null) {
@@ -122,7 +122,7 @@ public class TableFormatter {
     }
 
     int fetched = 0;
-    for (PTableRow record : rows) {
+    for (TableRow record : rows) {
       dumpRecordInTable(fetched++, record, columns);
 
       if (limit > -1 && fetched >= limit) {
@@ -172,7 +172,7 @@ public class TableFormatter {
     return this;
   }
 
-  public void dumpRecordInTable(final int iIndex, final PTableRow iRecord, final Map<String, Integer> iColumns) {
+  public void dumpRecordInTable(final int iIndex, final TableRow iRecord, final Map<String, Integer> iColumns) {
     if (iIndex == 0)
       printHeader(iColumns);
 
@@ -250,7 +250,7 @@ public class TableFormatter {
     return valueAsString;
   }
 
-  protected Object getFieldValue(final int iIndex, final PTableRow row, final String iColumnName) {
+  protected Object getFieldValue(final int iIndex, final TableRow row, final String iColumnName) {
     Object value = null;
 
     if (iColumnName.equals("#"))
@@ -293,7 +293,7 @@ public class TableFormatter {
     return value.toString();
   }
 
-  public void setFooter(final PTableRow footer) {
+  public void setFooter(final TableRow footer) {
     this.footer = footer;
   }
 
@@ -442,7 +442,7 @@ public class TableFormatter {
    *
    * @return
    */
-  private Map<String, Integer> parseColumns(final List<? extends PTableRow> rows, final int limit) {
+  private Map<String, Integer> parseColumns(final List<? extends TableRow> rows, final int limit) {
     final Map<String, Integer> columns = new LinkedHashMap<String, Integer>();
 
     for (String c : prefixedColumns)
@@ -452,7 +452,7 @@ public class TableFormatter {
     boolean hasClass = false;
 
     int fetched = 0;
-    for (PTableRow row : rows) {
+    for (TableRow row : rows) {
       for (String c : prefixedColumns)
         columns.put(c, getColumnSize(fetched, row, c, columns.get(c)));
 
@@ -546,7 +546,7 @@ public class TableFormatter {
     return columns;
   }
 
-  private Integer getColumnSize(final Integer iIndex, final PTableRow row, final String fieldName, final Integer origSize) {
+  private Integer getColumnSize(final Integer iIndex, final TableRow row, final String fieldName, final Integer origSize) {
     Integer newColumnSize;
     if (origSize == null)
       // START FROM THE FIELD NAME SIZE

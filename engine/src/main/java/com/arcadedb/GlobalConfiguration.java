@@ -47,6 +47,45 @@ public enum GlobalConfiguration {
         }
       }),
 
+  PROFILE("arcadedb.profile", "Specify the preferred profile among: high-performance, low-ram, low-cpu", String.class, "high-performance",
+      new Callable<Object, Object>() {
+        @Override
+        public Object call(final Object value) {
+          final String v = value.toString();
+          if (v.equalsIgnoreCase("standard")) {
+            // NOT MUCH TO DO, THIS IS THE DEFAULT OPTION
+          } else if (v.equalsIgnoreCase("high-performance")) {
+            ASYNC_OPERATIONS_QUEUE_IMPL.setValue("fast");
+
+            final int cores = Runtime.getRuntime().availableProcessors();
+            if (cores > 1)
+              // USE ONLY HALF OF THE CORES MINUS ONE
+              ASYNC_WORKER_THREADS.setValue((cores / 2) - 1);
+            else
+              ASYNC_WORKER_THREADS.setValue(1);
+
+          } else if (v.equalsIgnoreCase("low-ram")) {
+            MAX_PAGE_RAM.setValue(16); // 16 MB OF RAM FOR PAGE CACHE
+            INDEX_COMPACTION_RAM_MB.setValue(16);
+            INITIAL_PAGE_CACHE_SIZE.setValue(256);
+            FREE_PAGE_RAM.setValue(100);
+            ASYNC_OPERATIONS_QUEUE_SIZE.setValue(8);
+            ASYNC_TX_BATCH_SIZE.setValue(8);
+            PAGE_FLUSH_QUEUE.setValue(8);
+            SQL_STATEMENT_CACHE.setValue(16);
+            HA_REPLICATION_QUEUE_SIZE.setValue(8);
+            ASYNC_OPERATIONS_QUEUE_IMPL.setValue("fast");
+
+          } else if (v.equalsIgnoreCase("low-cpu")) {
+            ASYNC_WORKER_THREADS.setValue(1);
+            ASYNC_OPERATIONS_QUEUE_IMPL.setValue("standard");
+          } else
+            throw new IllegalArgumentException("Profile '" + v + "' not available");
+
+          return value;
+        }
+      }),
+
   TEST("arcadedb.test", "Tells if it is running in test mode. This enables the calling of callbacks for testing purpose ", Boolean.class, false),
 
   MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4, new Callable<Object, Object>() {
@@ -80,7 +119,14 @@ public enum GlobalConfiguration {
 
   FREE_PAGE_RAM("arcadedb.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
-  ASYNC_OPERATIONS_QUEUE("arcadedb.asyncOperationsQueue",
+  ASYNC_WORKER_THREADS("arcadedb.asyncWorkerThreads", "Number of asynchronous worker threads. 0 (default) = available cores minus 1", Integer.class,
+      Runtime.getRuntime().availableProcessors() > 1 ? Runtime.getRuntime().availableProcessors() - 1 : 1),
+
+  ASYNC_OPERATIONS_QUEUE_IMPL("arcadedb.asyncOperationsQueueImpl",
+      "Queue implementation to use between 'standard' and 'fast'. 'standard' consumes less CPU than the 'fast' implementation, but it could be slower with high loads",
+      String.class, "standard"),
+
+  ASYNC_OPERATIONS_QUEUE_SIZE("arcadedb.asyncOperationsQueueSize",
       "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)", Integer.class, 128),
 
   ASYNC_TX_BATCH_SIZE("arcadedb.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class, 1024 * 10),

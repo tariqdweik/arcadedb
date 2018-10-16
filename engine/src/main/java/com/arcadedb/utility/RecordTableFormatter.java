@@ -12,10 +12,10 @@ import java.util.Set;
 
 public class RecordTableFormatter extends TableFormatter {
 
-  public static class PTableRecordRow implements PTableRow {
+  public static class TableRecordRow implements TableRow {
     private final Result result;
 
-    public PTableRecordRow(final Result result) {
+    public TableRecordRow(final Result result) {
       this.result = result;
     }
 
@@ -37,14 +37,14 @@ public class RecordTableFormatter extends TableFormatter {
     }
   }
 
-  public RecordTableFormatter(final OTableOutput iConsole) {
+  public RecordTableFormatter(final TableOutput iConsole) {
     super(iConsole);
   }
 
   public void writeRecords(final List<Result> records, final int limit) {
-    final List<PTableRow> rows = new ArrayList<>();
+    final List<TableRow> rows = new ArrayList<>();
     for (Result record : records)
-      rows.add(new PTableRecordRow(record));
+      rows.add(new TableRecordRow(record));
 
     super.writeRows(rows, limit);
   }
