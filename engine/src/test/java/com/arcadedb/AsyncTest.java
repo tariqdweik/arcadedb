@@ -91,7 +91,7 @@ public class AsyncTest extends BaseTest {
     type.createProperty("id", Integer.class);
     type.createProperty("name", String.class);
     type.createProperty("surname", String.class);
-    database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, 20000);
+    database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, 20000);
 
     database.commit();
 

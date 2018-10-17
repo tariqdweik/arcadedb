@@ -1255,10 +1255,11 @@ public class OSelectExecutionPlanner {
     return null;
   }
 
-  private void handleSchemaAsTarget(final SelectExecutionPlan plan, final SchemaIdentifier metadata, final CommandContext ctx,
-      final boolean profilingEnabled) {
+  private void handleSchemaAsTarget(final SelectExecutionPlan plan, final SchemaIdentifier metadata, final CommandContext ctx, final boolean profilingEnabled) {
     if (metadata.getName().equalsIgnoreCase("types")) {
       plan.chain(new FetchFromSchemaTypesStep(ctx, profilingEnabled));
+    } else if (metadata.getName().equalsIgnoreCase("indexes")) {
+      plan.chain(new FetchFromSchemaIndexesStep(ctx, profilingEnabled));
     } else if (metadata.getName().equalsIgnoreCase("database")) {
       plan.chain(new FetchFromSchemaDatabaseStep(ctx, profilingEnabled));
     } else {

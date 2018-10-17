@@ -73,7 +73,7 @@ public abstract class BaseGraphServerTest {
           VertexType v = database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
           v.createProperty("id", Long.class);
 
-          database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, VERTEX1_TYPE_NAME, new String[] { "id" });
+          database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, VERTEX1_TYPE_NAME, new String[] { "id" });
 
           Assertions.assertFalse(database.getSchema().existsType(VERTEX2_TYPE_NAME));
           database.getSchema().createVertexType(VERTEX2_TYPE_NAME, 3);

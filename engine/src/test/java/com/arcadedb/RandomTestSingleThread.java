@@ -159,14 +159,14 @@ public class RandomTestSingleThread extends BaseTest {
       accountType.createProperty("surname", String.class);
       accountType.createProperty("registered", Date.class);
 
-      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Account", new String[] { "id" });
+      database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Account", new String[] { "id" });
 
       final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
       txType.createProperty("uuid", String.class);
       txType.createProperty("date", Date.class);
       txType.createProperty("amount", BigDecimal.class);
 
-      database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Transaction", new String[] { "uuid" });
+      database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Transaction", new String[] { "uuid" });
 
       final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
       edgeType.createProperty("date", Date.class);

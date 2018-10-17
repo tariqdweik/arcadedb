@@ -40,7 +40,7 @@ public class PerformanceIndexTest {
         v.createProperty("locali", Integer.class);
         v.createProperty("notes1", String.class);
 
-        database.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, TYPE_NAME, new String[] { "id" }, 5000000);
+        database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, TYPE_NAME, new String[] { "id" }, 5000000);
 
         database.commit();
       }

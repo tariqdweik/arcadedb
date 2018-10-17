@@ -20,7 +20,7 @@ public class FetchFromSchemaDatabaseStep extends AbstractExecutionStep {
   boolean served = false;
   long    cost   = 0;
 
-  public FetchFromSchemaDatabaseStep(final CommandContext ctx,final  boolean profilingEnabled) {
+  public FetchFromSchemaDatabaseStep(final CommandContext ctx, final boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
@@ -43,6 +43,9 @@ public class FetchFromSchemaDatabaseStep extends AbstractExecutionStep {
 
             final Database db = ctx.getDatabase();
             result.setProperty("name", db.getName());
+            result.setProperty("path", db.getDatabasePath());
+            result.setProperty("mode", db.getMode());
+            result.setProperty("settings", db.getConfiguration().getContextKeys());
             result.setProperty("dateFormat", db.getSchema().getDateFormat());
             result.setProperty("dateTimeFormat", db.getSchema().getDateTimeFormat());
             result.setProperty("timezone", db.getSchema().getTimeZone().getDisplayName());

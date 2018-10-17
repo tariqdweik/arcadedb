@@ -7,7 +7,9 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.index.Index;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -25,7 +27,7 @@ public class CreateIndexStatement extends ODDLStatement {
   protected List<Property>   propertyList = new ArrayList<Property>();
   protected Identifier       type;
   protected Identifier       engine;
-  protected List<Identifier> keyTypes = new ArrayList<Identifier>();
+  protected List<Identifier> keyTypes     = new ArrayList<Identifier>();
   protected Json             schema;
 
   public CreateIndexStatement(int id) {
@@ -47,64 +49,32 @@ public class CreateIndexStatement extends ODDLStatement {
     return rs;
   }
 
-  Object execute(CommandContext ctx) {
+  Object execute(final CommandContext ctx) {
     final Database database = ctx.getDatabase();
-    final Index idx;
-//    List<OCollate> collatesList = calculateCollates(ctx);
-//    String engine = this.engine == null ? null : this.engine.getStringValue().toUpperCase(Locale.ENGLISH);
-//    ODocument metadataDoc = calculateMetadata(ctx);
-//
-//    if (propertyList == null || propertyList.size() == 0) {
-//      OIndexFactory factory = OIndexes.getFactory(type.getStringValue(), null);
-//
-//      OType[] keyTypes = calculateKeyTypes(ctx);
-//
-//      if (keyTypes != null && keyTypes.length > 0) {
-//        idx = database.getMetadata().getIndexManager().createIndex(name.getValue(), type.getStringValue(),
-//            new OSimpleKeyIndexDefinition(keyTypes, collatesList, factory.getLastVersion()), null, null, metadataDoc, engine);
-//      } else if (keyTypes != null && keyTypes.length == 0 && "LUCENE_CROSS_CLASS".equalsIgnoreCase(engine)) {
-//        //handle special case of cross class  Lucene index: awful but works
-//        OIndexDefinition keyDef = new OSimpleKeyIndexDefinition(new OType[] { OType.STRING }, collatesList,
-//            factory.getLastVersion());
-//        idx = database.getMetadata().getIndexManager()
-//            .createIndex(name.getValue(), type.getStringValue(), keyDef, null, null, metadataDoc, engine);
-//
-//      } else {
-//        throw new ODatabaseException("Impossible to create an index without specify the key type or the associated property: "+toString());
-//      }
-//    } else {
-//      String[] fields = calculateProperties(ctx);
-//      OClass oClass = getIndexClass(ctx);
-//      if ((keyTypes == null || keyTypes.size() == 0) && collatesList == null) {
-//
-//        idx = oClass.createIndex(name.getValue(), type.getStringValue(), null, metadataDoc, engine, fields);
-//      } else {
-//        final List<OType> fieldTypeList;
-//        if (keyTypes == null || keyTypes.size() == 0 && fields.length > 0) {
-//          for (final String fieldName : fields) {
-//            if (!fieldName.equals("@rid") && !oClass.existsProperty(fieldName))
-//              throw new OIndexException(
-//                  "Index with name : '" + name.getValue() + "' cannot be created on class : '" + oClass.getName()
-//                      + "' because field: '" + fieldName + "' is absent in class definition.");
-//          }
-//          fieldTypeList = ((OClassImpl) oClass).extractFieldTypes(fields);
-//        } else
-//          fieldTypeList = keyTypes.stream().map(x -> OType.valueOf(x.getStringValue())).collect(Collectors.toList());
-//
-//        final OIndexDefinition idxDef = OIndexDefinitionFactory
-//            .createIndexDefinition(oClass, Arrays.asList(fields), fieldTypeList, collatesList, type.getStringValue(), null);
-//
-//        idx = database.getMetadata().getIndexManager()
-//            .createIndex(name.getValue(), type.getStringValue(), idxDef, oClass.getPolymorphicClusterIds(), null, metadataDoc,
-//                engine);
-//      }
-//    }
-//
-//    if (idx != null)
-//      return idx.getSize();
-//
-//    return null;
-    throw new UnsupportedOperationException();
+    final Index[] indexes;
+    String[] fields = calculateProperties(ctx);
+
+    final SchemaImpl.INDEX_TYPE indexType;
+    boolean unique = false;
+
+    final String typeAsString = type.getStringValue();
+    if (typeAsString.equalsIgnoreCase("FULL_TEXT"))
+      indexType = SchemaImpl.INDEX_TYPE.FULL_TEXT;
+    else if (typeAsString.equalsIgnoreCase("UNIQUE")) {
+      indexType = SchemaImpl.INDEX_TYPE.LSM_TREE;
+      unique = true;
+    } else if (typeAsString.equalsIgnoreCase("NOT_UNIQUE")) {
+      indexType = SchemaImpl.INDEX_TYPE.LSM_TREE;
+      unique = false;
+    } else
+      throw new CommandSQLParsingException("Index type '" + typeAsString + "' is not supported");
+
+    indexes = database.getSchema().createIndexes(indexType, unique, typeName.getStringValue(), fields);
+
+    if (indexes != null)
+      return indexes.length;
+
+    return null;
   }
 
   /***
@@ -119,64 +89,6 @@ public class CreateIndexStatement extends ODDLStatement {
     }
     return propertyList.stream().map(x -> x.getCompleteKey()).collect(Collectors.toList()).toArray(new String[] {});
   }
-
-//  /**
-//   * calculates the indexed class based on the class name
-//   *
-//   * @param ctx
-//   *
-//   * @return
-//   */
-//  private OClass getIndexClass(OCommandContext ctx) {
-//    if (className == null) {
-//      return null;
-//    }
-//    OClass result = ctx.getDatabase().getMetadata().getSchema().getClass(className.getStringValue());
-//    if (result == null) {
-//      throw new PCommandExecutionException("Cannot find class " + className);
-//    }
-//    return result;
-//  }
-//
-//  /**
-//   * returns index metadata as an ODocuemnt (as expected by Index API)
-//   *
-//   * @param ctx
-//   *
-//   * @return
-//   */
-//  private ODocument calculateMetadata(OCommandContext ctx) {
-//    if (metadata == null) {
-//      return null;
-//    }
-//    return metadata.toDocument(null, ctx);
-//  }
-//
-//  private OType[] calculateKeyTypes(OCommandContext ctx) {
-//    if (keyTypes == null) {
-//      return new OType[0];
-//    }
-//    return keyTypes.stream().map(x -> OType.valueOf(x.getStringValue())).collect(Collectors.toList()).toArray(new OType[] {});
-//  }
-//
-//  private List<OCollate> calculateCollates(OCommandContext ctx) {
-//    List<OCollate> result = new ArrayList<>();
-//    boolean found = false;
-//    for (Property prop : this.propertyList) {
-//      String collate = prop.collate == null ? null : prop.collate.getStringValue();
-//      if (collate != null) {
-//        final OCollate col = OSQLEngine.getCollate(collate);
-//        result.add(col);
-//        found = true;
-//      } else {
-//        result.add(null);
-//      }
-//    }
-//    if(!found){
-//      return null;
-//    }
-//    return result;
-//  }
 
   @Override
   public void toString(Map<Object, Object> params, StringBuilder builder) {
@@ -284,9 +196,9 @@ public class CreateIndexStatement extends ODDLStatement {
   public static class Property {
     protected Identifier      name;
     protected RecordAttribute recordAttribute;
-    protected boolean byKey   = false;
-    protected boolean byValue = false;
-    protected Identifier collate;
+    protected boolean         byKey   = false;
+    protected boolean         byValue = false;
+    protected Identifier      collate;
 
     public Property copy() {
       Property result = new Property();

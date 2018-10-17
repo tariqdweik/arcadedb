@@ -134,7 +134,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
       if (!schema.existsType(OCRUDWorkload.CLASS_NAME)) {
         final DocumentType cls = schema.createDocumentType(OCRUDWorkload.CLASS_NAME);
         cls.createProperty("name", String.class);
-        schema.createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, OCRUDWorkload.CLASS_NAME, new String[] { "name" });
+        schema.createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, OCRUDWorkload.CLASS_NAME, new String[] { "name" });
       }
     } finally {
       database.close();

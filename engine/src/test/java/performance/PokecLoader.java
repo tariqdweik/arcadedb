@@ -146,7 +146,7 @@ public class PokecLoader {
 
     db.getSchema().createEdgeType("E");
 
-    db.getSchema().createClassIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "V", new String[] { "id" }, LSMTreeIndexMutable.DEF_PAGE_SIZE * 10);
+    db.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "V", new String[] { "id" }, LSMTreeIndexMutable.DEF_PAGE_SIZE * 10);
     db.commit();
   }
 }

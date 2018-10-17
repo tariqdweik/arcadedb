@@ -262,12 +262,12 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index[] createClassIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames) {
-    return createClassIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE);
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames) {
+    return createIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE);
   }
 
   @Override
-  public Index[] createClassIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
     return (Index[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {

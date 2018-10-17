@@ -4,31 +4,25 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.Document;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.graph.Edge;
-import com.arcadedb.graph.Vertex;
-import com.arcadedb.schema.DocumentType;
+import com.arcadedb.index.Index;
 import com.arcadedb.schema.Schema;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
- * Returns an OResult containing metadata regarding the schema types.
+ * Returns an OResult containing metadata regarding the schema indexes.
  *
- * @author Luigi Dell'Aquila (l.dellaquila - at - orientdb.com)
+ * @author Luca Garulli
  */
-public class FetchFromSchemaTypesStep extends AbstractExecutionStep {
+public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
 
   private final List<ResultInternal> result = new ArrayList<>();
 
   private int  cursor = 0;
   private long cost   = 0;
 
-  public FetchFromSchemaTypesStep(final CommandContext ctx, final boolean profilingEnabled) {
+  public FetchFromSchemaIndexesStep(final CommandContext ctx, final boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
@@ -41,26 +35,18 @@ public class FetchFromSchemaTypesStep extends AbstractExecutionStep {
       try {
         final Schema schema = ctx.getDatabase().getSchema();
 
-        for (DocumentType type : schema.getTypes()) {
+        for (Index index : schema.getIndexes()) {
           final ResultInternal r = new ResultInternal();
           result.add(r);
 
-          r.setProperty("name", type.getName());
-
-          String t = "?";
-
-          if (type.getType() == Document.RECORD_TYPE)
-            t = "document";
-          else if (type.getType() == Vertex.RECORD_TYPE)
-            t = "vertex";
-          else if (type.getType() == Edge.RECORD_TYPE)
-            t = "edge";
-
-          r.setProperty("type", t);
-
-          r.setProperty("properties", type.getPropertyNames());
-
-          r.setProperty("indexes", type.getAllIndexesMetadata());
+          r.setProperty("name", index.getName());
+          r.setProperty("typeName", index.getTypeName());
+          r.setProperty("properties", Arrays.asList(index.getPropertyNames()));
+          r.setProperty("unique", index.isUnique());
+          r.setProperty("compacting", index.isCompacting());
+          r.setProperty("fileId", index.getFileId());
+//          r.setProperty("supportsOrderedIterations", index.supportsOrderedIterations());
+          r.setProperty("associatedBucketId", index.getAssociatedBucketId());
         }
       } finally {
         if (profilingEnabled) {
@@ -104,7 +90,7 @@ public class FetchFromSchemaTypesStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     String spaces = ExecutionStepInternal.getIndent(depth, indent);
-    String result = spaces + "+ FETCH DATABASE METADATA TYPES";
+    String result = spaces + "+ FETCH DATABASE METADATA INDEXES";
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }
