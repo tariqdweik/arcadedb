@@ -43,7 +43,7 @@ public class Console {
   private              Database        database;
   private              int             limit                = 20;
   private              int             maxMultiValueEntries = 10;
-  private              boolean         expandResultset      = false;
+  private              Boolean         expandResultset;
   private              ResultSet       resultSet;
 
   private String getPrompt() {
@@ -276,20 +276,20 @@ public class Console {
     if (currentRecord == null)
       return;
 
-    final Document rec = currentRecord.getElement().get();
+    final Document rec = currentRecord.getElement().orElse(null);
 
     if (rec instanceof Vertex)
       output("\nVERTEX @type:%s @rid:%s", rec.getType(), rec.getIdentity());
     else if (rec instanceof Edge)
       output("\nEDGE @type:%s @rid:%s", rec.getType(), rec.getIdentity());
-    else
+    else if (rec != null)
       output("\nDOCUMENT @type:%s @rid:%s", rec.getType(), rec.getIdentity());
 
     final List<TableFormatter.TableRow> resultSet = new ArrayList<>();
 
     Object value;
-    for (String fieldName : rec.getPropertyNames()) {
-      value = rec.get(fieldName);
+    for (String fieldName : currentRecord.getPropertyNames()) {
+      value = currentRecord.getProperty(fieldName);
       if (value instanceof byte[])
         value = "byte[" + ((byte[]) value).length + "]";
       else if (value instanceof Iterator<?>) {
@@ -332,17 +332,36 @@ public class Console {
 
     final long elapsed;
 
-    if (expandResultset) {
+    Boolean expandOnThisQuery = expandResultset;
 
-      for (int i = 0; resultSet.hasNext(); ++i) {
-        printRecord(resultSet.next());
-        if (limit > -1 && i > limit)
-          break;
+    Result first = null;
+    if (resultSet.hasNext()) {
+      first = resultSet.next();
+
+      if (expandOnThisQuery == null && !resultSet.hasNext())
+        // AUTO MODE, EXPAND THE ONLY RECORD FOUND
+        expandOnThisQuery = true;
+    }
+
+    if (expandOnThisQuery == null)
+      expandOnThisQuery = false;
+
+    if (expandOnThisQuery) {
+      // EXPAND THE RECORD
+      if (first != null) {
+        printRecord(first);
+
+        for (int i = 0; resultSet.hasNext(); ++i) {
+          printRecord(resultSet.next());
+          if (limit > -1 && i > limit)
+            break;
+        }
       }
 
       elapsed = System.currentTimeMillis() - beginTime;
 
     } else {
+      // TABLE FORMAT
       final TableFormatter table = new TableFormatter(new TableFormatter.TableOutput() {
         @Override
         public void onMessage(String text, Object... args) {
@@ -352,11 +371,16 @@ public class Console {
       table.setPrefixedColumns("#", "@RID", "@TYPE");
 
       final List<RecordTableFormatter.TableRecordRow> list = new ArrayList<>();
-      while (resultSet.hasNext()) {
-        list.add(new RecordTableFormatter.TableRecordRow(resultSet.next()));
 
-        if (limit > -1 && list.size() > limit)
-          break;
+      if (first != null) {
+        list.add(new RecordTableFormatter.TableRecordRow(first));
+
+        while (resultSet.hasNext()) {
+          list.add(new RecordTableFormatter.TableRecordRow(resultSet.next()));
+
+          if (limit > -1 && list.size() > limit)
+            break;
+        }
       }
 
       elapsed = System.currentTimeMillis() - beginTime;
