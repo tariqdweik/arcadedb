@@ -13,6 +13,9 @@ import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.sql.executor.MultiValue;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.RecordTableFormatter;
 import com.arcadedb.utility.TableFormatter;
@@ -25,19 +28,23 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class Console {
-  private static final String          PROMPT = "\n%s> ";
-  private final        boolean         system = System.console() != null;
+  private static final String          PROMPT               = "\n%s> ";
+  private final        boolean         system               = System.console() != null;
   private final        Terminal        terminal;
   private final        LineReader      lineReader;
-  private final        TerminalParser  parser = new TerminalParser();
+  private final        TerminalParser  parser               = new TerminalParser();
   private              RemoteDatabase  remoteDatabase;
   private              ConsoleOutput   output;
   private              DatabaseFactory databaseFactory;
   private              Database        database;
-  private              int             limit  = 20;
+  private              int             limit                = 20;
+  private              int             maxMultiValueEntries = 10;
+  private              boolean         expandResultset      = false;
+  private              ResultSet       resultSet;
 
   private String getPrompt() {
     return String.format(PROMPT, database != null ? "{" + database.getName() + "}" : "");
@@ -151,10 +158,16 @@ public class Console {
     if (parts.length != 2)
       return;
 
-    if ("limit".equalsIgnoreCase(parts[0].trim())) {
-      limit = Integer.parseInt(parts[1].trim());
+    final String key = parts[0].trim();
+    final String value = parts[1].trim();
+
+    if ("limit".equalsIgnoreCase(key)) {
+      limit = Integer.parseInt(value);
       output("Set new limit = %d", limit);
-    }
+    } else if ("expandResultset".equalsIgnoreCase(key)) {
+      expandResultset = value.equalsIgnoreCase("true");
+    } else if ("maxMultiValueEntries".equalsIgnoreCase(key))
+      maxMultiValueEntries = Integer.parseInt(value);
   }
 
   private void executeBegin() {
@@ -259,37 +272,93 @@ public class Console {
     database = null;
   }
 
-  private void executeSQL(final String line) {
-    checkDatabaseIsOpen();
+  private void printRecord(final Result currentRecord) {
+    if (currentRecord == null)
+      return;
 
-    final long beginTime = System.currentTimeMillis();
+    final Document rec = currentRecord.getElement().get();
 
-    final ResultSet result;
+    if (rec.getType() != null || rec.getIdentity() != null) {
+      output("\nDOCUMENT @type:%s @rid:%s", rec.getType(), rec.getIdentity());
+    }
 
-    if (remoteDatabase != null)
-      result = remoteDatabase.command("SQL", line);
-    else
-      result = database.command("SQL", line);
+    final List<TableFormatter.TableRow> resultSet = new ArrayList<>();
 
-    final TableFormatter table = new TableFormatter(new TableFormatter.TableOutput() {
+    Object value;
+    for (String fieldName : rec.getPropertyNames()) {
+      value = rec.get(fieldName);
+      if (value instanceof byte[])
+        value = "byte[" + ((byte[]) value).length + "]";
+      else if (value instanceof Iterator<?>) {
+        final List<Object> coll = new ArrayList<Object>();
+        while (((Iterator<?>) value).hasNext())
+          coll.add(((Iterator<?>) value).next());
+        value = coll;
+      } else if (MultiValue.isMultiValue(value)) {
+        value = TableFormatter.getPrettyFieldMultiValue(MultiValue.getMultiValueIterator(value), maxMultiValueEntries);
+      }
+
+      final ResultInternal row = new ResultInternal();
+      resultSet.add(new RecordTableFormatter.TableRecordRow(row));
+
+      row.setProperty("NAME", fieldName);
+      row.setProperty("VALUE", value);
+    }
+
+    final TableFormatter formatter = new TableFormatter(new TableFormatter.TableOutput() {
       @Override
       public void onMessage(String text, Object... args) {
         output(text, args);
       }
     });
-    table.setPrefixedColumns("@RID", "@TYPE");
+    formatter.writeRows(resultSet, -1);
 
-    final List<RecordTableFormatter.TableRecordRow> list = new ArrayList<>();
-    while (result.hasNext()) {
-      list.add(new RecordTableFormatter.TableRecordRow(result.next()));
+    output("\n");
+  }
 
-      if (limit > -1 && list.size() > limit)
-        break;
+  private void executeSQL(final String line) {
+    checkDatabaseIsOpen();
+
+    final long beginTime = System.currentTimeMillis();
+
+    if (remoteDatabase != null)
+      resultSet = remoteDatabase.command("SQL", line);
+    else
+      resultSet = database.command("SQL", line);
+
+    final long elapsed;
+
+    if (expandResultset) {
+
+      for (int i = 0; resultSet.hasNext(); ++i) {
+        printRecord(resultSet.next());
+        if (limit > -1 && i > limit)
+          break;
+      }
+
+      elapsed = System.currentTimeMillis() - beginTime;
+
+    } else {
+      final TableFormatter table = new TableFormatter(new TableFormatter.TableOutput() {
+        @Override
+        public void onMessage(String text, Object... args) {
+          output(text, args);
+        }
+      });
+      table.setPrefixedColumns("#", "@RID", "@TYPE");
+
+      final List<RecordTableFormatter.TableRecordRow> list = new ArrayList<>();
+      while (resultSet.hasNext()) {
+        list.add(new RecordTableFormatter.TableRecordRow(resultSet.next()));
+
+        if (limit > -1 && list.size() > limit)
+          break;
+      }
+
+      elapsed = System.currentTimeMillis() - beginTime;
+
+      table.writeRows(list, limit);
     }
-
-    final long elapsed = System.currentTimeMillis() - beginTime;
-
-    table.writeRows(list, limit);
 
     terminal.writer().printf("\nCommand executed in %dms\n", elapsed);
   }
