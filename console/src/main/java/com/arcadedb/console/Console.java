@@ -278,9 +278,12 @@ public class Console {
 
     final Document rec = currentRecord.getElement().get();
 
-    if (rec.getType() != null || rec.getIdentity() != null) {
+    if (rec instanceof Vertex)
+      output("\nVERTEX @type:%s @rid:%s", rec.getType(), rec.getIdentity());
+    else if (rec instanceof Edge)
+      output("\nEDGE @type:%s @rid:%s", rec.getType(), rec.getIdentity());
+    else
       output("\nDOCUMENT @type:%s @rid:%s", rec.getType(), rec.getIdentity());
-    }
 
     final List<TableFormatter.TableRow> resultSet = new ArrayList<>();
 
@@ -311,6 +314,7 @@ public class Console {
         output(text, args);
       }
     });
+    formatter.setPrefixedColumns();
     formatter.writeRows(resultSet, -1);
 
     output("\n");
