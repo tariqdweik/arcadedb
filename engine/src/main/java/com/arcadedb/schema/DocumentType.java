@@ -369,6 +369,24 @@ public class DocumentType {
     index.setMetadata(name, propertyNames, bucket.getId());
   }
 
+  protected void removeIndexInternal(final String indexName) {
+    for (List<IndexMetadata> indexes : indexesByBucket.values()) {
+      for (Iterator<IndexMetadata> it = indexes.iterator(); it.hasNext(); ) {
+        final IndexMetadata idx = it.next();
+        if (indexName.equals(idx.index.getName()))
+          it.remove();
+      }
+    }
+
+    for (List<IndexMetadata> indexes : indexesByProperties.values()) {
+      for (Iterator<IndexMetadata> it = indexes.iterator(); it.hasNext(); ) {
+        final IndexMetadata idx = it.next();
+        if (indexName.equals(idx.index.getName()))
+          it.remove();
+      }
+    }
+  }
+
   protected void addBucketInternal(final Bucket bucket) {
     for (DocumentType cl : schema.getTypes()) {
       if (cl.hasBucket(bucket.getName()))

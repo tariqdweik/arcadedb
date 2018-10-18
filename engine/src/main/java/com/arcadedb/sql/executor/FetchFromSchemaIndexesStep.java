@@ -7,7 +7,9 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.Schema;
+import com.arcadedb.utility.FileUtils;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -47,6 +49,11 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
           r.setProperty("fileId", index.getFileId());
 //          r.setProperty("supportsOrderedIterations", index.supportsOrderedIterations());
           r.setProperty("associatedBucketId", index.getAssociatedBucketId());
+          try {
+            r.setProperty("size", FileUtils.getSizeAsString(ctx.getDatabase().getFileManager().getFile(index.getFileId()).getSize()));
+          } catch (IOException e) {
+            // IGNORE IT, NO SIZE AVAILABLE
+          }
         }
       } finally {
         if (profilingEnabled) {

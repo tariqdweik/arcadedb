@@ -7,17 +7,20 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.index.Index;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
+import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
 
 public class DropIndexStatement extends ODDLStatement {
 
-  protected boolean all = false;
+  protected boolean   all      = false;
   protected IndexName name;
-  protected boolean ifExists = false;
+  protected boolean   ifExists = false;
 
   public DropIndexStatement(int id) {
     super(id);
@@ -29,31 +32,32 @@ public class DropIndexStatement extends ODDLStatement {
 
   @Override
   public ResultSet executeDDL(CommandContext ctx) {
-    InternalResultSet rs = new InternalResultSet();
-    Database db = ctx.getDatabase();
-//    OIndexManager idxMgr = db.getMetadata().getIndexManager();
-//    if (all) {
-//      for (OIndex<?> idx : idxMgr.getIndexes()) {
-//        db.getMetadata().getIndexManager().dropIndex(idx.getName());
-//        OResultInternal result = new OResultInternal();
-//        result.setProperty("operation", "drop index");
-//        result.setProperty("clusterName", idx.getName());
-//        rs.add(result);
-//      }
-//
-//    } else {
-//      if (!idxMgr.existsIndex(name.getValue()) && !ifExists) {
-//        throw new PCommandExecutionException("Index not found: " + name.getValue());
-//      }
-//      idxMgr.dropIndex(name.getValue());
-//      OResultInternal result = new OResultInternal();
-//      result.setProperty("operation", "drop index");
-//      result.setProperty("indexName", name.getValue());
-//      rs.add(result);
-//    }
-//
-//    return rs;
-    throw new UnsupportedOperationException();
+    final InternalResultSet rs = new InternalResultSet();
+    final Database db = ctx.getDatabase();
+
+    if (all) {
+      for (Index idx : db.getSchema().getIndexes()) {
+        idx.drop();
+
+        final ResultInternal result = new ResultInternal();
+        result.setProperty("operation", "drop index");
+        result.setProperty("clusterName", idx.getName());
+        rs.add(result);
+      }
+
+    } else {
+      if (!db.getSchema().existsIndex(name.getValue()) && !ifExists) {
+        throw new CommandExecutionException("Index not found: " + name.getValue());
+      }
+      db.getSchema().getIndexByName(name.getValue()).drop();
+
+      final ResultInternal result = new ResultInternal();
+      result.setProperty("operation", "drop index");
+      result.setProperty("indexName", name.getValue());
+      rs.add(result);
+    }
+
+    return rs;
   }
 
   @Override

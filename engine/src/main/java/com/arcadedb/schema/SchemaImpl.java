@@ -251,6 +251,9 @@ public class SchemaImpl implements Schema {
 
   public void removeIndex(final String indexName) {
     indexMap.remove(indexName);
+
+    for (DocumentType d : types.values())
+      d.removeIndexInternal(indexName);
   }
 
   @Override
@@ -605,7 +608,12 @@ public class SchemaImpl implements Schema {
             final String[] properties = new String[schemaIndexProperties.length()];
             for (int i = 0; i < properties.length; ++i)
               properties[i] = schemaIndexProperties.getString(i);
-            type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
+
+            try {
+              type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
+            } catch (SchemaException e) {
+              LogManager.instance().warn(this, "Cannot find '%s' defined in type '%s'. Ignoring it.", indexName, type);
+            }
           }
         }
       }
