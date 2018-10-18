@@ -7,8 +7,10 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
 import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
@@ -18,6 +20,7 @@ import com.arcadedb.sql.executor.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class CreateIndexStatement extends ODDLStatement {
@@ -39,20 +42,22 @@ public class CreateIndexStatement extends ODDLStatement {
   }
 
   @Override
-  public ResultSet executeDDL(CommandContext ctx) {
-    execute(ctx);
-    InternalResultSet rs = new InternalResultSet();
-    ResultInternal result = new ResultInternal();
+  public ResultSet executeDDL(final CommandContext ctx) {
+    final Long totalIndexed = (Long) execute(ctx);
+
+    final InternalResultSet rs = new InternalResultSet();
+    final ResultInternal result = new ResultInternal();
     result.setProperty("operation", "create index");
     result.setProperty("name", name.getValue());
+    result.setProperty("totalIndexed", totalIndexed);
+
     rs.add(result);
     return rs;
   }
 
   Object execute(final CommandContext ctx) {
     final Database database = ctx.getDatabase();
-    final Index[] indexes;
-    String[] fields = calculateProperties(ctx);
+    final String[] fields = calculateProperties(ctx);
 
     final SchemaImpl.INDEX_TYPE indexType;
     boolean unique = false;
@@ -69,12 +74,22 @@ public class CreateIndexStatement extends ODDLStatement {
     } else
       throw new CommandSQLParsingException("Index type '" + typeAsString + "' is not supported");
 
-    indexes = database.getSchema().createIndexes(indexType, unique, typeName.getStringValue(), fields);
+    final AtomicLong total = new AtomicLong();
 
-    if (indexes != null)
-      return indexes.length;
+    database.getSchema()
+        .createIndexes(indexType, unique, typeName.getStringValue(), fields, LSMTreeIndexAbstract.DEF_PAGE_SIZE, new Index.BuildIndexCallback() {
+          @Override
+          public void onDocumentIndexed(final Document document, final long totalIndexed) {
+            total.incrementAndGet();
 
-    return null;
+            if (totalIndexed % 100000 == 0) {
+              System.out.print(".");
+              System.out.flush();
+            }
+          }
+        });
+
+    return total.get();
   }
 
   /***
@@ -83,7 +98,7 @@ public class CreateIndexStatement extends ODDLStatement {
    * @param ctx
    * @return
    */
-  private String[] calculateProperties(CommandContext ctx) {
+  private String[] calculateProperties(final CommandContext ctx) {
     if (propertyList == null) {
       return null;
     }
@@ -91,7 +106,7 @@ public class CreateIndexStatement extends ODDLStatement {
   }
 
   @Override
-  public void toString(Map<Object, Object> params, StringBuilder builder) {
+  public void toString(final Map<Object, Object> params, final StringBuilder builder) {
     builder.append("CREATE INDEX ");
     name.toString(params, builder);
     if (typeName != null) {
@@ -158,13 +173,13 @@ public class CreateIndexStatement extends ODDLStatement {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
 
-    CreateIndexStatement that = (CreateIndexStatement) o;
+    final CreateIndexStatement that = (CreateIndexStatement) o;
 
     if (name != null ? !name.equals(that.name) : that.name != null)
       return false;
@@ -201,7 +216,7 @@ public class CreateIndexStatement extends ODDLStatement {
     protected Identifier      collate;
 
     public Property copy() {
-      Property result = new Property();
+      final Property result = new Property();
       result.name = name == null ? null : name.copy();
       result.recordAttribute = recordAttribute == null ? null : recordAttribute.copy();
       result.byKey = byKey;
@@ -211,13 +226,13 @@ public class CreateIndexStatement extends ODDLStatement {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o)
         return true;
       if (o == null || getClass() != o.getClass())
         return false;
 
-      Property property = (Property) o;
+      final Property property = (Property) o;
 
       if (byKey != property.byKey)
         return false;

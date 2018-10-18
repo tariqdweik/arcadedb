@@ -10,6 +10,7 @@ import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.engine.PaginatedComponentFactory;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.*;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.Type;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -46,8 +47,8 @@ public class LSMTreeFullTextIndex implements Index {
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
     public Index create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-        final byte[] keyTypes, final int pageSize) throws IOException {
-      return new LSMTreeFullTextIndex(database, name, filePath, mode, pageSize);
+        final byte[] keyTypes, final int pageSize, final BuildIndexCallback callback) throws IOException {
+      return new LSMTreeFullTextIndex(database, name, filePath, mode, pageSize, callback);
     }
   }
 
@@ -63,13 +64,15 @@ public class LSMTreeFullTextIndex implements Index {
   /**
    * Creation time.
    */
-  public LSMTreeFullTextIndex(final DatabaseInternal database, final String name, final String filePath, final PaginatedFile.MODE mode, final int pageSize) {
+  public LSMTreeFullTextIndex(final DatabaseInternal database, final String name, final String filePath, final PaginatedFile.MODE mode, final int pageSize,
+      final BuildIndexCallback callback) {
     try {
+      analyzer = new StandardAnalyzer();
       underlyingIndex = new LSMTreeIndex(database, name, false, filePath, mode, new byte[] { Type.STRING.getBinaryType() }, pageSize);
+      underlyingIndex.build(callback);
     } catch (IOException e) {
       throw new IndexException("Cannot create search engine (error=" + e + ")", e);
     }
-    analyzer = new StandardAnalyzer();
   }
 
   /**
@@ -166,7 +169,7 @@ public class LSMTreeFullTextIndex implements Index {
   }
 
   @Override
-  public void setMetadata(String name, String[] propertyNames, int associatedBucketId) {
+  public void setMetadata(final String name, final String[] propertyNames, final int associatedBucketId) {
     underlyingIndex.setMetadata(name, propertyNames, associatedBucketId);
   }
 
@@ -223,6 +226,21 @@ public class LSMTreeFullTextIndex implements Index {
   @Override
   public boolean supportsOrderedIterations() {
     return false;
+  }
+
+  @Override
+  public boolean isAutomatic() {
+    return underlyingIndex.propertyNames != null;
+  }
+
+  @Override
+  public long build(BuildIndexCallback callback) {
+    return underlyingIndex.build(callback);
+  }
+
+  @Override
+  public SchemaImpl.INDEX_TYPE getType() {
+    return SchemaImpl.INDEX_TYPE.FULL_TEXT;
   }
 
   public Analyzer getAnalyzer() {

@@ -4,13 +4,11 @@
 
 package com.arcadedb.index.lsm;
 
-import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.TransactionContext;
-import com.arcadedb.database.TransactionIndexContext;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.*;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.RWLockContext;
 
@@ -19,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -29,7 +28,7 @@ public class LSMTreeIndex implements RangeIndex {
   private final        String                                                  name;
   private              int                                                     associatedBucketId = -1;
   private              String                                                  typeName;
-  private              String[]                                                propertyNames;
+  protected            String[]                                                propertyNames;
   protected            LSMTreeIndexMutable                                     mutable;
   private              RWLockContext                                           lock               = new RWLockContext();
   protected            AtomicReference<LSMTreeIndexAbstract.COMPACTING_STATUS> compactingStatus   = new AtomicReference<>(
@@ -38,7 +37,7 @@ public class LSMTreeIndex implements RangeIndex {
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
     public Index create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-        final byte[] keyTypes, final int pageSize) throws IOException {
+        final byte[] keyTypes, final int pageSize, BuildIndexCallback callback) throws IOException {
       return new LSMTreeIndex(database, name, unique, filePath, mode, keyTypes, pageSize);
     }
   }
@@ -87,6 +86,11 @@ public class LSMTreeIndex implements RangeIndex {
     this.typeName = typeName;
     this.propertyNames = propertyNames;
     this.associatedBucketId = associatedBucketId;
+  }
+
+  @Override
+  public SchemaImpl.INDEX_TYPE getType() {
+    return SchemaImpl.INDEX_TYPE.LSM_TREE;
   }
 
   @Override
@@ -170,6 +174,11 @@ public class LSMTreeIndex implements RangeIndex {
   @Override
   public boolean supportsOrderedIterations() {
     return true;
+  }
+
+  @Override
+  public boolean isAutomatic() {
+    return propertyNames != null;
   }
 
   @Override
@@ -347,5 +356,32 @@ public class LSMTreeIndex implements RangeIndex {
     } finally {
       database.getTransactionManager().unlockFile(fileId);
     }
+  }
+
+  public long build(final BuildIndexCallback callback) {
+    final AtomicLong total = new AtomicLong();
+
+    if (propertyNames == null || propertyNames.length == 0)
+      throw new IndexException("Cannot rebuild index '" + name + "' because metadata information are missing");
+
+    final DatabaseInternal db = mutable.getDatabase();
+
+    final DocumentType type = db.getSchema().getType(typeName);
+
+    db.scanBucket(db.getSchema().getBucketById(associatedBucketId).getName(), new RecordCallback() {
+      @Override
+      public boolean onRecord(final Record record) {
+        final Bucket bucket = db.getSchema().getBucketById(record.getIdentity().getBucketId());
+        db.getIndexer().createDocument((Document) record, type, bucket);
+        total.incrementAndGet();
+
+        if (callback != null)
+          callback.onDocumentIndexed((Document) record, total.get());
+
+        return true;
+      }
+    });
+
+    return total.get();
   }
 }

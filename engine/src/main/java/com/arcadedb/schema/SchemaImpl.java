@@ -266,18 +266,24 @@ public class SchemaImpl implements Schema {
 
   @Override
   public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames) {
-    return createIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE);
+    return createIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, null);
   }
 
   @Override
   public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
+    return createIndexes(indexType, unique, typeName, propertyNames, pageSize, null);
+  }
+
+  @Override
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
+      final Index.BuildIndexCallback callback) {
+    if (propertyNames.length == 0)
+      throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
+
     return (Index[]) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         try {
-          if (propertyNames.length == 0)
-            throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
-
           final DocumentType type = getType(typeName);
 
           // CHECK ALL THE PROPERTIES EXIST
@@ -296,20 +302,8 @@ public class SchemaImpl implements Schema {
 
           final Index[] indexes = new Index[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
-            final Bucket b = buckets.get(idx);
-            final String indexName = FileUtils.encode(b.getName(), encoding) + "_" + System.nanoTime();
-
-            if (indexMap.containsKey(indexName))
-              throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
-
-            indexes[idx] = indexFactory
-                .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
-
-            registerFile(indexes[idx].getPaginatedComponent());
-
-            indexMap.put(indexName, indexes[idx]);
-
-            type.addIndexInternal(indexes[idx], b, propertyNames);
+            final Bucket bucket = buckets.get(idx);
+            indexes[idx] = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, callback, propertyNames);
           }
 
           saveConfiguration();
@@ -323,6 +317,77 @@ public class SchemaImpl implements Schema {
     });
   }
 
+  @Override
+  public Index createIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName, final String[] propertyNames,
+      final int pageSize, final Index.BuildIndexCallback callback) {
+    if (propertyNames.length == 0)
+      throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
+
+    return (Index) database.executeInWriteLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        try {
+          final DocumentType type = getType(typeName);
+
+          // CHECK ALL THE PROPERTIES EXIST
+          final byte[] keyTypes = new byte[propertyNames.length];
+          int i = 0;
+
+          for (String propertyName : propertyNames) {
+            final Property property = type.getPolymorphicProperty(propertyName);
+            if (property == null)
+              throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
+
+            keyTypes[i++] = property.getType().getBinaryType();
+          }
+
+          Bucket bucket = null;
+          final List<Bucket> buckets = type.getBuckets(false);
+          for (Bucket b : buckets) {
+            if (bucketName.equals(b.getName())) {
+              bucket = b;
+              break;
+            }
+          }
+
+          final Index index = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, callback, propertyNames);
+
+          saveConfiguration();
+
+          return index;
+
+        } catch (IOException e) {
+          throw new SchemaException("Cannot create index on type '" + typeName + "' (error=" + e + ")", e);
+        }
+      }
+    });
+  }
+
+  private Index createIndexOnBucket(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName, final INDEX_TYPE indexType,
+      final boolean unique, final int pageSize, final Index.BuildIndexCallback callback, final String[] propertyNames) throws IOException {
+    if (bucket == null)
+      throw new DatabaseMetadataException(
+          "Cannot create index on type '" + typeName + "' because the specified bucket '" + bucket.getName() + "' is not part of the type");
+
+    final String indexName = FileUtils.encode(bucket.getName(), encoding) + "_" + System.nanoTime();
+
+    if (indexMap.containsKey(indexName))
+      throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
+
+    final Index index = indexFactory
+        .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize,
+            callback);
+
+    registerFile(index.getPaginatedComponent());
+
+    indexMap.put(indexName, index);
+
+    type.addIndexInternal(index, bucket, propertyNames);
+    index.build(callback);
+
+    return index;
+  }
+
   public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
     return (Index) database.executeInWriteLock(new Callable<Object>() {
       @Override
@@ -333,7 +398,7 @@ public class SchemaImpl implements Schema {
         try {
           final Index index = indexFactory
               .createIndex(indexType.name(), database, FileUtils.encode(indexName, encoding), unique, databasePath + "/" + indexName,
-                  PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize);
+                  PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize, null);
 
           if (index instanceof PaginatedComponent)
             registerFile((PaginatedComponent) index);

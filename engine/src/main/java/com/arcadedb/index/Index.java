@@ -4,8 +4,10 @@
 
 package com.arcadedb.index;
 
+import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedComponent;
+import com.arcadedb.schema.SchemaImpl;
 
 import java.io.IOException;
 import java.util.Map;
@@ -14,6 +16,10 @@ import java.util.Map;
  * Basic Index interface.
  */
 public interface Index {
+  interface BuildIndexCallback {
+    void onDocumentIndexed(Document document, long totalIndexed);
+  }
+
   /**
    * Retrieves the set of RIDs associated to a key.
    */
@@ -52,6 +58,8 @@ public interface Index {
 
   void setMetadata(String name, String[] propertyNames, int associatedBucketId);
 
+  SchemaImpl.INDEX_TYPE getType();
+
   String getTypeName();
 
   String[] getPropertyNames();
@@ -73,4 +81,8 @@ public interface Index {
   int getAssociatedBucketId();
 
   boolean supportsOrderedIterations();
+
+  boolean isAutomatic();
+
+  long build(BuildIndexCallback callback);
 }

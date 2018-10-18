@@ -6,16 +6,24 @@
 /* JavaCCOptions:MULTI=true,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=O,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
+import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.index.Index;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RebuildIndexStatement extends SimpleExecStatement {
 
-  protected boolean all = false;
+  protected boolean   all      = false;
   protected IndexName name;
+  private   int       pageSize = LSMTreeIndexAbstract.DEF_PAGE_SIZE;
 
   public RebuildIndexStatement(int id) {
     super(id);
@@ -25,41 +33,55 @@ public class RebuildIndexStatement extends SimpleExecStatement {
     super(p, id);
   }
 
-  @Override public ResultSet executeSimple(CommandContext ctx) {
-    ResultInternal result = new ResultInternal();
+  @Override
+  public ResultSet executeSimple(final CommandContext ctx) {
+    final ResultInternal result = new ResultInternal();
     result.setProperty("operation", "rebuild index");
 
-    throw new UnsupportedOperationException();
+    final AtomicLong total = new AtomicLong();
 
-//    final PDatabase database = getDatabase();
-//    if (all) {
-//      long totalIndexed = 0;
-//      for (PIndex idx : database.getSchema().getIndexes()) {
-////        if (idx.isAutomatic())
-////          totalIndexed += idx.rebuild();
-//      }
-//
-//      result.setProperty("totalIndexed", totalIndexed);
-//    } else {
-//      final OIndex<?> idx = database.getMetadata().getIndexManager().getIndex(name.getValue());
-//      if (idx == null)
-//        throw new PCommandExecutionException("Index '" + name + "' not found");
-//
-//      if (!idx.isAutomatic())
-//        throw new PCommandExecutionException(
-//            "Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
-//
-//      long val = idx.rebuild();
-//      result.setProperty("totalIndexed", val);
-//
-//    }
-//    OInternalResultSet rs = new OInternalResultSet();
-//    rs.add(result);
-//    return rs;
+    final Database database = ctx.getDatabase();
+    if (all) {
+      final Index[] indexes = database.getSchema().getIndexes();
 
+      for (Index idx : indexes) {
+        idx.drop();
+        database.getSchema().createIndexes(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames());
+      }
+
+    } else {
+      final Index idx = database.getSchema().getIndexByName(name.getValue());
+      if (idx == null)
+        throw new CommandExecutionException("Index '" + name + "' not found");
+
+      if (!idx.isAutomatic())
+        throw new CommandExecutionException("Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
+
+      idx.drop();
+      database.getSchema()
+          .createIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
+              idx.getPropertyNames(), pageSize, new Index.BuildIndexCallback() {
+                @Override
+                public void onDocumentIndexed(final Document document, final long totalIndexed) {
+                  total.incrementAndGet();
+
+                  if (totalIndexed % 100000 == 0) {
+                    System.out.print(".");
+                    System.out.flush();
+                  }
+                }
+              });
+    }
+
+    result.setProperty("totalIndexed", total.get());
+
+    final InternalResultSet rs = new InternalResultSet();
+    rs.add(result);
+    return rs;
   }
 
-  @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
+  @Override
+  public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("REBUILD INDEX ");
     if (all) {
       builder.append("*");
@@ -68,14 +90,16 @@ public class RebuildIndexStatement extends SimpleExecStatement {
     }
   }
 
-  @Override public RebuildIndexStatement copy() {
+  @Override
+  public RebuildIndexStatement copy() {
     RebuildIndexStatement result = new RebuildIndexStatement(-1);
     result.all = all;
     result.name = name == null ? null : name.copy();
     return result;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -88,7 +112,8 @@ public class RebuildIndexStatement extends SimpleExecStatement {
     return name != null ? name.equals(that.name) : that.name == null;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     int result = (all ? 1 : 0);
     result = 31 * result + (name != null ? name.hashCode() : 0);
     return result;

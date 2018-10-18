@@ -38,6 +38,12 @@ public interface Schema {
 
   Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
 
+  Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+      Index.BuildIndexCallback callback);
+
+  Index createIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String bucketName, String[] propertyNames, int pageSize,
+      Index.BuildIndexCallback callback);
+
   Index createManualIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String indexName, byte[] keyTypes, int pageSize);
 
   Dictionary getDictionary();

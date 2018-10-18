@@ -43,7 +43,8 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
 
           r.setProperty("name", index.getName());
           r.setProperty("typeName", index.getTypeName());
-          r.setProperty("properties", Arrays.asList(index.getPropertyNames()));
+          if (index.getPropertyNames() != null)
+            r.setProperty("properties", Arrays.asList(index.getPropertyNames()));
           r.setProperty("unique", index.isUnique());
           r.setProperty("compacting", index.isCompacting());
           r.setProperty("fileId", index.getFileId());

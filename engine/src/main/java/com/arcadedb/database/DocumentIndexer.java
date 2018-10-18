@@ -17,7 +17,7 @@ public class DocumentIndexer {
     this.database = database;
   }
 
-  public void createDocument(final MutableDocument record, final DocumentType type, final Bucket bucket) {
+  public void createDocument(final Document record, final DocumentType type, final Bucket bucket) {
     final RID rid = record.getIdentity();
     if (rid == null)
       throw new IllegalArgumentException("Cannot index a non persistent record");
