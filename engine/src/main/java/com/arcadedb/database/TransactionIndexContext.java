@@ -61,6 +61,18 @@ public class TransactionIndexContext {
     this.database = database;
   }
 
+  public void removeIndex(final String indexName) {
+    indexEntries.remove(indexName);
+  }
+
+  public int getTotalEntries() {
+    int total = 0;
+    for (Map<ComparableKey, Set<IndexKey>> entry : indexEntries.values()) {
+      total += entry.values().size();
+    }
+    return total;
+  }
+
   public void commit() {
     checkUniqueIndexKeys();
 

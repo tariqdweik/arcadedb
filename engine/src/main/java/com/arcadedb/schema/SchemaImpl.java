@@ -174,6 +174,9 @@ public class SchemaImpl implements Schema {
   public void removeFile(final int fileId) {
     if (fileId >= files.size())
       return;
+
+    database.getTransaction().removePagesOfFile(fileId);
+
     files.set(fileId, null);
   }
 
@@ -249,7 +252,7 @@ public class SchemaImpl implements Schema {
     return indexes;
   }
 
-  public void removeIndex(final String indexName) {
+  public void removeIndex(final String indexName, final int fileId) {
     indexMap.remove(indexName);
 
     for (DocumentType d : types.values())
@@ -475,8 +478,41 @@ public class SchemaImpl implements Schema {
     database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
+        final DocumentType type = database.getSchema().getType(typeName);
+        final List<Bucket> buckets = type.getBuckets(false);
+
+        // DELETE ALL ASSOCIATED INDEXES
+        for (DocumentType.IndexMetadata m : type.getAllIndexesMetadata())
+          m.index.drop();
+
+        // DELETE ALL ASSOCIATED BUCKETS
+        for (Bucket b : buckets)
+          dropBucket(b.getName());
+
         if (types.remove(typeName) == null)
           throw new SchemaException("Type '" + typeName + "' not found");
+
+        saveConfiguration();
+        return null;
+      }
+    });
+  }
+
+  public void dropBucket(final String bucketName) {
+    database.executeInWriteLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        final Bucket bucket = getBucketByName(bucketName);
+
+        database.getPageManager().deleteFile(bucket.getId());
+        try {
+          database.getFileManager().dropFile(bucket.getId());
+        } catch (IOException e) {
+          LogManager.instance().error(this, "Error on deleting bucket '%s'", e, bucketName);
+        }
+        removeFile(bucket.getId());
+
+        bucketMap.remove(bucketName);
 
         saveConfiguration();
         return null;

@@ -9,6 +9,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Document;
+import com.arcadedb.database.TransactionContext;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.remote.RemoteDatabase;
@@ -140,6 +141,8 @@ public class Console {
         executeRollback();
       else if (line.startsWith("set"))
         executeSet(line.substring("set".length()).trim());
+      else if (line.trim().equals("transaction status"))
+        executeTransactionStatus();
       else {
         executeSQL(line);
       }
@@ -168,6 +171,19 @@ public class Console {
       expandResultset = value.equalsIgnoreCase("true");
     } else if ("maxMultiValueEntries".equalsIgnoreCase(key))
       maxMultiValueEntries = Integer.parseInt(value);
+  }
+
+  private void executeTransactionStatus() {
+    checkDatabaseIsOpen();
+
+    final TransactionContext tx = database.getTransaction();
+    if (tx.isActive()) {
+      final ResultInternal row = new ResultInternal();
+      row.setPropertiesFromMap(tx.getStats());
+      printRecord(row);
+
+    } else
+      output("\nTransaction is not Active");
   }
 
   private void executeBegin() {

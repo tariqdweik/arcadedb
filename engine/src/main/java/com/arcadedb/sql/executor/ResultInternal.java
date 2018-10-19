@@ -309,4 +309,10 @@ public class ResultInternal implements Result {
 
     return content.hashCode();
   }
+
+  public void setPropertiesFromMap(final Map<String, Object> stats) {
+    for (Map.Entry<String, Object> entry : stats.entrySet()) {
+      content.put(entry.getKey(), entry.getValue());
+    }
+  }
 }

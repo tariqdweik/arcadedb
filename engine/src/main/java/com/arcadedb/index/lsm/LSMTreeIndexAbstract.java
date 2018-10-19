@@ -13,11 +13,13 @@ import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.IndexCursorEntry;
 import com.arcadedb.index.IndexException;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.Type;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
@@ -146,6 +148,17 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
       } catch (FileNotFoundException e) {
         throw new IndexException("Cannot rename temp file", e);
       }
+    }
+  }
+
+  public void drop() throws IOException {
+    if (database.isOpen()) {
+      database.getPageManager().deleteFile(file.getFileId());
+      database.getFileManager().dropFile(file.getFileId());
+      ((SchemaImpl) database.getSchema()).removeFile(file.getFileId());
+      ((SchemaImpl) database.getSchema()).saveConfiguration();
+    } else {
+      new File(file.getFilePath()).delete();
     }
   }
 

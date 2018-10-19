@@ -135,7 +135,7 @@ public class LSMTreeIndex implements RangeIndex {
 
   public void drop() {
     lock.executeInWriteLock(() -> {
-      ((SchemaImpl) mutable.getDatabase().getSchema()).removeIndex(getName());
+      ((SchemaImpl) mutable.getDatabase().getSchema()).removeIndex(getName(), getFileId());
       final LSMTreeIndexCompacted subIndex = mutable.getSubIndex();
       if (subIndex != null)
         subIndex.drop();

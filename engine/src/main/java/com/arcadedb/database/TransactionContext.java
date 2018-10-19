@@ -10,6 +10,7 @@ import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.utility.LogManager;
 import com.arcadedb.utility.Pair;
 
@@ -248,8 +249,8 @@ public class TransactionContext implements Transaction {
     return modifiedPages != null;
   }
 
-  public Map<String, Object> stats() {
-    final Map<String, Object> map = new HashMap<>();
+  public Map<String, Object> getStats() {
+    final LinkedHashMap<String, Object> map = new LinkedHashMap<>();
 
     final Set<Integer> involvedFiles = new LinkedHashSet<>();
     for (PageId pid : modifiedPages.keySet())
@@ -259,11 +260,12 @@ public class TransactionContext implements Transaction {
     for (Integer fid : newPageCounters.keySet())
       involvedFiles.add(fid);
 
+    map.put("status", status.name());
     map.put("involvedFiles", involvedFiles);
-
     map.put("modifiedPages", modifiedPages.size());
     map.put("newPages", newPages != null ? newPages.size() : 0);
     map.put("newPageCounters", newPageCounters);
+    map.put("indexChanges", indexChanges != null ? indexChanges.getTotalEntries() : 0);
     return map;
   }
 
@@ -503,6 +505,39 @@ public class TransactionContext implements Transaction {
     modifiedRecordsCache.clear();
     immutableRecordsCache.clear();
     txId = -1;
+  }
+
+  public void removePagesOfFile(final int fileId) {
+    if (newPages != null)
+      for (Iterator<MutablePage> it = newPages.values().iterator(); it.hasNext(); ) {
+        if (fileId == it.next().getPageId().getFileId())
+          it.remove();
+      }
+
+    newPageCounters.remove(fileId);
+
+    if (modifiedPages != null)
+      for (Iterator<MutablePage> it = modifiedPages.values().iterator(); it.hasNext(); ) {
+        if (fileId == it.next().getPageId().getFileId())
+          it.remove();
+      }
+
+    // IMMUTABLE RECORD, AVOID IT'S POINTING TO THE OLD OFFSET IN A MODIFIED PAGE
+    for (Iterator<Record> it = immutableRecordsCache.values().iterator(); it.hasNext(); ) {
+      final Record r = it.next();
+
+      if (r.getIdentity().getBucketId() == fileId) {
+        // SAME PAGE, REMOVE IT
+        it.remove();
+      }
+    }
+
+    if (lockedFiles != null)
+      lockedFiles.remove(fileId);
+
+    final PaginatedComponent component = database.getSchema().getFileById(fileId);
+    if (component instanceof LSMTreeIndexAbstract)
+      indexChanges.removeIndex(component.getName());
   }
 
   public TransactionIndexContext getIndexChanges() {

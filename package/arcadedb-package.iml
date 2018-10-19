@@ -9,10 +9,10 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="arcadedb-engine" />
-    <orderEntry type="library" name="Maven: com.conversantmedia:disruptor:1.2.11" level="project" />
+    <orderEntry type="library" name="Maven: com.conversantmedia:disruptor:1.2.13" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.13" level="project" />
-    <orderEntry type="library" name="Maven: org.json:json:20180130" level="project" />
-    <orderEntry type="library" name="Maven: org.lz4:lz4-java:1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.json:json:20180813" level="project" />
+    <orderEntry type="library" name="Maven: org.lz4:lz4-java:1.4.1" level="project" />
     <orderEntry type="library" name="Maven: org.apache.lucene:lucene-analyzers-common:7.4.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.lucene:lucene-core:7.4.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.lucene:lucene-queryparser:7.4.0" level="project" />
@@ -33,17 +33,17 @@
     <orderEntry type="library" name="Maven: net.objecthunter:exp4j:0.4.8" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:jcl-over-slf4j:1.7.21" level="project" />
     <orderEntry type="module" module-name="arcadedb-console" />
-    <orderEntry type="library" name="Maven: org.jline:jline-terminal:3.7.0" level="project" />
-    <orderEntry type="library" name="Maven: org.jline:jline-reader:3.7.0" level="project" />
+    <orderEntry type="library" name="Maven: org.jline:jline-terminal:3.9.0" level="project" />
+    <orderEntry type="library" name="Maven: org.jline:jline-reader:3.9.0" level="project" />
     <orderEntry type="library" name="Maven: com.univocity:univocity-parsers:2.7.5" level="project" />
     <orderEntry type="module" module-name="arcadedb-network" />
     <orderEntry type="module" module-name="arcadedb-server" />
-    <orderEntry type="library" name="Maven: io.undertow:undertow-core:2.0.1.Final" level="project" />
-    <orderEntry type="library" name="Maven: org.jboss.logging:jboss-logging:3.3.0.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.undertow:undertow-core:2.0.13.Final" level="project" />
+    <orderEntry type="library" name="Maven: org.jboss.logging:jboss-logging:3.3.2.Final" level="project" />
     <orderEntry type="library" name="Maven: org.jboss.xnio:xnio-api:3.3.8.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.jboss.xnio:xnio-nio:3.3.8.Final" level="project" />
-    <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-core:4.0.0" level="project" />
-    <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-jmx:4.0.0" level="project" />
+    <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-core:4.0.3" level="project" />
+    <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-jmx:4.0.3" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-simple:1.7.25" level="project" />
     <orderEntry type="module" module-name="arcadedb-redisw" />
     <orderEntry type="module" module-name="arcadedb-mongodbw" />
