@@ -141,8 +141,6 @@ public class Console {
         executeRollback();
       else if (line.startsWith("set"))
         executeSet(line.substring("set".length()).trim());
-      else if (line.trim().equals("transaction status"))
-        executeTransactionStatus();
       else {
         executeSQL(line);
       }
@@ -485,7 +483,9 @@ public class Console {
       }
 
       table.writeRows(rows, -1);
-    } else
+    } else if (subject.equalsIgnoreCase("transaction"))
+      executeTransactionStatus();
+    else
       throw new ConsoleException("Information about '" + subject + "' is not available");
   }
 
@@ -498,6 +498,7 @@ public class Console {
     output("\nconnect <path>|remote:<url>         -> connects to a database stored on <path>");
     output("\nhelp|?                              -> ask for this help");
     output("\ninfo types                          -> print available types");
+    output("\ninfo transaction                    -> print current transaction");
     output("\nrollback                            -> rollbacks current transaction");
     output("\nquit or exit                        -> exits from the console");
     output("\n");
