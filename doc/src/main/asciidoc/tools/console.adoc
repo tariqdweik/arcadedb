@@ -21,6 +21,7 @@ create database <path>|remote:<url> -> creates a new database
 commit                              -> commits current transaction
 connect <path>|remote:<url>         -> connects to a database stored on <path>
 info types                          -> print available types
+info transaction                    -> print current transaction
 rollback                            -> rollbacks current transaction
 quit or exit                        -> exits from the console
 ```
@@ -96,3 +97,7 @@ Command executed in 33ms
 ```
 
 Here we go: our document is there.
+
+Remember that a transaction is automatically started. In order to make changes persistent, execute a `commit` command. When the
+console exists (`exit` or `quit` command), the pending transaction is committed automatically.
+
