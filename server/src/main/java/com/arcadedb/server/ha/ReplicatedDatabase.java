@@ -127,6 +127,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public DatabaseInternal getWrappedDatabaseInstance() {
+    return this;
+  }
+
+  @Override
   public Map<String, Object> getStats() {
     return proxied.getStats();
   }

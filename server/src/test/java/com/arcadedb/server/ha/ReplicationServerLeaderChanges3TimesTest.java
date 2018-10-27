@@ -5,8 +5,11 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.exception.DuplicatedKeyException;
+import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.exception.TransactionException;
 import com.arcadedb.remote.RemoteDatabase;
-import com.arcadedb.remote.RemoteException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.server.ha.message.TxRequest;
@@ -19,11 +22,14 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerTest {
-  private final AtomicInteger messages = new AtomicInteger();
-  private       int           restarts = 0;
+  private final AtomicInteger                       messagesInTotal    = new AtomicInteger();
+  private final AtomicInteger                       messagesPerRestart = new AtomicInteger();
+  private       AtomicInteger                       restarts           = new AtomicInteger();
+  private       ConcurrentHashMap<Integer, Boolean> semaphore          = new ConcurrentHashMap<>();
 
   public ReplicationServerLeaderChanges3TimesTest() {
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
@@ -46,9 +52,9 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
     final int maxRetry = 10;
 
     for (int tx = 0; tx < getTxs(); ++tx) {
-      for (int i = 0; i < getVerticesPerTx(); ++i) {
-        for (int retry = 0; retry < 3; ++retry) {
-          try {
+      for (int retry = 0; retry < 3; ++retry) {
+        try {
+          for (int i = 0; i < getVerticesPerTx(); ++i) {
             ResultSet resultSet = db.command("SQL", "CREATE VERTEX " + VERTEX1_TYPE_NAME + " SET id = ?, name = ?", ++counter, "distributed-test");
 
             Assertions.assertTrue(resultSet.hasNext());
@@ -61,19 +67,24 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
             Assertions.assertTrue(props.contains("name"));
             Assertions.assertEquals("distributed-test", result.getProperty("name"));
             break;
-          } catch (RemoteException e) {
-            // IGNORE IT
-            LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
-            try {
-              Thread.sleep(500);
-            } catch (InterruptedException e1) {
-              Thread.currentThread().interrupt();
-            }
+
           }
+
+          db.commit();
+
+        } catch (DuplicatedKeyException | NeedRetryException | TimeoutException | TransactionException e) {
+          // IGNORE IT
+          LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
+          try {
+            Thread.sleep(500);
+          } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
+          }
+        } catch (Exception e) {
+          // IGNORE IT
+          LogManager.instance().error(this, "Generic Exception", e);
         }
       }
-
-      db.commit();
 
       if (counter % 1000 == 0) {
         LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
@@ -99,7 +110,8 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
 
     onAfterTest();
 
-    Assertions.assertTrue(restarts >= getServerCount());
+    LogManager.instance().info(this, "TEST Restart = %d", restarts);
+    Assertions.assertTrue(restarts.get() >= getServerCount());
   }
 
   @Override
@@ -113,16 +125,30 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
 
           final String leaderName = server.getHA().getLeaderName();
 
-          if (messages.incrementAndGet() / (getServerCount() - 1) > ((restarts * getTxs()) / getServerCount()) + 10 && getServer(leaderName).isStarted()) {
-            for (int i = 0; i < getServerCount(); ++i)
-              if (!getServer(i).isStarted())
-                // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
-                return;
+          messagesInTotal.incrementAndGet();
+          messagesPerRestart.incrementAndGet();
 
-            LogManager.instance().info(this, "TEST: Stopping the Leader %s (messages=%d txs=%d) ...", leaderName, messages.get(), getTxs());
+          if (getServer(leaderName).isStarted() && messagesPerRestart.get() > getTxs() / (getServerCount() * 2) && restarts.get() < getServerCount() * 2) {
+            LogManager.instance().info(this, "TEST: Found online replicas %d", getServer(leaderName).getHA().getOnlineReplicas());
+
+            if (getServer(leaderName).getHA().getOnlineReplicas() < getServerCount() - 1) {
+              // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
+              LogManager.instance()
+                  .debug(this, "TEST: Skip restart of the Leader %s because no all replicas are online yet (messages=%d txs=%d) ...", leaderName,
+                      messagesInTotal.get(), getTxs());
+              return;
+            }
+
+            if (semaphore.putIfAbsent(restarts.get(), true) != null)
+              // ANOTHER REPLICA JUST DID IT
+              return;
+
+            LogManager.instance()
+                .info(this, "TEST: Stopping the Leader %s (messages=%d txs=%d restarts=%d) ...", leaderName, messagesInTotal.get(), getTxs(), restarts.get());
 
             getServer(leaderName).stop();
-            restarts++;
+            restarts.incrementAndGet();
+            messagesPerRestart.set(0);
 
             executeAsynchronously(new Callable() {
               @Override
@@ -139,7 +165,7 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
 
   @Override
   protected int getTxs() {
-    return 500;
+    return 1000;
   }
 
   @Override

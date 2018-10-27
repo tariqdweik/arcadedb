@@ -18,6 +18,8 @@ import com.arcadedb.utility.Pair;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -31,22 +33,22 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     JOINING, OFFLINE, ONLINE
   }
 
-  private final    HAServer                                                   server;
-  private final    String                                                     remoteServerName;
-  private final    String                                                     remoteServerAddress;
-  private final    String                                                     remoteServerHTTPAddress;
-  private final    PushPullBlockingQueue<Binary>                              senderQueue;
-  private          Thread                                                     senderThread;
-  private final    PushPullBlockingQueue<Pair<ReplicationMessage, HACommand>> forwarderQueue;
-  private          Thread                                                     forwarderThread;
-  private          long                                                       joinedOn;
-  private          long                                                       leftOn                = 0;
-  private          ChannelBinaryServer                                        channel;
-  private          STATUS                                                     status                = STATUS.JOINING;
-  private          Object                                                     lock                  = new Object();
-  private          Object                                                     channelOutputLock     = new Object();
-  private          Object                                                     channelInputLock      = new Object();
-  private volatile boolean                                                    shutdownCommunication = false;
+  private final    HAServer                                           server;
+  private final    String                                             remoteServerName;
+  private final    String                                             remoteServerAddress;
+  private final    String                                             remoteServerHTTPAddress;
+  private final    BlockingQueue<Binary>                              senderQueue;
+  private          Thread                                             senderThread;
+  private final    BlockingQueue<Pair<ReplicationMessage, HACommand>> forwarderQueue;
+  private          Thread                                             forwarderThread;
+  private          long                                               joinedOn;
+  private          long                                               leftOn                = 0;
+  private          ChannelBinaryServer                                channel;
+  private          STATUS                                             status                = STATUS.JOINING;
+  private          Object                                             lock                  = new Object();
+  private          Object                                             channelOutputLock     = new Object();
+  private          Object                                             channelInputLock      = new Object();
+  private volatile boolean                                            shutdownCommunication = false;
 
   // STATS
   private long totalMessages;
@@ -63,8 +65,19 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     this.remoteServerHTTPAddress = remoteServerHTTPAddress;
     this.channel = channel;
 
-    this.senderQueue = new PushPullBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
-    this.forwarderQueue = new PushPullBlockingQueue<Pair<ReplicationMessage, HACommand>>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+    final String cfgQueueImpl = ha.getServer().getConfiguration().getValueAsString(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_IMPL);
+    if ("fast".equalsIgnoreCase(cfgQueueImpl)) {
+      this.senderQueue = new PushPullBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+      this.forwarderQueue = new PushPullBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+    } else if ("standard".equalsIgnoreCase(cfgQueueImpl)) {
+      this.senderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+      this.forwarderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+    } else {
+      // WARNING AND THEN USE THE DEFAULT
+      LogManager.instance().warn(this, "Error on async operation queue implementation setting: %s is not supported", cfgQueueImpl);
+      this.senderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+      this.forwarderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+    }
 
     setName(Constants.PRODUCT + "-ha-leader2replica/" + server.getServer().getServerName() + "/?");
 

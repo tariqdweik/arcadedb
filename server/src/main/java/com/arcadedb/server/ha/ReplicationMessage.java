@@ -14,4 +14,9 @@ public class ReplicationMessage {
     this.messageNumber = messageNumber;
     this.payload = payload;
   }
+
+  @Override
+  public String toString() {
+    return "number=" + messageNumber + " payload=" + payload.size() + " bytes";
+  }
 }

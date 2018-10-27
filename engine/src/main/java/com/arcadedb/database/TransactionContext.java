@@ -75,7 +75,7 @@ public class TransactionContext implements Transaction {
 
     final Pair<Binary, List<MutablePage>> changes = commit1stPhase(true);
 
-    if (modifiedPages != null)
+    if (changes != null)
       commit2ndPhase(changes);
     else
       reset();
@@ -163,7 +163,7 @@ public class TransactionContext implements Transaction {
   }
 
   public void assureIsActive() {
-    if (modifiedPages == null)
+    if (!isActive())
       throw new TransactionException("Transaction not begun");
   }
 
@@ -196,7 +196,7 @@ public class TransactionContext implements Transaction {
     if (!isActive())
       throw new TransactionException("Transaction not active");
 
-    MutablePage page = modifiedPages.get(pageId);
+    MutablePage page = modifiedPages != null ? modifiedPages.get(pageId) : null;
     if (page == null) {
       if (newPages != null)
         page = newPages.get(pageId);
@@ -246,7 +246,7 @@ public class TransactionContext implements Transaction {
 
   @Override
   public boolean isActive() {
-    return modifiedPages != null;
+    return status != STATUS.INACTIVE;
   }
 
   public Map<String, Object> getStats() {
@@ -351,16 +351,15 @@ public class TransactionContext implements Transaction {
       throw new TransactionException("Transaction not started");
 
     if (status != STATUS.BEGUN)
-      throw new TransactionException("Transaction already in commit phase");
-
-    status = STATUS.COMMIT_1ST_PHASE;
+      throw new TransactionException("Transaction in phase " + status);
 
     final int totalImpactedPages = modifiedPages.size() + (newPages != null ? newPages.size() : 0);
     if (totalImpactedPages == 0 && indexChanges.isEmpty()) {
       // EMPTY TRANSACTION = NO CHANGES
-      modifiedPages = null;
       return null;
     }
+
+    status = STATUS.COMMIT_1ST_PHASE;
 
     if (isLeader)
       // LOCK FILES IN ORDER (TO AVOID DEADLOCK)

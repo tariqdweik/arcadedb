@@ -48,6 +48,8 @@ public class TxRequest extends TxRequestAbstract {
     final WALFile.WALTransaction walTx = readTxFromBuffer();
 
     try {
+      server.getServer().log(this, Level.FINE, "Applying tx %d from server %s (modifiedPages=%d)...", walTx.txId, remoteServerName, walTx.pages.length);
+
       db.getTransactionManager().applyChanges(walTx);
 
     } catch (WALException e) {

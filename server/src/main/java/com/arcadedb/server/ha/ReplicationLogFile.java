@@ -203,6 +203,7 @@ public class ReplicationLogFile extends LockContext {
       if (message.messageNumber != lastMessageNumber + 1) {
         server.getServer().log(this, Level.WARNING, "Found a jump in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
             lastMessageNumber, message.messageNumber, Thread.currentThread().getId());
+
         return false;
       }
     }

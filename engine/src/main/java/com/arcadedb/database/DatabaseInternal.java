@@ -39,6 +39,8 @@ public interface DatabaseInternal extends Database {
 
   PageManager getPageManager();
 
+  DatabaseInternal getWrappedDatabaseInstance();
+
   void registerCallback(CALLBACK_EVENT event, Callable<Void> callback);
 
   void unregisterCallback(CALLBACK_EVENT event, Callable<Void> callback);

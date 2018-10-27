@@ -27,7 +27,7 @@ public class TableFormatter {
   protected final Map<String, ALIGNMENT>           columnAlignment      = new HashMap<String, ALIGNMENT>();
   protected final Map<String, Map<String, String>> columnMetadata       = new HashMap<String, Map<String, String>>();
   protected final Set<String>                      columnHidden         = new HashSet<String>();
-  protected       Set<String>                      prefixedColumns      = new LinkedHashSet<String>(Arrays.asList(new String[] {"#"}));
+  protected       Set<String>                      prefixedColumns      = new LinkedHashSet<>();
   protected final TableOutput                      out;
   protected       int                              maxMultiValueEntries = 10;
   protected       int                              minColumnSize        = 4;
@@ -82,11 +82,11 @@ public class TableFormatter {
   }
 
   public void setPrefixedColumns(final String... prefixedColumns) {
-    this.prefixedColumns = new LinkedHashSet<String>(Arrays.asList(prefixedColumns));
+    this.prefixedColumns = prefixedColumns != null ? new LinkedHashSet<>(Arrays.asList(prefixedColumns)) : new LinkedHashSet<>();
   }
 
   public void setColumnSorting(final String column, final boolean ascending) {
-    columnSorting = new Pair<String, Boolean>(column, ascending);
+    columnSorting = new Pair<>(column, ascending);
   }
 
   public void setColumnHidden(final String column) {

@@ -221,6 +221,8 @@ public class LeaderNetworkListener extends Thread {
         final Replica2LeaderNetworkExecutor leader = ha.getLeader();
         channel.writeString(leader != null ? leader.getRemoteAddress() : ha.getServerAddress());
 
+        ha.startElection();
+
       } else if (lastReplicationMessage >= localServerLastMessageNumber && (ha.lastElectionVote == null || ha.lastElectionVote.getFirst() < voteTurn)) {
         ha.getServer().log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, giving my vote", remoteServerName,
             lastReplicationMessage, localServerLastMessageNumber, voteTurn);

@@ -328,7 +328,6 @@ public class Console {
         output(text, args);
       }
     });
-    formatter.setPrefixedColumns();
     formatter.writeRows(resultSet, -1);
 
     output("\n");
@@ -457,7 +456,7 @@ public class Console {
       });
 
       if (remoteDatabase != null) {
-        executeSQL("select from metadata:schema");
+        executeSQL("select from schema:types");
         return;
       }
 

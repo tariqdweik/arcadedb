@@ -38,12 +38,19 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
       }
     }
 
-    current.transaction = new TransactionContext(database);
+    current.transaction = new TransactionContext(database.getWrappedDatabaseInstance());
   }
 
   public DatabaseContextTL getContext(final String name) {
     final Map<String, DatabaseContextTL> map = get();
     return map != null ? map.get(name) : null;
+  }
+
+  public DatabaseContextTL removeContext(final String name) {
+    final Map<String, DatabaseContextTL> map = get();
+    if (map != null)
+      return map.remove(name);
+    return null;
   }
 
   public static class DatabaseContextTL {

@@ -8,9 +8,7 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.ConcurrentModificationException;
-import com.arcadedb.exception.DuplicatedKeyException;
-import com.arcadedb.exception.NeedRetryException;
-import com.arcadedb.exception.TransactionException;
+import com.arcadedb.exception.*;
 import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.sql.executor.InternalResultSet;
@@ -185,25 +183,25 @@ public class RemoteDatabase extends RWLockContext {
   }
 
   private Object serverCommand(final String operation, final String language, final String payloadCommand, final Map<String, Object> params,
-      final boolean requiresLeader, final Callback callback) {
-    return httpCommand(null, operation, language, payloadCommand, params, requiresLeader, callback);
+      final boolean leaderIsPreferable, final boolean autoReconnect, final Callback callback) {
+    return httpCommand(null, operation, language, payloadCommand, params, leaderIsPreferable, autoReconnect, callback);
   }
 
   private Object databaseCommand(final String operation, final String language, final String payloadCommand, final Map<String, Object> params,
       final boolean requiresLeader, final Callback callback) {
-    return httpCommand(name, operation, language, payloadCommand, params, requiresLeader, callback);
+    return httpCommand(name, operation, language, payloadCommand, params, requiresLeader, true, callback);
   }
 
   private Object httpCommand(final String extendedURL, final String operation, final String language, final String payloadCommand,
-      final Map<String, Object> params, final boolean requiresLeader, final Callback callback) {
+      final Map<String, Object> params, final boolean leaderIsPreferable, final boolean autoReconnect, final Callback callback) {
 
     Exception lastException = null;
 
-    final int maxRetry = requiresLeader ? 3: replicaServerList.size() + 1;
+    final int maxRetry = leaderIsPreferable ? 3 : replicaServerList.size() + 1;
 
-    Pair<String, Integer> connectToServer = requiresLeader ? leaderServer : new Pair<>(currentServer, currentPort);
+    Pair<String, Integer> connectToServer = leaderIsPreferable ? leaderServer : new Pair<>(currentServer, currentPort);
 
-    for (int retry = 0; retry < maxRetry; ++retry) {
+    for (int retry = 0; retry < maxRetry && connectToServer != null; ++retry) {
       String url = protocol + "://" + connectToServer.getFirst() + ":" + connectToServer.getSecond() + "/" + operation;
 
       if (extendedURL != null)
@@ -260,17 +258,19 @@ public class RemoteDatabase extends RWLockContext {
 
             if (exception != null) {
               if (exception.equals(ServerIsNotTheLeaderException.class.getName())) {
-                throw new ServerIsNotTheLeaderException(detail, exceptionArg);
+                throw new ServerIsNotTheLeaderException(detail.substring(0, detail.lastIndexOf('.')), exceptionArg);
               } else if (exception.equals(QuorumNotReachedException.class.getName())) {
                 lastException = new QuorumNotReachedException(detail);
                 continue;
               } else if (exception.equals(DuplicatedKeyException.class.getName())) {
-                final String[] exceptionArgs = exceptionArg.split("|");
+                final String[] exceptionArgs = exceptionArg.split("\\|");
                 throw new DuplicatedKeyException(exceptionArgs[0], exceptionArgs[1], new RID(null, exceptionArgs[2]));
               } else if (exception.equals(ConcurrentModificationException.class.getName())) {
                 throw new ConcurrentModificationException(detail);
               } else if (exception.equals(TransactionException.class.getName())) {
                 throw new TransactionException(detail);
+              } else if (exception.equals(TimeoutException.class.getName())) {
+                throw new TimeoutException(detail);
               } else
                 // ELSE
                 throw new RemoteException("Error on executing remote operation " + operation + " (cause:" + exception + ")");
@@ -306,24 +306,32 @@ public class RemoteDatabase extends RWLockContext {
       } catch (IOException | ServerIsNotTheLeaderException e) {
         lastException = e;
 
+        if (!autoReconnect)
+          break;
+
         if (!reloadClusterConfiguration())
           throw new RemoteException("Error on executing remote operation " + operation + ", no server available", e);
 
-        if (requiresLeader) {
+        final Pair<String, Integer> currentConnectToServer = connectToServer;
+
+        if (leaderIsPreferable && !currentConnectToServer.equals(leaderServer)) {
           connectToServer = leaderServer;
         } else
           connectToServer = getNextReplicaAddress();
 
-        if (connectToServer == null)
-          LogManager.instance()
-              .warn(this, "Remote server seems unreachable, switching to server %s:%d...", connectToServer.getFirst(), connectToServer.getSecond());
+        if (connectToServer != null)
+          LogManager.instance().warn(this, "Remote server (%s:%d) seems unreachable, switching to server %s:%d...", currentConnectToServer.getFirst(),
+              currentConnectToServer.getSecond(), connectToServer.getFirst(), connectToServer.getSecond());
 
-      } catch (NeedRetryException|DuplicatedKeyException|TransactionException e) {
+      } catch (NeedRetryException | DuplicatedKeyException | TransactionException | TimeoutException e) {
         throw e;
       } catch (Exception e) {
         throw new RemoteException("Error on executing remote operation " + operation, e);
       }
     }
+
+    if (lastException instanceof RuntimeException)
+      throw (RuntimeException) lastException;
 
     throw new RemoteException("Error on executing remote operation " + operation, lastException);
   }
@@ -341,7 +349,7 @@ public class RemoteDatabase extends RWLockContext {
   }
 
   private void requestClusterConfiguration() {
-    serverCommand("server", "SQL", null, null, false, new Callback() {
+    serverCommand("server", "SQL", null, null, false, false, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) {
         LogManager.instance().debug(this, "Configuring remote database: %s", response);
@@ -365,6 +373,8 @@ public class RemoteDatabase extends RWLockContext {
           final String[] serverEntries = cfgReplicaServers.split(",");
           for (String serverEntry : serverEntries) {
             final String[] serverParts = serverEntry.split(":");
+            if (serverParts.length != 2)
+              LogManager.instance().warn(this, "No port specified on remote server URL '%s'", serverEntry);
 
             final String sHost = serverParts[0];
             final int sPort = Integer.parseInt(serverParts[1]);
@@ -400,7 +410,13 @@ public class RemoteDatabase extends RWLockContext {
 
       currentServer = connectToServer.getFirst();
       currentPort = connectToServer.getSecond();
-      requestClusterConfiguration();
+
+      try {
+        requestClusterConfiguration();
+      } catch (Exception e) {
+        // IGNORE< TRY NEXT
+        continue;
+      }
 
       if (leaderServer != null)
         return true;

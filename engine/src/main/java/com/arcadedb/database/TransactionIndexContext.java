@@ -80,8 +80,6 @@ public class TransactionIndexContext {
       final Index index = database.getSchema().getIndexByName(entry.getKey());
       final Map<ComparableKey, Set<IndexKey>> keys = entry.getValue();
 
-      // TODO: STORE ALL THE RIDS FOR THE SAME KEY IN ONE OPERATION. THIS ALLOWS TO WRITE ONE COMPACTED "CONTENT" ONLY
-
       for (Map.Entry<ComparableKey, Set<IndexKey>> keyValueEntries : keys.entrySet()) {
         final Set<IndexKey> values = keyValueEntries.getValue();
 

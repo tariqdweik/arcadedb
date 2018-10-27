@@ -10,7 +10,7 @@ public class Pair<V1, V2> {
   private final V1 first;
   private final V2 second;
 
-  public Pair(V1 first, V2 second) {
+  public Pair(final V1 first, final V2 second) {
     this.first = first;
     this.second = second;
   }
@@ -30,12 +30,11 @@ public class Pair<V1, V2> {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    Pair<?, ?> oRawPair = (Pair<?, ?>) o;
+    final Pair<?, ?> oRawPair = (Pair<?, ?>) o;
 
     if (!first.equals(oRawPair.first))
       return false;
     return second.equals(oRawPair.second);
-
   }
 
   @Override

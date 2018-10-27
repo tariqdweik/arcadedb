@@ -94,17 +94,26 @@ public class Replica2LeaderNetworkExecutor extends Thread {
             continue;
           }
 
-          if (!server.getReplicationLogFile().checkMessageOrder(message))
+          if (!server.getReplicationLogFile().checkMessageOrder(message)) {
             // SKIP
+            channel.close();
+            connect();
             continue;
+          }
         }
 
         // TODO: LOG THE TX BEFORE EXECUTING TO RECOVER THE DB IN CASE OF CRASH
 
         final HACommand response = request.getSecond().execute(server, leaderServerName, reqId);
 
-        if (reqId > -1)
-          server.getReplicationLogFile().appendMessage(message);
+        if (reqId > -1) {
+          if (!server.getReplicationLogFile().appendMessage(message)) {
+            // ERROR IN THE SEQUENCE, FORCE A RECONNECTION
+            channel.close();
+            connect();
+            continue;
+          }
+        }
 
         if (testOn)
           server.getServer().lifecycleEvent(TestCallback.TYPE.REPLICA_MSG_RECEIVED, request);
@@ -308,7 +317,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     final Binary buffer = new Binary(1024);
 
     final ReplicationMessage lastMessage = server.getReplicationLogFile().getLastMessage();
-    long lastLogNumber = lastMessage != null ? lastMessage.messageNumber : -1;
+    long lastLogNumber = lastMessage != null ? lastMessage.messageNumber - 1 : -1;
 
     server.getServer().log(this, Level.INFO, "Requesting install of databases...");
 
@@ -335,6 +344,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           installDatabase(buffer, db, dbStructure, database);
         }
 
+        sendCommandToLeader(buffer, new ReplicaReadyRequest(), -1);
+
       } else {
         server.getServer().log(this, Level.INFO, "Receiving hot resync (from=%d)...", lastLogNumber);
 
@@ -351,7 +362,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     }
   }
 
-  private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure, final DatabaseInternal database) throws IOException {
+  private void installDatabase(final Binary buffer, final String db, final DatabaseStructureResponse dbStructure, final DatabaseInternal database)
+      throws IOException {
 
     // WRITE THE SCHEMA
     final FileWriter schemaFile = new FileWriter(database.getDatabasePath() + "/" + SchemaImpl.SCHEMA_FILE_NAME);
@@ -368,7 +380,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     // RELOAD THE SCHEMA
     ((SchemaImpl) database.getSchema()).close();
-    DatabaseContext.INSTANCE.init((DatabaseInternal) database);
+    DatabaseContext.INSTANCE.init(database);
     ((SchemaImpl) database.getSchema()).load(PaginatedFile.MODE.READ_ONLY);
   }
 

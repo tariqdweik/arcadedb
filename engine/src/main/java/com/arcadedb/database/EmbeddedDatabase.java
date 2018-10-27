@@ -8,8 +8,8 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
-import com.arcadedb.engine.*;
 import com.arcadedb.engine.Dictionary;
+import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
@@ -233,11 +233,13 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         if (asynch != null)
           asynch.close();
 
-        final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
+        final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.removeContext(databasePath);
         if (dbContext != null && dbContext.transaction != null) {
-          if (dbContext.transaction != null && dbContext.transaction.isActive())
+          if (dbContext.transaction != null && dbContext.transaction.isActive()) {
             // ROLLBACK ANY PENDING OPERATION
             dbContext.transaction.rollback();
+          }
+          dbContext.transaction = null;
         }
 
         try {
@@ -257,7 +259,6 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           }
 
         } finally {
-          DatabaseContext.INSTANCE.remove();
           Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
         }
         return null;
@@ -318,7 +319,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         checkDatabaseIsOpen();
 
         // FORCE THE RESET OF TL
-        DatabaseContext.INSTANCE.init(wrappedDatabaseInstance);
+        DatabaseContext.INSTANCE.init(EmbeddedDatabase.this);
 
         getTransaction().begin();
         return null;
@@ -1119,6 +1120,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     return name;
   }
 
+  @Override
   public DatabaseInternal getWrappedDatabaseInstance() {
     return wrappedDatabaseInstance;
   }
@@ -1168,7 +1170,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       throw new DatabaseIsClosedException(name);
 
     if (DatabaseContext.INSTANCE.get() == null)
-      DatabaseContext.INSTANCE.init(wrappedDatabaseInstance);
+      DatabaseContext.INSTANCE.init(this);
   }
 
   private void lockDatabase() throws IOException {

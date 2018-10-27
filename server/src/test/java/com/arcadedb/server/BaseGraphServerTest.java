@@ -135,16 +135,34 @@ public abstract class BaseGraphServerTest {
 
   @AfterEach
   public void endTest() {
+    boolean anyServerRestarted = false;
+    if (servers != null) {
+      // RESTART ANY SERVER IS DOWN TO CHECK INTEGRITY AFTER THE REALIGNMENT
+      for (int i = servers.length - 1; i > -1; --i) {
+        if (servers[i] != null && !servers[i].isStarted()) {
+          LogManager.instance().info(this, "TEST: Restarting server %d to force re-alignment", i);
+          servers[i].start();
+          anyServerRestarted = true;
+        }
+      }
+    }
+
+    if (anyServerRestarted)
+      // WAIT A BIT FOR THE SERVER TO BE SYNCHRONIZED
+      LogManager.instance().info(this, "TEST: Wait a bit until realignment is completed");
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
+    LogManager.instance().info(this, "TEST: Stopping servers...");
+    stopServers();
+
     try {
       checkDatabasesAreIdentical();
     } finally {
       LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
-      if (servers != null)
-        for (int i = servers.length - 1; i > -1; --i) {
-          if (servers[i] != null)
-            servers[i].stop();
-        }
-
       if (dropDatabasesAtTheEnd())
         deleteDatabaseFolders();
 
@@ -173,11 +191,11 @@ public abstract class BaseGraphServerTest {
       if (i > 0)
         serverURLs += ",";
 
-        try {
-          serverURLs += (InetAddress.getLocalHost().getHostName()) + ":" + (port++);
-        } catch (UnknownHostException e) {
-          e.printStackTrace();
-        }
+      try {
+        serverURLs += (InetAddress.getLocalHost().getHostName()) + ":" + (port++);
+      } catch (UnknownHostException e) {
+        e.printStackTrace();
+      }
     }
 
     for (int i = 0; i < totalServers; ++i) {
@@ -199,6 +217,16 @@ public abstract class BaseGraphServerTest {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         e.printStackTrace();
+      }
+    }
+  }
+
+  protected void stopServers() {
+    if (servers != null) {
+      // RESTART ANY SERVER IS DOWN TO CHECK INTEGRITY AFTER THE REALIGNMENT
+      for (int i = servers.length - 1; i > -1; --i) {
+        if (servers[i] != null)
+          servers[i].stop();
       }
     }
   }
@@ -325,6 +353,10 @@ public abstract class BaseGraphServerTest {
       for (int i = 1; i < servers2Check.length; ++i) {
         final DatabaseInternal db1 = (DatabaseInternal) getServerDatabase(servers2Check[0], getDatabaseName());
         final DatabaseInternal db2 = (DatabaseInternal) getServerDatabase(servers2Check[i], getDatabaseName());
+
+        // TODO: DISCOVER WHY THIS IS NEEDED. NOW CAN HAPPENS THAT THE TX HAS A DB INSTANCE DIFFERENT FROM THE CURRENT DATABASE. AND IT'S ALWAYS CLOSED
+        DatabaseContext.INSTANCE.init(db1);
+        DatabaseContext.INSTANCE.init(db2);
 
         LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1.getDatabasePath(), db2.getDatabasePath());
         new DatabaseComparator().compare(db1, db2);

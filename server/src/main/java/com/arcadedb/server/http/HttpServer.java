@@ -17,6 +17,8 @@ import io.undertow.server.RoutingHandler;
 import java.net.BindException;
 import java.util.logging.Level;
 
+import static io.undertow.UndertowOptions.SHUTDOWN_TIMEOUT;
+
 public class HttpServer implements ServerPlugin {
   private       Undertow       undertow;
   private       JsonSerializer jsonSerializer = new JsonSerializer();
@@ -30,7 +32,11 @@ public class HttpServer implements ServerPlugin {
   @Override
   public void stopService() {
     if (undertow != null)
-      undertow.stop();
+      try {
+        undertow.stop();
+      } catch (Exception e) {
+        // IGNORE IT
+      }
   }
 
   @Override
@@ -60,7 +66,7 @@ public class HttpServer implements ServerPlugin {
 
     do {
       try {
-        undertow = Undertow.builder().addHttpListener(port, host).setHandler(routes).build();
+        undertow = Undertow.builder().addHttpListener(port, host).setHandler(routes).setServerOption(SHUTDOWN_TIMEOUT, 1000).build();
         undertow.start();
 
         server.log(this, Level.INFO, "- HTTP Server started (host=%s port=%d)", host, port);

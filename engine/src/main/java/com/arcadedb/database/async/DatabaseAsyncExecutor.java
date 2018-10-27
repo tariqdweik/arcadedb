@@ -59,17 +59,17 @@ public class DatabaseAsyncExecutor {
       super("AsyncExecutor-" + id);
       this.database = database;
 
+      final int queueSize = database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_SIZE) / parallelLevel;
+
       final String cfgQueueImpl = database.getConfiguration().getValueAsString(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_IMPL);
       if ("fast".equalsIgnoreCase(cfgQueueImpl))
-        this.queue = new PushPullBlockingQueue<>(
-            database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_SIZE) / parallelLevel);
+        this.queue = new PushPullBlockingQueue<>(queueSize);
       else if ("standard".equalsIgnoreCase(cfgQueueImpl))
-        this.queue = new ArrayBlockingQueue<>(database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_SIZE) / parallelLevel);
+        this.queue = new ArrayBlockingQueue<>(queueSize);
       else {
         // WARNING AND THEN USE THE DEFAULT
         LogManager.instance().warn(this, "Error on async operation queue implementation setting: %s is not supported", cfgQueueImpl);
-        this.queue = new PushPullBlockingQueue<>(
-            database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_SIZE) / parallelLevel);
+        this.queue = new ArrayBlockingQueue<>(queueSize);
       }
     }
 

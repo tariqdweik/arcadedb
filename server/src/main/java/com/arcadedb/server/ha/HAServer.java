@@ -332,14 +332,16 @@ public class HAServer implements ServerPlugin {
         break;
       }
 
-      // TRY TO CONNECT TO THE EXISTENT LEADER
-      server.log(this, Level.INFO, "Other leaders found %s (turn=%d totalVotes=%d majority=%d)", otherLeaders, electionTurn, totalVotes, majorityOfVotes);
-      for (Map.Entry<String, Integer> entry : otherLeaders.entrySet()) {
-        if (entry.getValue() >= majorityOfVotes) {
-          server.log(this, Level.INFO, "Trying to connect to the existing leader '%s' (turn=%d totalVotes=%d majority=%d)", entry.getKey(), electionTurn,
-              entry.getValue(), majorityOfVotes);
-          if (connectToLeader(entry.getKey()))
-            break;
+      if (!otherLeaders.isEmpty()) {
+        // TRY TO CONNECT TO THE EXISTENT LEADER
+        server.log(this, Level.INFO, "Other leaders found %s (turn=%d totalVotes=%d majority=%d)", otherLeaders, electionTurn, totalVotes, majorityOfVotes);
+        for (Map.Entry<String, Integer> entry : otherLeaders.entrySet()) {
+          if (entry.getValue() >= majorityOfVotes) {
+            server.log(this, Level.INFO, "Trying to connect to the existing leader '%s' (turn=%d totalVotes=%d majority=%d)", entry.getKey(), electionTurn,
+                entry.getValue(), majorityOfVotes);
+            if (connectToLeader(entry.getKey()))
+              break;
+          }
         }
       }
 
@@ -501,7 +503,7 @@ public class HAServer implements ServerPlugin {
         setElectionStatus(ELECTION_STATUS.DONE);
     }
 
-    sendCommandToReplicas(new UpdateClusterConfiguration(getServerAddressList(), getReplicaServersHTTPAddressesList()));
+    sendCommandToReplicasNoLog(new UpdateClusterConfiguration(getServerAddressList(), getReplicaServersHTTPAddressesList()));
 
     printClusterConfiguration();
   }
@@ -576,13 +578,13 @@ public class HAServer implements ServerPlugin {
         forwardMessagesWaitingForResponse.remove(opNumber);
       }
 
-    } catch (IOException e) {
+    } catch (IOException | TimeoutException e) {
       server.log(this, Level.SEVERE, "Leader server '%s' does not respond, starting election...", leaderName);
       startElection();
     }
   }
 
-  public long sendCommandToReplicas(final HACommand command) {
+  public void sendCommandToReplicasNoLog(final HACommand command) {
     checkCurrentNodeIsTheLeader();
 
     final Binary buffer = new Binary();
@@ -592,14 +594,9 @@ public class HAServer implements ServerPlugin {
 
     // ASSURE THE TX ARE WRITTEN IN SEQUENCE INTO THE LOGFILE
     synchronized (sendingLock) {
-      final long opNumber = this.lastDistributedOperationNumber.incrementAndGet();
+      messageFactory.serializeCommand(command, buffer, -1);
 
-      messageFactory.serializeCommand(command, buffer, opNumber);
-
-      // WRITE THE MESSAGE INTO THE LOG FIRST
-      replicationLogFile.appendMessage(new ReplicationMessage(opNumber, buffer));
-
-      server.log(this, Level.FINE, "Sending request %d (%s) to %s", opNumber, command, replicas);
+      server.log(this, Level.FINE, "Sending request (%s) to %s", -1, command, replicas);
 
       for (Leader2ReplicaNetworkExecutor replicaConnection : replicas) {
         // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
@@ -611,8 +608,6 @@ public class HAServer implements ServerPlugin {
           setReplicaStatus(replicaConnection.getRemoteServerName(), false);
         }
       }
-
-      return opNumber;
     }
   }
 
@@ -641,9 +636,6 @@ public class HAServer implements ServerPlugin {
 
           buffer.clear();
           messageFactory.serializeCommand(command, buffer, opNumber);
-
-          // WRITE THE MESSAGE INTO THE LOG FIRST
-          replicationLogFile.appendMessage(new ReplicationMessage(opNumber, buffer));
 
           if (quorum > 1) {
             quorumSemaphore = new CountDownLatch(quorum - 1);
@@ -704,6 +696,9 @@ public class HAServer implements ServerPlugin {
             throw new QuorumNotReachedException("Quorum not reached for request " + opNumber + " because the thread was interrupted");
           }
         }
+
+        // WRITE THE MESSAGE INTO THE LOG FIRST
+        replicationLogFile.appendMessage(new ReplicationMessage(opNumber, buffer));
 
         // OK
         break;
@@ -861,7 +856,7 @@ public class HAServer implements ServerPlugin {
 
         // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
         try {
-          server.log(this, Level.FINE, "Resending message %d to replica '%s'...", entry.getFirst().messageNumber, replica.getRemoteServerName());
+          server.log(this, Level.FINE, "Resending message (%s) to replica '%s'...", entry.getFirst(), replica.getRemoteServerName());
 
           if (min == -1)
             min = entry.getFirst().messageNumber;

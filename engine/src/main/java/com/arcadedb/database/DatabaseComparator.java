@@ -83,10 +83,13 @@ public class DatabaseComparator {
           throw new DatabaseAreNotIdentical("Error on reading page %s from bucket '%s' DB2 (cause=%s)", pageId, bucket2.getName(), e.toString());
         }
 
-        if (page1.getVersion() != page2.getVersion())
-          throw new DatabaseAreNotIdentical("Page %s has different versions on databases. DB1 %d <> DB2 %d", pageId, page1.getVersion(), page2.getVersion());
+        final boolean sameContent = Arrays.equals(page1.getContent().array(), page2.getContent().array());
 
-        if (!Arrays.equals(page1.getContent().array(), page2.getContent().array()))
+        if (page1.getVersion() != page2.getVersion())
+          throw new DatabaseAreNotIdentical("Page %s has different versions on databases. DB1 %d <> DB2 %d (sameContent=%s)", pageId, page1.getVersion(),
+              page2.getVersion(), sameContent);
+
+        if (!sameContent)
           throw new DatabaseAreNotIdentical("Page %s has different content on databases", pageId);
 
         db2.getPageManager().removePageFromCache(page2.getPageId());
