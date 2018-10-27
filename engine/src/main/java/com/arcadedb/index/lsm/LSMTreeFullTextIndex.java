@@ -69,7 +69,6 @@ public class LSMTreeFullTextIndex implements Index {
     try {
       analyzer = new StandardAnalyzer();
       underlyingIndex = new LSMTreeIndex(database, name, false, filePath, mode, new byte[] { Type.STRING.getBinaryType() }, pageSize);
-      underlyingIndex.build(callback);
     } catch (IOException e) {
       throw new IndexException("Cannot create search engine (error=" + e + ")", e);
     }
