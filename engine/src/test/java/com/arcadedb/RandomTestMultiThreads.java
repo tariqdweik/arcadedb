@@ -5,17 +5,18 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.RecordNotFoundException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 import org.junit.jupiter.api.Test;
 
@@ -249,7 +250,7 @@ public class RandomTestMultiThreads extends BaseTest {
 
       if (getRandom(2) == 0) {
         try {
-          final MutableDocument doc = (MutableDocument) next.modify();
+          final MutableDocument doc = ((Document) next).modify();
 
           Integer val = (Integer) doc.get("updated");
           if (val == null)

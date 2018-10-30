@@ -5,7 +5,6 @@
 package performance;
 
 import com.arcadedb.BaseTest;
-import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
@@ -24,7 +23,8 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
     new PerformanceInsertNoIndexTest().run();
   }
 
-  private void run() {
+  @Override
+  protected String getPerformanceProfile() {
     LogManager.instance().setLogger(new Logger() {
       @Override
       public void log(Object iRequester, Level iLevel, String iMessage, Throwable iException, boolean extractDBData, String context,
@@ -36,9 +36,10 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
       }
     });
 
-    GlobalConfiguration.PROFILE.setValue("high-performance");
+    return "high-performance";
+  }
 
-
+  private void run() {
     PerformanceTest.clean();
 
     if (!database.getSchema().existsType(TYPE_NAME)) {

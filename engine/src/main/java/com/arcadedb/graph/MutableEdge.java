@@ -28,6 +28,10 @@ public class MutableEdge extends MutableDocument implements Edge {
     init();
   }
 
+  public MutableEdge modify() {
+    return this;
+  }
+
   @Override
   public void reload() {
     super.reload();

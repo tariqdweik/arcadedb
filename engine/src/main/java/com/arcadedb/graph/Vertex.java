@@ -14,15 +14,15 @@ public interface Vertex extends Document {
     OUT, IN, BOTH
   }
 
+  MutableVertex modify();
+
   MutableEdge newEdge(String edgeType, Identifiable toVertex, boolean bidirectional, final Object... properties);
 
   long countEdges(DIRECTION direction, String edgeType);
 
   Iterable<Edge> getEdges();
 
-  Iterable<Edge> getEdges(DIRECTION direction);
-
-  Iterable<Edge> getEdges(DIRECTION direction, String edgeTypes[]);
+  Iterable<Edge> getEdges(DIRECTION direction, String... edgeTypes);
 
   /**
    * Returns all the connected vertices, both directions, any edge type.
@@ -38,9 +38,7 @@ public interface Vertex extends Document {
    *
    * @return An iterator of PIndexCursorEntry entries
    */
-  Iterable<Vertex> getVertices(DIRECTION direction);
-
-  Iterable<Vertex> getVertices(DIRECTION direction, String edgeTypes[]);
+  Iterable<Vertex> getVertices(DIRECTION direction, String... edgeTypes);
 
   boolean isConnectedTo(Identifiable toVertex);
 

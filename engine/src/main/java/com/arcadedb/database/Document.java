@@ -12,6 +12,8 @@ import java.util.Set;
 public interface Document extends Record {
   byte RECORD_TYPE = 0;
 
+  MutableDocument modify();
+
   Object get(String name);
 
   Set<String> getPropertyNames();

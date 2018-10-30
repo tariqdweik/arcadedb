@@ -159,7 +159,7 @@ public class ArcadeGraph implements Graph {
       try {
         final Record r = database.lookupByRID(rid, true);
         if (r instanceof com.arcadedb.graph.Vertex)
-          resultset.add(new ArcadeVertex(this, (MutableVertex) r.modify()));
+          resultset.add(new ArcadeVertex(this, ((com.arcadedb.graph.Vertex) r).modify()));
       } catch (RecordNotFoundException e) {
         // NP, IGNORE IT
       }
@@ -219,7 +219,7 @@ public class ArcadeGraph implements Graph {
       try {
         final Record r = database.lookupByRID(rid, true);
         if (r instanceof com.arcadedb.graph.Edge)
-          resultset.add(new ArcadeEdge(this, (MutableEdge) r.modify()));
+          resultset.add(new ArcadeEdge(this, ((com.arcadedb.graph.Edge) r).modify()));
       } catch (RecordNotFoundException e) {
         // NP, IGNORE IT
       }

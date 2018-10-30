@@ -10,6 +10,8 @@ import com.arcadedb.database.RID;
 public interface Edge extends Document {
   byte RECORD_TYPE = 2;
 
+  MutableEdge modify();
+
   RID getOut();
 
   Vertex getOutVertex();

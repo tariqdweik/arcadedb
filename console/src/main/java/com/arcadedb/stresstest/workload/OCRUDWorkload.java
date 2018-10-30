@@ -144,36 +144,29 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
   @Override
   public String getPartialResult() {
     final long current =
-        createsResult.current.get() + scansResult.current.get() + readsResult.current.get() + updatesResult.current.get()
-            + deletesResult.current.get();
+        createsResult.current.get() + scansResult.current.get() + readsResult.current.get() + updatesResult.current.get() + deletesResult.current.get();
 
-    return String
-        .format("%d%% [Creates: %d%% - Scans: %d%% - Reads: %d%% - Updates: %d%% - Deletes: %d%%]", ((int) (100 * current / total)),
-            createsResult.total > 0 ? 100 * createsResult.current.get() / createsResult.total : 0,
-            scansResult.total > 0 ? 100 * scansResult.current.get() / scansResult.total : 0,
-            readsResult.total > 0 ? 100 * readsResult.current.get() / readsResult.total : 0,
-            updatesResult.total > 0 ? 100 * updatesResult.current.get() / updatesResult.total : 0,
-            deletesResult.total > 0 ? 100 * deletesResult.current.get() / deletesResult.total : 0);
+    return String.format("%d%% [Creates: %d%% - Scans: %d%% - Reads: %d%% - Updates: %d%% - Deletes: %d%%]", ((int) (100 * current / total)),
+        createsResult.total > 0 ? 100 * createsResult.current.get() / createsResult.total : 0,
+        scansResult.total > 0 ? 100 * scansResult.current.get() / scansResult.total : 0,
+        readsResult.total > 0 ? 100 * readsResult.current.get() / readsResult.total : 0,
+        updatesResult.total > 0 ? 100 * updatesResult.current.get() / updatesResult.total : 0,
+        deletesResult.total > 0 ? 100 * deletesResult.current.get() / deletesResult.total : 0);
   }
 
   @Override
   public String getFinalResult() {
     final StringBuilder buffer = new StringBuilder(getErrors());
 
-    buffer.append(String.format("- Created %d records in %.3f secs%s", createsResult.total, (createsResult.totalTime / 1000f),
-        createsResult.toOutput(1)));
+    buffer.append(String.format("- Created %d records in %.3f secs%s", createsResult.total, (createsResult.totalTime / 1000f), createsResult.toOutput(1)));
 
-    buffer.append(String.format("\n- Scanned %d records in %.3f secs%s", scansResult.total, (scansResult.totalTime / 1000f),
-        scansResult.toOutput(1)));
+    buffer.append(String.format("\n- Scanned %d records in %.3f secs%s", scansResult.total, (scansResult.totalTime / 1000f), scansResult.toOutput(1)));
 
-    buffer.append(String
-        .format("\n- Read %d records in %.3f secs%s", readsResult.total, (readsResult.totalTime / 1000f), readsResult.toOutput(1)));
+    buffer.append(String.format("\n- Read %d records in %.3f secs%s", readsResult.total, (readsResult.totalTime / 1000f), readsResult.toOutput(1)));
 
-    buffer.append(String.format("\n- Updated %d records in %.3f secs%s", updatesResult.total, (updatesResult.totalTime / 1000f),
-        updatesResult.toOutput(1)));
+    buffer.append(String.format("\n- Updated %d records in %.3f secs%s", updatesResult.total, (updatesResult.totalTime / 1000f), updatesResult.toOutput(1)));
 
-    buffer.append(String.format("\n- Deleted %d records in %.3f secs%s", deletesResult.total, (deletesResult.totalTime / 1000f),
-        deletesResult.toOutput(1)));
+    buffer.append(String.format("\n- Deleted %d records in %.3f secs%s", deletesResult.total, (deletesResult.totalTime / 1000f), deletesResult.toOutput(1)));
 
     return buffer.toString();
   }
@@ -219,7 +212,7 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
   }
 
   public void updateOperation(final Database database, final Identifiable rec) {
-    final MutableDocument doc = (MutableDocument) rec.getRecord().modify();
+    final MutableDocument doc = ((Document) rec.getRecord()).modify();
     doc.set("updated", true);
     doc.save();
   }

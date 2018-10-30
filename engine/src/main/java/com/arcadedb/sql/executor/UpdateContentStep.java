@@ -69,7 +69,7 @@ public class UpdateContentStep extends AbstractExecutionStep {
   private boolean handleContent(Record record, CommandContext ctx) {
     boolean updated = false;
 
-    final MutableDocument doc = (MutableDocument) record.getRecord().modify();
+    final MutableDocument doc = ((Document) record.getRecord()).modify();
 
     doc.merge(json.toDocument(record, ctx));
 

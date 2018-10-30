@@ -10,6 +10,7 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.MultiIterator;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 
 public class GraphEngine {
@@ -139,7 +140,7 @@ public class GraphEngine {
     final Database database = vertex.getDatabase();
 
     if (vertex.getOutEdgesHeadChunk() != null) {
-      final EdgeIterator outIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) database.lookupByRID(vertex.getOutEdgesHeadChunk(), true))
+      final Iterator<Edge> outIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) database.lookupByRID(vertex.getOutEdgesHeadChunk(), true))
           .edgeIterator();
 
       while (outIterator.hasNext()) {
@@ -154,7 +155,7 @@ public class GraphEngine {
     }
 
     if (vertex.getInEdgesHeadChunk() != null) {
-      final EdgeIterator inIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) database.lookupByRID(vertex.getInEdgesHeadChunk(), true))
+      final Iterator<Edge> inIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) database.lookupByRID(vertex.getInEdgesHeadChunk(), true))
           .edgeIterator();
 
       while (inIterator.hasNext()) {
@@ -186,46 +187,9 @@ public class GraphEngine {
     return result;
   }
 
-  public Iterable<Edge> getEdges(final VertexInternal vertex, final Vertex.DIRECTION direction) {
+  public Iterable<Edge> getEdges(final VertexInternal vertex, final Vertex.DIRECTION direction, final String... edgeTypes) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
-
-    switch (direction) {
-    case BOTH:
-      final MultiIterator<Edge> result = new MultiIterator<>();
-      if (vertex.getOutEdgesHeadChunk() != null)
-        result.add(
-            new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator());
-
-      if (vertex.getInEdgesHeadChunk() != null)
-        result.add(
-            new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator());
-      return result;
-
-    case OUT:
-      if (vertex.getOutEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-            .edgeIterator();
-      break;
-
-    case IN:
-      if (vertex.getInEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator();
-      break;
-
-    default:
-      throw new IllegalArgumentException("Invalid direction " + direction);
-    }
-
-    return Collections.EMPTY_LIST;
-  }
-
-  public Iterable<Edge> getEdges(final VertexInternal vertex, final Vertex.DIRECTION direction, final String[] edgeTypes) {
-    if (direction == null)
-      throw new IllegalArgumentException("Direction is null");
-
-    if (edgeTypes == null || edgeTypes.length == 0)
-      throw new IllegalArgumentException("Edge Type is empty");
 
     switch (direction) {
     case BOTH:
@@ -241,13 +205,13 @@ public class GraphEngine {
 
     case OUT:
       if (vertex.getOutEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
+        return (Iterable<Edge>) new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
             .edgeIterator(edgeTypes);
       break;
 
     case IN:
       if (vertex.getInEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
+        return (Iterable<Edge>) new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
             .edgeIterator(edgeTypes);
       break;
 
@@ -280,58 +244,13 @@ public class GraphEngine {
    * Returns the connected vertices.
    *
    * @param direction Direction between OUT, IN or BOTH
-   *
-   * @return An iterator of PVertex instances
-   */
-  public Iterable<Vertex> getVertices(final VertexInternal vertex, final Vertex.DIRECTION direction) {
-    if (direction == null)
-      throw new IllegalArgumentException("Direction is null");
-
-    switch (direction) {
-    case BOTH:
-      final MultiIterator<Vertex> result = new MultiIterator<>();
-      if (vertex.getOutEdgesHeadChunk() != null)
-        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-            .vertexIterator());
-
-      if (vertex.getInEdgesHeadChunk() != null)
-        result.add(
-            new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).vertexIterator());
-      return result;
-
-    case OUT:
-      if (vertex.getOutEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-            .vertexIterator();
-      break;
-
-    case IN:
-      if (vertex.getInEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
-            .vertexIterator();
-      break;
-
-    default:
-      throw new IllegalArgumentException("Invalid direction " + direction);
-    }
-
-    return Collections.EMPTY_LIST;
-  }
-
-  /**
-   * Returns the connected vertices.
-   *
-   * @param direction Direction between OUT, IN or BOTH
    * @param edgeTypes Edge type names to filter
    *
    * @return An iterator of PVertex instances
    */
-  public Iterable<Vertex> getVertices(final VertexInternal vertex, final Vertex.DIRECTION direction, final String edgeTypes[]) {
+  public Iterable<Vertex> getVertices(final VertexInternal vertex, final Vertex.DIRECTION direction, final String... edgeTypes) {
     if (direction == null)
       throw new IllegalArgumentException("Direction is null");
-
-    if (edgeTypes == null || edgeTypes.length == 0)
-      throw new IllegalArgumentException("Edge Type is empty");
 
     switch (direction) {
     case BOTH:
@@ -347,13 +266,13 @@ public class GraphEngine {
 
     case OUT:
       if (vertex.getOutEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
+        return (Iterable<Vertex>) new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
             .vertexIterator(edgeTypes);
       break;
 
     case IN:
       if (vertex.getInEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
+        return (Iterable<Vertex>) new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
             .vertexIterator(edgeTypes);
       break;
 

@@ -14,11 +14,15 @@ import org.junit.jupiter.api.BeforeEach;
 import java.io.File;
 
 public abstract class BaseTest {
-  protected final DatabaseFactory factory = new DatabaseFactory(getDatabasePath());
+  protected final DatabaseFactory factory;
   protected       Database        database;
 
   protected BaseTest() {
+    GlobalConfiguration.PROFILE.setValue(getPerformanceProfile());
+
     FileUtils.deleteRecursively(new File(getDatabasePath()));
+
+    factory = new DatabaseFactory(getDatabasePath());
     database = factory.create();
   }
 
@@ -60,5 +64,9 @@ public abstract class BaseTest {
       database = null;
     }
     FileUtils.deleteRecursively(new File(getDatabasePath()));
+  }
+
+  protected String getPerformanceProfile() {
+    return "default";
   }
 }

@@ -47,12 +47,12 @@ public enum GlobalConfiguration {
         }
       }),
 
-  PROFILE("arcadedb.profile", "Specify the preferred profile among: high-performance, low-ram, low-cpu", String.class, "standard",
+  PROFILE("arcadedb.profile", "Specify the preferred profile among: default, high-performance, low-ram, low-cpu", String.class, "default",
       new Callable<Object, Object>() {
         @Override
         public Object call(final Object value) {
           final String v = value.toString();
-          if (v.equalsIgnoreCase("standard")) {
+          if (v.equalsIgnoreCase("default")) {
             // NOT MUCH TO DO HERE, THIS IS THE DEFAULT OPTION
           } else if (v.equalsIgnoreCase("high-performance")) {
             ASYNC_OPERATIONS_QUEUE_IMPL.setValue("fast");

@@ -11,7 +11,5 @@ public interface Record extends Identifiable {
 
   Database getDatabase();
 
-  Record modify();
-
   void reload();
 }

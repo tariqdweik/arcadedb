@@ -138,8 +138,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     return map.keySet();
   }
 
-  @Override
-  public Record modify() {
+  public MutableDocument modify() {
     return this;
   }
 

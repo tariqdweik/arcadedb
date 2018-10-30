@@ -10,6 +10,7 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.schema.DocumentType;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -24,19 +25,15 @@ public class EdgeLinkedList {
     this.first = first;
   }
 
-  public EdgeIterator edgeIterator() {
-    return new EdgeIterator(first);
-  }
-
-  public EdgeIteratorFilter edgeIterator(final String[] edgeTypes) {
+  public Iterator<Edge> edgeIterator(final String... edgeTypes) {
+    if (edgeTypes == null || edgeTypes.length == 0)
+      return new EdgeIterator(first);
     return new EdgeIteratorFilter((DatabaseInternal) vertex.getDatabase(), first, edgeTypes);
   }
 
-  public VertexIterator vertexIterator() {
-    return new VertexIterator(first);
-  }
-
-  public VertexIteratorFilter vertexIterator(final String[] edgeTypes) {
+  public Iterator<Vertex> vertexIterator(final String... edgeTypes) {
+    if (edgeTypes == null || edgeTypes.length == 0)
+      return new VertexIterator(first);
     return new VertexIteratorFilter((DatabaseInternal) vertex.getDatabase(), first, edgeTypes);
   }
 

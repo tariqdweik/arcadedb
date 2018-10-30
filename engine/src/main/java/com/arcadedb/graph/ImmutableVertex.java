@@ -66,8 +66,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
     throw new UnsupportedOperationException("setInEdgesHeadChunk");
   }
 
-  public MutableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional,
-      final Object... properties) {
+  public MutableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional, final Object... properties) {
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 
@@ -82,12 +81,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
   }
 
   @Override
-  public Iterable<Edge> getEdges(final DIRECTION direction) {
-    return database.getGraphEngine().getEdges(this, direction);
-  }
-
-  @Override
-  public Iterable<Edge> getEdges(final DIRECTION direction, final String[] edgeTypes) {
+  public Iterable<Edge> getEdges(final DIRECTION direction, final String... edgeTypes) {
     return database.getGraphEngine().getEdges(this, direction, edgeTypes);
   }
 
@@ -97,12 +91,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
   }
 
   @Override
-  public Iterable<Vertex> getVertices(final DIRECTION direction) {
-    return database.getGraphEngine().getVertices(this, direction);
-  }
-
-  @Override
-  public Iterable<Vertex> getVertices(final DIRECTION direction, final String[] edgeTypes) {
+  public Iterable<Vertex> getVertices(final DIRECTION direction, final String... edgeTypes) {
     return database.getGraphEngine().getVertices(this, direction, edgeTypes);
   }
 
