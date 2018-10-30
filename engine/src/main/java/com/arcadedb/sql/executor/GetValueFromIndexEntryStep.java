@@ -127,7 +127,7 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
 
             if (finalVal instanceof RID) {
               final ResultInternal res = new ResultInternal();
-              res.setElement((Document) ((RID) finalVal).getRecord());
+              res.setElement(((RID) finalVal).getDocument());
               nextItem = res;
             } else if (finalVal instanceof Document) {
               final ResultInternal res = new ResultInternal();

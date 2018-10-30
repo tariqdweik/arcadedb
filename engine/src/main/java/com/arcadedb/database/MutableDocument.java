@@ -57,7 +57,6 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     return new HashMap<>(map);
   }
 
-
   public void fromJSON(final JSONObject json) {
     fromMap(json.toMap());
   }

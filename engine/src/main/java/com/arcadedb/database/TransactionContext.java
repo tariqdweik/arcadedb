@@ -11,7 +11,7 @@ import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 
 import java.io.IOException;

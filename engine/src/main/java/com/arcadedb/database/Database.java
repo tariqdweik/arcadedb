@@ -34,7 +34,7 @@ public interface Database extends AutoCloseable {
 
   void drop();
 
-  DatabaseAsyncExecutor asynch();
+  DatabaseAsyncExecutor async();
 
   String getDatabasePath();
 

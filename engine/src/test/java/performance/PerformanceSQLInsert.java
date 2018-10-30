@@ -26,7 +26,7 @@ public class PerformanceSQLInsert {
       database.getSchema().createVertexType(TYPE_NAME);
     }
 
-    database.asynch().setCommitEvery(1);
+    database.async().setCommitEvery(1);
 //    database.asynch().setParallelLevel(2);
 
     final AtomicLong oks = new AtomicLong();
@@ -36,7 +36,7 @@ public class PerformanceSQLInsert {
       final long begin = System.currentTimeMillis();
 
       for (int i = 0; i < MAX_LOOPS; ++i) {
-        database.asynch().command("SQL", "insert into " + TYPE_NAME + " set name = 'Luca'", new AsyncResultsetCallback() {
+        database.async().command("SQL", "insert into " + TYPE_NAME + " set name = 'Luca'", new AsyncResultsetCallback() {
           @Override
           public void onOk(ResultSet resultset) {
             oks.incrementAndGet();

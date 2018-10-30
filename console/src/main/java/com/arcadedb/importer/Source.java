@@ -4,7 +4,7 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.InputStream;
 import java.util.concurrent.Callable;

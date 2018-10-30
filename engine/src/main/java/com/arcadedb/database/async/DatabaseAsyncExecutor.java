@@ -14,7 +14,7 @@ import com.arcadedb.graph.*;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.util.Arrays;
@@ -326,8 +326,8 @@ public class DatabaseAsyncExecutor {
     createThreads(database.getConfiguration().getValueAsInteger(GlobalConfiguration.ASYNC_WORKER_THREADS));
   }
 
-  public PDBAsynchStats getStats() {
-    final PDBAsynchStats stats = new PDBAsynchStats();
+  public DBAsyncStats getStats() {
+    final DBAsyncStats stats = new DBAsyncStats();
     stats.queueSize = 0;
 
     if (executorThreads != null)
@@ -578,7 +578,7 @@ public class DatabaseAsyncExecutor {
     this.commitEvery = commitEvery;
   }
 
-  public class PDBAsynchStats {
+  public class DBAsyncStats {
     public long queueSize;
   }
 

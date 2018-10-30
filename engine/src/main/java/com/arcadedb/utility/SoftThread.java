@@ -4,6 +4,8 @@
 
 package com.arcadedb.utility;
 
+import com.arcadedb.log.LogManager;
+
 public abstract class SoftThread extends Thread {
   private volatile boolean shutdownFlag;
 

@@ -6,7 +6,7 @@ package com.arcadedb.sql.function.conversion;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

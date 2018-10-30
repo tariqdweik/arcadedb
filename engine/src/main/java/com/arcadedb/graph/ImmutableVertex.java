@@ -33,6 +33,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
 
   public MutableVertex modify() {
     checkForLazyLoading();
+    buffer.rewind();
     return new MutableVertex(database, typeName, rid, buffer.copy());
   }
 

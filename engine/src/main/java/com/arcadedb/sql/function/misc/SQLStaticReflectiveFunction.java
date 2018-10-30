@@ -8,7 +8,7 @@ import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.QueryParsingException;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.function.SQLFunctionAbstract;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;

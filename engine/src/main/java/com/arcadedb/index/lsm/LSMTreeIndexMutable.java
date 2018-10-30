@@ -19,7 +19,7 @@ import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.IndexCursorEntry;
 import com.arcadedb.index.TempIndexCursor;
 import com.arcadedb.serializer.BinaryTypes;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.IOException;
 import java.util.*;
@@ -109,7 +109,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     if (minPagesToScheduleACompaction > 0 && currentMutablePages >= minPagesToScheduleACompaction) {
       LogManager.instance()
           .debug(this, "Scheduled compaction of index '%s' (currentMutablePages=%d totalPages=%d)", name, currentMutablePages, getTotalPages());
-      database.asynch().compact(mainIndex);
+      database.async().compact(mainIndex);
     }
   }
 

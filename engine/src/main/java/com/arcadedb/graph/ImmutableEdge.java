@@ -31,6 +31,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
 
   public MutableEdge modify() {
     checkForLazyLoading();
+    buffer.rewind();
     return new MutableEdge(database, typeName, rid, buffer.copy());
   }
 
@@ -43,7 +44,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
   @Override
   public Vertex getOutVertex() {
     checkForLazyLoading();
-    return (Vertex) out.getRecord();
+    return out.getVertex();
   }
 
   @Override
@@ -55,7 +56,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
   @Override
   public Vertex getInVertex() {
     checkForLazyLoading();
-    return (Vertex) in.getRecord();
+    return in.getVertex();
   }
 
   @Override

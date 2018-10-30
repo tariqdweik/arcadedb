@@ -7,7 +7,7 @@ package com.arcadedb.server.ha;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 

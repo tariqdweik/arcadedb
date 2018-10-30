@@ -12,7 +12,7 @@ import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicationException;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.util.HashMap;
 import java.util.HashSet;

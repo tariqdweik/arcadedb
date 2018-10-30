@@ -10,7 +10,7 @@ import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ServerMetrics;
 import com.arcadedb.server.ServerSecurityException;
 import com.arcadedb.server.http.HttpServer;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;

@@ -14,7 +14,7 @@ import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.*;
 
@@ -68,11 +68,11 @@ public class PokecLoader {
     Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
-    db.asynch().setTransactionUseWAL(USE_WAL);
-    db.asynch().setTransactionSync(USE_WAL_SYNC);
-    db.asynch().setCommitEvery(COMMIT_EVERY);
-    db.asynch().setParallelLevel(PARALLEL_LEVEL);
-    db.asynch().onError(new ErrorCallback() {
+    db.async().setTransactionUseWAL(USE_WAL);
+    db.async().setTransactionSync(USE_WAL_SYNC);
+    db.async().setCommitEvery(COMMIT_EVERY);
+    db.async().setParallelLevel(PARALLEL_LEVEL);
+    db.async().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
         LogManager.instance().error(this, "ERROR: " + exception, exception);
@@ -92,7 +92,7 @@ public class PokecLoader {
           v.set(COLUMNS[c], profile[c]);
         }
 
-      db.asynch().createRecord(v);
+      db.async().createRecord(v);
 
       if (i % 20000 == 0) {
         LogManager.instance().info(this, "Inserted %d vertices...", i);
@@ -106,7 +106,7 @@ public class PokecLoader {
     Reader decoder = new InputStreamReader(fileStream);
     BufferedReader buffered = new BufferedReader(decoder);
 
-    db.asynch().waitCompletion();
+    db.async().waitCompletion();
 
     db.begin();
     db.getTransaction().setUseWAL(USE_WAL);
@@ -119,7 +119,7 @@ public class PokecLoader {
       final int id1 = Integer.parseInt(profiles[0]);
       final int id2 = Integer.parseInt(profiles[1]);
 
-      db.asynch().newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false, "E", true, null);
+      db.async().newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false, "E", true, null);
 
       if (i % 20000 == 0) {
         LogManager.instance().info(this, "Committing %d edges...", i);

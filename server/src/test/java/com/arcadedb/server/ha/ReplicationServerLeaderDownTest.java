@@ -11,7 +11,7 @@ import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

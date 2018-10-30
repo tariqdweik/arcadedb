@@ -4,6 +4,8 @@
 
 package com.arcadedb.utility;
 
+import com.arcadedb.log.LogFormatter;
+
 import java.util.Date;
 import java.util.IllegalFormatException;
 import java.util.logging.Level;

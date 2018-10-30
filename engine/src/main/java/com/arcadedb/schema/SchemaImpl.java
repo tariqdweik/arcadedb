@@ -19,7 +19,7 @@ import com.arcadedb.index.lsm.LSMTreeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -268,7 +268,7 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames) {
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String... propertyNames) {
     return createIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, null);
   }
 

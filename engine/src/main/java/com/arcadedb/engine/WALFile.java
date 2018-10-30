@@ -8,7 +8,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.utility.LockContext;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;

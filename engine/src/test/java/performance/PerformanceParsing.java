@@ -33,7 +33,7 @@ public class PerformanceParsing {
       database.commit();
     }
 
-    database.asynch().setParallelLevel(4);
+    database.async().setParallelLevel(4);
 
     final AtomicLong ok = new AtomicLong();
     final AtomicLong error = new AtomicLong();
@@ -43,7 +43,7 @@ public class PerformanceParsing {
 
       for (int i = 0; i < MAX_LOOPS; ++i) {
 
-        database.asynch().command("SQL", "select from " + TYPE_NAME + " limit 1", new AsyncResultsetCallback() {
+        database.async().command("SQL", "select from " + TYPE_NAME + " limit 1", new AsyncResultsetCallback() {
           @Override
           public void onOk(final ResultSet rs) {
             ok.incrementAndGet();

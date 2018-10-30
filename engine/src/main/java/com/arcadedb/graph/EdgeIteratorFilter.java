@@ -24,7 +24,7 @@ public class EdgeIteratorFilter extends IteratorFilterBase<Edge> {
       throw new NoSuchElementException();
 
     try {
-      return (Edge) next.getRecord();
+      return next.getEdge();
     } finally {
       next = null;
     }

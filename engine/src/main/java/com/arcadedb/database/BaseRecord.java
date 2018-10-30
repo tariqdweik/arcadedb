@@ -28,6 +28,11 @@ public abstract class BaseRecord implements Record {
   }
 
   @Override
+  public Record getRecord(final boolean loadContent) {
+    return this;
+  }
+
+  @Override
   public void reload() {
     if (rid != null && buffer == null && database.isOpen()) {
       try {

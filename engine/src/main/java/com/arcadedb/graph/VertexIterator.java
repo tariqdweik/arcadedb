@@ -44,7 +44,7 @@ public class VertexIterator implements Iterator<Vertex>, Iterable<Vertex> {
     currentContainer.getEdge(currentPosition); // SKIP EDGE
     final RID rid = currentContainer.getVertex(currentPosition);
 
-    return (Vertex) rid.getRecord();
+    return rid.getVertex();
   }
 
   @Override

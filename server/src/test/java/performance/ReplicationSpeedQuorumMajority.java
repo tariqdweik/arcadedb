@@ -11,7 +11,7 @@ import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.UUID;
@@ -106,10 +106,10 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
     long lastLapCounter = 0;
 
     db.setReadYourWrites(false);
-    db.asynch().setCommitEvery(getVerticesPerTx());
-    db.asynch().setParallelLevel(parallel);
-    db.asynch().setTransactionUseWAL(true);
-    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+    db.async().setCommitEvery(getVerticesPerTx());
+    db.async().setParallelLevel(parallel);
+    db.async().setTransactionUseWAL(true);
+    db.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
 
     for (int tx = 0; tx < getTxs(); ++tx) {
       for (int i = 0; i < getVerticesPerTx(); ++i) {
@@ -137,7 +137,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
         v.set("operationalStatus", "NotAvailable");
         v.set("supplierName", "TBD");
 
-        db.asynch().createRecord(v);
+        db.async().createRecord(v);
         //v.save();
 
         if (counter % 1000 == 0) {
@@ -155,7 +155,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 //      db.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.YES_NO_METADATA);
     }
 
-    db.asynch().waitCompletion();
+    db.async().waitCompletion();
 
     LogManager.instance().info(this, "Done");
 

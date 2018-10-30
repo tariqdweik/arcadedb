@@ -11,7 +11,7 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -132,12 +132,12 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
     try {
 
       database.setReadYourWrites(false);
-      database.asynch().setCommitEvery(50000);
-      database.asynch().setParallelLevel(PARALLEL);
-      database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+      database.async().setCommitEvery(50000);
+      database.async().setParallelLevel(PARALLEL);
+      database.async().setTransactionUseWAL(true);
+      database.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
 
-      database.asynch().onError(new ErrorCallback() {
+      database.async().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
           LogManager.instance().error(this, "TEST: ERROR: ", exception);
@@ -149,7 +149,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       final int totalToInsert = TOT;
       final long startTimer = System.currentTimeMillis();
 
-      database.asynch().transaction(new Database.TransactionScope() {
+      database.async().transaction(new Database.TransactionScope() {
         @Override
         public void execute(Database database) {
           long lastLap = startTimer;
@@ -186,7 +186,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       LogManager.instance().info(this, "TEST: Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
 
-    database.asynch().waitCompletion();
+    database.async().waitCompletion();
   }
 
   private void checkLookups(final int step, final int expectedItems) {

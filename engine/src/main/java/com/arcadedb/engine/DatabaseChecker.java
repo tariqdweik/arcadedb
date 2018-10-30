@@ -5,7 +5,7 @@
 package com.arcadedb.engine;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.util.Map;
 

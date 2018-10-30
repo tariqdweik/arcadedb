@@ -5,6 +5,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Identifiable;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.*;
 
 import java.lang.reflect.Array;

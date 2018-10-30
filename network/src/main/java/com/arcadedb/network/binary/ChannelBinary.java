@@ -6,7 +6,7 @@ package com.arcadedb.network.binary;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

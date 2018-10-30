@@ -26,7 +26,7 @@ public class AsyncTest extends BaseTest {
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
 
-      database.asynch().scanType(TYPE_NAME, true, new DocumentCallback() {
+      database.async().scanType(TYPE_NAME, true, new DocumentCallback() {
         @Override
         public boolean onRecord(Document record) {
           callbackInvoked.incrementAndGet();
@@ -46,7 +46,7 @@ public class AsyncTest extends BaseTest {
     try {
       final AtomicLong callbackInvoked = new AtomicLong();
 
-      database.asynch().scanType(TYPE_NAME, true, new DocumentCallback() {
+      database.async().scanType(TYPE_NAME, true, new DocumentCallback() {
         @Override
         public boolean onRecord(Document record) {
           if (callbackInvoked.get() > 9)
@@ -71,16 +71,16 @@ public class AsyncTest extends BaseTest {
 
     final AtomicLong okCallbackInvoked = new AtomicLong();
 
-    database.asynch().setCommitEvery(5000);
-    database.asynch().setParallelLevel(3);
-    database.asynch().onOk(new OkCallback() {
+    database.async().setCommitEvery(5000);
+    database.async().setParallelLevel(3);
+    database.async().onOk(new OkCallback() {
       @Override
       public void call() {
         okCallbackInvoked.incrementAndGet();
       }
     });
 
-    database.asynch().onError(new ErrorCallback() {
+    database.async().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
         Assertions.fail("Error on creating async record", exception);
@@ -101,11 +101,11 @@ public class AsyncTest extends BaseTest {
       v.set("name", "Jay");
       v.set("surname", "Miner");
 
-      database.asynch().createRecord(v);
+      database.async().createRecord(v);
 
     }
 
-    database.asynch().waitCompletion();
+    database.async().waitCompletion();
 
     Assertions.assertTrue(okCallbackInvoked.get() > 0);
   }

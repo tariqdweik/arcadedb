@@ -2,7 +2,9 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.utility;
+package com.arcadedb.log;
+
+import com.arcadedb.utility.AnsiCode;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

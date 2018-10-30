@@ -8,7 +8,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.SerializationException;
 import com.arcadedb.graph.*;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.lang.reflect.Array;
 import java.math.BigDecimal;

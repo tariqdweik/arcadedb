@@ -15,7 +15,7 @@ import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -40,11 +40,11 @@ public class MVCCTest extends BaseTest {
 
       LogManager.instance().info(this, "Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
 
-      database.asynch().setParallelLevel(PARALLEL);
+      database.async().setParallelLevel(PARALLEL);
 
       final AtomicLong otherErrors = new AtomicLong();
       final AtomicLong mvccErrors = new AtomicLong();
-      database.asynch().onError(new ErrorCallback() {
+      database.async().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
 
@@ -63,7 +63,7 @@ public class MVCCTest extends BaseTest {
         final Random rnd = new Random();
 
         for (long txId = 0; txId < TOT_TX; ++txId) {
-          database.asynch().transaction(new Database.TransactionScope() {
+          database.async().transaction(new Database.TransactionScope() {
             @Override
             public void execute(Database database) {
               Assertions.assertTrue(database.getTransaction().getModifiedPages() == 0);
@@ -86,7 +86,7 @@ public class MVCCTest extends BaseTest {
           }, 0);
         }
 
-        database.asynch().waitCompletion();
+        database.async().waitCompletion();
 
       } finally {
         new DatabaseChecker().check(database);

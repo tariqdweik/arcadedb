@@ -9,7 +9,7 @@ import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.stresstest.DatabaseIdentifier;
 import com.arcadedb.stresstest.StressTesterSettings;
 import com.arcadedb.utility.Callable;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.json.JSONObject;
 
 import java.util.ArrayList;

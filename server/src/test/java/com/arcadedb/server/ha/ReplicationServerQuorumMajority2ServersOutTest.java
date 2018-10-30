@@ -9,7 +9,7 @@ import com.arcadedb.database.Database;
 import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

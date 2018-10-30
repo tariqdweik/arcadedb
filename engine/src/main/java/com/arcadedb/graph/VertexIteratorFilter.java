@@ -24,7 +24,7 @@ public class VertexIteratorFilter extends IteratorFilterBase<Vertex> {
       throw new NoSuchElementException();
 
     try {
-      return (Vertex) next.getRecord();
+      return next.getVertex();
     } finally {
       next = null;
     }

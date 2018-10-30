@@ -9,11 +9,11 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.utility.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -85,7 +85,7 @@ public class LSMTreeIndexTest extends BaseTest {
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes) {
             if (!index.get(new Object[] { i }).hasNext()) {
-              LogManager.instance().info(this, "FOUND KEY " + i + " -> " + index.get(new Object[] { i }));
+              LogManager.instance().debug(this, "FOUND KEY " + i + " -> " + index.get(new Object[] { i }));
             }
 
 //            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
@@ -242,6 +242,8 @@ public class LSMTreeIndexTest extends BaseTest {
         for (ResultSet it = resultSet; it.hasNext(); ) {
           final Result r = it.next();
 
+          Assertions.assertNotNull(r.getElement().get().get("id"));
+
           final MutableDocument record = (MutableDocument) r.getElement().get().modify();
           record.set("id", (Integer) record.get("id") + 1000000);
           record.save();
@@ -347,7 +349,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   @Test
-  public void testScanIndexAscending(){
+  public void testScanIndexAscending() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -390,7 +392,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   @Test
-  public void testScanIndexDescending()  {
+  public void testScanIndexDescending() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -459,7 +461,6 @@ public class LSMTreeIndexTest extends BaseTest {
       }
     });
   }
-
 
   @Test
   public void testScanIndexAscendingPartialExclusive() {
@@ -568,7 +569,7 @@ public class LSMTreeIndexTest extends BaseTest {
   }
 
   @Test
-  public void testScanIndexRangeInclusive2Inclusive()  {
+  public void testScanIndexRangeInclusive2Inclusive() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -607,9 +608,8 @@ public class LSMTreeIndexTest extends BaseTest {
     });
   }
 
-
   @Test
-  public void testScanIndexRangeInclusive2Exclusive()  {
+  public void testScanIndexRangeInclusive2Exclusive() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -648,9 +648,8 @@ public class LSMTreeIndexTest extends BaseTest {
     });
   }
 
-
   @Test
-  public void testScanIndexRangeExclusive2Inclusive()  {
+  public void testScanIndexRangeExclusive2Inclusive() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -689,9 +688,8 @@ public class LSMTreeIndexTest extends BaseTest {
     });
   }
 
-
   @Test
-  public void testScanIndexRangeExclusive2Exclusive()  {
+  public void testScanIndexRangeExclusive2Exclusive() {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
@@ -729,7 +727,6 @@ public class LSMTreeIndexTest extends BaseTest {
       }
     });
   }
-
 
   @Test
   public void testUnique() {

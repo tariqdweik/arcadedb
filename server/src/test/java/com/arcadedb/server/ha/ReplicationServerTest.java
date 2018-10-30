@@ -13,7 +13,7 @@ import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.RangeIndex;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.BaseGraphServerTest;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +31,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
   }
 
   protected int getTxs() {
-    return 500;
+    return 1000;
   }
 
   protected int getVerticesPerTx() {

@@ -6,7 +6,7 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.exception.CommandSQLParsingException;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;

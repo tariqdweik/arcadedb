@@ -34,7 +34,7 @@ public interface Schema {
 
   Index getIndexByName(String indexName);
 
-  Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames);
+  Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
 
   Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
 

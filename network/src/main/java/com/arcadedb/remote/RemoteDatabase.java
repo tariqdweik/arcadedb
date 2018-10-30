@@ -15,7 +15,7 @@ import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 import com.arcadedb.utility.RWLockContext;
 import org.json.JSONArray;

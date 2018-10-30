@@ -47,7 +47,7 @@ public class MutableEdge extends MutableDocument implements Edge {
 
   @Override
   public Vertex getOutVertex() {
-    return (Vertex) out.getRecord();
+    return out.getVertex();
   }
 
   @Override
@@ -57,15 +57,15 @@ public class MutableEdge extends MutableDocument implements Edge {
 
   @Override
   public Vertex getInVertex() {
-    return (Vertex) in.getRecord();
+    return in.getVertex();
   }
 
   @Override
   public Vertex getVertex(final Vertex.DIRECTION iDirection) {
     if (iDirection == Vertex.DIRECTION.OUT)
-      return (Vertex) out.getRecord();
+      return out.getVertex();
     else
-      return (Vertex) in.getRecord();
+      return in.getVertex();
   }
 
   @Override

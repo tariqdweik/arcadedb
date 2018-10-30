@@ -8,7 +8,7 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.Dictionary;
 import com.arcadedb.schema.*;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.util.Map;
 import java.util.Timer;
@@ -62,7 +62,7 @@ public class Importer {
       LogManager.instance().error(this, "Error on parsing source %s", e, source);
     } finally {
       if (database != null) {
-        database.asynch().waitCompletion();
+        database.async().waitCompletion();
         stopImporting();
         closeDatabase();
       }
@@ -155,8 +155,8 @@ public class Importer {
     database.commit();
 
     database.setReadYourWrites(false);
-    database.asynch().setParallelLevel(settings.parallel);
-    database.asynch().setCommitEvery(settings.commitEvery);
+    database.async().setParallelLevel(settings.parallel);
+    database.async().setCommitEvery(settings.commitEvery);
 
     database.begin();
   }

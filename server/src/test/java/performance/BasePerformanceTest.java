@@ -12,7 +12,7 @@ import com.arcadedb.database.DatabaseComparator;
 import com.arcadedb.database.RID;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.BufferedOutputStream;

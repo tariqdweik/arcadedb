@@ -10,7 +10,7 @@ import com.arcadedb.database.RID;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.sql.executor.MultiValue;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.MultiIterator;
 
 import java.math.BigDecimal;

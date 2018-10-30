@@ -4,6 +4,9 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.Vertex;
+
 import java.io.Serializable;
 
 /**
@@ -57,7 +60,36 @@ public class RID implements Identifiable, Comparable<Identifiable>, Serializable
 
   @Override
   public Record getRecord() {
-    return database.lookupByRID(this, false);
+    return getRecord(true);
+  }
+
+  @Override
+  public Record getRecord(final boolean loadContent) {
+    return database.lookupByRID(this, loadContent);
+  }
+
+  public Document getDocument() {
+    return getDocument(true);
+  }
+
+  public Document getDocument(final boolean loadContent) {
+    return (Document) database.lookupByRID(this, loadContent);
+  }
+
+  public Vertex getVertex() {
+    return getVertex(true);
+  }
+
+  public Vertex getVertex(final boolean loadContent) {
+    return (Vertex) database.lookupByRID(this, loadContent);
+  }
+
+  public Edge getEdge() {
+    return getEdge(true);
+  }
+
+  public Edge getEdge(final boolean loadContent) {
+    return (Edge) database.lookupByRID(this, loadContent);
   }
 
   @Override

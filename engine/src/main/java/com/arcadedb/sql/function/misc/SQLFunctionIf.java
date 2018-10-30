@@ -6,7 +6,7 @@ package com.arcadedb.sql.function.misc;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.function.SQLFunctionAbstract;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 /**
  * Returns different values based on the condition. If it's true the first value is returned, otherwise the second one.

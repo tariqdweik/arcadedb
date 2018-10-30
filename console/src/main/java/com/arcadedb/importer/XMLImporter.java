@@ -7,7 +7,7 @@ package com.arcadedb.importer;
 import com.arcadedb.database.Database;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -83,7 +83,7 @@ public class XMLImporter implements ContentImporter {
 
             final MutableVertex record = database.newVertex(entityName);
             record.fromMap(object);
-            database.asynch().createRecord(record);
+            database.async().createRecord(record);
             ++context.createdVertices;
           }
           break;

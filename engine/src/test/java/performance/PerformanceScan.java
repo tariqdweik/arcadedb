@@ -19,7 +19,7 @@ public class PerformanceScan {
   private void run() {
     final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
 
-    database.asynch().setParallelLevel(4);
+    database.async().setParallelLevel(4);
 
     try {
       for (int i = 0; i < MAX_LOOPS; ++i) {
@@ -27,7 +27,7 @@ public class PerformanceScan {
 
         final AtomicInteger row = new AtomicInteger();
 
-        database.asynch().scanType(CLASS_NAME, true, new DocumentCallback() {
+        database.async().scanType(CLASS_NAME, true, new DocumentCallback() {
           @Override
           public boolean onRecord(final Document record) {
             final ImmutableDocument document = ((ImmutableDocument) record);

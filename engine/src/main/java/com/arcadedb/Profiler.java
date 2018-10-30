@@ -57,7 +57,7 @@ public class Profiler {
     long pagesReadSize = 0;
     long pagesWrittenSize = 0;
     long pageFlushQueueLength = 0;
-    long asynchQueueLength = 0;
+    long asyncQueueLength = 0;
     long pageCacheHits = 0;
     long pageCacheMiss = 0;
     long totalOpenFiles = 0;
@@ -125,8 +125,8 @@ public class Profiler {
         totalOpenFiles += fStats.totalOpenFiles;
         maxOpenFiles += fStats.maxOpenFiles;
 
-        final DatabaseAsyncExecutor.PDBAsynchStats aStats = db.asynch().getStats();
-        asynchQueueLength += aStats.queueSize;
+        final DatabaseAsyncExecutor.DBAsyncStats aStats = db.async().getStats();
+        asyncQueueLength += aStats.queueSize;
 
         final Map<String, Object> walStats = db.getTransactionManager().getStats();
         walPagesWritten += (Long) walStats.get("pagesWritten");
@@ -168,7 +168,7 @@ public class Profiler {
               FileUtils.getSizeAsString(pagesReadSize), pagesWritten, FileUtils.getSizeAsString(pagesWrittenSize)));
 
       buffer.append(String
-          .format("\n DB databases=%d asynchQueue=%d txCommits=%d txRollbacks=%d queries=%d commands=%d", databases.size(), asynchQueueLength, txCommits,
+          .format("\n DB databases=%d asyncQueue=%d txCommits=%d txRollbacks=%d queries=%d commands=%d", databases.size(), asyncQueueLength, txCommits,
               txRollbacks, queries, commands));
       buffer.append(String.format("\n    createRecord=%d readRecord=%d updateRecord=%d deleteRecord=%d", createRecord, readRecord, updateRecord, deleteRecord));
       buffer.append(String

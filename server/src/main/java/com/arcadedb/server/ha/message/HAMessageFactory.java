@@ -7,7 +7,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ha.ReplicationMessage;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 
 import java.util.ArrayList;

@@ -242,8 +242,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public DatabaseAsyncExecutor asynch() {
-    return proxied.asynch();
+  public DatabaseAsyncExecutor async() {
+    return proxied.async();
   }
 
   @Override

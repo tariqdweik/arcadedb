@@ -55,12 +55,12 @@ public class PerformanceIndexTest {
     try {
 
       database.setReadYourWrites(false);
-      database.asynch().setCommitEvery(5000);
-      database.asynch().setParallelLevel(parallel);
-      database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+      database.async().setCommitEvery(5000);
+      database.async().setParallelLevel(parallel);
+      database.async().setTransactionUseWAL(true);
+      database.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
 
-      database.asynch().onError(new ErrorCallback() {
+      database.async().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
           System.out.println("ERROR: " + exception);
@@ -83,7 +83,7 @@ public class PerformanceIndexTest {
 //        record.set("notes2",
 //            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
 
-        database.asynch().createRecord(record);
+        database.async().createRecord(record);
 
         if (row % 100000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");

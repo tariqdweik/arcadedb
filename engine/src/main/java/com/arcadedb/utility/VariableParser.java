@@ -4,6 +4,8 @@
 
 package com.arcadedb.utility;
 
+import com.arcadedb.log.LogManager;
+
 /**
  * Resolve entity class and descriptors using the paths configured.
  *

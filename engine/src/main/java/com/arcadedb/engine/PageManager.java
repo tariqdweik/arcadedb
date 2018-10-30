@@ -11,7 +11,7 @@ import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LockContext;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.IOException;
 import java.util.Comparator;

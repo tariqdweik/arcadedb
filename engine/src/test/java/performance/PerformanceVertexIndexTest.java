@@ -12,7 +12,7 @@ import com.arcadedb.engine.WALFile;
 import com.arcadedb.index.Index;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
@@ -104,12 +104,12 @@ public class PerformanceVertexIndexTest {
     try {
 
       database.setReadYourWrites(false);
-      database.asynch().setCommitEvery(50000);
-      database.asynch().setParallelLevel(parallel);
-      database.asynch().setTransactionUseWAL(true);
-      database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+      database.async().setCommitEvery(50000);
+      database.async().setParallelLevel(parallel);
+      database.async().setTransactionUseWAL(true);
+      database.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
 
-      database.asynch().onError(new ErrorCallback() {
+      database.async().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
           LogManager.instance().info(this, "TEST: ERROR: " + exception);
@@ -147,7 +147,7 @@ public class PerformanceVertexIndexTest {
         v.set("operationalStatus", "NotAvailable");
         v.set("supplierName", "TBD");
 
-        database.asynch().createRecord(v);
+        database.async().createRecord(v);
 
         if (counter % 1000 == 0) {
           if (System.currentTimeMillis() - lastLap > 1000) {

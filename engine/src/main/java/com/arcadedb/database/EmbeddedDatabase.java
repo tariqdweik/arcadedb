@@ -16,6 +16,7 @@ import com.arcadedb.graph.*;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.lsm.LSMTreeIndexCompacted;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
@@ -50,7 +51,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   protected final GraphEngine           graphEngine    = new GraphEngine();
   protected       TransactionManager    transactionManager;
   protected final WALFileFactory        walFactory;
-  protected       DatabaseAsyncExecutor asynch         = null;
+  protected       DatabaseAsyncExecutor async          = null;
   protected final DocumentIndexer       indexer;
   private         boolean               readYourWrites = true;
 
@@ -150,7 +151,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
         checkForRecovery();
 
-        asynch = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
+        async = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
 
         Profiler.INSTANCE.registerDatabase(this);
 
@@ -216,10 +217,10 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
   @Override
   public void close() {
-    if (asynch != null) {
+    if (async != null) {
       // EXECUTE OUTSIDE LOCK
-      asynch.waitCompletion();
-      asynch.close();
+      async.waitCompletion();
+      async.close();
     }
 
     executeInWriteLock(new Callable<Object>() {
@@ -230,8 +231,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
         open = false;
 
-        if (asynch != null)
-          asynch.close();
+        if (async != null)
+          async.close();
 
         final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.removeContext(databasePath);
         if (dbContext != null && dbContext.transaction != null) {
@@ -266,8 +267,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     });
   }
 
-  public DatabaseAsyncExecutor asynch() {
-    return asynch;
+  public DatabaseAsyncExecutor async() {
+    return async;
   }
 
   @Override
@@ -513,7 +514,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
         if (loadContent) {
           final Binary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type != null ? type.getName() : null, rid, buffer);
+          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type != null ? type.getName() : null, rid, buffer.copy());
           return record;
         }
 
@@ -855,7 +856,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       } else
         throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
-      sourceVertex = (Vertex) v1Result.next().getRecord();
+      sourceVertex = v1Result.next().getVertex();
 
     final Iterator<RID> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
     Vertex destinationVertex;
@@ -869,7 +870,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         throw new IllegalArgumentException(
             "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
-      destinationVertex = (Vertex) v2Result.next().getRecord();
+      destinationVertex = v2Result.next().getVertex();
 
     statsCreateRecord.incrementAndGet();
 
@@ -914,8 +915,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
    */
   @Override
   public void kill() {
-    if (asynch != null)
-      asynch.kill();
+    if (async != null)
+      async.kill();
 
     if (getTransaction().isActive())
       // ROLLBACK ANY PENDING OPERATION

@@ -13,7 +13,7 @@ import com.arcadedb.server.ha.message.ReplicaConnectHotResyncResponse;
 import com.arcadedb.server.ha.message.TxForwardRequest;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 

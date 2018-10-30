@@ -45,7 +45,7 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
     final RID rid = currentContainer.getEdge(currentPosition);
     currentContainer.getVertex(currentPosition); // SKIP VERTEX
 
-    return (Edge) rid.getRecord();
+    return rid.getEdge();
   }
 
   @Override

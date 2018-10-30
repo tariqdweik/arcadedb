@@ -60,7 +60,7 @@ public class CSVImporter extends AbstractContentImporter {
   protected void onParsedLine(final Database database, final ImporterContext context, final ImporterSettings settings, final String[] row) {
     final MutableDocument record = createRecord(database, settings.recordType,
         settings.recordType == Importer.RECORD_TYPE.VERTEX ? settings.vertexTypeName : settings.documentTypeName);
-    database.asynch().createRecord(record);
+    database.async().createRecord(record);
     ++context.parsed;
 
     if (settings.recordType == Importer.RECORD_TYPE.VERTEX)

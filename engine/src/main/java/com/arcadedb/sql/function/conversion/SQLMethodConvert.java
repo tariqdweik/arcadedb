@@ -7,7 +7,7 @@ import com.arcadedb.database.Identifiable;
 import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.util.Locale;
 

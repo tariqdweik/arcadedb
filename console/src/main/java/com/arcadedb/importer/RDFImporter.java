@@ -18,7 +18,7 @@ public class RDFImporter extends CSVImporter {
     final String v2Id = getStringContent(row[2], STRING_CONTENT_SKIP);
 
     // CREATE AN EDGE
-    database.asynch().newEdgeByKeys(settings.vertexTypeName, new String[] { settings.typeIdProperty }, new Object[] { v1Id }, settings.vertexTypeName,
+    database.async().newEdgeByKeys(settings.vertexTypeName, new String[] { settings.typeIdProperty }, new Object[] { v1Id }, settings.vertexTypeName,
         new String[] { settings.typeIdProperty }, new Object[] { v2Id }, true, settings.edgeTypeName, true, new NewEdgeCallback() {
           @Override
           public void call(final Edge newEdge, final boolean createdSourceVertex, final boolean createdDestinationVertex) {

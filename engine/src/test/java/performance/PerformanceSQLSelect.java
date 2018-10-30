@@ -5,7 +5,6 @@
 package performance;
 
 import com.arcadedb.BaseTest;
-import com.arcadedb.database.Database;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
@@ -23,7 +22,7 @@ public class PerformanceSQLSelect extends BaseTest {
   private void run() {
 
 
-    database.asynch().setParallelLevel(4);
+    database.async().setParallelLevel(4);
 
     try {
       for (int i = 0; i < MAX_LOOPS; ++i) {

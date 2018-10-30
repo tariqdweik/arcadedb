@@ -6,7 +6,7 @@ package com.arcadedb.engine;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -22,7 +22,7 @@ public class PageManagerFlushThread extends Thread {
   private volatile boolean                         running = true;
 
   public PageManagerFlushThread(final PageManager pageManager, final ContextConfiguration configuration) {
-    super("AsynchFlush");
+    super("AsyncFlush");
     this.pageManager = pageManager;
     this.logContext = LogManager.instance().getContext();
     this.queue = new ArrayBlockingQueue<>(configuration.getValueAsInteger(GlobalConfiguration.PAGE_FLUSH_QUEUE));

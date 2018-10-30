@@ -4,6 +4,8 @@
 
 package com.arcadedb.utility;
 
+import com.arcadedb.log.LogManager;
+
 import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;

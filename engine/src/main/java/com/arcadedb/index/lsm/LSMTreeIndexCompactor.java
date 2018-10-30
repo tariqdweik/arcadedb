@@ -16,7 +16,7 @@ import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.serializer.BinaryComparator;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.IOException;
 import java.util.ArrayList;

@@ -21,7 +21,7 @@ import com.arcadedb.server.ServerException;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 
 import java.io.FileWriter;

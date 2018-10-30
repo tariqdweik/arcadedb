@@ -12,7 +12,7 @@ import com.arcadedb.engine.WALException;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -44,9 +44,9 @@ public class ACIDTransactionTest extends BaseTest {
   public void testAsyncTX() {
     final Database db = database;
 
-    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
-    db.asynch().setTransactionUseWAL(true);
-    db.asynch().setCommitEvery(1);
+    db.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+    db.async().setTransactionUseWAL(true);
+    db.async().setCommitEvery(1);
 
     final int TOT = 1000;
 
@@ -59,10 +59,10 @@ public class ACIDTransactionTest extends BaseTest {
         v.set("name", "Crash");
         v.set("surname", "Test");
 
-        db.asynch().createRecord(v);
+        db.async().createRecord(v);
       }
 
-      db.asynch().waitCompletion();
+      db.async().waitCompletion();
 
       try {
         Thread.sleep(500);
@@ -160,10 +160,10 @@ public class ACIDTransactionTest extends BaseTest {
 
     final AtomicInteger errors = new AtomicInteger(0);
 
-    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
-    db.asynch().setTransactionUseWAL(true);
-    db.asynch().setCommitEvery(1);
-    db.asynch().onError(new ErrorCallback() {
+    db.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+    db.async().setTransactionUseWAL(true);
+    db.async().setCommitEvery(1);
+    db.async().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
         errors.incrementAndGet();
@@ -193,10 +193,10 @@ public class ACIDTransactionTest extends BaseTest {
         v.set("name", "Crash");
         v.set("surname", "Test");
 
-        db.asynch().createRecord(v);
+        db.async().createRecord(v);
       }
 
-      db.asynch().waitCompletion();
+      db.async().waitCompletion();
 
       try {
         Thread.sleep(500);
@@ -234,10 +234,10 @@ public class ACIDTransactionTest extends BaseTest {
 
     final AtomicInteger errors = new AtomicInteger(0);
 
-    db.asynch().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
-    db.asynch().setTransactionUseWAL(true);
-    db.asynch().setCommitEvery(1000000);
-    db.asynch().onError(new ErrorCallback() {
+    db.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+    db.async().setTransactionUseWAL(true);
+    db.async().setCommitEvery(1000000);
+    db.async().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
         errors.incrementAndGet();
@@ -260,10 +260,10 @@ public class ACIDTransactionTest extends BaseTest {
         v.set("name", "Crash");
         v.set("surname", "Test");
 
-        db.asynch().createRecord(v);
+        db.async().createRecord(v);
       }
 
-      db.asynch().waitCompletion();
+      db.async().waitCompletion();
 
       Assertions.assertTrue(errors.get() > 0);
 

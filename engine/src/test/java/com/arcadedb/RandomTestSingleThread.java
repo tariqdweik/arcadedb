@@ -12,7 +12,7 @@ import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Test;
 import performance.PerformanceTest;
 

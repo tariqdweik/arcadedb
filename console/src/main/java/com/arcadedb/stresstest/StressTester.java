@@ -9,7 +9,6 @@ import com.arcadedb.stresstest.workload.CheckWorkload;
 import com.arcadedb.stresstest.workload.OWorkload;
 import com.arcadedb.stresstest.workload.OWorkloadFactory;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,9 +60,6 @@ public class StressTester {
   public int execute() {
 
     int returnCode = 0;
-
-    // we don't want logs from DB
-    LogManager.instance().setConsoleLevel("SEVERE");
 
     // creates the temporary DB where to execute the test
     final DatabaseFactory dbFactory = new DatabaseFactory(databaseIdentifier.getUrl());

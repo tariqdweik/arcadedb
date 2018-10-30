@@ -5,11 +5,15 @@
 package performance;
 
 import com.arcadedb.BaseTest;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
+import com.arcadedb.log.LogManager;
+import com.arcadedb.log.Logger;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.utility.LogManager;
+
+import java.util.logging.Level;
 
 public class PerformanceInsertNoIndexTest extends BaseTest {
   private static final int    TOT       = 20000000;
@@ -21,6 +25,20 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
   }
 
   private void run() {
+    LogManager.instance().setLogger(new Logger() {
+      @Override
+      public void log(Object iRequester, Level iLevel, String iMessage, Throwable iException, boolean extractDBData, String context,
+          Object... iAdditionalArgs) {
+      }
+
+      @Override
+      public void flush() {
+      }
+    });
+
+    GlobalConfiguration.PROFILE.setValue("high-performance");
+
+
     PerformanceTest.clean();
 
     if (!database.getSchema().existsType(TYPE_NAME)) {
@@ -40,11 +58,11 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
       try {
 
         database.setReadYourWrites(false);
-        database.asynch().setParallelLevel(PARALLEL);
-        database.asynch().setTransactionUseWAL(false);
-        database.asynch().setTransactionSync(WALFile.FLUSH_TYPE.NO);
-        database.asynch().setCommitEvery(5000);
-        database.asynch().onError(new ErrorCallback() {
+        database.async().setParallelLevel(PARALLEL);
+        database.async().setTransactionUseWAL(false);
+        database.async().setTransactionSync(WALFile.FLUSH_TYPE.NO);
+        database.async().setCommitEvery(5000);
+        database.async().onError(new ErrorCallback() {
           @Override
           public void call(Exception exception) {
             LogManager.instance().error(this, "ERROR: " + exception, exception);
@@ -65,7 +83,7 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
           record.set("surname", "Skywalker" + counter);
           record.set("locali", 10);
 
-          database.asynch().createRecord(record);
+          database.async().createRecord(record);
 
           if (counter % 1000000 == 0)
             System.out.println("Written " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");

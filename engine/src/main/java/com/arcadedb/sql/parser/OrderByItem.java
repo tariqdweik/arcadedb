@@ -7,7 +7,7 @@ package com.arcadedb.sql.parser;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.util.Map;
 

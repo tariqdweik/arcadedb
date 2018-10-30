@@ -5,7 +5,7 @@
 package com.arcadedb.importer;
 
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 
 import java.io.BufferedInputStream;
 import java.io.File;

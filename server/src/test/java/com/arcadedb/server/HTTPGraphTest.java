@@ -4,7 +4,7 @@
 
 package com.arcadedb.server;
 
-import com.arcadedb.utility.LogManager;
+import com.arcadedb.log.LogManager;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
