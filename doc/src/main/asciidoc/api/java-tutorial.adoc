@@ -1,6 +1,6 @@
 ==== 10-Minute Tutorial
 
-In order to work with a database, the reference to the database to use must be taken. You can create a new database from scratch or open an existent one. Most of the API works in both synchronous and asynchronous modes. The asynchronous API are available from the `<db>.asynch()` object.
+In order to work with a database, the reference to the database to use must be taken. You can create a new database from scratch or open an existent one. Most of the API works in both synchronous and asynchronous modes. The asynchronous API are available from the `<db>.async()` object.
 
 To start from scratch, let's create a new database. The entry point it's the `<<#_-code-databasefactory-code-class,DatabaseFactory>>` class that allows to create and open a database.
 

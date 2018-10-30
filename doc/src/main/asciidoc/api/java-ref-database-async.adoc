@@ -39,7 +39,7 @@ Examples:
 Simple query:
 
 ```java
-db.asynch().query("sql", "select from V", new SQLCallback() {
+db.async().query("sql", "select from V", new SQLCallback() {
   @Override
   public void onOk(ResultSet resultset) {
     while (resultset.hasNext()) {
@@ -123,7 +123,7 @@ Create a new record:
 
 
 ```java
-db.asynch().command("sql", "insert into V set name = 'Jay', surname = 'Miner'", new SQLCallback() {
+db.async().command("sql", "insert into V set name = 'Jay', surname = 'Miner'", new SQLCallback() {
   @Override
   public void onOk(ResultSet resultset) {
     System.out.println("Created new record: " + resultset.next() );
@@ -140,7 +140,7 @@ Create a new record by passing position parameters:
 
 
 ```java
-db.asynch().command("sql", "insert into V set name = ? surname = ?", new SQLCallback() {
+db.async().command("sql", "insert into V set name = ? surname = ?", new SQLCallback() {
   @Override
   public void onOk(ResultSet resultset) {
     System.out.println("Created new record: " + resultset.next() );
@@ -182,7 +182,7 @@ Map<String,Object> parameters = new HashMap<>();
 parameters.put("name", "Jay");
 parameters.put("surname", "Miner");
 
-db.asynch().command("sql", "insert into V set name = :name, surname = :surname", new SQLCallback() {
+db.async().command("sql", "insert into V set name = :name, surname = :surname", new SQLCallback() {
   @Override
   public void onOk(ResultSet resultset) {
     System.out.println("Created new record: " + resultset.next() );
