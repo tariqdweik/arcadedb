@@ -6,7 +6,7 @@ It's the main class to operate with ArcadeDB. To obtain an instance of Database,
 
 [cols=5]
 |===
-|<<_asynch,async()>>
+|<<_async,async()>>
 |<<_begin,begin()>>
 |<<_close,close()>>
 |<<_commit,commit()>>
@@ -45,7 +45,7 @@ It's the main class to operate with ArcadeDB. To obtain an instance of Database,
 |<<_close,close()>>
 |<<_query-language-command-positionalparameters,query() positional parameters>>
 |<<_newdocument-typename,newDocument()>>
-|<<_asynch,async()>>
+|<<_async,async()>>
 
 |<<_transaction-txblock-retries,transaction() with retries>>
 |<<_drop,drop()>>
