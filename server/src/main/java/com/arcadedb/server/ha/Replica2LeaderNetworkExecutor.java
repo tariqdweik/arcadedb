@@ -12,6 +12,7 @@ import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PageId;
 import com.arcadedb.engine.PageManager;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.network.binary.ChannelBinaryClient;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.network.binary.NetworkProtocolException;
@@ -21,7 +22,6 @@ import com.arcadedb.server.ServerException;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.server.ha.message.*;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 
 import java.io.FileWriter;
@@ -45,7 +45,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
   public Replica2LeaderNetworkExecutor(final HAServer ha, final String host, final int port) {
     this.server = ha;
-    this.testOn = GlobalConfiguration.TEST.getValueAsBoolean();
+    this.testOn = ha.getServer().getConfiguration().getValueAsBoolean(GlobalConfiguration.TEST);
 
     this.host = host;
     this.port = port;

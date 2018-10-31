@@ -4,10 +4,11 @@
 
 package com.arcadedb;
 
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.SystemVariableResolver;
+import org.json.JSONObject;
 
 import java.io.PrintStream;
 import java.util.Locale;
@@ -18,8 +19,7 @@ import java.util.TimerTask;
 /**
  * Keeps all configuration settings. At startup assigns the configuration values by reading system properties.
  */
-public enum GlobalConfiguration {
-  // ENVIRONMENT
+public enum GlobalConfiguration {// ENVIRONMENT
   DUMP_CONFIG_AT_STARTUP("arcadedb.dumpConfigAtStartup", "Dumps the configuration at startup", Boolean.class, false, new Callable<Object, Object>() {
     @Override
     public Object call(final Object value) {
@@ -217,22 +217,24 @@ public enum GlobalConfiguration {
       Constants.PRODUCT.toLowerCase()),
 
   HA_SERVER_LIST("arcadedb.ha.serverList", "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424",
-      String.class, ""),;
+      String.class, ""),
+  ;
 
   /**
    * Place holder for the "undefined" value of setting.
    */
   private final Object nullValue = new Object();
 
-  private final    String                   key;
-  private final    Object                   defValue;
-  private final    Class<?>                 type;
-  private final    Callable<Object, Object> callback;
-  private final    Callable<Object, Object> callbackIfNoSet;
-  private volatile Object                   value = nullValue;
-  private final    String                   description;
-  private final    Boolean                  canChangeAtRuntime;
-  private final    boolean                  hidden;
+  private final       String                   key;
+  private final       Object                   defValue;
+  private final       Class<?>                 type;
+  private final       Callable<Object, Object> callback;
+  private final       Callable<Object, Object> callbackIfNoSet;
+  private volatile    Object                   value  = nullValue;
+  private final       String                   description;
+  private final       Boolean                  canChangeAtRuntime;
+  private final       boolean                  hidden;
+  public final static String                   PREFIX = "arcadedb.";
 
   private static final Timer TIMER;
 
@@ -287,6 +289,33 @@ public enum GlobalConfiguration {
       out.print(" = ");
       out.println(v.isHidden() ? "<hidden>" : String.valueOf((Object) v.getValue()));
     }
+  }
+
+  public static void fromJSON(final String input) {
+    if (input == null)
+      return;
+
+    final JSONObject json = new JSONObject(input);
+    final JSONObject cfg = json.getJSONObject("configuration");
+    for (String k : cfg.keySet()) {
+      final GlobalConfiguration cfgEntry = findByKey(GlobalConfiguration.PREFIX + k);
+      if (cfgEntry != null) {
+        cfgEntry.setValue(cfg.get(k));
+      }
+    }
+  }
+
+  public static String toJSON() {
+    final JSONObject json = new JSONObject();
+
+    final JSONObject cfg = new JSONObject();
+    json.put("configuration", cfg);
+
+    for (GlobalConfiguration k : values()) {
+      cfg.put(k.key.substring(PREFIX.length()), (Object) k.getValue());
+    }
+
+    return json.toString();
   }
 
   /**
@@ -469,5 +498,4 @@ public enum GlobalConfiguration {
 
   public String getDescription() {
     return description;
-  }
-}
+  }}

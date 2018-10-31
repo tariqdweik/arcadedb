@@ -4,6 +4,7 @@
 package com.arcadedb;
 
 import com.arcadedb.utility.SystemVariableResolver;
+import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -34,6 +35,34 @@ public class ContextConfiguration implements Serializable {
   public ContextConfiguration(final ContextConfiguration iParent) {
     if (iParent != null)
       config.putAll(iParent.config);
+  }
+
+  public void fromJSON(final String input) {
+    if (input == null)
+      return;
+
+    final JSONObject json = new JSONObject(input);
+
+    final JSONObject cfg = json.getJSONObject("configuration");
+    for (String k : cfg.keySet()) {
+      final GlobalConfiguration cfgEntry = GlobalConfiguration.findByKey(GlobalConfiguration.PREFIX + k);
+      if (cfgEntry != null) {
+        config.put(GlobalConfiguration.PREFIX + k, cfg.get(k));
+      }
+    }
+  }
+
+  public String toJSON() {
+    final JSONObject json = new JSONObject();
+
+    final JSONObject cfg = new JSONObject();
+    json.put("configuration", cfg);
+
+    for (String k : config.keySet()) {
+      cfg.put(k.substring(GlobalConfiguration.PREFIX.length()), config.get(k));
+    }
+
+    return json.toString();
   }
 
   public Object setValue(final GlobalConfiguration iConfig, final Object iValue) {
@@ -149,5 +178,9 @@ public class ContextConfiguration implements Serializable {
 
   public void merge(ContextConfiguration contextConfiguration) {
     this.config.putAll(contextConfiguration.config);
+  }
+
+  public void reset() {
+    config.clear();
   }
 }

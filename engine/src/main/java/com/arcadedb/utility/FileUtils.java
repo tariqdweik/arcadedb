@@ -265,6 +265,10 @@ public class FileUtils {
     return false;
   }
 
+  public static String readFileAsString(final File file, final String iCharset) throws IOException {
+    return readStreamAsString(new FileInputStream(file), iCharset, 0);
+  }
+
   public static String readStreamAsString(final InputStream iStream, final String iCharset) throws IOException {
     return readStreamAsString(iStream, iCharset, 0);
   }

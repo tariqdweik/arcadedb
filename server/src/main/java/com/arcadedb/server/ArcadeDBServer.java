@@ -6,13 +6,16 @@ package com.arcadedb.server;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.*;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.exception.ConfigurationException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicatedDatabase;
 import com.arcadedb.server.http.HttpServer;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -23,7 +26,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
 public class ArcadeDBServer {
-  private final ContextConfiguration configuration;
+  public static final String CONFIG_SERVER_CONFIGURATION_FILENAME = "config/server-configuration.json";
+  private final        ContextConfiguration configuration;
+  private final        boolean              fileConfiguration;
 
   private HAServer       haServer;
   private ServerSecurity security;
@@ -32,18 +37,29 @@ public class ArcadeDBServer {
   private          ConcurrentMap<String, DatabaseInternal> databases          = new ConcurrentHashMap<>();
   private final    String                                  serverName;
   private          List<TestCallback>                      testEventListeners = new ArrayList<>();
-  private final    boolean                                 testEnabled        = GlobalConfiguration.TEST.getValueAsBoolean();
+  private final    boolean                                 testEnabled;
   private final    Map<String, ServerPlugin>               plugins            = new HashMap<>();
   private volatile boolean                                 started            = false;
   private          ServerMetrics                           serverMetrics      = new NoServerMetrics();
 
+  public ArcadeDBServer() {
+    this.configuration = new ContextConfiguration();
+    this.fileConfiguration = true;
+    loadConfiguration();
+
+    this.serverName = configuration.getValueAsString(GlobalConfiguration.SERVER_NAME);
+    this.testEnabled = configuration.getValueAsBoolean(GlobalConfiguration.TEST);
+  }
+
   public ArcadeDBServer(final ContextConfiguration configuration) {
+    this.fileConfiguration = false;
     this.configuration = configuration;
     this.serverName = configuration.getValueAsString(GlobalConfiguration.SERVER_NAME);
+    this.testEnabled = configuration.getValueAsBoolean(GlobalConfiguration.TEST);
   }
 
   public static void main(final String[] args) {
-    new ArcadeDBServer(new ContextConfiguration()).start();
+    new ArcadeDBServer().start();
   }
 
   public ContextConfiguration getConfiguration() {
@@ -84,7 +100,7 @@ public class ArcadeDBServer {
       haServer.startService();
     }
 
-    final String registeredPlugins = GlobalConfiguration.SERVER_PLUGINS.getValueAsString();
+    final String registeredPlugins = configuration.getValueAsString(GlobalConfiguration.SERVER_PLUGINS);
 
     if (registeredPlugins != null && !registeredPlugins.isEmpty()) {
       final String[] pluginEntries = registeredPlugins.split(",");
@@ -371,6 +387,29 @@ public class ArcadeDBServer {
           createDatabase(dbName);
         }
       }
+    }
+  }
+
+  private void loadConfiguration() {
+    final File file = new File(CONFIG_SERVER_CONFIGURATION_FILENAME);
+    if (file.exists()) {
+      try {
+        final String content = FileUtils.readFileAsString(file, "UTF8");
+        configuration.reset();
+        configuration.fromJSON(content);
+
+      } catch (IOException e) {
+        LogManager.instance().error(this, "Error on loading configuration from file '%s'", e, file);
+      }
+    }
+  }
+
+  private void saveConfiguration() {
+    final File file = new File(CONFIG_SERVER_CONFIGURATION_FILENAME);
+    try {
+      FileUtils.writeFile(file, configuration.toJSON());
+    } catch (IOException e) {
+      LogManager.instance().error(this, "Error on saving configuration to file '%s'", e, file);
     }
   }
 }

@@ -4,8 +4,10 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.Constants;
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Binary;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ha.message.HACommand;
@@ -13,7 +15,6 @@ import com.arcadedb.server.ha.message.ReplicaConnectHotResyncResponse;
 import com.arcadedb.server.ha.message.TxForwardRequest;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
@@ -65,18 +66,21 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     this.remoteServerHTTPAddress = remoteServerHTTPAddress;
     this.channel = channel;
 
-    final String cfgQueueImpl = ha.getServer().getConfiguration().getValueAsString(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_IMPL);
+    final ContextConfiguration cfg = ha.getServer().getConfiguration();
+    final int queueSize = cfg.getValueAsInteger(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE);
+
+    final String cfgQueueImpl = cfg.getValueAsString(GlobalConfiguration.ASYNC_OPERATIONS_QUEUE_IMPL);
     if ("fast".equalsIgnoreCase(cfgQueueImpl)) {
-      this.senderQueue = new PushPullBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
-      this.forwarderQueue = new PushPullBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+      this.senderQueue = new PushPullBlockingQueue<>(queueSize);
+      this.forwarderQueue = new PushPullBlockingQueue<>(queueSize);
     } else if ("standard".equalsIgnoreCase(cfgQueueImpl)) {
-      this.senderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
-      this.forwarderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+      this.senderQueue = new ArrayBlockingQueue<>(queueSize);
+      this.forwarderQueue = new ArrayBlockingQueue<>(queueSize);
     } else {
       // WARNING AND THEN USE THE DEFAULT
       LogManager.instance().warn(this, "Error on async operation queue implementation setting: %s is not supported", cfgQueueImpl);
-      this.senderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
-      this.forwarderQueue = new ArrayBlockingQueue<>(GlobalConfiguration.HA_REPLICATION_QUEUE_SIZE.getValueAsInteger());
+      this.senderQueue = new ArrayBlockingQueue<>(queueSize);
+      this.forwarderQueue = new ArrayBlockingQueue<>(queueSize);
     }
 
     setName(Constants.PRODUCT + "-ha-leader2replica/" + server.getServer().getServerName() + "/?");

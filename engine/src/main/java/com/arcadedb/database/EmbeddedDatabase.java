@@ -27,7 +27,10 @@ import com.arcadedb.sql.executor.SQLEngine;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
 import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.sql.parser.StatementCache;
-import com.arcadedb.utility.*;
+import com.arcadedb.utility.FileUtils;
+import com.arcadedb.utility.LockException;
+import com.arcadedb.utility.MultiIterator;
+import com.arcadedb.utility.RWLockContext;
 
 import java.io.File;
 import java.io.IOException;
@@ -119,6 +122,17 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (!new File(databasePath).exists())
       throw new DatabaseOperationException("Database '" + databasePath + "' not exists");
 
+    final File file = new File(databasePath + "/configuration.json");
+    if (file.exists()) {
+      try {
+        final String content = FileUtils.readFileAsString(file, "UTF8");
+        configuration.reset();
+        configuration.fromJSON(content);
+      } catch (IOException e) {
+        LogManager.instance().error(this, "Error on loading configuration from file '%s'", e, file);
+      }
+    }
+
     openInternal();
   }
 
@@ -129,6 +143,13 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     openInternal();
 
     schema.saveConfiguration();
+
+    String cfgFileName = databasePath + "/configuration.json";
+    try {
+      FileUtils.writeFile(new File(cfgFileName), configuration.toJSON());
+    } catch (IOException e) {
+      LogManager.instance().error(this, "Error on saving configuration to file '%s'", e, cfgFileName);
+    }
   }
 
   private void openInternal() {

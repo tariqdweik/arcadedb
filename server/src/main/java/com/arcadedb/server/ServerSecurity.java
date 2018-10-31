@@ -57,13 +57,13 @@ public class ServerSecurity implements ServerPlugin {
   public ServerSecurity(final ArcadeDBServer server, final String configPath) {
     this.server = server;
     this.configPath = configPath;
-    this.algorithm = GlobalConfiguration.SERVER_SECURITY_ALGORITHM.getValueAsString();
+    this.algorithm = server.getConfiguration().getValueAsString(GlobalConfiguration.SERVER_SECURITY_ALGORITHM);
 
-    final int cacheSize = GlobalConfiguration.SERVER_SECURITY_SALT_CACHE_SIZE.getValueAsInteger();
+    final int cacheSize = server.getConfiguration().getValueAsInteger(GlobalConfiguration.SERVER_SECURITY_SALT_CACHE_SIZE);
     if (cacheSize > 0)
       SALT_CACHE = Collections.synchronizedMap(new LRUCache<>(cacheSize));
 
-    saltIteration = GlobalConfiguration.SERVER_SECURITY_SALT_ITERATIONS.getValueAsInteger();
+    saltIteration = server.getConfiguration().getValueAsInteger(GlobalConfiguration.SERVER_SECURITY_SALT_ITERATIONS);
 
     try {
       secretKeyFactory = SecretKeyFactory.getInstance(algorithm);
