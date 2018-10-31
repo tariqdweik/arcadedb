@@ -201,7 +201,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public int putBytes(final byte[] value) {
-    int bytesUsed = putNumber(value.length);
+    int bytesUsed = putUnsignedNumber(value.length);
     checkForAllocation(buffer.position(), value.length);
     buffer.put(value);
     return bytesUsed + value.length;
@@ -209,7 +209,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public int putBytes(final byte[] value, final int size) {
-    int bytesUsed = putNumber(size);
+    int bytesUsed = putUnsignedNumber(size);
     checkForAllocation(buffer.position(), size);
     buffer.put(value, 0, size);
     return bytesUsed + size;
@@ -265,12 +265,6 @@ public class Binary implements BinaryStructure {
     // Must re-flip the top bit if the original read value had it set.
     raw[0] = temp ^ (raw[0] & (1L << 63));
     return raw;
-  }
-
-  @Override
-  public long getNumber(final int index) {
-    position(index);
-    return getNumber();
   }
 
   @Override
@@ -379,7 +373,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public byte[] getBytes() {
-    final byte[] result = new byte[(int) getNumber()];
+    final byte[] result = new byte[(int) getUnsignedNumber()];
     if (result.length > 0)
       buffer.get(result);
     return result;

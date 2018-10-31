@@ -33,7 +33,7 @@ public class DatabaseStructureResponse extends HAAbstractCommand {
   public void toStream(final Binary stream) {
     stream.putString(schemaJson);
 
-    stream.putNumber(fileNames.size());
+    stream.putUnsignedNumber(fileNames.size());
     for (Map.Entry<Integer, String> file : fileNames.entrySet()) {
       stream.putInt(file.getKey());
       stream.putByte((byte) (file.getValue() != null ? 1 : 0));
@@ -47,7 +47,7 @@ public class DatabaseStructureResponse extends HAAbstractCommand {
     schemaJson = stream.getString();
 
     fileNames = new HashMap<>();
-    final int fileCount = (int) stream.getNumber();
+    final int fileCount = (int) stream.getUnsignedNumber();
     for (int i = 0; i < fileCount; ++i) {
       final int fileId = stream.getInt();
       final boolean notNull = stream.getByte() == 1;

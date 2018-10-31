@@ -87,18 +87,18 @@ public class TxForwardRequest extends TxRequestAbstract {
 
     uniqueKeysBuffer = new Binary();
 
-    uniqueKeysBuffer.putNumber(indexesChanges.size());
+    uniqueKeysBuffer.putUnsignedNumber(indexesChanges.size());
 
     for (Map.Entry<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> entry : indexesChanges.entrySet()) {
       uniqueKeysBuffer.putString(entry.getKey());
       final Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> indexChanges = entry.getValue();
 
-      uniqueKeysBuffer.putNumber(indexChanges.size());
+      uniqueKeysBuffer.putUnsignedNumber(indexChanges.size());
 
       for (Map.Entry<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> keyChange : indexChanges.entrySet()) {
         final TransactionIndexContext.ComparableKey entryKey = keyChange.getKey();
 
-        uniqueKeysBuffer.putNumber(entryKey.values.length);
+        uniqueKeysBuffer.putUnsignedNumber(entryKey.values.length);
         for (int k = 0; k < entryKey.values.length; ++k) {
           final byte keyType = BinaryTypes.getTypeFromValue(entryKey.values[k]);
           uniqueKeysBuffer.putByte(keyType);
@@ -107,12 +107,12 @@ public class TxForwardRequest extends TxRequestAbstract {
 
         final Set<TransactionIndexContext.IndexKey> entryValue = keyChange.getValue();
 
-        uniqueKeysBuffer.putNumber(entryValue.size());
+        uniqueKeysBuffer.putUnsignedNumber(entryValue.size());
 
         for (TransactionIndexContext.IndexKey key : entryValue) {
           uniqueKeysBuffer.putByte((byte) (key.addOperation ? 1 : 0));
-          uniqueKeysBuffer.putNumber(key.rid.getBucketId());
-          uniqueKeysBuffer.putNumber(key.rid.getPosition());
+          uniqueKeysBuffer.putUnsignedNumber(key.rid.getBucketId());
+          uniqueKeysBuffer.putUnsignedNumber(key.rid.getPosition());
         }
       }
     }
@@ -128,28 +128,28 @@ public class TxForwardRequest extends TxRequestAbstract {
 
     uniqueKeysBuffer.position(0);
 
-    final int totalIndexes = (int) uniqueKeysBuffer.getNumber();
+    final int totalIndexes = (int) uniqueKeysBuffer.getUnsignedNumber();
 
     final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> indexesMap = new HashMap<>(totalIndexes);
 
     for (int indexIdx = 0; indexIdx < totalIndexes; ++indexIdx) {
       final String indexName = uniqueKeysBuffer.getString();
 
-      final int totalIndexEntries = (int) uniqueKeysBuffer.getNumber();
+      final int totalIndexEntries = (int) uniqueKeysBuffer.getUnsignedNumber();
 
       final Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>> indexMap = new HashMap<>(totalIndexEntries);
       indexesMap.put(indexName, indexMap);
 
       for (int entryIndex = 0; entryIndex < totalIndexEntries; ++entryIndex) {
         // READ THE KEY
-        final int keyEntryCount = (int) uniqueKeysBuffer.getNumber();
+        final int keyEntryCount = (int) uniqueKeysBuffer.getUnsignedNumber();
         final Object[] keyValues = new Object[keyEntryCount];
         for (int k = 0; k < keyEntryCount; ++k) {
           final byte keyType = uniqueKeysBuffer.getByte();
           keyValues[k] = serializer.deserializeValue(database, uniqueKeysBuffer, keyType);
         }
 
-        final int totalKeyEntries = (int) uniqueKeysBuffer.getNumber();
+        final int totalKeyEntries = (int) uniqueKeysBuffer.getUnsignedNumber();
 
         final Set<TransactionIndexContext.IndexKey> values = new HashSet<>(totalKeyEntries);
         indexMap.put(new TransactionIndexContext.ComparableKey(keyValues), values);
@@ -157,7 +157,7 @@ public class TxForwardRequest extends TxRequestAbstract {
         for (int i = 0; i < totalKeyEntries; ++i) {
           final boolean addOperation = uniqueKeysBuffer.getByte() == 1;
 
-          final RID rid = new RID(database, (int) uniqueKeysBuffer.getNumber(), uniqueKeysBuffer.getNumber());
+          final RID rid = new RID(database, (int) uniqueKeysBuffer.getUnsignedNumber(), uniqueKeysBuffer.getUnsignedNumber());
 
           values.add(new TransactionIndexContext.IndexKey(addOperation, keyValues, rid));
         }

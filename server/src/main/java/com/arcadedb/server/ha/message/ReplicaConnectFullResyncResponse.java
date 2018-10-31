@@ -28,7 +28,7 @@ public class ReplicaConnectFullResyncResponse extends HAAbstractCommand {
   @Override
   public void toStream(final Binary stream) {
     stream.putLong(lastMessageNumber);
-    stream.putNumber(databases.size());
+    stream.putUnsignedNumber(databases.size());
     for (String db : databases)
       stream.putString(db);
   }
@@ -37,7 +37,7 @@ public class ReplicaConnectFullResyncResponse extends HAAbstractCommand {
   public void fromStream(final Binary stream) {
     lastMessageNumber = stream.getLong();
     databases = new HashSet<>();
-    final int fileCount = (int) stream.getNumber();
+    final int fileCount = (int) stream.getUnsignedNumber();
     for (int i = 0; i < fileCount; ++i)
       databases.add(stream.getString());
   }

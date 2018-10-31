@@ -39,14 +39,14 @@ public class FileContentResponse extends HAAbstractCommand {
 
   @Override
   public void toStream(final Binary stream) {
-    stream.putNumber(pages);
+    stream.putUnsignedNumber(pages);
     stream.putBytes(pagesContent.getContent(), pagesContent.size());
     stream.putByte((byte) (last ? 1 : 0));
   }
 
   @Override
   public void fromStream(final Binary stream) {
-    pages = (int) stream.getNumber();
+    pages = (int) stream.getUnsignedNumber();
     pagesContent = new Binary(stream.getBytes());
     last = stream.getByte() == 1;
   }

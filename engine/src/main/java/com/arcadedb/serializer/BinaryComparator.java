@@ -266,7 +266,7 @@ public class BinaryComparator {
 
   public int compareStrings(final byte[] buffer1, final Binary buffer2) {
     final long b1Size = buffer1.length;
-    final long b2Size = buffer2.getNumber();
+    final long b2Size = buffer2.getUnsignedNumber();
 
     final int minSize = (int) Math.min(b1Size, b2Size);
 
@@ -290,8 +290,8 @@ public class BinaryComparator {
   }
 
   public boolean equalsStrings(final Binary buffer1, final Binary buffer2) {
-    final long b1Size = buffer1.getNumber();
-    final long b2Size = buffer2.getNumber();
+    final long b1Size = buffer1.getUnsignedNumber();
+    final long b2Size = buffer2.getUnsignedNumber();
 
     if (b1Size != b2Size)
       return false;

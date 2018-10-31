@@ -21,6 +21,15 @@ public class SerializerTest extends BaseTest {
   @Test
   public void testVarNumber() {
     final Binary binary = new Binary();
+    binary.putUnsignedNumber(0);
+    binary.putUnsignedNumber(3);
+    binary.putUnsignedNumber(Short.MIN_VALUE);
+    binary.putUnsignedNumber(Short.MAX_VALUE);
+    binary.putUnsignedNumber(Integer.MIN_VALUE);
+    binary.putUnsignedNumber(Integer.MAX_VALUE);
+    binary.putUnsignedNumber(Long.MIN_VALUE);
+    binary.putUnsignedNumber(Long.MAX_VALUE);
+
     binary.putNumber(0);
     binary.putNumber(3);
     binary.putNumber(Short.MIN_VALUE);
@@ -51,27 +60,37 @@ public class SerializerTest extends BaseTest {
     binary.rewind();
     buffer.rewind();
 
+    Assertions.assertEquals(0, binary.getUnsignedNumber());
+    Assertions.assertEquals(0, buffer.getUnsignedNumber());
+    Assertions.assertEquals(3, binary.getUnsignedNumber());
+    Assertions.assertEquals(3, buffer.getUnsignedNumber());
+    Assertions.assertEquals(Short.MIN_VALUE, binary.getUnsignedNumber());
+    Assertions.assertEquals(Short.MIN_VALUE, buffer.getUnsignedNumber());
+    Assertions.assertEquals(Short.MAX_VALUE, binary.getUnsignedNumber());
+    Assertions.assertEquals(Short.MAX_VALUE, buffer.getUnsignedNumber());
+    Assertions.assertEquals(Integer.MIN_VALUE, binary.getUnsignedNumber());
+    Assertions.assertEquals(Integer.MIN_VALUE, buffer.getUnsignedNumber());
+    Assertions.assertEquals(Integer.MAX_VALUE, binary.getUnsignedNumber());
+    Assertions.assertEquals(Integer.MAX_VALUE, buffer.getUnsignedNumber());
+    Assertions.assertEquals(Long.MIN_VALUE, binary.getUnsignedNumber());
+    Assertions.assertEquals(Long.MIN_VALUE, buffer.getUnsignedNumber());
+    Assertions.assertEquals(Long.MAX_VALUE, binary.getUnsignedNumber());
+    Assertions.assertEquals(Long.MAX_VALUE, buffer.getUnsignedNumber());
+
     Assertions.assertEquals(0, binary.getNumber());
     Assertions.assertEquals(0, buffer.getNumber());
-
     Assertions.assertEquals(3, binary.getNumber());
     Assertions.assertEquals(3, buffer.getNumber());
-
     Assertions.assertEquals(Short.MIN_VALUE, binary.getNumber());
     Assertions.assertEquals(Short.MIN_VALUE, buffer.getNumber());
-
     Assertions.assertEquals(Short.MAX_VALUE, binary.getNumber());
     Assertions.assertEquals(Short.MAX_VALUE, buffer.getNumber());
-
     Assertions.assertEquals(Integer.MIN_VALUE, binary.getNumber());
     Assertions.assertEquals(Integer.MIN_VALUE, buffer.getNumber());
-
     Assertions.assertEquals(Integer.MAX_VALUE, binary.getNumber());
     Assertions.assertEquals(Integer.MAX_VALUE, buffer.getNumber());
-
     Assertions.assertEquals(Long.MIN_VALUE, binary.getNumber());
     Assertions.assertEquals(Long.MIN_VALUE, buffer.getNumber());
-
     Assertions.assertEquals(Long.MAX_VALUE, binary.getNumber());
     Assertions.assertEquals(Long.MAX_VALUE, buffer.getNumber());
 

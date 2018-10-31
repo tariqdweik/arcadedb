@@ -63,8 +63,6 @@ public interface BinaryStructure {
 
   long[] getNumberAndSize(int index);
 
-  long getNumber(int index);
-
   long getNumber();
 
   long getUnsignedNumber();

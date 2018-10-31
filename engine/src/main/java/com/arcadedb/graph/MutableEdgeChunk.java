@@ -12,8 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInternal {
   public static final  byte RECORD_TYPE            = 3;
-  public static final  int  CONTENT_START_POSITION =
-      Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + BinaryTypes.getTypeSize(BinaryTypes.TYPE_RID);
+  public static final  int  CONTENT_START_POSITION = Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + BinaryTypes.getTypeSize(BinaryTypes.TYPE_RID);
   private static final RID  NULL_RID               = new RID(null, -1, -1);
 
   private int bufferSize;
@@ -80,14 +79,14 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     buffer.position(CONTENT_START_POSITION);
 
     while (buffer.position() < used) {
-      final int currEdgeBucketId = (int) buffer.getNumber();
-      final long currEdgePosition = buffer.getNumber();
+      final int currEdgeBucketId = (int) buffer.getUnsignedNumber();
+      final long currEdgePosition = buffer.getUnsignedNumber();
       if (currEdgeBucketId == bucketId && currEdgePosition == position)
         return true;
 
       // SKIP VERTEX RID
-      buffer.getNumber();
-      buffer.getNumber();
+      buffer.getUnsignedNumber();
+      buffer.getUnsignedNumber();
     }
 
     return false;
@@ -106,11 +105,11 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
 
     while (buffer.position() < used) {
       // SKIP EDGE RID
-      buffer.getNumber();
-      buffer.getNumber();
+      buffer.getUnsignedNumber();
+      buffer.getUnsignedNumber();
 
-      final int currEdgeBucketId = (int) buffer.getNumber();
-      final long currEdgePosition = buffer.getNumber();
+      final int currEdgeBucketId = (int) buffer.getUnsignedNumber();
+      final long currEdgePosition = buffer.getUnsignedNumber();
       if (currEdgeBucketId == bucketId && currEdgePosition == position)
         return true;
     }
@@ -133,17 +132,17 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     while (buffer.position() < used) {
       final int lastPos = buffer.position();
 
-      final int currEdgeBucketId = (int) buffer.getNumber();
-      final long currEdgePosition = buffer.getNumber();
+      final int currEdgeBucketId = (int) buffer.getUnsignedNumber();
+      final long currEdgePosition = buffer.getUnsignedNumber();
 
-      buffer.getNumber();
-      buffer.getNumber();
+      buffer.getUnsignedNumber();
+      buffer.getUnsignedNumber();
 
       if (currEdgeBucketId == bucketId && currEdgePosition == position) {
         // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
         buffer.move(buffer.position(), lastPos, used - buffer.position());
 
-        used -= (buffer.position()-lastPos);
+        used -= (buffer.position() - lastPos);
         setUsed(used);
 
         buffer.position(lastPos);
@@ -169,17 +168,17 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     while (buffer.position() < used) {
       final int lastPos = buffer.position();
 
-      buffer.getNumber();
-      buffer.getNumber();
+      buffer.getUnsignedNumber();
+      buffer.getUnsignedNumber();
 
-      final int currVertexBucketId = (int) buffer.getNumber();
-      final long currVertexPosition = buffer.getNumber();
+      final int currVertexBucketId = (int) buffer.getUnsignedNumber();
+      final long currVertexPosition = buffer.getUnsignedNumber();
 
       if (currVertexBucketId == bucketId && currVertexPosition == position) {
         // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
         buffer.move(buffer.position(), lastPos, used - lastPos);
 
-        used -= (buffer.position()-lastPos);
+        used -= (buffer.position() - lastPos);
         setUsed(used);
 
         buffer.position(lastPos);
@@ -199,11 +198,11 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
       buffer.position(CONTENT_START_POSITION);
 
       while (buffer.position() < used) {
-        final int fileId = (int) buffer.getNumber();
+        final int fileId = (int) buffer.getUnsignedNumber();
         // SKIP EDGE RID POSITION AND VERTEX RID
-        buffer.getNumber();
-        buffer.getNumber();
-        buffer.getNumber();
+        buffer.getUnsignedNumber();
+        buffer.getUnsignedNumber();
+        buffer.getUnsignedNumber();
 
         if (fileIds != null) {
           if (fileIds.contains(fileId))

@@ -141,12 +141,12 @@ public class BinarySerializer {
 
   public Set<String> getPropertyNames(final Database database, final Binary buffer) {
     final int headerSize = buffer.getInt();
-    final int properties = (int) buffer.getNumber();
+    final int properties = (int) buffer.getUnsignedNumber();
     final Set<String> result = new LinkedHashSet<String>(properties);
 
     for (int i = 0; i < properties; ++i) {
-      final int nameId = (int) buffer.getNumber();
-      final long contentPosition = buffer.getNumber();
+      final int nameId = (int) buffer.getUnsignedNumber();
+      final long contentPosition = buffer.getUnsignedNumber();
       final String name = database.getSchema().getDictionary().getNameById(nameId);
       result.add(name);
     }
@@ -156,7 +156,7 @@ public class BinarySerializer {
 
   public Map<String, Object> deserializeProperties(final Database database, final Binary buffer, final String... fieldNames) {
     final int headerSize = buffer.getInt();
-    final int properties = (int) buffer.getNumber();
+    final int properties = (int) buffer.getUnsignedNumber();
 
     if (properties < 0)
       throw new SerializationException("Error on deserialize record. It may be corrupted (properties=" + properties + ")");
@@ -172,8 +172,8 @@ public class BinarySerializer {
       fieldIds[i] = dictionary.getIdByName(fieldNames[i], false);
 
     for (int i = 0; i < properties; ++i) {
-      final int nameId = (int) buffer.getNumber();
-      final int contentPosition = (int) buffer.getNumber();
+      final int nameId = (int) buffer.getUnsignedNumber();
+      final int contentPosition = (int) buffer.getUnsignedNumber();
 
       lastHeaderPosition = buffer.position();
 
@@ -218,7 +218,7 @@ public class BinarySerializer {
     case BinaryTypes.TYPE_NULL:
       break;
     case BinaryTypes.TYPE_COMPRESSED_STRING:
-      content.putNumber(((Integer) value).intValue());
+      content.putUnsignedNumber(((Integer) value).intValue());
       break;
     case BinaryTypes.TYPE_STRING:
       if (value instanceof byte[])
@@ -250,10 +250,10 @@ public class BinarySerializer {
       content.putNumber(dg);
       break;
     case BinaryTypes.TYPE_DATE:
-      content.putNumber(((Date) value).getTime());
+      content.putUnsignedNumber(((Date) value).getTime());
       break;
     case BinaryTypes.TYPE_DATETIME:
-      content.putNumber(((Date) value).getTime());
+      content.putUnsignedNumber(((Date) value).getTime());
       break;
     case BinaryTypes.TYPE_DECIMAL:
       content.putNumber(((BigDecimal) value).scale());
@@ -261,8 +261,8 @@ public class BinarySerializer {
       break;
     case BinaryTypes.TYPE_COMPRESSED_RID: {
       final RID rid = ((Identifiable) value).getIdentity();
-      content.putNumber(rid.getBucketId());
-      content.putNumber(rid.getPosition());
+      content.putUnsignedNumber(rid.getBucketId());
+      content.putUnsignedNumber(rid.getPosition());
       break;
     }
     case BinaryTypes.TYPE_RID: {
@@ -285,7 +285,7 @@ public class BinarySerializer {
     case BinaryTypes.TYPE_LIST: {
       if (value instanceof Collection) {
         final Collection list = (Collection) value;
-        content.putNumber(list.size());
+        content.putUnsignedNumber(list.size());
         for (Iterator it = list.iterator(); it.hasNext(); ) {
           final Object entryValue = it.next();
           final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
@@ -295,7 +295,7 @@ public class BinarySerializer {
       } else if (value instanceof Object[]) {
         // ARRAY
         final Object[] array = (Object[]) value;
-        content.putNumber(array.length);
+        content.putUnsignedNumber(array.length);
         for (Object entryValue : array) {
           final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
           content.putByte(entryType);
@@ -304,7 +304,7 @@ public class BinarySerializer {
       } else {
         // ARRAY
         final int length = Array.getLength(value);
-        content.putNumber(length);
+        content.putUnsignedNumber(length);
         for (int i = 0; i < length; ++i) {
           final Object entryValue = Array.get(value, i);
           final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
@@ -316,7 +316,7 @@ public class BinarySerializer {
     }
     case BinaryTypes.TYPE_MAP: {
       final Map<Object, Object> map = (Map<Object, Object>) value;
-      content.putNumber(map.size());
+      content.putUnsignedNumber(map.size());
       for (Map.Entry<Object, Object> entry : map.entrySet()) {
         // WRITE THE KEY
         final Object entryKey = entry.getKey();
@@ -348,7 +348,7 @@ public class BinarySerializer {
       value = content.getString();
       break;
     case BinaryTypes.TYPE_COMPRESSED_STRING:
-      value = content.getNumber();
+      value = content.getUnsignedNumber();
       break;
     case BinaryTypes.TYPE_BYTE:
       value = content.getByte();
@@ -372,10 +372,10 @@ public class BinarySerializer {
       value = Double.longBitsToDouble(content.getNumber());
       break;
     case BinaryTypes.TYPE_DATE:
-      value = new Date(content.getNumber());
+      value = new Date(content.getUnsignedNumber());
       break;
     case BinaryTypes.TYPE_DATETIME:
-      value = new Date(content.getNumber());
+      value = new Date(content.getUnsignedNumber());
       break;
     case BinaryTypes.TYPE_DECIMAL:
       final int scale = (int) content.getNumber();
@@ -383,7 +383,7 @@ public class BinarySerializer {
       value = new BigDecimal(new BigInteger(unscaledValue), scale);
       break;
     case BinaryTypes.TYPE_COMPRESSED_RID:
-      value = new RID(database, (int) content.getNumber(), content.getNumber());
+      value = new RID(database, (int) content.getUnsignedNumber(), content.getUnsignedNumber());
       break;
     case BinaryTypes.TYPE_RID:
       value = new RID(database, content.getInt(), content.getLong());
@@ -392,7 +392,7 @@ public class BinarySerializer {
       value = new UUID(content.getNumber(), content.getNumber());
       break;
     case BinaryTypes.TYPE_LIST: {
-      final int count = (int) content.getNumber();
+      final int count = (int) content.getUnsignedNumber();
       final List list = new ArrayList(count);
       for (int i = 0; i < count; ++i) {
         final byte entryType = content.getByte();
@@ -402,7 +402,7 @@ public class BinarySerializer {
       break;
     }
     case BinaryTypes.TYPE_MAP: {
-      final int count = (int) content.getNumber();
+      final int count = (int) content.getUnsignedNumber();
       final Map<Object, Object> map = new HashMap<>(count);
       for (int i = 0; i < count; ++i) {
         final byte entryKeyType = content.getByte();
@@ -429,7 +429,7 @@ public class BinarySerializer {
     header.putInt(0); // TEMPORARY PLACEHOLDER FOR HEADER SIZE
 
     final Set<String> propertyNames = record.getPropertyNames();
-    header.putNumber(propertyNames.size());
+    header.putUnsignedNumber(propertyNames.size());
 
     final Binary content = ((EmbeddedDatabase) database).getContext().getTemporaryBuffer2();
 
@@ -437,8 +437,7 @@ public class BinarySerializer {
 
     for (String p : propertyNames) {
       // WRITE PROPERTY ID FROM THE DICTIONARY
-      // TODO: USE UNSIGNED SHORT
-      header.putNumber(dictionary.getIdByName(p, true));
+      header.putUnsignedNumber(dictionary.getIdByName(p, true));
 
       Object value = record.get(p);
 
@@ -459,7 +458,7 @@ public class BinarySerializer {
       serializeValue(content, type, value);
 
       // WRITE PROPERTY CONTENT POSITION
-      header.putNumber(startContentPosition);
+      header.putUnsignedNumber(startContentPosition);
     }
 
     content.flip();
