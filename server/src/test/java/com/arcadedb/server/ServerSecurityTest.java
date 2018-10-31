@@ -4,6 +4,7 @@
 
 package com.arcadedb.server;
 
+import com.arcadedb.ContextConfiguration;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +12,7 @@ public class ServerSecurityTest {
 
   @Test
   public void checkQuery() {
-    final ServerSecurity security = new ServerSecurity(null, "./target");
+    final ServerSecurity security = new ServerSecurity(new ArcadeDBServer(new ContextConfiguration()), "./target");
     security.startService();
 
     Assertions
