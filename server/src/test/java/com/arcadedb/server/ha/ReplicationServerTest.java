@@ -6,18 +6,21 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
+import com.arcadedb.database.RID;
+import com.arcadedb.database.Record;
 import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.RangeIndex;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.BaseGraphServerTest;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import java.util.*;
 
 public abstract class ReplicationServerTest extends BaseGraphServerTest {
   private static final int DEFAULT_MAX_RETRIES = 30;
@@ -153,7 +156,44 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         }
       }
 
-      Assertions.assertEquals(recordInDb, total, "TEST: Check for index count for server" + s);
+      LogManager.instance().info(this, "TEST: Entries in the index (%d) > records in database (%d)", total, recordInDb);
+
+      final Map<RID, Set<String>> ridsFoundInIndex = new HashMap<>();
+      long total2 = 0;
+      long missingsCount = 0;
+      for (int i = 0; i < indexes.size(); ++i) {
+        final RangeIndex idx = ((RangeIndex) indexes.get(i).index);
+
+        for (IndexCursor it = idx.iterator(true); it.hasNext(); ) {
+          final RID rid = it.next();
+          ++total2;
+
+          Set<String> rids = ridsFoundInIndex.get(rid);
+          if (rids == null) {
+            rids = new HashSet<>(indexes.size());
+            ridsFoundInIndex.put(rid, rids);
+          }
+
+          rids.add(idx.getName());
+
+          Record record = null;
+          try {
+            record = rid.getRecord(true);
+          } catch (RecordNotFoundException e) {
+            // IGNORE IT, CAUGHT BELOW
+          }
+
+          if (record == null) {
+            LogManager.instance().info(this, "TEST: - Cannot find record %s in database even if it's present in the index (null)", rid);
+            missingsCount++;
+          }
+
+        }
+      }
+
+      Assertions.assertEquals(recordInDb, ridsFoundInIndex.size(), "TEST: Found " + ridsFoundInIndex + " missing records");
+      Assertions.assertEquals(0, missingsCount);
+      Assertions.assertEquals(total, total2);
 
     } catch (Exception e) {
       e.printStackTrace();

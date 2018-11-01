@@ -9,22 +9,22 @@ package com.arcadedb.index;
  */
 public interface RangeIndex extends Index {
   /**
-   * The returning iterator does not skip deleted entries.
+   * The returning iterator does not skip deleted entries and it might contains duplicated entries.
    */
   IndexCursor iterator(Object[] fromKeys, boolean inclusive);
 
   /**
-   * The returning iterator does not skip deleted entries.
+   * The returning iterator does not skip deleted entries and it might contains duplicated entries.
    */
   IndexCursor iterator(boolean ascendingOrder);
 
   /**
-   * The returning iterator does not skip deleted entries.
+   * The returning iterator does not skip deleted entries and it might contains duplicated entries.
    */
   IndexCursor iterator(boolean ascendingOrder, Object[] fromKeys, boolean inclusive);
 
   /**
-   * The returning iterator does not skip deleted entries.
+   * The returning iterator does not skip deleted entries and it might contains duplicated entries.
    */
   IndexCursor range(Object[] beginKeys, boolean beginKeysInclusive, Object[] endKeys, boolean endKeysInclusive);
 }
