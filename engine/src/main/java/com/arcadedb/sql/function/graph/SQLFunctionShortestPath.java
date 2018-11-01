@@ -8,8 +8,8 @@ import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.CommandExecutionException;
-import com.arcadedb.graph.EdgeToVertexIterable;
 import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.EdgeToVertexIterable;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.MultiValue;
@@ -65,8 +65,6 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
   public List<RID> execute(Object iThis, final Identifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
       final CommandContext iContext) {
 
-    final Document record = iCurrentRecord != null ? (Document) iCurrentRecord.getRecord() : null;
-
     final OShortestPathContext ctx = new OShortestPathContext();
 
     Object source = iParams[0];
@@ -78,7 +76,9 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
         source = ((Result) source).getElement().get();
       }
     }
-    source = record.get((String) source);
+
+    //    source = record.get((String) source);
+
     if (source instanceof Identifiable) {
       final Document elem = (Document) ((Identifiable) source).getRecord();
       if (elem == null || !(elem instanceof Vertex))
@@ -98,7 +98,9 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
         dest = ((Result) dest).getElement().get();
       }
     }
-    dest = record.get((String) dest);
+
+    //    dest = record.get((String) dest);
+
     if (dest instanceof Identifiable) {
       Document elem = (Document) ((Identifiable) dest).getRecord();
       if (elem == null || !(elem instanceof Vertex))
@@ -261,8 +263,7 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
    *
    * @author Thomas Young (YJJThomasYoung@hotmail.com)
    */
-  private Pair<Iterable<Vertex>, Iterable<Edge>> getVerticesAndEdges(Vertex srcVertex, Vertex.DIRECTION direction,
-      String... types) {
+  private Pair<Iterable<Vertex>, Iterable<Edge>> getVerticesAndEdges(Vertex srcVertex, Vertex.DIRECTION direction, String... types) {
     if (direction == Vertex.DIRECTION.BOTH) {
       MultiIterator<Vertex> vertexIterator = new MultiIterator<>();
       MultiIterator<Edge> edgeIterator = new MultiIterator<>();

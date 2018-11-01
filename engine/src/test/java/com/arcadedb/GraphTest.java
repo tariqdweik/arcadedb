@@ -5,16 +5,20 @@
 package com.arcadedb;
 
 import com.arcadedb.database.Database;
+import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableEdge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
+import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class GraphTest extends BaseGraphTest {
   @Test
@@ -342,4 +346,36 @@ public class GraphTest extends BaseGraphTest {
     }
   }
 
+  @Test
+  public void shortestPath() {
+    database.begin();
+    try {
+
+      final Iterator<Record> v1Iterator = database.iterateType(VERTEX1_TYPE_NAME, true);
+      while (v1Iterator.hasNext()) {
+
+        final Record v1 = v1Iterator.next();
+
+        final Iterator<Record> v2Iterator = database.iterateType(VERTEX2_TYPE_NAME, true);
+        while (v2Iterator.hasNext()) {
+
+          final Record v2 = v2Iterator.next();
+
+          final ResultSet result = database.query("sql", "select shortestPath(?,?) as sp", v1, v2);
+          Assertions.assertTrue(result.hasNext());
+          Result line = result.next();
+
+          Assertions.assertNotNull(line);
+          Assertions.assertTrue(line.getPropertyNames().contains("sp"));
+          Assertions.assertNotNull(line.getProperty("sp"));
+          Assertions.assertEquals(2, ((List) line.getProperty("sp")).size());
+          Assertions.assertEquals(v1, ((List) line.getProperty("sp")).get(0));
+          Assertions.assertEquals(v2, ((List) line.getProperty("sp")).get(1));
+        }
+      }
+
+    } finally {
+      new DatabaseChecker().check(database);
+    }
+  }
 }

@@ -43,7 +43,7 @@ public abstract class SQLFunctionFactoryTemplate implements SQLFunctionFactory {
 
   @Override
   public SQLFunction createFunction(final String name) throws CommandExecutionException {
-    final Object obj = functions.get(name);
+    final Object obj = functions.get(name.toLowerCase(Locale.ENGLISH));
 
     if (obj == null)
       throw new CommandExecutionException("Unknown function name :" + name);
@@ -56,8 +56,8 @@ public abstract class SQLFunctionFactoryTemplate implements SQLFunctionFactory {
       try {
         return (SQLFunction) clazz.newInstance();
       } catch (Exception e) {
-        throw new CommandExecutionException("Error in creation of function " + name
-            + "(). Probably there is not an empty constructor or the constructor generates errors", e);
+        throw new CommandExecutionException(
+            "Error in creation of function " + name + "(). Probably there is not an empty constructor or the constructor generates errors", e);
 
       }
     }

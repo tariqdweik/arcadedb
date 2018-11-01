@@ -4,9 +4,7 @@
 
 package com.arcadedb.sql.executor;
 
-import com.arcadedb.database.Document;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.Record;
+import com.arcadedb.database.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -77,27 +75,27 @@ public class ResultInternal implements Result {
   }
 
   private Object wrap(final Object input) {
-    //TODO!!!
-//    if (input instanceof PRecord && !((PRecord) input).getIdentity().isValid()) {
-//      OResultInternal result = new OResultInternal();
-//      PRecord elem = (PRecord) input;
-//      for (String prop : elem.getPropertyNames()) {
-//        result.setProperty(prop, elem.get(prop));
-//      }
-//      //TODO
-////      elem.getSchemaType().ifPresent(x -> result.setProperty("@class", x.getName()));
-//      return result;
-//    } else if (isEmbeddedList(input)) {
-//      return ((List) input).stream().map(this::wrap).collect(Collectors.toList());
-//    } else if (isEmbeddedSet(input)) {
-//      return ((Set) input).stream().map(this::wrap).collect(Collectors.toSet());
-//    } else if (isEmbeddedMap(input)) {
-//      Map result = new HashMap();
-//      for (Map.Entry<Object, Object> o : ((Map<Object, Object>) input).entrySet()) {
-//        result.put(o.getKey(), wrap(o.getValue()));
-//      }
-//      return result;
-//    }
+    if (input instanceof Document && ((Document) input).getIdentity() != null) {
+      ResultInternal result = new ResultInternal();
+      Document elem = (Document) input;
+      for (String prop : elem.getPropertyNames()) {
+        result.setProperty(prop, elem.get(prop));
+      }
+      if (elem.getType() != null)
+        result.setProperty("@type", elem.getType());
+      return result;
+
+    } else if (isEmbeddedList(input)) {
+      return ((List) input).stream().map(this::wrap).collect(Collectors.toList());
+    } else if (isEmbeddedSet(input)) {
+      return ((Set) input).stream().map(this::wrap).collect(Collectors.toSet());
+    } else if (isEmbeddedMap(input)) {
+      Map result = new HashMap();
+      for (Map.Entry<Object, Object> o : ((Map<Object, Object>) input).entrySet()) {
+        result.put(o.getKey(), wrap(o.getValue()));
+      }
+      return result;
+    }
     return input;
   }
 
@@ -180,7 +178,7 @@ public class ResultInternal implements Result {
     if (isElement())
       return getElement().get();
 
-    throw new UnsupportedOperationException("REVIEW THIS!!!");
+    return null;
   }
 
   @Override
