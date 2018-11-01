@@ -8,8 +8,8 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
-import com.arcadedb.engine.Dictionary;
 import com.arcadedb.engine.*;
+import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
@@ -40,23 +40,26 @@ import java.nio.channels.FileLock;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal {
-  protected final String                name;
-  protected final PaginatedFile.MODE    mode;
-  protected final ContextConfiguration  configuration;
-  protected final String                databasePath;
-  protected       FileManager           fileManager;
-  protected       PageManager           pageManager;
-  protected final BinarySerializer      serializer     = new BinarySerializer();
-  protected final RecordFactory         recordFactory  = new RecordFactory();
-  protected       SchemaImpl            schema;
-  protected final GraphEngine           graphEngine    = new GraphEngine();
-  protected       TransactionManager    transactionManager;
-  protected final WALFileFactory        walFactory;
-  protected       DatabaseAsyncExecutor async          = null;
-  protected final DocumentIndexer       indexer;
-  private         boolean               readYourWrites = true;
+  protected final    String                name;
+  protected final    PaginatedFile.MODE    mode;
+  protected final    ContextConfiguration  configuration;
+  protected final    String                databasePath;
+  protected          FileManager           fileManager;
+  protected          PageManager           pageManager;
+  protected final    BinarySerializer      serializer     = new BinarySerializer();
+  protected final    RecordFactory         recordFactory  = new RecordFactory();
+  protected          SchemaImpl            schema;
+  protected final    GraphEngine           graphEngine    = new GraphEngine();
+  protected          TransactionManager    transactionManager;
+  protected final    WALFileFactory        walFactory;
+  protected volatile DatabaseAsyncExecutor async          = null;
+  protected          Lock                  asyncLock      = new ReentrantLock();
+  protected final    DocumentIndexer       indexer;
+  private            boolean               readYourWrites = true;
 
   protected          boolean autoTransaction = false;
   protected volatile boolean open            = false;
@@ -171,8 +174,6 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           schema.load(mode);
 
         checkForRecovery();
-
-        async = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
 
         Profiler.INSTANCE.registerDatabase(this);
 
@@ -289,6 +290,15 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   public DatabaseAsyncExecutor async() {
+    if (async == null) {
+      asyncLock.lock();
+      try {
+        if (async == null)
+          async = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
+      } finally {
+        asyncLock.unlock();
+      }
+    }
     return async;
   }
 
