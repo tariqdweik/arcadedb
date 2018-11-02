@@ -308,7 +308,7 @@ public class Bucket extends PaginatedComponent {
 
       if (recordSize[0] == -1) {
         // FOUND PLACEHOLDER, LOAD THE REAL RECORD
-        return getRecord(new RID(database, rid.getBucketId(), page.readLong((int) (recordPositionInPage + recordSize[1]))));
+        return getRecordInternal(new RID(database, rid.getBucketId(), page.readLong((int) (recordPositionInPage + recordSize[1]))), true);
       }
 
       final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
