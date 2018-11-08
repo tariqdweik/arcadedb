@@ -47,12 +47,13 @@ public class GraphEngine {
     EdgeChunk outChunk = null;
     RID outEdgesHeadChunk = vertex.getOutEdgesHeadChunk();
 
-    try {
-      outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
-    } catch (RecordNotFoundException e) {
-      LogManager.instance().warn(this, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", outEdgesHeadChunk, vertex.getIdentity());
-      outEdgesHeadChunk = null;
-    }
+    if (outEdgesHeadChunk != null)
+      try {
+        outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
+      } catch (RecordNotFoundException e) {
+        LogManager.instance().warn(this, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", outEdgesHeadChunk, vertex.getIdentity());
+        outEdgesHeadChunk = null;
+      }
 
     if (outEdgesHeadChunk == null) {
       outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
@@ -74,12 +75,13 @@ public class GraphEngine {
       EdgeChunk inChunk = null;
       RID inEdgesHeadChunk = toVertexRecord.getInEdgesHeadChunk();
 
-      try {
-        inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
-      } catch (RecordNotFoundException e) {
-        LogManager.instance().warn(this, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", inEdgesHeadChunk, vertex.getIdentity());
-        inEdgesHeadChunk = null;
-      }
+      if (inEdgesHeadChunk != null)
+        try {
+          inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
+        } catch (RecordNotFoundException e) {
+          LogManager.instance().warn(this, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", inEdgesHeadChunk, vertex.getIdentity());
+          inEdgesHeadChunk = null;
+        }
 
       if (inEdgesHeadChunk == null) {
         inChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
