@@ -9,7 +9,6 @@ import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.DatabaseOperationException;
 
-import java.io.IOException;
 import java.util.Iterator;
 
 import static com.arcadedb.database.Binary.SHORT_SERIALIZED_SIZE;
@@ -60,7 +59,7 @@ public class BucketIterator implements Iterator<Record> {
             if (!bucket.existsRecord(rid))
               continue;
 
-            final Record record = rid.getRecord();
+            final Record record = rid.getRecord(false);
             next = record;
             return null;
           }
