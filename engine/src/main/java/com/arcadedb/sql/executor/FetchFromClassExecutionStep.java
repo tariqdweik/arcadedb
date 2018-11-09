@@ -24,25 +24,25 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
   ResultSet currentResultSet;
   int       currentStep = 0;
 
-  protected FetchFromClassExecutionStep(CommandContext ctx, boolean profilingEnabled) {
+  protected FetchFromClassExecutionStep(final CommandContext ctx, final boolean profilingEnabled) {
     super(ctx, profilingEnabled);
   }
 
-  public FetchFromClassExecutionStep(String className, Set<String> clusters, CommandContext ctx, Boolean ridOrder,
-      boolean profilingEnabled) {
+  public FetchFromClassExecutionStep(final String className, final Set<String> clusters, final CommandContext ctx, final Boolean ridOrder,
+      final boolean profilingEnabled) {
     this(className, clusters, null, ctx, ridOrder, profilingEnabled);
   }
 
   /**
-   * iterates over a class and its subclasses
+   * iterates over a class and its subTypes
    *
    * @param className the class name
    * @param clusters  if present (it can be null), filter by only these clusters
    * @param ctx       the query context
    * @param ridOrder  true to sort by RID asc, false to sort by RID desc, null for no sort.
    */
-  public FetchFromClassExecutionStep(String className, Set<String> clusters, QueryPlanningInfo planningInfo, CommandContext ctx,
-      Boolean ridOrder, boolean profilingEnabled) {
+  public FetchFromClassExecutionStep(final String className, final Set<String> clusters, final QueryPlanningInfo planningInfo, final CommandContext ctx,
+      final Boolean ridOrder, final boolean profilingEnabled) {
     super(ctx, profilingEnabled);
 
     this.className = className;
@@ -52,29 +52,29 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
     } else if (Boolean.FALSE.equals(ridOrder)) {
       orderByRidDesc = true;
     }
-    DocumentType clazz = ctx.getDatabase().getSchema().getType(className);
-    if (clazz == null) {
-      throw new CommandExecutionException("Class " + className + " not found");
+    final DocumentType type = ctx.getDatabase().getSchema().getType(className);
+    if (type == null) {
+      throw new CommandExecutionException("Type " + className + " not found");
     }
-    int[] classClusters = clazz.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
-    List<Integer> filteredClassClusters = new ArrayList<>();
-    for (int clusterId : classClusters) {
-      String clusterName = ctx.getDatabase().getSchema().getBucketById(clusterId).getName();
-      if (clusters == null || clusters.contains(clusterName)) {
-        filteredClassClusters.add(clusterId);
+    int[] typeBuckets = type.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
+    List<Integer> filteredTypeBuckets = new ArrayList<>();
+    for (int bucketId : typeBuckets) {
+      String bucketName = ctx.getDatabase().getSchema().getBucketById(bucketId).getName();
+      if (clusters == null || clusters.contains(bucketName)) {
+        filteredTypeBuckets.add(bucketId);
       }
     }
-    int[] clusterIds = new int[filteredClassClusters.size() + 1];
-    for (int i = 0; i < filteredClassClusters.size(); i++) {
-      clusterIds[i] = filteredClassClusters.get(i);
+    int[] bucketIds = new int[filteredTypeBuckets.size() + 1];
+    for (int i = 0; i < filteredTypeBuckets.size(); i++) {
+      bucketIds[i] = filteredTypeBuckets.get(i);
     }
-    clusterIds[clusterIds.length - 1] = -1;//temporary cluster, data in tx
+    bucketIds[bucketIds.length - 1] = -1;//temporary bucket, data in tx
 
-    sortClusers(clusterIds);
-    for (int i = 0; i < clusterIds.length; i++) {
-      int clusterId = clusterIds[i];
-      if (clusterId > 0) {
-        FetchFromClusterExecutionStep step = new FetchFromClusterExecutionStep(clusterId, planningInfo, ctx, profilingEnabled);
+    sortBuckets(bucketIds);
+    for (int i = 0; i < bucketIds.length; i++) {
+      int bucketId = bucketIds[i];
+      if (bucketId > 0) {
+        FetchFromClusterExecutionStep step = new FetchFromClusterExecutionStep(bucketId, planningInfo, ctx, profilingEnabled);
         if (orderByRidAsc) {
           step.setOrder(FetchFromClusterExecutionStep.ORDER_ASC);
         } else if (orderByRidDesc) {
@@ -94,22 +94,22 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
     }
   }
 
-  private void sortClusers(int[] clusterIds) {
+  private void sortBuckets(final int[] bucketIds) {
     if (orderByRidAsc) {
-      Arrays.sort(clusterIds);
+      Arrays.sort(bucketIds);
     } else if (orderByRidDesc) {
-      Arrays.sort(clusterIds);
+      Arrays.sort(bucketIds);
       //revert order
-      for (int i = 0; i < clusterIds.length / 2; i++) {
-        int old = clusterIds[i];
-        clusterIds[i] = clusterIds[clusterIds.length - 1 - i];
-        clusterIds[clusterIds.length - 1 - i] = old;
+      for (int i = 0; i < bucketIds.length / 2; i++) {
+        final int old = bucketIds[i];
+        bucketIds[i] = bucketIds[bucketIds.length - 1 - i];
+        bucketIds[bucketIds.length - 1 - i] = old;
       }
     }
   }
 
   @Override
-  public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
+  public ResultSet syncPull(final CommandContext ctx, final int nRecords) throws TimeoutException {
     getPrev().ifPresent(x -> x.syncPull(ctx, nRecords));
     return new ResultSet() {
 
@@ -199,7 +199,7 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
     StringBuilder builder = new StringBuilder();
     String ind = ExecutionStepInternal.getIndent(depth, indent);
     builder.append(ind);
-    builder.append("+ FETCH FROM CLASS " + className);
+    builder.append("+ FETCH FROM USERTYPE " + className);
     if (profilingEnabled) {
       builder.append(" (" + getCostFormatted() + ")");
     }

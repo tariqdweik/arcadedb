@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
-// TODO: REFACTOR LEADER/REPLICA IN 2 CLASSES
+// TODO: REFACTOR LEADER/REPLICA IN 2 USERTYPEES
 public class HAServer implements ServerPlugin {
 
   public enum QUORUM {
@@ -53,7 +53,7 @@ public class HAServer implements ServerPlugin {
   private final    HAMessageFactory                           messageFactory;
   private final    ArcadeDBServer                             server;
   private final    ContextConfiguration                       configuration;
-  private final    String                                     clusterName;
+  private final    String                                     bucketName;
   private final    long                                       startedOn;
   private volatile int                                        configuredServers                 = 1;
   private final    Map<String, Leader2ReplicaNetworkExecutor> replicaConnections                = new ConcurrentHashMap<>();
@@ -111,7 +111,7 @@ public class HAServer implements ServerPlugin {
     this.server = server;
     this.messageFactory = new HAMessageFactory(server);
     this.configuration = configuration;
-    this.clusterName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
+    this.bucketName = configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
     this.startedOn = System.currentTimeMillis();
     this.replicationPath = server.getRootPath() + "/replication";
   }
@@ -162,7 +162,7 @@ public class HAServer implements ServerPlugin {
 
       configuredServers = serverEntries.length;
 
-      server.log(this, Level.FINE, "Connecting to servers %s (cluster=%s configuredServers=%d)", cfgServerList, clusterName, configuredServers);
+      server.log(this, Level.FINE, "Connecting to servers %s (cluster=%s configuredServers=%d)", cfgServerList, bucketName, configuredServers);
 
       serverAddressList.clear();
       for (String serverEntry : serverEntries)
@@ -177,7 +177,7 @@ public class HAServer implements ServerPlugin {
 
     if (leaderConnection == null) {
       final int majorityOfVotes = (configuredServers / 2) + 1;
-      server.log(this, Level.INFO, "Unable to find any Leader, start election (cluster=%s configuredServers=%d majorityOfVotes=%d)", clusterName,
+      server.log(this, Level.INFO, "Unable to find any Leader, start election (cluster=%s configuredServers=%d majorityOfVotes=%d)", bucketName,
           configuredServers, majorityOfVotes);
 
       // START ELECTION IN BACKGROUND
@@ -482,7 +482,7 @@ public class HAServer implements ServerPlugin {
   }
 
   public String getClusterName() {
-    return clusterName;
+    return bucketName;
   }
 
   public void registerIncomingConnection(final String replicaServerName, final Leader2ReplicaNetworkExecutor connection) {
@@ -936,12 +936,12 @@ public class HAServer implements ServerPlugin {
 
     final ChannelBinaryClient channel = new ChannelBinaryClient(host, port, this.configuration);
 
-    final String clusterName = this.configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
+    final String bucketName = this.configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
 
     // SEND SERVER INFO
     channel.writeLong(ReplicationProtocol.MAGIC_NUMBER);
     channel.writeShort(ReplicationProtocol.PROTOCOL_VERSION);
-    channel.writeString(clusterName);
+    channel.writeString(bucketName);
     channel.writeString(getServerName());
     channel.writeString(getServerAddress());
     channel.writeString(server.getHttpServer().getListeningAddress());

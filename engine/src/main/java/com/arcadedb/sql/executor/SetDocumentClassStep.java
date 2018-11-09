@@ -76,7 +76,7 @@ public class SetDocumentClassStep extends AbstractExecutionStep {
     String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
-    result.append("+ SET CLASS\n");
+    result.append("+ SET USERTYPE\n");
     result.append(spaces);
     result.append("  ");
     result.append(this.targetClass);

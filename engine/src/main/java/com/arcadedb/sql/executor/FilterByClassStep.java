@@ -65,8 +65,8 @@ public class FilterByClassStep extends AbstractExecutionStep {
           long begin = profilingEnabled ? System.nanoTime() : 0;
           try {
             if (nextItem.isElement()) {
-              String clazz = nextItem.getElement().get().getType();
-              if (clazz!=null && clazz.equals(identifier.getStringValue())) {
+              String typez = nextItem.getElement().get().getType();
+              if (typez!=null && typez.equals(identifier.getStringValue())) {
                 break;
               }
             }
@@ -132,7 +132,7 @@ public class FilterByClassStep extends AbstractExecutionStep {
   public String prettyPrint(int depth, int indent) {
     StringBuilder result = new StringBuilder();
     result.append(ExecutionStepInternal.getIndent(depth, indent));
-    result.append("+ FILTER ITEMS BY CLASS");
+    result.append("+ FILTER ITEMS BY USERTYPE");
     if (profilingEnabled) {
       result.append(" (" + getCostFormatted() + ")");
     }

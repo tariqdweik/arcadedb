@@ -22,8 +22,8 @@ import java.util.Locale;
  */
 public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload {
 
-  public static final String CLASS_NAME = "StressTestCRUD";
-  public static final String INDEX_NAME = CLASS_NAME + ".Index";
+  public static final String USERTYPE_NAME = "StressTestCRUD";
+  public static final String INDEX_NAME = USERTYPE_NAME + ".Index";
 
   static final String INVALID_FORM_MESSAGE = "CRUD workload must be in form of CxIxUxDxSx where x is a valid number.";
   static final String INVALID_NUMBERS      = "Reads, Updates and Deletes must be less or equals to the Creates";
@@ -131,10 +131,10 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
     final Database database = databaseIdentifier.getEmbeddedDatabase();
     try {
       final Schema schema = database.getSchema();
-      if (!schema.existsType(OCRUDWorkload.CLASS_NAME)) {
-        final DocumentType cls = schema.createDocumentType(OCRUDWorkload.CLASS_NAME);
+      if (!schema.existsType(OCRUDWorkload.USERTYPE_NAME)) {
+        final DocumentType cls = schema.createDocumentType(OCRUDWorkload.USERTYPE_NAME);
         cls.createProperty("name", String.class);
-        schema.createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, OCRUDWorkload.CLASS_NAME, new String[] { "name" });
+        schema.createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, OCRUDWorkload.USERTYPE_NAME, new String[] { "name" });
       }
     } finally {
       database.close();
@@ -187,25 +187,25 @@ public class OCRUDWorkload extends BaseDocumentWorkload implements CheckWorkload
   }
 
   public Document createOperation(final long n) {
-    final MutableDocument doc = ((OWorkLoadContext) getContext()).getDb().newDocument(CLASS_NAME);
+    final MutableDocument doc = ((OWorkLoadContext) getContext()).getDb().newDocument(USERTYPE_NAME);
     doc.set("name", "value" + n);
     doc.save();
     return doc;
   }
 
   public void readOperation(final Database database, final long n) {
-    final String query = String.format("SELECT FROM %s WHERE name = ?", CLASS_NAME);
+    final String query = String.format("SELECT FROM %s WHERE name = ?", USERTYPE_NAME);
     final ResultSet result = database.command("SQL", query, "value" + n);
-    final int tot = result.countEntries();
+    final long tot = result.countEntries();
     if (tot != 1) {
       throw new RuntimeException(String.format("The query [%s] result size is %d. Expected size is 1.", query, tot));
     }
   }
 
   public void scanOperation(final Database database) {
-    final String query = String.format("SELECT count(*) FROM %s WHERE notexistent is null", CLASS_NAME);
+    final String query = String.format("SELECT count(*) FROM %s WHERE notexistent is null", USERTYPE_NAME);
     final ResultSet result = database.command("SQL", query);
-    final int tot = result.countEntries();
+    final long tot = result.countEntries();
     if (tot != 1) {
       throw new RuntimeException(String.format("The query [%s] result size is %d. Expected size is 1.", query, tot));
     }

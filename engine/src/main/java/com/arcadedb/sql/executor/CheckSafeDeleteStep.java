@@ -50,13 +50,13 @@ public class CheckSafeDeleteStep extends AbstractExecutionStep {
             Record record = result.getElement().get();
             if (record instanceof Document) {
               Document doc = (Document) record;
-              DocumentType clazz = ctx.getDatabase().getSchema().getType(doc.getType());
+              DocumentType typez = ctx.getDatabase().getSchema().getType(doc.getType());
               //TODO
-//              if (clazz != null) {
-//                if (clazz.getName().equalsIgnoreCase("V") || clazz.isSubClassOf("V")) {
+//              if (typez != null) {
+//                if (typez.getName().equalsIgnoreCase("V") || typez.isSubClassOf("V")) {
 //                  throw new PCommandExecutionException("Cannot safely delete a vertex, please use DELETE VERTEX or UNSAFE");
 //                }
-//                if (clazz.getName().equalsIgnoreCase("E") || clazz.isSubClassOf("E")) {
+//                if (typez.getName().equalsIgnoreCase("E") || typez.isSubClassOf("E")) {
 //                  throw new PCommandExecutionException("Cannot safely delete an edge, please use DELETE EDGE or UNSAFE");
 //                }
 //              }

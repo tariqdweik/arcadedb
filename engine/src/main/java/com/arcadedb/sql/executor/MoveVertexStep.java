@@ -70,7 +70,7 @@ public class MoveVertexStep extends AbstractExecutionStep {
     result.append(spaces);
     result.append("+ MOVE VERTEX TO ");
     if (targetClass != null) {
-      result.append("CLASS ");
+      result.append("USERTYPE ");
       result.append(targetClass);
     }
     if (targetCluster != null) {

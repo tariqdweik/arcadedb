@@ -129,12 +129,12 @@ public class OTraverseExecutionPlanner {
       RID orid = ((Identifiable) paramValue).getIdentity();
 
       Rid rid = new Rid(-1);
-      PInteger cluster = new PInteger(-1);
-      cluster.setValue(orid.getBucketId());
+      PInteger bucket = new PInteger(-1);
+      bucket.setValue(orid.getBucketId());
       PInteger position = new PInteger(-1);
       position.setValue(orid.getPosition());
       rid.setLegacy(true);
-      rid.setBucket(cluster);
+      rid.setBucket(bucket);
       rid.setPosition(position);
 
       handleRidsAsTarget(result, Collections.singletonList(rid), ctx, profilingEnabled);
@@ -148,11 +148,11 @@ public class OTraverseExecutionPlanner {
         RID orid = ((Identifiable) x).getIdentity();
 
         Rid rid = new Rid(-1);
-        PInteger cluster = new PInteger(-1);
-        cluster.setValue(orid.getBucketId());
+        PInteger bucket = new PInteger(-1);
+        bucket.setValue(orid.getBucketId());
         PInteger position = new PInteger(-1);
         position.setValue(orid.getPosition());
-        rid.setBucket(cluster);
+        rid.setBucket(bucket);
         rid.setPosition(position);
 
         rids.add(rid);
@@ -236,15 +236,15 @@ public class OTraverseExecutionPlanner {
     Database db = ctx.getDatabase();
     Boolean orderByRidAsc = null;//null: no order. true: asc, false:desc
     if (clusters.size() == 1) {
-      Bucket cluster = clusters.get(0);
-      java.lang.Integer clusterId = cluster.getBucketNumber();
-      if (clusterId == null) {
-        clusterId = db.getSchema().getBucketByName(cluster.getBucketName()).getId();
+      Bucket bucket = clusters.get(0);
+      java.lang.Integer bucketId = bucket.getBucketNumber();
+      if (bucketId == null) {
+        bucketId = db.getSchema().getBucketByName(bucket.getBucketName()).getId();
       }
-      if (clusterId == null) {
-        throw new CommandExecutionException("Cluster " + cluster + " does not exist");
+      if (bucketId == null) {
+        throw new CommandExecutionException("Cluster " + bucket + " does not exist");
       }
-      FetchFromClusterExecutionStep step = new FetchFromClusterExecutionStep(clusterId, ctx, profilingEnabled);
+      FetchFromClusterExecutionStep step = new FetchFromClusterExecutionStep(bucketId, ctx, profilingEnabled);
       if (Boolean.TRUE.equals(orderByRidAsc)) {
         step.setOrder(FetchFromClusterExecutionStep.ORDER_ASC);
       } else if (Boolean.FALSE.equals(orderByRidAsc)) {
@@ -252,19 +252,19 @@ public class OTraverseExecutionPlanner {
       }
       plan.chain(step);
     } else {
-      int[] clusterIds = new int[clusters.size()];
+      int[] bucketIds = new int[clusters.size()];
       for (int i = 0; i < clusters.size(); i++) {
-        Bucket cluster = clusters.get(i);
-        java.lang.Integer clusterId = cluster.getBucketNumber();
-        if (clusterId == null) {
-          clusterId = db.getSchema().getBucketByName(cluster.getBucketName()).getId();
+        Bucket bucket = clusters.get(i);
+        java.lang.Integer bucketId = bucket.getBucketNumber();
+        if (bucketId == null) {
+          bucketId = db.getSchema().getBucketByName(bucket.getBucketName()).getId();
         }
-        if (clusterId == null) {
-          throw new CommandExecutionException("Cluster " + cluster + " does not exist");
+        if (bucketId == null) {
+          throw new CommandExecutionException("Cluster " + bucket + " does not exist");
         }
-        clusterIds[i] = clusterId;
+        bucketIds[i] = bucketId;
       }
-      FetchFromClustersExecutionStep step = new FetchFromClustersExecutionStep(clusterIds, ctx, orderByRidAsc, profilingEnabled);
+      FetchFromClustersExecutionStep step = new FetchFromClustersExecutionStep(bucketIds, ctx, orderByRidAsc, profilingEnabled);
       plan.chain(step);
     }
   }

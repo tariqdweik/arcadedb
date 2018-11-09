@@ -113,9 +113,9 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
   private void markAsVisited(Result nextValue) {
     if (nextValue.isElement()) {
       RID identity = nextValue.getElement().get().getIdentity();
-      int cluster = identity.getBucketId();
+      int bucket = identity.getBucketId();
       long pos = identity.getPosition();
-      if (cluster >= 0 && pos >= 0) {
+      if (bucket >= 0 && pos >= 0) {
         pastRids.add(identity);
         return;
       }
@@ -126,9 +126,9 @@ public class DistinctExecutionStep extends AbstractExecutionStep {
   private boolean alreadyVisited(Result nextValue) {
     if (nextValue.isElement()) {
       RID identity = nextValue.getElement().get().getIdentity();
-      int cluster = identity.getBucketId();
+      int bucket = identity.getBucketId();
       long pos = identity.getPosition();
-      if (cluster >= 0 && pos >= 0) {
+      if (bucket >= 0 && pos >= 0) {
         return pastRids.contains(identity);
       }
     }

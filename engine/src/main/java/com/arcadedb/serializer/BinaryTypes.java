@@ -116,42 +116,42 @@ public class BinaryTypes {
     }
   }
 
-  public static byte getTypeFromClass(final Class clazz) {
+  public static byte getTypeFromClass(final Class typez) {
     final byte type;
 
-    if (clazz == String.class)
+    if (typez == String.class)
       type = TYPE_STRING;
-    else if (clazz == Byte.class)
+    else if (typez == Byte.class)
       type = TYPE_BYTE;
-    else if (clazz == Short.class)
+    else if (typez == Short.class)
       type = TYPE_SHORT;
-    else if (clazz == Integer.class)
+    else if (typez == Integer.class)
       type = TYPE_INT;
-    else if (clazz == Long.class)
+    else if (typez == Long.class)
       type = TYPE_LONG;
-    else if (clazz == Float.class)
+    else if (typez == Float.class)
       type = TYPE_FLOAT;
-    else if (clazz == Double.class)
+    else if (typez == Double.class)
       type = TYPE_DOUBLE;
-    else if (clazz == Date.class) // CAN'T DETERMINE IF DATE OR DATETIME, USE DATETIME
+    else if (typez == Date.class) // CAN'T DETERMINE IF DATE OR DATETIME, USE DATETIME
       type = TYPE_DATETIME;
-    else if (clazz == BigDecimal.class)
+    else if (typez == BigDecimal.class)
       type = TYPE_DECIMAL;
-    else if (clazz == Boolean.class)
+    else if (typez == Boolean.class)
       type = TYPE_BOOLEAN;
-    else if (clazz == byte[].class)
+    else if (typez == byte[].class)
       type = TYPE_BINARY;
-    else if (clazz == RID.class)
+    else if (typez == RID.class)
       type = TYPE_COMPRESSED_RID;
-    else if (clazz == UUID.class)
+    else if (typez == UUID.class)
       type = TYPE_UUID;
-    else if (Collection.class.isAssignableFrom(clazz) || clazz.isArray())
+    else if (Collection.class.isAssignableFrom(typez) || typez.isArray())
       // TODO: SUPPORT SET SEMANTIC TOO
       type = TYPE_LIST;
-    else if (Map.class.isAssignableFrom(clazz))
+    else if (Map.class.isAssignableFrom(typez))
       type = TYPE_MAP;
     else
-      throw new DatabaseMetadataException("Cannot find type for class '" + clazz + "'");
+      throw new DatabaseMetadataException("Cannot find type for class '" + typez + "'");
 
     return type;
   }
@@ -215,11 +215,11 @@ public class BinaryTypes {
   }
 
   public static int getHash32(final Object key) {
-    final Class<? extends Object> clazz = key.getClass();
+    final Class<? extends Object> typez = key.getClass();
 
-    if (clazz == String.class)
+    if (typez == String.class)
       return MurmurHash.hash32((String) key);
-    else if (clazz == byte[].class)
+    else if (typez == byte[].class)
       return MurmurHash.hash32(((byte[]) key), ((byte[]) key).length);
 
     return key.hashCode();
@@ -239,11 +239,11 @@ public class BinaryTypes {
   }
 
   public static long getHash64(final Object key) {
-    final Class<? extends Object> clazz = key.getClass();
+    final Class<? extends Object> typez = key.getClass();
 
-    if (clazz == String.class)
+    if (typez == String.class)
       return MurmurHash.hash64((String) key);
-    else if (clazz == byte[].class)
+    else if (typez == byte[].class)
       return MurmurHash.hash64(((byte[]) key), 0, ((byte[]) key).length);
 
     return key.hashCode();

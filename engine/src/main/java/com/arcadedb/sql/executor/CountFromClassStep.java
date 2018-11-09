@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Returns the number of records contained in a class (including subclasses) Executes a count(*) on a class and returns a single
+ * Returns the number of records contained in a class (including subTypes) Executes a count(*) on a class and returns a single
  * record that contains that value (with a specific alias).
  *
  * @author Luigi Dell'Aquila (luigi.dellaquila - at - gmail.com)
@@ -54,9 +54,9 @@ public class CountFromClassStep extends AbstractExecutionStep {
         }
         long begin = profilingEnabled ? System.nanoTime() : 0;
         try {
-          DocumentType clazz = ctx.getDatabase().getSchema().getType(target.getStringValue());
-          if (clazz == null) {
-            throw new CommandExecutionException("Class " + target.getStringValue() + " does not exist in the database schema");
+          DocumentType typez = ctx.getDatabase().getSchema().getType(target.getStringValue());
+          if (typez == null) {
+            throw new CommandExecutionException("Type " + target.getStringValue() + " does not exist in the database schema");
           }
 
           long size = ctx.getDatabase().countType(target.getStringValue(), true);
@@ -102,7 +102,7 @@ public class CountFromClassStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     String spaces = ExecutionStepInternal.getIndent(depth, indent);
-    String result = spaces + "+ CALCULATE CLASS SIZE: " + target;
+    String result = spaces + "+ CALCULATE USERTYPE SIZE: " + target;
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }

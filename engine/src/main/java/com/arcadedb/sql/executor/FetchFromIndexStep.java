@@ -323,6 +323,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
       secondValue = convertToIndexDefinitionTypes(secondValue);
       thirdValue = convertToIndexDefinitionTypes(thirdValue);
       IndexCursor cursor;
+
       if (index.supportsOrderedIterations()) {
         cursor = index.range(convertToObjectArray(secondValue), fromKeyIncluded, convertToObjectArray(thirdValue), toKeyIncluded);
       } else if (additionalRangeCondition == null && allEqualities((AndBlock) condition)) {

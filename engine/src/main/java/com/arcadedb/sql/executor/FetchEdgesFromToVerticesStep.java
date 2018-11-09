@@ -192,9 +192,9 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
     if (targetCluster == null) {
       return true;
     }
-    int clusterId = edge.getIdentity().getBucketId();
-    String clusterName = ctx.getDatabase().getSchema().getBucketById(clusterId).getName();
-    return clusterName.equals(targetCluster.getStringValue());
+    int bucketId = edge.getIdentity().getBucketId();
+    String bucketName = ctx.getDatabase().getSchema().getBucketById(bucketId).getName();
+    return bucketName.equals(targetCluster.getStringValue());
   }
 
   private boolean matchesClass(Edge edge) {
@@ -214,7 +214,7 @@ public class FetchEdgesFromToVerticesStep extends AbstractExecutionStep {
       result += "\n" + spaces + "       (target class " + targetClass + ")";
     }
     if (targetCluster != null) {
-      result += "\n" + spaces + "       (target cluster " + targetCluster + ")";
+      result += "\n" + spaces + "       (target bucket " + targetCluster + ")";
     }
     return result;
   }

@@ -200,11 +200,11 @@ public class OMatchExecutionPlanner {
         plan.chain(new MatchFirstStep(context, node, profilingEnabled));
       } else {
         //from actual execution plan
-        String clazz = aliasTypes.get(node.alias);
-        String cluster = aliasBuckets.get(node.alias);
+        String typez = aliasTypes.get(node.alias);
+        String bucket = aliasBuckets.get(node.alias);
         Rid rid = aliasRids.get(node.alias);
         WhereClause filter = aliasFilters.get(node.alias);
-        SelectStatement select = createSelectStatement(clazz, cluster, rid, filter);
+        SelectStatement select = createSelectStatement(typez, bucket, rid, filter);
         plan.chain(new MatchFirstStep(context, node, select.createExecutionPlan(context, profilingEnabled), profilingEnabled));
       }
     }
@@ -419,17 +419,17 @@ public class OMatchExecutionPlanner {
       boolean profilingEnabled) {
     if (first) {
       PatternNode patternNode = edge.out ? edge.edge.out : edge.edge.in;
-      String clazz = this.aliasTypes.get(patternNode.alias);
-      String cluster = this.aliasBuckets.get(patternNode.alias);
+      String typez = this.aliasTypes.get(patternNode.alias);
+      String bucket = this.aliasBuckets.get(patternNode.alias);
       Rid rid = this.aliasRids.get(patternNode.alias);
       WhereClause where = aliasFilters.get(patternNode.alias);
       SelectStatement select = new SelectStatement(-1);
       select.setTarget(new FromClause(-1));
       select.getTarget().setItem(new FromItem(-1));
-      if (clazz != null) {
-        select.getTarget().getItem().setIdentifier(new Identifier(clazz));
-      } else if (cluster != null) {
-        select.getTarget().getItem().setBucket(new Bucket(cluster));
+      if (typez != null) {
+        select.getTarget().getItem().setIdentifier(new Identifier(typez));
+      } else if (bucket != null) {
+        select.getTarget().getItem().setBucket(new Bucket(bucket));
       } else if (rid != null) {
         select.getTarget().getItem().setRids(Collections.singletonList(rid));
       }
@@ -559,15 +559,15 @@ public class OMatchExecutionPlanner {
     }
 
     Map<String, WhereClause> aliasFilters = new LinkedHashMap<>();
-    Map<String, String> aliasClasses = new LinkedHashMap<>();
+    Map<String, String> aliasUserTypes = new LinkedHashMap<>();
     Map<String, String> aliasClusters = new LinkedHashMap<>();
     Map<String, Rid> aliasRids = new LinkedHashMap<>();
     for (MatchExpression expr : this.matchExpressions) {
-      addAliases(expr, aliasFilters, aliasClasses, aliasClusters, aliasRids, ctx);
+      addAliases(expr, aliasFilters, aliasUserTypes, aliasClusters, aliasRids, ctx);
     }
 
     this.aliasFilters = aliasFilters;
-    this.aliasTypes = aliasClasses;
+    this.aliasTypes = aliasUserTypes;
     this.aliasBuckets = aliasClusters;
     this.aliasRids = aliasRids;
 
@@ -586,17 +586,17 @@ public class OMatchExecutionPlanner {
     }
   }
 
-  private void addAliases(MatchExpression expr, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
+  private void addAliases(MatchExpression expr, Map<String, WhereClause> aliasFilters, Map<String, String> aliasUserTypes,
       Map<String, String> aliasClusters, Map<String, Rid> aliasRids, CommandContext context) {
-    addAliases(expr.getOrigin(), aliasFilters, aliasClasses, aliasClusters, aliasRids, context);
+    addAliases(expr.getOrigin(), aliasFilters, aliasUserTypes, aliasClusters, aliasRids, context);
     for (MatchPathItem item : expr.getItems()) {
       if (item.getFilter() != null) {
-        addAliases(item.getFilter(), aliasFilters, aliasClasses, aliasClusters, aliasRids, context);
+        addAliases(item.getFilter(), aliasFilters, aliasUserTypes, aliasClusters, aliasRids, context);
       }
     }
   }
 
-  private void addAliases(MatchFilter matchFilter, Map<String, WhereClause> aliasFilters, Map<String, String> aliasClasses,
+  private void addAliases(MatchFilter matchFilter, Map<String, WhereClause> aliasFilters, Map<String, String> aliasUserTypes,
       Map<String, String> aliasClusters, Map<String, Rid> aliasRids, CommandContext context) {
     String alias = matchFilter.getAlias();
     WhereClause filter = matchFilter.getFilter();
@@ -614,29 +614,29 @@ public class OMatchExecutionPlanner {
         }
       }
 
-      String clazz = matchFilter.getTypeName(context);
-      if (clazz != null) {
-        String previousClass = aliasClasses.get(alias);
+      String typez = matchFilter.getTypeName(context);
+      if (typez != null) {
+        String previousClass = aliasUserTypes.get(alias);
         if (previousClass == null) {
-          aliasClasses.put(alias, clazz);
+          aliasUserTypes.put(alias, typez);
         } else {
-          String lower = getLowerSubclass(context.getDatabase(), clazz, previousClass);
+          String lower = getLowerSubclass(context.getDatabase(), typez, previousClass);
           if (lower == null) {
             throw new CommandExecutionException(
-                "classes defined for alias " + alias + " (" + clazz + ", " + previousClass + ") are not in the same hierarchy");
+                "classes defined for alias " + alias + " (" + typez + ", " + previousClass + ") are not in the same hierarchy");
           }
-          aliasClasses.put(alias, lower);
+          aliasUserTypes.put(alias, lower);
         }
       }
 
-      String clusterName = matchFilter.getBucketName(context);
-      if (clusterName != null) {
+      String bucketName = matchFilter.getBucketName(context);
+      if (bucketName != null) {
         String previousCluster = aliasClusters.get(alias);
         if (previousCluster == null) {
-          aliasClusters.put(alias, clusterName);
-        } else if (!previousCluster.equalsIgnoreCase(clusterName)) {
+          aliasClusters.put(alias, bucketName);
+        } else if (!previousCluster.equalsIgnoreCase(bucketName)) {
           throw new CommandExecutionException(
-              "Invalid expression for alias " + alias + " cannot be of both buckets " + previousCluster + " and " + clusterName);
+              "Invalid expression for alias " + alias + " cannot be of both buckets " + previousCluster + " and " + bucketName);
         }
       }
 
@@ -686,10 +686,10 @@ public class OMatchExecutionPlanner {
     }
   }
 
-  private Map<String, Long> estimateRootEntries(Map<String, String> aliasClasses, Map<String, String> aliasClusters,
+  private Map<String, Long> estimateRootEntries(Map<String, String> aliasUserTypes, Map<String, String> aliasClusters,
       Map<String, Rid> aliasRids, Map<String, WhereClause> aliasFilters, CommandContext ctx) {
     Set<String> allAliases = new LinkedHashSet<String>();
-    allAliases.addAll(aliasClasses.keySet());
+    allAliases.addAll(aliasUserTypes.keySet());
     allAliases.addAll(aliasFilters.keySet());
     allAliases.addAll(aliasClusters.keySet());
     allAliases.addAll(aliasRids.keySet());
@@ -698,7 +698,7 @@ public class OMatchExecutionPlanner {
 
     Map<String, Long> result = new LinkedHashMap<String, Long>();
     for (String alias : allAliases) {
-      String typeName = aliasClasses.get(alias);
+      String typeName = aliasUserTypes.get(alias);
       String bucketName = aliasClusters.get(alias);
       Rid rid = aliasRids.get(alias);
       if (typeName == null && bucketName == null) {
@@ -723,8 +723,8 @@ public class OMatchExecutionPlanner {
         if (db.getSchema().getBucketByName(bucketName) == null) {
           throw new CommandExecutionException("Bucket '" + bucketName + "' not defined");
         }
-        int clusterId = db.getSchema().getBucketByName(bucketName).getId();
-        DocumentType oClass = db.getSchema().getTypeByBucketId(clusterId);
+        int bucketId = db.getSchema().getBucketByName(bucketName).getId();
+        DocumentType oClass = db.getSchema().getTypeByBucketId(bucketId);
         if (oClass != null) {
           long upperBound;
           WhereClause filter = aliasFilters.get(alias);

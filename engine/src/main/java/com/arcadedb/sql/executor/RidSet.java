@@ -23,7 +23,7 @@ public class RidSet implements Set<RID> {
   protected static int INITIAL_BLOCK_SIZE = 4096;
 
   /*
-   * cluster / offset / bitmask
+   * bucket / offset / bitmask
    * eg. inserting #12:0 you will have content[12][0][0] = 1
    * eg. inserting #12:(63*maxArraySize + 1) you will have content[12][1][0] = 1
    *
@@ -70,9 +70,9 @@ public class RidSet implements Set<RID> {
     if (identifiable == null) {
       throw new IllegalArgumentException();
     }
-    int cluster = identifiable.getBucketId();
+    int bucket = identifiable.getBucketId();
     long position = identifiable.getPosition();
-    if (cluster < 0 || position < 0) {
+    if (bucket < 0 || position < 0) {
       return false;
     }
     long positionByte = (position / 63);
@@ -80,24 +80,24 @@ public class RidSet implements Set<RID> {
     int block = (int) (positionByte / maxArraySize);
     int blockPositionByteInt = (int) (positionByte % maxArraySize);
 
-    if (content.length <= cluster) {
+    if (content.length <= bucket) {
       return false;
     }
-    if (content[cluster] == null) {
+    if (content[bucket] == null) {
       return false;
     }
-    if (content[cluster].length <= block) {
+    if (content[bucket].length <= block) {
       return false;
     }
-    if (content[cluster][block] == null) {
+    if (content[bucket][block] == null) {
       return false;
     }
-    if (content[cluster][block].length <= blockPositionByteInt) {
+    if (content[bucket][block].length <= blockPositionByteInt) {
       return false;
     }
 
     long currentMask = 1L << positionBit;
-    long existed = content[cluster][block][blockPositionByteInt] & currentMask;
+    long existed = content[bucket][block][blockPositionByteInt] & currentMask;
 
     return existed > 0L;
   }
@@ -122,9 +122,9 @@ public class RidSet implements Set<RID> {
     if (identifiable == null) {
       throw new IllegalArgumentException();
     }
-    int cluster = identifiable.getBucketId();
+    int bucket = identifiable.getBucketId();
     long position = identifiable.getPosition();
-    if (cluster < 0 || position < 0) {
+    if (bucket < 0 || position < 0) {
       throw new IllegalArgumentException("negative RID");//TODO
     }
     long positionByte = (position / 63);
@@ -132,29 +132,29 @@ public class RidSet implements Set<RID> {
     int block = (int) (positionByte / maxArraySize);
     int blockPositionByteInt = (int) (positionByte % maxArraySize);
 
-    if (content.length <= cluster) {
+    if (content.length <= bucket) {
       long[][][] oldContent = content;
-      content = new long[cluster + 1][][];
+      content = new long[bucket + 1][][];
       System.arraycopy(oldContent, 0, content, 0, oldContent.length);
     }
-    if (content[cluster] == null) {
-      content[cluster] = createClusterArray(block, blockPositionByteInt);
+    if (content[bucket] == null) {
+      content[bucket] = createClusterArray(block, blockPositionByteInt);
     }
 
-    if (content[cluster].length <= block) {
-      content[cluster] = expandClusterBlocks(content[cluster], block, blockPositionByteInt);
+    if (content[bucket].length <= block) {
+      content[bucket] = expandClusterBlocks(content[bucket], block, blockPositionByteInt);
     }
-    if (content[cluster][block] == null) {
-      content[cluster][block] = expandClusterArray(new long[INITIAL_BLOCK_SIZE], blockPositionByteInt);
+    if (content[bucket][block] == null) {
+      content[bucket][block] = expandClusterArray(new long[INITIAL_BLOCK_SIZE], blockPositionByteInt);
     }
-    if (content[cluster][block].length <= blockPositionByteInt) {
-      content[cluster][block] = expandClusterArray(content[cluster][block], blockPositionByteInt);
+    if (content[bucket][block].length <= blockPositionByteInt) {
+      content[bucket][block] = expandClusterArray(content[bucket][block], blockPositionByteInt);
     }
 
-    long original = content[cluster][block][blockPositionByteInt];
+    long original = content[bucket][block][blockPositionByteInt];
     long currentMask = 1L << positionBit;
-    long existed = content[cluster][block][blockPositionByteInt] & currentMask;
-    content[cluster][block][blockPositionByteInt] = original | currentMask;
+    long existed = content[bucket][block][blockPositionByteInt] & currentMask;
+    content[bucket][block][blockPositionByteInt] = original | currentMask;
     if (existed == 0L) {
       size++;
     }
@@ -205,9 +205,9 @@ public class RidSet implements Set<RID> {
     if (identifiable == null) {
       throw new IllegalArgumentException();
     }
-    int cluster = identifiable.getBucketId();
+    int bucket = identifiable.getBucketId();
     long position = identifiable.getPosition();
-    if (cluster < 0 || position < 0) {
+    if (bucket < 0 || position < 0) {
       throw new IllegalArgumentException("negative RID");//TODO
     }
     long positionByte = (position / 63);
@@ -215,24 +215,24 @@ public class RidSet implements Set<RID> {
     int block = (int) (positionByte / maxArraySize);
     int blockPositionByteInt = (int) (positionByte % maxArraySize);
 
-    if (content.length <= cluster) {
+    if (content.length <= bucket) {
       return false;
     }
-    if (content[cluster] == null) {
+    if (content[bucket] == null) {
       return false;
     }
-    if (content[cluster].length <= block) {
+    if (content[bucket].length <= block) {
       return false;
     }
-    if (content[cluster][block].length <= blockPositionByteInt) {
+    if (content[bucket][block].length <= blockPositionByteInt) {
       return false;
     }
 
-    long original = content[cluster][block][blockPositionByteInt];
+    long original = content[bucket][block][blockPositionByteInt];
     long currentMask = 1L << positionBit;
-    long existed = content[cluster][block][blockPositionByteInt] & currentMask;
+    long existed = content[bucket][block][blockPositionByteInt] & currentMask;
     currentMask = ~currentMask;
-    content[cluster][block][blockPositionByteInt] = original & currentMask;
+    content[bucket][block][blockPositionByteInt] = original & currentMask;
     if (existed > 0) {
       size--;
     }

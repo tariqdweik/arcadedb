@@ -22,13 +22,13 @@ public class FetchFromClustersExecutionStep extends AbstractExecutionStep {
   int       currentStep = 0;
 
   /**
-   * iterates over a class and its subclasses
+   * iterates over a class and its subTypes
    *
-   * @param clusterIds the clusters
+   * @param bucketIds the clusters
    * @param ctx        the query context
    * @param ridOrder   true to sort by RID asc, false to sort by RID desc, null for no sort.
    */
-  public FetchFromClustersExecutionStep(int[] clusterIds, CommandContext ctx, Boolean ridOrder, boolean profilingEnabled) {
+  public FetchFromClustersExecutionStep(int[] bucketIds, CommandContext ctx, Boolean ridOrder, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
 
     if (Boolean.TRUE.equals(ridOrder)) {
@@ -38,9 +38,9 @@ public class FetchFromClustersExecutionStep extends AbstractExecutionStep {
     }
 
     subSteps = new ArrayList<ExecutionStep>();
-    sortClusers(clusterIds);
-    for (int i = 0; i < clusterIds.length; i++) {
-      FetchFromClusterExecutionStep step = new FetchFromClusterExecutionStep(clusterIds[i], ctx, profilingEnabled);
+    sortClusers(bucketIds);
+    for (int i = 0; i < bucketIds.length; i++) {
+      FetchFromClusterExecutionStep step = new FetchFromClusterExecutionStep(bucketIds[i], ctx, profilingEnabled);
       if (orderByRidAsc) {
         step.setOrder(FetchFromClusterExecutionStep.ORDER_ASC);
       } else if (orderByRidDesc) {
@@ -50,16 +50,16 @@ public class FetchFromClustersExecutionStep extends AbstractExecutionStep {
     }
   }
 
-  private void sortClusers(int[] clusterIds) {
+  private void sortClusers(int[] bucketIds) {
     if (orderByRidAsc) {
-      Arrays.sort(clusterIds);
+      Arrays.sort(bucketIds);
     } else if (orderByRidDesc) {
-      Arrays.sort(clusterIds);
+      Arrays.sort(bucketIds);
       //revert order
-      for (int i = 0; i < clusterIds.length / 2; i++) {
-        int old = clusterIds[i];
-        clusterIds[i] = clusterIds[clusterIds.length - 1 - i];
-        clusterIds[clusterIds.length - 1 - i] = old;
+      for (int i = 0; i < bucketIds.length / 2; i++) {
+        int old = bucketIds[i];
+        bucketIds[i] = bucketIds[bucketIds.length - 1 - i];
+        bucketIds[bucketIds.length - 1 - i] = old;
       }
     }
   }

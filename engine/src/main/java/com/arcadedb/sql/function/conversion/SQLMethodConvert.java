@@ -42,7 +42,7 @@ public class SQLMethodConvert extends OAbstractSQLMethod {
       try {
         return Type.convert(iContext.getDatabase(), iThis, Class.forName(destType));
       } catch (ClassNotFoundException e) {
-        LogManager.instance().log(this, Level.SEVERE, "Class for destination type was not found", e);
+        LogManager.instance().log(this, Level.SEVERE, "Type for destination type was not found", e);
       }
     } else {
       final Type orientType = Type.valueOf(destType.toUpperCase(Locale.ENGLISH));

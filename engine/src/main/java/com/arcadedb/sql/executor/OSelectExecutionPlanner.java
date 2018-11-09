@@ -190,7 +190,7 @@ public class OSelectExecutionPlanner {
 
   /**
    * based on the cluster/server map and the query target, this method tries to find an optimal strategy to execute the query on the
-   * cluster.
+   * bucket.
    *
    * @param info
    * @param ctx
@@ -236,7 +236,7 @@ public class OSelectExecutionPlanner {
   }
 
   /**
-   * given a cluster map and a set of clusters involved in a query, tries to calculate the minimum number of nodes that will have to
+   * given a bucket map and a set of clusters involved in a query, tries to calculate the minimum number of nodes that will have to
    * be involved in the query execution, with clusters involved for each node.
    *
    * @param clusterMap
@@ -302,16 +302,16 @@ public class OSelectExecutionPlanner {
   }
 
   /**
-   * @param clusterMap    the cluster map for current sharding configuration
+   * @param clusterMap    the bucket map for current sharding configuration
    * @param queryClusters the clusters that are target of the query
    *
    * @return
    */
   private Set<String> getServersThatHasAllClusters(Map<String, Set<String>> clusterMap, Set<String> queryClusters) {
     Set<String> remainingServers = clusterMap.keySet();
-    for (String cluster : queryClusters) {
+    for (String bucket : queryClusters) {
       for (Map.Entry<String, Set<String>> serverConfig : clusterMap.entrySet()) {
-        if (!serverConfig.getValue().contains(cluster)) {
+        if (!serverConfig.getValue().contains(bucket)) {
           remainingServers.remove(serverConfig.getKey());
         }
       }
@@ -325,7 +325,7 @@ public class OSelectExecutionPlanner {
    * @param info
    * @param ctx
    *
-   * @return a set of cluster names this query will fetch from
+   * @return a set of bucket names this query will fetch from
    */
   private Set<String> calculateTargetClusters(QueryPlanningInfo info, CommandContext ctx) {
     if (info.target == null) {
@@ -337,12 +337,12 @@ public class OSelectExecutionPlanner {
     FromItem item = info.target.getItem();
     if (item.getRids() != null && item.getRids().size() > 0) {
       if (item.getRids().size() == 1) {
-        PInteger cluster = item.getRids().get(0).getBucket();
-        result.add(db.getSchema().getBucketById(cluster.getValue().intValue()).getName());
+        PInteger bucket = item.getRids().get(0).getBucket();
+        result.add(db.getSchema().getBucketById(bucket.getValue().intValue()).getName());
       } else {
         for (Rid rid : item.getRids()) {
-          PInteger cluster = rid.getBucket();
-          result.add(db.getSchema().getBucketById(cluster.getValue().intValue()).getName());
+          PInteger bucket = rid.getBucket();
+          result.add(db.getSchema().getBucketById(bucket.getValue().intValue()).getName());
         }
       }
       return result;
@@ -360,10 +360,10 @@ public class OSelectExecutionPlanner {
         return null;
       }
     } else if (item.getBucketList() != null) {
-      for (Bucket cluster : item.getBucketList().toListOfClusters()) {
-        String name = cluster.getBucketName();
+      for (Bucket bucket : item.getBucketList().toListOfClusters()) {
+        String name = bucket.getBucketName();
         if (name == null) {
-          name = db.getSchema().getBucketById(cluster.getBucketNumber()).getName();
+          name = db.getSchema().getBucketById(bucket.getBucketNumber()).getName();
         }
         if (name != null) {
           result.add(name);
@@ -386,15 +386,15 @@ public class OSelectExecutionPlanner {
       return null;
     } else if (item.getIdentifier() != null) {
       String className = item.getIdentifier().getStringValue();
-      DocumentType clazz = db.getSchema().getType(className);
-      if (clazz == null) {
+      DocumentType typez = db.getSchema().getType(className);
+      if (typez == null) {
         return null;
       }
-      int[] clusterIds = clazz.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
-      for (int clusterId : clusterIds) {
-        String clusterName = db.getSchema().getBucketById(clusterId).getName();
-        if (clusterName != null) {
-          result.add(clusterName);
+      int[] bucketIds = typez.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
+      for (int bucketId : bucketIds) {
+        String bucketName = db.getSchema().getBucketById(bucketId).getName();
+        if (bucketName != null) {
+          result.add(bucketName);
         }
       }
       return result;
@@ -950,13 +950,13 @@ public class OSelectExecutionPlanner {
       } else if (target.getBucketList() != null) {
         List<Bucket> allClusters = target.getBucketList().toListOfClusters();
         List<Bucket> clustersForShard = new ArrayList<>();
-        for (Bucket cluster : allClusters) {
-          String name = cluster.getBucketName();
+        for (Bucket bucket : allClusters) {
+          String name = bucket.getBucketName();
           if (name == null) {
-            name = ctx.getDatabase().getSchema().getBucketById(cluster.getBucketNumber()).getName();
+            name = ctx.getDatabase().getSchema().getBucketById(bucket.getBucketNumber()).getName();
           }
           if (name != null && info.serverToClusters.get(shardedPlan.getKey()).contains(name)) {
-            clustersForShard.add(cluster);
+            clustersForShard.add(bucket);
           }
         }
         handleClustersAsTarget(shardedPlan.getValue(), info, clustersForShard, ctx, profilingEnabled);
@@ -1001,8 +1001,8 @@ public class OSelectExecutionPlanner {
     }
   }
 
-  private boolean clusterMatchesRidRange(String clusterName, AndBlock ridRangeConditions, Database database, CommandContext ctx) {
-    int thisClusterId = database.getSchema().getBucketByName(clusterName).getId();
+  private boolean clusterMatchesRidRange(String bucketName, AndBlock ridRangeConditions, Database database, CommandContext ctx) {
+    int thisClusterId = database.getSchema().getBucketByName(bucketName).getId();
     for (BooleanExpression ridRangeCondition : ridRangeConditions.getSubBlocks()) {
       if (ridRangeCondition instanceof BinaryCondition) {
         BinaryCompareOperator operator = ((BinaryCondition) ridRangeCondition).getOperator();
@@ -1094,12 +1094,12 @@ public class OSelectExecutionPlanner {
       RID orid = ((Identifiable) paramValue).getIdentity();
 
       Rid rid = new Rid(-1);
-      PInteger cluster = new PInteger(-1);
-      cluster.setValue(orid.getBucketId());
+      PInteger bucket = new PInteger(-1);
+      bucket.setValue(orid.getBucketId());
       PInteger position = new PInteger(-1);
       position.setValue(orid.getPosition());
       rid.setLegacy(true);
-      rid.setBucket(cluster);
+      rid.setBucket(bucket);
       rid.setPosition(position);
 
       if (filterClusters == null || isFromClusters(rid, filterClusters, ctx.getDatabase())) {
@@ -1118,11 +1118,11 @@ public class OSelectExecutionPlanner {
         RID orid = ((Identifiable) x).getIdentity();
 
         Rid rid = new Rid(-1);
-        PInteger cluster = new PInteger(-1);
-        cluster.setValue(orid.getBucketId());
+        PInteger bucket = new PInteger(-1);
+        bucket.setValue(orid.getBucketId());
         PInteger position = new PInteger(-1);
         position.setValue(orid.getPosition());
-        rid.setBucket(cluster);
+        rid.setBucket(bucket);
         rid.setPosition(position);
         if (filterClusters == null || isFromClusters(rid, filterClusters, ctx.getDatabase())) {
           rids.add(rid);
@@ -1151,8 +1151,8 @@ public class OSelectExecutionPlanner {
     if (filterClusters == null) {
       throw new IllegalArgumentException();
     }
-    String clusterName = database.getSchema().getBucketById(rid.getBucket().getValue().intValue()).getName();
-    return filterClusters.contains(clusterName);
+    String bucketName = database.getSchema().getBucketById(rid.getBucket().getValue().intValue()).getName();
+    return filterClusters.contains(bucketName);
   }
 
   private void handleNoTarget(SelectExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
@@ -1401,9 +1401,9 @@ public class OSelectExecutionPlanner {
     if (queryTarget == null) {
       return false;
     }
-    DocumentType clazz = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
-    if (clazz == null) {
-      throw new CommandExecutionException("Class not found: " + queryTarget);
+    DocumentType typez = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
+    if (typez == null) {
+      throw new CommandExecutionException("Type not found: " + queryTarget);
     }
     if (info.flattenedWhereClause == null || info.flattenedWhereClause.size() == 0) {
       return false;
@@ -1414,12 +1414,12 @@ public class OSelectExecutionPlanner {
     boolean indexedFunctionsFound = false;
 
     for (AndBlock block : info.flattenedWhereClause) {
-      List<BinaryCondition> indexedFunctionConditions = block.getIndexedFunctionConditions(clazz, ctx.getDatabase());
+      List<BinaryCondition> indexedFunctionConditions = block.getIndexedFunctionConditions(typez, ctx.getDatabase());
 
       indexedFunctionConditions = filterIndexedFunctionsWithoutIndex(indexedFunctionConditions, info.target, ctx);
 
       if (indexedFunctionConditions == null || indexedFunctionConditions.size() == 0) {
-        final List<IndexSearchDescriptor> bestIndexes = findBestIndexesFor(ctx, clazz.getAllIndexesMetadata(), block, clazz);
+        final List<IndexSearchDescriptor> bestIndexes = findBestIndexesFor(ctx, typez.getAllIndexesMetadata(), block, typez);
         if (!bestIndexes.isEmpty()) {
 
           for (IndexSearchDescriptor bestIndex : bestIndexes) {
@@ -1443,7 +1443,7 @@ public class OSelectExecutionPlanner {
           }
 
         } else {
-          FetchFromClassExecutionStep step = new FetchFromClassExecutionStep(clazz.getName(), filterClusters, ctx, true, profilingEnabled);
+          FetchFromClassExecutionStep step = new FetchFromClassExecutionStep(typez.getName(), filterClusters, ctx, true, profilingEnabled);
           SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
           subPlan.chain(step);
           if (!block.getSubBlocks().isEmpty()) {
@@ -1548,12 +1548,12 @@ public class OSelectExecutionPlanner {
   private boolean handleClassWithIndexForSortOnly(SelectExecutionPlan plan, Identifier queryTarget, Set<String> filterClusters, QueryPlanningInfo info,
       CommandContext ctx, boolean profilingEnabled) {
 
-    DocumentType clazz = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
-    if (clazz == null) {
-      throw new CommandExecutionException("Class not found: " + queryTarget.getStringValue());
+    DocumentType typez = ctx.getDatabase().getSchema().getType(queryTarget.getStringValue());
+    if (typez == null) {
+      throw new CommandExecutionException("Type not found: " + queryTarget.getStringValue());
     }
 
-    for (DocumentType.IndexMetadata idx : clazz.getAllIndexesMetadata().stream().filter(i -> i.index.supportsOrderedIterations())
+    for (DocumentType.IndexMetadata idx : typez.getAllIndexesMetadata().stream().filter(i -> i.index.supportsOrderedIterations())
         .collect(Collectors.toList())) {
       String[] indexFields = idx.propertyNames;
       if (indexFields.length < info.orderBy.getItems().size()) {
@@ -1604,29 +1604,29 @@ public class OSelectExecutionPlanner {
       return true;
     }
     //TODO
-    DocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass.getStringValue());
-    if (clazz == null) {
-      throw new CommandExecutionException("Cannot find class " + targetClass);
+    DocumentType typez = ctx.getDatabase().getSchema().getType(targetClass.getStringValue());
+    if (typez == null) {
+      throw new CommandExecutionException("Cannot find type '" + targetClass + "'");
     }
 
-    //    if (clazz.count(false) != 0 || clazz.getSubclasses().size() == 0 || isDiamondHierarchy(clazz)) {
+    //    if (typez.count(false) != 0 || typez.getSubclasses().size() == 0 || isDiamondHierarchy(typez)) {
 //      return false;
 //    }
 
-    final Collection<DocumentType> subclasses = clazz.getSubTypes();
+    final Collection<DocumentType> subTypes = typez.getSubTypes();
 
-    List<InternalExecutionPlan> subclassPlans = new ArrayList<>();
-    for (DocumentType subClass : subclasses) {
-      List<ExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subClass.getName(), filterClusters, info, ctx, profilingEnabled);
+    List<InternalExecutionPlan> subTypePlans = new ArrayList<>();
+    for (DocumentType subType : subTypes) {
+      List<ExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subType.getName(), filterClusters, info, ctx, profilingEnabled);
       if (subSteps == null || subSteps.size() == 0) {
         return false;
       }
       SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
       subSteps.stream().forEach(x -> subPlan.chain(x));
-      subclassPlans.add(subPlan);
+      subTypePlans.add(subPlan);
     }
-    if (subclassPlans.size() > 0) {
-      plan.chain(new ParallelExecStep(subclassPlans, ctx, profilingEnabled));
+    if (subTypePlans.size() > 0) {
+      plan.chain(new ParallelExecStep(subTypePlans, ctx, profilingEnabled));
       return true;
     }
     return false;
@@ -1635,14 +1635,14 @@ public class OSelectExecutionPlanner {
   /**
    * checks if a class is the top of a diamond hierarchy
    *
-   * @param clazz
+   * @param typez
    *
    * @return
    */
-  private boolean isDiamondHierarchy(final DocumentType clazz) {
+  private boolean isDiamondHierarchy(final DocumentType typez) {
     Set<DocumentType> traversed = new HashSet<>();
     List<DocumentType> stack = new ArrayList<>();
-    stack.add(clazz);
+    stack.add(typez);
     while (!stack.isEmpty()) {
       DocumentType current = stack.remove(0);
       traversed.add(current);
@@ -1662,28 +1662,28 @@ public class OSelectExecutionPlanner {
     List<ExecutionStepInternal> result = handleClassAsTargetWithIndex(targetClass, filterClusters, info, ctx, profilingEnabled);
     if (result == null) {
       result = new ArrayList<>();
-      DocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass);
-      if (clazz == null) {
+      DocumentType typez = ctx.getDatabase().getSchema().getType(targetClass);
+      if (typez == null) {
         throw new CommandExecutionException("Cannot find class " + targetClass);
       }
-//      if (clazz.count(false) != 0 || clazz.getSubclasses().size() == 0 || isDiamondHierarchy(clazz)) {
+//      if (typez.count(false) != 0 || typez.getSubclasses().size() == 0 || isDiamondHierarchy(typez)) {
 //      return null;
 //      }
 
-      final Collection<DocumentType> subclasses = clazz.getSubTypes();
+      final Collection<DocumentType> subTypes = typez.getSubTypes();
 
-      List<InternalExecutionPlan> subclassPlans = new ArrayList<>();
-      for (DocumentType subClass : subclasses) {
-        List<ExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subClass.getName(), filterClusters, info, ctx, profilingEnabled);
+      List<InternalExecutionPlan> subTypePlans = new ArrayList<>();
+      for (DocumentType subType : subTypes) {
+        List<ExecutionStepInternal> subSteps = handleClassAsTargetWithIndexRecursive(subType.getName(), filterClusters, info, ctx, profilingEnabled);
         if (subSteps == null || subSteps.size() == 0) {
           return null;
         }
         SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
         subSteps.stream().forEach(x -> subPlan.chain(x));
-        subclassPlans.add(subPlan);
+        subTypePlans.add(subPlan);
       }
-      if (subclassPlans.size() > 0) {
-        result.add(new ParallelExecStep(subclassPlans, ctx, profilingEnabled));
+      if (subTypePlans.size() > 0) {
+        result.add(new ParallelExecStep(subTypePlans, ctx, profilingEnabled));
       }
     }
     return result.size() == 0 ? null : result;
@@ -1695,21 +1695,25 @@ public class OSelectExecutionPlanner {
       return null;
     }
 
-    DocumentType clazz = ctx.getDatabase().getSchema().getType(targetClass);
-    if (clazz == null) {
+    DocumentType typez = ctx.getDatabase().getSchema().getType(targetClass);
+    if (typez == null) {
       throw new CommandExecutionException("Cannot find class " + targetClass);
     }
 
-    final Collection<DocumentType.IndexMetadata> indexes = clazz.getAllIndexesMetadata();
+    final Collection<DocumentType.IndexMetadata> indexes = typez.getAllIndexesMetadata();
 
     final List<IndexSearchDescriptor> indexSearchDescriptors = new ArrayList<>();
 
     for (AndBlock entry : info.flattenedWhereClause)
-      indexSearchDescriptors.addAll(findBestIndexesFor(ctx, indexes, entry, clazz));
+      indexSearchDescriptors.addAll(findBestIndexesFor(ctx, indexes, entry, typez));
 
-    if (indexSearchDescriptors.size() != info.flattenedWhereClause.size()) {
-      return null; //some blocks could not be managed with an index
-    }
+    if( indexSearchDescriptors.isEmpty())
+      return null;
+
+    // TODO
+    //    if (indexSearchDescriptors.size() != info.flattenedWhereClause.size()) {
+    //      return null; //some blocks could not be managed with an index
+    //    }
 
     List<ExecutionStepInternal> result = new ArrayList<>();
 
@@ -1883,10 +1887,10 @@ public class OSelectExecutionPlanner {
    * @return
    */
   private List<IndexSearchDescriptor> findBestIndexesFor(CommandContext ctx, Collection<DocumentType.IndexMetadata> indexes, AndBlock block,
-      DocumentType clazz) {
+      DocumentType typez) {
     final Iterator<IndexSearchDescriptor> it = indexes.stream()
         //.filter(index -> index.getInternal().canBeUsedInEqualityOperators())
-        .map(index -> buildIndexSearchDescriptor(ctx, index, block, clazz)).filter(Objects::nonNull).filter(x -> x.keyCondition != null)
+        .map(index -> buildIndexSearchDescriptor(ctx, index, block, typez)).filter(Objects::nonNull).filter(x -> x.keyCondition != null)
         .filter(x -> x.keyCondition.getSubBlocks().size() > 0).sorted(Comparator.comparing(x -> x.cost(ctx))).iterator();
 
     final List<IndexSearchDescriptor> list = new ArrayList<>();
@@ -1904,11 +1908,11 @@ public class OSelectExecutionPlanner {
    * @param ctx
    * @param index
    * @param block
-   * @param clazz
+   * @param typez
    *
    * @return
    */
-  private IndexSearchDescriptor buildIndexSearchDescriptor(CommandContext ctx, DocumentType.IndexMetadata index, AndBlock block, DocumentType clazz) {
+  private IndexSearchDescriptor buildIndexSearchDescriptor(CommandContext ctx, DocumentType.IndexMetadata index, AndBlock block, DocumentType typez) {
     String[] indexFields = index.propertyNames;
     BinaryCondition keyCondition = new BinaryCondition(-1);
     Identifier key = new Identifier("key");
@@ -2096,7 +2100,7 @@ public class OSelectExecutionPlanner {
 
     DocumentType candidateClass = null;
     boolean tryByIndex = true;
-    Set<String> clusterNames = new HashSet<>();
+    Set<String> bucketNames = new HashSet<>();
 
     for (Bucket parserBucket : buckets) {
       String name = parserBucket.getBucketName();
@@ -2110,15 +2114,15 @@ public class OSelectExecutionPlanner {
           bucketId = bucket.getId();
       }
       if (name != null) {
-        clusterNames.add(name);
-        DocumentType clazz = db.getSchema().getTypeByBucketId(bucketId);
-        if (clazz == null) {
+        bucketNames.add(name);
+        DocumentType typez = db.getSchema().getTypeByBucketId(bucketId);
+        if (typez == null) {
           tryByIndex = false;
           break;
         }
         if (candidateClass == null) {
-          candidateClass = clazz;
-        } else if (!candidateClass.equals(clazz)) {
+          candidateClass = typez;
+        } else if (!candidateClass.equals(typez)) {
           candidateClass = null;
           tryByIndex = false;
           break;
@@ -2131,16 +2135,16 @@ public class OSelectExecutionPlanner {
     }
 
     if (tryByIndex) {
-      Identifier clazz = new Identifier(candidateClass.getName());
-      if (handleClassAsTargetWithIndexedFunction(plan, clusterNames, clazz, info, ctx, profilingEnabled)) {
+      Identifier typez = new Identifier(candidateClass.getName());
+      if (handleClassAsTargetWithIndexedFunction(plan, bucketNames, typez, info, ctx, profilingEnabled)) {
         return;
       }
 
-      if (handleClassAsTargetWithIndex(plan, clazz, clusterNames, info, ctx, profilingEnabled)) {
+      if (handleClassAsTargetWithIndex(plan, typez, bucketNames, info, ctx, profilingEnabled)) {
         return;
       }
 
-      if (info.orderBy != null && handleClassWithIndexForSortOnly(plan, clazz, clusterNames, info, ctx, profilingEnabled)) {
+      if (info.orderBy != null && handleClassWithIndexForSortOnly(plan, typez, bucketNames, info, ctx, profilingEnabled)) {
         return;
       }
     }
@@ -2175,7 +2179,7 @@ public class OSelectExecutionPlanner {
       }
       plan.chain(step);
     } else {
-      int[] clusterIds = new int[buckets.size()];
+      int[] bucketIds = new int[buckets.size()];
       for (int i = 0; i < buckets.size(); i++) {
         Bucket parserBucket = buckets.get(i);
 
@@ -2189,9 +2193,9 @@ public class OSelectExecutionPlanner {
         if (bucketId == null) {
           throw new CommandExecutionException("Bucket '" + parserBucket + "' does not exist");
         }
-        clusterIds[i] = bucketId;
+        bucketIds[i] = bucketId;
       }
-      FetchFromClustersExecutionStep step = new FetchFromClustersExecutionStep(clusterIds, ctx, orderByRidAsc, profilingEnabled);
+      FetchFromClustersExecutionStep step = new FetchFromClustersExecutionStep(bucketIds, ctx, orderByRidAsc, profilingEnabled);
       plan.chain(step);
     }
   }

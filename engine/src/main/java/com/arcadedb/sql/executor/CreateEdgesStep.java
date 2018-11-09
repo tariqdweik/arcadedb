@@ -191,7 +191,7 @@ public class CreateEdgesStep extends AbstractExecutionStep {
       result += " (" + getCostFormatted() + ")";
     }
     if (targetCluster != null) {
-      result += "\n" + spaces + "       (target cluster " + targetCluster + ")";
+      result += "\n" + spaces + "       (target bucket " + targetCluster + ")";
     }
     return result;
   }

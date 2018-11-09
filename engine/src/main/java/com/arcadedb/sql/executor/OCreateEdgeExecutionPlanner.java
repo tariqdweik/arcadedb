@@ -46,10 +46,10 @@ public class OCreateEdgeExecutionPlanner {
         targetClass = new Identifier("E");
       } else {
         Database db = ctx.getDatabase();
-        DocumentType clazz = db.getSchema()
+        DocumentType typez = db.getSchema()
             .getTypeByBucketId((db.getSchema().getBucketByName(targetClusterName.getStringValue()).getId()));
-        if (clazz != null) {
-          targetClass = new Identifier(clazz.getName());
+        if (typez != null) {
+          targetClass = new Identifier(typez.getName());
         } else {
           targetClass = new Identifier("E");
         }

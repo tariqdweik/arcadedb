@@ -9,7 +9,7 @@ import com.arcadedb.database.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PerformanceScan {
-  private static final String CLASS_NAME = "Person";
+  private static final String USERTYPE_NAME = "Person";
   private static final int    MAX_LOOPS  = 1;
 
   public static void main(String[] args) throws Exception {
@@ -27,7 +27,7 @@ public class PerformanceScan {
 
         final AtomicInteger row = new AtomicInteger();
 
-        database.async().scanType(CLASS_NAME, true, new DocumentCallback() {
+        database.async().scanType(USERTYPE_NAME, true, new DocumentCallback() {
           @Override
           public boolean onRecord(final Document record) {
             final ImmutableDocument document = ((ImmutableDocument) record);

@@ -59,25 +59,25 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
           Database db = ctx.getDatabase();
 
           Schema schema = db.getSchema();
-          DocumentType parentClazz = schema.getType(this.parentClass);
+          DocumentType parenttypez = schema.getType(this.parentClass);
 
-          DocumentType targetClazz = schema.getType(this.targetClass);
-          if (targetClazz == null) {
-            throw new CommandExecutionException("Class not found: " + this.targetClass);
+          DocumentType targettypez = schema.getType(this.targetClass);
+          if (targettypez == null) {
+            throw new CommandExecutionException("Type not found: " + this.targetClass);
           }
 
-          if (parentClazz.equals(targetClazz)) {
+          if (parenttypez.equals(targettypez)) {
             found = true;
           } else {
-            for (DocumentType sublcass : parentClazz.getSubTypes()) {
-              if (sublcass.equals(targetClazz)) {
+            for (DocumentType sublcass : parenttypez.getSubTypes()) {
+              if (sublcass.equals(targettypez)) {
                 this.found = true;
                 break;
               }
             }
           }
           if (!found) {
-            throw new CommandExecutionException("Class  " + this.targetClass + " is not a subclass of " + this.parentClass);
+            throw new CommandExecutionException("Type  " + this.targetClass + " is not a subType of " + this.parentClass);
           }
         }
       }
@@ -94,7 +94,7 @@ public class CheckClassTypeStep extends AbstractExecutionStep {
     String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
-    result.append("+ CHECK CLASS HIERARCHY");
+    result.append("+ CHECK USERTYPE HIERARCHY");
     if (profilingEnabled) {
       result.append(" (" + getCostFormatted() + ")");
     }

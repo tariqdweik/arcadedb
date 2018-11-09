@@ -63,37 +63,37 @@ public enum Type {
 
   protected static final Type[]              TYPES_BY_ID    = new Type[17];
   // Values previosly stored in javaTypes
-  protected static final Map<Class<?>, Type> TYPES_BY_CLASS = new HashMap<Class<?>, Type>();
+  protected static final Map<Class<?>, Type> TYPES_BY_USERTYPE = new HashMap<Class<?>, Type>();
 
   static {
     for (Type type : values()) {
       TYPES_BY_ID[type.id] = type;
     }
     // This is made by hand because not all types should be add.
-    TYPES_BY_CLASS.put(Boolean.class, BOOLEAN);
-    TYPES_BY_CLASS.put(Boolean.TYPE, BOOLEAN);
-    TYPES_BY_CLASS.put(Integer.TYPE, INTEGER);
-    TYPES_BY_CLASS.put(Integer.class, INTEGER);
-    TYPES_BY_CLASS.put(BigInteger.class, INTEGER);
-    TYPES_BY_CLASS.put(Short.class, SHORT);
-    TYPES_BY_CLASS.put(Short.TYPE, SHORT);
-    TYPES_BY_CLASS.put(Long.class, LONG);
-    TYPES_BY_CLASS.put(Long.TYPE, LONG);
-    TYPES_BY_CLASS.put(Float.TYPE, FLOAT);
-    TYPES_BY_CLASS.put(Float.class, FLOAT);
-    TYPES_BY_CLASS.put(Double.TYPE, DOUBLE);
-    TYPES_BY_CLASS.put(Double.class, DOUBLE);
-    TYPES_BY_CLASS.put(Date.class, DATETIME);
-    TYPES_BY_CLASS.put(String.class, STRING);
-    TYPES_BY_CLASS.put(Enum.class, STRING);
-    TYPES_BY_CLASS.put(byte[].class, BINARY);
-    TYPES_BY_CLASS.put(Byte.class, BYTE);
-    TYPES_BY_CLASS.put(Byte.TYPE, BYTE);
-    TYPES_BY_CLASS.put(Character.class, STRING);
-    TYPES_BY_CLASS.put(Character.TYPE, STRING);
-    TYPES_BY_CLASS.put(BigDecimal.class, DECIMAL);
-    TYPES_BY_CLASS.put(List.class, LIST);
-    TYPES_BY_CLASS.put(Map.class, MAP);
+    TYPES_BY_USERTYPE.put(Boolean.class, BOOLEAN);
+    TYPES_BY_USERTYPE.put(Boolean.TYPE, BOOLEAN);
+    TYPES_BY_USERTYPE.put(Integer.TYPE, INTEGER);
+    TYPES_BY_USERTYPE.put(Integer.class, INTEGER);
+    TYPES_BY_USERTYPE.put(BigInteger.class, INTEGER);
+    TYPES_BY_USERTYPE.put(Short.class, SHORT);
+    TYPES_BY_USERTYPE.put(Short.TYPE, SHORT);
+    TYPES_BY_USERTYPE.put(Long.class, LONG);
+    TYPES_BY_USERTYPE.put(Long.TYPE, LONG);
+    TYPES_BY_USERTYPE.put(Float.TYPE, FLOAT);
+    TYPES_BY_USERTYPE.put(Float.class, FLOAT);
+    TYPES_BY_USERTYPE.put(Double.TYPE, DOUBLE);
+    TYPES_BY_USERTYPE.put(Double.class, DOUBLE);
+    TYPES_BY_USERTYPE.put(Date.class, DATETIME);
+    TYPES_BY_USERTYPE.put(String.class, STRING);
+    TYPES_BY_USERTYPE.put(Enum.class, STRING);
+    TYPES_BY_USERTYPE.put(byte[].class, BINARY);
+    TYPES_BY_USERTYPE.put(Byte.class, BYTE);
+    TYPES_BY_USERTYPE.put(Byte.TYPE, BYTE);
+    TYPES_BY_USERTYPE.put(Character.class, STRING);
+    TYPES_BY_USERTYPE.put(Character.TYPE, STRING);
+    TYPES_BY_USERTYPE.put(BigDecimal.class, DECIMAL);
+    TYPES_BY_USERTYPE.put(List.class, LIST);
+    TYPES_BY_USERTYPE.put(Map.class, MAP);
 
     BYTE.castable.add(BOOLEAN);
     SHORT.castable.addAll(Arrays.asList(BOOLEAN, BYTE));
@@ -139,7 +139,7 @@ public enum Type {
       if (value instanceof String || value instanceof Number || value instanceof Map || value instanceof Collection)
         return;
 
-      if (!TYPES_BY_CLASS.containsKey(value.getClass()))
+      if (!TYPES_BY_USERTYPE.containsKey(value.getClass()))
         throw new IllegalArgumentException("Value '" + value + "' of class '" + value.getClass() + "' is not supported");
     }
   }
@@ -164,7 +164,7 @@ public enum Type {
     if (iClass == null)
       return null;
 
-    Type type = TYPES_BY_CLASS.get(iClass);
+    Type type = TYPES_BY_USERTYPE.get(iClass);
     if (type != null)
       return type;
     type = getTypeByClassInherit(iClass);
@@ -195,12 +195,12 @@ public enum Type {
   public static Type getTypeByValue(Object value) {
     if (value == null)
       return null;
-    Class<?> clazz = value.getClass();
-    Type type = TYPES_BY_CLASS.get(clazz);
+    Class<?> typez = value.getClass();
+    Type type = TYPES_BY_USERTYPE.get(typez);
     if (type != null)
       return type;
 
-    final Type byType = getTypeByClassInherit(clazz);
+    final Type byType = getTypeByClassInherit(typez);
 
     return byType;
   }

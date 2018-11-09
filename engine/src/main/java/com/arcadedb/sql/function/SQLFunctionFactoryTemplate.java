@@ -52,9 +52,9 @@ public abstract class SQLFunctionFactoryTemplate implements SQLFunctionFactory {
       return (SQLFunction) obj;
     else {
       // it's a class
-      final Class<?> clazz = (Class<?>) obj;
+      final Class<?> typez = (Class<?>) obj;
       try {
-        return (SQLFunction) clazz.newInstance();
+        return (SQLFunction) typez.newInstance();
       } catch (Exception e) {
         throw new CommandExecutionException(
             "Error in creation of function " + name + "(). Probably there is not an empty constructor or the constructor generates errors", e);

@@ -26,20 +26,20 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
   public static final Object ORDER_DESC = "DESC";
   private final QueryPlanningInfo queryPlanning;
 
-  private int    clusterId;
+  private int    bucketId;
   private Object order;
 
   private Iterator<Record> iterator;
   private long             cost = 0;
 
-  public FetchFromClusterExecutionStep(int clusterId, CommandContext ctx, boolean profilingEnabled) {
-    this(clusterId, null, ctx, profilingEnabled);
+  public FetchFromClusterExecutionStep(int bucketId, CommandContext ctx, boolean profilingEnabled) {
+    this(bucketId, null, ctx, profilingEnabled);
   }
 
-  public FetchFromClusterExecutionStep(int clusterId, QueryPlanningInfo queryPlanning, CommandContext ctx,
+  public FetchFromClusterExecutionStep(int bucketId, QueryPlanningInfo queryPlanning, CommandContext ctx,
       boolean profilingEnabled) {
     super(ctx, profilingEnabled);
-    this.clusterId = clusterId;
+    this.bucketId = bucketId;
     this.queryPlanning = queryPlanning;
   }
 
@@ -51,11 +51,11 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
       if (iterator == null) {
         long minClusterPosition = calculateMinClusterPosition();
         long maxClusterPosition = calculateMaxClusterPosition();
-        iterator = ctx.getDatabase().getSchema().getBucketById(clusterId).iterator();
+        iterator = ctx.getDatabase().getSchema().getBucketById(bucketId).iterator();
 
         //TODO check how to support ranges and DESC
 //            new ORecordIteratorCluster((ODatabaseDocumentInternal) ctx.getDatabase(),
-//            (ODatabaseDocumentInternal) ctx.getDatabase(), clusterId, minClusterPosition, maxClusterPosition);
+//            (ODatabaseDocumentInternal) ctx.getDatabase(), bucketId, minClusterPosition, maxClusterPosition);
 //        if (ORDER_DESC == order) {
 //          iterator.last();
 //        }
@@ -156,7 +156,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
         Rid condRid = cond.getRight().getRid();
         BinaryCompareOperator operator = cond.getOperator();
         if (condRid != null) {
-          if (condRid.getBucket().getValue().intValue() != this.clusterId) {
+          if (condRid.getBucket().getValue().intValue() != this.bucketId) {
             continue;
           }
           if (operator instanceof GtOperator || operator instanceof GeOperator) {
@@ -190,7 +190,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
         conditionRid = ((Identifiable) obj).getIdentity();
         BinaryCompareOperator operator = cond.getOperator();
         if (conditionRid != null) {
-          if (conditionRid.getBucketId() != this.clusterId) {
+          if (conditionRid.getBucketId() != this.bucketId) {
             continue;
           }
           if (operator instanceof LtOperator || operator instanceof LeOperator) {
@@ -216,7 +216,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     String result =
-        ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM CLUSTER " + clusterId + " " + (ORDER_DESC.equals(order) ?
+        ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM CLUSTER " + bucketId + " " + (ORDER_DESC.equals(order) ?
             "DESC" :
             "ASC");
     if (profilingEnabled) {
@@ -237,7 +237,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
   @Override
   public Result serialize() {
     ResultInternal result = ExecutionStepInternal.basicSerialize(this);
-    result.setProperty("clusterId", clusterId);
+    result.setProperty("bucketId", bucketId);
     result.setProperty("order", order);
     return result;
   }
@@ -246,7 +246,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
   public void deserialize(Result fromResult) {
     try {
       ExecutionStepInternal.basicDeserialize(fromResult, this);
-      this.clusterId = fromResult.getProperty("clusterId");
+      this.bucketId = fromResult.getProperty("bucketId");
       Object orderProp = fromResult.getProperty("order");
       if (orderProp != null) {
         this.order = ORDER_ASC.equals(fromResult.getProperty("order")) ? ORDER_ASC : ORDER_DESC;
@@ -263,7 +263,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 
   @Override
   public ExecutionStep copy(CommandContext ctx) {
-    FetchFromClusterExecutionStep result = new FetchFromClusterExecutionStep(this.clusterId,
+    FetchFromClusterExecutionStep result = new FetchFromClusterExecutionStep(this.bucketId,
         this.queryPlanning == null ? null : this.queryPlanning.copy(), ctx, profilingEnabled);
     return result;
   }

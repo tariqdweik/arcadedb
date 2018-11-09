@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  */
 public class FilterByClustersStep extends AbstractExecutionStep {
   private Set<String>  clusters;
-  private Set<Integer> clusterIds;
+  private Set<Integer> bucketIds;
 
   ResultSet prevResult = null;
 
@@ -31,8 +31,8 @@ public class FilterByClustersStep extends AbstractExecutionStep {
   }
 
   private void init(Database db) {
-//    if (this.clusterIds == null) {
-//      this.clusterIds = clusters.stream().map(x -> db.getClusterIdByName(x)).filter(x -> x != null).collect(Collectors.toSet());
+//    if (this.bucketIds == null) {
+//      this.bucketIds = clusters.stream().map(x -> db.getClusterIdByName(x)).filter(x -> x != null).collect(Collectors.toSet());
 //    }
     throw new UnsupportedOperationException();
   }
@@ -73,12 +73,12 @@ public class FilterByClustersStep extends AbstractExecutionStep {
           }
           nextItem = prevResult.next();
           if (nextItem.isElement()) {
-            int clusterId = nextItem.getIdentity().get().getBucketId();
-            if (clusterId < 0) {
-              // this record comes from a TX, it still doesn't have a cluster assigned
+            int bucketId = nextItem.getIdentity().get().getBucketId();
+            if (bucketId < 0) {
+              // this record comes from a TX, it still doesn't have a bucket assigned
               break;
             }
-            if (clusterIds.contains(clusterId)) {
+            if (bucketIds.contains(bucketId)) {
               break;
             }
           }

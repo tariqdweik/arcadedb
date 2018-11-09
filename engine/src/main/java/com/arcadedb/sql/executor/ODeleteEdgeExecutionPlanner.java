@@ -111,11 +111,11 @@ public class ODeleteEdgeExecutionPlanner {
       boolean profilingEnabled) {
     if (targetClusterName != null) {
       String name = targetClusterName.getStringValue();
-      int clusterId = ctx.getDatabase().getSchema().getBucketByName(name).getId();
-      if (clusterId < 0) {
+      int bucketId = ctx.getDatabase().getSchema().getBucketByName(name).getId();
+      if (bucketId < 0) {
         throw new CommandExecutionException("Cluster not found: " + name);
       }
-      result.chain(new FetchFromClusterExecutionStep(clusterId, ctx, profilingEnabled));
+      result.chain(new FetchFromClusterExecutionStep(bucketId, ctx, profilingEnabled));
     }
   }
 

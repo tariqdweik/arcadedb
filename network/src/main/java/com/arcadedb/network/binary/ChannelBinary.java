@@ -162,9 +162,9 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
   }
 
   public RID readRID(final Database database) throws IOException {
-    final int clusterId = readInt();
+    final int bucketId = readInt();
     final long clusterPosition = readLong();
-    return new RID(database, clusterId, clusterPosition);
+    return new RID(database, bucketId, clusterPosition);
   }
 
   public int readVersion() throws IOException {

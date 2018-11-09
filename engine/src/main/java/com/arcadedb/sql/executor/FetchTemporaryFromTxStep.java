@@ -16,7 +16,7 @@ import java.util.Optional;
 /**
  * Created by luigidellaquila on 12/01/17.
  * <p>
- * Fetches temporary records (cluster id -1) from current transaction
+ * Fetches temporary records (bucket id -1) from current transaction
  */
 public class FetchTemporaryFromTxStep extends AbstractExecutionStep {
 

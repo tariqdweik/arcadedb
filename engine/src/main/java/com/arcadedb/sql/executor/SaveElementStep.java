@@ -17,11 +17,11 @@ import java.util.Optional;
  */
 public class SaveElementStep extends AbstractExecutionStep {
 
-  private final Identifier cluster;
+  private final Identifier bucket;
 
-  public SaveElementStep(CommandContext ctx, Identifier cluster, boolean profilingEnabled) {
+  public SaveElementStep(CommandContext ctx, Identifier bucket, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
-    this.cluster = cluster;
+    this.bucket = bucket;
   }
 
   public SaveElementStep(CommandContext ctx, boolean profilingEnabled) {
@@ -44,10 +44,10 @@ public class SaveElementStep extends AbstractExecutionStep {
           final Document doc = result.getElement().orElse(null);
 
           final MutableDocument modifiableDoc = (MutableDocument) doc.modify();
-          if (cluster == null)
+          if (bucket == null)
             modifiableDoc.save();
           else
-            modifiableDoc.save(cluster.getStringValue());
+            modifiableDoc.save(bucket.getStringValue());
         }
         return result;
       }
@@ -75,10 +75,10 @@ public class SaveElementStep extends AbstractExecutionStep {
     StringBuilder result = new StringBuilder();
     result.append(spaces);
     result.append("+ SAVE RECORD");
-    if (cluster != null) {
+    if (bucket != null) {
       result.append("\n");
       result.append(spaces);
-      result.append("  on cluster " + cluster);
+      result.append("  on bucket " + bucket);
     }
     return result.toString();
   }

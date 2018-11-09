@@ -10,17 +10,17 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Checks that all the records from the upstream are of a particular type (or subclasses). Throws PCommandExecutionException in case
+ * Checks that all the records from the upstream are of a particular type (or subTypes). Throws PCommandExecutionException in case
  * it's not true
  */
 public class CheckRecordTypeStep extends AbstractExecutionStep {
-  private final String clazz;
+  private final String typez;
 
   private long cost = 0;
 
   public CheckRecordTypeStep(CommandContext ctx, String className, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
-    this.clazz = className;
+    this.typez = className;
   }
 
   @Override
@@ -39,16 +39,16 @@ public class CheckRecordTypeStep extends AbstractExecutionStep {
 //        long begin = profilingEnabled ? System.nanoTime() : 0;
 //        try {
 //          if (!result.isElement()) {
-//            throw new PCommandExecutionException("record " + result + " is not an instance of " + clazz);
+//            throw new PCommandExecutionException("record " + result + " is not an instance of " + typez);
 //          }
 //          PRecord doc = result.getElement().get();
 //          if (doc == null) {
-//            throw new PCommandExecutionException("record " + result + " is not an instance of " + clazz);
+//            throw new PCommandExecutionException("record " + result + " is not an instance of " + typez);
 //          }
 //          Optional<PType> schema = doc.getSchemaType();
 //
-//          if (!schema.isPresent() || !schema.get().isSubClassOf(clazz)) {
-//            throw new PCommandExecutionException("record " + result + " is not an instance of " + clazz);
+//          if (!schema.isPresent() || !schema.get().isSubClassOf(typez)) {
+//            throw new PCommandExecutionException("record " + result + " is not an instance of " + typez);
 //          }
 //          return result;
 //        } finally {
@@ -81,7 +81,7 @@ public class CheckRecordTypeStep extends AbstractExecutionStep {
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }
-    result += (ExecutionStepInternal.getIndent(depth, indent) + "  " + clazz);
+    result += (ExecutionStepInternal.getIndent(depth, indent) + "  " + typez);
     return result;
   }
 

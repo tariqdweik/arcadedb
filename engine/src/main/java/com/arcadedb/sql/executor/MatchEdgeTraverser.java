@@ -109,16 +109,16 @@ public class MatchEdgeTraverser {
     WhereClause whileCondition = null;
     Integer maxDepth = null;
     String className = null;
-    Integer clusterId = null;
+    Integer bucketId = null;
     Rid targetRid = null;
     if (item.getFilter() != null) {
       filter = getTargetFilter(item);
       whileCondition = item.getFilter().getWhileCondition();
       maxDepth = item.getFilter().getMaxDepth();
       className = targetClassName(item, iCommandContext);
-      String clusterName = targetClusterName(item, iCommandContext);
-      if (clusterName != null) {
-        clusterId = iCommandContext.getDatabase().getSchema().getBucketByName(clusterName).getId();
+      String bucketName = targetClusterName(item, iCommandContext);
+      if (bucketName != null) {
+        bucketId = iCommandContext.getDatabase().getSchema().getBucketByName(bucketName).getId();
       }
       targetRid = targetRid(item, iCommandContext);
     }
@@ -134,7 +134,7 @@ public class MatchEdgeTraverser {
         Record elem = origin.toElement();
         iCommandContext.setVariable("$currentMatch", elem);
         if (matchesFilters(iCommandContext, filter, elem) && matchesClass(iCommandContext, className, elem) && matchesCluster(
-            iCommandContext, clusterId, elem) && matchesRid(iCommandContext, targetRid, elem)) {
+            iCommandContext, bucketId, elem) && matchesRid(iCommandContext, targetRid, elem)) {
           result.add(origin);
         }
         iCommandContext.setVariable("$currentMatch", previousMatch);
@@ -145,7 +145,7 @@ public class MatchEdgeTraverser {
       iCommandContext.setVariable("$currentMatch", startingPoint);
 
       if (matchesFilters(iCommandContext, filter, startingPoint) && matchesClass(iCommandContext, className, startingPoint)
-          && matchesCluster(iCommandContext, clusterId, startingPoint) && matchesRid(iCommandContext, targetRid, startingPoint)) {
+          && matchesCluster(iCommandContext, bucketId, startingPoint) && matchesRid(iCommandContext, targetRid, startingPoint)) {
         ResultInternal rs = new ResultInternal((Document) startingPoint.getRecord());
         // set traversal depth in the metadata
         rs.setMetadata("$depth", depth);
@@ -219,17 +219,17 @@ public class MatchEdgeTraverser {
       }
     }
     if (element != null) {
-      Object clazz = element.getType();
-      if (clazz == null) {
+      Object typez = element.getType();
+      if (typez == null) {
         return false;
       }
-      return clazz.equals(className);
+      return typez.equals(className);
     }
     return false;
   }
 
-  private boolean matchesCluster(CommandContext iCommandContext, Integer clusterId, Identifiable origin) {
-    if (clusterId == null) {
+  private boolean matchesCluster(CommandContext iCommandContext, Integer bucketId, Identifiable origin) {
+    if (bucketId == null) {
       return true;
     }
     if (origin == null) {
@@ -239,7 +239,7 @@ public class MatchEdgeTraverser {
     if (origin.getIdentity() == null) {
       return false;
     }
-    return clusterId.equals(origin.getIdentity().getBucketId());
+    return bucketId.equals(origin.getIdentity().getBucketId());
   }
 
   private boolean matchesRid(CommandContext iCommandContext, Rid rid, Identifiable origin) {

@@ -3,7 +3,7 @@
  */
 package com.arcadedb.stresstest.workload;
 
-import com.arcadedb.database.EmbeddedDatabase;
+import com.arcadedb.database.Record;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.remote.RemoteDatabase;
@@ -59,9 +59,8 @@ public abstract class OBaseWorkload implements OWorkload {
 
       return String.format(
           "\n%s- Throughput: %.3f/sec (Avg %.3fms/op)\n%s- Latency Avg: %.3fms/op (%dth percentile) - Min: %.3fms - 99th Perc: %.3fms - 99.9th Perc: %.3fms - Max: %.3fms - Conflicts: %d",
-          indent, total * 1000 / (float) totalTime, throughputAvgNs / 1000000f, indent, latencyAvgNs / 1000000f,
-          latencyPercentileAvg, latencyMinNs / 1000000f, latencyPercentile99Ns / 1000000f, latencyPercentile99_9Ns / 1000000f,
-          latencyMaxNs / 1000000f, conflicts.get());
+          indent, total * 1000 / (float) totalTime, throughputAvgNs / 1000000f, indent, latencyAvgNs / 1000000f, latencyPercentileAvg, latencyMinNs / 1000000f,
+          latencyPercentile99Ns / 1000000f, latencyPercentile99_9Ns / 1000000f, latencyMaxNs / 1000000f, conflicts.get());
     }
 
     public JSONObject toJSON() {
@@ -123,7 +122,7 @@ public abstract class OBaseWorkload implements OWorkload {
             final AtomicInteger operationsExecutedInTx = new AtomicInteger();
 
             for (final AtomicInteger i = new AtomicInteger(); i.get() < context.totalPerThread; i.incrementAndGet()) {
-              EmbeddedDatabase.executeWithRetries(new Callable<Object, Integer>() {
+              executeWithRetries(new Callable<Object, Integer>() {
                 @Override
                 public Object call(final Integer retry) {
                   if (retry > 0) {
@@ -143,8 +142,7 @@ public abstract class OBaseWorkload implements OWorkload {
                     } finally {
                       operationsExecutedInTx.incrementAndGet();
 
-                      if (operationsPerTransaction > 0 && (i.get() + 1) % operationsPerTransaction == 0
-                          || i.get() == context.totalPerThread - 1) {
+                      if (operationsPerTransaction > 0 && (i.get() + 1) % operationsPerTransaction == 0 || i.get() == context.totalPerThread - 1) {
                         commitTransaction(context);
                         operationsExecutedInTx.set(0);
                         beginTransaction(context);
@@ -263,5 +261,41 @@ public abstract class OBaseWorkload implements OWorkload {
       }
     }
     return (int) (100 * (j / (float) sortedResults.length));
+  }
+
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry) {
+    return executeWithRetries(callback, maxRetry, 0, null);
+  }
+
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry, final int waitBetweenRetry) {
+    return executeWithRetries(callback, maxRetry, waitBetweenRetry, null);
+  }
+
+  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry, final int waitBetweenRetry,
+      final Record[] recordToReloadOnRetry) {
+    NeedRetryException lastException = null;
+    for (int retry = 0; retry < maxRetry; ++retry) {
+      try {
+        return callback.call(retry);
+      } catch (NeedRetryException e) {
+        // SAVE LAST EXCEPTION AND RETRY
+        lastException = e;
+
+        if (recordToReloadOnRetry != null) {
+          // RELOAD THE RECORDS
+          for (Record r : recordToReloadOnRetry)
+            r.reload();
+        }
+
+        if (waitBetweenRetry > 0)
+          try {
+            Thread.sleep(waitBetweenRetry);
+          } catch (InterruptedException ignore) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+      }
+    }
+    throw lastException;
   }
 }

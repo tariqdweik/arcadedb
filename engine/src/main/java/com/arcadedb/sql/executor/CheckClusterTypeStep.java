@@ -9,16 +9,16 @@ import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Bucket;
 
 /**
- * <p> This step is used just as a gate check to verify that a cluster belongs to a class. </p> <p> It accepts two values: a target
- * cluster (name or OCluster) and a class. If the cluster belongs to the class, then the syncPool() returns an empty result set,
+ * <p> This step is used just as a gate check to verify that a bucket belongs to a class. </p> <p> It accepts two values: a target
+ * bucket (name or OCluster) and a class. If the bucket belongs to the class, then the syncPool() returns an empty result set,
  * otherwise it throws an PCommandExecutionException </p>
  *
  * @author Luigi Dell'Aquila (luigi.dellaquila - at - orientdb.com)
  */
 public class CheckClusterTypeStep extends AbstractExecutionStep {
 
-  Bucket cluster;
-  String clusterName;
+  Bucket bucket;
+  String bucketName;
 
   String targetClass;
 
@@ -26,16 +26,16 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
 
   boolean found = false;
 
-  public CheckClusterTypeStep(String targetClusterName, String clazz, CommandContext ctx, boolean profilingEnabled) {
+  public CheckClusterTypeStep(String targetClusterName, String typez, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
-    this.clusterName = targetClusterName;
-    this.targetClass = clazz;
+    this.bucketName = targetClusterName;
+    this.targetClass = typez;
   }
 
-  public CheckClusterTypeStep(Bucket targetCluster, String clazz, CommandContext ctx, boolean profilingEnabled) {
+  public CheckClusterTypeStep(Bucket targetCluster, String typez, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
-    this.cluster = targetCluster;
-    this.targetClass = clazz;
+    this.bucket = targetCluster;
+    this.targetClass = typez;
 
   }
 
@@ -50,34 +50,34 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
       Database db = ctx.getDatabase();
 
       throw new UnsupportedOperationException("TODO");
-//      int clusterId;
-//      if (clusterName != null) {
-//        clusterId = db.getClusterIdByName(clusterName);
-//      } else if (cluster.getClusterName() != null) {
-//        clusterId = db.getClusterIdByName(cluster.getClusterName());
+//      int bucketId;
+//      if (bucketName != null) {
+//        bucketId = db.getClusterIdByName(bucketName);
+//      } else if (bucket.getClusterName() != null) {
+//        bucketId = db.getClusterIdByName(bucket.getClusterName());
 //      } else {
-//        clusterId = cluster.getClusterNumber();
-//        if (db.getClusterNameById(clusterId) == null) {
-//          throw new PCommandExecutionException("Cluster not found: " + clusterId);
+//        bucketId = bucket.getClusterNumber();
+//        if (db.getClusterNameById(bucketId) == null) {
+//          throw new PCommandExecutionException("Cluster not found: " + bucketId);
 //        }
 //      }
-//      if (clusterId < 0) {
-//        throw new PCommandExecutionException("Cluster not found: " + clusterName);
+//      if (bucketId < 0) {
+//        throw new PCommandExecutionException("Cluster not found: " + bucketName);
 //      }
 //
-//      OClass clazz = db.getMetadata().getSchema().getClass(targetClass);
-//      if (clazz == null) {
-//        throw new PCommandExecutionException("Class not found: " + targetClass);
+//      OClass typez = db.getMetadata().getSchema().getClass(targetClass);
+//      if (typez == null) {
+//        throw new PCommandExecutionException("Type not found: " + targetClass);
 //      }
 //
-//      for (int clust : clazz.getPolymorphicClusterIds()) {
-//        if (clust == clusterId) {
+//      for (int clust : typez.getPolymorphicClusterIds()) {
+//        if (clust == bucketId) {
 //          found = true;
 //          break;
 //        }
 //      }
 //      if (!found) {
-//        throw new PCommandExecutionException("Cluster " + clusterId + " does not belong to class " + targetClass);
+//        throw new PCommandExecutionException("Cluster " + bucketId + " does not belong to class " + targetClass);
 //      }
 //      return new OInternalResultSet();
     } finally {
@@ -92,7 +92,7 @@ public class CheckClusterTypeStep extends AbstractExecutionStep {
     String spaces = ExecutionStepInternal.getIndent(depth, indent);
     StringBuilder result = new StringBuilder();
     result.append(spaces);
-    result.append("+ CHECK TARGET CLUSTER FOR CLASS");
+    result.append("+ CHECK TARGET CLUSTER FOR USERTYPE");
     if (profilingEnabled) {
       result.append(" (" + getCostFormatted() + ")");
     }

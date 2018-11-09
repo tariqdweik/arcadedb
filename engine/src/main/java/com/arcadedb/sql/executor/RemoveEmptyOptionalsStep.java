@@ -15,7 +15,7 @@ import java.util.Optional;
  */
 public class RemoveEmptyOptionalsStep extends AbstractExecutionStep {
 
-  public RemoveEmptyOptionalsStep(CommandContext ctx, Identifier cluster, boolean profilingEnabled) {
+  public RemoveEmptyOptionalsStep(CommandContext ctx, Identifier bucket, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
 
   }

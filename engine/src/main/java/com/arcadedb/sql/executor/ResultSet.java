@@ -41,7 +41,7 @@ public interface ResultSet extends Spliterator<Result>, Iterator<Result>, AutoCl
     throw new UnsupportedOperationException("Implement RESET on " + getClass().getSimpleName());
   }
 
-  default boolean tryAdvance(Consumer<? super Result> action) {
+  default boolean tryAdvance(final Consumer<? super Result> action) {
     if (hasNext()) {
       action.accept(next());
       return true;
@@ -49,16 +49,18 @@ public interface ResultSet extends Spliterator<Result>, Iterator<Result>, AutoCl
     return false;
   }
 
-  default int countEntries() {
-    int tot = 0;
+  default long countEntries() {
+    long tot = 0;
 
-    while (hasNext())
+    while (hasNext()) {
+      next();
       tot++;
+    }
 
     return tot;
   }
 
-  default void forEachRemaining(Consumer<? super Result> action) {
+  default void forEachRemaining(final Consumer<? super Result> action) {
     Spliterator.super.forEachRemaining(action);
   }
 
@@ -93,9 +95,9 @@ public interface ResultSet extends Spliterator<Result>, Iterator<Result>, AutoCl
   default Stream<Record> elementStream() {
     return StreamSupport.stream(new Spliterator<Record>() {
       @Override
-      public boolean tryAdvance(Consumer<? super Record> action) {
+      public boolean tryAdvance(final Consumer<? super Record> action) {
         while (hasNext()) {
-          Result elem = next();
+          final Result elem = next();
           if (elem.isElement()) {
             action.accept(elem.getElement().get());
             return true;
@@ -131,9 +133,9 @@ public interface ResultSet extends Spliterator<Result>, Iterator<Result>, AutoCl
   default Stream<Vertex> vertexStream() {
     return StreamSupport.stream(new Spliterator<Vertex>() {
       @Override
-      public boolean tryAdvance(Consumer<? super Vertex> action) {
+      public boolean tryAdvance(final Consumer<? super Vertex> action) {
         while (hasNext()) {
-          Result elem = next();
+          final Result elem = next();
           if (elem.isVertex()) {
             action.accept(elem.getVertex().get());
             return true;
@@ -169,9 +171,9 @@ public interface ResultSet extends Spliterator<Result>, Iterator<Result>, AutoCl
   default Stream<Edge> edgeStream() {
     return StreamSupport.stream(new Spliterator<Edge>() {
       @Override
-      public boolean tryAdvance(Consumer<? super Edge> action) {
+      public boolean tryAdvance(final Consumer<? super Edge> action) {
         while (hasNext()) {
-          Result nextElem = next();
+          final Result nextElem = next();
           if (nextElem != null && nextElem.isEdge()) {
             action.accept(nextElem.getEdge().get());
             return true;
