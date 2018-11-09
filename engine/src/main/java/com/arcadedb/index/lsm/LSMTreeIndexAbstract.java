@@ -203,16 +203,24 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
 
     // CHECK THE BOUNDARIES FIRST (LOWER THAN THE FIRST)
     result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, low, count, purpose);
-    if (result == LOWER)
+    if (result == LOWER) {
+      if (purpose == 2)
+        // BROWSE ASCENDING
+        return new LookupResult(false, false, low, new int[] { currentPageBuffer.position() });
+
       return new LookupResult(false, true, low, null);
-    else if (result != HIGHER)
+    } else if (result != HIGHER)
       return result;
 
     // CHECK THE BOUNDARIES FIRST (HIGHER THAN THE LAST)
     result = compareKey(currentPageBuffer, startIndexArray, convertedKeys, high, count, purpose);
-    if (result == HIGHER)
+    if (result == HIGHER) {
+      if (purpose == 3)
+        // BROWSE ASCENDING
+        return new LookupResult(false, false, high, new int[] { currentPageBuffer.position() });
+
       return new LookupResult(false, true, count, null);
-    else if (result != LOWER)
+    } else if (result != LOWER)
       return result;
 
     int mid;

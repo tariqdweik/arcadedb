@@ -149,7 +149,12 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
   public IndexCursor range(final Object[] fromKeys, final boolean beginKeysInclusive, final Object[] toKeys, final boolean endKeysInclusive)
       throws IOException {
-    return new LSMTreeIndexCursor(this, true, fromKeys, beginKeysInclusive, toKeys, endKeysInclusive);
+    boolean ascending = true;
+
+    if (fromKeys != null && toKeys != null)
+      ascending = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, fromKeys, toKeys) <= 0;
+
+    return new LSMTreeIndexCursor(this, ascending, fromKeys, beginKeysInclusive, toKeys, endKeysInclusive);
   }
 
   public LSMTreeIndexUnderlyingPageCursor newPageIterator(final int pageId, final int currentEntryInPage, final boolean ascendingOrder) throws IOException {

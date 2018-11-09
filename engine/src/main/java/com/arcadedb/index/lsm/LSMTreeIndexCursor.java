@@ -20,7 +20,9 @@ import java.util.*;
  */
 public class LSMTreeIndexCursor implements IndexCursor {
   private final LSMTreeIndexMutable                    index;
+  private final boolean                                ascendingOrder;
   private final Object[]                               toKeys;
+  private final Object[]                               serializedToKeys;
   private final boolean                                toKeysInclusive;
   private final LSMTreeIndexUnderlyingAbstractCursor[] pageCursors;
   private       LSMTreeIndexUnderlyingAbstractCursor   currentCursor;
@@ -39,14 +41,16 @@ public class LSMTreeIndexCursor implements IndexCursor {
     this(index, ascendingOrder, null, true, null, true);
   }
 
-  public LSMTreeIndexCursor(final LSMTreeIndexMutable index, final boolean ascendingOrder, Object[] fromKeys, final boolean beginKeysInclusive,
+  public LSMTreeIndexCursor(final LSMTreeIndexMutable index, final boolean ascendingOrder, final Object[] fromKeys, final boolean beginKeysInclusive,
       final Object[] toKeys, final boolean endKeysInclusive) throws IOException {
     this.index = index;
+    this.ascendingOrder = ascendingOrder;
     this.keyTypes = index.getKeyTypes();
 
-    fromKeys = index.convertKeys(index.checkForNulls(fromKeys), keyTypes);
+    final Object[] serializedFromKeys = index.convertKeys(index.checkForNulls(fromKeys), keyTypes);
 
-    this.toKeys = index.convertKeys(index.checkForNulls(toKeys), keyTypes);
+    this.toKeys = toKeys;
+    this.serializedToKeys = index.convertKeys(index.checkForNulls(toKeys), keyTypes);
     this.toKeysInclusive = endKeysInclusive;
 
     this.serializer = index.getDatabase().getSerializer();
@@ -58,7 +62,7 @@ public class LSMTreeIndexCursor implements IndexCursor {
 
     if (compacted != null)
       // INCLUDE COMPACTED
-      compactedSeriesIterators = compacted.newIterators(ascendingOrder, fromKeys);
+      compactedSeriesIterators = compacted.newIterators(ascendingOrder, serializedFromKeys);
     else
       compactedSeriesIterators = Collections.emptyList();
 
@@ -84,21 +88,32 @@ public class LSMTreeIndexCursor implements IndexCursor {
     for (int pageId = 0; pageId < totalPages; ++pageId) {
       final int cursorIdx = compactedSeriesIterators.size() + pageId;
 
-      if (fromKeys != null) {
+      if (serializedFromKeys != null) {
         // SEEK FOR THE FROM RANGE
         final BasePage currentPage = index.getDatabase().getTransaction().getPage(new PageId(index.getFileId(), pageId), index.getPageSize());
         final Binary currentPageBuffer = new Binary(currentPage.slice());
         final int count = index.getCount(currentPage);
 
-        final LSMTreeIndexMutable.LookupResult lookupResult = index
-            .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, fromKeys, ascendingOrder ? 2 : 3);
+        if (count > 0) {
+          LSMTreeIndexMutable.LookupResult lookupResult = index
+              .lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, serializedFromKeys, ascendingOrder ? 2 : 3);
 
-        pageCursors[cursorIdx] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
-        keys[cursorIdx] = pageCursors[cursorIdx].getKeys();
+          if (!lookupResult.outside) {
+            pageCursors[cursorIdx] = index.newPageIterator(pageId, lookupResult.keyIndex, ascendingOrder);
+            keys[cursorIdx] = pageCursors[cursorIdx].getKeys();
 
-        if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[cursorIdx], fromKeys) < 0) {
-          pageCursors[cursorIdx] = null;
-          keys[cursorIdx] = null;
+            if (ascendingOrder) {
+              if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[cursorIdx], fromKeys) < 0) {
+                pageCursors[cursorIdx] = null;
+                keys[cursorIdx] = null;
+              }
+            } else {
+              if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[cursorIdx], fromKeys) > 0) {
+                pageCursors[cursorIdx] = null;
+                keys[cursorIdx] = null;
+              }
+            }
+          }
         }
 
       } else {
@@ -134,10 +149,12 @@ public class LSMTreeIndexCursor implements IndexCursor {
           }
         }
 
-        if (this.toKeys != null) {
+        if (this.serializedToKeys != null) {
+          //final Object[] cursorKey = index.convertKeys(index.checkForNulls(pageCursor.getKeys()), keyTypes);
           final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, pageCursor.getKeys(), this.toKeys);
 
-          if ((endKeysInclusive && compare <= 0) || (!endKeysInclusive && compare < 0))
+          if ((ascendingOrder && ((endKeysInclusive && compare <= 0) || (!endKeysInclusive && compare < 0))) || (!ascendingOrder && (
+              (endKeysInclusive && compare >= 0) || (!endKeysInclusive && compare > 0))))
             ;
           else
             // INVALID
@@ -204,7 +221,8 @@ public class LSMTreeIndexCursor implements IndexCursor {
             minorKeyIndex = p;
           } else {
             if (keys[p] != null) {
-              if (LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[p], minorKey) < 0) {
+              final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[p], minorKey);
+              if ((ascendingOrder && compare < 0) || (!ascendingOrder && compare > 0)) {
                 minorKey = keys[p];
                 minorKeyIndex = p;
               }
@@ -224,10 +242,11 @@ public class LSMTreeIndexCursor implements IndexCursor {
         currentCursor.next();
         keys[minorKeyIndex] = currentCursor.getKeys();
 
-        if (toKeys != null) {
+        if (serializedToKeys != null) {
           final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys);
 
-          if ((toKeysInclusive && compare > 0) || (!toKeysInclusive && compare >= 0)) {
+          if ((ascendingOrder && ((toKeysInclusive && compare > 0) || (!toKeysInclusive && compare >= 0))) || (!ascendingOrder && (
+              (toKeysInclusive && compare < 0) || (!toKeysInclusive && compare <= 0)))) {
             currentCursor.close();
             currentCursor = null;
             pageCursors[minorKeyIndex] = null;

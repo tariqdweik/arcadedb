@@ -1162,42 +1162,6 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     this.wrappedDatabaseInstance = wrappedDatabaseInstance;
   }
 
-  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry) {
-    return executeWithRetries(callback, maxRetry, 0, null);
-  }
-
-  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry, final int waitBetweenRetry) {
-    return executeWithRetries(callback, maxRetry, waitBetweenRetry, null);
-  }
-
-  public static Object executeWithRetries(final com.arcadedb.utility.Callable<Object, Integer> callback, final int maxRetry, final int waitBetweenRetry,
-      final Record[] recordToReloadOnRetry) {
-    NeedRetryException lastException = null;
-    for (int retry = 0; retry < maxRetry; ++retry) {
-      try {
-        return callback.call(retry);
-      } catch (NeedRetryException e) {
-        // SAVE LAST EXCEPTION AND RETRY
-        lastException = e;
-
-        if (recordToReloadOnRetry != null) {
-          // RELOAD THE RECORDS
-          for (Record r : recordToReloadOnRetry)
-            r.reload();
-        }
-
-        if (waitBetweenRetry > 0)
-          try {
-            Thread.sleep(waitBetweenRetry);
-          } catch (InterruptedException ignore) {
-            Thread.currentThread().interrupt();
-            break;
-          }
-      }
-    }
-    throw lastException;
-  }
-
   protected void checkDatabaseIsOpen() {
     if (!open)
       throw new DatabaseIsClosedException(name);

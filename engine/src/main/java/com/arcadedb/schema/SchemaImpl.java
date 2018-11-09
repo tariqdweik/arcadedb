@@ -805,12 +805,14 @@ public class SchemaImpl implements Schema {
   }
 
   public void registerFile(final PaginatedComponent file) {
-    while (files.size() < file.getId() + 1)
+    final int fileId = file.getId();
+
+    while (files.size() < fileId + 1)
       files.add(null);
 
-    if (files.get(file.getId()) != null)
-      throw new SchemaException("File with id '" + file.getId() + "' already exists (previous=" + files.get(file.getId()) + " new=" + file + ")");
+    if (files.get(fileId) != null)
+      throw new SchemaException("File with id '" + fileId + "' already exists (previous=" + files.get(fileId) + " new=" + file + ")");
 
-    files.set(file.getId(), file);
+    files.set(fileId, file);
   }
 }

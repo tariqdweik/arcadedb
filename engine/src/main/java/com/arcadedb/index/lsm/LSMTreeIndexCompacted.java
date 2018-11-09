@@ -216,7 +216,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
       if (fromKeys != null) {
         final Binary rootPageBuffer = new Binary(rootPage.slice());
-        final LookupResult resultInRootPage = lookupInPage(rootPageNumber, rootPageCount + 1, rootPageBuffer, convertedFromKeys, 0);
+        final LookupResult resultInRootPage = lookupInPage(rootPageNumber, rootPageCount + 1, rootPageBuffer, convertedFromKeys, ascendingOrder ? 2 : 3);
 
         if (!resultInRootPage.outside) {
           // IT'S IN THE PAGE RANGE
@@ -243,7 +243,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
           if (result.outside) {
             // STARTS FROM THE BEGINNING OF THE NEXT PAGE
             startingPageNumber = firstPageNumber + 1;
-            posInPage = 0;
+            posInPage = -1;
           } else {
             startingPageNumber = firstPageNumber;
             posInPage = result.keyIndex;
