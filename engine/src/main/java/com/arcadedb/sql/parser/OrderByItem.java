@@ -4,12 +4,13 @@
 
 package com.arcadedb.sql.parser;
 
+import com.arcadedb.log.LogManager;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
-import com.arcadedb.log.LogManager;
 
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Created by luigidellaquila on 06/02/15.
@@ -105,7 +106,7 @@ public class OrderByItem {
       try {
         result = ((Comparable) aVal).compareTo(bVal);
       } catch (Exception e) {
-        LogManager.instance().error(this, "Error during comparision", e);
+        LogManager.instance().log(this, Level.SEVERE, "Error during comparision", e);
         result = 0;
       }
     }

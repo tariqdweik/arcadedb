@@ -4,13 +4,14 @@
 package com.arcadedb.sql.function.conversion;
 
 import com.arcadedb.database.Identifiable;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
-import com.arcadedb.log.LogManager;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Level;
 
 /**
  * Transforms a value to date. If the conversion is not possible, null is returned.
@@ -43,7 +44,7 @@ public class SQLMethodAsDate extends OAbstractSQLMethod {
           return new SimpleDateFormat(iContext.getDatabase().getSchema().getDateFormat()).parse(iThis.toString());
 
         } catch (ParseException e) {
-          LogManager.instance().error(this, "Error during %s execution", e, NAME);
+          LogManager.instance().log(this, Level.SEVERE, "Error during %s execution", e, NAME);
         }
       }
     }

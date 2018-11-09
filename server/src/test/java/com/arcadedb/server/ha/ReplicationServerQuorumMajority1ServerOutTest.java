@@ -5,11 +5,12 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
-import com.arcadedb.log.LogManager;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 public class ReplicationServerQuorumMajority1ServerOutTest extends ReplicationServerTest {
   private final AtomicInteger messages = new AtomicInteger();
@@ -26,7 +27,7 @@ public class ReplicationServerQuorumMajority1ServerOutTest extends ReplicationSe
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           if (type == TYPE.REPLICA_MSG_RECEIVED) {
             if (messages.incrementAndGet() > 100) {
-              LogManager.instance().info(this, "TEST: Stopping Replica 2...");
+              LogManager.instance().log(this, Level.INFO, "TEST: Stopping Replica 2...");
               getServer(2).stop();
             }
           }

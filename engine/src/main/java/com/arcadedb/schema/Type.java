@@ -7,10 +7,10 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.sql.executor.MultiValue;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.MultiIterator;
 
 import java.math.BigDecimal;
@@ -18,6 +18,7 @@ import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Generic representation of a type.<br>
@@ -54,7 +55,8 @@ public enum Type {
 
   DATE("Date", 13, BinaryTypes.TYPE_DATE, Date.class, new Class<?>[] { Number.class }),
 
-  DECIMAL("Decimal", 14, BinaryTypes.TYPE_DECIMAL, BigDecimal.class, new Class<?>[] { BigDecimal.class, Number.class }),;
+  DECIMAL("Decimal", 14, BinaryTypes.TYPE_DECIMAL, BigDecimal.class, new Class<?>[] { BigDecimal.class, Number.class }),
+  ;
 
   // Don't change the order, the type discover get broken if you change the order.
   protected static final Type[] TYPES = new Type[] { LIST, MAP, LINK, STRING, DATETIME };
@@ -395,7 +397,7 @@ public enum Type {
               try {
                 result.add(new RID(database, iValue.toString()));
               } catch (Exception e) {
-                LogManager.instance().debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+                LogManager.instance().log(Type.class, Level.FINE, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
               }
             }
           }
@@ -404,7 +406,7 @@ public enum Type {
           try {
             return new RID(database, (String) iValue);
           } catch (Exception e) {
-            LogManager.instance().debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+            LogManager.instance().log(Type.class, Level.FINE, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
           }
         }
       }
@@ -412,7 +414,7 @@ public enum Type {
       // PASS THROUGH
       throw e;
     } catch (Exception e) {
-      LogManager.instance().debug(Type.class, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
+      LogManager.instance().log(Type.class, Level.FINE, "Error in conversion of value '%s' to type '%s'", e, iValue, iTargetClass);
       return null;
     }
 

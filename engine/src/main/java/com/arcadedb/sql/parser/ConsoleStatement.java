@@ -8,13 +8,14 @@ package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.log.LogManager;
 
 import java.util.Map;
+import java.util.logging.Level;
 
 public class ConsoleStatement extends SimpleExecStatement {
   protected Identifier logLevel;
@@ -28,22 +29,23 @@ public class ConsoleStatement extends SimpleExecStatement {
     super(p, id);
   }
 
-  @Override public ResultSet executeSimple(CommandContext ctx) {
+  @Override
+  public ResultSet executeSimple(CommandContext ctx) {
     InternalResultSet result = new InternalResultSet();
     ResultInternal item = new ResultInternal();
     Object msg = "" + message.execute((Identifiable) null, ctx);
 
     if (logLevel.getStringValue().equalsIgnoreCase("log")) {
-      LogManager.instance().info(this, "%s", msg);
+      LogManager.instance().log(this, Level.INFO, "%s", null, msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("output")) {
       System.out.println(msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("error")) {
       System.err.println(msg);
-      LogManager.instance().error(this, "%s", null, msg);
+      LogManager.instance().log(this, Level.SEVERE, "%s", null, msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("warn")) {
-      LogManager.instance().warn(this, "%s", msg);
+      LogManager.instance().log(this, Level.WARNING, "%s", null, msg);
     } else if (logLevel.getStringValue().equalsIgnoreCase("debug")) {
-      LogManager.instance().debug(this, "%s", msg);
+      LogManager.instance().log(this, Level.FINE, "%s", null, msg);
     } else {
       throw new CommandExecutionException("Unsupported log level: " + logLevel);
     }
@@ -56,21 +58,24 @@ public class ConsoleStatement extends SimpleExecStatement {
 
   }
 
-  @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
+  @Override
+  public void toString(Map<Object, Object> params, StringBuilder builder) {
     builder.append("CONSOLE.");
     logLevel.toString(params, builder);
     builder.append(" ");
     message.toString(params, builder);
   }
 
-  @Override public ConsoleStatement copy() {
+  @Override
+  public ConsoleStatement copy() {
     ConsoleStatement result = new ConsoleStatement(-1);
     result.logLevel = logLevel == null ? null : logLevel.copy();
     result.message = message == null ? null : message.copy();
     return result;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -83,7 +88,8 @@ public class ConsoleStatement extends SimpleExecStatement {
     return message != null ? message.equals(that.message) : that.message == null;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     int result = logLevel != null ? logLevel.hashCode() : 0;
     result = 31 * result + (message != null ? message.hashCode() : 0);
     return result;

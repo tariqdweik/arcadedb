@@ -11,8 +11,8 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALException;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.TransactionException;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.schema.DocumentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 public class ACIDTransactionTest extends BaseTest {
   @Override
@@ -180,7 +181,7 @@ public class ACIDTransactionTest extends BaseTest {
         @Override
         public Void call() throws IOException {
           if (commits.incrementAndGet() > TOT - 1) {
-            LogManager.instance().info(this, "TEST: Causing IOException at commit %d...", commits.get());
+            LogManager.instance().log(this, Level.INFO, "TEST: Causing IOException at commit %d...", null, commits.get());
             throw new IOException("Test IO Exception");
           }
           return null;

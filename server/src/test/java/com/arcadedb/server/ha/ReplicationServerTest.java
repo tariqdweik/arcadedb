@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public abstract class ReplicationServerTest extends BaseGraphServerTest {
   private static final int DEFAULT_MAX_RETRIES = 30;
@@ -54,7 +55,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
     Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + 0);
 
-    LogManager.instance().info(this, "TEST: Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
+    LogManager.instance().log(this, Level.INFO, "TEST: Executing %s transactions with %d vertices each...", null, getTxs(), getVerticesPerTx());
 
     final long total = getTxs() * getVerticesPerTx();
     long counter = 0;
@@ -77,7 +78,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
           break;
 
         } catch (TransactionException | NeedRetryException e) {
-          LogManager.instance().info(this, "TEST: - RECEIVED ERROR: %s (RETRY %d/%d)", e.toString(), retry, getMaxRetry());
+          LogManager.instance().log(this, Level.INFO, "TEST: - RECEIVED ERROR: %s (RETRY %d/%d)", null, e.toString(), retry, getMaxRetry());
           if (retry >= getMaxRetry() - 1)
             throw e;
           counter = lastGoodCounter;
@@ -85,7 +86,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       }
 
       if (counter % (total / 10) == 0) {
-        LogManager.instance().info(this, "TEST: - Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+        LogManager.instance().log(this, Level.INFO, "TEST: - Progress %d/%d", null, counter, (getTxs() * getVerticesPerTx()));
         if (isPrintingConfigurationAtEveryStep())
           getLeaderServer().getHA().printClusterConfiguration();
       }
@@ -93,7 +94,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       db.begin();
     }
 
-    LogManager.instance().info(this, "Done");
+    LogManager.instance().log(this, Level.INFO, "Done");
 
     Assertions.assertEquals(1 + getTxs() * getVerticesPerTx(), db.countType(VERTEX1_TYPE_NAME, true), "Check for vertex count for server" + 0);
 
@@ -156,7 +157,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         }
       }
 
-      LogManager.instance().info(this, "TEST: Entries in the index (%d) > records in database (%d)", total, recordInDb);
+      LogManager.instance().log(this, Level.INFO, "TEST: Entries in the index (%d) > records in database (%d)", null, total, recordInDb);
 
       final Map<RID, Set<String>> ridsFoundInIndex = new HashMap<>();
       long total2 = 0;
@@ -184,7 +185,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
           }
 
           if (record == null) {
-            LogManager.instance().info(this, "TEST: - Cannot find record %s in database even if it's present in the index (null)", rid);
+            LogManager.instance().log(this, Level.INFO, "TEST: - Cannot find record %s in database even if it's present in the index (null)", null, rid);
             missingsCount++;
           }
 

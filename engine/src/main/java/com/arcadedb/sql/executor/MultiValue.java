@@ -6,10 +6,14 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.log.LogManager;
-import com.arcadedb.utility.*;
+import com.arcadedb.utility.Callable;
+import com.arcadedb.utility.IterableObject;
+import com.arcadedb.utility.IterableObjectArray;
+import com.arcadedb.utility.MultiIterator;
 
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Handles Multi-value types such as Arrays, Collections and Maps. It recognizes special Orient collections.
@@ -27,9 +31,8 @@ public class MultiValue {
    * @return true if it's an array, a collection or a map, otherwise false
    */
   public static boolean isMultiValue(final Class<?> iType) {
-    return Collection.class.isAssignableFrom(iType) || iType.isArray() || Map.class.isAssignableFrom(iType) || MultiIterator.class
-        .isAssignableFrom(iType) || (Iterable.class.isAssignableFrom(iType) && !(Identifiable.class.isAssignableFrom(iType)))
-        || ResultSet.class.isAssignableFrom(iType);
+    return Collection.class.isAssignableFrom(iType) || iType.isArray() || Map.class.isAssignableFrom(iType) || MultiIterator.class.isAssignableFrom(iType) || (
+        Iterable.class.isAssignableFrom(iType) && !(Identifiable.class.isAssignableFrom(iType))) || ResultSet.class.isAssignableFrom(iType);
   }
 
   /**
@@ -102,7 +105,7 @@ public class MultiValue {
         return Array.get(iObject, 0);
     } catch (RuntimeException e) {
       // IGNORE IT
-      LogManager.instance().debug(iObject, "Error on reading the first item of the Multi-value field '%s'", iObject, e);
+      LogManager.instance().log(iObject, Level.FINE, "Error on reading the first item of the Multi-value field '%s'", null, iObject, e);
     }
 
     return null;
@@ -139,7 +142,7 @@ public class MultiValue {
         return Array.get(iObject, Array.getLength(iObject) - 1);
     } catch (RuntimeException e) {
       // IGNORE IT
-      LogManager.instance().debug(iObject, "Error on reading the last item of the Multi-value field '%s'", iObject, e);
+      LogManager.instance().log(iObject, Level.FINE, "Error on reading the last item of the Multi-value field '%s'", null, iObject, e);
     }
 
     return null;
@@ -184,9 +187,7 @@ public class MultiValue {
         return Array.get(iObject, iIndex);
       else if (iObject instanceof Iterator<?> || iObject instanceof Iterable<?>) {
 
-        final Iterator<Object> it = (iObject instanceof Iterable<?>) ?
-            ((Iterable<Object>) iObject).iterator() :
-            (Iterator<Object>) iObject;
+        final Iterator<Object> it = (iObject instanceof Iterable<?>) ? ((Iterable<Object>) iObject).iterator() : (Iterator<Object>) iObject;
         for (int i = 0; it.hasNext(); ++i) {
           final Object o = it.next();
           if (i == iIndex) {
@@ -196,7 +197,7 @@ public class MultiValue {
       }
     } catch (RuntimeException e) {
       // IGNORE IT
-      LogManager.instance().debug(iObject, "Error on reading the first item of the Multi-value field '%s'", iObject, e);
+      LogManager.instance().log(iObject, Level.FINE, "Error on reading the first item of the Multi-value field '%s'", null, iObject, e);
     }
     return null;
   }
@@ -554,8 +555,7 @@ public class MultiValue {
     return iObject;
   }
 
-  protected static void removeFromOCollection(final Object iObject, final Collection<Object> coll, final Object iToRemove,
-      final boolean iAllOccurrences) {
+  protected static void removeFromOCollection(final Object iObject, final Collection<Object> coll, final Object iToRemove, final boolean iAllOccurrences) {
     if (iAllOccurrences && !(iObject instanceof Set)) {
       // BROWSE THE COLLECTION ONE BY ONE TO REMOVE ALL THE OCCURRENCES
       final Iterator<Object> it = coll.iterator();

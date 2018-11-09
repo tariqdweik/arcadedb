@@ -14,6 +14,8 @@ import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.logging.Level;
+
 public class CRUDTest extends BaseTest {
   private static final int TOT = Bucket.DEF_PAGE_SIZE * 2;
 
@@ -77,7 +79,7 @@ public class CRUDTest extends BaseTest {
 
         Assertions.assertEquals(TOT, db.countType("V", true));
 
-        LogManager.instance().info(this, "Completed %d cycle of updates", i);
+        LogManager.instance().log(this, Level.INFO, "Completed %d cycle of updates", null, i);
       }
 
       db.scanType("V", true, new DocumentCallback() {
@@ -136,7 +138,7 @@ public class CRUDTest extends BaseTest {
 
         Assertions.assertEquals(0, db.countType("V", true));
 
-        LogManager.instance().info(this, "Completed %d cycle of updates+delete", i);
+        LogManager.instance().log(this, Level.INFO, "Completed %d cycle of updates+delete", null, i);
 
         createAll();
 

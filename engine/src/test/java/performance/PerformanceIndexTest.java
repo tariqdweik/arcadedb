@@ -4,6 +4,7 @@
 
 package performance;
 
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.MutableDocument;
@@ -23,6 +24,7 @@ public class PerformanceIndexTest {
   }
 
   private void run() {
+    GlobalConfiguration.PROFILE.setValue("high-performance");
     PerformanceTest.clean();
 
     final int parallel = 2;
@@ -58,7 +60,7 @@ public class PerformanceIndexTest {
       database.async().setCommitEvery(5000);
       database.async().setParallelLevel(parallel);
       database.async().setTransactionUseWAL(true);
-      database.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
+      database.async().setTransactionSync(WALFile.FLUSH_TYPE.NO);
 
       database.async().onError(new ErrorCallback() {
         @Override

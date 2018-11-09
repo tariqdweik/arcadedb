@@ -5,19 +5,20 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.remote.RemoteException;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
   private final AtomicInteger messages = new AtomicInteger();
@@ -37,7 +38,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
 
     db.begin();
 
-    LogManager.instance().info(this, "Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
+    LogManager.instance().log(this, Level.INFO, "Executing %s transactions with %d vertices each...", null, getTxs(), getVerticesPerTx());
 
     long counter = 0;
 
@@ -61,7 +62,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
             break;
           } catch (RemoteException e) {
             // IGNORE IT
-            LogManager.instance().error(this, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
+            LogManager.instance().log(this, Level.SEVERE, "Error on creating vertex %d, retrying (retry=%d/%d)...", e, counter, retry, maxRetry);
             try {
               Thread.sleep(500);
             } catch (InterruptedException e1) {
@@ -74,7 +75,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
       db.commit();
 
       if (counter % 1000 == 0) {
-        LogManager.instance().info(this, "- Progress %d/%d", counter, (getTxs() * getVerticesPerTx()));
+        LogManager.instance().log(this, Level.INFO, "- Progress %d/%d", null, counter, (getTxs() * getVerticesPerTx()));
         if (isPrintingConfigurationAtEveryStep())
           getLeaderServer().getHA().printClusterConfiguration();
       }
@@ -82,7 +83,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
       db.begin();
     }
 
-    LogManager.instance().info(this, "Done");
+    LogManager.instance().log(this, Level.INFO, "Done");
 
     try {
       Thread.sleep(1000);
@@ -106,7 +107,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           if (type == TYPE.REPLICA_MSG_RECEIVED) {
             if (messages.incrementAndGet() > 10 && getServer(0).isStarted()) {
-              LogManager.instance().info(this, "TEST: Stopping the Leader...");
+              LogManager.instance().log(this, Level.INFO, "TEST: Stopping the Leader...");
 
               executeAsynchronously(new Callable() {
                 @Override

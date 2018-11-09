@@ -4,12 +4,13 @@
 package com.arcadedb.sql.function.conversion;
 
 import com.arcadedb.database.Identifiable;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.Type;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.method.misc.OAbstractSQLMethod;
-import com.arcadedb.log.LogManager;
 
 import java.util.Locale;
+import java.util.logging.Level;
 
 /**
  * Converts a value to another type in Java or OrientDB's supported types.
@@ -30,8 +31,7 @@ public class SQLMethodConvert extends OAbstractSQLMethod {
   }
 
   @Override
-  public Object execute( final Object iThis, final Identifiable iCurrentRecord,
-      final CommandContext iContext, final Object ioResult, final Object[] iParams) {
+  public Object execute(final Object iThis, final Identifiable iCurrentRecord, final CommandContext iContext, final Object ioResult, final Object[] iParams) {
     if (iThis == null || iParams[0] == null) {
       return null;
     }
@@ -42,7 +42,7 @@ public class SQLMethodConvert extends OAbstractSQLMethod {
       try {
         return Type.convert(iContext.getDatabase(), iThis, Class.forName(destType));
       } catch (ClassNotFoundException e) {
-        LogManager.instance().error(this, "Class for destination type was not found", e);
+        LogManager.instance().log(this, Level.SEVERE, "Class for destination type was not found", e);
       }
     } else {
       final Type orientType = Type.valueOf(destType.toUpperCase(Locale.ENGLISH));

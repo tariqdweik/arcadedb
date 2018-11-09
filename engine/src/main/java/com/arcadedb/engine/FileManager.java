@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class FileManager {
   private final String             path;
@@ -52,7 +53,7 @@ public class FileManager {
             registerFile(file);
 
           } catch (FileNotFoundException e) {
-            LogManager.instance().warn(this, "Cannot load file '%s'", f);
+            LogManager.instance().log(this, Level.WARNING, "Cannot load file '%s'", null,f);
           }
       }
     }
@@ -86,7 +87,7 @@ public class FileManager {
 
   public void setVirtualFileSize(final Integer fileId, final long fileSize) {
     fileVirtualSize.put(fileId, fileSize);
-//    LogManager.instance().info(this, "File %d vSize=%d (thread=%d)", fileId, fileSize, Thread.currentThread().getId());
+//    LogManager.instance().log(this, Level.INFO, "File %d vSize=%d (thread=%d)", fileId, fileSize, Thread.currentThread().getId());
   }
 
   public PFileManagerStats getStats() {

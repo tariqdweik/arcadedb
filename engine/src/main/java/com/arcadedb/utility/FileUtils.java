@@ -16,6 +16,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.logging.Level;
 
 public class FileUtils {
   public static final int    KILOBYTE = 1024;
@@ -327,7 +328,7 @@ public class FileUtils {
     try {
       return java.net.URLEncoder.encode(value, encoding);
     } catch (UnsupportedEncodingException e) {
-      LogManager.instance().error(FileUtils.class, "Error on using encoding " + encoding, e);
+      LogManager.instance().log(FileUtils.class, Level.SEVERE, "Error on using encoding " + encoding, e);
       return value;
     }
   }

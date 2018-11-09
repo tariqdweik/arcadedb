@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.*;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public abstract class Channel {
   private static final AtomicLong   metricGlobalTransmittedBytes = new AtomicLong();
@@ -81,7 +82,7 @@ public abstract class Channel {
         socket = null;
       }
     } catch (Exception e) {
-      LogManager.instance().debug(this, "Error during socket close", e);
+      LogManager.instance().log(this, Level.FINE, "Error during socket close", e);
     }
 
     try {
@@ -90,7 +91,7 @@ public abstract class Channel {
         inStream = null;
       }
     } catch (Exception e) {
-      LogManager.instance().debug(this, "Error during closing of input stream", e);
+      LogManager.instance().log(this, Level.FINE, "Error during closing of input stream", e);
     }
 
     try {
@@ -99,7 +100,7 @@ public abstract class Channel {
         outStream = null;
       }
     } catch (Exception e) {
-      LogManager.instance().debug(this, "Error during closing of output stream", e);
+      LogManager.instance().log(this, Level.FINE, "Error during closing of output stream", e);
     }
   }
 

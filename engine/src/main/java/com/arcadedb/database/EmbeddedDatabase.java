@@ -42,6 +42,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 
 public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal {
   protected final    String                name;
@@ -132,7 +133,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         configuration.reset();
         configuration.fromJSON(content);
       } catch (IOException e) {
-        LogManager.instance().error(this, "Error on loading configuration from file '%s'", e, file);
+        LogManager.instance().log(this, Level.SEVERE, "Error on loading configuration from file '%s'", e, file);
       }
     }
 
@@ -151,7 +152,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     try {
       FileUtils.writeFile(new File(cfgFileName), configuration.toJSON());
     } catch (IOException e) {
-      LogManager.instance().error(this, "Error on saving configuration to file '%s'", e, cfgFileName);
+      LogManager.instance().log(this, Level.SEVERE, "Error on saving configuration to file '%s'", e, cfgFileName);
     }
   }
 
@@ -203,7 +204,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       lockDatabase();
 
       // RECOVERY
-      LogManager.instance().warn(this, "Database '%s' was not closed properly last time", name);
+      LogManager.instance().log(this, Level.WARNING, "Database '%s' was not closed properly last time", null, name);
 
       if (mode == PaginatedFile.MODE.READ_ONLY)
         throw new DatabaseMetadataException("Database needs recovery but has been open in read only mode");
@@ -1055,7 +1056,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       return callable.call();
 
     } catch (ClosedChannelException e) {
-      LogManager.instance().error(this, "Database '%s' has some files that are closed", e, name);
+      LogManager.instance().log(this, Level.SEVERE, "Database '%s' has some files that are closed", e, name);
       close();
       throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
 
@@ -1081,7 +1082,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       return callable.call();
 
     } catch (ClosedChannelException e) {
-      LogManager.instance().error(this, "Database '%s' has some files that are closed", e, name);
+      LogManager.instance().log(this, Level.SEVERE, "Database '%s' has some files that are closed", e, name);
       close();
       throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
 

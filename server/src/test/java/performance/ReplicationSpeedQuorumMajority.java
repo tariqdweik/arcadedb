@@ -9,12 +9,13 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.UUID;
+import java.util.logging.Level;
 
 public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
   public static void main(final String[] args) {
@@ -83,7 +84,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
     });
 
     // CLOSE ALL DATABASES BEFORE TO START THE SERVERS
-    LogManager.instance().info(this, "TEST: Closing databases before starting");
+    LogManager.instance().log(this, Level.INFO, "TEST: Closing databases before starting");
     for (int i = 0; i < databases.length; ++i) {
       databases[i].close();
       databases[i] = null;
@@ -96,7 +97,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 //    db.begin();
 //    db.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.YES_NO_METADATA);
 
-    LogManager.instance().info(this, "TEST: Executing %s transactions with %d vertices each...", getTxs(), getVerticesPerTx());
+    LogManager.instance().log(this, Level.INFO, "TEST: Executing %s transactions with %d vertices each...", null, getTxs(), getVerticesPerTx());
 
     final int totalToInsert = getTxs() * getVerticesPerTx();
     long counter = 0;
@@ -142,7 +143,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
         if (counter % 1000 == 0) {
           if (System.currentTimeMillis() - lastLap > 1000) {
-            LogManager.instance().info(this, "TEST: - Progress %d/%d (%d records/sec)", counter, totalToInsert, counter - lastLapCounter);
+            LogManager.instance().log(this, Level.INFO, "TEST: - Progress %d/%d (%d records/sec)", null, counter, totalToInsert, counter - lastLapCounter);
             lastLap = System.currentTimeMillis();
             lastLapCounter = counter;
           }
@@ -157,7 +158,7 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
     db.async().waitCompletion();
 
-    LogManager.instance().info(this, "Done");
+    LogManager.instance().log(this, Level.INFO, "Done");
 
     //Assertions.assertEquals(totalToInsert, db.countType("Device", true), "Check for vertex count for server" + 0);
 

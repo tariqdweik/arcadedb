@@ -6,8 +6,8 @@ package com.arcadedb.importer;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.utility.FileUtils;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -15,6 +15,7 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class XMLImporter implements ContentImporter {
   @Override
@@ -74,7 +75,7 @@ public class XMLImporter implements ContentImporter {
           if (lastName != null)
             object.put(lastName, lastContent);
 
-          LogManager.instance().debug(this, "</%s> (nestLevel=%d)", xmlReader.getName(), nestLevel);
+          LogManager.instance().log(this, Level.FINE, "</%s> (nestLevel=%d)", null, xmlReader.getName(), nestLevel);
 
           --nestLevel;
 
@@ -90,7 +91,8 @@ public class XMLImporter implements ContentImporter {
 
         case XMLStreamReader.ATTRIBUTE:
           ++nestLevel;
-          LogManager.instance().debug(this, "- attribute %s attributes=%d (nestLevel=%d)", xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+          LogManager.instance()
+              .log(this, Level.FINE, "- attribute %s attributes=%d (nestLevel=%d)", null, xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
           break;
 
         case XMLStreamReader.CHARACTERS:
@@ -166,7 +168,7 @@ public class XMLImporter implements ContentImporter {
           break;
 
         case XMLStreamReader.START_ELEMENT:
-          LogManager.instance().debug(this, "<%s> attributes=%d (nestLevel=%d)", xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+          LogManager.instance().log(this, Level.FINE, "<%s> attributes=%d (nestLevel=%d)", null, xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
 
           if (nestLevel == objectNestLevel) {
             entityName = xmlReader.getName().toString();
@@ -191,7 +193,7 @@ public class XMLImporter implements ContentImporter {
           if (lastName != null)
             schema.setProperty(entityName, lastName, lastContent);
 
-          LogManager.instance().debug(this, "</%s> (nestLevel=%d)", xmlReader.getName(), nestLevel);
+          LogManager.instance().log(this, Level.FINE, "</%s> (nestLevel=%d)", null, xmlReader.getName(), nestLevel);
 
           --nestLevel;
 
@@ -202,16 +204,16 @@ public class XMLImporter implements ContentImporter {
               parsedStructure = true;
 
             if (parsedObjects % 10000 == 0) {
-              LogManager.instance()
-                  .info(this, "- Parsed %d XML objects (%s%s/%s%s)", parsedObjects, currentUnit, FileUtils.getSizeAsString(parser.getPosition()), totalUnit,
-                      FileUtils.getSizeAsString(parser.getTotal()));
+              LogManager.instance().log(this, Level.INFO, "- Parsed %d XML objects (%s%s/%s%s)", null, parsedObjects, currentUnit,
+                  FileUtils.getSizeAsString(parser.getPosition()), totalUnit, FileUtils.getSizeAsString(parser.getTotal()));
             }
           }
           break;
 
         case XMLStreamReader.ATTRIBUTE:
           ++nestLevel;
-          LogManager.instance().debug(this, "- attribute %s attributes=%d (nestLevel=%d)", xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+          LogManager.instance()
+              .log(this, Level.FINE, "- attribute %s attributes=%d (nestLevel=%d)", null, xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
           break;
 
         case XMLStreamReader.CHARACTERS:
@@ -238,7 +240,7 @@ public class XMLImporter implements ContentImporter {
       // IGNORE IT
 
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on parsing XML", e);
+      LogManager.instance().log(this, Level.SEVERE, "Error on parsing XML", e);
       return null;
     }
 

@@ -10,14 +10,15 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.index.Index;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Level;
 
 public class PerformanceVertexIndexTest {
   private static final int    TOT               = 10_000_000;
@@ -112,7 +113,7 @@ public class PerformanceVertexIndexTest {
       database.async().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
-          LogManager.instance().info(this, "TEST: ERROR: " + exception);
+          LogManager.instance().log(this, Level.INFO, "TEST: ERROR: " + exception);
           exception.printStackTrace();
           Assertions.fail(exception);
         }
@@ -151,18 +152,18 @@ public class PerformanceVertexIndexTest {
 
         if (counter % 1000 == 0) {
           if (System.currentTimeMillis() - lastLap > 1000) {
-            LogManager.instance().info(this, "TEST: - Progress %d/%d (%d records/sec)", counter, totalToInsert, counter - lastLapCounter);
+            LogManager.instance().log(this, Level.INFO, "TEST: - Progress %d/%d (%d records/sec)", null, counter, totalToInsert, counter - lastLapCounter);
             lastLap = System.currentTimeMillis();
             lastLapCounter = counter;
           }
         }
       }
 
-      LogManager.instance().info(this, "TEST: Inserted " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "TEST: Inserted " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
       database.close();
-      LogManager.instance().info(this, "TEST: Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "TEST: Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 
@@ -171,7 +172,7 @@ public class PerformanceVertexIndexTest {
     long begin = System.currentTimeMillis();
 
     try {
-      LogManager.instance().info(this, "TEST: Lookup for keys...");
+      LogManager.instance().log(this, Level.INFO, "TEST: Lookup for keys...");
 
       begin = System.currentTimeMillis();
 
@@ -191,13 +192,13 @@ public class PerformanceVertexIndexTest {
           long delta = System.currentTimeMillis() - begin;
           if (delta < 1)
             delta = 1;
-          LogManager.instance().info(this, "Checked " + checked + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
+          LogManager.instance().log(this, Level.INFO, "Checked " + checked + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
           begin = System.currentTimeMillis();
         }
       }
     } finally {
       database.close();
-      LogManager.instance().info(this, "TEST: Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "TEST: Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 }

@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Level;
 
 /**
  * Keeps all configuration settings. At startup assigns the configuration values by reading system properties.
@@ -94,9 +95,8 @@ public enum GlobalConfiguration {// ENVIRONMENT
       final long maxRAM = (long) value * 1024 * 1024;
       if (maxRAM > Runtime.getRuntime().maxMemory() * 80 / 100) {
         final long newValue = Runtime.getRuntime().maxMemory() / 2;
-        LogManager.instance()
-            .warn(this, "Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", MAX_PAGE_RAM.key, FileUtils.getSizeAsString(maxRAM),
-                FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()), FileUtils.getSizeAsString(newValue));
+        LogManager.instance().log(this, Level.WARNING, "Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", null, MAX_PAGE_RAM.key,
+            FileUtils.getSizeAsString(maxRAM), FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()), FileUtils.getSizeAsString(newValue));
         return newValue;
       }
       return value;
@@ -446,7 +446,7 @@ public enum GlobalConfiguration {// ENVIRONMENT
           // OVERWRITE IT
           value = newValue;
       } catch (Exception e) {
-        LogManager.instance().error(this, "Error during setting property %s=%s", e, key, value);
+        LogManager.instance().log(this, Level.SEVERE, "Error during setting property %s=%s", e, key, value);
       }
   }
 
@@ -498,4 +498,5 @@ public enum GlobalConfiguration {// ENVIRONMENT
 
   public String getDescription() {
     return description;
-  }}
+  }
+}

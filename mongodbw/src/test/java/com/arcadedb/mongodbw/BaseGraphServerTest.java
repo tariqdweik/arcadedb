@@ -10,11 +10,11 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.graph.MutableEdge;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +25,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 
 /**
  * This class has been copied under Console project to avoid complex dependencies.
@@ -52,7 +53,7 @@ public abstract class BaseGraphServerTest {
   public void beginTest() {
     checkArcadeIsTotallyDown();
 
-    LogManager.instance().info(this, "Starting test %s...", getClass().getName());
+    LogManager.instance().log(this, Level.INFO, "Starting test %s...", null, getClass().getName());
 
     if (isCreateDatabases()) {
       deleteDatabaseFolders();
@@ -125,7 +126,7 @@ public abstract class BaseGraphServerTest {
     }
 
     // CLOSE ALL DATABASES BEFORE TO START THE SERVERS
-    LogManager.instance().info(this, "TEST: Closing databases before starting");
+    LogManager.instance().log(this, Level.INFO, "TEST: Closing databases before starting");
     for (int i = 0; i < databases.length; ++i) {
       databases[i].close();
       databases[i] = null;
@@ -139,7 +140,7 @@ public abstract class BaseGraphServerTest {
     try {
       checkDatabasesAreIdentical();
     } finally {
-      LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
+      LogManager.instance().log(this, Level.INFO, "END OF THE TEST: Cleaning test %s...", null, getClass().getName());
       if (servers != null)
         for (int i = servers.length - 1; i > -1; --i) {
           if (servers[i] != null)
@@ -291,7 +292,7 @@ public abstract class BaseGraphServerTest {
     final int onlineReplicas = getLeaderServer().getHA().getOnlineReplicas();
     if (1 + onlineReplicas < getServerCount()) {
       // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
-      LogManager.instance().info(this, "TEST: Not all the servers are ONLINE (%d), skip this crash...", onlineReplicas);
+      LogManager.instance().log(this, Level.INFO, "TEST: Not all the servers are ONLINE (%d), skip this crash...", null, onlineReplicas);
       getLeaderServer().getHA().printClusterConfiguration();
       return false;
     }
@@ -321,13 +322,14 @@ public abstract class BaseGraphServerTest {
     final int[] servers2Check = getServerToCheck();
 
     if (servers2Check.length > 1) {
-      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
+      LogManager.instance().log(this, Level.INFO, "END OF THE TEST: Check DBS are identical...");
 
       for (int i = 1; i < servers2Check.length; ++i) {
         final DatabaseInternal db1 = (DatabaseInternal) getServerDatabase(servers2Check[0], getDatabaseName());
         final DatabaseInternal db2 = (DatabaseInternal) getServerDatabase(servers2Check[i], getDatabaseName());
 
-        LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1.getDatabasePath(), db2.getDatabasePath());
+        LogManager.instance()
+            .log(this, Level.INFO, "TEST: Comparing databases '%s' and '%s' are identical...", null, db1.getDatabasePath(), db2.getDatabasePath());
         new DatabaseComparator().compare(db1, db2);
       }
     }

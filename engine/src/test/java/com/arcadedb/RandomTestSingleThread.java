@@ -9,10 +9,10 @@ import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Test;
 import performance.PerformanceTest;
 
@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class RandomTestSingleThread extends BaseTest {
   private static final int CYCLES           = 1500;
@@ -34,7 +35,7 @@ public class RandomTestSingleThread extends BaseTest {
 
   @Test
   public void testRandom() {
-    LogManager.instance().info(this, "Executing " + CYCLES + " transactions");
+    LogManager.instance().log(this, Level.INFO, "Executing " + CYCLES + " transactions");
 
     PerformanceTest.clean();
     createSchema();
@@ -50,7 +51,7 @@ public class RandomTestSingleThread extends BaseTest {
 
           final int op = rnd.nextInt(6);
 
-          LogManager.instance().info(this, "Operation %d %d/%d", op, i, CYCLES);
+          LogManager.instance().log(this, Level.INFO, "Operation %d %d/%d", null, op, i, CYCLES);
 
           switch (op) {
           case 0:
@@ -66,7 +67,7 @@ public class RandomTestSingleThread extends BaseTest {
             Thread.sleep(rnd.nextInt(100));
             break;
           case 5:
-            LogManager.instance().info(this, "Comitting...");
+            LogManager.instance().log(this, Level.INFO, "Comitting...");
             database.commit();
             database.begin();
             break;
@@ -77,7 +78,7 @@ public class RandomTestSingleThread extends BaseTest {
             mvccErrors.incrementAndGet();
           } else {
             otherErrors.incrementAndGet();
-            LogManager.instance().error(this, "UNEXPECTED ERROR: " + e, e);
+            LogManager.instance().log(this, Level.SEVERE, "UNEXPECTED ERROR: " + e, e);
           }
         }
       }
@@ -99,7 +100,7 @@ public class RandomTestSingleThread extends BaseTest {
   private void createTransactions(Database database) {
     final int txOps = rnd.nextInt(100);
 
-    LogManager.instance().info(this, "Creating %d transactions...", txOps);
+    LogManager.instance().log(this, Level.INFO, "Creating %d transactions...", null, txOps);
 
     for (long txId = 0; txId < txOps; ++txId) {
       final MutableDocument tx = database.newVertex("Transaction");
@@ -111,7 +112,7 @@ public class RandomTestSingleThread extends BaseTest {
   }
 
   private void deleteRecords(Database database) {
-    LogManager.instance().info(this, "Deleting records...");
+    LogManager.instance().log(this, Level.INFO, "Deleting records...");
 
     final Iterator<Record> iter = database.iterateType("Account", true);
 
@@ -120,7 +121,7 @@ public class RandomTestSingleThread extends BaseTest {
 
       if (rnd.nextInt(2) == 0) {
         database.deleteRecord(next);
-        LogManager.instance().info(this, "Deleted record %s", next.getIdentity());
+        LogManager.instance().log(this, Level.INFO, "Deleted record %s", null, next.getIdentity());
       }
     }
   }
@@ -144,7 +145,7 @@ public class RandomTestSingleThread extends BaseTest {
       database.commit();
 
     } finally {
-      LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 

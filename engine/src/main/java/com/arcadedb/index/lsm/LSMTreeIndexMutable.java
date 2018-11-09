@@ -18,12 +18,13 @@ import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.IndexCursorEntry;
 import com.arcadedb.index.TempIndexCursor;
-import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.serializer.BinaryTypes;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
@@ -99,7 +100,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       try {
         subIndex = (LSMTreeIndexCompacted) database.getSchema().getFileById(subIndexFileId);
       } catch (Exception e) {
-        LogManager.instance().info(this, "Invalid subindex for index '%s', ignoring it", name);
+        LogManager.instance().log(this, Level.INFO, "Invalid subindex for index '%s', ignoring it", null, name);
       }
     }
   }
@@ -108,7 +109,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
   public void onAfterCommit() {
     if (minPagesToScheduleACompaction > 0 && currentMutablePages >= minPagesToScheduleACompaction) {
       LogManager.instance()
-          .debug(this, "Scheduled compaction of index '%s' (currentMutablePages=%d totalPages=%d)", name, currentMutablePages, getTotalPages());
+          .log(this, Level.FINE, "Scheduled compaction of index '%s' (currentMutablePages=%d totalPages=%d)", null, name, currentMutablePages, getTotalPages());
       database.async().compact(mainIndex);
     }
   }
@@ -438,8 +439,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
       if (LogManager.instance().isDebugEnabled())
         LogManager.instance()
-            .debug(this, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), Arrays.toString(rids), name,
-                currentPage.getPageId(), count + 1, newPage);
+            .log(this, Level.FINE, "Put entry %s=%s in index '%s' (page=%s countInPage=%d newPage=%s)", null, Arrays.toString(keys), Arrays.toString(rids),
+                name, currentPage.getPageId(), count + 1, newPage);
 
     } catch (IOException e) {
       throw new DatabaseOperationException(
@@ -557,8 +558,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
       if (LogManager.instance().isDebugEnabled())
         LogManager.instance()
-            .debug(this, "Put removed entry %s=%s (original=%s) in index '%s' (page=%s countInPage=%d newPage=%s)", Arrays.toString(keys), removedRID, rid,
-                name, currentPage.getPageId(), count + 1, newPage);
+            .log(this, Level.FINE, "Put removed entry %s=%s (original=%s) in index '%s' (page=%s countInPage=%d newPage=%s)", null, Arrays.toString(keys),
+                removedRID, rid, name, currentPage.getPageId(), count + 1, newPage);
 
     } catch (IOException e) {
       throw new DatabaseOperationException("Cannot index key '" + Arrays.toString(keys) + "' with value '" + rid + "' in index '" + name + "'", e);

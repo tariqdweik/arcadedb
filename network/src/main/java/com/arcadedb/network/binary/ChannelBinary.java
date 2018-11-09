@@ -13,6 +13,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.logging.Level;
 
 /**
  * Abstract representation of a channel.
@@ -31,16 +32,16 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     debug = false;
 
     if (debug)
-      LogManager.instance().info(this, "%s - Connected", socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Connected", null, socket.getRemoteSocketAddress());
   }
 
   public byte readByte() throws IOException {
     updateMetricReceivedBytes(Binary.BYTE_SERIALIZED_SIZE);
 
     if (debug) {
-      LogManager.instance().info(this, "%s - Reading byte (1 byte)...", socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Reading byte (1 byte)...", null, socket.getRemoteSocketAddress());
       final byte value = in.readByte();
-      LogManager.instance().info(this, "%s - Read byte: %d", socket.getRemoteSocketAddress(), (int) value);
+      LogManager.instance().log(this, Level.INFO, "%s - Read byte: %d", null, socket.getRemoteSocketAddress(), (int) value);
       return value;
     }
 
@@ -51,9 +52,9 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     updateMetricReceivedBytes(Binary.BYTE_SERIALIZED_SIZE);
 
     if (debug) {
-      LogManager.instance().info(this, "%s - Reading boolean (1 byte)...", socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Reading boolean (1 byte)...", null, socket.getRemoteSocketAddress());
       final boolean value = in.readBoolean();
-      LogManager.instance().info(this, "%s - Read boolean: %b", socket.getRemoteSocketAddress(), value);
+      LogManager.instance().log(this, Level.INFO, "%s - Read boolean: %b", null, socket.getRemoteSocketAddress(), value);
       return value;
     }
 
@@ -64,9 +65,9 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     updateMetricReceivedBytes(Binary.INT_SERIALIZED_SIZE);
 
     if (debug) {
-      LogManager.instance().info(this, "%s - Reading int (4 bytes)...", socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Reading int (4 bytes)...", null, socket.getRemoteSocketAddress());
       final int value = in.readInt();
-      LogManager.instance().info(this, "%s - Read int: %d", socket.getRemoteSocketAddress(), value);
+      LogManager.instance().log(this, Level.INFO, "%s - Read int: %d", null, socket.getRemoteSocketAddress(), value);
       return value;
     }
 
@@ -77,9 +78,9 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     updateMetricReceivedBytes(Binary.LONG_SERIALIZED_SIZE);
 
     if (debug) {
-      LogManager.instance().info(this, "%s - Reading long (8 bytes)...", socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Reading long (8 bytes)...", null, socket.getRemoteSocketAddress());
       final long value = in.readLong();
-      LogManager.instance().info(this, "%s - Read long: %d", socket.getRemoteSocketAddress(), value);
+      LogManager.instance().log(this, Level.INFO, "%s - Read long: %d", null, socket.getRemoteSocketAddress(), value);
       return value;
     }
 
@@ -90,9 +91,9 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     updateMetricReceivedBytes(Binary.SHORT_SERIALIZED_SIZE);
 
     if (debug) {
-      LogManager.instance().info(this, "%s - Reading short (2 bytes)...", socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Reading short (2 bytes)...", null, socket.getRemoteSocketAddress());
       final short value = in.readShort();
-      LogManager.instance().info(this, "%s - Read short: %d", socket.getRemoteSocketAddress(), value);
+      LogManager.instance().log(this, Level.INFO, "%s - Read short: %d", null, socket.getRemoteSocketAddress(), value);
       return value;
     }
 
@@ -101,7 +102,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public String readString() throws IOException {
     if (debug) {
-      LogManager.instance().info(this, "%s - Reading string (4+N bytes)...", socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Reading string (4+N bytes)...", null, socket.getRemoteSocketAddress());
       final int len = in.readInt();
       if (len < 0)
         return null;
@@ -113,7 +114,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
       updateMetricReceivedBytes(Binary.INT_SERIALIZED_SIZE + len);
 
       final String value = new String(tmp, "UTF-8");
-      LogManager.instance().info(this, "%s - Read string: %s", socket.getRemoteSocketAddress(), value);
+      LogManager.instance().log(this, Level.INFO, "%s - Read string: %s", null, socket.getRemoteSocketAddress(), value);
       return value;
     }
 
@@ -131,7 +132,8 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public byte[] readBytes() throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Reading chunk of bytes. Reading chunk length as int (4 bytes)...", socket.getRemoteSocketAddress());
+      LogManager.instance()
+          .log(this, Level.INFO, "%s - Reading chunk of bytes. Reading chunk length as int (4 bytes)...", null, socket.getRemoteSocketAddress());
 
     final int len = in.readInt();
     if (len > maxChunkSize) {
@@ -141,20 +143,20 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     updateMetricReceivedBytes(Binary.INT_SERIALIZED_SIZE + len);
 
     if (debug)
-      LogManager.instance().info(this, "%s - Read chunk length: %d", socket.getRemoteSocketAddress(), len);
+      LogManager.instance().log(this, Level.INFO, "%s - Read chunk length: %d", null, socket.getRemoteSocketAddress(), len);
 
     if (len < 0)
       return null;
 
     if (debug)
-      LogManager.instance().info(this, "%s - Reading %d bytes...", socket.getRemoteSocketAddress(), len);
+      LogManager.instance().log(this, Level.INFO, "%s - Reading %d bytes...", null, socket.getRemoteSocketAddress(), len);
 
     // REUSE STATIC BUFFER?
     final byte[] tmp = new byte[len];
     in.readFully(tmp);
 
     if (debug)
-      LogManager.instance().info(this, "%s - Read %d bytes: %s", socket.getRemoteSocketAddress(), len, new String(tmp));
+      LogManager.instance().log(this, Level.INFO, "%s - Read %d bytes: %s", null, socket.getRemoteSocketAddress(), len, new String(tmp));
 
     return tmp;
   }
@@ -171,7 +173,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeByte(final byte iContent) throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Writing byte (1 byte): %d", socket.getRemoteSocketAddress(), iContent);
+      LogManager.instance().log(this, Level.INFO, "%s - Writing byte (1 byte): %d", null, socket.getRemoteSocketAddress(), iContent);
 
     out.write(iContent);
     updateMetricTransmittedBytes(Binary.BYTE_SERIALIZED_SIZE);
@@ -180,7 +182,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeBoolean(final boolean iContent) throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Writing boolean (1 byte): %b", socket.getRemoteSocketAddress(), iContent);
+      LogManager.instance().log(this, Level.INFO, "%s - Writing boolean (1 byte): %b", null, socket.getRemoteSocketAddress(), iContent);
 
     out.writeBoolean(iContent);
     updateMetricTransmittedBytes(Binary.BYTE_SERIALIZED_SIZE);
@@ -189,7 +191,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeInt(final int iContent) throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Writing int (4 bytes): %d", socket.getRemoteSocketAddress(), iContent);
+      LogManager.instance().log(this, Level.INFO, "%s - Writing int (4 bytes): %d", null, socket.getRemoteSocketAddress(), iContent);
 
     out.writeInt(iContent);
     updateMetricTransmittedBytes(Binary.INT_SERIALIZED_SIZE);
@@ -198,7 +200,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeLong(final long iContent) throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Writing long (8 bytes): %d", socket.getRemoteSocketAddress(), iContent);
+      LogManager.instance().log(this, Level.INFO, "%s - Writing long (8 bytes): %d", null, socket.getRemoteSocketAddress(), iContent);
 
     out.writeLong(iContent);
     updateMetricTransmittedBytes(Binary.LONG_SERIALIZED_SIZE);
@@ -207,7 +209,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeShort(final short iContent) throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Writing short (2 bytes): %d", socket.getRemoteSocketAddress(), iContent);
+      LogManager.instance().log(this, Level.INFO, "%s - Writing short (2 bytes): %d", null, socket.getRemoteSocketAddress(), iContent);
 
     out.writeShort(iContent);
     updateMetricTransmittedBytes(Binary.SHORT_SERIALIZED_SIZE);
@@ -216,8 +218,9 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeString(final String iContent) throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Writing string (4+%d=%d bytes): %s", socket.getRemoteSocketAddress(), iContent != null ? iContent.length() : 0,
-          iContent != null ? iContent.length() + 4 : 4, iContent);
+      LogManager.instance()
+          .log(this, Level.INFO, "%s - Writing string (4+%d=%d bytes): %s", null, socket.getRemoteSocketAddress(), iContent != null ? iContent.length() : 0,
+              iContent != null ? iContent.length() + 4 : 4, iContent);
 
     if (iContent == null) {
       out.writeInt(-1);
@@ -238,8 +241,8 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public ChannelBinary writeBytes(final byte[] iContent, final int iLength) throws IOException {
     if (debug)
-      LogManager.instance()
-          .info(this, "%s - Writing bytes (4+%d=%d bytes): %s", socket.getRemoteSocketAddress(), iLength, iLength + 4, Arrays.toString(iContent));
+      LogManager.instance().log(this, Level.INFO, "%s - Writing bytes (4+%d=%d bytes): %s", null, socket.getRemoteSocketAddress(), iLength, iLength + 4,
+          Arrays.toString(iContent));
 
     if (iContent == null) {
       out.writeInt(-1);
@@ -284,7 +287,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     final String message = "Received unread response from " + socket.getRemoteSocketAddress()
         + " probably corrupted data from the network connection. Cleared dirty data in the buffer (" + i + " bytes): [" + dirtyBuffer + (
         i > dirtyBuffer.length() ? "..." : "") + "]";
-    LogManager.instance().error(this, message, null);
+    LogManager.instance().log(this, Level.SEVERE, message, null);
     throw new IOException(message);
 
   }
@@ -292,7 +295,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
   @Override
   public void flush() throws IOException {
     if (debug)
-      LogManager.instance().info(this, "%s - Flush", socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
+      LogManager.instance().log(this, Level.INFO, "%s - Flush", null, socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
 
     updateMetricFlushes();
 
@@ -306,14 +309,15 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
   @Override
   public void close() {
     if (debug)
-      LogManager.instance().info(this, "%s - Closing socket...", socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
+      LogManager.instance()
+          .log(this, Level.INFO, "%s - Closing socket...", null, socket != null ? " null possible previous close" : socket.getRemoteSocketAddress());
 
     try {
       if (in != null) {
         in.close();
       }
     } catch (IOException e) {
-      LogManager.instance().debug(this, "Error during closing of input stream", e);
+      LogManager.instance().log(this, Level.FINE, "Error during closing of input stream", e);
     }
 
     try {
@@ -321,7 +325,7 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
         out.close();
       }
     } catch (IOException e) {
-      LogManager.instance().debug(this, "Error during closing of output stream", e);
+      LogManager.instance().log(this, Level.FINE, "Error during closing of output stream", e);
     }
 
     super.close();

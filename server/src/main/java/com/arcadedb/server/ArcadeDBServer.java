@@ -26,9 +26,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
 public class ArcadeDBServer {
-  public static final String CONFIG_SERVER_CONFIGURATION_FILENAME = "config/server-configuration.json";
-  private final        ContextConfiguration configuration;
-  private final        boolean              fileConfiguration;
+  public static final String               CONFIG_SERVER_CONFIGURATION_FILENAME = "config/server-configuration.json";
+  private final       ContextConfiguration configuration;
+  private final       boolean              fileConfiguration;
 
   private HAServer       haServer;
   private ServerSecurity security;
@@ -329,7 +329,7 @@ public class ArcadeDBServer {
       for (String db : dbs) {
         final int credentialPos = db.indexOf('[');
         if (credentialPos < 0) {
-          LogManager.instance().warn(this, "Error in default databases format: '%s'", defaultDatabases);
+          LogManager.instance().log(this, Level.WARNING, "Error in default databases format: '%s'", null, defaultDatabases);
           break;
         }
 
@@ -343,7 +343,8 @@ public class ArcadeDBServer {
 
           if (passwordSeparator < 0) {
             if (!getSecurity().existsUser(credential)) {
-              LogManager.instance().warn(this, "Cannot create user '%s' accessing to database '%s' because the user does not exists", credential, dbName);
+              LogManager.instance()
+                  .log(this, Level.WARNING, "Cannot create user '%s' accessing to database '%s' because the user does not exists", null, credential, dbName);
               continue;
             }
           } else {
@@ -360,13 +361,15 @@ public class ArcadeDBServer {
                   try {
                     getSecurity().saveConfiguration();
                   } catch (IOException e) {
-                    LogManager.instance().error(this, "Cannot create database '%s' because security configuration cannot be saved", e, dbName);
+                    LogManager.instance().log(this, Level.SEVERE, "Cannot create database '%s' because security configuration cannot be saved", e, dbName);
                     continue;
                   }
                 }
 
               } catch (ServerSecurityException e) {
-                LogManager.instance().warn(this, "Cannot create database '%s' because the user '%s' already exists with different password", dbName, userName);
+                LogManager.instance()
+                    .log(this, Level.WARNING, "Cannot create database '%s' because the user '%s' already exists with different password", null, dbName,
+                        userName);
                 continue;
               }
             } else {
@@ -374,7 +377,7 @@ public class ArcadeDBServer {
               try {
                 getSecurity().createUser(userName, userPassword, false, Collections.singletonList(dbName));
               } catch (IOException e) {
-                LogManager.instance().error(this, "Cannot create database '%s' because the new user '%s' cannot be saved", e, dbName, userName);
+                LogManager.instance().log(this, Level.SEVERE, "Cannot create database '%s' because the new user '%s' cannot be saved", e, dbName, userName);
                 continue;
               }
             }
@@ -383,7 +386,7 @@ public class ArcadeDBServer {
 
         // CREATE THE DATABASE
         if (!existsDatabase(dbName)) {
-          LogManager.instance().info(this, "Creating default database '%s'...", dbName);
+          LogManager.instance().log(this, Level.INFO, "Creating default database '%s'...", null, dbName);
           createDatabase(dbName);
         }
       }
@@ -399,7 +402,7 @@ public class ArcadeDBServer {
         configuration.fromJSON(content);
 
       } catch (IOException e) {
-        LogManager.instance().error(this, "Error on loading configuration from file '%s'", e, file);
+        LogManager.instance().log(this, Level.SEVERE, "Error on loading configuration from file '%s'", e, file);
       }
     }
   }
@@ -409,7 +412,7 @@ public class ArcadeDBServer {
     try {
       FileUtils.writeFile(file, configuration.toJSON());
     } catch (IOException e) {
-      LogManager.instance().error(this, "Error on saving configuration to file '%s'", e, file);
+      LogManager.instance().log(this, Level.SEVERE, "Error on saving configuration to file '%s'", e, file);
     }
   }
 }

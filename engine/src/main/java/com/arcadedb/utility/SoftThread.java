@@ -6,6 +6,8 @@ package com.arcadedb.utility;
 
 import com.arcadedb.log.LogManager;
 
+import java.util.logging.Level;
+
 public abstract class SoftThread extends Thread {
   private volatile boolean shutdownFlag;
 
@@ -58,10 +60,10 @@ public abstract class SoftThread extends Thread {
         afterExecution();
       } catch (Exception e) {
         if (dumpExceptions)
-          LogManager.instance().error(this, "Error during thread execution", e);
+          LogManager.instance().log(this, Level.SEVERE, "Error during thread execution", e);
       } catch (Error e) {
         if (dumpExceptions)
-          LogManager.instance().error(this, "Error during thread execution", e);
+          LogManager.instance().log(this, Level.SEVERE, "Error during thread execution", e);
         throw e;
       }
     }

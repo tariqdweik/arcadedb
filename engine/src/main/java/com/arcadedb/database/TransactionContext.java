@@ -16,6 +16,7 @@ import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Manage the transaction context. When the transaction begins, the modifiedPages map is initialized. This allows to always delegate
@@ -148,8 +149,8 @@ public class TransactionContext implements Transaction {
 
   @Override
   public void rollback() {
-    LogManager.instance()
-        .debug(this, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
+    LogManager.instance().log(this, Level.FINE, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", null, newPages, modifiedPages,
+        Thread.currentThread().getId());
 
     modifiedPages = null;
     newPages = null;
@@ -405,7 +406,7 @@ public class TransactionContext implements Transaction {
       if (useWAL) {
         txId = database.getTransactionManager().getNextTransactionId();
 
-        LogManager.instance().debug(this, "Creating buffer for TX %d (threadId=%d)", txId, Thread.currentThread().getId());
+        LogManager.instance().log(this, Level.FINE, "Creating buffer for TX %d (threadId=%d)", null, txId, Thread.currentThread().getId());
 
         result = database.getTransactionManager().createTransactionBuffer(txId, pages);
       }
@@ -419,7 +420,7 @@ public class TransactionContext implements Transaction {
       rollback();
       throw e;
     } catch (Exception e) {
-      LogManager.instance().info(this, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.INFO, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
       rollback();
       throw new TransactionException("Transaction error on commit", e);
     }
@@ -440,8 +441,8 @@ public class TransactionContext implements Transaction {
 
       // AT THIS POINT, LOCK + VERSION CHECK, THERE IS NO NEED TO MANAGE ROLLBACK BECAUSE THERE CANNOT BE CONCURRENT TX THAT UPDATE THE SAME PAGE CONCURRENTLY
       // UPDATE PAGE COUNTER FIRST
-      LogManager.instance()
-          .debug(this, "TX committing pages newPages=%s modifiedPages=%s (threadId=%d)", newPages, modifiedPages, Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.FINE, "TX committing pages newPages=%s modifiedPages=%s (threadId=%d)", null, newPages, modifiedPages,
+          Thread.currentThread().getId());
 
       pageManager.updatePages(newPages, modifiedPages, asyncFlush);
 
@@ -465,7 +466,7 @@ public class TransactionContext implements Transaction {
     } catch (ConcurrentModificationException e) {
       throw e;
     } catch (Exception e) {
-      LogManager.instance().info(this, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.INFO, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
       throw new TransactionException("Transaction error on commit", e);
     } finally {
       reset();

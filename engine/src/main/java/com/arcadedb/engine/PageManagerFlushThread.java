@@ -11,6 +11,7 @@ import com.arcadedb.log.LogManager;
 import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 /**
  * Flushes pages to disk asynchronously.
@@ -29,7 +30,7 @@ public class PageManagerFlushThread extends Thread {
   }
 
   public void asyncFlush(final MutablePage page) throws InterruptedException {
-    LogManager.instance().debug(this, "Enqueuing flushing page %s in bg...", page);
+    LogManager.instance().log(this, Level.FINE, "Enqueuing flushing page %s in bg...", null, page);
     queue.put(page);
   }
 
@@ -47,7 +48,7 @@ public class PageManagerFlushThread extends Thread {
         running = false;
         return;
       } catch (Exception e) {
-        LogManager.instance().error(this, "Error on processing page flush requests", e);
+        LogManager.instance().log(this, Level.SEVERE, "Error on processing page flush requests", e);
       }
     }
   }
@@ -57,7 +58,7 @@ public class PageManagerFlushThread extends Thread {
 
     if (page != null) {
       if (LogManager.instance().isDebugEnabled())
-        LogManager.instance().debug(this, "Flushing page %s in bg...", page);
+        LogManager.instance().log(this, Level.FINE, "Flushing page %s in bg...", null, page);
 
       pageManager.flushPage(page);
     }

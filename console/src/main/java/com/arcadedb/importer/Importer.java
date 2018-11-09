@@ -7,12 +7,13 @@ package com.arcadedb.importer;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.Dictionary;
-import com.arcadedb.schema.*;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.schema.*;
 
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Level;
 
 public class Importer {
   protected Database database;
@@ -42,7 +43,7 @@ public class Importer {
 
       final SourceSchema sourceSchema = sourceDiscovery.getSchema(settings);
       if (sourceSchema == null) {
-        LogManager.instance().warn(this, "XML importing aborted because unable to determine the schema");
+        LogManager.instance().log(this, Level.WARNING, "XML importing aborted because unable to determine the schema");
         return;
       }
 
@@ -59,7 +60,7 @@ public class Importer {
       sourceSchema.getContentImporter().load(parser, database, context, settings);
 
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on parsing source %s", e, source);
+      LogManager.instance().log(this, Level.SEVERE, "Error on parsing source %s", e, source);
     } finally {
       if (database != null) {
         database.async().waitCompletion();
@@ -76,16 +77,17 @@ public class Importer {
       deltaInSecs = 1;
 
     if (source == null || source.totalSize < 0) {
-      LogManager.instance().info(this, "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", context.parsed,
+      LogManager.instance().log(this, Level.INFO, "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", null, context.parsed,
           ((context.parsed - context.lastParsed) / deltaInSecs), context.createdDocuments, (context.createdDocuments - context.lastDocuments) / deltaInSecs,
           context.createdVertices, (context.createdVertices - context.lastVertices) / deltaInSecs, context.createdEdges,
           (context.createdEdges - context.lastEdges) / deltaInSecs);
     } else {
       final int progressPerc = (int) (parser.getPosition() * 100 / source.totalSize);
-      LogManager.instance().info(this, "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", context.parsed,
-          ((context.parsed - context.lastParsed) / deltaInSecs), progressPerc, context.createdDocuments,
-          (context.createdDocuments - context.lastDocuments) / deltaInSecs, context.createdVertices,
-          (context.createdVertices - context.lastVertices) / deltaInSecs, context.createdEdges, (context.createdEdges - context.lastEdges) / deltaInSecs);
+      LogManager.instance()
+          .log(this, Level.INFO, "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec)", null, context.parsed,
+              ((context.parsed - context.lastParsed) / deltaInSecs), progressPerc, context.createdDocuments,
+              (context.createdDocuments - context.lastDocuments) / deltaInSecs, context.createdVertices,
+              (context.createdVertices - context.lastVertices) / deltaInSecs, context.createdEdges, (context.createdEdges - context.lastEdges) / deltaInSecs);
     }
     context.lastLapOn = System.currentTimeMillis();
     context.lastParsed = context.parsed;
@@ -138,10 +140,10 @@ public class Importer {
     }
 
     if (factory.exists()) {
-      LogManager.instance().info(this, "Opening database '%s'...", settings.databaseURL);
+      LogManager.instance().log(this, Level.INFO, "Opening database '%s'...", null, settings.databaseURL);
       database = factory.open();
     } else {
-      LogManager.instance().info(this, "Creating database '%s'...", settings.databaseURL);
+      LogManager.instance().log(this, Level.INFO, "Creating database '%s'...", null, settings.databaseURL);
       database = factory.create();
     }
 
@@ -174,14 +176,13 @@ public class Importer {
 
   protected DocumentType getOrCreateDocumentType(final String name) {
     if (!database.getSchema().existsType(name)) {
-      LogManager.instance().info(this, "Creating type '%s' of type DOCUMENT", name);
+      LogManager.instance().log(this, Level.INFO, "Creating type '%s' of type DOCUMENT", null, name);
 
       beginTxIfNeeded();
       final DocumentType type = database.getSchema().createDocumentType(name, settings.parallel);
       if (settings.typeIdProperty != null) {
         type.createProperty(settings.typeIdProperty, Type.getTypeByName(settings.typeIdType));
-        database.getSchema()
-            .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, settings.typeIdPropertyIsUnique, name, new String[] { settings.typeIdProperty });
+        database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, settings.typeIdPropertyIsUnique, name, new String[] { settings.typeIdProperty });
       }
       return type;
     }
@@ -191,14 +192,13 @@ public class Importer {
   protected VertexType getOrCreateVertexType(final String name) {
     final String realName = "v_" + name;
     if (!database.getSchema().existsType(realName)) {
-      LogManager.instance().info(this, "Creating type '%s' of type VERTEX", name);
+      LogManager.instance().log(this, Level.INFO, "Creating type '%s' of type VERTEX", null, name);
 
       beginTxIfNeeded();
       final VertexType type = database.getSchema().createVertexType(realName, settings.parallel);
       if (settings.typeIdProperty != null) {
         type.createProperty(settings.typeIdProperty, Type.getTypeByName(settings.typeIdType));
-        database.getSchema()
-            .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, settings.typeIdPropertyIsUnique, realName, new String[] { settings.typeIdProperty });
+        database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, settings.typeIdPropertyIsUnique, realName, new String[] { settings.typeIdProperty });
       }
       return type;
     }
@@ -209,7 +209,7 @@ public class Importer {
   protected EdgeType getOrCreateEdgeType(final String name) {
     final String realName = "e_" + name;
     if (!database.getSchema().existsType(realName)) {
-      LogManager.instance().info(this, "Creating type '%s' of type EDGE", name);
+      LogManager.instance().log(this, Level.INFO, "Creating type '%s' of type EDGE", null, name);
 
       beginTxIfNeeded();
       return database.getSchema().createEdgeType(realName, settings.parallel);
@@ -224,7 +224,7 @@ public class Importer {
 
     final Dictionary dictionary = database.getSchema().getDictionary();
 
-    LogManager.instance().info(this, "Checking schema...");
+    LogManager.instance().log(this, Level.INFO, "Checking schema...");
 
     for (String entity : schema.getEntities()) {
       final VertexType type = getOrCreateVertexType(entity);
@@ -238,12 +238,12 @@ public class Importer {
           final Property property = type.getProperty(propName);
           if (property.getType() != propValue.getType()) {
             LogManager.instance()
-                .warn(this, "- found schema property %s.%s of type %s, while analyzing the source type %s was found", entity, propName, property.getType(),
-                    propValue.getType());
+                .log(this, Level.WARNING, "- found schema property %s.%s of type %s, while analyzing the source type %s was found", null, entity, propName,
+                    property.getType(), propValue.getType());
           }
         } else {
           // CREATE IT
-          LogManager.instance().info(this, "- creating property %s.%s of type %s", entity, propName, propValue.getType());
+          LogManager.instance().log(this, Level.INFO, "- creating property %s.%s of type %s", null, entity, propName, propValue.getType());
           type.createProperty(propName, propValue.getType());
         }
 
@@ -260,18 +260,18 @@ public class Importer {
   }
 
   protected void dumpSchema(final AnalyzedSchema schema, final long parsedObjects) {
-    LogManager.instance().info(this, "---------------------------------------------------------------");
-    LogManager.instance().info(this, "Objects found %d", parsedObjects);
+    LogManager.instance().log(this, Level.INFO, "---------------------------------------------------------------");
+    LogManager.instance().log(this, Level.INFO, "Objects found %d", null, parsedObjects);
     for (String entity : schema.getEntities()) {
-      LogManager.instance().info(this, "---------------------------------------------------------------");
-      LogManager.instance().info(this, "Entity '%s':", entity);
+      LogManager.instance().log(this, Level.INFO, "---------------------------------------------------------------");
+      LogManager.instance().log(this, Level.INFO, "Entity '%s':", null, entity);
 
       for (Map.Entry<String, AnalyzedProperty> p : schema.getProperties(entity)) {
-        LogManager.instance().info(this, "- %s (%s)", p.getKey(), p.getValue().getType());
+        LogManager.instance().log(this, Level.INFO, "- %s (%s)", null, p.getKey(), p.getValue().getType());
         if (p.getValue().isCollectingSamples())
-          LogManager.instance().info(this, "    contents (%d items): %s", p.getValue().getContents().size(), p.getValue().getContents());
+          LogManager.instance().log(this, Level.INFO, "    contents (%d items): %s", null, p.getValue().getContents().size(), p.getValue().getContents());
       }
     }
-    LogManager.instance().info(this, "---------------------------------------------------------------");
+    LogManager.instance().log(this, Level.INFO, "---------------------------------------------------------------");
   }
 }

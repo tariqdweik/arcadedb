@@ -9,9 +9,9 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
+import java.util.logging.Level;
 
 /**
  * This test stresses the index compaction by forcing using only 1MB of RAM for compaction causing multiple page compacted index.
@@ -39,12 +40,12 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE.setValue(0);
 
       // INSERT DATA AND CHECK WITH LOKUPS (EVERY 100)
-      LogManager.instance().info(this, "TEST: INSERT DATA AND CHECK WITH LOKUPS (EVERY 100)");
+      LogManager.instance().log(this, Level.INFO, "TEST: INSERT DATA AND CHECK WITH LOKUPS (EVERY 100)");
       insertData();
       checkLookups(100, 1);
 
       // THIS TIME LOOK UP FOR KEYS WHILE COMPACTION
-      LogManager.instance().info(this, "TEST: THIS TIME LOOK UP FOR KEYS WHILE COMPACTION");
+      LogManager.instance().log(this, Level.INFO, "TEST: THIS TIME LOOK UP FOR KEYS WHILE COMPACTION");
       final CountDownLatch semaphore1 = new CountDownLatch(1);
       new Timer().schedule(new TimerTask() {
         @Override
@@ -62,14 +63,14 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       semaphore1.await();
 
       // INSERT DATA ON TOP OF THE MIXED MUTABLE-COMPACTED INDEX AND CHECK WITH LOOKUPS
-      LogManager.instance().info(this, "TEST: INSERT DATA ON TOP OF THE MIXED MUTABLE-COMPACTED INDEX AND CHECK WITH LOOKUPS");
+      LogManager.instance().log(this, Level.INFO, "TEST: INSERT DATA ON TOP OF THE MIXED MUTABLE-COMPACTED INDEX AND CHECK WITH LOOKUPS");
       insertData();
       checkLookups(1, 2);
       compaction();
       checkLookups(1, 2);
 
       // INSERT DATA WHILE COMPACTING AND CHECK AGAIN
-      LogManager.instance().info(this, "TEST: INSERT DATA WHILE COMPACTING AND CHECK AGAIN");
+      LogManager.instance().log(this, Level.INFO, "TEST: INSERT DATA WHILE COMPACTING AND CHECK AGAIN");
       final CountDownLatch semaphore2 = new CountDownLatch(1);
       new Timer().schedule(new TimerTask() {
         @Override
@@ -140,7 +141,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       database.async().onError(new ErrorCallback() {
         @Override
         public void call(Exception exception) {
-          LogManager.instance().error(this, "TEST: ERROR: ", exception);
+          LogManager.instance().log(this, Level.SEVERE, "TEST: ERROR: ", exception);
           exception.printStackTrace();
           Assertions.fail(exception);
         }
@@ -171,7 +172,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
 
             if (counter % 1000 == 0) {
               if (System.currentTimeMillis() - lastLap > 1000) {
-                LogManager.instance().info(this, "TEST: - Progress %d/%d (%d records/sec)", counter, totalToInsert, counter - lastLapCounter);
+                LogManager.instance().log(this, Level.INFO, "TEST: - Progress %d/%d (%d records/sec)", null, counter, totalToInsert, counter - lastLapCounter);
                 lastLap = System.currentTimeMillis();
                 lastLapCounter = counter;
               }
@@ -180,10 +181,10 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
         }
       });
 
-      LogManager.instance().info(this, "TEST: Inserted " + totalToInsert + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "TEST: Inserted " + totalToInsert + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
-      LogManager.instance().info(this, "TEST: Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "TEST: Insertion finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
 
     database.async().waitCompletion();
@@ -197,7 +198,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
       }
     });
 
-    LogManager.instance().info(this, "TEST: Lookup all the keys...");
+    LogManager.instance().log(this, Level.INFO, "TEST: Lookup all the keys...");
 
     long begin = System.currentTimeMillis();
 
@@ -208,7 +209,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
         final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         if (records.size() != expectedItems)
-          LogManager.instance().info(this, "Cannot find key '%s'", id);
+          LogManager.instance().log(this, Level.INFO, "Cannot find key '%s'", null, id);
 
         Assertions.assertEquals(expectedItems, records.size(), "Wrong result for lookup of key " + id);
 
@@ -224,13 +225,13 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
           long delta = System.currentTimeMillis() - begin;
           if (delta < 1)
             delta = 1;
-          LogManager.instance().info(this, "Checked " + checked + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
+          LogManager.instance().log(this, Level.INFO, "Checked " + checked + " lookups in " + delta + "ms = " + (10000 / delta) + " lookups/msec");
           begin = System.currentTimeMillis();
         }
       } catch (Exception e) {
         Assertions.fail("Error on lookup key " + id, e);
       }
     }
-    LogManager.instance().info(this, "TEST: Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
+    LogManager.instance().log(this, Level.INFO, "TEST: Lookup finished in " + (System.currentTimeMillis() - begin) + "ms");
   }
 }

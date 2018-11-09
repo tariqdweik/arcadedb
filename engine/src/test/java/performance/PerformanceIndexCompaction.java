@@ -15,6 +15,7 @@ import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 public class PerformanceIndexCompaction {
   public static void main(String[] args) throws Exception {
@@ -32,7 +33,7 @@ public class PerformanceIndexCompaction {
 
       final long total = database.countType("Device", true);
       long totalIndexed = countIndexedItems(database);
-      LogManager.instance().info(this, "Total indexes items %d", totalIndexed);
+      LogManager.instance().log(this, Level.INFO, "Total indexes items %d", null, totalIndexed);
 
       for (Index index : database.getSchema().getIndexes())
         Assertions.assertTrue(index.compact());
@@ -54,7 +55,7 @@ public class PerformanceIndexCompaction {
   private long countIndexedItems(Database database) throws IOException {
     long totalIndexed = 0;
     for (Index index : database.getSchema().getIndexes()) {
-      IndexCursor it = ((RangeIndex)index).iterator(true);
+      IndexCursor it = ((RangeIndex) index).iterator(true);
       while (it.hasNext()) {
         it.next();
         ++totalIndexed;

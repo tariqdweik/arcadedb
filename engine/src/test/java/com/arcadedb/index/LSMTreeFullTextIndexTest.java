@@ -9,13 +9,14 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.logging.Level;
 
 public class LSMTreeFullTextIndexTest extends BaseTest {
   private static final int    TOT       = 10000;
@@ -55,7 +56,7 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
                 + "\n"
                 + "Jay endured kidney problems for most of his life, according to his wife, and relied on dialysis. His sister donated one of her own. Miner died due to complications from kidney failure at the age of 62, just two months after Commodore declared bankruptcy.";
 
-        LogManager.instance().info(this, "Indexing %d documents...", TOT);
+        LogManager.instance().log(this, Level.INFO, "Indexing %d documents...",null, TOT);
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);
@@ -64,16 +65,16 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
           v.save();
         }
 
-        LogManager.instance().info(this, "Done, committing...");
+        LogManager.instance().log(this, Level.INFO, "Done, committing...");
 
         database.commit();
 
-        LogManager.instance().info(this, "Committed");
+        LogManager.instance().log(this, Level.INFO, "Committed");
 
         final List<String> keywords = ((LSMTreeFullTextIndex) indexes[0]).analyzeText(((LSMTreeFullTextIndex) indexes[0]).getAnalyzer(), new Object[] { text });
         Assertions.assertFalse(keywords.isEmpty());
 
-        LogManager.instance().info(this, "Checking keywords...");
+        LogManager.instance().log(this, Level.INFO, "Checking keywords...");
 
         for (String k : keywords) {
           int totalPerKeyword = 0;
@@ -94,7 +95,7 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
           Assertions.assertEquals(totalPerKeyword, TOT);
         }
 
-        LogManager.instance().info(this, "Check completed");
+        LogManager.instance().log(this, Level.INFO, "Check completed");
 
         database.begin();
       }

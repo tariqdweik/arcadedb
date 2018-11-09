@@ -5,9 +5,9 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 
@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 /**
  * Simulates a split brain on 5 nodes, by isolating nodes 4th and 5th in a separate network. After 10 seconds, allows the 2 networks to see
@@ -55,10 +56,10 @@ public class HASplitBrainTest extends ReplicationServerTest {
             if (connectTo.equals(getServer(0).getHA().getServerAddress()) || connectTo.equals(getServer(1).getHA().getServerAddress()) || connectTo
                 .equals(getServer(2).getHA().getServerAddress()))
               if (!rejoining) {
-                LogManager.instance().info(this, "TEST: SIMULATING CONNECTION ERROR TO CONNECT TO THE LEADER FROM " + server);
+                LogManager.instance().log(this, Level.INFO, "TEST: SIMULATING CONNECTION ERROR TO CONNECT TO THE LEADER FROM " + server);
                 throw new IOException("Simulating an IO Exception on reconnecting from server '" + server.getServerName() + "' to " + connectTo);
               } else
-                LogManager.instance().info(this, "TEST: ALLOWED CONNECTION TO THE ADDRESS " + connectTo + "  FROM " + server);
+                LogManager.instance().log(this, Level.INFO, "TEST: ALLOWED CONNECTION TO THE ADDRESS " + connectTo + "  FROM " + server);
           }
         }
       });
@@ -73,18 +74,18 @@ public class HASplitBrainTest extends ReplicationServerTest {
               if (messages.get() > 10) {
                 split = true;
 
-                LogManager.instance().info(this, "TEST: SHUTTING DOWN NETWORK CONNECTION BETWEEN SERVER 0 (THE LEADER) and SERVER 4TH and 5TH...");
+                LogManager.instance().log(this, Level.INFO, "TEST: SHUTTING DOWN NETWORK CONNECTION BETWEEN SERVER 0 (THE LEADER) and SERVER 4TH and 5TH...");
                 getServer(3).getHA().getLeader().closeChannel();
                 getServer(0).getHA().getReplica("ArcadeDB_3").closeChannel();
 
                 getServer(4).getHA().getLeader().closeChannel();
                 getServer(0).getHA().getReplica("ArcadeDB_4").closeChannel();
-                LogManager.instance().info(this, "TEST: SHUTTING DOWN NETWORK CONNECTION COMPLETED");
+                LogManager.instance().log(this, Level.INFO, "TEST: SHUTTING DOWN NETWORK CONNECTION COMPLETED");
 
                 timer.schedule(new TimerTask() {
                   @Override
                   public void run() {
-                    LogManager.instance().info(this, "TEST: ALLOWING THE REJOINING OF SERVERS 4TH AND 5TH");
+                    LogManager.instance().log(this, Level.INFO, "TEST: ALLOWING THE REJOINING OF SERVERS 4TH AND 5TH");
                     rejoining = true;
                   }
                 }, 10000);

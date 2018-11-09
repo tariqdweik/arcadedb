@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class LSMTreeIndexTest extends BaseTest {
   private static final int    TOT       = 100000;
@@ -85,7 +86,7 @@ public class LSMTreeIndexTest extends BaseTest {
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes) {
             if (!index.get(new Object[] { i }).hasNext()) {
-              LogManager.instance().debug(this, "FOUND KEY " + i + " -> " + index.get(new Object[] { i }));
+              LogManager.instance().log(this, Level.FINE, "FOUND KEY " + i + " -> " + index.get(new Object[] { i }));
             }
 
 //            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
@@ -365,7 +366,7 @@ public class LSMTreeIndexTest extends BaseTest {
             iterator = ((RangeIndex) index).iterator(true);
 
 //            LogManager.instance()
-//                .info(this, "*****************************************************************************\nCURSOR BEGIN%s", iterator.dumpStats());
+//                .log(this, Level.INFO, "*****************************************************************************\nCURSOR BEGIN%s", iterator.dumpStats());
 
             Assertions.assertNotNull(iterator);
 
@@ -378,7 +379,7 @@ public class LSMTreeIndexTest extends BaseTest {
               total++;
             }
 
-//            LogManager.instance().info(this, "*****************************************************************************\nCURSOR END total=%d %s", total,
+//            LogManager.instance().log(this, Level.INFO, "*****************************************************************************\nCURSOR END total=%d %s", total,
 //                iterator.dumpStats());
 
           } catch (Exception e) {
@@ -744,7 +745,7 @@ public class LSMTreeIndexTest extends BaseTest {
     final AtomicLong duplicatedExceptions = new AtomicLong();
     final AtomicLong crossThreadsInserted = new AtomicLong();
 
-    LogManager.instance().info(this, "%s Started with %d threads", getClass(), threads.length);
+    LogManager.instance().log(this, Level.INFO, "%s Started with %d threads", null, getClass(), threads.length);
 
     for (int i = 0; i < threads.length; ++i) {
       threads[i] = new Thread(new Runnable() {
@@ -779,8 +780,8 @@ public class LSMTreeIndexTest extends BaseTest {
 
                   if (threadInserted % 1000 == 0)
                     LogManager.instance()
-                        .info(this, "%s Thread %d inserted %d records with key %d (total=%d)", getClass(), Thread.currentThread().getId(), i, threadInserted,
-                            crossThreadsInserted.get());
+                        .log(this, Level.INFO, "%s Thread %d inserted %d records with key %d (total=%d)", null, getClass(), Thread.currentThread().getId(), i,
+                            threadInserted, crossThreadsInserted.get());
 
                   keyPresent = true;
 
@@ -793,23 +794,23 @@ public class LSMTreeIndexTest extends BaseTest {
                   keyPresent = true;
                   Assertions.assertFalse(database.isTransactionActive());
                 } catch (Exception e) {
-                  LogManager.instance().error(this, "%s Thread %d Generic Exception", e, getClass(), Thread.currentThread().getId());
+                  LogManager.instance().log(this, Level.SEVERE, "%s Thread %d Generic Exception", e, getClass(), Thread.currentThread().getId());
                   Assertions.assertFalse(database.isTransactionActive());
                   return;
                 }
               }
 
               if (!keyPresent)
-                LogManager.instance()
-                    .warn(this, "%s Thread %d Cannot create key %d after %d retries! (total=%d)", getClass(), Thread.currentThread().getId(), i, maxRetries,
-                        crossThreadsInserted.get());
+                LogManager.instance().log(this, Level.WARNING, "%s Thread %d Cannot create key %d after %d retries! (total=%d)", null, getClass(),
+                    Thread.currentThread().getId(), i, maxRetries, crossThreadsInserted.get());
 
             }
 
-            LogManager.instance().info(this, "%s Thread %d completed (inserted=%d)", getClass(), Thread.currentThread().getId(), threadInserted);
+            LogManager.instance()
+                .log(this, Level.INFO, "%s Thread %d completed (inserted=%d)", null, getClass(), Thread.currentThread().getId(), threadInserted);
 
           } catch (Exception e) {
-            LogManager.instance().error(this, "%s Thread %d Error", e, getClass(), Thread.currentThread().getId());
+            LogManager.instance().log(this, Level.SEVERE, "%s Thread %d Error", e, getClass(), Thread.currentThread().getId());
           }
         }
 
@@ -827,17 +828,18 @@ public class LSMTreeIndexTest extends BaseTest {
       }
     }
 
-    LogManager.instance().info(this, "%s Completed (inserted=%d needRetryExceptions=%d duplicatedExceptions=%d)", getClass(), crossThreadsInserted.get(),
-        needRetryExceptions.get(), duplicatedExceptions.get());
+    LogManager.instance()
+        .log(this, Level.INFO, "%s Completed (inserted=%d needRetryExceptions=%d duplicatedExceptions=%d)", null, getClass(), crossThreadsInserted.get(),
+            needRetryExceptions.get(), duplicatedExceptions.get());
 
     if (total != crossThreadsInserted.get()) {
-      LogManager.instance().info(this, "DUMP OF INSERTED RECORDS (ORDERED BY ID)");
+      LogManager.instance().log(this, Level.INFO, "DUMP OF INSERTED RECORDS (ORDERED BY ID)");
       final ResultSet resultset = database
           .query("sql", "select id, count(*) as total from ( select from " + TYPE_NAME + " group by id ) where total > 1 order by id");
       while (resultset.hasNext())
-        LogManager.instance().info(this, "- %s", resultset.next());
+        LogManager.instance().log(this, Level.INFO, "- %s", null, resultset.next());
 
-      LogManager.instance().info(this, "COUNT OF INSERTED RECORDS (ORDERED BY ID)");
+      LogManager.instance().log(this, Level.INFO, "COUNT OF INSERTED RECORDS (ORDERED BY ID)");
       final Map<Integer, Integer> result = new HashMap<>();
       database.scanType(TYPE_NAME, true, new DocumentCallback() {
         @Override
@@ -852,13 +854,13 @@ public class LSMTreeIndexTest extends BaseTest {
         }
       });
 
-      LogManager.instance().info(this, "FOUND %d ENTRIES", result.size());
+      LogManager.instance().log(this, Level.INFO, "FOUND %d ENTRIES", null, result.size());
 
       Iterator<Map.Entry<Integer, Integer>> it = result.entrySet().iterator();
       while (it.hasNext()) {
         Map.Entry<Integer, Integer> next = it.next();
         if (next.getValue() > 1)
-          LogManager.instance().info(this, "- %d = %d", next.getKey(), next.getValue());
+          LogManager.instance().log(this, Level.INFO, "- %d = %d", null, next.getKey(), next.getValue());
       }
     }
 

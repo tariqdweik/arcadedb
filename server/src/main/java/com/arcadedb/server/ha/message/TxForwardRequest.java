@@ -8,16 +8,17 @@ import com.arcadedb.engine.CompressionFactory;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.TransactionException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicationException;
-import com.arcadedb.log.LogManager;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Forward a transaction to the Leader server to be executed. Apart the TX content (like with TxRequest), unique keys list is
@@ -69,7 +70,7 @@ public class TxForwardRequest extends TxRequestAbstract {
     } catch (NeedRetryException | TransactionException e) {
       return new ErrorResponse(e);
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error with the execution of the forwarded message %d", e, messageNumber);
+      LogManager.instance().log(this, Level.SEVERE, "Error with the execution of the forwarded message %d", e, messageNumber);
       return new ErrorResponse(e);
     }
 

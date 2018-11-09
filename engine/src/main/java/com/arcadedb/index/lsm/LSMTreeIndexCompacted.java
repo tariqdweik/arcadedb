@@ -17,6 +17,7 @@ import com.arcadedb.log.LogManager;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
 
 import static com.arcadedb.database.Binary.BYTE_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
@@ -171,13 +172,14 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
     if (mainPageCount == 0) {
       // NO PAGES. THIS SHOULD NEVER HAPPEN
-      LogManager.instance().warn(this, "Compacted index '%s' main page 0 has pageNumber=%d totalPages=%d", getName(), totalPages);
+      LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' main page 0 has pageNumber=%d totalPages=%d", null, getName(), totalPages);
       return Collections.emptyList();
     }
 
     if (mainPageCount > totalPages) {
       // PAGES > TOTAL PAGES. THIS SHOULD NEVER HAPPEN
-      LogManager.instance().warn(this, "Compacted index '%s' main page 0 has an invalid pageNumber=%d totalPages=%d", getName(), mainPageCount, totalPages);
+      LogManager.instance()
+          .log(this, Level.WARNING, "Compacted index '%s' main page 0 has an invalid pageNumber=%d totalPages=%d", null, getName(), mainPageCount, totalPages);
       return Collections.emptyList();
     }
 
@@ -205,7 +207,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
         final int rootPageId = getCompactedPageNumberOfSeries(rootPage);
         if (rootPageId != 0) {
           // COMPACTED PAGE NUMBER IS NOT 0. THIS SHOULD NEVER HAPPEN
-          LogManager.instance().warn(this, "Compacted index '%s' root page %s has an invalid pageNumber=%d", getName(), pageId, rootPageId);
+          LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' root page %s has an invalid pageNumber=%d", null, getName(), pageId, rootPageId);
           return Collections.emptyList();
         }
       }
@@ -274,13 +276,14 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
     if (mainPageCount == 0) {
       // NO PAGES. THIS SHOULD NEVER HAPPEN
-      LogManager.instance().warn(this, "Compacted index '%s' main page 0 has pageNumber=%d totalPages=%d", getName(), totalPages);
+      LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' main page 0 has pageNumber=%d totalPages=%d", null, getName(), totalPages);
       return;
     }
 
     if (mainPageCount > totalPages) {
       // PAGES > TOTAL PAGES. THIS SHOULD NEVER HAPPEN
-      LogManager.instance().warn(this, "Compacted index '%s' main page 0 has an invalid pageNumber=%d totalPages=%d", getName(), mainPageCount, totalPages);
+      LogManager.instance()
+          .log(this, Level.WARNING, "Compacted index '%s' main page 0 has an invalid pageNumber=%d totalPages=%d", null, getName(), mainPageCount, totalPages);
       return;
     }
 
@@ -304,7 +307,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
         final int rootPageId = getCompactedPageNumberOfSeries(rootPage);
         if (rootPageId != 0) {
           // COMPACTED PAGE NUMBER IS NOT 0. THIS SHOULD NEVER HAPPEN
-          LogManager.instance().warn(this, "Compacted index '%s' root page %s has an invalid pageNumber=%d", getName(), pageId, rootPageId);
+          LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' root page %s has an invalid pageNumber=%d", null, getName(), pageId, rootPageId);
           return;
         }
       }

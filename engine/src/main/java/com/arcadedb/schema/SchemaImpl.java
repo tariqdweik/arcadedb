@@ -18,8 +18,8 @@ import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
 import com.arcadedb.index.lsm.LSMTreeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.utility.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -29,6 +29,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 
 public class SchemaImpl implements Schema {
   public static final String DEFAULT_DATE_FORMAT     = "yyyy-MM-dd";
@@ -77,7 +78,7 @@ public class SchemaImpl implements Schema {
       database.commit();
 
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on opening dictionary '%s' (error=%s)", e, databasePath, e.toString());
+      LogManager.instance().log(this, Level.SEVERE, "Error on opening dictionary '%s' (error=%s)", e, databasePath, e.toString());
       database.rollback();
       throw new DatabaseMetadataException("Error on loading dictionary (error=" + e.toString() + ")", e);
     }
@@ -508,7 +509,7 @@ public class SchemaImpl implements Schema {
         try {
           database.getFileManager().dropFile(bucket.getId());
         } catch (IOException e) {
-          LogManager.instance().error(this, "Error on deleting bucket '%s'", e, bucketName);
+          LogManager.instance().log(this, Level.SEVERE, "Error on deleting bucket '%s'", e, bucketName);
         }
         removeFile(bucket.getId());
 
@@ -684,7 +685,7 @@ public class SchemaImpl implements Schema {
           for (int i = 0; i < schemaBucket.length(); ++i) {
             final PaginatedComponent bucket = bucketMap.get(schemaBucket.getString(i));
             if (bucket == null || !(bucket instanceof Bucket))
-              LogManager.instance().warn(this, "Cannot find bucket %s for type '%s'", schemaBucket.getInt(i), type);
+              LogManager.instance().log(this, Level.WARNING, "Cannot find bucket %s for type '%s'", null, schemaBucket.getInt(i), type);
             type.addBucketInternal((Bucket) bucket);
           }
         }
@@ -713,7 +714,7 @@ public class SchemaImpl implements Schema {
             try {
               type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
             } catch (SchemaException e) {
-              LogManager.instance().warn(this, "Cannot find '%s' defined in type '%s'. Ignoring it.", indexName, type);
+              LogManager.instance().log(this, Level.WARNING, "Cannot find '%s' defined in type '%s'. Ignoring it.", null, indexName, type);
             }
           }
         }
@@ -726,7 +727,7 @@ public class SchemaImpl implements Schema {
           type.addParent(getType(p));
       }
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on loading schema. The schema will be reset", e);
+      LogManager.instance().log(this, Level.SEVERE, "Error on loading schema. The schema will be reset", e);
     }
   }
 
@@ -799,7 +800,7 @@ public class SchemaImpl implements Schema {
       file.close();
 
     } catch (IOException e) {
-      LogManager.instance().error(this, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
+      LogManager.instance().log(this, Level.SEVERE, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
     }
   }
 

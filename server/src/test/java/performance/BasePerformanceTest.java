@@ -10,15 +10,16 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseComparator;
 import com.arcadedb.database.RID;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.logging.Level;
 
 public abstract class BasePerformanceTest {
   protected static final String VERTEX1_TYPE_NAME = "V1";
@@ -41,10 +42,10 @@ public abstract class BasePerformanceTest {
 
   protected void endTest() {
     try {
-      LogManager.instance().info(this, "END OF THE TEST: Check DBS are identical...");
+      LogManager.instance().log(this, Level.INFO, "END OF THE TEST: Check DBS are identical...");
       checkDatabasesAreIdentical();
     } finally {
-      LogManager.instance().info(this, "END OF THE TEST: Cleaning test %s...", getClass().getName());
+      LogManager.instance().log(this, Level.INFO, "END OF THE TEST: Cleaning test %s...", null, getClass().getName());
       stopServers();
 
       if (dropDatabasesAtTheEnd())
@@ -158,7 +159,7 @@ public abstract class BasePerformanceTest {
     final int onlineReplicas = getLeaderServer().getHA().getOnlineReplicas();
     if (1 + onlineReplicas < getServerCount()) {
       // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
-      LogManager.instance().info(this, "TEST: Not all the servers are ONLINE (%d), skip this crash...", onlineReplicas);
+      LogManager.instance().log(this, Level.INFO, "TEST: Not all the servers are ONLINE (%d), skip this crash...", null, onlineReplicas);
       getLeaderServer().getHA().printClusterConfiguration();
       return false;
     }
@@ -185,7 +186,7 @@ public abstract class BasePerformanceTest {
       final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
       final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());
 
-      LogManager.instance().info(this, "TEST: Comparing databases '%s' and '%s' are identical...", db1, db2);
+      LogManager.instance().log(this, Level.INFO, "TEST: Comparing databases '%s' and '%s' are identical...", null, db1, db2);
       new DatabaseComparator().compare(db1, db2);
     }
   }

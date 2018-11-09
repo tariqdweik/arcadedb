@@ -8,6 +8,7 @@ import com.arcadedb.log.LogManager;
 
 import java.io.InputStream;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 
 public class Source {
   public final  String         url;
@@ -28,7 +29,7 @@ public class Source {
     try {
       closeCallback.call();
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on closing source %s", e, this);
+      LogManager.instance().log(this, Level.SEVERE, "Error on closing source %s", e, this);
     }
   }
 

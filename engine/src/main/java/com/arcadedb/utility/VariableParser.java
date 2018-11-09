@@ -6,19 +6,20 @@ package com.arcadedb.utility;
 
 import com.arcadedb.log.LogManager;
 
+import java.util.logging.Level;
+
 /**
  * Resolve entity class and descriptors using the paths configured.
  *
  * @author Luca Garulli (luca.garulli--at--assetdata.it)
  */
 public class VariableParser {
-  public static Object resolveVariables(final String iText, final String iBegin, final String iEnd,
-      final VariableParserListener iListener) {
+  public static Object resolveVariables(final String iText, final String iBegin, final String iEnd, final VariableParserListener iListener) {
     return resolveVariables(iText, iBegin, iEnd, iListener, null);
   }
 
-  public static Object resolveVariables(final String iText, final String iBegin, final String iEnd,
-      final VariableParserListener iListener, final Object iDefaultValue) {
+  public static Object resolveVariables(final String iText, final String iBegin, final String iEnd, final VariableParserListener iListener,
+      final Object iDefaultValue) {
     if (iListener == null)
       throw new IllegalArgumentException("Missed VariableParserListener listener");
 
@@ -38,7 +39,7 @@ public class VariableParser {
 
     if (resolved == null) {
       if (iDefaultValue == null)
-        LogManager.instance().info(null, "[OVariableParser.resolveVariables] Error on resolving property: %s", var);
+        LogManager.instance().log(null, Level.INFO, "[OVariableParser.resolveVariables] Error on resolving property: %s", null, var);
       else
         resolved = iDefaultValue;
     }

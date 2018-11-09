@@ -17,7 +17,7 @@ import java.util.logging.Level;
 public class PerformanceInsertNoIndexTest extends BaseTest {
   private static final int    TOT       = 20000000;
   private static final String TYPE_NAME = "Person";
-  private static final int    PARALLEL  = 2;
+  private static final int    PARALLEL  = 3;
 
   public static void main(String[] args) {
     new PerformanceInsertNoIndexTest().run();
@@ -27,8 +27,8 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
   protected String getPerformanceProfile() {
     LogManager.instance().setLogger(new Logger() {
       @Override
-      public void log(Object iRequester, Level iLevel, String iMessage, Throwable iException, boolean extractDBData, String context,
-          Object... iAdditionalArgs) {
+      public void log(Object iRequester, Level iLevel, String iMessage, Throwable iException, String context, Object arg1, Object arg2, Object arg3,
+          Object arg4, Object arg5, Object arg6, Object arg7, Object arg8, Object arg9, Object arg10) {
       }
 
       @Override
@@ -66,7 +66,7 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
         database.async().onError(new ErrorCallback() {
           @Override
           public void call(Exception exception) {
-            LogManager.instance().error(this, "ERROR: " + exception, exception);
+            LogManager.instance().log(this, Level.SEVERE, "ERROR: " + exception, exception);
             System.exit(1);
           }
         });

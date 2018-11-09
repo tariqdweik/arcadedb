@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class RandomTestMultiThreads extends BaseTest {
   private static final int CYCLES           = 10000;
@@ -39,7 +40,7 @@ public class RandomTestMultiThreads extends BaseTest {
 
   @Test
   public void testRandom() {
-    LogManager.instance().info(this, "Executing " + CYCLES + " transactions with %d workers", WORKERS);
+    LogManager.instance().log(this, Level.INFO, "Executing " + CYCLES + " transactions with %d workers", null, WORKERS);
 
     createSchema();
     populateDatabase();
@@ -67,20 +68,20 @@ public class RandomTestMultiThreads extends BaseTest {
                 final int op = getRandom(100);
                 if (i % 5000 == 0)
                   LogManager.instance()
-                      .info(this, "Operations %d/%d totalTransactionInCurrentTx=%d totalTransactions=%d (thread=%d)", i, CYCLES, totalTransactionInCurrentTx,
-                          totalTransactionRecords.get(), threadId);
+                      .log(this, Level.INFO, "Operations %d/%d totalTransactionInCurrentTx=%d totalTransactions=%d (thread=%d)", null, i, CYCLES,
+                          totalTransactionInCurrentTx, totalTransactionRecords.get(), threadId);
 
-                LogManager.instance().debug(this, "Operation %d %d/%d (thread=%d)", op, i, CYCLES, threadId);
+                LogManager.instance().log(this, Level.FINE, "Operation %d %d/%d (thread=%d)", null, op, i, CYCLES, threadId);
 
                 if (op >= 0 && op <= 19) {
                   final int txOps = getRandom(10);
-                  LogManager.instance().debug(this, "Creating %d transactions (thread=%d)...", txOps, threadId);
+                  LogManager.instance().log(this, Level.FINE, "Creating %d transactions (thread=%d)...", null, txOps, threadId);
 
                   createTransactions(database, txOps);
                   totalTransactionInCurrentTx += txOps;
 
                 } else if (op >= 20 && op <= 39) {
-                  LogManager.instance().debug(this, "Querying Account by index records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Querying Account by index records (thread=%d)...", null, threadId);
 
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":id", getRandom(10000) + 1);
@@ -92,7 +93,7 @@ public class RandomTestMultiThreads extends BaseTest {
                   }
 
                 } else if (op >= 40 && op <= 59) {
-                  LogManager.instance().debug(this, "Querying Transaction by index records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Querying Transaction by index records (thread=%d)...", null, threadId);
 
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":uuid", getRandom((int) (totalTransactionRecords.get() + 1)) + 1);
@@ -103,7 +104,7 @@ public class RandomTestMultiThreads extends BaseTest {
                     record.toString();
                   }
                 } else if (op >= 60 && op <= 64) {
-                  LogManager.instance().debug(this, "Scanning Account records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Scanning Account records (thread=%d)...", null, threadId);
 
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":limit", getRandom(100) + 1);
@@ -115,7 +116,7 @@ public class RandomTestMultiThreads extends BaseTest {
                   }
 
                 } else if (op >= 65 && op <= 69) {
-                  LogManager.instance().debug(this, "Scanning Transaction records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Scanning Transaction records (thread=%d)...", null, threadId);
 
                   final Map<String, Object> map = new HashMap<>();
                   map.put(":limit", getRandom((int) totalTransactionRecords.get() + 1) + 1);
@@ -127,12 +128,12 @@ public class RandomTestMultiThreads extends BaseTest {
                   }
 
                 } else if (op >= 70 && op <= 74) {
-                  LogManager.instance().debug(this, "Deleting records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Deleting records (thread=%d)...", null, threadId);
 
                   totalTransactionInCurrentTx -= deleteRecords(database, threadId);
                 } else if (op >= 75 && op <= 84) {
 
-                  LogManager.instance().debug(this, "Committing (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Committing (thread=%d)...", null, threadId);
                   database.commit();
 
                   totalTransactionRecords.addAndGet(totalTransactionInCurrentTx);
@@ -141,33 +142,34 @@ public class RandomTestMultiThreads extends BaseTest {
                   database.begin();
                 } else if (op >= 85 && op <= 94) {
 
-                  LogManager.instance().debug(this, "Updating records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Updating records (thread=%d)...", null, threadId);
 
                   updateRecords(database, threadId);
                 } else if (op >= 95 && op <= 95) {
-                  LogManager.instance().debug(this, "Counting Transaction records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Counting Transaction records (thread=%d)...", null, threadId);
 
                   final long newCounter = database.countType("Transaction", true);
 
                   if (getRandom(50) == 0)
                     LogManager.instance()
-                        .info(this, "Found %d Transaction records, ram counter=%d (thread=%d)...", newCounter, totalTransactionRecords.get(), threadId);
+                        .log(this, Level.INFO, "Found %d Transaction records, ram counter=%d (thread=%d)...", null, newCounter, totalTransactionRecords.get(),
+                            threadId);
 
                   totalTransactionInCurrentTx -= deleteRecords(database, threadId);
 
                 } else if (op >= 96 && op <= 96) {
-                  LogManager.instance().debug(this, "Counting account records (thread=%d)...", threadId);
+                  LogManager.instance().log(this, Level.FINE, "Counting account records (thread=%d)...", null, threadId);
 
                   final long newCounter = database.countType("Account", true);
 
                   if (getRandom(50) == 0)
-                    LogManager.instance().info(this, "Found %d Account records (thread=%d)...", newCounter, threadId);
+                    LogManager.instance().log(this, Level.INFO, "Found %d Account records (thread=%d)...", null, newCounter, threadId);
 
                   totalTransactionInCurrentTx -= deleteRecords(database, threadId);
                 } else if (op >= 97 && op <= 99) {
                   //JUST WAIT
                   final long ms = getRandom(299) + 1;
-                  LogManager.instance().debug(this, "Sleeping %d ms (thread=%d)...", ms, threadId);
+                  LogManager.instance().log(this, Level.FINE, "Sleeping %d ms (thread=%d)...", null, ms, threadId);
                   Thread.sleep(ms);
                 }
 
@@ -178,7 +180,7 @@ public class RandomTestMultiThreads extends BaseTest {
                   totalTransactionInCurrentTx = 0;
                 } else {
                   otherErrors.add(new Pair<>(threadId, e));
-                  LogManager.instance().error(this, "UNEXPECTED ERROR: " + e, e);
+                  LogManager.instance().log(this, Level.SEVERE, "UNEXPECTED ERROR: " + e, e);
                 }
 
                 if (!database.isTransactionActive())
@@ -267,7 +269,7 @@ public class RandomTestMultiThreads extends BaseTest {
         } catch (RecordNotFoundException e) {
           // OK
         }
-        LogManager.instance().debug(this, "Updated record %s (threadId=%d)", next.getIdentity(), threadId);
+        LogManager.instance().log(this, Level.FINE, "Updated record %s (threadId=%d)", null, next.getIdentity(), threadId);
       }
     }
 
@@ -297,7 +299,7 @@ public class RandomTestMultiThreads extends BaseTest {
         } catch (RecordNotFoundException e) {
           // OK
         }
-        LogManager.instance().debug(this, "Deleted record %s (threadId=%d)", next.getIdentity(), threadId);
+        LogManager.instance().log(this, Level.FINE, "Deleted record %s (threadId=%d)", null, next.getIdentity(), threadId);
       }
     }
 
@@ -306,7 +308,7 @@ public class RandomTestMultiThreads extends BaseTest {
 
   private int getRandom(int bound) {
     if (bound < 1) {
-      LogManager.instance().info(this, "Non positive bound: " + bound);
+      LogManager.instance().log(this, Level.INFO, "Non positive bound: " + bound);
       bound = 1;
     }
     return rnd.nextInt(bound);
@@ -331,7 +333,7 @@ public class RandomTestMultiThreads extends BaseTest {
       database.commit();
 
     } finally {
-      LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 

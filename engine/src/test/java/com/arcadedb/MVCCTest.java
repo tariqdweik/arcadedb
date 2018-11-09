@@ -12,10 +12,10 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class MVCCTest extends BaseTest {
   private static final int CYCLES      = 3;
@@ -38,7 +39,7 @@ public class MVCCTest extends BaseTest {
 
       populateDatabase();
 
-      LogManager.instance().info(this, "Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
+      LogManager.instance().log(this, Level.INFO, "Executing " + TOT_TX + " transactions between " + TOT_ACCOUNT + " accounts");
 
       database.async().setParallelLevel(PARALLEL);
 
@@ -52,7 +53,7 @@ public class MVCCTest extends BaseTest {
             mvccErrors.incrementAndGet();
           } else {
             otherErrors.incrementAndGet();
-            LogManager.instance().error(this, "UNEXPECTED ERROR: " + exception, exception);
+            LogManager.instance().log(this, Level.SEVERE, "UNEXPECTED ERROR: " + exception, exception);
           }
         }
       });
@@ -126,7 +127,7 @@ public class MVCCTest extends BaseTest {
       });
 
     } finally {
-      LogManager.instance().info(this, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
+      LogManager.instance().log(this, Level.INFO, "Database populate finished in " + (System.currentTimeMillis() - begin) + "ms");
     }
   }
 

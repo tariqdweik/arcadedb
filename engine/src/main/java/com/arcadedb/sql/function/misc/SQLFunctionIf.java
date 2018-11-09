@@ -4,9 +4,11 @@
 package com.arcadedb.sql.function.misc;
 
 import com.arcadedb.database.Identifiable;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.function.SQLFunctionAbstract;
-import com.arcadedb.log.LogManager;
+
+import java.util.logging.Level;
 
 /**
  * Returns different values based on the condition. If it's true the first value is returned, otherwise the second one.
@@ -43,8 +45,7 @@ public class SQLFunctionIf extends SQLFunctionAbstract {
   }
 
   @Override
-  public Object execute(Object iThis, final Identifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams,
-      final CommandContext iContext) {
+  public Object execute(Object iThis, final Identifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParams, final CommandContext iContext) {
 
     boolean result;
 
@@ -62,7 +63,7 @@ public class SQLFunctionIf extends SQLFunctionAbstract {
       return result ? iParams[1] : iParams[2];
 
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error during if execution", e);
+      LogManager.instance().log(this, Level.SEVERE, "Error during if execution", e);
 
       return null;
     }

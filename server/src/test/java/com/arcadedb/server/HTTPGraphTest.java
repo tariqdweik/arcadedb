@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class HTTPGraphTest extends BaseGraphServerTest {
   @Test
@@ -73,7 +74,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "Response: ", null, response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -98,7 +99,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "Response: ", null, response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -123,7 +124,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "Response: ", null, response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -148,7 +149,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "Response: ", null, response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -185,7 +186,7 @@ public class HTTPGraphTest extends BaseGraphServerTest {
       Assertions.assertEquals(200, connection.getResponseCode());
       Assertions.assertEquals("OK", connection.getResponseMessage());
 
-      LogManager.instance().info(this, "Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "Response: ", null, response);
 
       Assertions.assertTrue(response.contains("#"));
 
@@ -194,7 +195,8 @@ public class HTTPGraphTest extends BaseGraphServerTest {
     }
   }
 
-  private void formatPost(final HttpURLConnection connection, final String language, final String payloadCommand, final Map<String, Object> params) throws IOException {
+  private void formatPost(final HttpURLConnection connection, final String language, final String payloadCommand, final Map<String, Object> params)
+      throws IOException {
     connection.setDoOutput(true);
     if (payloadCommand != null) {
       final JSONObject jsonRequest = new JSONObject();

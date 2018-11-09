@@ -8,10 +8,11 @@ import com.arcadedb.database.Database;
 import com.arcadedb.log.LogManager;
 
 import java.util.Map;
+import java.util.logging.Level;
 
 public class DatabaseChecker {
   public void check(Database database) {
-    LogManager.instance().info(this, "Starting checking database '%s'...", database.getName());
+    LogManager.instance().log(this, Level.INFO, "Starting checking database '%s'...", null, database.getName());
 
     long autofix = 0;
     long warnings = 0;
@@ -41,13 +42,12 @@ public class DatabaseChecker {
 
     final float avgPageUsed = totalPages > 0 ? (float) (totalMaxOffset / totalPages) * 100f / pageSize : 0;
 
-    LogManager.instance()
-        .info(this, "Total records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) avgPageUsed=%.2f%%", totalRecords,
-            totalActiveRecords, totalDeletedRecords, totalPlaceholderRecords, totalSurrogateRecords, avgPageUsed);
+    LogManager.instance().log(this, Level.INFO, "Total records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) avgPageUsed=%.2f%%", null, totalRecords,
+        totalActiveRecords, totalDeletedRecords, totalPlaceholderRecords, totalSurrogateRecords, avgPageUsed);
 
-    LogManager.instance().info(this, "Completed checking of database '%s':", database.getName());
-    LogManager.instance().info(this, "- warning %d", warnings);
-    LogManager.instance().info(this, "- auto-fix %d", autofix);
-    LogManager.instance().info(this, "- errors %d", errors);
+    LogManager.instance().log(this, Level.INFO, "Completed checking of database '%s':", null, database.getName());
+    LogManager.instance().log(this, Level.INFO, "- warning %d", null, warnings);
+    LogManager.instance().log(this, Level.INFO, "- auto-fix %d", null, autofix);
+    LogManager.instance().log(this, Level.INFO, "- errors %d", null, errors);
   }
 }

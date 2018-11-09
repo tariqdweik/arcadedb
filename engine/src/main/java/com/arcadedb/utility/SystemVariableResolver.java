@@ -11,6 +11,7 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Resolve system variables embedded in a String.
@@ -90,10 +91,10 @@ public class SystemVariableResolver implements VariableParserListener {
           }
         }
       } catch (Exception e2) {
-        LogManager.instance().error(SystemVariableResolver.class, "", e2);
+        LogManager.instance().log(SystemVariableResolver.class, Level.SEVERE, "", e2);
       }
     } catch (Exception e1) {
-      LogManager.instance().error(SystemVariableResolver.class, "", e1);
+      LogManager.instance().log(SystemVariableResolver.class, Level.SEVERE, "", e1);
     }
   }
 }

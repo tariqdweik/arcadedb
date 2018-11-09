@@ -4,8 +4,8 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.utility.FileUtils;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -16,6 +16,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -34,7 +35,7 @@ public class SourceDiscovery {
   }
 
   public SourceSchema getSchema(final ImporterSettings settings) throws IOException {
-    LogManager.instance().info(this, "Analyzing url: %s...", url);
+    LogManager.instance().log(this, Level.INFO, "Analyzing url: %s...", null, url);
 
     final Source source = getSource();
 
@@ -45,13 +46,13 @@ public class SourceDiscovery {
     final SourceSchema sourceSchema = contentImporter.analyze(parser, settings);
 
     if (contentImporter == null)
-      LogManager.instance().info(this, "Unknown format");
+      LogManager.instance().log(this, Level.INFO, "Unknown format");
     else {
-      LogManager.instance()
-          .info(this, "Recognized format %s (limitBytes=%s limitEntries=%d)", contentImporter.getFormat(), FileUtils.getSizeAsString(limitBytes), limitEntries);
+      LogManager.instance().log(this, Level.INFO, "Recognized format %s (limitBytes=%s limitEntries=%d)", null, contentImporter.getFormat(),
+          FileUtils.getSizeAsString(limitBytes), limitEntries);
       if (!sourceSchema.getOptions().isEmpty()) {
         for (Map.Entry<String, String> o : sourceSchema.getOptions().entrySet())
-          LogManager.instance().info(this, "- %s = %s", o.getKey(), o.getValue());
+          LogManager.instance().log(this, Level.INFO, "- %s = %s", null, o.getKey(), o.getValue());
       }
     }
 
@@ -161,7 +162,7 @@ public class SourceDiscovery {
 
         final Map.Entry<Character, AtomicInteger> bestSeparator = list.get(0);
 
-        LogManager.instance().info(this, "Best separator candidate=%s (all candidates=%s)", bestSeparator.getKey(), list);
+        LogManager.instance().log(this, Level.INFO, "Best separator candidate=%s (all candidates=%s)", null, bestSeparator.getKey(), list);
 
         settings.options.put("delimiter", "" + bestSeparator.getKey());
         return new CSVImporter();

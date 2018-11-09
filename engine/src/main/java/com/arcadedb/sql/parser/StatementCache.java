@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * This class is an LRU cache for already parsed SQL statement executors. It stores itself in the storage as a resource. It also
@@ -83,7 +84,7 @@ public class StatementCache {
           is = new ByteArrayInputStream(statement.getBytes("UTF-8"));
 //          is = new ByteArrayInputStream(statement.getBytes(db.getStorage().getConfiguration().getCharset()));
         } catch (UnsupportedEncodingException e2) {
-          LogManager.instance().warn(null, "Unsupported charset for database " + db);
+          LogManager.instance().log(this, Level.WARNING, "Unsupported charset for database " + db);
           is = new ByteArrayInputStream(statement.getBytes());
         }
       }
@@ -96,7 +97,7 @@ public class StatementCache {
 //          osql = new SqlParser(is, db.getStorage().getConfiguration().getCharset());
           osql = new SqlParser(is, "UTF-8");
         } catch (UnsupportedEncodingException e2) {
-          LogManager.instance().warn(null, "Unsupported charset for database " + db);
+          LogManager.instance().log(this, Level.WARNING, "Unsupported charset for database " + db);
           osql = new SqlParser(is);
         }
       }

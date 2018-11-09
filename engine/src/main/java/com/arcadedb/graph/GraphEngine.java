@@ -14,6 +14,7 @@ import com.arcadedb.utility.MultiIterator;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class GraphEngine {
   public static final int EDGES_LINKEDLIST_CHUNK_SIZE = 30;
@@ -51,7 +52,8 @@ public class GraphEngine {
       try {
         outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
       } catch (RecordNotFoundException e) {
-        LogManager.instance().warn(this, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", outEdgesHeadChunk, vertex.getIdentity());
+        LogManager.instance().log(this, Level.WARNING, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", null, outEdgesHeadChunk,
+            vertex.getIdentity());
         outEdgesHeadChunk = null;
       }
 
@@ -79,7 +81,8 @@ public class GraphEngine {
         try {
           inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
         } catch (RecordNotFoundException e) {
-          LogManager.instance().warn(this, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", inEdgesHeadChunk, vertex.getIdentity());
+          LogManager.instance().log(this, Level.WARNING, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", null, inEdgesHeadChunk,
+              vertex.getIdentity());
           inEdgesHeadChunk = null;
         }
 

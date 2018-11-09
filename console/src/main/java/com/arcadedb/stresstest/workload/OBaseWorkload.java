@@ -5,17 +5,18 @@ package com.arcadedb.stresstest.workload;
 
 import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.stresstest.DatabaseIdentifier;
 import com.arcadedb.stresstest.StressTesterSettings;
 import com.arcadedb.utility.Callable;
-import com.arcadedb.log.LogManager;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 /**
  * CRUD implementation of the workload.
@@ -163,7 +164,7 @@ public abstract class OBaseWorkload implements OWorkload {
                   } catch (Exception e) {
                     errors.add(e.toString());
                     if (errors.size() > MAX_ERRORS) {
-                      LogManager.instance().error(this, "Error during execution of database operation", e);
+                      LogManager.instance().log(this, Level.SEVERE, "Error during execution of database operation", e);
                       return null;
                     }
                   } finally {

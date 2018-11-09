@@ -7,8 +7,8 @@ package com.arcadedb.engine;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.exception.ConfigurationException;
-import com.arcadedb.utility.LockContext;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.utility.LockContext;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 public class WALFile extends LockContext {
   public enum FLUSH_TYPE {
@@ -232,8 +233,8 @@ public class WALFile extends LockContext {
       final int deltaSize = deltaRange[1] - deltaRange[0] + 1;
 
       LogManager.instance()
-          .debug(WALFile.class, "Writing page %s v%d range %d-%d into buffer (txId=%d threadId=%d)", newPage.getPageId(), newPage.version + 1, deltaRange[0],
-              deltaRange[1], txId, Thread.currentThread().getId());
+          .log(WALFile.class, Level.FINE, "Writing page %s v%d range %d-%d into buffer (txId=%d threadId=%d)", null, newPage.getPageId(), newPage.version + 1,
+              deltaRange[0], deltaRange[1], txId, Thread.currentThread().getId());
 
       bufferChanges.putInt(newPage.getPageId().getFileId());
       bufferChanges.putInt(newPage.getPageId().getPageNumber());
@@ -261,7 +262,8 @@ public class WALFile extends LockContext {
   public void writeTransactionToFile(final DatabaseInternal database, final List<MutablePage> pages, final FLUSH_TYPE sync, final WALFile file, final long txId,
       final Binary buffer) throws IOException {
 
-    LogManager.instance().debug(this, "Appending WAL for txId=%d (size=%d file=%s threadId=%d)", txId, buffer.size(), filePath, Thread.currentThread().getId());
+    LogManager.instance()
+        .log(this, Level.FINE, "Appending WAL for txId=%d (size=%d file=%s threadId=%d)", null, txId, buffer.size(), filePath, Thread.currentThread().getId());
 
     file.append(buffer.getByteBuffer());
 

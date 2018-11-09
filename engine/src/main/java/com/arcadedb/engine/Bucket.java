@@ -7,13 +7,14 @@ package com.arcadedb.engine;
 import com.arcadedb.database.*;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.RecordNotFoundException;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.utility.FileUtils;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Level;
 
 import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 import static com.arcadedb.database.Binary.LONG_SERIALIZED_SIZE;
@@ -198,9 +199,8 @@ public class Bucket extends PaginatedComponent {
 
     final int totalPages = getTotalPages();
 
-    LogManager.instance()
-        .info(this, "- Checking bucket '%s' (totalPages=%d spaceOnDisk=%s pageSize=%s)...", name, totalPages, FileUtils.getSizeAsString(totalPages * pageSize),
-            FileUtils.getSizeAsString(pageSize));
+    LogManager.instance().log(this, Level.FINE, "- Checking bucket '%s' (totalPages=%d spaceOnDisk=%s pageSize=%s)...", null, name, totalPages,
+        FileUtils.getSizeAsString(totalPages * pageSize), FileUtils.getSizeAsString(pageSize));
 
     long totalRecords = 0;
     long totalActiveRecords = 0;
@@ -248,19 +248,20 @@ public class Bucket extends PaginatedComponent {
 
         totalMaxOffset += pageMaxOffset;
 
-        LogManager.instance().debug(this, "-- Page %d records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) maxOffset=%d", pageId, recordCountInPage,
-            pageActiveRecords, pageDeletedRecords, pagePlaceholderRecords, pageSurrogateRecords, pageMaxOffset);
+        LogManager.instance()
+            .log(this, Level.FINE, "-- Page %d records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) maxOffset=%d", null, pageId, recordCountInPage,
+                pageActiveRecords, pageDeletedRecords, pagePlaceholderRecords, pageSurrogateRecords, pageMaxOffset);
 
       } catch (IOException e) {
-        LogManager.instance().info(this, "- Unknown error on checking page %d: %s", pageId, e.toString());
+        LogManager.instance().log(this, Level.INFO, "- Unknown error on checking page %d: %s", null, pageId, e.toString());
       }
     }
 
     final float avgPageUsed = totalPages > 0 ? (float) (totalMaxOffset / totalPages) * 100f / pageSize : 0;
 
     LogManager.instance()
-        .info(this, "-- Total records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) avgPageUsed=%.2f%%", totalRecords, totalActiveRecords,
-            totalDeletedRecords, totalPlaceholderRecords, totalSurrogateRecords, avgPageUsed);
+        .log(this, Level.INFO, "-- Total records=%d (actives=%d deleted=%d placeholders=%d surrogates=%d) avgPageUsed=%.2f%%", null, totalRecords,
+            totalActiveRecords, totalDeletedRecords, totalPlaceholderRecords, totalSurrogateRecords, avgPageUsed);
 
     stats.put("pageSize", (long) pageSize);
     stats.put("totalRecords", totalRecords);
@@ -385,7 +386,8 @@ public class Bucket extends PaginatedComponent {
 
       lastPage.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) ++recordCountInPage);
 
-      LogManager.instance().debug(this, "Created record %s (page=%s records=%d threadId=%d)", rid, lastPage, recordCountInPage, Thread.currentThread().getId());
+      LogManager.instance()
+          .log(this, Level.FINE, "Created record %s (page=%s records=%d threadId=%d)", null, rid, lastPage, recordCountInPage, Thread.currentThread().getId());
 
       ((RecordInternal) record).setBuffer(buffer.copy());
 
@@ -490,8 +492,8 @@ public class Bucket extends PaginatedComponent {
 
           page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
 
-          LogManager.instance()
-              .debug(this, "Updated record %s by allocating new space on the same page (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
+          LogManager.instance().log(this, Level.FINE, "Updated record %s by allocating new space on the same page (page=%s threadId=%d)", null, rid, page,
+              Thread.currentThread().getId());
 
         } else {
           if (isPlaceHolder)
@@ -503,8 +505,8 @@ public class Bucket extends PaginatedComponent {
 
           final int bytesWritten = page.writeNumber(recordPositionInPage, -1);
           page.writeLong(recordPositionInPage + bytesWritten, realRID.getPosition());
-          LogManager.instance()
-              .debug(this, "Updated record %s by allocating new space with a placeholder (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
+          LogManager.instance().log(this, Level.FINE, "Updated record %s by allocating new space with a placeholder (page=%s threadId=%d)", null, rid, page,
+              Thread.currentThread().getId());
         }
       } else {
 
@@ -512,8 +514,8 @@ public class Bucket extends PaginatedComponent {
         final int recordContentPositionInPage = (int) (recordPositionInPage + recordSize[1]);
         page.writeByteArray(recordContentPositionInPage, buffer.toByteArray());
 
-        LogManager.instance()
-            .debug(this, "Updated record %s with the same size or less as before (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
+        LogManager.instance().log(this, Level.FINE, "Updated record %s with the same size or less as before (page=%s threadId=%d)", null, rid, page,
+            Thread.currentThread().getId());
 
       }
 
@@ -577,7 +579,7 @@ public class Bucket extends PaginatedComponent {
 //
 //      page.writeShort(PAGE_RECORD_COUNT_IN_PAGE_OFFSET, (short) (recordCountInPage - 1));
 
-      LogManager.instance().debug(this, "Deleted record %s (page=%s threadId=%d)", rid, page, Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.FINE, "Deleted record %s (page=%s threadId=%d)", null, rid, page, Thread.currentThread().getId());
 
     } catch (IOException e) {
       throw new DatabaseOperationException("Error on deletion of record " + rid);

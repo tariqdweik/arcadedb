@@ -6,11 +6,11 @@ package com.arcadedb.server.http.handler;
 
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.server.ServerMetrics;
 import com.arcadedb.server.ServerSecurityException;
 import com.arcadedb.server.http.HttpServer;
-import com.arcadedb.log.LogManager;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
@@ -18,6 +18,7 @@ import io.undertow.util.Headers;
 
 import java.io.IOException;
 import java.util.Base64;
+import java.util.logging.Level;
 
 public abstract class AbstractHandler implements HttpHandler {
   private static final String AUTHORIZATION_BASIC = "Basic";
@@ -83,29 +84,29 @@ public abstract class AbstractHandler implements HttpHandler {
       }
 
     } catch (ServerSecurityException e) {
-      LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      LogManager.instance().log(this, Level.SEVERE, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(403);
       exchange.getResponseSender()
           .send("{ \"error\" : \"Security error\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");
     } catch (ServerIsNotTheLeaderException e) {
-      LogManager.instance().debug(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      LogManager.instance().log(this, Level.FINE, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(400);
       exchange.getResponseSender().send(
           "{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName()
               + "\", \"exceptionArg\": \"" + e.getLeaderAddress() + "\"}");
     } catch (NeedRetryException e) {
-      LogManager.instance().debug(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      LogManager.instance().log(this, Level.FINE, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(503);
       exchange.getResponseSender()
           .send("{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");
     } catch (DuplicatedKeyException e) {
-      LogManager.instance().debug(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      LogManager.instance().log(this, Level.FINE, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(503);
       exchange.getResponseSender().send(
           "{ \"error\" : \"Cannot execute command\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName()
               + "\", \"exceptionArg\": \"" + e.getIndexName() + "|" + e.getKeys() + "|" + e.getCurrentIndexedRID() + "\" }");
     } catch (Exception e) {
-      LogManager.instance().error(this, "Error on command execution (%s)", e, getClass().getSimpleName());
+      LogManager.instance().log(this, Level.SEVERE, "Error on command execution (%s)", e, getClass().getSimpleName());
       exchange.setStatusCode(500);
       exchange.getResponseSender()
           .send("{ \"error\" : \"Internal error\", \"detail\":\"" + e.toString() + "\", \"exception\": \"" + e.getClass().getName() + "\"}");

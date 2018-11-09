@@ -78,7 +78,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       this.forwarderQueue = new ArrayBlockingQueue<>(queueSize);
     } else {
       // WARNING AND THEN USE THE DEFAULT
-      LogManager.instance().warn(this, "Error on async operation queue implementation setting: %s is not supported", cfgQueueImpl);
+      LogManager.instance().log(this, Level.WARNING, "Error on async operation queue implementation setting: %s is not supported", null, cfgQueueImpl);
       this.senderQueue = new ArrayBlockingQueue<>(queueSize);
       this.forwarderQueue = new ArrayBlockingQueue<>(queueSize);
     }
@@ -344,7 +344,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
           if (!senderQueue.offer(message)) {
             server.getServer().log(this, Level.INFO, "Timeout on writing request to server '%s', setting it offline...", getRemoteServerName());
 
-//            LogManager.instance().info(this, "THREAD DUMP:\n%s", FileUtils.threadDump());
+//            LogManager.instance().log(this, Level.INFO, "THREAD DUMP:\n%s", FileUtils.threadDump());
 
             senderQueue.clear();
             server.setReplicaStatus(remoteServerName, false);

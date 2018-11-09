@@ -9,13 +9,13 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.RID;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.network.binary.QuorumNotReachedException;
 import com.arcadedb.network.binary.ServerIsNotTheLeaderException;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 import com.arcadedb.utility.RWLockContext;
 import org.json.JSONArray;
@@ -27,6 +27,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.logging.Level;
 
 public class RemoteDatabase extends RWLockContext {
 
@@ -248,7 +249,8 @@ public class RemoteDatabase extends RWLockContext {
             } catch (Exception e) {
               lastException = e;
               // TODO CHECK IF THE COMMAND NEEDS TO BE RE-EXECUTED OR NOT
-              LogManager.instance().warn(this, "Error on executing command, retrying... (payload=%s, error=%s)", responsePayload, e.toString());
+              LogManager.instance()
+                  .log(this, Level.WARNING, "Error on executing command, retrying... (payload=%s, error=%s)", null, responsePayload, e.toString());
               continue;
             }
 
@@ -281,7 +283,7 @@ public class RemoteDatabase extends RWLockContext {
             // TEMPORARY FIX FOR AN ISSUE WITH THE CLIENT/SERVER COMMUNICATION WHERE THE PAYLOAD ARRIVES AS EMPTY
             if (connection.getResponseCode() == 400 && "Bad Request".equals(httpErrorDescription) && "Command text is null".equals(reason)) {
               // RETRY
-              LogManager.instance().debug(this, "Empty payload received, retrying (retry=%d/%d)...", retry, maxRetry);
+              LogManager.instance().log(this, Level.FINE, "Empty payload received, retrying (retry=%d/%d)...", null, retry, maxRetry);
               continue;
             }
 
@@ -320,8 +322,9 @@ public class RemoteDatabase extends RWLockContext {
           connectToServer = getNextReplicaAddress();
 
         if (connectToServer != null)
-          LogManager.instance().warn(this, "Remote server (%s:%d) seems unreachable, switching to server %s:%d...", currentConnectToServer.getFirst(),
-              currentConnectToServer.getSecond(), connectToServer.getFirst(), connectToServer.getSecond());
+          LogManager.instance()
+              .log(this, Level.WARNING, "Remote server (%s:%d) seems unreachable, switching to server %s:%d...", null, currentConnectToServer.getFirst(),
+                  currentConnectToServer.getSecond(), connectToServer.getFirst(), connectToServer.getSecond());
 
       } catch (NeedRetryException | DuplicatedKeyException | TransactionException | TimeoutException e) {
         throw e;
@@ -352,7 +355,7 @@ public class RemoteDatabase extends RWLockContext {
     serverCommand("server", "SQL", null, null, false, false, new Callback() {
       @Override
       public Object call(final HttpURLConnection connection, final JSONObject response) {
-        LogManager.instance().debug(this, "Configuring remote database: %s", response);
+        LogManager.instance().log(this, Level.FINE, "Configuring remote database: %s", null, response);
 
         if (!response.has("leaderServer")) {
           leaderServer = new Pair<>(originalServer, originalPort);
@@ -374,7 +377,7 @@ public class RemoteDatabase extends RWLockContext {
           for (String serverEntry : serverEntries) {
             final String[] serverParts = serverEntry.split(":");
             if (serverParts.length != 2)
-              LogManager.instance().warn(this, "No port specified on remote server URL '%s'", serverEntry);
+              LogManager.instance().log(this, Level.WARNING, "No port specified on remote server URL '%s'", null, serverEntry);
 
             final String sHost = serverParts[0];
             final int sPort = Integer.parseInt(serverParts[1]);
@@ -383,7 +386,7 @@ public class RemoteDatabase extends RWLockContext {
           }
         }
 
-        LogManager.instance().info(this, "Remote Database configured with leader=%s and replicas=%s", leaderServer, replicaServerList);
+        LogManager.instance().log(this, Level.INFO, "Remote Database configured with leader=%s and replicas=%s", null, leaderServer, replicaServerList);
 
         return null;
       }

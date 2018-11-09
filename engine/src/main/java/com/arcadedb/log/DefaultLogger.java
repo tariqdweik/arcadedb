@@ -58,14 +58,15 @@ public class DefaultLogger implements Logger {
     }
   }
 
-  public void log(final Object iRequester, final Level iLevel, String iMessage, final Throwable iException, final boolean extractDBData, final String context,
-      final Object... iAdditionalArgs) {
-    if (iMessage != null) {
+  public void log(final Object requester, final Level level, String message, final Throwable exception, final String context, final Object arg1,
+      final Object arg2, final Object arg3, final Object arg4, final Object arg5, final Object arg6, final Object arg7, final Object arg8, final Object arg9,
+      final Object arg10) {
+    if (message != null) {
       final String requesterName;
-      if (iRequester instanceof Class<?>) {
-        requesterName = ((Class<?>) iRequester).getName();
-      } else if (iRequester != null) {
-        requesterName = iRequester.getClass().getName();
+      if (requester instanceof Class<?>) {
+        requesterName = ((Class<?>) requester).getName();
+      } else if (requester != null) {
+        requesterName = requester.getClass().getName();
       } else {
         requesterName = DEFAULT_LOG;
       }
@@ -84,27 +85,27 @@ public class DefaultLogger implements Logger {
 
       if (log == null) {
         if (context != null)
-          iMessage = "<" + context + "> " + iMessage;
+          message = "<" + context + "> " + message;
 
         // USE SYSERR
         try {
-          System.err.println(String.format(iMessage, iAdditionalArgs));
+          System.err.println(String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10));
         } catch (Exception e) {
-          System.err.print(String.format("Error on formatting message '%s'. Exception: %s", iMessage, e.toString()));
+          System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
         }
-      } else if (log.isLoggable(iLevel)) {
+      } else if (log.isLoggable(level)) {
         // USE THE LOG
         try {
           if (context != null)
-            iMessage = "<" + context + "> " + iMessage;
+            message = "<" + context + "> " + message;
 
-          final String msg = String.format(iMessage, iAdditionalArgs);
-          if (iException != null)
-            log.log(iLevel, msg, iException);
+          final String msg = String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+          if (exception != null)
+            log.log(level, msg, exception);
           else
-            log.log(iLevel, msg);
+            log.log(level, msg);
         } catch (Exception e) {
-          System.err.print(String.format("Error on formatting message '%s'. Exception: %s", iMessage, e.toString()));
+          System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
         }
       }
     }

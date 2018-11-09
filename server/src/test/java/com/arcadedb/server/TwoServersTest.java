@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
+import java.util.logging.Level;
 
 public class TwoServersTest extends BaseGraphServerTest {
   @Override
@@ -32,7 +33,7 @@ public class TwoServersTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "TEST: Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "TEST: Response: ", null, response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -57,7 +58,7 @@ public class TwoServersTest extends BaseGraphServerTest {
     try {
       final String response = readResponse(connection);
 
-      LogManager.instance().info(this, "TEST: Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "TEST: Response: ", null, response);
 
       Assertions.assertEquals(200, connection.getResponseCode());
 
@@ -94,7 +95,7 @@ public class TwoServersTest extends BaseGraphServerTest {
       Assertions.assertEquals(200, connection.getResponseCode());
       Assertions.assertEquals("OK", connection.getResponseMessage());
 
-      LogManager.instance().info(this, "TEST: Response: ", response);
+      LogManager.instance().log(this, Level.INFO, "TEST: Response: ", null, response);
 
       Assertions.assertTrue(response.contains("#"));
 

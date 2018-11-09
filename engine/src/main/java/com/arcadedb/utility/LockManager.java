@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 /**
  * Lock manager implementation.
@@ -40,7 +41,7 @@ public class LockManager<RESOURCE, REQUESTER> {
     if (currentLock != null) {
       if (currentLock.owner.equals(requester)) {
         // SAME RESOURCE/SERVER, ALREADY LOCKED
-        LogManager.instance().debug(this, "Resource '%s' already locked by requester '%s'", resource, currentLock.owner);
+        LogManager.instance().log(this, Level.FINE, "Resource '%s' already locked by requester '%s'", null, resource, currentLock.owner);
         currentLock = null;
       } else {
         // TRY TO RE-LOCK IT UNTIL TIMEOUT IS EXPIRED
@@ -73,8 +74,7 @@ public class LockManager<RESOURCE, REQUESTER> {
     final ODistributedLock owner = lockManager.remove(resource);
     if (owner != null) {
       if (!owner.owner.equals(requester)) {
-        throw new LockException(
-            "Cannot unlock resource " + resource + " because owner '" + owner.owner + "' <> requester '" + requester + "'");
+        throw new LockException("Cannot unlock resource " + resource + " because owner '" + owner.owner + "' <> requester '" + requester + "'");
       }
 
       // NOTIFY ANY WAITERS

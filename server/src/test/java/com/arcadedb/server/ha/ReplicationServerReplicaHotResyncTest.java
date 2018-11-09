@@ -5,13 +5,14 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.TestCallback;
-import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest {
   private final    AtomicLong totalMessages = new AtomicLong();
@@ -47,7 +48,7 @@ public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest
             // SLOW DOWN A SERVER AFTER 5TH MESSAGE
             if (totalMessages.incrementAndGet() > 5) {
               try {
-                LogManager.instance().info(this, "TEST: Slowing down response from replica server 2...");
+                LogManager.instance().log(this, Level.INFO, "TEST: Slowing down response from replica server 2...");
                 Thread.sleep(10000);
               } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -56,10 +57,10 @@ public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest
             }
           } else {
             if (type == TYPE.REPLICA_HOT_RESYNC) {
-              LogManager.instance().info(this, "TEST: Received hot resync request");
+              LogManager.instance().log(this, Level.INFO, "TEST: Received hot resync request");
               hotResync = true;
             } else if (type == TYPE.REPLICA_FULL_RESYNC) {
-              LogManager.instance().info(this, "TEST: Received full resync request");
+              LogManager.instance().log(this, Level.INFO, "TEST: Received full resync request");
               fullResync = true;
             }
           }
@@ -72,7 +73,7 @@ public class ReplicationServerReplicaHotResyncTest extends ReplicationServerTest
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           // SLOW DOWN A SERVER
           if ("ArcadeDB_2".equals(object) && type == TYPE.REPLICA_OFFLINE) {
-            LogManager.instance().info(this, "TEST: Replica 2 is offline removing latency...");
+            LogManager.instance().log(this, Level.INFO, "TEST: Replica 2 is offline removing latency...");
             slowDown = false;
           }
         }

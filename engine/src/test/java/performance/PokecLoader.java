@@ -11,12 +11,13 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.log.LogManager;
 
 import java.io.*;
+import java.util.logging.Level;
 
 /**
  * Imports the POKEC relationships (https://snap.stanford.edu/data/soc-pokec.html)
@@ -75,7 +76,7 @@ public class PokecLoader {
     db.async().onError(new ErrorCallback() {
       @Override
       public void call(Exception exception) {
-        LogManager.instance().error(this, "ERROR: " + exception, exception);
+        LogManager.instance().log(this, Level.SEVERE, "ERROR: " + exception, exception);
 
       }
     });
@@ -95,7 +96,7 @@ public class PokecLoader {
       db.async().createRecord(v);
 
       if (i % 20000 == 0) {
-        LogManager.instance().info(this, "Inserted %d vertices...", i);
+        LogManager.instance().log(this, Level.INFO, "Inserted %d vertices...", null, i);
       }
     }
   }
@@ -122,7 +123,7 @@ public class PokecLoader {
       db.async().newEdgeByKeys("V", new String[] { "id" }, new Object[] { id1 }, "V", new String[] { "id" }, new Object[] { id2 }, false, "E", true, null);
 
       if (i % 20000 == 0) {
-        LogManager.instance().info(this, "Committing %d edges...", i);
+        LogManager.instance().log(this, Level.INFO, "Committing %d edges...", null, i);
         db.commit();
         db.begin();
         db.getTransaction().setUseWAL(USE_WAL);

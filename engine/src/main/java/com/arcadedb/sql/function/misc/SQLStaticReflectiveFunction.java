@@ -6,9 +6,9 @@ package com.arcadedb.sql.function.misc;
 
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.QueryParsingException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.function.SQLFunctionAbstract;
-import com.arcadedb.log.LogManager;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -89,8 +90,7 @@ public class SQLStaticReflectiveFunction extends SQLFunctionAbstract {
   }
 
   @Override
-  public Object execute( Object iThis, Identifiable iCurrentRecord, Object iCurrentResult,
-      Object[] iParams, CommandContext iContext) {
+  public Object execute(Object iThis, Identifiable iCurrentRecord, Object iCurrentResult, Object[] iParams, CommandContext iContext) {
 
     final Supplier<String> paramsPrettyPrint = () -> Arrays.stream(iParams).map(p -> p + " [ " + p.getClass().getName() + " ]")
         .collect(Collectors.joining(", ", "(", ")"));
@@ -106,7 +106,7 @@ public class SQLStaticReflectiveFunction extends SQLFunctionAbstract {
     } catch (ReflectiveOperationException e) {
       throw new QueryParsingException("Error executing function " + name + paramsPrettyPrint.get(), e);
     } catch (IllegalArgumentException x) {
-      LogManager.instance().error(this, "Error executing function %s", x, name);
+      LogManager.instance().log(this, Level.SEVERE, "Error executing function %s", x, name);
 
       return null; //if a function fails for given input, just return null to avoid breaking the query execution
     }
@@ -170,14 +170,12 @@ public class SQLStaticReflectiveFunction extends SQLFunctionAbstract {
       } else if (Float.TYPE.equals(fromClass)) {
         return Double.TYPE.equals(iToClass);
       } else if (Character.TYPE.equals(fromClass)) {
-        return Integer.TYPE.equals(iToClass) || Long.TYPE.equals(iToClass) || Float.TYPE.equals(iToClass) || Double.TYPE
-            .equals(iToClass);
+        return Integer.TYPE.equals(iToClass) || Long.TYPE.equals(iToClass) || Float.TYPE.equals(iToClass) || Double.TYPE.equals(iToClass);
       } else if (Short.TYPE.equals(fromClass)) {
-        return Integer.TYPE.equals(iToClass) || Long.TYPE.equals(iToClass) || Float.TYPE.equals(iToClass) || Double.TYPE
-            .equals(iToClass);
+        return Integer.TYPE.equals(iToClass) || Long.TYPE.equals(iToClass) || Float.TYPE.equals(iToClass) || Double.TYPE.equals(iToClass);
       } else if (Byte.TYPE.equals(fromClass)) {
-        return Short.TYPE.equals(iToClass) || Integer.TYPE.equals(iToClass) || Long.TYPE.equals(iToClass) || Float.TYPE
-            .equals(iToClass) || Double.TYPE.equals(iToClass);
+        return Short.TYPE.equals(iToClass) || Integer.TYPE.equals(iToClass) || Long.TYPE.equals(iToClass) || Float.TYPE.equals(iToClass) || Double.TYPE
+            .equals(iToClass);
       }
       // this should never happen
       return false;

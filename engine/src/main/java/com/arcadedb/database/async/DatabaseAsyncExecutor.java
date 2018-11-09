@@ -12,9 +12,9 @@ import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.*;
 import com.arcadedb.index.Index;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.log.LogManager;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.util.Arrays;
@@ -26,6 +26,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class DatabaseAsyncExecutor {
   private final DatabaseInternal   database;
@@ -68,7 +69,7 @@ public class DatabaseAsyncExecutor {
         this.queue = new ArrayBlockingQueue<>(queueSize);
       else {
         // WARNING AND THEN USE THE DEFAULT
-        LogManager.instance().warn(this, "Error on async operation queue implementation setting: %s is not supported", cfgQueueImpl);
+        LogManager.instance().log(this, Level.WARNING, "Error on async operation queue implementation setting: %s is not supported", null, cfgQueueImpl);
         this.queue = new ArrayBlockingQueue<>(queueSize);
       }
     }
@@ -86,7 +87,7 @@ public class DatabaseAsyncExecutor {
         try {
           final DatabaseAsyncTask message = queue.poll(500, TimeUnit.MILLISECONDS);
           if (message != null) {
-            LogManager.instance().debug(this, "Received async message %s (threadId=%d)", message, Thread.currentThread().getId());
+            LogManager.instance().log(this, Level.FINE, "Received async message %s (threadId=%d)", null, message, Thread.currentThread().getId());
 
             if (message == FORCE_EXIT) {
 
@@ -163,7 +164,7 @@ public class DatabaseAsyncExecutor {
                 }
 
               } catch (Exception e) {
-                LogManager.instance().error(this, "Error on executing async create operation (threadId=%d)", e, Thread.currentThread().getId());
+                LogManager.instance().log(this, Level.SEVERE, "Error on executing async create operation (threadId=%d)", e, Thread.currentThread().getId());
 
                 onError(e);
                 if (!database.isTransactionActive())
@@ -289,7 +290,7 @@ public class DatabaseAsyncExecutor {
               try {
                 task.index.compact();
               } catch (Exception e) {
-                LogManager.instance().error(this, "Error on executing compaction of index '%s'", e, task.index.getName());
+                LogManager.instance().log(this, Level.SEVERE, "Error on executing compaction of index '%s'", e, task.index.getName());
               }
 
               beginTxIfNeeded();
@@ -305,7 +306,7 @@ public class DatabaseAsyncExecutor {
           queue.clear();
           break;
         } catch (Exception e) {
-          LogManager.instance().error(this, "Error on executing asynchronous operation (asyncThread=%s)", e, getName());
+          LogManager.instance().log(this, Level.SEVERE, "Error on executing asynchronous operation (asyncThread=%s)", e, getName());
           if (!database.getTransaction().isActive())
             database.begin();
         }
@@ -664,7 +665,7 @@ public class DatabaseAsyncExecutor {
       try {
         onOkCallback.call();
       } catch (Exception e) {
-        LogManager.instance().error(this, "Error on invoking onOk() callback for asynchronous operation %s", e, this);
+        LogManager.instance().log(this, Level.SEVERE, "Error on invoking onOk() callback for asynchronous operation %s", e, this);
       }
     }
   }
@@ -674,7 +675,7 @@ public class DatabaseAsyncExecutor {
       try {
         onErrorCallback.call(e);
       } catch (Exception e1) {
-        LogManager.instance().error(this, "Error on invoking onError() callback for asynchronous operation %s", e, this);
+        LogManager.instance().log(this, Level.SEVERE, "Error on invoking onError() callback for asynchronous operation %s", e, this);
       }
     }
   }

@@ -14,6 +14,7 @@ import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Default serializer implementation.
@@ -334,7 +335,7 @@ public class BinarySerializer {
     }
 
     default:
-      LogManager.instance().info(this, "Error on serializing value '" + value + "', type not supported");
+      LogManager.instance().log(this, Level.INFO, "Error on serializing value '" + value + "', type not supported", null);
     }
   }
 
@@ -418,7 +419,7 @@ public class BinarySerializer {
     }
 
     default:
-      LogManager.instance().info(this, "Error on deserializing value of type " + type);
+      LogManager.instance().log(this, Level.INFO, "Error on deserializing value of type " + type, null);
       value = null;
     }
     return value;

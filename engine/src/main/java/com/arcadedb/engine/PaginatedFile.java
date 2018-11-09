@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.logging.Level;
 
 public class PaginatedFile {
   public enum MODE {
@@ -41,7 +42,7 @@ public class PaginatedFile {
     try {
       channel.close();
     } catch (IOException e) {
-      LogManager.instance().error(this, "Error on closing file %s (id=%d)", e, filePath, fileId);
+      LogManager.instance().log(this, Level.SEVERE, "Error on closing file %s (id=%d)", e, filePath, fileId);
     }
     this.open = false;
   }
