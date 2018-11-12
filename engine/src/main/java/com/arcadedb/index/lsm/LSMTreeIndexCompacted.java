@@ -214,9 +214,12 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
       LSMTreeIndexUnderlyingCompactedSeriesCursor iterator = null;
 
+      int startingPageNumber = rootPageNumber + 1 + (ascendingOrder ? 0 : rootPageCount);
+      final int lastPageNumber = rootPageNumber + 1 + (ascendingOrder ? rootPageCount : 0);
+
       if (fromKeys != null) {
         final Binary rootPageBuffer = new Binary(rootPage.slice());
-        final LookupResult resultInRootPage = lookupInPage(rootPageNumber, rootPageCount + 1, rootPageBuffer, convertedFromKeys, ascendingOrder ? 2 : 3);
+        final LookupResult resultInRootPage = lookupInPage(rootPageNumber, rootPageCount + 1, rootPageBuffer, convertedFromKeys, 1);
 
         if (!resultInRootPage.outside) {
           // IT'S IN THE PAGE RANGE
@@ -237,7 +240,6 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
           final LookupResult result = lookupInPage(firstPageNumber, getCount(firstPage), firstPageBuffer, convertedFromKeys, ascendingOrder ? 2 : 3);
 
-          final int startingPageNumber;
           int posInPage;
 
           if (result.outside) {
@@ -247,15 +249,17 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
           } else {
             startingPageNumber = firstPageNumber;
             posInPage = result.keyIndex;
-            --posInPage;
+            if (ascendingOrder)
+              --posInPage;
+            else
+              ++posInPage;
           }
 
-          iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, startingPageNumber, rootPageNumber + 1 + rootPageCount, keyTypes, ascendingOrder,
-              posInPage);
+          iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, startingPageNumber, lastPageNumber, keyTypes, ascendingOrder, posInPage);
         }
 
       } else
-        iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, rootPageNumber + 1, rootPageNumber + 1 + rootPageCount, keyTypes, ascendingOrder, -1);
+        iterator = new LSMTreeIndexUnderlyingCompactedSeriesCursor(this, startingPageNumber, lastPageNumber, keyTypes, ascendingOrder, -1);
 
       if (iterator != null)
         iterators.add(iterator);

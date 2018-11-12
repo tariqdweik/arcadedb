@@ -25,17 +25,24 @@ public class LSMTreeIndexUnderlyingCompactedSeriesCursor extends LSMTreeIndexUnd
 
   @Override
   public boolean hasNext() {
+    if (pageCursor == null)
+      return false;
+
     if (pageCursor.hasNext())
       return true;
 
-    loadNextNonEmptyPage(pageCursor.pageId.getPageNumber() + 1, -1);
+    final int nextPage = pageCursor.pageId.getPageNumber() + (ascendingOrder ? 1 : -1);
+
+    loadNextNonEmptyPage(nextPage, -1);
 
     return pageCursor.hasNext();
   }
 
   private void loadNextNonEmptyPage(final int startingPageNumber, int posInPage) {
     // LOAD NEXT PAGE IF NEEDED
-    for (int currentPageNumber = startingPageNumber; currentPageNumber <= lastPageNumber; ++currentPageNumber) {
+    for (int currentPageNumber = startingPageNumber; ascendingOrder ?
+        currentPageNumber <= lastPageNumber :
+        currentPageNumber >= lastPageNumber; currentPageNumber += ascendingOrder ? 1 : -1) {
       try {
         final BasePage page = index.getDatabase().getTransaction().getPage(new PageId(index.getFileId(), currentPageNumber), index.getPageSize());
         final int count = index.getCount(page);

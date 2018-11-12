@@ -81,7 +81,8 @@ public class LSMTreeIndexCursor implements IndexCursor {
         if (pageCursors[i].hasNext()) {
           pageCursors[i].next();
           keys[i] = pageCursors[i].getKeys();
-        }
+        } else
+          pageCursors[i] = null;
       }
     }
 
