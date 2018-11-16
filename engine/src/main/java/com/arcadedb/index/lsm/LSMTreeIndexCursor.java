@@ -5,6 +5,7 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.PageId;
@@ -189,7 +190,7 @@ public class LSMTreeIndexCursor implements IndexCursor {
   }
 
   @Override
-  public int size() {
+  public long size() {
     return 0;
   }
 
@@ -273,7 +274,7 @@ public class LSMTreeIndexCursor implements IndexCursor {
   }
 
   @Override
-  public RID getRID() {
+  public Identifiable getRecord() {
     if (currentValues != null && currentValueIndex < currentValues.length) {
       final RID value = currentValues[currentValueIndex];
       if (!index.isDeletedEntry(value))
@@ -296,7 +297,7 @@ public class LSMTreeIndexCursor implements IndexCursor {
   }
 
   @Override
-  public Iterator<RID> iterator() {
+  public Iterator<Identifiable> iterator() {
     return this;
   }
 }

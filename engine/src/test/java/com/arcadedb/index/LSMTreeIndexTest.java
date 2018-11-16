@@ -278,7 +278,7 @@ public class LSMTreeIndexTest extends BaseTest {
           for (Index index : indexes) {
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
-              for (RID r : value)
+              for (Identifiable r : value)
                 index.remove(key, r);
               found++;
               total++;
@@ -317,7 +317,7 @@ public class LSMTreeIndexTest extends BaseTest {
           for (Index index : indexes) {
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
-              for (RID r : value) {
+              for (Identifiable r : value) {
                 for (int k = 0; k < 10; ++k)
                   index.remove(key, r);
               }
@@ -358,9 +358,9 @@ public class LSMTreeIndexTest extends BaseTest {
           for (Index index : indexes) {
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
-              for (RID r : value) {
+              for (Identifiable r : value) {
                 index.remove(key, r);
-                index.put(key, new RID[] { r });
+                index.put(key, new RID[] { r.getIdentity() });
                 index.remove(key, r);
               }
               found++;
@@ -437,7 +437,7 @@ public class LSMTreeIndexTest extends BaseTest {
             final IndexCursor value = index.get(key);
 
             if (value.hasNext()) {
-              for (RID r : value) {
+              for (Identifiable r : value) {
                 index.remove(key, r);
                 found++;
               }

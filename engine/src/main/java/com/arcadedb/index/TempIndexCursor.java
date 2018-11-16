@@ -4,14 +4,14 @@
 
 package com.arcadedb.index;
 
-import com.arcadedb.database.RID;
+import com.arcadedb.database.Identifiable;
 
 import java.util.Collection;
 import java.util.Iterator;
 
 public class TempIndexCursor implements IndexCursor {
   private final Iterator<IndexCursorEntry> iterator;
-  private final int                        size;
+  private final long                       size;
   private       IndexCursorEntry           current;
 
   public TempIndexCursor(final Collection<IndexCursorEntry> list) {
@@ -25,8 +25,8 @@ public class TempIndexCursor implements IndexCursor {
   }
 
   @Override
-  public RID getRID() {
-    return current.rid;
+  public Identifiable getRecord() {
+    return current.record;
   }
 
   @Override
@@ -35,9 +35,9 @@ public class TempIndexCursor implements IndexCursor {
   }
 
   @Override
-  public RID next() {
+  public Identifiable next() {
     current = iterator.next();
-    return current.rid;
+    return current.record;
   }
 
   @Override
@@ -55,12 +55,12 @@ public class TempIndexCursor implements IndexCursor {
   }
 
   @Override
-  public int size() {
+  public long size() {
     return size;
   }
 
   @Override
-  public Iterator<RID> iterator() {
+  public Iterator<Identifiable> iterator() {
     return this;
   }
 }

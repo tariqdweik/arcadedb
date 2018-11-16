@@ -7,6 +7,7 @@ package performance;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.graph.Vertex;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.log.LogManager;
 
 import java.io.IOException;
@@ -132,7 +133,7 @@ public class PokecBenchmark {
     final AtomicLong totalTraversed = new AtomicLong();
 
     for (int i = 0; i < IDS.length; ++i) {
-      final Cursor<RID> result = db.lookupByKey("V", new String[] { "id" }, new Object[] { Integer.parseInt(IDS[i].substring(1)) });
+      final IndexCursor result = db.lookupByKey("V", new String[] { "id" }, new Object[] { Integer.parseInt(IDS[i].substring(1)) });
 
       final Vertex v = (Vertex) result.next().getRecord();
 

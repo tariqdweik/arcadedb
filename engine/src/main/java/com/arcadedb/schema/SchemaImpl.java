@@ -14,6 +14,7 @@ import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
+import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
 import com.arcadedb.index.lsm.LSMTreeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
@@ -289,6 +290,12 @@ public class SchemaImpl implements Schema {
       public Object call() {
         try {
           final DocumentType type = getType(typeName);
+
+          final TypeIndex index = type.getIndexMetadataByProperties(propertyNames);
+          if (index != null)
+            throw new IllegalArgumentException(
+                "Found the existent index '" + index.getName() + "' defined on the properties '" + Arrays.asList(propertyNames) + "' for type '" + typeName
+                    + "'");
 
           // CHECK ALL THE PROPERTIES EXIST
           final byte[] keyTypes = new byte[propertyNames.length];

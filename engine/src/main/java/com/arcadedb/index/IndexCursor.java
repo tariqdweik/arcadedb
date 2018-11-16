@@ -4,14 +4,14 @@
 
 package com.arcadedb.index;
 
-import com.arcadedb.database.RID;
+import com.arcadedb.database.Identifiable;
 
 import java.util.Iterator;
 
-public interface IndexCursor extends Iterable<RID>, Iterator<RID> {
+public interface IndexCursor extends Iterable<Identifiable>, Iterator<Identifiable> {
   Object[] getKeys();
 
-  RID getRID();
+  Identifiable getRecord();
 
   int getScore();
 
@@ -19,5 +19,5 @@ public interface IndexCursor extends Iterable<RID>, Iterator<RID> {
 
   String dumpStats();
 
-  int size();
+  long size();
 }

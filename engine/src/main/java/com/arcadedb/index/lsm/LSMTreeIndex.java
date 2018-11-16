@@ -283,10 +283,10 @@ public class LSMTreeIndex implements RangeIndex {
   }
 
   @Override
-  public void remove(final Object[] keys, final RID rid) {
+  public void remove(final Object[] keys, final Identifiable rid) {
     if (mutable.getDatabase().getTransaction().getStatus() == TransactionContext.STATUS.BEGUN)
       // KEY REMOVED AT COMMIT TIME (IN A LOCK)
-      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, rid);
+      mutable.getDatabase().getTransaction().addIndexOperation(this, false, keys, rid.getIdentity());
     else
       lock.executeInReadLock(() -> {
         mutable.remove(keys, rid);

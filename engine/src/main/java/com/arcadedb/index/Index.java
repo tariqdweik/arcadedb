@@ -5,6 +5,7 @@
 package com.arcadedb.index;
 
 import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.schema.SchemaImpl;
@@ -46,9 +47,9 @@ public interface Index {
   void remove(Object[] keys);
 
   /**
-   * Removes an entry keys/rid entry from the index.
+   * Removes an entry keys/record entry from the index.
    */
-  void remove(Object[] keys, RID rid);
+  void remove(Object[] keys, Identifiable rid);
 
   boolean compact() throws IOException, InterruptedException;
 

@@ -6,21 +6,24 @@ package com.arcadedb.server.ha;
 
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
-import com.arcadedb.index.RangeIndex;
+import com.arcadedb.index.TypeIndex;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.server.BaseGraphServerTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 public abstract class ReplicationServerTest extends BaseGraphServerTest {
@@ -148,13 +151,11 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       final long recordInDb = db.countType(VERTEX1_TYPE_NAME, true);
       Assertions.assertTrue(recordInDb <= 1 + getTxs() * getVerticesPerTx(), "TEST: Check for vertex count for server" + s);
 
-      final List<Index> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
+      final TypeIndex index = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
       long total = 0;
-      for (int i = 0; i < indexes.size(); ++i) {
-        for (IndexCursor it = ((RangeIndex) indexes.get(i)).iterator(true); it.hasNext(); ) {
-          it.next();
-          ++total;
-        }
+      for (IndexCursor it = index.iterator(true); it.hasNext(); ) {
+        it.next();
+        ++total;
       }
 
       LogManager.instance().log(this, Level.INFO, "TEST: Entries in the index (%d) > records in database (%d)", null, total, recordInDb);
@@ -162,34 +163,31 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       final Map<RID, Set<String>> ridsFoundInIndex = new HashMap<>();
       long total2 = 0;
       long missingsCount = 0;
-      for (int i = 0; i < indexes.size(); ++i) {
-        final RangeIndex idx = ((RangeIndex) indexes.get(i));
 
-        for (IndexCursor it = idx.iterator(true); it.hasNext(); ) {
-          final RID rid = it.next();
-          ++total2;
+      for (IndexCursor it = index.iterator(true); it.hasNext(); ) {
+        final Identifiable rid = it.next();
+        ++total2;
 
-          Set<String> rids = ridsFoundInIndex.get(rid);
-          if (rids == null) {
-            rids = new HashSet<>(indexes.size());
-            ridsFoundInIndex.put(rid, rids);
-          }
-
-          rids.add(idx.getName());
-
-          Record record = null;
-          try {
-            record = rid.getRecord(true);
-          } catch (RecordNotFoundException e) {
-            // IGNORE IT, CAUGHT BELOW
-          }
-
-          if (record == null) {
-            LogManager.instance().log(this, Level.INFO, "TEST: - Cannot find record %s in database even if it's present in the index (null)", null, rid);
-            missingsCount++;
-          }
-
+        Set<String> rids = ridsFoundInIndex.get(rid);
+        if (rids == null) {
+          rids = new HashSet<>();
+          ridsFoundInIndex.put(rid.getIdentity(), rids);
         }
+
+        rids.add(index.getName());
+
+        Record record = null;
+        try {
+          record = rid.getRecord(true);
+        } catch (RecordNotFoundException e) {
+          // IGNORE IT, CAUGHT BELOW
+        }
+
+        if (record == null) {
+          LogManager.instance().log(this, Level.INFO, "TEST: - Cannot find record %s in database even if it's present in the index (null)", null, rid);
+          missingsCount++;
+        }
+
       }
 
       Assertions.assertEquals(recordInDb, ridsFoundInIndex.size(), "TEST: Found " + ridsFoundInIndex + " missing records");

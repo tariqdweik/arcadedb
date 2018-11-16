@@ -13,8 +13,8 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
-import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexCompacted;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.log.LogManager;
@@ -527,7 +527,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   @Override
   public Record lookupByRID(final RID rid, final boolean loadContent) {
     if (rid == null)
-      throw new IllegalArgumentException("rid is null");
+      throw new IllegalArgumentException("record is null");
 
     statsReadRecord.incrementAndGet();
 
@@ -562,28 +562,21 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
-  public Cursor<RID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
+  public IndexCursor lookupByKey(final String type, final String[] properties, final Object[] keys) {
     statsReadRecord.incrementAndGet();
 
-    return (Cursor<RID>) executeInReadLock(new Callable<Object>() {
+    return (IndexCursor) executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
 
         checkDatabaseIsOpen();
         final DocumentType t = schema.getType(type);
 
-        final List<Index> metadata = t.getIndexMetadataByProperties(properties);
-        if (metadata == null || metadata.isEmpty())
+        final TypeIndex idx = t.getIndexMetadataByProperties(properties);
+        if (idx == null)
           throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
-        final Set<RID> result = new HashSet<>();
-        for (Index m : metadata) {
-          final IndexCursor cursor = m.get(keys);
-          while (cursor.hasNext())
-            result.add(cursor.next());
-        }
-
-        return new CursorCollection<>(result);
+        return idx.get(keys);
       }
     });
   }
@@ -877,7 +870,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (destinationVertexKey.length != destinationVertexValue.length)
       throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
 
-    final Iterator<RID> v1Result = lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
+    final Iterator<Identifiable> v1Result = lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
 
     Vertex sourceVertex;
     if (!v1Result.hasNext()) {
@@ -889,9 +882,9 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       } else
         throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
-      sourceVertex = v1Result.next().getVertex();
+      sourceVertex = v1Result.next().getIdentity().getVertex();
 
-    final Iterator<RID> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
+    final Iterator<Identifiable> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
     Vertex destinationVertex;
     if (!v2Result.hasNext()) {
       if (createVertexIfNotExist) {
@@ -903,7 +896,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         throw new IllegalArgumentException(
             "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
-      destinationVertex = v2Result.next().getVertex();
+      destinationVertex = v2Result.next().getIdentity().getVertex();
 
     statsCreateRecord.incrementAndGet();
 

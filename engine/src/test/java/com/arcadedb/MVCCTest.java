@@ -4,14 +4,14 @@
 
 package com.arcadedb;
 
-import com.arcadedb.database.Cursor;
 import com.arcadedb.database.Database;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.MutableDocument;
-import com.arcadedb.database.RID;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.SchemaImpl;
@@ -76,11 +76,11 @@ public class MVCCTest extends BaseTest {
               tx.set("amount", rnd.nextInt(TOT_ACCOUNT));
               tx.save();
 
-              final Cursor<RID> accounts = database.lookupByKey("Account", new String[] { "id" }, new Object[] { 0 });
+              final IndexCursor accounts = database.lookupByKey("Account", new String[] { "id" }, new Object[] { 0 });
 
               Assertions.assertTrue(accounts.hasNext());
 
-              RID account = accounts.next();
+              Identifiable account = accounts.next();
 
               ((MutableVertex) tx).newEdge("PurchasedBy", account, true, "date", new Date());
             }

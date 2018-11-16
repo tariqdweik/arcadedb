@@ -7,6 +7,7 @@ package com.arcadedb;
 import com.arcadedb.database.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import org.junit.jupiter.api.Assertions;
@@ -94,7 +95,7 @@ public class TransactionTypeTest extends BaseTest {
     database.begin();
 
     for (int i = 0; i < TOT; i++) {
-      final Cursor<RID> result = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
+      final IndexCursor result = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { i });
       Assertions.assertNotNull(result);
       Assertions.assertEquals(1, result.size());
 

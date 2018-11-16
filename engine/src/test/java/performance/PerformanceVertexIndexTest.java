@@ -10,6 +10,7 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
@@ -179,7 +180,7 @@ public class PerformanceVertexIndexTest {
       int checked = 0;
 
       for (long id = 0; id < TOT; id += step) {
-        final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
+        final IndexCursor records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         Assertions.assertEquals(1, records.size(), "Wrong result for lookup of key " + id);
 

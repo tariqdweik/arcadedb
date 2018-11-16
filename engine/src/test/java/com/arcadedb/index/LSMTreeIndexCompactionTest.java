@@ -6,7 +6,10 @@ package com.arcadedb.index;
 
 import com.arcadedb.BaseTest;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.*;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.log.LogManager;
@@ -206,15 +209,15 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
 
     for (long id = 0; id < TOT; id += step) {
       try {
-        final Cursor<RID> records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
+        final IndexCursor records = database.lookupByKey(TYPE_NAME, new String[] { "id" }, new Object[] { id });
         Assertions.assertNotNull(records);
         if (records.size() != expectedItems)
           LogManager.instance().log(this, Level.INFO, "Cannot find key '%s'", null, id);
 
         Assertions.assertEquals(expectedItems, records.size(), "Wrong result for lookup of key " + id);
 
-        for (Iterator<RID> it = records.iterator(); it.hasNext(); ) {
-          final RID rid = it.next();
+        for (Iterator<Identifiable> it = records.iterator(); it.hasNext(); ) {
+          final Identifiable rid = it.next();
           final Document record = (Document) rid.getRecord();
           Assertions.assertEquals("" + id, record.get("id"));
         }

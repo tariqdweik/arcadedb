@@ -9,6 +9,7 @@ import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.sql.executor.ResultSet;
 
@@ -62,7 +63,7 @@ public interface Database extends AutoCloseable {
 
   Record lookupByRID(RID rid, boolean loadContent);
 
-  Cursor<RID> lookupByKey(String type, String[] properties, Object[] keys);
+  IndexCursor lookupByKey(String type, String[] properties, Object[] keys);
 
   Iterator<Record> iterateType(String typeName, boolean polymorphic);
 

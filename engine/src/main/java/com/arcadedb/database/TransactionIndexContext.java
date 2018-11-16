@@ -8,6 +8,7 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.TypeIndex;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 
@@ -197,14 +198,12 @@ public class TransactionIndexContext {
     final DocumentType type = database.getSchema().getType(index.getTypeName());
 
     // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-    final List<Index> typeIndexes = type.getIndexMetadataByProperties(index.getPropertyNames());
-    if (typeIndexes != null) {
-      for (Index i : typeIndexes) {
-        final IndexCursor found = i.get(key.keyValues, 2);
+    final TypeIndex idx = type.getIndexMetadataByProperties(index.getPropertyNames());
+    if (idx != null) {
+      final IndexCursor found = idx.get(key.keyValues, 2);
 
-        if (found.size() > 1 || (found.size() == 1 && !found.next().equals(key.rid)))
-          throw new DuplicatedKeyException(i.getName(), Arrays.toString(key.keyValues), found.getRID());
-      }
+      if (found.size() > 1 || (found.size() == 1 && !found.next().equals(key.rid)))
+        throw new DuplicatedKeyException(idx.getName(), Arrays.toString(key.keyValues), found.getRecord().getIdentity());
     }
   }
 

@@ -15,6 +15,7 @@ import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.server.ArcadeDBServer;
@@ -317,7 +318,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public Cursor<RID> lookupByKey(final String type, final String[] properties, final Object[] keys) {
+  public IndexCursor lookupByKey(final String type, final String[] properties, final Object[] keys) {
     return proxied.lookupByKey(type, properties, keys);
   }
 

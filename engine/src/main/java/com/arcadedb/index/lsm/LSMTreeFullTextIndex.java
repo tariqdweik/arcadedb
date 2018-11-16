@@ -5,6 +5,7 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.engine.PaginatedComponentFactory;
@@ -102,7 +103,7 @@ public class LSMTreeFullTextIndex implements Index {
       final IndexCursor rids = underlyingIndex.get(new String[] { k });
 
       while (rids.hasNext()) {
-        final RID rid = rids.next();
+        final RID rid = rids.next().getIdentity();
 
         AtomicInteger score = scoreMap.get(rid);
         if (score == null)
@@ -146,7 +147,7 @@ public class LSMTreeFullTextIndex implements Index {
   }
 
   @Override
-  public void remove(final Object[] keys, final RID rid) {
+  public void remove(final Object[] keys, final Identifiable rid) {
     final List<String> keywords = analyzeText(analyzer, keys);
     for (String k : keywords)
       underlyingIndex.remove(new String[] { k }, rid);

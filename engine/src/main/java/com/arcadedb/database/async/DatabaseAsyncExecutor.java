@@ -504,7 +504,7 @@ public class DatabaseAsyncExecutor {
     if (destinationVertexKey.length != destinationVertexValue.length)
       throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
 
-    final Iterator<RID> v1Result = database.lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
+    final Iterator<Identifiable> v1Result = database.lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
 
     boolean createdSourceVertex = false;
 
@@ -525,7 +525,7 @@ public class DatabaseAsyncExecutor {
 
     boolean createdDestinationVertex = false;
 
-    final Iterator<RID> v2Result = database.lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
+    final Iterator<Identifiable> v2Result = database.lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
     VertexInternal destinationVertex;
     if (!v2Result.hasNext()) {
       if (createVertexIfNotExist) {

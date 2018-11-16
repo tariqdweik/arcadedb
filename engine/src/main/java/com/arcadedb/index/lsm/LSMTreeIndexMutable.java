@@ -5,10 +5,7 @@
 package com.arcadedb.index.lsm;
 
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.TrackableBinary;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PageId;
@@ -125,7 +122,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     internalRemove(keys, null);
   }
 
-  public void remove(final Object[] keys, final RID rid) {
+  public void remove(final Object[] keys, final Identifiable rid) {
     internalRemove(keys, rid);
   }
 
@@ -453,7 +450,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     }
   }
 
-  protected void internalRemove(final Object[] keys, final RID rid) {
+  protected void internalRemove(final Object[] keys, final Identifiable rid) {
     if (keys == null)
       throw new IllegalArgumentException("Keys parameter is null");
 
@@ -571,7 +568,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     }
   }
 
-  protected RID getRemovedRID(final RID rid) {
+  protected RID getRemovedRID(final Identifiable record) {
+    final RID rid = record.getIdentity();
     return new RID(database, (rid.getBucketId() + 2) * -1, rid.getPosition());
   }
 }

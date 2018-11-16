@@ -4,7 +4,7 @@
 
 package com.arcadedb.index;
 
-import com.arcadedb.database.RID;
+import com.arcadedb.database.Identifiable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -36,8 +36,8 @@ public class MultiIndexCursor implements IndexCursor {
   }
 
   @Override
-  public RID getRID() {
-    return getCurrent().getRID();
+  public Identifiable getRecord() {
+    return getCurrent().getRecord();
   }
 
   @Override
@@ -61,7 +61,7 @@ public class MultiIndexCursor implements IndexCursor {
   }
 
   @Override
-  public RID next() {
+  public Identifiable next() {
     if (hasNext()) {
       ++browsed;
       return current.next();
@@ -87,15 +87,15 @@ public class MultiIndexCursor implements IndexCursor {
   }
 
   @Override
-  public int size() {
-    int tot = 0;
+  public long size() {
+    long tot = 0;
     for (IndexCursor cursor : cursors)
       tot += cursor.size();
     return tot;
   }
 
   @Override
-  public Iterator<RID> iterator() {
+  public Iterator<Identifiable> iterator() {
     return this;
   }
 

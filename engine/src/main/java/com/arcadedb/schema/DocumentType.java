@@ -10,19 +10,20 @@ import com.arcadedb.database.Document;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.TypeIndex;
 
 import java.util.*;
 
 public class DocumentType {
-  private final SchemaImpl                     schema;
-  private final String                         name;
-  private final List<DocumentType>             parentTypes             = new ArrayList<>();
-  private final List<DocumentType>             subTypes                = new ArrayList<>();
-  private final List<Bucket>                   buckets                 = new ArrayList<>();
-  private       BucketSelectionStrategy        bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
-  private final Map<String, Property>          properties              = new HashMap<>();
-  private       Map<Integer, List<Index>>      indexesByBucket         = new HashMap<>();
-  private       Map<List<String>, List<Index>> indexesByProperties     = new HashMap<>();
+  private final SchemaImpl                   schema;
+  private final String                       name;
+  private final List<DocumentType>           parentTypes             = new ArrayList<>();
+  private final List<DocumentType>           subTypes                = new ArrayList<>();
+  private final List<Bucket>                 buckets                 = new ArrayList<>();
+  private       BucketSelectionStrategy      bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
+  private final Map<String, Property>        properties              = new HashMap<>();
+  private       Map<Integer, List<Index>>    indexesByBucket         = new HashMap<>();
+  private       Map<List<String>, TypeIndex> indexesByProperties     = new HashMap<>();
 
   public DocumentType(final SchemaImpl schema, final String name) {
     this.schema = schema;
@@ -176,7 +177,7 @@ public class DocumentType {
     return indexesByBucket.get(bucketId);
   }
 
-  public List<Index> getIndexMetadataByProperties(final String... properties) {
+  public TypeIndex getIndexMetadataByProperties(final String... properties) {
     return indexesByProperties.get(Arrays.asList(properties));
   }
 
@@ -291,29 +292,15 @@ public class DocumentType {
     if (indexesByProperties.size() != that.indexesByProperties.size())
       return false;
 
-    for (Map.Entry<List<String>, List<Index>> entry1 : indexesByProperties.entrySet()) {
-      final List<Index> value2 = that.indexesByProperties.get(entry1.getKey());
-      if (value2 == null)
-        return false;
-      if (entry1.getValue().size() != value2.size())
+    for (Map.Entry<List<String>, TypeIndex> entry1 : indexesByProperties.entrySet()) {
+      final TypeIndex index2 = that.indexesByProperties.get(entry1.getKey());
+      if (index2 == null)
         return false;
 
-      for (int i = 0; i < value2.size(); ++i) {
-        final Index m1 = entry1.getValue().get(i);
-        final Index m2 = value2.get(i);
+      final TypeIndex index1 = entry1.getValue();
 
-        if (m1.getAssociatedBucketId() != m2.getAssociatedBucketId())
-          return false;
-        if (!m1.getName().equals(m2.getName()))
-          return false;
-        if (m1.getPropertyNames().length != m2.getPropertyNames().length)
-          return false;
-
-        for (int p = 0; p < m1.getPropertyNames().length; ++p) {
-          if (!m1.getPropertyNames()[p].equals(m2.getPropertyNames()[p]))
-            return false;
-        }
-      }
+      if (!index1.equals(index2))
+        return false;
     }
 
     return true;
@@ -336,6 +323,8 @@ public class DocumentType {
   }
 
   protected void addIndexInternal(final Index index, final Bucket bucket, final String[] propertyNames) {
+    index.setMetadata(name, propertyNames, bucket.getId());
+
     List<Index> list1 = indexesByBucket.get(bucket.getId());
     if (list1 == null) {
       list1 = new ArrayList<>();
@@ -345,14 +334,15 @@ public class DocumentType {
 
     final List<String> propertyList = Arrays.asList(propertyNames);
 
-    List<Index> list2 = indexesByProperties.get(propertyList);
-    if (list2 == null) {
-      list2 = new ArrayList<>();
-      indexesByProperties.put(propertyList, list2);
+    TypeIndex propIndex = indexesByProperties.get(propertyList);
+    if (propIndex == null) {
+      // CREATE THE TYPE-INDEX FOR THE 1ST TIME
+      propIndex = new TypeIndex();
+      indexesByProperties.put(propertyList, propIndex);
     }
-    list2.add(index);
 
-    index.setMetadata(name, propertyNames, bucket.getId());
+    // ADD AS SUB-INDEX
+    propIndex.addSubIndex(index);
   }
 
   protected void removeIndexInternal(final String indexName) {
@@ -364,12 +354,10 @@ public class DocumentType {
       }
     }
 
-    for (List<Index> indexes : indexesByProperties.values()) {
-      for (Iterator<Index> it = indexes.iterator(); it.hasNext(); ) {
-        final Index idx = it.next();
-        if (indexName.equals(idx.getName()))
-          it.remove();
-      }
+    for (Iterator<TypeIndex> it = indexesByProperties.values().iterator(); it.hasNext(); ) {
+      final TypeIndex idx = it.next();
+      if (indexName.equals(idx.getName()))
+        it.remove();
     }
   }
 

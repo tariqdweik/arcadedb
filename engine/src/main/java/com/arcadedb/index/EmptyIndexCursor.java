@@ -4,6 +4,7 @@
 
 package com.arcadedb.index;
 
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 
 import java.util.Iterator;
@@ -18,7 +19,7 @@ public class EmptyIndexCursor implements IndexCursor {
   }
 
   @Override
-  public RID getRID() {
+  public RID getRecord() {
     return null;
   }
 
@@ -28,7 +29,7 @@ public class EmptyIndexCursor implements IndexCursor {
   }
 
   @Override
-  public RID next() {
+  public Identifiable next() {
     return null;
   }
 
@@ -47,12 +48,12 @@ public class EmptyIndexCursor implements IndexCursor {
   }
 
   @Override
-  public int size() {
-    return 0;
+  public long size() {
+    return 0l;
   }
 
   @Override
-  public Iterator<RID> iterator() {
+  public Iterator<Identifiable> iterator() {
     return this;
   }
 }
