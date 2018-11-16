@@ -483,8 +483,8 @@ public class SchemaImpl implements Schema {
         final List<Bucket> buckets = type.getBuckets(false);
 
         // DELETE ALL ASSOCIATED INDEXES
-        for (DocumentType.IndexMetadata m : type.getAllIndexesMetadata())
-          m.index.drop();
+        for (Index m : type.getAllIndexesMetadata())
+          m.drop();
 
         // DELETE ALL ASSOCIATED BUCKETS
         for (Bucket b : buckets)
@@ -787,12 +787,12 @@ public class SchemaImpl implements Schema {
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);
 
-        for (DocumentType.IndexMetadata entry : t.getAllIndexesMetadata()) {
+        for (Index entry : t.getAllIndexesMetadata()) {
           final JSONObject index = new JSONObject();
-          indexes.put(entry.index.getName(), index);
+          indexes.put(entry.getName(), index);
 
-          index.put("bucket", getBucketById(entry.bucketId).getName());
-          index.put("properties", entry.propertyNames);
+          index.put("bucket", getBucketById(entry.getAssociatedBucketId()).getName());
+          index.put("properties", entry.getPropertyNames());
         }
       }
 

@@ -12,10 +12,10 @@ import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.RangeIndex;
 import com.arcadedb.log.LogManager;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.BaseGraphServerTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -148,10 +148,10 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       final long recordInDb = db.countType(VERTEX1_TYPE_NAME, true);
       Assertions.assertTrue(recordInDb <= 1 + getTxs() * getVerticesPerTx(), "TEST: Check for vertex count for server" + s);
 
-      final List<DocumentType.IndexMetadata> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
+      final List<Index> indexes = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexMetadataByProperties("id");
       long total = 0;
       for (int i = 0; i < indexes.size(); ++i) {
-        for (IndexCursor it = ((RangeIndex) indexes.get(i).index).iterator(true); it.hasNext(); ) {
+        for (IndexCursor it = ((RangeIndex) indexes.get(i)).iterator(true); it.hasNext(); ) {
           it.next();
           ++total;
         }
@@ -163,7 +163,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       long total2 = 0;
       long missingsCount = 0;
       for (int i = 0; i < indexes.size(); ++i) {
-        final RangeIndex idx = ((RangeIndex) indexes.get(i).index);
+        final RangeIndex idx = ((RangeIndex) indexes.get(i));
 
         for (IndexCursor it = idx.iterator(true); it.hasNext(); ) {
           final RID rid = it.next();

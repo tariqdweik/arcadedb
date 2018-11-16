@@ -136,8 +136,8 @@ public class TransactionIndexContext {
         for (Bucket b : buckets)
           modifiedFiles.add(b.getId());
 
-        for (DocumentType.IndexMetadata idxMetadata : type.getAllIndexesMetadata())
-          modifiedFiles.add(idxMetadata.index.getFileId());
+        for (Index idxMetadata : type.getAllIndexesMetadata())
+          modifiedFiles.add(idxMetadata.getFileId());
       } else
         modifiedFiles.add(index.getAssociatedBucketId());
     }
@@ -197,13 +197,13 @@ public class TransactionIndexContext {
     final DocumentType type = database.getSchema().getType(index.getTypeName());
 
     // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-    final List<DocumentType.IndexMetadata> typeIndexes = type.getIndexMetadataByProperties(index.getPropertyNames());
+    final List<Index> typeIndexes = type.getIndexMetadataByProperties(index.getPropertyNames());
     if (typeIndexes != null) {
-      for (DocumentType.IndexMetadata i : typeIndexes) {
-        final IndexCursor found = i.index.get(key.keyValues, 2);
+      for (Index i : typeIndexes) {
+        final IndexCursor found = i.get(key.keyValues, 2);
 
         if (found.size() > 1 || (found.size() == 1 && !found.next().equals(key.rid)))
-          throw new DuplicatedKeyException(i.index.getName(), Arrays.toString(key.keyValues), found.getRID());
+          throw new DuplicatedKeyException(i.getName(), Arrays.toString(key.keyValues), found.getRID());
       }
     }
   }

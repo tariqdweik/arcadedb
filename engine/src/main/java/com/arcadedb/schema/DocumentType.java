@@ -14,27 +14,15 @@ import com.arcadedb.index.Index;
 import java.util.*;
 
 public class DocumentType {
-  private final SchemaImpl                             schema;
-  private final String                                 name;
-  private final List<DocumentType>                     parentTypes             = new ArrayList<>();
-  private final List<DocumentType>                     subTypes                = new ArrayList<>();
-  private final List<Bucket>                           buckets                 = new ArrayList<>();
-  private       BucketSelectionStrategy                bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
-  private final Map<String, Property>                  properties              = new HashMap<>();
-  private       Map<Integer, List<IndexMetadata>>      indexesByBucket         = new HashMap<>();
-  private       Map<List<String>, List<IndexMetadata>> indexesByProperties     = new HashMap<>();
-
-  public class IndexMetadata {
-    public String[] propertyNames;
-    public int      bucketId;
-    public Index    index;
-
-    public IndexMetadata(final Index index, final int bucketId, final String[] propertyNames) {
-      this.index = index;
-      this.bucketId = bucketId;
-      this.propertyNames = propertyNames;
-    }
-  }
+  private final SchemaImpl                     schema;
+  private final String                         name;
+  private final List<DocumentType>             parentTypes             = new ArrayList<>();
+  private final List<DocumentType>             subTypes                = new ArrayList<>();
+  private final List<Bucket>                   buckets                 = new ArrayList<>();
+  private       BucketSelectionStrategy        bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
+  private final Map<String, Property>          properties              = new HashMap<>();
+  private       Map<Integer, List<Index>>      indexesByBucket         = new HashMap<>();
+  private       Map<List<String>, List<Index>> indexesByProperties     = new HashMap<>();
 
   public DocumentType(final SchemaImpl schema, final String name) {
     this.schema = schema;
@@ -176,19 +164,19 @@ public class DocumentType {
 
   }
 
-  public Collection<IndexMetadata> getAllIndexesMetadata() {
-    final List<IndexMetadata> list = new ArrayList<>();
-    for (List<IndexMetadata> ms : indexesByBucket.values())
-      for (IndexMetadata m : ms)
+  public Collection<Index> getAllIndexesMetadata() {
+    final List<Index> list = new ArrayList<>();
+    for (List<Index> ms : indexesByBucket.values())
+      for (Index m : ms)
         list.add(m);
     return list;
   }
 
-  public List<IndexMetadata> getIndexMetadataByBucketId(final int bucketId) {
+  public List<Index> getIndexMetadataByBucketId(final int bucketId) {
     return indexesByBucket.get(bucketId);
   }
 
-  public List<IndexMetadata> getIndexMetadataByProperties(final String... properties) {
+  public List<Index> getIndexMetadataByProperties(final String... properties) {
     return indexesByProperties.get(Arrays.asList(properties));
   }
 
@@ -275,26 +263,26 @@ public class DocumentType {
     if (indexesByBucket.size() != that.indexesByBucket.size())
       return false;
 
-    for (Map.Entry<Integer, List<IndexMetadata>> entry1 : indexesByBucket.entrySet()) {
-      final List<IndexMetadata> value2 = that.indexesByBucket.get(entry1.getKey());
+    for (Map.Entry<Integer, List<Index>> entry1 : indexesByBucket.entrySet()) {
+      final List<Index> value2 = that.indexesByBucket.get(entry1.getKey());
       if (value2 == null)
         return false;
       if (entry1.getValue().size() != value2.size())
         return false;
 
       for (int i = 0; i < value2.size(); ++i) {
-        final IndexMetadata m1 = entry1.getValue().get(i);
-        final IndexMetadata m2 = value2.get(i);
+        final Index m1 = entry1.getValue().get(i);
+        final Index m2 = value2.get(i);
 
-        if (m1.bucketId != m2.bucketId)
+        if (m1.getAssociatedBucketId() != m2.getAssociatedBucketId())
           return false;
-        if (!m1.index.getName().equals(m2.index.getName()))
+        if (!m1.getName().equals(m2.getName()))
           return false;
-        if (m1.propertyNames.length != m2.propertyNames.length)
+        if (m1.getPropertyNames().length != m2.getPropertyNames().length)
           return false;
 
-        for (int p = 0; p < m1.propertyNames.length; ++p) {
-          if (!m1.propertyNames[p].equals(m2.propertyNames[p]))
+        for (int p = 0; p < m1.getPropertyNames().length; ++p) {
+          if (!m1.getPropertyNames()[p].equals(m2.getPropertyNames()[p]))
             return false;
         }
       }
@@ -303,26 +291,26 @@ public class DocumentType {
     if (indexesByProperties.size() != that.indexesByProperties.size())
       return false;
 
-    for (Map.Entry<List<String>, List<IndexMetadata>> entry1 : indexesByProperties.entrySet()) {
-      final List<IndexMetadata> value2 = that.indexesByProperties.get(entry1.getKey());
+    for (Map.Entry<List<String>, List<Index>> entry1 : indexesByProperties.entrySet()) {
+      final List<Index> value2 = that.indexesByProperties.get(entry1.getKey());
       if (value2 == null)
         return false;
       if (entry1.getValue().size() != value2.size())
         return false;
 
       for (int i = 0; i < value2.size(); ++i) {
-        final IndexMetadata m1 = entry1.getValue().get(i);
-        final IndexMetadata m2 = value2.get(i);
+        final Index m1 = entry1.getValue().get(i);
+        final Index m2 = value2.get(i);
 
-        if (m1.bucketId != m2.bucketId)
+        if (m1.getAssociatedBucketId() != m2.getAssociatedBucketId())
           return false;
-        if (!m1.index.getName().equals(m2.index.getName()))
+        if (!m1.getName().equals(m2.getName()))
           return false;
-        if (m1.propertyNames.length != m2.propertyNames.length)
+        if (m1.getPropertyNames().length != m2.getPropertyNames().length)
           return false;
 
-        for (int p = 0; p < m1.propertyNames.length; ++p) {
-          if (!m1.propertyNames[p].equals(m2.propertyNames[p]))
+        for (int p = 0; p < m1.getPropertyNames().length; ++p) {
+          if (!m1.getPropertyNames()[p].equals(m2.getPropertyNames()[p]))
             return false;
         }
       }
@@ -348,40 +336,38 @@ public class DocumentType {
   }
 
   protected void addIndexInternal(final Index index, final Bucket bucket, final String[] propertyNames) {
-    final IndexMetadata metadata = new IndexMetadata(index, bucket.getId(), propertyNames);
-
-    List<IndexMetadata> list1 = indexesByBucket.get(bucket.getId());
+    List<Index> list1 = indexesByBucket.get(bucket.getId());
     if (list1 == null) {
       list1 = new ArrayList<>();
       indexesByBucket.put(bucket.getId(), list1);
     }
-    list1.add(metadata);
+    list1.add(index);
 
     final List<String> propertyList = Arrays.asList(propertyNames);
 
-    List<IndexMetadata> list2 = indexesByProperties.get(propertyList);
+    List<Index> list2 = indexesByProperties.get(propertyList);
     if (list2 == null) {
       list2 = new ArrayList<>();
       indexesByProperties.put(propertyList, list2);
     }
-    list2.add(metadata);
+    list2.add(index);
 
     index.setMetadata(name, propertyNames, bucket.getId());
   }
 
   protected void removeIndexInternal(final String indexName) {
-    for (List<IndexMetadata> indexes : indexesByBucket.values()) {
-      for (Iterator<IndexMetadata> it = indexes.iterator(); it.hasNext(); ) {
-        final IndexMetadata idx = it.next();
-        if (indexName.equals(idx.index.getName()))
+    for (List<Index> indexes : indexesByBucket.values()) {
+      for (Iterator<Index> it = indexes.iterator(); it.hasNext(); ) {
+        final Index idx = it.next();
+        if (indexName.equals(idx.getName()))
           it.remove();
       }
     }
 
-    for (List<IndexMetadata> indexes : indexesByProperties.values()) {
-      for (Iterator<IndexMetadata> it = indexes.iterator(); it.hasNext(); ) {
-        final IndexMetadata idx = it.next();
-        if (indexName.equals(idx.index.getName()))
+    for (List<Index> indexes : indexesByProperties.values()) {
+      for (Iterator<Index> it = indexes.iterator(); it.hasNext(); ) {
+        final Index idx = it.next();
+        if (indexName.equals(idx.getName()))
           it.remove();
       }
     }

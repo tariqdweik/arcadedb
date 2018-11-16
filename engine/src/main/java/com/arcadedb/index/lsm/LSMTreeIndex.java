@@ -14,6 +14,7 @@ import com.arcadedb.utility.RWLockContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -86,6 +87,31 @@ public class LSMTreeIndex implements RangeIndex {
     this.typeName = typeName;
     this.propertyNames = propertyNames;
     this.associatedBucketId = associatedBucketId;
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if (obj == this)
+      return true;
+
+    if (!(obj instanceof LSMTreeIndex))
+      return false;
+
+    final LSMTreeIndex m2 = (LSMTreeIndex) obj;
+
+    if (!name.equals(m2.name))
+      return false;
+
+    if (!typeName.equals(m2.typeName))
+      return false;
+
+    if (associatedBucketId != m2.associatedBucketId)
+      return false;
+
+    if (!Arrays.equals(propertyNames, m2.propertyNames))
+      return false;
+
+    return true;
   }
 
   @Override

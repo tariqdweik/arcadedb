@@ -1553,9 +1553,8 @@ public class OSelectExecutionPlanner {
       throw new CommandExecutionException("Type not found: " + queryTarget.getStringValue());
     }
 
-    for (DocumentType.IndexMetadata idx : typez.getAllIndexesMetadata().stream().filter(i -> i.index.supportsOrderedIterations())
-        .collect(Collectors.toList())) {
-      String[] indexFields = idx.propertyNames;
+    for (Index idx : typez.getAllIndexesMetadata().stream().filter(i -> i.supportsOrderedIterations()).collect(Collectors.toList())) {
+      String[] indexFields = idx.getPropertyNames();
       if (indexFields.length < info.orderBy.getItems().size()) {
         continue;
       }
@@ -1578,7 +1577,7 @@ public class OSelectExecutionPlanner {
         }
       }
       if (indexFound && orderType != null) {
-        plan.chain(new FetchFromIndexValuesStep((RangeIndex) idx.index, orderType.equals(OrderByItem.ASC), ctx, profilingEnabled));
+        plan.chain(new FetchFromIndexValuesStep((RangeIndex) idx, orderType.equals(OrderByItem.ASC), ctx, profilingEnabled));
         int[] filterClusterIds = null;
         if (filterClusters != null) {
           filterClusterIds = filterClusters.stream().map(name -> ctx.getDatabase().getSchema().getBucketByName(name).getId()).mapToInt(i -> i).toArray();
@@ -1700,14 +1699,14 @@ public class OSelectExecutionPlanner {
       throw new CommandExecutionException("Cannot find class " + targetClass);
     }
 
-    final Collection<DocumentType.IndexMetadata> indexes = typez.getAllIndexesMetadata();
+    final Collection<Index> indexes = typez.getAllIndexesMetadata();
 
     final List<IndexSearchDescriptor> indexSearchDescriptors = new ArrayList<>();
 
     for (AndBlock entry : info.flattenedWhereClause)
       indexSearchDescriptors.addAll(findBestIndexesFor(ctx, indexes, entry, typez));
 
-    if( indexSearchDescriptors.isEmpty())
+    if (indexSearchDescriptors.isEmpty())
       return null;
 
     // TODO
@@ -1886,8 +1885,8 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private List<IndexSearchDescriptor> findBestIndexesFor(CommandContext ctx, Collection<DocumentType.IndexMetadata> indexes, AndBlock block,
-      DocumentType typez) {
+  private List<IndexSearchDescriptor> findBestIndexesFor(final CommandContext ctx, final Collection<Index> indexes, final AndBlock block,
+      final DocumentType typez) {
     final Iterator<IndexSearchDescriptor> it = indexes.stream()
         //.filter(index -> index.getInternal().canBeUsedInEqualityOperators())
         .map(index -> buildIndexSearchDescriptor(ctx, index, block, typez)).filter(Objects::nonNull).filter(x -> x.keyCondition != null)
@@ -1912,20 +1911,20 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private IndexSearchDescriptor buildIndexSearchDescriptor(CommandContext ctx, DocumentType.IndexMetadata index, AndBlock block, DocumentType typez) {
-    String[] indexFields = index.propertyNames;
+  private IndexSearchDescriptor buildIndexSearchDescriptor(final CommandContext ctx, final Index index, final AndBlock block, final DocumentType typez) {
+    final String[] indexFields = index.getPropertyNames();
     BinaryCondition keyCondition = new BinaryCondition(-1);
     Identifier key = new Identifier("key");
     keyCondition.setLeft(new Expression(key));
-    boolean allowsRange = allowsRangeQueries(index.index);
+    final boolean allowsRange = allowsRangeQueries(index);
     boolean found = false;
 
-    AndBlock blockCopy = block.copy();
+    final AndBlock blockCopy = block.copy();
     Iterator<BooleanExpression> blockIterator;
 
-    AndBlock indexKeyValue = new AndBlock(-1);
+    final AndBlock indexKeyValue = new AndBlock(-1);
     IndexSearchDescriptor result = new IndexSearchDescriptor();
-    result.idx = (RangeIndex) index.index;
+    result.idx = (RangeIndex) index;
     result.keyCondition = indexKeyValue;
     for (String indexField : indexFields) {
       blockIterator = blockCopy.getSubBlocks().iterator();
@@ -1976,7 +1975,7 @@ public class OSelectExecutionPlanner {
             }
           }
         } else if (singleExp instanceof ContainsAnyCondition) {
-          Expression left = ((ContainsAnyCondition) singleExp).getLeft();
+          final Expression left = ((ContainsAnyCondition) singleExp).getLeft();
           if (left.isBaseIdentifier()) {
             String fieldName = left.getDefaultAlias().getStringValue();
             if (indexField.equals(fieldName)) {
@@ -1994,9 +1993,9 @@ public class OSelectExecutionPlanner {
             }
           }
         } else if (singleExp instanceof InCondition) {
-          Expression left = ((InCondition) singleExp).getLeft();
+          final Expression left = ((InCondition) singleExp).getLeft();
           if (left.isBaseIdentifier()) {
-            String fieldName = left.getDefaultAlias().getStringValue();
+            final String fieldName = left.getDefaultAlias().getStringValue();
             if (indexField.equals(fieldName)) {
               if (((InCondition) singleExp).getRightMathExpression() != null) {
 
@@ -2005,7 +2004,7 @@ public class OSelectExecutionPlanner {
                 }
                 found = true;
                 indexFieldFound = true;
-                InCondition condition = new InCondition(-1);
+                final InCondition condition = new InCondition(-1);
                 condition.setLeft(left);
                 condition.setRightMathExpression(((InCondition) singleExp).getRightMathExpression().copy());
                 indexKeyValue.getSubBlocks().add(condition);
@@ -2014,7 +2013,7 @@ public class OSelectExecutionPlanner {
               } else if (((InCondition) singleExp).getRightParam() != null) {
                 found = true;
                 indexFieldFound = true;
-                InCondition condition = new InCondition(-1);
+                final InCondition condition = new InCondition(-1);
                 condition.setLeft(left);
                 condition.setRightParam(((InCondition) singleExp).getRightParam().copy());
                 indexKeyValue.getSubBlocks().add(condition);

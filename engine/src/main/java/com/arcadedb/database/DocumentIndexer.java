@@ -23,11 +23,11 @@ public class DocumentIndexer {
       throw new IllegalArgumentException("Cannot index a non persistent record");
 
     // INDEX THE RECORD
-    final List<DocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucket.getId());
+    final List<Index> metadata = type.getIndexMetadataByBucketId(bucket.getId());
     if (metadata != null) {
-      for (DocumentType.IndexMetadata entry : metadata) {
-        final Index index = entry.index;
-        final String[] keyNames = entry.propertyNames;
+      for (Index entry : metadata) {
+        final Index index = entry;
+        final String[] keyNames = entry.getPropertyNames();
 
         final Object[] keyValues = new Object[keyNames.length];
         for (int i = 0; i < keyValues.length; ++i)
@@ -53,11 +53,10 @@ public class DocumentIndexer {
 
     final DocumentType type = database.getSchema().getType(modifiedRecord.getType());
 
-    final List<DocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucketId);
+    final List<Index> metadata = type.getIndexMetadataByBucketId(bucketId);
     if (metadata != null) {
-      for (DocumentType.IndexMetadata entry : metadata) {
-        final Index index = entry.index;
-        final String[] keyNames = entry.propertyNames;
+      for (Index index : metadata) {
+        final String[] keyNames = index.getPropertyNames();
         final Object[] oldKeyValues = new Object[keyNames.length];
         final Object[] newKeyValues = new Object[keyNames.length];
 
@@ -94,15 +93,14 @@ public class DocumentIndexer {
     if (type == null)
       throw new IllegalStateException("Type not found for bucket " + bucketId);
 
-    final List<DocumentType.IndexMetadata> metadata = type.getIndexMetadataByBucketId(bucketId);
+    final List<Index> metadata = type.getIndexMetadataByBucketId(bucketId);
     if (metadata != null) {
       if (record instanceof RecordInternal)
         // FORCE RESET OF ANY PROPERTY TEMPORARY SET
         ((RecordInternal) record).unsetDirty();
 
-      for (DocumentType.IndexMetadata entry : metadata) {
-        final Index index = entry.index;
-        final String[] keyNames = entry.propertyNames;
+      for (Index index : metadata) {
+        final String[] keyNames = index.getPropertyNames();
         final Object[] keyValues = new Object[keyNames.length];
         for (int i = 0; i < keyNames.length; ++i) {
           keyValues[i] = record.get(keyNames[i]);

@@ -9,10 +9,6 @@ import com.arcadedb.database.RID;
 import java.util.Iterator;
 
 public interface IndexCursor extends Iterable<RID>, Iterator<RID> {
-  boolean hasNext();
-
-  RID next();
-
   Object[] getKeys();
 
   RID getRID();
