@@ -254,7 +254,7 @@ public class SchemaImpl implements Schema {
     return indexes;
   }
 
-  public void removeIndex(final String indexName, final int fileId) {
+  public void removeIndex(final String indexName) {
     indexMap.remove(indexName);
 
     for (DocumentType d : types.values())
@@ -291,7 +291,7 @@ public class SchemaImpl implements Schema {
         try {
           final DocumentType type = getType(typeName);
 
-          final TypeIndex index = type.getIndexMetadataByProperties(propertyNames);
+          final TypeIndex index = type.getIndexByProperties(propertyNames);
           if (index != null)
             throw new IllegalArgumentException(
                 "Found the existent index '" + index.getName() + "' defined on the properties '" + Arrays.asList(propertyNames) + "' for type '" + typeName
@@ -490,7 +490,7 @@ public class SchemaImpl implements Schema {
         final List<Bucket> buckets = type.getBuckets(false);
 
         // DELETE ALL ASSOCIATED INDEXES
-        for (Index m : type.getAllIndexesMetadata())
+        for (Index m : type.getAllIndexes())
           m.drop();
 
         // DELETE ALL ASSOCIATED BUCKETS
@@ -794,12 +794,14 @@ public class SchemaImpl implements Schema {
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);
 
-        for (Index entry : t.getAllIndexesMetadata()) {
-          final JSONObject index = new JSONObject();
-          indexes.put(entry.getName(), index);
+        for (TypeIndex i : t.getAllIndexes()) {
+          for (Index entry : i.getIndexesOnBuckets()) {
+            final JSONObject index = new JSONObject();
+            indexes.put(entry.getName(), index);
 
-          index.put("bucket", getBucketById(entry.getAssociatedBucketId()).getName());
-          index.put("properties", entry.getPropertyNames());
+            index.put("bucket", getBucketById(entry.getAssociatedBucketId()).getName());
+            index.put("properties", entry.getPropertyNames());
+          }
         }
       }
 

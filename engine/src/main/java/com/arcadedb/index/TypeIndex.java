@@ -14,38 +14,14 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * It's backed by one or multiple bucket sub-indexes.
+ * It's backed by one or multiple bucket sub-indexesOnBuckets.
  */
 public class TypeIndex implements RangeIndex {
-  private List<Index> indexes = new ArrayList<>();
+  private final String      logicName;
+  private       List<Index> indexesOnBuckets = new ArrayList<>();
 
-  /**
-   * Returns the involved sub-indexes for a lookup by key.
-   */
-  protected List<? extends Index> getSubIndexesForLookup(final Object[] keys, boolean inclusive) {
-    return indexes;
-  }
-
-  /**
-   * Returns the involved sub-indexes for a lookup by key.
-   */
-  protected List<RangeIndex> getSubIndexesForRange(final Object[] keys, boolean inclusive) {
-    return null;//(List<RangeIndex>) indexes;
-  }
-
-  /**
-   * Returns the involved sub-index to insert a new entry.
-   */
-  protected Index getSubIndexForPut(final Object[] keys) {
-    return null;
-  }
-
-  @Override
-  public IndexCursor iterator(final Object[] fromKeys, final boolean inclusive) {
-    if (!supportsOrderedIterations())
-      throw new UnsupportedOperationException("Index '" + getName() + "' does not support ordered iterations");
-
-    return new MultiIndexCursor(getSubIndexesForRange(null, inclusive), true, -1);
+  public TypeIndex(final String logicName) {
+    this.logicName = logicName;
   }
 
   @Override
@@ -53,7 +29,7 @@ public class TypeIndex implements RangeIndex {
     if (!supportsOrderedIterations())
       throw new UnsupportedOperationException("Index '" + getName() + "' does not support ordered iterations");
 
-    return new MultiIndexCursor(getSubIndexesForRange(null, true), ascendingOrder, -1);
+    return new MultiIndexCursor(indexesOnBuckets, ascendingOrder, -1);
   }
 
   @Override
@@ -61,7 +37,7 @@ public class TypeIndex implements RangeIndex {
     if (!supportsOrderedIterations())
       throw new UnsupportedOperationException("Index '" + getName() + "' does not support ordered iterations");
 
-    return new MultiIndexCursor(getSubIndexesForRange(fromKeys, inclusive), ascendingOrder, -1);
+    return new MultiIndexCursor(indexesOnBuckets, fromKeys, ascendingOrder, inclusive, -1);
   }
 
   @Override
@@ -69,8 +45,8 @@ public class TypeIndex implements RangeIndex {
     if (!supportsOrderedIterations())
       throw new UnsupportedOperationException("Index '" + getName() + "' does not support ordered iterations");
 
-    final List<IndexCursor> cursors = new ArrayList<>(indexes.size());
-    for (Index index : indexes)
+    final List<IndexCursor> cursors = new ArrayList<>(indexesOnBuckets.size());
+    for (Index index : indexesOnBuckets)
       cursors.add(((RangeIndex) index).range(beginKeys, beginKeysInclusive, endKeys, endKeysInclusive));
 
     return new MultiIndexCursor(cursors, -1);
@@ -79,7 +55,7 @@ public class TypeIndex implements RangeIndex {
   @Override
   public IndexCursor get(final Object[] keys) {
     final Set<Identifiable> result = new HashSet<>();
-    for (Index index : indexes) {
+    for (Index index : indexesOnBuckets) {
       final IndexCursor cursor = index.get(keys);
       while (cursor.hasNext())
         result.add(cursor.next());
@@ -90,7 +66,7 @@ public class TypeIndex implements RangeIndex {
   @Override
   public IndexCursor get(final Object[] keys, final int limit) {
     final Set<Identifiable> result = new HashSet<>();
-    for (Index index : indexes) {
+    for (Index index : indexesOnBuckets) {
       final IndexCursor cursor = index.get(keys, limit > -1 ? result.size() - limit : -1);
       while (cursor.hasNext())
         result.add(cursor.next());
@@ -100,23 +76,23 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public void put(final Object[] keys, final RID[] rid) {
-    getSubIndexForPut(keys).put(keys, rid);
+    throw new UnsupportedOperationException("put");
   }
 
   @Override
   public void remove(final Object[] keys) {
-    getSubIndexForPut(keys).remove(keys);
+    throw new UnsupportedOperationException("remove");
   }
 
   @Override
   public void remove(final Object[] keys, final Identifiable rid) {
-    getSubIndexForPut(keys).remove(keys, rid);
+    throw new UnsupportedOperationException("remove");
   }
 
   @Override
   public boolean compact() throws IOException, InterruptedException {
     boolean result = false;
-    for (Index index : indexes)
+    for (Index index : indexesOnBuckets)
       if (index.compact())
         result = true;
     return result;
@@ -124,7 +100,7 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public boolean isCompacting() {
-    for (Index index : indexes)
+    for (Index index : indexesOnBuckets)
       if (index.isCompacting())
         return true;
     return false;
@@ -133,7 +109,7 @@ public class TypeIndex implements RangeIndex {
   @Override
   public boolean scheduleCompaction() {
     boolean result = false;
-    for (Index index : indexes)
+    for (Index index : indexesOnBuckets)
       if (index.scheduleCompaction())
         result = true;
     return result;
@@ -141,52 +117,52 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public SchemaImpl.INDEX_TYPE getType() {
-    return indexes.get(0).getType();
+    return indexesOnBuckets.get(0).getType();
   }
 
   @Override
   public String getTypeName() {
-    return indexes.get(0).getTypeName();
+    return indexesOnBuckets.get(0).getTypeName();
   }
 
   @Override
   public String[] getPropertyNames() {
-    return indexes.get(0).getPropertyNames();
+    return indexesOnBuckets.get(0).getPropertyNames();
   }
 
   @Override
   public void close() {
-    for (Index index : indexes)
+    for (Index index : indexesOnBuckets)
       index.close();
   }
 
   @Override
   public void drop() {
-    for (Index index : indexes)
+    for (Index index : indexesOnBuckets)
       index.drop();
   }
 
   @Override
   public String getName() {
-    return indexes.get(0).getName();
+    return indexesOnBuckets.get(0).getName();
   }
 
   @Override
   public Map<String, Long> getStats() {
     final Map<String, Long> stats = new HashMap<>();
-    for (Index index : indexes)
+    for (Index index : indexesOnBuckets)
       stats.putAll(index.getStats());
     return stats;
   }
 
   @Override
   public boolean isUnique() {
-    return indexes.get(0).isUnique();
+    return indexesOnBuckets.get(0).isUnique();
   }
 
   @Override
   public boolean supportsOrderedIterations() {
-    return indexes.get(0).supportsOrderedIterations();
+    return indexesOnBuckets.get(0).supportsOrderedIterations();
   }
 
   @Override
@@ -197,7 +173,7 @@ public class TypeIndex implements RangeIndex {
   @Override
   public long build(final BuildIndexCallback callback) {
     long total = 0;
-    for (Index index : indexes)
+    for (Index index : indexesOnBuckets)
       total += index.build(callback);
     return total;
   }
@@ -212,9 +188,6 @@ public class TypeIndex implements RangeIndex {
     if (!getName().equals(index2.getName()))
       return false;
 
-    if (getAssociatedBucketId() != index2.getAssociatedBucketId())
-      return false;
-
     final String[] index1Properties = getPropertyNames();
     final String[] index2Properties = index2.getPropertyNames();
 
@@ -226,7 +199,28 @@ public class TypeIndex implements RangeIndex {
         return false;
     }
 
+    if (indexesOnBuckets.size() != index2.indexesOnBuckets.size())
+      return false;
+
+    for (int i = 0; i < indexesOnBuckets.size(); ++i) {
+      final Index bIdx1 = indexesOnBuckets.get(i);
+      final Index bIdx2 = index2.indexesOnBuckets.get(i);
+
+      if (bIdx1.getAssociatedBucketId() != bIdx2.getAssociatedBucketId())
+        return false;
+    }
+
     return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return logicName.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return logicName;
   }
 
   @Override
@@ -249,10 +243,14 @@ public class TypeIndex implements RangeIndex {
     throw new UnsupportedOperationException("getAssociatedBucketId");
   }
 
-  public void addSubIndex(final Index index) {
+  public void addIndexOnBucket(final Index index) {
     if (index instanceof TypeIndex)
       throw new IllegalArgumentException("Invalid subIndex " + index);
 
-    indexes.add(index);
+    indexesOnBuckets.add(index);
+  }
+
+  public Index[] getIndexesOnBuckets() {
+    return indexesOnBuckets.toArray(new Index[indexesOnBuckets.size()]);
   }
 }

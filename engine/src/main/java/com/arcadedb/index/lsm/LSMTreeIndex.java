@@ -161,7 +161,7 @@ public class LSMTreeIndex implements RangeIndex {
 
   public void drop() {
     lock.executeInWriteLock(() -> {
-      ((SchemaImpl) mutable.getDatabase().getSchema()).removeIndex(getName(), getFileId());
+      ((SchemaImpl) mutable.getDatabase().getSchema()).removeIndex(getName());
       final LSMTreeIndexCompacted subIndex = mutable.getSubIndex();
       if (subIndex != null)
         subIndex.drop();
@@ -175,11 +175,6 @@ public class LSMTreeIndex implements RangeIndex {
   @Override
   public String getName() {
     return name;
-  }
-
-  @Override
-  public IndexCursor iterator(final Object[] fromKeys, final boolean inclusive) {
-    return lock.executeInReadLock(() -> mutable.iterator(fromKeys, inclusive));
   }
 
   @Override

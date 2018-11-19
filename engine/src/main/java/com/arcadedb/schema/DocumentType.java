@@ -165,19 +165,19 @@ public class DocumentType {
 
   }
 
-  public Collection<Index> getAllIndexesMetadata() {
-    final List<Index> list = new ArrayList<>();
-    for (List<Index> ms : indexesByBucket.values())
-      for (Index m : ms)
-        list.add(m);
-    return list;
+  public TypeIndex[] getAllIndexes() {
+    final TypeIndex[] array = new TypeIndex[indexesByProperties.size()];
+    int i = 0;
+    for (TypeIndex idx : indexesByProperties.values())
+      array[i++] = idx;
+    return array;
   }
 
-  public List<Index> getIndexMetadataByBucketId(final int bucketId) {
+  public List<Index> getSubIndexByBucketId(final int bucketId) {
     return indexesByBucket.get(bucketId);
   }
 
-  public TypeIndex getIndexMetadataByProperties(final String... properties) {
+  public TypeIndex getIndexByProperties(final String... properties) {
     return indexesByProperties.get(Arrays.asList(properties));
   }
 
@@ -337,12 +337,12 @@ public class DocumentType {
     TypeIndex propIndex = indexesByProperties.get(propertyList);
     if (propIndex == null) {
       // CREATE THE TYPE-INDEX FOR THE 1ST TIME
-      propIndex = new TypeIndex();
+      propIndex = new TypeIndex(name + Arrays.toString(propertyNames));
       indexesByProperties.put(propertyList, propIndex);
     }
 
     // ADD AS SUB-INDEX
-    propIndex.addSubIndex(index);
+    propIndex.addIndexOnBucket(index);
   }
 
   protected void removeIndexInternal(final String indexName) {

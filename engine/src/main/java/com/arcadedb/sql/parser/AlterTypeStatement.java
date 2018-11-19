@@ -336,7 +336,7 @@ public class AlterTypeStatement extends ODDLStatement {
   }
 
   private void checkNotIndexed(DocumentType oClass) {
-//    Set<PIndex> indexes = oClass.getAllIndexesMetadata();
+//    Set<PIndex> indexes = oClass.getAllIndexes();
 //    if (indexes != null && indexes.size() > 0) {
 //      throw new PCommandExecutionException("Cannot rename class '" + oClass.getName()
 //          + "' because it has indexes defined on it. Drop indexes before or use UNSAFE (at your won risk)");

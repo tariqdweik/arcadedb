@@ -23,7 +23,7 @@ public class DocumentIndexer {
       throw new IllegalArgumentException("Cannot index a non persistent record");
 
     // INDEX THE RECORD
-    final List<Index> metadata = type.getIndexMetadataByBucketId(bucket.getId());
+    final List<Index> metadata = type.getSubIndexByBucketId(bucket.getId());
     if (metadata != null) {
       for (Index entry : metadata) {
         final Index index = entry;
@@ -53,7 +53,7 @@ public class DocumentIndexer {
 
     final DocumentType type = database.getSchema().getType(modifiedRecord.getType());
 
-    final List<Index> metadata = type.getIndexMetadataByBucketId(bucketId);
+    final List<Index> metadata = type.getSubIndexByBucketId(bucketId);
     if (metadata != null) {
       for (Index index : metadata) {
         final String[] keyNames = index.getPropertyNames();
@@ -93,7 +93,7 @@ public class DocumentIndexer {
     if (type == null)
       throw new IllegalStateException("Type not found for bucket " + bucketId);
 
-    final List<Index> metadata = type.getIndexMetadataByBucketId(bucketId);
+    final List<Index> metadata = type.getSubIndexByBucketId(bucketId);
     if (metadata != null) {
       if (record instanceof RecordInternal)
         // FORCE RESET OF ANY PROPERTY TEMPORARY SET

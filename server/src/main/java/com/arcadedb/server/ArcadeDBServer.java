@@ -236,11 +236,48 @@ public class ArcadeDBServer {
     return databases.keySet();
   }
 
+  public void log(final Object requester, final Level level, final String message) {
+    if (!serverName.equals(LogManager.instance().getContext()))
+      LogManager.instance().setContext(serverName);
+    LogManager.instance().log(requester, level, message, null);
+  }
+
+  public void log(final Object requester, final Level level, final String message, final Object arg1) {
+    if (!serverName.equals(LogManager.instance().getContext()))
+      LogManager.instance().setContext(serverName);
+    LogManager.instance().log(requester, level, message, null, arg1);
+  }
+
+  public void log(final Object requester, final Level level, final String message, final Object arg1, final Object arg2) {
+    if (!serverName.equals(LogManager.instance().getContext()))
+      LogManager.instance().setContext(serverName);
+    LogManager.instance().log(requester, level, message, null, arg1, arg2);
+  }
+
+  public void log(final Object requester, final Level level, final String message, final Object arg1, final Object arg2, final Object arg3) {
+    if (!serverName.equals(LogManager.instance().getContext()))
+      LogManager.instance().setContext(serverName);
+    LogManager.instance().log(requester, level, message, null, arg1, arg2, arg3);
+  }
+
+  public void log(final Object requester, final Level level, final String message, final Object arg1, final Object arg2, final Object arg3, final Object arg4) {
+    if (!serverName.equals(LogManager.instance().getContext()))
+      LogManager.instance().setContext(serverName);
+    LogManager.instance().log(requester, level, message, null, arg1, arg2, arg3, arg4);
+  }
+
+  public void log(final Object requester, final Level level, final String message, final Object arg1, final Object arg2, final Object arg3, final Object arg4,
+      final Object arg5) {
+    if (!serverName.equals(LogManager.instance().getContext()))
+      LogManager.instance().setContext(serverName);
+    LogManager.instance().log(requester, level, message, null, arg1, arg2, arg3, arg4, arg5);
+  }
+
   public void log(final Object requester, final Level level, final String message, final Object... args) {
     if (!serverName.equals(LogManager.instance().getContext()))
       LogManager.instance().setContext(serverName);
 
-    LogManager.instance().log(requester, level, message, null, false, args);
+    LogManager.instance().log(requester, level, message, null, args);
   }
 
   public synchronized void removeDatabase(final String databaseName) {

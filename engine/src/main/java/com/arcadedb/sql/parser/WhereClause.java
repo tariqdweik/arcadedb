@@ -77,7 +77,7 @@ public class WhereClause extends SimpleNode {
 
 //    long indexesCount = 0l;
 //    List<OAndBlock> flattenedConditions = flatten();
-//    Collection<List<PType.IndexMetadata>> indexes = oClass.getAllIndexesMetadata();
+//    Collection<List<PType.IndexMetadata>> indexes = oClass.getAllIndexes();
 //    for (OAndBlock condition : flattenedConditions) {
 //
 //      List<OBinaryCondition> indexedFunctConditions = condition

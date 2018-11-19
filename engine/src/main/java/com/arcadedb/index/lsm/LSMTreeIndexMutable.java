@@ -140,10 +140,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     return range(null, true, fromKeys, inclusive);
   }
 
-  public IndexCursor iterator(final Object[] fromKeys, final boolean fromKeysInclusive) throws IOException {
-    return range(fromKeys, fromKeysInclusive, fromKeys, true);
-  }
-
   public IndexCursor range(final Object[] fromKeys, final boolean beginKeysInclusive, final Object[] toKeys, final boolean endKeysInclusive)
       throws IOException {
     boolean ascending = true;

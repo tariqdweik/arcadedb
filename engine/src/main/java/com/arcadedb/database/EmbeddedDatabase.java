@@ -572,7 +572,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         checkDatabaseIsOpen();
         final DocumentType t = schema.getType(type);
 
-        final TypeIndex idx = t.getIndexMetadataByProperties(properties);
+        final TypeIndex idx = t.getIndexByProperties(properties);
         if (idx == null)
           throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 

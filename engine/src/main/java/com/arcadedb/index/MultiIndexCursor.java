@@ -21,13 +21,36 @@ public class MultiIndexCursor implements IndexCursor {
   public MultiIndexCursor(final List<IndexCursor> cursors, final int limit) {
     this.cursors = cursors;
     this.limit = limit;
+    if (!cursors.isEmpty())
+      this.current = cursors.get(0);
   }
 
-  public MultiIndexCursor(final List<RangeIndex> indexes, final boolean ascendingOrder, final int limit) {
+  public MultiIndexCursor(final List<Index> indexes, final boolean ascendingOrder, final int limit) {
     this.cursors = new ArrayList<>(indexes.size());
     this.limit = limit;
-    for (RangeIndex i : indexes)
-      this.cursors.add(i.iterator(ascendingOrder));
+    for (Index i : indexes) {
+      if (!(i instanceof RangeIndex))
+        throw new IllegalArgumentException("Cannot iterate an index that does not support ordered iteration");
+
+      this.cursors.add(((RangeIndex) i).iterator(ascendingOrder));
+    }
+
+    if (!cursors.isEmpty())
+      this.current = cursors.get(0);
+  }
+
+  public MultiIndexCursor(final List<Index> indexes, final Object[] fromKeys, final boolean ascendingOrder, final boolean includeFrom, final int limit) {
+    this.cursors = new ArrayList<>(indexes.size());
+    this.limit = limit;
+    for (Index i : indexes) {
+      if (!(i instanceof RangeIndex))
+        throw new IllegalArgumentException("Cannot iterate an index that does not support ordered iteration");
+
+      this.cursors.add(((RangeIndex) i).iterator(ascendingOrder, fromKeys, includeFrom));
+    }
+
+    if (!cursors.isEmpty())
+      this.current = cursors.get(0);
   }
 
   @Override
@@ -52,7 +75,7 @@ public class MultiIndexCursor implements IndexCursor {
         return true;
 
       if (currentIndex < cursors.size() - 1)
-        current = cursors.get(+currentIndex);
+        current = cursors.get(++currentIndex);
       else
         current = null;
     }

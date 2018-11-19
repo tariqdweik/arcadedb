@@ -60,7 +60,7 @@ public class FetchFromSchemaTypesStep extends AbstractExecutionStep {
 
           r.setProperty("properties", type.getPropertyNames());
 
-          r.setProperty("indexes", type.getAllIndexesMetadata());
+          r.setProperty("indexes", type.getAllIndexes());
         }
       } finally {
         if (profilingEnabled) {

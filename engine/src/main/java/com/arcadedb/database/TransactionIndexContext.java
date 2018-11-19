@@ -137,8 +137,9 @@ public class TransactionIndexContext {
         for (Bucket b : buckets)
           modifiedFiles.add(b.getId());
 
-        for (Index idxMetadata : type.getAllIndexesMetadata())
-          modifiedFiles.add(idxMetadata.getFileId());
+        for (TypeIndex typeIndex : type.getAllIndexes())
+          for (Index idx : typeIndex.getIndexesOnBuckets())
+            modifiedFiles.add(idx.getFileId());
       } else
         modifiedFiles.add(index.getAssociatedBucketId());
     }
@@ -198,7 +199,7 @@ public class TransactionIndexContext {
     final DocumentType type = database.getSchema().getType(index.getTypeName());
 
     // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-    final TypeIndex idx = type.getIndexMetadataByProperties(index.getPropertyNames());
+    final TypeIndex idx = type.getIndexByProperties(index.getPropertyNames());
     if (idx != null) {
       final IndexCursor found = idx.get(key.keyValues, 2);
 
