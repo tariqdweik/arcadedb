@@ -29,11 +29,11 @@ public enum GlobalConfiguration {// ENVIRONMENT
     }
   }),
 
-  DUMP_METRICS_EVERY("arcadedb.dumpMetricsEvery", "Dumps the metrics at startup, shutdown and every configurable amount of time (in ms)", Long.class, 0,
+  DUMP_METRICS_EVERY("arcadedb.dumpMetricsEvery", "Dumps the metrics at startup, shutdown and every configurable amount of time (in seconds)", Long.class, 0,
       new Callable<Object, Object>() {
         @Override
         public Object call(final Object value) {
-          final long time = (long) value;
+          final long time = (long) value * 1000;
           if (time > 0) {
             Profiler.INSTANCE.dumpMetrics(System.out);
 

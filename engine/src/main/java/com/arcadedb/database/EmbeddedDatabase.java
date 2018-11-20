@@ -77,20 +77,21 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   private                DatabaseInternal                          wrappedDatabaseInstance = this;
 
   // STATISTICS
-  private AtomicLong statsTxCommits     = new AtomicLong();
-  private AtomicLong statsTxRollbacks   = new AtomicLong();
-  private AtomicLong statsCreateRecord  = new AtomicLong();
-  private AtomicLong statsReadRecord    = new AtomicLong();
-  private AtomicLong statsUpdateRecord  = new AtomicLong();
-  private AtomicLong statsDeleteRecord  = new AtomicLong();
-  private AtomicLong statsQueries       = new AtomicLong();
-  private AtomicLong statsCommands      = new AtomicLong();
-  private AtomicLong statsScanType      = new AtomicLong();
-  private AtomicLong statsScanBucket    = new AtomicLong();
-  private AtomicLong statsIterateType   = new AtomicLong();
-  private AtomicLong statsIterateBucket = new AtomicLong();
-  private AtomicLong statsCountType     = new AtomicLong();
-  private AtomicLong statsCountBucket   = new AtomicLong();
+  private final AtomicLong statsTxCommits     = new AtomicLong();
+  private final AtomicLong statsTxRollbacks   = new AtomicLong();
+  private final AtomicLong statsCreateRecord  = new AtomicLong();
+  private final AtomicLong statsReadRecord    = new AtomicLong();
+  private final AtomicLong statsUpdateRecord  = new AtomicLong();
+  private final AtomicLong statsDeleteRecord  = new AtomicLong();
+  private final AtomicLong statsQueries       = new AtomicLong();
+  private final AtomicLong statsCommands      = new AtomicLong();
+  private final AtomicLong statsScanType      = new AtomicLong();
+  private final AtomicLong statsScanBucket    = new AtomicLong();
+  private final AtomicLong statsIterateType   = new AtomicLong();
+  private final AtomicLong statsIterateBucket = new AtomicLong();
+  private final AtomicLong statsCountType     = new AtomicLong();
+  private final AtomicLong statsCountBucket   = new AtomicLong();
+  public final  AtomicLong indexCompactions   = new AtomicLong();
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
@@ -321,6 +322,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     map.put("iterateBucket", statsIterateBucket.get());
     map.put("countType", statsCountType.get());
     map.put("countBucket", statsCountBucket.get());
+    map.put("indexCompactions", indexCompactions.get());
     return map;
   }
 

@@ -39,16 +39,17 @@ public class SourceDiscovery {
 
     final Source source = getSource();
 
-    final Parser parser = new Parser(source, limitBytes);
+    final Parser parser = new Parser(source, 0);
 
     final ContentImporter contentImporter = analyzeSourceContent(parser, settings);
+    parser.reset();
 
     final SourceSchema sourceSchema = contentImporter.analyze(parser, settings);
 
     if (contentImporter == null)
       LogManager.instance().log(this, Level.INFO, "Unknown format");
     else {
-      LogManager.instance().log(this, Level.INFO, "Recognized format %s (limitBytes=%s limitEntries=%d)", null, contentImporter.getFormat(),
+      LogManager.instance().log(this, Level.INFO, "Recognized format %s (parsingLimitBytes=%s parsingLimitEntries=%d)", null, contentImporter.getFormat(),
           FileUtils.getSizeAsString(limitBytes), limitEntries);
       if (!sourceSchema.getOptions().isEmpty()) {
         for (Map.Entry<String, String> o : sourceSchema.getOptions().entrySet())
@@ -156,7 +157,7 @@ public class SourceDiscovery {
           public int compare(final Map.Entry<Character, AtomicInteger> o1, final Map.Entry<Character, AtomicInteger> o2) {
             if (o1.getValue().get() == o2.getValue().get())
               return 0;
-            return o1.getValue().get() > o2.getValue().get() ? 1 : -1;
+            return o1.getValue().get() < o2.getValue().get() ? 1 : -1;
           }
         });
 

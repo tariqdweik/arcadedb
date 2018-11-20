@@ -10,7 +10,7 @@ import java.io.IOException;
 
 public class JSONImporter implements ContentImporter {
   @Override
-  public void load(final Parser parser, final Database database, final ImporterContext context, final ImporterSettings settings) throws IOException {
+  public void load(SourceSchema sourceSchema, final Parser parser, final Database database, final ImporterContext context, final ImporterSettings settings) throws IOException {
   }
 
   @Override

@@ -155,13 +155,7 @@ public class DatabaseAsyncExecutor {
                   database.getIndexer().createDocument(doc, database.getSchema().getType(doc.getType()), task.bucket);
                 }
 
-                count++;
-
-                if (count % commitEvery == 0) {
-                  database.commit();
-                  onOk();
-                  database.begin();
-                }
+                incrementTxOperation();
 
               } catch (Exception e) {
                 LogManager.instance().log(this, Level.SEVERE, "Error on executing async create operation (threadId=%d)", e, Thread.currentThread().getId());
@@ -222,24 +216,28 @@ public class DatabaseAsyncExecutor {
                 beginTxIfNeeded();
 
                 RID outEdgesHeadChunk = task.sourceVertex.getOutEdgesHeadChunk();
+                final EdgeChunk outChunk;
 
                 final VertexInternal modifiableSourceVertex;
                 if (outEdgesHeadChunk == null) {
-                  final MutableEdgeChunk outChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
+                  outChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
                   database.createRecordNoLock(outChunk,
                       GraphEngine.getEdgesBucketName(database, task.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
                   outEdgesHeadChunk = outChunk.getIdentity();
 
-                  modifiableSourceVertex = (VertexInternal) task.sourceVertex.modify();
+                  modifiableSourceVertex = task.sourceVertex.modify();
                   modifiableSourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
                   database.updateRecordNoLock(modifiableSourceVertex);
-                } else
+                } else {
                   modifiableSourceVertex = task.sourceVertex;
+                  outChunk = (EdgeChunk) database.lookupByRID(modifiableSourceVertex.getOutEdgesHeadChunk(), true);
+                }
 
-                final EdgeLinkedList outLinkedList = new EdgeLinkedList(modifiableSourceVertex, Vertex.DIRECTION.OUT,
-                    (EdgeChunk) database.lookupByRID(modifiableSourceVertex.getOutEdgesHeadChunk(), true));
+                final EdgeLinkedList outLinkedList = new EdgeLinkedList(modifiableSourceVertex, Vertex.DIRECTION.OUT, outChunk);
 
                 outLinkedList.add(task.edgeRID, task.destinationVertexRID);
+
+                incrementTxOperation();
 
               } catch (Exception e) {
                 onError(e);
@@ -255,24 +253,28 @@ public class DatabaseAsyncExecutor {
                 beginTxIfNeeded();
 
                 RID inEdgesHeadChunk = task.destinationVertex.getInEdgesHeadChunk();
+                final EdgeChunk inChunk;
 
                 final VertexInternal modifiableDestinationVertex;
                 if (inEdgesHeadChunk == null) {
-                  final MutableEdgeChunk inChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
+                  inChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
                   database.createRecordNoLock(inChunk,
                       GraphEngine.getEdgesBucketName(database, task.destinationVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
                   inEdgesHeadChunk = inChunk.getIdentity();
 
-                  modifiableDestinationVertex = (VertexInternal) task.destinationVertex.modify();
+                  modifiableDestinationVertex = task.destinationVertex.modify();
                   modifiableDestinationVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
                   database.updateRecordNoLock(modifiableDestinationVertex);
-                } else
+                } else {
                   modifiableDestinationVertex = task.destinationVertex;
+                  inChunk = (EdgeChunk) database.lookupByRID(modifiableDestinationVertex.getInEdgesHeadChunk(), true);
+                }
 
-                final EdgeLinkedList inLinkedList = new EdgeLinkedList(modifiableDestinationVertex, Vertex.DIRECTION.IN,
-                    (EdgeChunk) database.lookupByRID(modifiableDestinationVertex.getInEdgesHeadChunk(), true));
+                final EdgeLinkedList inLinkedList = new EdgeLinkedList(modifiableDestinationVertex, Vertex.DIRECTION.IN, inChunk);
 
                 inLinkedList.add(task.edgeRID, task.sourceVertexRID);
+
+                incrementTxOperation();
 
               } catch (Exception e) {
                 onError(e);
@@ -288,6 +290,7 @@ public class DatabaseAsyncExecutor {
                 database.commit();
 
               try {
+                ((EmbeddedDatabase) database.getEmbedded()).indexCompactions.incrementAndGet();
                 task.index.compact();
               } catch (Exception e) {
                 LogManager.instance().log(this, Level.SEVERE, "Error on executing compaction of index '%s'", e, task.index.getName());
@@ -317,6 +320,15 @@ public class DatabaseAsyncExecutor {
         onOk();
       } catch (Exception e) {
         onError(e);
+      }
+    }
+
+    private void incrementTxOperation() {
+      count++;
+      if (count % commitEvery == 0) {
+        database.commit();
+        onOk();
+        database.begin();
       }
     }
   }
@@ -488,7 +500,11 @@ public class DatabaseAsyncExecutor {
 
   /**
    * The current thread executes 2 lookups + create the edge. The creation of the 2 edge branches are delegated to asynchronous operations.
+   * Warning: this API doesn't work properly in case source and/or destination vertices have to be created.
+   *
+   * @Deprecated
    */
+  @Deprecated
   public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
       final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
       final boolean bidirectional, final NewEdgeCallback callback, final Object... properties) {

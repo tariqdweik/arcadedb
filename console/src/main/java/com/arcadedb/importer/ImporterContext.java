@@ -4,13 +4,15 @@
 
 package com.arcadedb.importer;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class ImporterContext {
-  long parsed;
   long startedOn;
 
-  long createdVertices;
-  long createdEdges;
-  long createdDocuments;
+  AtomicLong parsed           = new AtomicLong();
+  AtomicLong createdVertices  = new AtomicLong();
+  AtomicLong createdEdges     = new AtomicLong();
+  AtomicLong createdDocuments = new AtomicLong();
 
   long lastLapOn;
   long lastParsed;

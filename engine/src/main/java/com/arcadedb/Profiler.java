@@ -85,6 +85,7 @@ public class Profiler {
     long pagesEvicted = 0;
     int readCachePages = 0;
     int writeCachePages = 0;
+    long indexCompactions = 0;
 
     try {
       for (DatabaseInternal db : databases) {
@@ -174,6 +175,8 @@ public class Profiler {
       buffer.append(String
           .format("\n    scanType=%d scanBucket=%d iterateType=%d iterateBucket=%d countType=%d countBucket=%d", scanType, scanBucket, iterateType,
               iterateBucket, countType, countBucket));
+
+      buffer.append(String.format("\n INDEXES compactions=%d", indexCompactions));
 
       buffer.append(String
           .format("\n PAGE-MANAGER flushQueue=%d cacheHits=%d cacheMiss=%d concModExceptions=%d evictionRuns=%d pagesEvicted=%d", pageFlushQueueLength,

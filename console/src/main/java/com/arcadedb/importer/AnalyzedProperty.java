@@ -13,16 +13,18 @@ public class AnalyzedProperty {
   private final String      name;
   private final long        maxValueSampling;
   private       Type        type;
+  private final int         index;
   private       String      lastContent;
   private       Set<String> contents            = new HashSet<>();
   private       boolean     candidateForInteger = true;
   private       boolean     candidateForDecimal = true;
   private       boolean     collectingSamples   = true;
 
-  public AnalyzedProperty(final String name, final Type type, final long maxValueSampling) {
+  public AnalyzedProperty(final String name, final Type type, final long maxValueSampling, final int index) {
     this.name = name;
     this.type = type;
     this.maxValueSampling = maxValueSampling;
+    this.index = index;
   }
 
   public String getName() {
@@ -39,6 +41,10 @@ public class AnalyzedProperty {
         type = Type.LONG;
       else if (candidateForDecimal)
         type = Type.DOUBLE;
+  }
+
+  public int getIndex() {
+    return index;
   }
 
   public void setLastContent(String lastContent) {

@@ -9,7 +9,7 @@ import com.arcadedb.database.Database;
 import java.io.IOException;
 
 public interface ContentImporter {
-  void load(Parser parser, Database database, ImporterContext context, ImporterSettings settings) throws IOException;
+  void load(SourceSchema sourceSchema, Parser parser, Database database, ImporterContext context, ImporterSettings settings) throws IOException;
 
   SourceSchema analyze(Parser parser, ImporterSettings settings) throws IOException;
 

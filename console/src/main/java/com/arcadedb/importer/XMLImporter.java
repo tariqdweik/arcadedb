@@ -19,7 +19,8 @@ import java.util.logging.Level;
 
 public class XMLImporter implements ContentImporter {
   @Override
-  public void load(final Parser parser, final Database database, final ImporterContext context, final ImporterSettings settings) throws IOException {
+  public void load(SourceSchema sourceSchema, final Parser parser, final Database database, final ImporterContext context, final ImporterSettings settings)
+      throws IOException {
     try {
       int objectNestLevel = 1;
       long maxValueSampling = 300;
@@ -80,12 +81,12 @@ public class XMLImporter implements ContentImporter {
           --nestLevel;
 
           if (nestLevel == objectNestLevel) {
-            ++context.parsed;
+            context.parsed.incrementAndGet();
 
             final MutableVertex record = database.newVertex(entityName);
             record.fromMap(object);
             database.async().createRecord(record);
-            ++context.createdVertices;
+            context.createdVertices.incrementAndGet();
           }
           break;
 
@@ -111,7 +112,7 @@ public class XMLImporter implements ContentImporter {
           // IGNORE IT
         }
 
-        if (settings.limitEntries > 0 && context.parsed > settings.limitEntries)
+        if (settings.parsingLimitEntries > 0 && context.parsed.get() > settings.parsingLimitEntries)
           break;
       }
     } catch (Exception e) {
@@ -122,15 +123,15 @@ public class XMLImporter implements ContentImporter {
   @Override
   public SourceSchema analyze(final Parser parser, final ImporterSettings settings) {
     int objectNestLevel = 1;
-    long limitBytes = 0;
-    long limitEntries = 0;
+    long analyzingLimitBytes = 0;
+    long analyzingLimitEntries = 0;
     long maxValueSampling = 300;
 
     for (Map.Entry<String, String> entry : settings.options.entrySet()) {
-      if ("limitBytes".equals(entry.getKey()))
-        limitBytes = FileUtils.getSizeAsNumber(entry.getValue());
-      else if ("limitEntries".equals(entry.getKey()))
-        limitEntries = Long.parseLong(entry.getValue());
+      if ("analyzingLimitBytes".equals(entry.getKey()))
+        analyzingLimitBytes = FileUtils.getSizeAsNumber(entry.getValue());
+      else if ("analyzingLimitEntries".equals(entry.getKey()))
+        analyzingLimitEntries = Long.parseLong(entry.getValue());
       else if ("objectNestLevel".equals(entry.getKey()))
         objectNestLevel = Integer.parseInt(entry.getValue());
       else if ("maxValueSampling".equals(entry.getKey()))
@@ -144,7 +145,6 @@ public class XMLImporter implements ContentImporter {
     final String totalUnit = parser.isCompressed() ? "compressed " : "";
 
     try {
-
       parser.reset();
 
       final XMLInputFactory xmlFactory = XMLInputFactory.newInstance();
@@ -232,7 +232,7 @@ public class XMLImporter implements ContentImporter {
           // IGNORE IT
         }
 
-        if (limitEntries > 0 && parsedObjects > limitEntries)
+        if (analyzingLimitEntries > 0 && parsedObjects > analyzingLimitEntries)
           break;
       }
 

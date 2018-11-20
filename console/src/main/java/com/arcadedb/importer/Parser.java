@@ -53,6 +53,12 @@ public class Parser {
 
         return super.available();
       }
+
+      @Override
+      public synchronized void reset() throws IOException {
+        pos = 0;
+        position.set(0);
+      }
     };
 
     this.compressed = source.compressed;
@@ -78,6 +84,7 @@ public class Parser {
   }
 
   public void reset() throws IOException {
+    currentChar = 0;
     position.set(0);
     is.reset();
   }

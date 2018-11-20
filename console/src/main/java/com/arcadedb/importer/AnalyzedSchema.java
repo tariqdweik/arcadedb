@@ -6,13 +6,13 @@ package com.arcadedb.importer;
 
 import com.arcadedb.schema.Type;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class AnalyzedSchema {
   private       String                                     name;
-  private       Map<String, Map<String, AnalyzedProperty>> map = new HashMap<>();
+  private       Map<String, Map<String, AnalyzedProperty>> map = new LinkedHashMap<>();
   private final long                                       maxValueSampling;
 
   public AnalyzedSchema(final long maxValueSampling) {
@@ -26,13 +26,13 @@ public class AnalyzedSchema {
   public void setProperty(final String entityName, final String name, final String content) {
     Map<String, AnalyzedProperty> entity = map.get(entityName);
     if (entity == null) {
-      entity = new HashMap<>();
+      entity = new LinkedHashMap<>();
       map.put(entityName, entity);
     }
 
     AnalyzedProperty property = entity.get(name);
     if (property == null) {
-      property = new AnalyzedProperty(name, Type.STRING, maxValueSampling);
+      property = new AnalyzedProperty(name, Type.STRING, maxValueSampling, entity.size());
       entity.put(property.getName(), property);
     }
 
@@ -49,8 +49,14 @@ public class AnalyzedSchema {
     return map.keySet();
   }
 
-  public Iterable<? extends Map.Entry<String, AnalyzedProperty>> getProperties(final String entityName) {
+  public Iterable<AnalyzedProperty> getProperties(final String entityName) {
     final Map<String, AnalyzedProperty> entity = map.get(entityName);
-    return entity != null ? entity.entrySet() : null;
+    return entity != null ? entity.values() : null;
   }
+
+  public AnalyzedProperty getProperty(final String entityName, final String propertyName) {
+    final Map<String, AnalyzedProperty> entity = map.get(entityName);
+    return entity != null ? entity.get(propertyName) : null;
+  }
+
 }
