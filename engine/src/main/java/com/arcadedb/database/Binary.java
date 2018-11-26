@@ -16,15 +16,16 @@ public class Binary implements BinaryStructure {
   public static final int FLOAT_SERIALIZED_SIZE  = 4;
   public static final int DOUBLE_SERIALIZED_SIZE = 8;
 
-  private final static int ALLOCATION_CHUNK = 512;
+  private final static int DEFAULT_ALLOCATION_CHUNK = 512;
 
-  protected boolean    autoResizable = true;
+  protected boolean    autoResizable       = true;
   protected byte[]     content;
   protected ByteBuffer buffer;
   protected int        size;
+  protected int        allocationChunkSize = DEFAULT_ALLOCATION_CHUNK;
 
   public Binary() {
-    this.content = new byte[ALLOCATION_CHUNK];
+    this.content = new byte[allocationChunkSize];
     this.buffer = ByteBuffer.wrap(content);
     size = 0;
   }
@@ -75,6 +76,14 @@ public class Binary implements BinaryStructure {
 
   public void setAutoResizable(final boolean autoResizable) {
     this.autoResizable = autoResizable;
+  }
+
+  public int getAllocationChunkSize() {
+    return allocationChunkSize;
+  }
+
+  public void setAllocationChunkSize(int allocationChunkSize) {
+    this.allocationChunkSize = allocationChunkSize;
   }
 
   @Override
@@ -483,10 +492,10 @@ public class Binary implements BinaryStructure {
         throw new IllegalArgumentException("Cannot resize the buffer (autoResizable=false)");
 
       final int newSize;
-      if (offset + bytesToWrite > ALLOCATION_CHUNK) {
-        newSize = (((offset + bytesToWrite) / ALLOCATION_CHUNK) + 1) * ALLOCATION_CHUNK;
+      if (offset + bytesToWrite > allocationChunkSize) {
+        newSize = (((offset + bytesToWrite) / allocationChunkSize) + 1) * allocationChunkSize;
       } else
-        newSize = ALLOCATION_CHUNK;
+        newSize = allocationChunkSize;
 
       final byte[] newContent = new byte[newSize];
       System.arraycopy(content, 0, newContent, 0, content.length);
@@ -504,5 +513,15 @@ public class Binary implements BinaryStructure {
 
   public Object executeInLock(final Callable<Object> callable) throws Exception {
     return callable.call();
+  }
+
+  public int getAllocatedSize() {
+    return content.length;
+  }
+
+  public void fill(final byte filler, final int size) {
+    checkForAllocation(buffer.position(), size);
+    for (int i = 0; i < size; ++i)
+      buffer.put(filler);
   }
 }
