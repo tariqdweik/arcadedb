@@ -4,16 +4,14 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.schema.Type;
-
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class AnalyzedSchema {
-  private       String                                     name;
-  private       Map<String, Map<String, AnalyzedProperty>> map = new LinkedHashMap<>();
-  private final long                                       maxValueSampling;
+  private       String                      name;
+  private       Map<String, AnalyzedEntity> entities = new LinkedHashMap<>();
+  private final long                        maxValueSampling;
 
   public AnalyzedSchema(final long maxValueSampling) {
     this.maxValueSampling = maxValueSampling;
@@ -23,40 +21,26 @@ public class AnalyzedSchema {
     this.name = name;
   }
 
-  public void setProperty(final String entityName, final String name, final String content) {
-    Map<String, AnalyzedProperty> entity = map.get(entityName);
+  public AnalyzedEntity getOrCreateEntity(final String entityName, final AnalyzedEntity.ENTITY_TYPE entityType) {
+    AnalyzedEntity entity = entities.get(entityName);
     if (entity == null) {
-      entity = new LinkedHashMap<>();
-      map.put(entityName, entity);
+      entity = new AnalyzedEntity(entityName, entityType, maxValueSampling);
+      entities.put(entityName, entity);
     }
-
-    AnalyzedProperty property = entity.get(name);
-    if (property == null) {
-      property = new AnalyzedProperty(name, Type.STRING, maxValueSampling, entity.size());
-      entity.put(property.getName(), property);
-    }
-
-    property.setLastContent(content);
+    return entity;
   }
 
   public void endParsing() {
-    for (Map<String, AnalyzedProperty> entity : map.values())
-      for (AnalyzedProperty property : entity.values())
+    for (AnalyzedEntity entity : entities.values())
+      for (AnalyzedProperty property : entity.getProperties())
         property.endParsing();
   }
 
-  public Set<String> getEntities() {
-    return map.keySet();
+  public Collection<AnalyzedEntity> getEntities() {
+    return entities.values();
   }
 
-  public Iterable<AnalyzedProperty> getProperties(final String entityName) {
-    final Map<String, AnalyzedProperty> entity = map.get(entityName);
-    return entity != null ? entity.values() : null;
+  public AnalyzedEntity getEntity(final String name) {
+    return entities.get(name);
   }
-
-  public AnalyzedProperty getProperty(final String entityName, final String propertyName) {
-    final Map<String, AnalyzedProperty> entity = map.get(entityName);
-    return entity != null ? entity.get(propertyName) : null;
-  }
-
 }

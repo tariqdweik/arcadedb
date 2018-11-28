@@ -5,9 +5,12 @@
 package com.arcadedb.graph;
 
 import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
+import com.arcadedb.database.Record;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.utility.Pair;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +26,12 @@ public class EdgeLinkedList {
     this.vertex = vertex;
     this.direction = direction;
     this.first = first;
+  }
+
+  public Iterator<Pair<RID, RID>> entryIterator(final String... edgeTypes) {
+    if (edgeTypes == null || edgeTypes.length == 0)
+      return new EdgeVertexIterator(first);
+    return new EdgeVertexIteratorFilter((DatabaseInternal) vertex.getDatabase(), first, edgeTypes);
   }
 
   public Iterator<Edge> edgeIterator(final String... edgeTypes) {
@@ -104,7 +113,7 @@ public class EdgeLinkedList {
 
       database.createRecord(newChunk, database.getSchema().getBucketById(first.getIdentity().getBucketId()).getName());
 
-      final MutableVertex modifiableV = (MutableVertex) vertex.modify();
+      final MutableVertex modifiableV = vertex.modify();
 
       if (direction == Vertex.DIRECTION.OUT)
         modifiableV.setOutEdgesHeadChunk(newChunk.getIdentity());
@@ -115,6 +124,48 @@ public class EdgeLinkedList {
 
       modifiableV.save();
     }
+  }
+
+  public void addAll(final List<Pair<Identifiable, Identifiable>> entries) {
+    final Set<Record> recordsToUpdate = new HashSet<>();
+
+    final DatabaseInternal database = (DatabaseInternal) vertex.getDatabase();
+
+    Vertex currentVertex = vertex;
+
+    for (int i = 0; i < entries.size(); ++i) {
+      final Pair<Identifiable, Identifiable> entry = entries.get(i);
+
+      final RID edgeRID = entry.getFirst().getIdentity();
+      final RID vertexRID = entry.getSecond().getIdentity();
+
+      if (first.add(edgeRID, vertexRID))
+        recordsToUpdate.add(first);
+      else {
+        // CHUNK FULL, ALLOCATE A NEW ONE
+        final MutableEdgeChunk newChunk = new MutableEdgeChunk(database, computeBestSize());
+
+        newChunk.add(edgeRID, vertexRID);
+        newChunk.setNext(first);
+
+        database.createRecord(newChunk, database.getSchema().getBucketById(first.getIdentity().getBucketId()).getName());
+
+        final MutableVertex modifiableV = currentVertex.modify();
+        currentVertex = modifiableV;
+
+        if (direction == Vertex.DIRECTION.OUT)
+          modifiableV.setOutEdgesHeadChunk(newChunk.getIdentity());
+        else
+          modifiableV.setInEdgesHeadChunk(newChunk.getIdentity());
+
+        first = newChunk;
+
+        recordsToUpdate.add(modifiableV);
+      }
+    }
+
+    for (Record r : recordsToUpdate)
+      database.updateRecord(r);
   }
 
   public void removeEdge(final RID edgeRID) {

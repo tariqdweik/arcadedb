@@ -21,15 +21,17 @@ import java.util.logging.Level;
  * Keeps all configuration settings. At startup assigns the configuration values by reading system properties.
  */
 public enum GlobalConfiguration {// ENVIRONMENT
-  DUMP_CONFIG_AT_STARTUP("arcadedb.dumpConfigAtStartup", "Dumps the configuration at startup", Boolean.class, false, new Callable<Object, Object>() {
-    @Override
-    public Object call(final Object value) {
-      dumpConfiguration(System.out);
-      return value;
-    }
-  }),
+  DUMP_CONFIG_AT_STARTUP("arcadedb.dumpConfigAtStartup", "Dumps the configuration at startup", Boolean.class, false,
+      new Callable<Object, Object>() {
+        @Override
+        public Object call(final Object value) {
+          dumpConfiguration(System.out);
+          return value;
+        }
+      }),
 
-  DUMP_METRICS_EVERY("arcadedb.dumpMetricsEvery", "Dumps the metrics at startup, shutdown and every configurable amount of time (in seconds)", Long.class, 0,
+  DUMP_METRICS_EVERY("arcadedb.dumpMetricsEvery",
+      "Dumps the metrics at startup, shutdown and every configurable amount of time (in seconds)", Long.class, 0,
       new Callable<Object, Object>() {
         @Override
         public Object call(final Object value) {
@@ -87,7 +89,8 @@ public enum GlobalConfiguration {// ENVIRONMENT
         }
       }),
 
-  TEST("arcadedb.test", "Tells if it is running in test mode. This enables the calling of callbacks for testing purpose ", Boolean.class, false),
+  TEST("arcadedb.test", "Tells if it is running in test mode. This enables the calling of callbacks for testing purpose ", Boolean.class,
+      false),
 
   MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4, new Callable<Object, Object>() {
     @Override
@@ -95,8 +98,16 @@ public enum GlobalConfiguration {// ENVIRONMENT
       final long maxRAM = (long) value * 1024 * 1024;
       if (maxRAM > Runtime.getRuntime().maxMemory() * 80 / 100) {
         final long newValue = Runtime.getRuntime().maxMemory() / 2;
-        LogManager.instance().log(this, Level.WARNING, "Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", null, MAX_PAGE_RAM.key,
-            FileUtils.getSizeAsString(maxRAM), FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()), FileUtils.getSizeAsString(newValue));
+        if (LogManager.instance() != null)
+          LogManager.instance()
+              .log(this, Level.WARNING, "Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", null, MAX_PAGE_RAM.key,
+                  FileUtils.getSizeAsString(maxRAM), FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()),
+                  FileUtils.getSizeAsString(newValue));
+        else
+          System.out.println(String.format("Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", MAX_PAGE_RAM.key,
+              FileUtils.getSizeAsString(maxRAM), FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()),
+              FileUtils.getSizeAsString(newValue)));
+
         return newValue;
       }
       return value;
@@ -114,13 +125,14 @@ public enum GlobalConfiguration {// ENVIRONMENT
 
   TX_WAL("arcadedb.txWAL", "Uses the WAL", Boolean.class, true),
 
-  TX_WAL_FLUSH("arcadedb.txWalFlush", "Flushes the WAL on disk at commit time. It can be 0 = no flush, 1 = flush without metadata and 2 = full flush (fsync)",
+  TX_WAL_FLUSH("arcadedb.txWalFlush",
+      "Flushes the WAL on disk at commit time. It can be 0 = no flush, 1 = flush without metadata and 2 = full flush (fsync)",
       Integer.class, 0),
 
   FREE_PAGE_RAM("arcadedb.freePageRAM", "Percentage (0-100) of memory to free when Page RAM is full", Integer.class, 50),
 
-  ASYNC_WORKER_THREADS("arcadedb.asyncWorkerThreads", "Number of asynchronous worker threads. 0 (default) = available cores minus 1", Integer.class,
-      Runtime.getRuntime().availableProcessors() > 1 ? Runtime.getRuntime().availableProcessors() - 1 : 1),
+  ASYNC_WORKER_THREADS("arcadedb.asyncWorkerThreads", "Number of asynchronous worker threads. 0 (default) = available cores minus 1",
+      Integer.class, Runtime.getRuntime().availableProcessors() > 1 ? Runtime.getRuntime().availableProcessors() - 1 : 1),
 
   ASYNC_OPERATIONS_QUEUE_IMPL("arcadedb.asyncOperationsQueueImpl",
       "Queue implementation to use between 'standard' and 'fast'. 'standard' consumes less CPU than the 'fast' implementation, but it could be slower with high loads",
@@ -129,7 +141,8 @@ public enum GlobalConfiguration {// ENVIRONMENT
   ASYNC_OPERATIONS_QUEUE_SIZE("arcadedb.asyncOperationsQueueSize",
       "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)", Integer.class, 128),
 
-  ASYNC_TX_BATCH_SIZE("arcadedb.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class, 1024 * 10),
+  ASYNC_TX_BATCH_SIZE("arcadedb.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class,
+      1024 * 10),
 
   PAGE_FLUSH_QUEUE("arcadedb.pageFlushQueue", "Size of the asynchronous page flush queue", Integer.class, 128),
 
@@ -166,22 +179,26 @@ public enum GlobalConfiguration {// ENVIRONMENT
 
   SERVER_METRICS("arcadedb.serverMetrics", "True to enable metrics", Boolean.class, true),
 
-  SERVER_ROOT_PATH("arcadedb.server.rootPath", "Root path in the file system where the server is looking for files. By default is the current directory",
-      String.class, "."),
+  SERVER_ROOT_PATH("arcadedb.server.rootPath",
+      "Root path in the file system where the server is looking for files. By default is the current directory", String.class, "."),
 
-  SERVER_DATABASE_DIRECTORY("arcadedb.server.databaseDirectory", "Directory containing the database", String.class, "${arcadedb.server.rootPath}/databases"),
+  SERVER_DATABASE_DIRECTORY("arcadedb.server.databaseDirectory", "Directory containing the database", String.class,
+      "${arcadedb.server.rootPath}/databases"),
 
-  SERVER_PLUGINS("arcadedb.server.plugins", "List of server plugins to install. The format to load a plugin is: `<pluginName>:<pluginFullClass>`", String.class,
-      ""),
+  SERVER_PLUGINS("arcadedb.server.plugins",
+      "List of server plugins to install. The format to load a plugin is: `<pluginName>:<pluginFullClass>`", String.class, ""),
 
   SERVER_DEFAULT_DATABASES("arcadedb.server.defaultDatabases",
       "The default databases created when the server starts. The format is '(<database-name>[(<user-name>:<user-passwd>)[,]*])[;]*'. Pay attention on using ';'"
-          + " to separate databases and ',' to separate credentials. Example: 'Universe[elon:musk];Amiga[Jay:Miner,Jack:Tramiel]'", String.class, ""),
+          + " to separate databases and ',' to separate credentials. Example: 'Universe[elon:musk];Amiga[Jay:Miner,Jack:Tramiel]'",
+      String.class, ""),
 
   // SERVER HTTP
-  SERVER_HTTP_INCOMING_HOST("arcadedb.server.httpIncomingHost", "TCP/IP host name used for incoming HTTP connections", String.class, "0.0.0.0"),
+  SERVER_HTTP_INCOMING_HOST("arcadedb.server.httpIncomingHost", "TCP/IP host name used for incoming HTTP connections", String.class,
+      "0.0.0.0"),
 
-  SERVER_HTTP_INCOMING_PORT("arcadedb.server.httpIncomingPort", "TCP/IP port number used for incoming HTTP connections", Integer.class, 2480),
+  SERVER_HTTP_INCOMING_PORT("arcadedb.server.httpIncomingPort", "TCP/IP port number used for incoming HTTP connections", Integer.class,
+      2480),
 
   SERVER_HTTP_AUTOINCREMENT_PORT("arcadedb.server.httpAutoIncrementPort",
       "True to increment the TCP/IP port number used for incoming HTTP in case the configured is not available", Boolean.class, true),
@@ -194,30 +211,34 @@ public enum GlobalConfiguration {// ENVIRONMENT
       "Cache size of hashed salt passwords. The cache works as LRU. Use 0 to disable the cache", Integer.class, 64),
 
   SERVER_SECURITY_SALT_ITERATIONS("arcadedb.server.saltIterations",
-      "Number of iterations to generate the salt or user password. Changing this setting does not affect stored passwords", Integer.class, 65536),
+      "Number of iterations to generate the salt or user password. Changing this setting does not affect stored passwords", Integer.class,
+      65536),
 
   // HA
   HA_ENABLED("arcadedb.ha.enabled", "True if HA is enabled for the current server", Boolean.class, false),
 
-  HA_QUORUM("arcadedb.ha.quorum", "Default quorum between 'none', 1, 2, 3, 'majority' and 'all' servers. Default is majority", String.class, "MAJORITY"),
+  HA_QUORUM("arcadedb.ha.quorum", "Default quorum between 'none', 1, 2, 3, 'majority' and 'all' servers. Default is majority", String.class,
+      "MAJORITY"),
 
   HA_QUORUM_TIMEOUT("arcadedb.ha.quorumTimeout", "Timeout waiting for the quorum", Long.class, 10000),
 
   HA_REPLICATION_QUEUE_SIZE("arcadedb.ha.replicationQueueSize", "Queue size for replicating messages between servers", Integer.class, 512),
 
-  HA_REPLICATION_FILE_MAXSIZE("arcadedb.ha.replicationFileMaxSize", "Maximum file size for replicating messages between servers. Default is 1GB", Long.class,
-      1024 * 1024 * 1024),
+  HA_REPLICATION_FILE_MAXSIZE("arcadedb.ha.replicationFileMaxSize",
+      "Maximum file size for replicating messages between servers. Default is 1GB", Long.class, 1024 * 1024 * 1024),
 
-  HA_REPLICATION_INCOMING_HOST("arcadedb.ha.replicationIncomingHost", "TCP/IP host name used for incoming replication connections", String.class, "localhost"),
+  HA_REPLICATION_INCOMING_HOST("arcadedb.ha.replicationIncomingHost", "TCP/IP host name used for incoming replication connections",
+      String.class, "localhost"),
 
-  HA_REPLICATION_INCOMING_PORTS("arcadedb.ha.replicationIncomingPorts", "TCP/IP port number used for incoming replication connections", String.class,
-      "2424-2433"),
+  HA_REPLICATION_INCOMING_PORTS("arcadedb.ha.replicationIncomingPorts", "TCP/IP port number used for incoming replication connections",
+      String.class, "2424-2433"),
 
-  HA_CLUSTER_NAME("arcadedb.ha.clusterName", "Cluster name. By default is 'arcadedb'. Useful in case of multiple clusters in the same network", String.class,
+  HA_CLUSTER_NAME("arcadedb.ha.clusterName",
+      "Cluster name. By default is 'arcadedb'. Useful in case of multiple clusters in the same network", String.class,
       Constants.PRODUCT.toLowerCase()),
 
-  HA_SERVER_LIST("arcadedb.ha.serverList", "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424",
-      String.class, ""),
+  HA_SERVER_LIST("arcadedb.ha.serverList",
+      "List of <hostname/ip-address:port> items separated by comma. Example: localhost:2424,192.168.0.1:2424", String.class, ""),
   ;
 
   /**
@@ -247,7 +268,8 @@ public enum GlobalConfiguration {// ENVIRONMENT
     this(iKey, iDescription, iType, iDefValue, null);
   }
 
-  GlobalConfiguration(final String iKey, final String iDescription, final Class<?> iType, final Object iDefValue, final Callable<Object, Object> callback) {
+  GlobalConfiguration(final String iKey, final String iDescription, final Class<?> iType, final Object iDefValue,
+      final Callable<Object, Object> callback) {
     this.key = iKey;
     this.description = iDescription;
     this.defValue = iDefValue;
@@ -258,8 +280,8 @@ public enum GlobalConfiguration {// ENVIRONMENT
     this.callbackIfNoSet = null;
   }
 
-  GlobalConfiguration(final String iKey, final String iDescription, final Class<?> iType, final Object iDefValue, final Callable<Object, Object> callback,
-      final Callable<Object, Object> callbackIfNoSet) {
+  GlobalConfiguration(final String iKey, final String iDescription, final Class<?> iType, final Object iDefValue,
+      final Callable<Object, Object> callback, final Callable<Object, Object> callbackIfNoSet) {
     this.key = iKey;
     this.description = iDescription;
     this.defValue = iDefValue;

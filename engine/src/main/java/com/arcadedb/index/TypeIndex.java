@@ -57,8 +57,12 @@ public class TypeIndex implements RangeIndex {
     final Set<Identifiable> result = new HashSet<>();
     for (Index index : indexesOnBuckets) {
       final IndexCursor cursor = index.get(keys);
-      while (cursor.hasNext())
+      while (cursor.hasNext()) {
         result.add(cursor.next());
+
+        if (index.isUnique())
+          break;
+      }
     }
     return new IndexCursorCollection(result);
   }

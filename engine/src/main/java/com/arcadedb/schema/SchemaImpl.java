@@ -37,20 +37,21 @@ public class SchemaImpl implements Schema {
   public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
   public static final String DEFAULT_ENCODING        = "UTF-8";
 
-  public static final String                    SCHEMA_FILE_NAME = "schema.json";
-  private final       DatabaseInternal          database;
-  private final       List<PaginatedComponent>  files            = new ArrayList<PaginatedComponent>();
-  private final       Map<String, DocumentType> types            = new HashMap<String, DocumentType>();
-  private final       Map<String, Bucket>       bucketMap        = new HashMap<String, Bucket>();
-  private final       Map<String, Index>        indexMap         = new HashMap<String, Index>();
-  private final       String                    databasePath;
-  private             Dictionary                dictionary;
-  private             String                    dateFormat       = DEFAULT_DATE_FORMAT;
-  private             String                    dateTimeFormat   = DEFAULT_DATETIME_FORMAT;
-  private             String                    encoding         = DEFAULT_ENCODING;
-  private             TimeZone                  timeZone         = TimeZone.getDefault();
-  private final       PaginatedComponentFactory paginatedComponentFactory;
-  private final       IndexFactory              indexFactory     = new IndexFactory();
+  public static final  String                    SCHEMA_FILE_NAME   = "schema.json";
+  private static final int                       EDGE_DEF_PAGE_SIZE = 32_768;
+  private final        DatabaseInternal          database;
+  private final        List<PaginatedComponent>  files              = new ArrayList<PaginatedComponent>();
+  private final        Map<String, DocumentType> types              = new HashMap<String, DocumentType>();
+  private final        Map<String, Bucket>       bucketMap          = new HashMap<String, Bucket>();
+  private final        Map<String, Index>        indexMap           = new HashMap<String, Index>();
+  private final        String                    databasePath;
+  private              Dictionary                dictionary;
+  private              String                    dateFormat         = DEFAULT_DATE_FORMAT;
+  private              String                    dateTimeFormat     = DEFAULT_DATETIME_FORMAT;
+  private              String                    encoding           = DEFAULT_ENCODING;
+  private              TimeZone                  timeZone           = TimeZone.getDefault();
+  private final        PaginatedComponentFactory paginatedComponentFactory;
+  private final        IndexFactory              indexFactory       = new IndexFactory();
 
   public enum INDEX_TYPE {
     LSM_TREE, FULL_TEXT
@@ -63,8 +64,10 @@ public class SchemaImpl implements Schema {
     paginatedComponentFactory = new PaginatedComponentFactory(database);
     paginatedComponentFactory.registerComponent(Dictionary.DICT_EXT, new Dictionary.PaginatedComponentFactoryHandler());
     paginatedComponentFactory.registerComponent(Bucket.BUCKET_EXT, new Bucket.PaginatedComponentFactoryHandler());
-    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerUnique());
-    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
+    paginatedComponentFactory
+        .registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerUnique());
+    paginatedComponentFactory
+        .registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
 
     indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new LSMTreeIndex.IndexFactoryHandler());
     indexFactory.register(INDEX_TYPE.FULL_TEXT.name(), new LSMTreeFullTextIndex.IndexFactoryHandler());
@@ -275,13 +278,14 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
+      final int pageSize) {
     return createIndexes(indexType, unique, typeName, propertyNames, pageSize, null);
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
-      final Index.BuildIndexCallback callback) {
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
+      final int pageSize, final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
@@ -294,8 +298,8 @@ public class SchemaImpl implements Schema {
           final TypeIndex index = type.getIndexByProperties(propertyNames);
           if (index != null)
             throw new IllegalArgumentException(
-                "Found the existent index '" + index.getName() + "' defined on the properties '" + Arrays.asList(propertyNames) + "' for type '" + typeName
-                    + "'");
+                "Found the existent index '" + index.getName() + "' defined on the properties '" + Arrays.asList(propertyNames)
+                    + "' for type '" + typeName + "'");
 
           // CHECK ALL THE PROPERTIES EXIST
           final byte[] keyTypes = new byte[propertyNames.length];
@@ -304,7 +308,8 @@ public class SchemaImpl implements Schema {
           for (String propertyName : propertyNames) {
             final Property property = type.getPolymorphicProperty(propertyName);
             if (property == null)
-              throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
+              throw new SchemaException(
+                  "Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
             keyTypes[i++] = property.getType().getBinaryType();
           }
@@ -329,8 +334,8 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index createIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName, final String[] propertyNames,
-      final int pageSize, final Index.BuildIndexCallback callback) {
+  public Index createIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName,
+      final String[] propertyNames, final int pageSize, final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
@@ -347,7 +352,8 @@ public class SchemaImpl implements Schema {
           for (String propertyName : propertyNames) {
             final Property property = type.getPolymorphicProperty(propertyName);
             if (property == null)
-              throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
+              throw new SchemaException(
+                  "Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
             keyTypes[i++] = property.getType().getBinaryType();
           }
@@ -374,8 +380,9 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  private Index createIndexOnBucket(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName, final INDEX_TYPE indexType,
-      final boolean unique, final int pageSize, final Index.BuildIndexCallback callback, final String[] propertyNames) throws IOException {
+  private Index createIndexOnBucket(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName,
+      final INDEX_TYPE indexType, final boolean unique, final int pageSize, final Index.BuildIndexCallback callback,
+      final String[] propertyNames) throws IOException {
     if (bucket == null)
       throw new DatabaseMetadataException(
           "Cannot create index on type '" + typeName + "' because the specified bucket '" + bucket.getName() + "' is not part of the type");
@@ -386,8 +393,8 @@ public class SchemaImpl implements Schema {
       throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
     final Index index = indexFactory
-        .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize,
-            callback);
+        .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
+            pageSize, callback);
 
     registerFile(index.getPaginatedComponent());
 
@@ -399,7 +406,8 @@ public class SchemaImpl implements Schema {
     return index;
   }
 
-  public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
+  public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes,
+      final int pageSize) {
     return (Index) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -606,7 +614,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public EdgeType createEdgeType(final String typeName, final int buckets) {
-    return createEdgeType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
+    return createEdgeType(typeName, buckets, EDGE_DEF_PAGE_SIZE);
   }
 
   @Override
@@ -809,7 +817,8 @@ public class SchemaImpl implements Schema {
       file.close();
 
     } catch (IOException e) {
-      LogManager.instance().log(this, Level.SEVERE, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
+      LogManager.instance()
+          .log(this, Level.SEVERE, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
     }
   }
 

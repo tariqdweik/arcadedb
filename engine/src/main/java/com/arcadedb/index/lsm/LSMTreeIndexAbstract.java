@@ -72,8 +72,8 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Called at creation time.
    */
-  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath,
-      final String ext, final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
+  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique,
+      String filePath, final String ext, final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     super(database, name, filePath, ext, mode, pageSize);
     this.mainIndex = mainIndex;
     this.serializer = database.getSerializer();
@@ -85,8 +85,8 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Called at cloning time.
    */
-  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath,
-      final String ext, final byte[] keyTypes, final int pageSize) throws IOException {
+  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique,
+      String filePath, final String ext, final byte[] keyTypes, final int pageSize) throws IOException {
     super(database, name, filePath, TEMP_EXT + ext, PaginatedFile.MODE.READ_WRITE, pageSize);
     this.mainIndex = mainIndex;
     this.serializer = database.getSerializer();
@@ -98,8 +98,8 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * Called at load time (1st page only).
    */
-  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath,
-      final int id, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique,
+      String filePath, final int id, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
     super(database, name, filePath, id, mode, pageSize);
     this.mainIndex = mainIndex;
     this.serializer = database.getSerializer();
@@ -110,8 +110,8 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   /**
    * @param purpose 0 = exists, 1 = retrieve, 2 = ascending iterator, 3 = descending iterator
    */
-  protected abstract LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] convertedKeys, int mid, final int count,
-      final int purpose);
+  protected abstract LookupResult compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object[] convertedKeys,
+      int mid, final int count, final int purpose);
 
   public PaginatedComponent getPaginatedComponent() {
     return this;
@@ -180,15 +180,18 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
    *
    * @return always an LookupResult object, never null
    */
-  protected LookupResult lookupInPage(final int pageNum, final int count, final Binary currentPageBuffer, final Object[] convertedKeys, final int purpose) {
+  protected LookupResult lookupInPage(final int pageNum, final int count, final Binary currentPageBuffer, final Object[] convertedKeys,
+      final int purpose) {
     if (keyTypes.length == 0)
       throw new IllegalArgumentException("No key types found");
 
     if (convertedKeys.length > keyTypes.length)
-      throw new IllegalArgumentException("key is composed of " + convertedKeys.length + " items, while the index defined " + keyTypes.length + " items");
+      throw new IllegalArgumentException(
+          "key is composed of " + convertedKeys.length + " items, while the index defined " + keyTypes.length + " items");
 
     if ((purpose == 0 || purpose == 1) && convertedKeys.length != keyTypes.length)
-      throw new IllegalArgumentException("key is composed of " + convertedKeys.length + " items, while the index defined " + keyTypes.length + " items");
+      throw new IllegalArgumentException(
+          "key is composed of " + convertedKeys.length + " items, while the index defined " + keyTypes.length + " items");
 
     if (count == 0)
       // EMPTY, NOT FOUND
@@ -317,7 +320,8 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   protected int compareKey(final Binary currentPageBuffer, final int startIndexArray, final Object keys[], final int mid, final int count) {
     final int contentPos = currentPageBuffer.getInt(startIndexArray + (mid * INT_SERIALIZED_SIZE));
     if (contentPos < startIndexArray + (count * INT_SERIALIZED_SIZE))
-      throw new IndexException("Internal error: invalid content position " + contentPos + " is < of " + (startIndexArray + (count * INT_SERIALIZED_SIZE)));
+      throw new IndexException(
+          "Internal error: invalid content position " + contentPos + " is < of " + (startIndexArray + (count * INT_SERIALIZED_SIZE)));
 
     currentPageBuffer.position(contentPos);
 
@@ -428,12 +432,14 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
     if (keys != null)
       for (int i = 0; i < keys.length; ++i)
         if (keys[i] == null)
-          throw new IllegalArgumentException("Indexed key cannot be NULL");
+          throw new IllegalArgumentException(
+              "Indexed key " + mainIndex.getTypeName() + Arrays.toString(mainIndex.propertyNames) + " cannot be NULL");
     return keys;
   }
 
-  protected boolean lookupInPageAndAddInResultset(final BasePage currentPage, final Binary currentPageBuffer, final int count, final Object[] originalKeys,
-      final Object[] convertedKeys, final int limit, final Set<IndexCursorEntry> set, final Set<RID> removedRIDs) {
+  protected boolean lookupInPageAndAddInResultset(final BasePage currentPage, final Binary currentPageBuffer, final int count,
+      final Object[] originalKeys, final Object[] convertedKeys, final int limit, final Set<IndexCursorEntry> set,
+      final Set<RID> removedRIDs) {
     final LookupResult result = lookupInPage(currentPage.getPageId().getPageNumber(), count, currentPageBuffer, convertedKeys, 1);
     if (result.found) {
       // REAL ALL THE ENTRIES

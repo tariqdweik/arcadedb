@@ -7,17 +7,21 @@ package com.arcadedb.graph;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.RecordNotFoundException;
+import com.arcadedb.index.CompressedRID2RIDsIndex;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.VertexType;
+import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.MultiIterator;
+import com.arcadedb.utility.Pair;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class GraphEngine {
-  public static final int EDGES_LINKEDLIST_CHUNK_SIZE = 30;
+  public static final int EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
+  //private static final RID NO_RID                              = new RID(null, -1, -1);
 
   public void createVertexType(DatabaseInternal database, final DocumentType type) {
     for (Bucket b : type.getBuckets(false)) {
@@ -28,80 +32,284 @@ public class GraphEngine {
     }
   }
 
-  public MutableEdge newEdge(VertexInternal vertex, final String edgeType, Identifiable toVertex, final boolean bidirectional, final Object... properties) {
+  public MutableEdge newEdge(VertexInternal fromVertex, final String edgeType, Identifiable toVertex, final boolean bidirectional,
+      final Object... properties) {
     if (toVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 
-    final RID rid = vertex.getIdentity();
-    if (rid == null)
+    final RID fromVertexRID = fromVertex.getIdentity();
+    if (fromVertexRID == null)
       throw new IllegalArgumentException("Current vertex is not persistent");
 
     if (toVertex instanceof MutableDocument && toVertex.getIdentity() == null)
       throw new IllegalArgumentException("Target vertex is not persistent");
 
-    final DatabaseInternal database = (DatabaseInternal) vertex.getDatabase();
+    final DatabaseInternal database = (DatabaseInternal) fromVertex.getDatabase();
 
-    final MutableEdge edge = new MutableEdge(database, edgeType, rid, toVertex.getIdentity());
+    final MutableEdge edge;
+
+//    if (properties != null && properties.length > 0) {
+    edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
     setProperties(edge, properties);
     edge.save();
+//    } else {
+//      // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
+//      edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
+//      edge.setIdentity(NO_RID);
+//    }
 
     EdgeChunk outChunk = null;
-    RID outEdgesHeadChunk = vertex.getOutEdgesHeadChunk();
+    RID outEdgesHeadChunk = fromVertex.getOutEdgesHeadChunk();
 
     if (outEdgesHeadChunk != null)
       try {
         outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
       } catch (RecordNotFoundException e) {
-        LogManager.instance().log(this, Level.WARNING, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", null, outEdgesHeadChunk,
-            vertex.getIdentity());
+        LogManager.instance()
+            .log(this, Level.WARNING, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", null, outEdgesHeadChunk,
+                fromVertex.getIdentity());
         outEdgesHeadChunk = null;
       }
 
     if (outEdgesHeadChunk == null) {
-      outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
-      database.createRecord(outChunk, getEdgesBucketName(database, rid.getBucketId(), Vertex.DIRECTION.OUT));
+      outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
+      database.createRecord(outChunk, getEdgesBucketName(database, fromVertexRID.getBucketId(), Vertex.DIRECTION.OUT));
       outEdgesHeadChunk = outChunk.getIdentity();
 
-      vertex = vertex.modify();
-      vertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
-      database.updateRecord(vertex);
+      fromVertex = fromVertex.modify();
+      fromVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
+      database.updateRecord(fromVertex);
     }
 
-    final EdgeLinkedList outLinkedList = new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, outChunk);
+    final EdgeLinkedList outLinkedList = new EdgeLinkedList(fromVertex, Vertex.DIRECTION.OUT, outChunk);
 
     outLinkedList.add(edge.getIdentity(), toVertex.getIdentity());
 
-    if (bidirectional) {
-      VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
-
-      EdgeChunk inChunk = null;
-      RID inEdgesHeadChunk = toVertexRecord.getInEdgesHeadChunk();
-
-      if (inEdgesHeadChunk != null)
-        try {
-          inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
-        } catch (RecordNotFoundException e) {
-          LogManager.instance().log(this, Level.WARNING, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", null, inEdgesHeadChunk,
-              vertex.getIdentity());
-          inEdgesHeadChunk = null;
-        }
-
-      if (inEdgesHeadChunk == null) {
-        inChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_CHUNK_SIZE);
-        database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
-        inEdgesHeadChunk = inChunk.getIdentity();
-
-        toVertexRecord = toVertexRecord.modify();
-        toVertexRecord.setInEdgesHeadChunk(inEdgesHeadChunk);
-        database.updateRecord(toVertexRecord);
-      }
-
-      final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
-
-      inLinkedList.add(edge.getIdentity(), rid);
-    }
+    if (bidirectional)
+      connectIncomingEdge(database, toVertex, fromVertexRID, edge.getIdentity());
 
     return edge;
+  }
+
+  public void newEdges(final DatabaseInternal database, VertexInternal sourceVertex, final List<Pair<Identifiable, Object[]>> connections,
+      final String edgeType, final boolean bidirectional) {
+    if (connections == null || connections.isEmpty())
+      return;
+
+    final RID sourceVertexRID = sourceVertex.getIdentity();
+
+    final List<Pair<Identifiable, Identifiable>> outEdgePairs = new ArrayList<>();
+
+    for (int i = 0; i < connections.size(); ++i) {
+      final Pair<Identifiable, Object[]> connection = connections.get(i);
+
+      final MutableEdge edge;
+
+      final Identifiable destinationVertex = connection.getFirst();
+
+//      if (connection.getSecond() != null && connection.getSecond().length > 0) {
+      edge = new MutableEdge(database, edgeType, sourceVertexRID, destinationVertex.getIdentity());
+      setProperties(edge, connection.getSecond());
+      edge.save();
+//      } else {
+//        // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
+//        edge = new MutableEdge(database, edgeType, sourceVertexRID, destinationVertex.getIdentity());
+//        edge.setIdentity(NO_RID);
+//      }
+
+      outEdgePairs.add(new Pair<>(edge, destinationVertex));
+    }
+
+    EdgeChunk outChunk = null;
+    RID outEdgesHeadChunk = sourceVertex.getOutEdgesHeadChunk();
+
+    if (outEdgesHeadChunk != null)
+      try {
+        outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
+      } catch (RecordNotFoundException e) {
+        LogManager.instance()
+            .log(this, Level.WARNING, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", null, outEdgesHeadChunk,
+                sourceVertexRID);
+        outEdgesHeadChunk = null;
+      }
+
+    if (outEdgesHeadChunk == null) {
+      outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
+      database.createRecord(outChunk, getEdgesBucketName(database, sourceVertexRID.getBucketId(), Vertex.DIRECTION.OUT));
+      outEdgesHeadChunk = outChunk.getIdentity();
+
+      sourceVertex = sourceVertex.modify();
+      sourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
+      database.updateRecord(sourceVertex);
+    }
+
+    final EdgeLinkedList outLinkedList = new EdgeLinkedList(sourceVertex, Vertex.DIRECTION.OUT, outChunk);
+    outLinkedList.addAll(outEdgePairs);
+
+    if (bidirectional) {
+      for (int i = 0; i < outEdgePairs.size(); ++i) {
+        final Pair<Identifiable, Identifiable> edge = outEdgePairs.get(i);
+        connectIncomingEdge(database, edge.getSecond(), edge.getFirst().getIdentity(), sourceVertexRID);
+      }
+    }
+  }
+
+  public void createIncomingConnectionsInBatch(final DatabaseInternal database, final String vertexTypeName, final String edgeTypeName) {
+    final DocumentType type = database.getSchema().getType(vertexTypeName);
+    if (!(type instanceof VertexType))
+      throw new IllegalArgumentException("Type '" + vertexTypeName + "' is not a vertex");
+
+    final CompressedRID2RIDsIndex index = new CompressedRID2RIDsIndex(database, 10 * 1024 * 1024);
+
+    final AtomicLong browsedVertices = new AtomicLong();
+    final AtomicLong browsedEdges = new AtomicLong();
+
+    database.scanType(vertexTypeName, false, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        final VertexInternal v = (VertexInternal) record;
+
+        browsedVertices.incrementAndGet();
+
+        final RID out = v.getOutEdgesHeadChunk();
+        if (out != null) {
+          final EdgeLinkedList edgeList = new EdgeLinkedList(v, Vertex.DIRECTION.OUT, (EdgeChunk) database.lookupByRID(out, true));
+          final Iterator<Pair<RID, RID>> iterator = edgeList.entryIterator(edgeTypeName);
+          while (iterator.hasNext()) {
+            final Pair<RID, RID> entry = iterator.next();
+
+            index.put(entry.getSecond(), entry.getFirst(), v.getIdentity());
+
+            browsedEdges.incrementAndGet();
+
+            if (index.getChunkSize() > Integer.MAX_VALUE - 1024) {
+              LogManager.instance().log(this, Level.INFO,
+                  "Creation of back connections, reached %s size, flushing %d connections (from %d vertices and %d edges)...", null,
+                  FileUtils.getSizeAsString(index.getChunkSize()), index.size(), browsedVertices.get(), browsedEdges.get());
+
+              createIncomingEdgesInBatch(database, index, edgeTypeName);
+
+              LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
+
+              // CREATE A NEW CHUNK BEFORE CONTINUING
+              index.reset();
+            }
+          }
+        }
+
+        return true;
+      }
+    });
+
+    createIncomingEdgesInBatch(database, index, edgeTypeName);
+  }
+
+  private void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index, final String edgeTypeName) {
+    Vertex lastVertex = null;
+    final List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
+
+    long totalVertices = 0;
+    long totalEdges = 0;
+    int minEdges = Integer.MAX_VALUE;
+    int maxEdges = -1;
+
+    for (final CompressedRID2RIDsIndex.EntryIterator it = index.entryIterator(); it.hasNext(); it.moveNext()) {
+      final Vertex destinationVertex = it.getKey().getVertex(true);
+
+      if (!connections.isEmpty() && !destinationVertex.equals(lastVertex)) {
+        ++totalVertices;
+
+        if (connections.size() < minEdges)
+          minEdges = connections.size();
+        if (connections.size() > maxEdges)
+          maxEdges = connections.size();
+
+        connectIncomingEdges(database, lastVertex, connections, edgeTypeName);
+        connections.clear();
+      }
+
+      lastVertex = destinationVertex;
+
+      connections.add(new Pair<>(it.getEdge(), it.getVertex()));
+
+      ++totalEdges;
+
+      if (totalEdges % 10000 == 0) {
+        // BATCH
+        database.commit();
+        database.begin();
+      }
+
+    }
+
+    if (lastVertex != null)
+      connectIncomingEdges(database, lastVertex, connections, edgeTypeName);
+
+    LogManager.instance()
+        .log(this, Level.INFO, "Created %d back connections from %d vertices (min=%d max=%d avg=%d)", null, totalEdges, totalVertices,
+            minEdges, maxEdges, totalVertices > 0 ? totalEdges / totalVertices : 0);
+  }
+
+  private void connectIncomingEdges(final DatabaseInternal database, final Identifiable toVertex,
+      final List<Pair<Identifiable, Identifiable>> connections, final String edgeType) {
+    VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
+
+    EdgeChunk inChunk = null;
+    RID inEdgesHeadChunk = toVertexRecord.getInEdgesHeadChunk();
+
+    if (inEdgesHeadChunk != null)
+      try {
+        inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
+      } catch (RecordNotFoundException e) {
+        LogManager.instance()
+            .log(this, Level.WARNING, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", null, inEdgesHeadChunk,
+                toVertex);
+        inEdgesHeadChunk = null;
+      }
+
+    if (inEdgesHeadChunk == null) {
+      inChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
+      database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
+      inEdgesHeadChunk = inChunk.getIdentity();
+
+      toVertexRecord = toVertexRecord.modify();
+      toVertexRecord.setInEdgesHeadChunk(inEdgesHeadChunk);
+      database.updateRecord(toVertexRecord);
+    }
+
+    final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
+    inLinkedList.addAll(connections);
+  }
+
+  public void connectIncomingEdge(final DatabaseInternal database, final Identifiable toVertex, final RID fromVertexRID,
+      final RID edgeRID) {
+    VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
+
+    EdgeChunk inChunk = null;
+    RID inEdgesHeadChunk = toVertexRecord.getInEdgesHeadChunk();
+
+    if (inEdgesHeadChunk != null)
+      try {
+        inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
+      } catch (RecordNotFoundException e) {
+        LogManager.instance()
+            .log(this, Level.WARNING, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", null, inEdgesHeadChunk,
+                toVertex);
+        inEdgesHeadChunk = null;
+      }
+
+    if (inEdgesHeadChunk == null) {
+      inChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
+      database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
+      inEdgesHeadChunk = inChunk.getIdentity();
+
+      toVertexRecord = toVertexRecord.modify();
+      toVertexRecord.setInEdgesHeadChunk(inEdgesHeadChunk);
+      database.updateRecord(toVertexRecord);
+    }
+
+    final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
+    inLinkedList.add(edgeRID, fromVertexRID);
   }
 
   public long countEdges(final VertexInternal vertex, final Vertex.DIRECTION direction, final String edgeType) {
@@ -113,23 +321,23 @@ public class GraphEngine {
     switch (direction) {
     case BOTH:
       if (vertex.getOutEdgesHeadChunk() != null)
-        total += new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-            .count(edgeType);
+        total += new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).count(edgeType);
       if (vertex.getInEdgesHeadChunk() != null)
-        total += new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
-            .count(edgeType);
+        total += new EdgeLinkedList(vertex, Vertex.DIRECTION.IN,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).count(edgeType);
       break;
 
     case OUT:
       if (vertex.getOutEdgesHeadChunk() != null)
-        total = new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-            .count(edgeType);
+        total = new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).count(edgeType);
       break;
 
     case IN:
       if (vertex.getInEdgesHeadChunk() != null)
-        total = new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
-            .count(edgeType);
+        total = new EdgeLinkedList(vertex, Vertex.DIRECTION.IN,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).count(edgeType);
       break;
 
     default:
@@ -146,13 +354,15 @@ public class GraphEngine {
 
     if (vOut != null) {
       if (vOut.getOutEdgesHeadChunk() != null)
-        new EdgeLinkedList(vOut, Vertex.DIRECTION.OUT, (EdgeChunk) database.lookupByRID(vOut.getOutEdgesHeadChunk(), true)).removeEdge(edge.getIdentity());
+        new EdgeLinkedList(vOut, Vertex.DIRECTION.OUT, (EdgeChunk) database.lookupByRID(vOut.getOutEdgesHeadChunk(), true))
+            .removeEdge(edge.getIdentity());
     }
 
     final VertexInternal vIn = (VertexInternal) edge.getInVertex();
     if (vIn != null) {
       if (vIn.getInEdgesHeadChunk() != null)
-        new EdgeLinkedList(vIn, Vertex.DIRECTION.IN, (EdgeChunk) database.lookupByRID(vIn.getInEdgesHeadChunk(), true)).removeEdge(edge.getIdentity());
+        new EdgeLinkedList(vIn, Vertex.DIRECTION.IN, (EdgeChunk) database.lookupByRID(vIn.getInEdgesHeadChunk(), true))
+            .removeEdge(edge.getIdentity());
     }
 
     // DELETE EDGE RECORD
@@ -163,8 +373,8 @@ public class GraphEngine {
     final Database database = vertex.getDatabase();
 
     if (vertex.getOutEdgesHeadChunk() != null) {
-      final Iterator<Edge> outIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) database.lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-          .edgeIterator();
+      final Iterator<Edge> outIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT,
+          (EdgeChunk) database.lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator();
 
       while (outIterator.hasNext()) {
         final Edge nextEdge = outIterator.next();
@@ -178,8 +388,8 @@ public class GraphEngine {
     }
 
     if (vertex.getInEdgesHeadChunk() != null) {
-      final Iterator<Edge> inIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) database.lookupByRID(vertex.getInEdgesHeadChunk(), true))
-          .edgeIterator();
+      final Iterator<Edge> inIterator = new EdgeLinkedList(vertex, Vertex.DIRECTION.IN,
+          (EdgeChunk) database.lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator();
 
       while (inIterator.hasNext()) {
         final Edge nextEdge = inIterator.next();
@@ -200,12 +410,13 @@ public class GraphEngine {
     final MultiIterator<Edge> result = new MultiIterator<>();
 
     if (vertex.getOutEdgesHeadChunk() != null)
-      result.add(
-          new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator());
+      result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT,
+          (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator());
 
     if (vertex.getInEdgesHeadChunk() != null)
       result.add(
-          new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator());
+          new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
+              .edgeIterator());
 
     return result;
   }
@@ -218,12 +429,12 @@ public class GraphEngine {
     case BOTH:
       final MultiIterator<Edge> result = new MultiIterator<>();
       if (vertex.getOutEdgesHeadChunk() != null)
-        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-            .edgeIterator(edgeTypes));
+        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).edgeIterator(edgeTypes));
 
       if (vertex.getInEdgesHeadChunk() != null)
-        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
-            .edgeIterator(edgeTypes));
+        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.IN,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).edgeIterator(edgeTypes));
       return result;
 
     case OUT:
@@ -253,12 +464,13 @@ public class GraphEngine {
     final MultiIterator<Vertex> result = new MultiIterator<>();
 
     if (vertex.getOutEdgesHeadChunk() != null)
-      result.add(
-          new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).vertexIterator());
+      result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT,
+          (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).vertexIterator());
 
     if (vertex.getInEdgesHeadChunk() != null)
       result.add(
-          new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).vertexIterator());
+          new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
+              .vertexIterator());
 
     return result;
   }
@@ -279,12 +491,12 @@ public class GraphEngine {
     case BOTH:
       final MultiIterator<Vertex> result = new MultiIterator<>();
       if (vertex.getOutEdgesHeadChunk() != null)
-        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true))
-            .vertexIterator(edgeTypes));
+        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.OUT,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getOutEdgesHeadChunk(), true)).vertexIterator(edgeTypes));
 
       if (vertex.getInEdgesHeadChunk() != null)
-        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
-            .vertexIterator(edgeTypes));
+        result.add(new EdgeLinkedList(vertex, Vertex.DIRECTION.IN,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).vertexIterator(edgeTypes));
       return result;
 
     case OUT:
@@ -314,8 +526,8 @@ public class GraphEngine {
       return true;
 
     if (vertex.getInEdgesHeadChunk() != null)
-      return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
-          .containsVertex(toVertex.getIdentity());
+      return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN,
+          (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).containsVertex(toVertex.getIdentity());
 
     return false;
   }
@@ -334,8 +546,8 @@ public class GraphEngine {
 
     if (direction == Vertex.DIRECTION.IN | direction == Vertex.DIRECTION.BOTH)
       if (vertex.getInEdgesHeadChunk() != null)
-        return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN, (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true))
-            .containsVertex(toVertex.getIdentity());
+        return new EdgeLinkedList(vertex, Vertex.DIRECTION.IN,
+            (EdgeChunk) vertex.getDatabase().lookupByRID(vertex.getInEdgesHeadChunk(), true)).containsVertex(toVertex.getIdentity());
 
     return false;
   }

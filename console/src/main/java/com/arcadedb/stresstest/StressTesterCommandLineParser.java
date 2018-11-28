@@ -44,15 +44,14 @@ public class StressTesterCommandLineParser {
   public final static String OPTION_REMOTE_PORT                    = "remote-port";
 
   public final static String MAIN_OPTIONS =
-      OPTION_MODE + OPTION_CONCURRENCY + OPTION_WORKLOAD + OPTION_TRANSACTIONS + OPTION_DELAY + OPTION_OUTPUT_FILE
-          + OPTION_PLOCAL_PATH + OPTION_KEEP_DATABASE_AFTER_TEST + OPTION_CHECK_DATABASE + OPTION_LOAD_BALANCING + OPTION_DBNAME;
+      OPTION_MODE + OPTION_CONCURRENCY + OPTION_WORKLOAD + OPTION_TRANSACTIONS + OPTION_DELAY + OPTION_OUTPUT_FILE + OPTION_PLOCAL_PATH
+          + OPTION_KEEP_DATABASE_AFTER_TEST + OPTION_CHECK_DATABASE + OPTION_LOAD_BALANCING + OPTION_DBNAME;
 
   public static final String SYNTAX =
-      "StressTester " + "\n\t-m mode (can be any of these: [plocal|memory|remote|distributed] )" + "\n\t-w workloads"
-          + "\n\t-c concurrency-level" + "\n\t-x operations-per-transaction" + "\n\t-o result-output-file"
-          + "\n\t-d database-directory" + "\n\t-k true|false" + "\n\t-chk true|false" + "\n\t--root-password rootPassword"
-          + "\n\t--remote-ip ipOrHostname" + "\n\t--remote-port portNumber" + "\n\t-lb load-balancing-strategy" + "\n\t-db db-name"
-          + "\n";
+      "StressTester " + "\n\t-m mode (can be any of these: [plocal|memory|remote|distributed] )" + "\n\t-w workloads" + "\n\t-c concurrency-level"
+          + "\n\t-x operations-per-transaction" + "\n\t-o result-output-file" + "\n\t-d database-directory" + "\n\t-k true|false" + "\n\t-chk true|false"
+          + "\n\t--root-password rootPassword" + "\n\t--remote-ip ipOrHostname" + "\n\t--remote-port portNumber" + "\n\t-lb load-balancing-strategy"
+          + "\n\t-db db-name" + "\n";
 
   static final String COMMAND_LINE_PARSER_INVALID_NUMBER                  = "Invalid %s number [%s].";
   static final String COMMAND_LINE_PARSER_LESSER_THAN_ZERO_NUMBER         = "The %s value must be greater than 0.";
@@ -100,8 +99,7 @@ public class StressTesterCommandLineParser {
     settings.remotePort = 2424;
     settings.checkDatabase = Boolean.parseBoolean(options.get(OPTION_CHECK_DATABASE));
     if (options.get(OPTION_LOAD_BALANCING) != null)
-      settings.loadBalancing = RemoteDatabase.CONNECTION_STRATEGY
-          .valueOf(options.get(OPTION_LOAD_BALANCING).toUpperCase(Locale.ENGLISH));
+      settings.loadBalancing = RemoteDatabase.CONNECTION_STRATEGY.valueOf(options.get(OPTION_LOAD_BALANCING).toUpperCase(Locale.ENGLISH));
 
     if (settings.embeddedPath != null) {
       if (settings.embeddedPath.endsWith(File.separator)) {
@@ -134,12 +132,10 @@ public class StressTesterCommandLineParser {
       }
 
       if (!parentFile.exists()) {
-        throw new IllegalArgumentException(
-            String.format(COMMAND_LINE_PARSER_NOT_EXISTING_OUTPUT_DIRECTORY, parentFile.getAbsoluteFile()));
+        throw new IllegalArgumentException(String.format(COMMAND_LINE_PARSER_NOT_EXISTING_OUTPUT_DIRECTORY, parentFile.getAbsoluteFile()));
       }
       if (!parentFile.canWrite()) {
-        throw new IllegalArgumentException(
-            String.format(COMMAND_LINE_PARSER_NO_WRITE_PERMISSION_OUTPUT_FILE, parentFile.getAbsoluteFile()));
+        throw new IllegalArgumentException(String.format(COMMAND_LINE_PARSER_NO_WRITE_PERMISSION_OUTPUT_FILE, parentFile.getAbsoluteFile()));
       }
     }
 
@@ -161,8 +157,7 @@ public class StressTesterCommandLineParser {
     if (settings.rootPassword == null && settings.mode == StressTester.OMode.REMOTE) {
       Console console = System.console();
       if (console != null) {
-        settings.rootPassword = String
-            .valueOf(console.readPassword(String.format(CONSOLE_REMOTE_PASSWORD_PROMPT, settings.remoteIp, settings.remotePort)));
+        settings.rootPassword = String.valueOf(console.readPassword(String.format(CONSOLE_REMOTE_PASSWORD_PROMPT, settings.remoteIp, settings.remotePort)));
       } else {
         throw new Exception(ERROR_OPENING_CONSOLE);
       }
@@ -198,8 +193,7 @@ public class StressTesterCommandLineParser {
       final OWorkload workload = StressTester.getWorkloadFactory().get(workloadName);
       if (workload == null)
         throw new IllegalArgumentException(
-            "Workload '" + workloadName + "' is not configured. Use one of the following: " + StressTester.getWorkloadFactory()
-                .getRegistered());
+            "Workload '" + workloadName + "' is not configured. Use one of the following: " + StressTester.getWorkloadFactory().getRegistered());
       workload.parseParameters(workloadParams);
 
       result.add(workload);
@@ -224,15 +218,10 @@ public class StressTesterCommandLineParser {
   }
 
   private static Map<String, String> checkOptions(Map<String, String> options) throws IllegalArgumentException {
-
-    if (options.get(OPTION_MODE) == null) {
-      throw new IllegalArgumentException(String.format(COMMAND_LINE_PARSER_MODE_PARAM_MANDATORY));
-    }
-
     options = setDefaultIfNotPresent(options, OPTION_MODE, StressTester.OMode.EMBEDDED.name());
-    options = setDefaultIfNotPresent(options, OPTION_CONCURRENCY, "4");
-    options = setDefaultIfNotPresent(options, OPTION_TRANSACTIONS, "0");
-    options = setDefaultIfNotPresent(options, OPTION_WORKLOAD, "CRUD:C25000R25000U25000D25000");
+    options = setDefaultIfNotPresent(options, OPTION_CONCURRENCY, "" + Runtime.getRuntime().availableProcessors());
+    options = setDefaultIfNotPresent(options, OPTION_TRANSACTIONS, "5000");
+    options = setDefaultIfNotPresent(options, OPTION_WORKLOAD, "CRUD:C1000000R100000U1000000D1000000");
 
     try {
       StressTester.OMode.valueOf(options.get(OPTION_MODE).toUpperCase(Locale.ENGLISH));
@@ -243,8 +232,7 @@ public class StressTesterCommandLineParser {
     return options;
   }
 
-  private static Map<String, String> setDefaultIfNotPresent(Map<String, String> options, String option, String value)
-      throws IllegalArgumentException {
+  private static Map<String, String> setDefaultIfNotPresent(Map<String, String> options, String option, String value) throws IllegalArgumentException {
     if (!options.containsKey(option)) {
       System.out.println(String.format("WARNING: '%s' option not found. Defaulting to %s.", option, value));
       options.put(option, value);

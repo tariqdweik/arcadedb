@@ -9,6 +9,7 @@ import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.sql.executor.ResultSet;
@@ -79,8 +80,12 @@ public interface Database extends AutoCloseable {
 
   MutableVertex newVertex(String typeName);
 
-  Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType, String[] destinationVertexKey,
-      Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
+  Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType,
+      String[] destinationVertexKey, Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType,
+      boolean bidirectional, Object... properties);
+
+  Edge newEdgeByKeys(Vertex sourceVertex, String destinationVertexType, String[] destinationVertexKey, Object[] destinationVertexValue,
+      boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
 
   Schema getSchema();
 

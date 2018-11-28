@@ -13,6 +13,7 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
+import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexCompacted;
@@ -705,20 +706,23 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
 
-    final Document originalRecord;
-    if (record instanceof Document) {
+    final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : null;
+
+    if (indexes != null && !indexes.isEmpty()) {
+      // UPDATE THE INDEXES TOO
       final Binary originalBuffer = ((RecordInternal) record).getBuffer();
       if (originalBuffer == null)
         throw new IllegalStateException("Cannot read original buffer for indexing");
       originalBuffer.rewind();
-      originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
+      final Document originalRecord = (Document) recordFactory
+          .newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
+
+      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+
+      indexer.updateDocument(originalRecord, (Document) record, indexes);
     } else
-      originalRecord = null;
-
-    schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
-
-    if (record instanceof Document)
-      indexer.updateDocument(originalRecord, (Document) record);
+      // NO INDEXES
+      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
     getTransaction().updateRecordInCache(record);
     getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
@@ -857,9 +861,9 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     return new MutableVertex(wrappedDatabaseInstance, typeName, null);
   }
 
-  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
-      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
-      final boolean bidirectional, final Object... properties) {
+  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
+      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
+      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -882,7 +886,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
         ((MutableVertex) sourceVertex).save();
       } else
-        throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+        throw new IllegalArgumentException(
+            "Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
       sourceVertex = v1Result.next().getIdentity().getVertex();
 
@@ -895,8 +900,39 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
         ((MutableVertex) destinationVertex).save();
       } else
-        throw new IllegalArgumentException(
-            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
+        throw new IllegalArgumentException("Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
+            .toString(destinationVertexValue));
+    } else
+      destinationVertex = v2Result.next().getIdentity().getVertex();
+
+    statsCreateRecord.incrementAndGet();
+
+    return sourceVertex.newEdge(edgeType, destinationVertex, bidirectional, properties);
+  }
+
+  public Edge newEdgeByKeys(final Vertex sourceVertex, final String destinationVertexType, final String[] destinationVertexKey,
+      final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional,
+      final Object... properties) {
+    if (sourceVertex == null)
+      throw new IllegalArgumentException("Source vertex is null");
+
+    if (destinationVertexKey == null)
+      throw new IllegalArgumentException("Destination vertex key is null");
+
+    if (destinationVertexKey.length != destinationVertexValue.length)
+      throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
+
+    final Iterator<Identifiable> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
+    Vertex destinationVertex;
+    if (!v2Result.hasNext()) {
+      if (createVertexIfNotExist) {
+        destinationVertex = newVertex(destinationVertexType);
+        for (int i = 0; i < destinationVertexKey.length; ++i)
+          ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+        ((MutableVertex) destinationVertex).save();
+      } else
+        throw new IllegalArgumentException("Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
+            .toString(destinationVertexValue));
     } else
       destinationVertex = v2Result.next().getIdentity().getVertex();
 

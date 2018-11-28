@@ -19,6 +19,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
   protected       EdgeChunk     currentContainer;
   protected final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeChunk.CONTENT_START_POSITION);
 
+  protected RID          nextEdge;
   protected RID          next;
   protected Set<Integer> validBuckets;
 
@@ -45,7 +46,6 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
     if (currentContainer == null)
       return false;
 
-    RID nextEdge;
     while (true) {
       if (currentPosition.get() < currentContainer.getUsed()) {
         if (edge) {
@@ -58,6 +58,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
 
         if (validBuckets.contains(nextEdge.getBucketId()))
           return true;
+
       } else {
         // FETCH NEXT CHUNK
         currentContainer = currentContainer.getNext();

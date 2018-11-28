@@ -78,4 +78,8 @@ public class DatabaseIdentifier {
   public EmbeddedDatabase getEmbeddedDatabase() {
     return embeddedDatabase;
   }
+
+  public void setEmbeddedDatabase(final EmbeddedDatabase embeddedDatabase) {
+    this.embeddedDatabase = embeddedDatabase;
+  }
 }

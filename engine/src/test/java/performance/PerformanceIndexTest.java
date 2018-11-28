@@ -85,7 +85,7 @@ public class PerformanceIndexTest {
 //        record.set("notes2",
 //            "This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields. This is a long field to check how Arcade behaves with large fields.");
 
-        database.async().createRecord(record);
+        database.async().createRecord(record, null);
 
         if (row % 100000 == 0)
           System.out.println("Written " + row + " elements in " + (System.currentTimeMillis() - begin) + "ms");

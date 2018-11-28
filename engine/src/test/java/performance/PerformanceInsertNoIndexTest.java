@@ -84,7 +84,7 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
           record.set("surname", "Skywalker" + counter);
           record.set("locali", 10);
 
-          database.async().createRecord(record);
+          database.async().createRecord(record,null);
 
           if (counter % 1000000 == 0)
             System.out.println("Written " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");

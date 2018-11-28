@@ -60,7 +60,7 @@ public class ACIDTransactionTest extends BaseTest {
         v.set("name", "Crash");
         v.set("surname", "Test");
 
-        db.async().createRecord(v);
+        db.async().createRecord(v, null);
       }
 
       db.async().waitCompletion();
@@ -194,7 +194,7 @@ public class ACIDTransactionTest extends BaseTest {
         v.set("name", "Crash");
         v.set("surname", "Test");
 
-        db.async().createRecord(v);
+        db.async().createRecord(v, null);
       }
 
       db.async().waitCompletion();
@@ -261,7 +261,7 @@ public class ACIDTransactionTest extends BaseTest {
         v.set("name", "Crash");
         v.set("surname", "Test");
 
-        db.async().createRecord(v);
+        db.async().createRecord(v, null);
       }
 
       db.async().waitCompletion();

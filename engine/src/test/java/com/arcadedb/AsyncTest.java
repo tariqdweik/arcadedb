@@ -101,7 +101,7 @@ public class AsyncTest extends BaseTest {
       v.set("name", "Jay");
       v.set("surname", "Miner");
 
-      database.async().createRecord(v);
+      database.async().createRecord(v, null);
 
     }
 

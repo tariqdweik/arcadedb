@@ -149,7 +149,7 @@ public class PerformanceVertexIndexTest {
         v.set("operationalStatus", "NotAvailable");
         v.set("supplierName", "TBD");
 
-        database.async().createRecord(v);
+        database.async().createRecord(v, null);
 
         if (counter % 1000 == 0) {
           if (System.currentTimeMillis() - lastLap > 1000) {

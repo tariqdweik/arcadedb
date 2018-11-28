@@ -104,6 +104,7 @@ public class Profiler {
         iterateBucket += (long) dbStats.get("iterateBucket");
         countType += (long) dbStats.get("countType");
         countBucket += (long) dbStats.get("countBucket");
+        indexCompactions += (long) dbStats.get("indexCompactions");
 
         final PageManager.PPageManagerStats pStats = db.getPageManager().getStats();
         readCacheUsed += pStats.readCacheRAM;

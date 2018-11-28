@@ -14,6 +14,8 @@ public class ImporterContext {
   AtomicLong createdEdges     = new AtomicLong();
   AtomicLong createdDocuments = new AtomicLong();
 
+  AtomicLong skippedEdges     = new AtomicLong();
+
   long lastLapOn;
   long lastParsed;
   long lastDocuments;

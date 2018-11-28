@@ -5,6 +5,7 @@ package com.arcadedb.stresstest;
 
 import com.arcadedb.Constants;
 import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.stresstest.workload.CheckWorkload;
 import com.arcadedb.stresstest.workload.OWorkload;
 import com.arcadedb.stresstest.workload.OWorkloadFactory;
@@ -36,8 +37,7 @@ public class StressTester {
   private static final OWorkloadFactory workloadFactory = new OWorkloadFactory();
   private              List<OWorkload>  workloads       = new ArrayList<OWorkload>();
 
-  public StressTester(final List<OWorkload> workloads, DatabaseIdentifier databaseIdentifier,
-      final StressTesterSettings settings) {
+  public StressTester(final List<OWorkload> workloads, DatabaseIdentifier databaseIdentifier, final StressTesterSettings settings) {
     this.workloads = workloads;
     this.databaseIdentifier = databaseIdentifier;
     this.settings = settings;
@@ -58,13 +58,14 @@ public class StressTester {
 
   @SuppressWarnings("unchecked")
   public int execute() {
-
     int returnCode = 0;
 
     // creates the temporary DB where to execute the test
     final DatabaseFactory dbFactory = new DatabaseFactory(databaseIdentifier.getUrl());
     if (dbFactory.exists())
       throw new RuntimeException("Database " + databaseIdentifier.getUrl() + " already exists.");
+
+    databaseIdentifier.setEmbeddedDatabase((EmbeddedDatabase) dbFactory.create());
 
     System.out.println(String.format("Created database [%s].", databaseIdentifier.getUrl()));
 
@@ -74,8 +75,7 @@ public class StressTester {
 
         consoleProgressWriter.start();
 
-        consoleProgressWriter.printMessage(
-            String.format("\nStarting workload %s (concurrencyLevel=%d)...", workload.getName(), settings.concurrencyLevel));
+        consoleProgressWriter.printMessage(String.format("\nStarting workload %s (concurrencyLevel=%d)...", workload.getName(), settings.concurrencyLevel));
 
         final long startTime = System.currentTimeMillis();
 

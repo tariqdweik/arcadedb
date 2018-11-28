@@ -4,9 +4,12 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.Record;
+import com.arcadedb.database.async.NewRecordCallback;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.utility.FileUtils;
 
 import javax.xml.stream.XMLInputFactory;
@@ -19,8 +22,8 @@ import java.util.logging.Level;
 
 public class XMLImporter implements ContentImporter {
   @Override
-  public void load(SourceSchema sourceSchema, final Parser parser, final Database database, final ImporterContext context, final ImporterSettings settings)
-      throws IOException {
+  public void load(SourceSchema sourceSchema, AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser, final DatabaseInternal database,
+      final ImporterContext context, final ImporterSettings settings, final CompressedAny2RIDIndex<Long> inMemoryIndex) throws IOException {
     try {
       int objectNestLevel = 1;
       long maxValueSampling = 300;
@@ -85,15 +88,19 @@ public class XMLImporter implements ContentImporter {
 
             final MutableVertex record = database.newVertex(entityName);
             record.fromMap(object);
-            database.async().createRecord(record);
-            context.createdVertices.incrementAndGet();
+            database.async().createRecord(record, new NewRecordCallback() {
+              @Override
+              public void call(final Record newDocument) {
+                context.createdVertices.incrementAndGet();
+              }
+            });
           }
           break;
 
         case XMLStreamReader.ATTRIBUTE:
           ++nestLevel;
-          LogManager.instance()
-              .log(this, Level.FINE, "- attribute %s attributes=%d (nestLevel=%d)", null, xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+          LogManager.instance().log(this, Level.FINE, "- attribute %s attributes=%d (nestLevel=%d)", null, xmlReader.getName(),
+              xmlReader.getAttributeCount(), nestLevel);
           break;
 
         case XMLStreamReader.CHARACTERS:
@@ -121,7 +128,8 @@ public class XMLImporter implements ContentImporter {
   }
 
   @Override
-  public SourceSchema analyze(final Parser parser, final ImporterSettings settings) {
+  public SourceSchema analyze(final AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser, final ImporterSettings settings,
+      final AnalyzedSchema analyzedSchema) {
     int objectNestLevel = 1;
     long analyzingLimitBytes = 0;
     long analyzingLimitEntries = 0;
@@ -134,12 +142,9 @@ public class XMLImporter implements ContentImporter {
         analyzingLimitEntries = Long.parseLong(entry.getValue());
       else if ("objectNestLevel".equals(entry.getKey()))
         objectNestLevel = Integer.parseInt(entry.getValue());
-      else if ("maxValueSampling".equals(entry.getKey()))
-        maxValueSampling = Integer.parseInt(entry.getValue());
     }
 
     long parsedObjects = 0;
-    final AnalyzedSchema schema = new AnalyzedSchema(maxValueSampling);
 
     final String currentUnit = parser.isCompressed() ? "uncompressed " : "";
     final String totalUnit = parser.isCompressed() ? "compressed " : "";
@@ -168,20 +173,23 @@ public class XMLImporter implements ContentImporter {
           break;
 
         case XMLStreamReader.START_ELEMENT:
-          LogManager.instance().log(this, Level.FINE, "<%s> attributes=%d (nestLevel=%d)", null, xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+          LogManager.instance()
+              .log(this, Level.FINE, "<%s> attributes=%d (nestLevel=%d)", null, xmlReader.getName(), xmlReader.getAttributeCount(),
+                  nestLevel);
 
           if (nestLevel == objectNestLevel) {
             entityName = xmlReader.getName().toString();
 
             // GET ELEMENT'S ATTRIBUTES AS PROPERTIES
             for (int i = 0; i < xmlReader.getAttributeCount(); ++i) {
-              schema.setProperty(entityName, xmlReader.getAttributeName(i).toString(), xmlReader.getAttributeValue(i));
+              analyzedSchema.getOrCreateEntity(entityName, entityType)
+                  .getOrCreateProperty(xmlReader.getAttributeName(i).toString(), xmlReader.getAttributeValue(i));
               lastName = null;
             }
           } else if (nestLevel == objectNestLevel + 1) {
             // GET ELEMENT'S SUB-NODES AS PROPERTIES
             if (lastName != null)
-              schema.setProperty(entityName, lastName, lastContent);
+              analyzedSchema.getOrCreateEntity(entityName, entityType).getOrCreateProperty(lastName, lastContent);
 
             lastName = xmlReader.getName().toString();
           }
@@ -191,7 +199,7 @@ public class XMLImporter implements ContentImporter {
 
         case XMLStreamReader.END_ELEMENT:
           if (lastName != null)
-            schema.setProperty(entityName, lastName, lastContent);
+            analyzedSchema.getOrCreateEntity(entityName, entityType).getOrCreateProperty(lastName, lastContent);
 
           LogManager.instance().log(this, Level.FINE, "</%s> (nestLevel=%d)", null, xmlReader.getName(), nestLevel);
 
@@ -212,8 +220,8 @@ public class XMLImporter implements ContentImporter {
 
         case XMLStreamReader.ATTRIBUTE:
           ++nestLevel;
-          LogManager.instance()
-              .log(this, Level.FINE, "- attribute %s attributes=%d (nestLevel=%d)", null, xmlReader.getName(), xmlReader.getAttributeCount(), nestLevel);
+          LogManager.instance().log(this, Level.FINE, "- attribute %s attributes=%d (nestLevel=%d)", null, xmlReader.getName(),
+              xmlReader.getAttributeCount(), nestLevel);
           break;
 
         case XMLStreamReader.CHARACTERS:
@@ -245,9 +253,9 @@ public class XMLImporter implements ContentImporter {
     }
 
     // END OF PARSING. THIS DETERMINES THE TYPE
-    schema.endParsing();
+    analyzedSchema.endParsing();
 
-    return new SourceSchema(this, parser.getSource(), schema);
+    return new SourceSchema(this, parser.getSource(), analyzedSchema);
   }
 
   @Override

@@ -10,17 +10,15 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DatabaseOperationException;
-import com.arcadedb.graph.*;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.Index;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.sql.executor.ResultSet;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -30,6 +28,7 @@ import java.util.logging.Level;
 
 public class DatabaseAsyncExecutor {
   private final DatabaseInternal   database;
+  private final Random             random                 = new Random();
   private       AsyncThread[]      executorThreads;
   private       int                parallelLevel          = 1;
   private       int                commitEvery;
@@ -69,7 +68,8 @@ public class DatabaseAsyncExecutor {
         this.queue = new ArrayBlockingQueue<>(queueSize);
       else {
         // WARNING AND THEN USE THE DEFAULT
-        LogManager.instance().log(this, Level.WARNING, "Error on async operation queue implementation setting: %s is not supported", null, cfgQueueImpl);
+        LogManager.instance()
+            .log(this, Level.WARNING, "Error on async operation queue implementation setting: %s is not supported", null, cfgQueueImpl);
         this.queue = new ArrayBlockingQueue<>(queueSize);
       }
     }
@@ -87,12 +87,42 @@ public class DatabaseAsyncExecutor {
         try {
           final DatabaseAsyncTask message = queue.poll(500, TimeUnit.MILLISECONDS);
           if (message != null) {
-            LogManager.instance().log(this, Level.FINE, "Received async message %s (threadId=%d)", null, message, Thread.currentThread().getId());
+            LogManager.instance()
+                .log(this, Level.FINE, "Received async message %s (threadId=%d)", null, message, Thread.currentThread().getId());
 
             if (message == FORCE_EXIT) {
 
               break;
 
+            } else if (message instanceof CreateEdgeAsyncTask) {
+
+              try {
+                ((CreateEdgeAsyncTask) message).execute(database);
+
+                count++;
+
+                if (count % commitEvery == 0)
+                  database.commit();
+
+              } finally {
+                if (!database.isTransactionActive())
+                  database.begin();
+              }
+
+            } else if (message instanceof CreateIncomingEdgeAsyncTask) {
+
+              try {
+                ((CreateIncomingEdgeAsyncTask) message).execute(database);
+
+                count++;
+
+                if (count % commitEvery == 0)
+                  database.commit();
+
+              } finally {
+                if (!database.isTransactionActive())
+                  database.begin();
+              }
             } else if (message instanceof DatabaseAsyncCompletion) {
               try {
                 database.commit();
@@ -155,10 +185,14 @@ public class DatabaseAsyncExecutor {
                   database.getIndexer().createDocument(doc, database.getSchema().getType(doc.getType()), task.bucket);
                 }
 
+                if (task.callback != null)
+                  task.callback.call(task.record);
+
                 incrementTxOperation();
 
               } catch (Exception e) {
-                LogManager.instance().log(this, Level.SEVERE, "Error on executing async create operation (threadId=%d)", e, Thread.currentThread().getId());
+                LogManager.instance()
+                    .log(this, Level.SEVERE, "Error on executing async create operation (threadId=%d)", e, Thread.currentThread().getId());
 
                 onError(e);
                 if (!database.isTransactionActive())
@@ -207,79 +241,6 @@ public class DatabaseAsyncExecutor {
               } finally {
                 // UNLOCK THE CALLER THREAD
                 task.semaphore.countDown();
-              }
-            } else if (message instanceof DatabaseAsyncCreateOutEdge) {
-
-              final DatabaseAsyncCreateOutEdge task = (DatabaseAsyncCreateOutEdge) message;
-
-              try {
-                beginTxIfNeeded();
-
-                RID outEdgesHeadChunk = task.sourceVertex.getOutEdgesHeadChunk();
-                final EdgeChunk outChunk;
-
-                final VertexInternal modifiableSourceVertex;
-                if (outEdgesHeadChunk == null) {
-                  outChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                  database.createRecordNoLock(outChunk,
-                      GraphEngine.getEdgesBucketName(database, task.sourceVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
-                  outEdgesHeadChunk = outChunk.getIdentity();
-
-                  modifiableSourceVertex = task.sourceVertex.modify();
-                  modifiableSourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
-                  database.updateRecordNoLock(modifiableSourceVertex);
-                } else {
-                  modifiableSourceVertex = task.sourceVertex;
-                  outChunk = (EdgeChunk) database.lookupByRID(modifiableSourceVertex.getOutEdgesHeadChunk(), true);
-                }
-
-                final EdgeLinkedList outLinkedList = new EdgeLinkedList(modifiableSourceVertex, Vertex.DIRECTION.OUT, outChunk);
-
-                outLinkedList.add(task.edgeRID, task.destinationVertexRID);
-
-                incrementTxOperation();
-
-              } catch (Exception e) {
-                onError(e);
-                if (!database.isTransactionActive())
-                  database.begin();
-              }
-
-            } else if (message instanceof DatabaseAsyncCreateInEdge) {
-
-              final DatabaseAsyncCreateInEdge task = (DatabaseAsyncCreateInEdge) message;
-
-              try {
-                beginTxIfNeeded();
-
-                RID inEdgesHeadChunk = task.destinationVertex.getInEdgesHeadChunk();
-                final EdgeChunk inChunk;
-
-                final VertexInternal modifiableDestinationVertex;
-                if (inEdgesHeadChunk == null) {
-                  inChunk = new MutableEdgeChunk(database, GraphEngine.EDGES_LINKEDLIST_CHUNK_SIZE);
-                  database.createRecordNoLock(inChunk,
-                      GraphEngine.getEdgesBucketName(database, task.destinationVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
-                  inEdgesHeadChunk = inChunk.getIdentity();
-
-                  modifiableDestinationVertex = task.destinationVertex.modify();
-                  modifiableDestinationVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
-                  database.updateRecordNoLock(modifiableDestinationVertex);
-                } else {
-                  modifiableDestinationVertex = task.destinationVertex;
-                  inChunk = (EdgeChunk) database.lookupByRID(modifiableDestinationVertex.getInEdgesHeadChunk(), true);
-                }
-
-                final EdgeLinkedList inLinkedList = new EdgeLinkedList(modifiableDestinationVertex, Vertex.DIRECTION.IN, inChunk);
-
-                inLinkedList.add(task.edgeRID, task.sourceVertexRID);
-
-                incrementTxOperation();
-
-              } catch (Exception e) {
-                onError(e);
-                if (!database.isTransactionActive())
-                  database.begin();
               }
 
             } else if (message instanceof DatabaseAsyncIndexCompaction) {
@@ -374,13 +335,13 @@ public class DatabaseAsyncExecutor {
 
   public void compact(final Index index) {
     if (index.scheduleCompaction())
-      scheduleTask(getFreeSlot(), new DatabaseAsyncIndexCompaction(index), false);
+      scheduleTask(getBestSlot(), new DatabaseAsyncIndexCompaction(index), false);
   }
 
   /**
    * Looks for an empty queue or the queue with less messages.
    */
-  private int getFreeSlot() {
+  private int getBestSlot() {
     int minQueueSize = 0;
     int minQueueIndex = 0;
     for (int i = 0; i < executorThreads.length; ++i) {
@@ -396,6 +357,13 @@ public class DatabaseAsyncExecutor {
     }
 
     return minQueueIndex;
+  }
+
+  /**
+   * Returns a random slot.
+   */
+  private int getRandomSlot() {
+    return random.nextInt(executorThreads.length);
   }
 
   /**
@@ -426,22 +394,24 @@ public class DatabaseAsyncExecutor {
   }
 
   public void query(final String language, final String query, final AsyncResultsetCallback callback, final Object... parameters) {
-    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+    final int slot = getSlot((int) commandRoundRobinIndex.getAndIncrement());
     scheduleTask(slot, new DatabaseAsyncCommand(true, language, query, parameters, callback), true);
   }
 
-  public void query(final String language, final String query, final AsyncResultsetCallback callback, final Map<String, Object> parameters) {
-    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+  public void query(final String language, final String query, final AsyncResultsetCallback callback,
+      final Map<String, Object> parameters) {
+    final int slot = getSlot((int) commandRoundRobinIndex.getAndIncrement());
     scheduleTask(slot, new DatabaseAsyncCommand(true, language, query, parameters, callback), true);
   }
 
   public void command(final String language, final String query, final AsyncResultsetCallback callback, final Object... parameters) {
-    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+    final int slot = getSlot((int) commandRoundRobinIndex.getAndIncrement());
     scheduleTask(slot, new DatabaseAsyncCommand(false, language, query, parameters, callback), true);
   }
 
-  public void command(final String language, final String query, final AsyncResultsetCallback callback, final Map<String, Object> parameters) {
-    final int slot = (int) (commandRoundRobinIndex.getAndIncrement() % executorThreads.length);
+  public void command(final String language, final String query, final AsyncResultsetCallback callback,
+      final Map<String, Object> parameters) {
+    final int slot = getSlot((int) commandRoundRobinIndex.getAndIncrement());
     scheduleTask(slot, new DatabaseAsyncCommand(false, language, query, parameters, callback), true);
   }
 
@@ -453,7 +423,7 @@ public class DatabaseAsyncExecutor {
       final CountDownLatch semaphore = new CountDownLatch(buckets.size());
 
       for (Bucket b : buckets) {
-        final int slot = b.getId() % parallelLevel;
+        final int slot = getSlot(b.getId());
         scheduleTask(slot, new DatabaseAsyncScanBucket(semaphore, callback, b), true);
       }
 
@@ -469,45 +439,77 @@ public class DatabaseAsyncExecutor {
   }
 
   public void transaction(final Database.TransactionScope txBlock, final int retries) {
-    scheduleTask((int) (transactionCounter.getAndIncrement() % executorThreads.length), new DatabaseAsyncTransaction(txBlock, retries), true);
+    scheduleTask(getSlot((int) transactionCounter.getAndIncrement()), new DatabaseAsyncTransaction(txBlock, retries), true);
   }
 
-  public void createRecord(final MutableDocument record) {
+  public void createRecord(final MutableDocument record, final NewRecordCallback newRecordCallback) {
     final DocumentType type = database.getSchema().getType(record.getType());
 
     if (record.getIdentity() == null) {
       // NEW
-
       final Bucket bucket = type.getBucketToSave(false);
-      final int slot = bucket.getId() % parallelLevel;
+      final int slot = getSlot(bucket.getId());
 
-      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket), true);
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket, newRecordCallback), true);
 
     } else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
 
-  public void createRecord(final Record record, final String bucketName) {
+  public void createRecord(final Record record, final String bucketName, final NewRecordCallback newRecordCallback) {
     final Bucket bucket = database.getSchema().getBucketByName(bucketName);
-    final int slot = bucket.getId() % parallelLevel;
+    final int slot = getSlot(bucket.getId());
 
     if (record.getIdentity() == null)
       // NEW
-      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket), true);
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket, newRecordCallback), true);
     else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
 
-  /**
-   * The current thread executes 2 lookups + create the edge. The creation of the 2 edge branches are delegated to asynchronous operations.
-   * Warning: this API doesn't work properly in case source and/or destination vertices have to be created.
-   *
-   * @Deprecated
-   */
-  @Deprecated
-  public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
-      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
-      final boolean bidirectional, final NewEdgeCallback callback, final Object... properties) {
+  public void newEdge(final Vertex sourceVertex, final String edgeType, final RID destinationVertexRID, final boolean bidirectional,
+      final NewEdgeCallback callback, final Object... properties) {
+    if (sourceVertex == null)
+      throw new IllegalArgumentException("Source vertex is null");
+
+    if (destinationVertexRID == null)
+      throw new IllegalArgumentException("Destination vertex is null");
+
+    final int sourceSlot = getSlot(sourceVertex.getIdentity().getBucketId());
+    final int destinationSlot = getSlot(destinationVertexRID.getBucketId());
+
+    if (sourceSlot == destinationSlot)
+      // BOTH VERTICES HAVE THE SAME SLOT, CREATE THE EDGE USING IT
+      scheduleTask(sourceSlot, new CreateEdgeAsyncTask(sourceVertex, destinationVertexRID, edgeType, properties, bidirectional, callback),
+          true);
+    else {
+      // CREATE THE EDGE IN THE SOURCE VERTEX'S SLOT AND A CASCADE TASK TO ADD THE INCOMING EDGE FROM DESTINATION VERTEX (THIS IS THE MOST EXPENSIVE CASE WHERE 2 TASKS ARE EXECUTED)
+      scheduleTask(sourceSlot,
+          new CreateEdgeAsyncTask(sourceVertex, destinationVertexRID, edgeType, properties, false, new NewEdgeCallback() {
+            @Override
+            public void call(final Edge newEdge, final boolean createdSourceVertex, final boolean createdDestinationVertex) {
+              if (bidirectional) {
+                scheduleTask(destinationSlot,
+                    new CreateIncomingEdgeAsyncTask(sourceVertex.getIdentity(), destinationVertexRID, newEdge, new NewEdgeCallback() {
+                      @Override
+                      public void call(final Edge newEdge, final boolean createdSourceVertex, final boolean createdDestinationVertex) {
+                        if (callback != null)
+                          callback.call(newEdge, createdSourceVertex, createdDestinationVertex);
+                      }
+                    }), true);
+              } else if (callback != null)
+                callback.call(newEdge, createdSourceVertex, createdDestinationVertex);
+
+            }
+          }), true);
+    }
+  }
+
+  public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
+      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
+      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final NewEdgeCallback callback,
+      final Object... properties) {
+
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -520,49 +522,55 @@ public class DatabaseAsyncExecutor {
     if (destinationVertexKey.length != destinationVertexValue.length)
       throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
 
-    final Iterator<Identifiable> v1Result = database.lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
+    final Iterator<Identifiable> sourceResult = database.lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
+    final Iterator<Identifiable> destinationResult = database
+        .lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
 
-    boolean createdSourceVertex = false;
+    final RID sourceRID = sourceResult.hasNext() ? sourceResult.next().getIdentity() : null;
+    final RID destinationRID = destinationResult.hasNext() ? destinationResult.next().getIdentity() : null;
 
-    VertexInternal sourceVertex;
-    if (!v1Result.hasNext()) {
-      if (createVertexIfNotExist) {
-        sourceVertex = database.newVertex(sourceVertexType);
-        for (int i = 0; i < sourceVertexKey.length; ++i)
-          ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
+    if (sourceRID == null && destinationRID == null) {
 
-        ((MutableVertex) sourceVertex).save();
-        createdSourceVertex = true;
-
-      } else
-        throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
-    } else
-      sourceVertex = (VertexInternal) v1Result.next().getRecord();
-
-    boolean createdDestinationVertex = false;
-
-    final Iterator<Identifiable> v2Result = database.lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
-    VertexInternal destinationVertex;
-    if (!v2Result.hasNext()) {
-      if (createVertexIfNotExist) {
-        destinationVertex = database.newVertex(destinationVertexType);
-        for (int i = 0; i < destinationVertexKey.length; ++i)
-          ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
-
-        ((MutableVertex) destinationVertex).save();
-        createdDestinationVertex = true;
-
-      } else
+      if (!createVertexIfNotExist)
         throw new IllegalArgumentException(
-            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
-    } else
-      destinationVertex = (VertexInternal) v2Result.next().getRecord();
+            "Cannot find source and destination vertices with respectively key " + Arrays.toString(sourceVertexKey) + "=" + Arrays
+                .toString(sourceVertexValue) + " and " + Arrays.toString(destinationVertexKey) + "=" + Arrays
+                .toString(destinationVertexValue));
 
-    newEdge(sourceVertex, edgeType, destinationVertex, bidirectional, createdSourceVertex, createdDestinationVertex, callback, properties);
+      // SOURCE AND DESTINATION VERTICES BOTH DON'T EXIST: CREATE 2 VERTICES + EDGE IN THE SAME TASK PICKING THE BEST SLOT
+      scheduleTask(getRandomSlot(),
+          new CreateBothVerticesAndEdgeAsyncTask(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType,
+              destinationVertexKey, destinationVertexValue, edgeType, properties, bidirectional, callback), true);
+
+    } else if (sourceRID != null && destinationRID == null) {
+
+      if (!createVertexIfNotExist)
+        throw new IllegalArgumentException("Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
+            .toString(destinationVertexValue));
+
+      // ONLY SOURCE VERTEX EXISTS, CREATE DESTINATION VERTEX + EDGE IN SOURCE'S SLOT
+      scheduleTask(getSlot(sourceRID.getBucketId()),
+          new CreateDestinationVertexAndEdgeAsyncTask(sourceRID, destinationVertexType, destinationVertexKey, destinationVertexValue,
+              edgeType, properties, bidirectional, callback), true);
+
+    } else if (sourceRID == null && destinationRID != null) {
+
+      if (!createVertexIfNotExist)
+        throw new IllegalArgumentException(
+            "Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+
+      // ONLY DESTINATION VERTEX EXISTS
+      scheduleTask(getSlot(destinationRID.getBucketId()),
+          new CreateSourceVertexAndEdgeAsyncTask(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationRID, edgeType, properties,
+              bidirectional, callback), true);
+
+    } else
+      // BOTH VERTICES EXIST
+      newEdge(sourceRID.getVertex(true), edgeType, destinationRID, bidirectional, callback, properties);
   }
 
   /**
-   * Test onluy API.
+   * Test only API.
    */
   public void kill() {
     if (executorThreads != null) {
@@ -632,50 +640,6 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private void newEdge(VertexInternal sourceVertex, final String edgeType, VertexInternal destinationVertex, final boolean bidirectional,
-      final boolean createdSourceVertex, final boolean createdDestinationVertex, final NewEdgeCallback callback, final Object... properties) {
-    if (destinationVertex == null)
-      throw new IllegalArgumentException("Destination vertex is null");
-
-    final RID rid = sourceVertex.getIdentity();
-    if (rid == null)
-      throw new IllegalArgumentException("Current vertex is not persistent");
-
-    if (destinationVertex.getIdentity() == null)
-      throw new IllegalArgumentException("Target vertex is not persistent");
-
-    final DatabaseInternal database = (DatabaseInternal) sourceVertex.getDatabase();
-
-    try {
-      final MutableEdge edge = new MutableEdge(database, edgeType, rid, destinationVertex.getIdentity());
-      GraphEngine.setProperties(edge, properties);
-      edge.save();
-
-      try {
-        executorThreads[rid.getBucketId() % parallelLevel].queue
-            .put(new DatabaseAsyncCreateOutEdge(sourceVertex, edge.getIdentity(), destinationVertex.getIdentity()));
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new DatabaseOperationException("Error on creating edge link from out to in");
-      }
-
-      if (bidirectional)
-        try {
-          executorThreads[destinationVertex.getIdentity().getBucketId() % parallelLevel].queue
-              .put(new DatabaseAsyncCreateInEdge(destinationVertex, edge.getIdentity(), sourceVertex.getIdentity()));
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new DatabaseOperationException("Error on creating edge link from out to in");
-        }
-
-      if (callback != null)
-        callback.call(edge, createdSourceVertex, createdDestinationVertex);
-
-    } catch (Exception e) {
-      throw new DatabaseOperationException("Error on creating edge", e);
-    }
-  }
-
   private void onOk() {
     if (onOkCallback != null) {
       try {
@@ -707,5 +671,9 @@ public class DatabaseAsyncExecutor {
       Thread.currentThread().interrupt();
       throw new DatabaseOperationException("Error on executing asynchronous task " + task);
     }
+  }
+
+  private int getSlot(final int value) {
+    return value % executorThreads.length;
   }
 }

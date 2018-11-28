@@ -34,7 +34,7 @@ public class SourceDiscovery {
     this.url = url;
   }
 
-  public SourceSchema getSchema(final ImporterSettings settings) throws IOException {
+  public SourceSchema getSchema(final ImporterSettings settings, final AnalyzedEntity.ENTITY_TYPE entityType, final AnalyzedSchema analyzedSchema) throws IOException {
     LogManager.instance().log(this, Level.INFO, "Analyzing url: %s...", null, url);
 
     final Source source = getSource();
@@ -44,13 +44,14 @@ public class SourceDiscovery {
     final ContentImporter contentImporter = analyzeSourceContent(parser, settings);
     parser.reset();
 
-    final SourceSchema sourceSchema = contentImporter.analyze(parser, settings);
+    final SourceSchema sourceSchema = contentImporter.analyze(entityType, parser, settings, analyzedSchema);
 
     if (contentImporter == null)
       LogManager.instance().log(this, Level.INFO, "Unknown format");
     else {
-      LogManager.instance().log(this, Level.INFO, "Recognized format %s (parsingLimitBytes=%s parsingLimitEntries=%d)", null, contentImporter.getFormat(),
-          FileUtils.getSizeAsString(limitBytes), limitEntries);
+      LogManager.instance()
+          .log(this, Level.INFO, "Recognized format %s (parsingLimitBytes=%s parsingLimitEntries=%d)", null, contentImporter.getFormat(),
+              FileUtils.getSizeAsString(limitBytes), limitEntries);
       if (!sourceSchema.getOptions().isEmpty()) {
         for (Map.Entry<String, String> o : sourceSchema.getOptions().entrySet())
           LogManager.instance().log(this, Level.INFO, "- %s = %s", null, o.getKey(), o.getValue());
@@ -82,13 +83,14 @@ public class SourceDiscovery {
 
     connection.connect();
 
-    return getSourceFromContent(new BufferedInputStream(connection.getInputStream()), connection.getContentLengthLong(), resource, new Callable<Void>() {
-      @Override
-      public Void call() throws Exception {
-        connection.disconnect();
-        return null;
-      }
-    });
+    return getSourceFromContent(new BufferedInputStream(connection.getInputStream()), connection.getContentLengthLong(), resource,
+        new Callable<Void>() {
+          @Override
+          public Void call() throws Exception {
+            connection.disconnect();
+            return null;
+          }
+        });
   }
 
   private Source getSourceFromFile(final String path) throws IOException {
@@ -163,7 +165,8 @@ public class SourceDiscovery {
 
         final Map.Entry<Character, AtomicInteger> bestSeparator = list.get(0);
 
-        LogManager.instance().log(this, Level.INFO, "Best separator candidate=%s (all candidates=%s)", null, bestSeparator.getKey(), list);
+        LogManager.instance()
+            .log(this, Level.INFO, "Best separator candidate='%s' (all candidates=%s)", null, bestSeparator.getKey(), list);
 
         settings.options.put("delimiter", "" + bestSeparator.getKey());
         return new CSVImporter();
@@ -216,7 +219,6 @@ public class SourceDiscovery {
 
         if (allDelimitersAreTheSame) {
           // RDF
-          settings.recordType = Importer.RECORD_TYPE.VERTEX;
           settings.typeIdProperty = "id";
           settings.options.put("delimiter", "" + delimiters.get(0));
           return new RDFImporter();
@@ -255,8 +257,8 @@ public class SourceDiscovery {
       throw new IllegalArgumentException("Invalid setting '" + name + "'");
   }
 
-  private Source getSourceFromContent(final BufferedInputStream in, final long totalSize, final String resource, final Callable<Void> closeCallback)
-      throws IOException {
+  private Source getSourceFromContent(final BufferedInputStream in, final long totalSize, final String resource,
+      final Callable<Void> closeCallback) throws IOException {
     in.mark(0);
 
     final ZipInputStream zip = new ZipInputStream(in);

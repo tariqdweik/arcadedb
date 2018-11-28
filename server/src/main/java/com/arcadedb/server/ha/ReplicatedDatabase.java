@@ -15,6 +15,7 @@ import com.arcadedb.exception.TransactionException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.serializer.BinarySerializer;
@@ -348,12 +349,22 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
-      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
-      final boolean bidirectional, final Object... properties) {
+  public Edge newEdgeByKeys(final Vertex sourceVertex, final String destinationVertexType, final String[] destinationVertexKey,
+      final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional,
+      final Object... properties) {
 
-    return proxied.newEdgeByKeys(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey, destinationVertexValue,
-        createVertexIfNotExist, edgeType, bidirectional, properties);
+    return proxied
+        .newEdgeByKeys(sourceVertex, destinationVertexType, destinationVertexKey, destinationVertexValue, createVertexIfNotExist, edgeType,
+            bidirectional, properties);
+  }
+
+  @Override
+  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
+      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
+      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+
+    return proxied.newEdgeByKeys(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey,
+        destinationVertexValue, createVertexIfNotExist, edgeType, bidirectional, properties);
   }
 
   @Override

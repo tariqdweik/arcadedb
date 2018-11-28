@@ -78,7 +78,8 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 
           database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
           database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
-          database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
+          database.getSchema()
+              .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
         }
       }
     });
@@ -97,7 +98,8 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
 //    db.begin();
 //    db.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.YES_NO_METADATA);
 
-    LogManager.instance().log(this, Level.INFO, "TEST: Executing %s transactions with %d vertices each...", null, getTxs(), getVerticesPerTx());
+    LogManager.instance()
+        .log(this, Level.INFO, "TEST: Executing %s transactions with %d vertices each...", null, getTxs(), getVerticesPerTx());
 
     final int totalToInsert = getTxs() * getVerticesPerTx();
     long counter = 0;
@@ -138,12 +140,13 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
         v.set("operationalStatus", "NotAvailable");
         v.set("supplierName", "TBD");
 
-        db.async().createRecord(v);
+        db.async().createRecord(v, null);
         //v.save();
 
         if (counter % 1000 == 0) {
           if (System.currentTimeMillis() - lastLap > 1000) {
-            LogManager.instance().log(this, Level.INFO, "TEST: - Progress %d/%d (%d records/sec)", null, counter, totalToInsert, counter - lastLapCounter);
+            LogManager.instance()
+                .log(this, Level.INFO, "TEST: - Progress %d/%d (%d records/sec)", null, counter, totalToInsert, counter - lastLapCounter);
             lastLap = System.currentTimeMillis();
             lastLapCounter = counter;
           }
