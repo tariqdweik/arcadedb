@@ -17,6 +17,7 @@ import com.arcadedb.utility.Pair;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class GraphEngine {
@@ -58,28 +59,9 @@ public class GraphEngine {
 //      edge.setIdentity(NO_RID);
 //    }
 
-    EdgeChunk outChunk = null;
-    RID outEdgesHeadChunk = fromVertex.getOutEdgesHeadChunk();
-
-    if (outEdgesHeadChunk != null)
-      try {
-        outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
-      } catch (RecordNotFoundException e) {
-        LogManager.instance()
-            .log(this, Level.WARNING, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", null, outEdgesHeadChunk,
-                fromVertex.getIdentity());
-        outEdgesHeadChunk = null;
-      }
-
-    if (outEdgesHeadChunk == null) {
-      outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
-      database.createRecord(outChunk, getEdgesBucketName(database, fromVertexRID.getBucketId(), Vertex.DIRECTION.OUT));
-      outEdgesHeadChunk = outChunk.getIdentity();
-
-      fromVertex = fromVertex.modify();
-      fromVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
-      database.updateRecord(fromVertex);
-    }
+    final AtomicReference<VertexInternal> fromVertexRef = new AtomicReference<>(fromVertex);
+    final EdgeChunk outChunk = createOutEdgeChunk(database, fromVertexRef);
+    fromVertex = fromVertexRef.get();
 
     final EdgeLinkedList outLinkedList = new EdgeLinkedList(fromVertex, Vertex.DIRECTION.OUT, outChunk);
 
@@ -120,28 +102,9 @@ public class GraphEngine {
       outEdgePairs.add(new Pair<>(edge, destinationVertex));
     }
 
-    EdgeChunk outChunk = null;
-    RID outEdgesHeadChunk = sourceVertex.getOutEdgesHeadChunk();
-
-    if (outEdgesHeadChunk != null)
-      try {
-        outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
-      } catch (RecordNotFoundException e) {
-        LogManager.instance()
-            .log(this, Level.WARNING, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", null, outEdgesHeadChunk,
-                sourceVertexRID);
-        outEdgesHeadChunk = null;
-      }
-
-    if (outEdgesHeadChunk == null) {
-      outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
-      database.createRecord(outChunk, getEdgesBucketName(database, sourceVertexRID.getBucketId(), Vertex.DIRECTION.OUT));
-      outEdgesHeadChunk = outChunk.getIdentity();
-
-      sourceVertex = sourceVertex.modify();
-      sourceVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
-      database.updateRecord(sourceVertex);
-    }
+    final AtomicReference<VertexInternal> v = new AtomicReference<>(sourceVertex);
+    final EdgeChunk outChunk = createOutEdgeChunk(database, v);
+    sourceVertex = v.get();
 
     final EdgeLinkedList outLinkedList = new EdgeLinkedList(sourceVertex, Vertex.DIRECTION.OUT, outChunk);
     outLinkedList.addAll(outEdgePairs);
@@ -182,7 +145,7 @@ public class GraphEngine {
 
             browsedEdges.incrementAndGet();
 
-            if (index.getChunkSize() > Integer.MAX_VALUE - 1024) {
+            if (index.getChunkSize() > 256 * 1024 * 1024) {
               LogManager.instance().log(this, Level.INFO,
                   "Creation of back connections, reached %s size, flushing %d connections (from %d vertices and %d edges)...", null,
                   FileUtils.getSizeAsString(index.getChunkSize()), index.size(), browsedVertices.get(), browsedEdges.get());
@@ -254,28 +217,9 @@ public class GraphEngine {
       final List<Pair<Identifiable, Identifiable>> connections, final String edgeType) {
     VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
 
-    EdgeChunk inChunk = null;
-    RID inEdgesHeadChunk = toVertexRecord.getInEdgesHeadChunk();
-
-    if (inEdgesHeadChunk != null)
-      try {
-        inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
-      } catch (RecordNotFoundException e) {
-        LogManager.instance()
-            .log(this, Level.WARNING, "Record %s (inEdgesHeadChunk) not found on vertex %s. Creating a new one", null, inEdgesHeadChunk,
-                toVertex);
-        inEdgesHeadChunk = null;
-      }
-
-    if (inEdgesHeadChunk == null) {
-      inChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
-      database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
-      inEdgesHeadChunk = inChunk.getIdentity();
-
-      toVertexRecord = toVertexRecord.modify();
-      toVertexRecord.setInEdgesHeadChunk(inEdgesHeadChunk);
-      database.updateRecord(toVertexRecord);
-    }
+    final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
+    final EdgeChunk inChunk = createInEdgeChunk(database, toVertexRef);
+    toVertexRecord = toVertexRef.get();
 
     final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
     inLinkedList.addAll(connections);
@@ -285,9 +229,20 @@ public class GraphEngine {
       final RID edgeRID) {
     VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
 
-    EdgeChunk inChunk = null;
-    RID inEdgesHeadChunk = toVertexRecord.getInEdgesHeadChunk();
+    final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
+    final EdgeChunk inChunk = createInEdgeChunk(database, toVertexRef);
+    toVertexRecord = toVertexRef.get();
 
+    final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
+    inLinkedList.add(edgeRID, fromVertexRID);
+  }
+
+  public EdgeChunk createInEdgeChunk(final DatabaseInternal database, final AtomicReference<VertexInternal> vertex) {
+    VertexInternal toVertex = vertex.get();
+
+    RID inEdgesHeadChunk = toVertex.getInEdgesHeadChunk();
+
+    EdgeChunk inChunk = null;
     if (inEdgesHeadChunk != null)
       try {
         inChunk = (EdgeChunk) database.lookupByRID(inEdgesHeadChunk, true);
@@ -303,13 +258,43 @@ public class GraphEngine {
       database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
       inEdgesHeadChunk = inChunk.getIdentity();
 
-      toVertexRecord = toVertexRecord.modify();
-      toVertexRecord.setInEdgesHeadChunk(inEdgesHeadChunk);
-      database.updateRecord(toVertexRecord);
+      toVertex = toVertex.modify();
+      vertex.set(toVertex);
+      toVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
+      database.updateRecord(toVertex);
     }
 
-    final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
-    inLinkedList.add(edgeRID, fromVertexRID);
+    return inChunk;
+  }
+
+  public EdgeChunk createOutEdgeChunk(final DatabaseInternal database, final AtomicReference<VertexInternal> vertex) {
+    VertexInternal fromVertex = vertex.get();
+
+    RID outEdgesHeadChunk = fromVertex.getOutEdgesHeadChunk();
+
+    EdgeChunk outChunk = null;
+    if (outEdgesHeadChunk != null)
+      try {
+        outChunk = (EdgeChunk) database.lookupByRID(outEdgesHeadChunk, true);
+      } catch (RecordNotFoundException e) {
+        LogManager.instance()
+            .log(this, Level.WARNING, "Record %s (outEdgesHeadChunk) not found on vertex %s. Creating a new one", null, outEdgesHeadChunk,
+                fromVertex.getIdentity());
+        outEdgesHeadChunk = null;
+      }
+
+    if (outEdgesHeadChunk == null) {
+      outChunk = new MutableEdgeChunk(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
+      database.createRecord(outChunk, getEdgesBucketName(database, fromVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
+      outEdgesHeadChunk = outChunk.getIdentity();
+
+      fromVertex = fromVertex.modify();
+      vertex.set(fromVertex);
+      fromVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
+      database.updateRecord(fromVertex);
+    }
+
+    return outChunk;
   }
 
   public long countEdges(final VertexInternal vertex, final Vertex.DIRECTION direction, final String edgeType) {

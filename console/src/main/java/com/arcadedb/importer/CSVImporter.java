@@ -5,7 +5,10 @@
 package com.arcadedb.importer;
 
 import com.arcadedb.database.*;
+import com.arcadedb.database.async.CreateOutgoingEdgesAsyncTask;
+import com.arcadedb.database.async.NewEdgeCallback;
 import com.arcadedb.database.async.NewRecordCallback;
+import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.graph.VertexInternal;
@@ -24,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class CSVImporter extends AbstractContentImporter {
@@ -149,6 +153,12 @@ public class CSVImporter extends AbstractContentImporter {
           database.async().createRecord((MutableDocument) sourceVertex, new NewRecordCallback() {
             @Override
             public void call(final Record newDocument) {
+              final AtomicReference<VertexInternal> v = new AtomicReference<>((VertexInternal) sourceVertex);
+              // PRE-CREATE OUT/IN CHUNKS TO SPEEDUP EDGE CREATION
+              final DatabaseInternal db = (DatabaseInternal) database;
+              db.getGraphEngine().createOutEdgeChunk(db, v);
+              db.getGraphEngine().createInEdgeChunk(db, v);
+
               context.createdVertices.incrementAndGet();
               inMemoryIndex.put(vertexId, newDocument.getIdentity());
             }
@@ -177,18 +187,20 @@ public class CSVImporter extends AbstractContentImporter {
   }
 
   private void loadEdges(final SourceSchema sourceSchema, final Parser parser, final DatabaseInternal database,
-      final ImporterContext context, final ImporterSettings settings, CompressedAny2RIDIndex<Long> inMemoryIndex) throws ImportException {
+      final ImporterContext context, final ImporterSettings settings, CompressedAny2RIDIndex<Long> verticesIndex) throws ImportException {
     AbstractParser csvParser = createCSVParser(settings, ",");
 
     LogManager.instance().log(this, Level.INFO, "Started importing edges from CSV source", null);
 
     final long beginTime = System.currentTimeMillis();
 
-    if (inMemoryIndex == null || inMemoryIndex.isEmpty())
+    if (verticesIndex == null || verticesIndex.isEmpty())
       LogManager.instance()
           .log(this, Level.WARNING, "Cannot find in-memory index for vertices, loading from disk could be very slow", null);
 
-    final List<Pair<Identifiable, Object[]>> connections = new ArrayList<>();
+//    final CompressedRID2RIDsIndex edgeIndex = new CompressedRID2RIDsIndex(database, 50 * 1024 * 1024);
+
+    List<Pair<Identifiable, Object[]>> connections = new ArrayList<>();
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
@@ -209,7 +221,7 @@ public class CSVImporter extends AbstractContentImporter {
           continue;
 
         final long destinationVertexKey = Long.parseLong(row[to.getIndex()]);
-        final RID destinationVertexRID = inMemoryIndex.get(destinationVertexKey);
+        final RID destinationVertexRID = verticesIndex.get(destinationVertexKey);
         if (destinationVertexRID == null) {
           // SKIP IT
           context.skippedEdges.incrementAndGet();
@@ -220,8 +232,9 @@ public class CSVImporter extends AbstractContentImporter {
 
         if (lastSourceKey == null || !lastSourceKey.equals(sourceVertexKey)) {
           createEdgesInBatch(database, context, settings, connections);
+          connections = new ArrayList<>();
 
-          final RID sourceVertexRID = inMemoryIndex.get(sourceVertexKey);
+          final RID sourceVertexRID = verticesIndex.get(sourceVertexKey);
           if (sourceVertexRID == null) {
             // SKIP IT
             context.skippedEdges.incrementAndGet();
@@ -233,10 +246,12 @@ public class CSVImporter extends AbstractContentImporter {
         }
 
         connections.add(new Pair<>(destinationVertexRID, NO_PARAMS));
+
         ++edgeLines;
 
         if (edgeLines % settings.commitEvery == 0) {
           createEdgesInBatch(database, context, settings, connections);
+          connections = new ArrayList<>();
           database.commit();
           database.begin();
         }
@@ -270,7 +285,7 @@ public class CSVImporter extends AbstractContentImporter {
     }
   }
 
-  private void createEdgesInBatch(DatabaseInternal database, ImporterContext context, ImporterSettings settings,
+  private void createEdgesInBatch(final DatabaseInternal database, final ImporterContext context, final ImporterSettings settings,
       List<Pair<Identifiable, Object[]>> connections) {
     if (!connections.isEmpty()) {
       // CREATE EDGES ALL TOGETHER FOR THE PREVIOUS BATCH
@@ -278,9 +293,17 @@ public class CSVImporter extends AbstractContentImporter {
         // RELOAD IT
         lastSourceVertex = (VertexInternal) lastSourceVertex.getIdentity().getVertex();
 
-      database.getGraphEngine().newEdges(database, lastSourceVertex, connections, settings.edgeTypeName, settings.edgeBidirectional);
-      context.createdEdges.addAndGet(connections.size());
-      connections.clear();
+      final int asyncSlot = database.async().getSlot(lastSourceVertex.getIdentity().getBucketId());
+
+      database.async().scheduleTask(asyncSlot,
+          new CreateOutgoingEdgesAsyncTask(lastSourceVertex, connections, settings.edgeTypeName, settings.edgeBidirectional,
+              new NewEdgeCallback() {
+                @Override
+                public void call(Edge newEdge, boolean createdSourceVertex, boolean createdDestinationVertex) {
+                  context.createdEdges.addAndGet(connections.size());
+                  connections.clear();
+                }
+              }), true);
     }
   }
 

@@ -8,14 +8,12 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.WALFile;
-import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.Index;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.sql.executor.ResultSet;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
 
 import java.util.*;
@@ -40,6 +38,10 @@ public class DatabaseAsyncExecutor {
   // SPECIAL TASKS
   public final static DatabaseAsyncTask FORCE_EXIT = new DatabaseAsyncAbstractTask() {
     @Override
+    public void execute(AsyncThread async, DatabaseInternal database) {
+    }
+
+    @Override
     public String toString() {
       return "FORCE_EXIT";
     }
@@ -48,7 +50,7 @@ public class DatabaseAsyncExecutor {
   private OkCallback    onOkCallback;
   private ErrorCallback onErrorCallback;
 
-  private class AsyncThread extends Thread {
+  protected class AsyncThread extends Thread {
     public final    BlockingQueue<DatabaseAsyncTask> queue;
     public final    DatabaseInternal                 database;
     public volatile boolean                          shutdown      = false;
@@ -74,6 +76,10 @@ public class DatabaseAsyncExecutor {
       }
     }
 
+    public boolean isShutdown() {
+      return shutdown;
+    }
+
     @Override
     public void run() {
       DatabaseContext.INSTANCE.init(database);
@@ -94,173 +100,28 @@ public class DatabaseAsyncExecutor {
 
               break;
 
-            } else if (message instanceof CreateEdgeAsyncTask) {
+            } else {
 
               try {
-                ((CreateEdgeAsyncTask) message).execute(database);
+                if (message.requiresActiveTx() && !database.getTransaction().isActive())
+                  database.begin();
+
+                message.execute(this, database);
 
                 count++;
 
                 if (count % commitEvery == 0)
                   database.commit();
 
-              } finally {
-                if (!database.isTransactionActive())
-                  database.begin();
-              }
-
-            } else if (message instanceof CreateIncomingEdgeAsyncTask) {
-
-              try {
-                ((CreateIncomingEdgeAsyncTask) message).execute(database);
-
-                count++;
-
-                if (count % commitEvery == 0)
-                  database.commit();
-
-              } finally {
-                if (!database.isTransactionActive())
-                  database.begin();
-              }
-            } else if (message instanceof DatabaseAsyncCompletion) {
-              try {
-                database.commit();
-                onOk();
               } catch (Exception e) {
                 onError(e);
-              }
-              database.begin();
+              } finally {
+                message.completed();
 
-            } else if (message instanceof DatabaseAsyncTransaction) {
-              final DatabaseAsyncTransaction task = (DatabaseAsyncTransaction) message;
-
-              ConcurrentModificationException lastException = null;
-
-              if (database.isTransactionActive())
-                database.commit();
-
-              for (int retry = 0; retry < task.retries + 1; ++retry) {
-                try {
-                  database.begin();
-                  task.tx.execute(database);
-                  database.commit();
-
-                  lastException = null;
-
-                  // OK
-                  break;
-
-                } catch (ConcurrentModificationException e) {
-                  // RETRY
-                  lastException = e;
-
-                  continue;
-                } catch (Exception e) {
-                  if (database.getTransaction().isActive())
-                    database.rollback();
-
-                  onError(e);
-
-                  throw e;
-                }
-              }
-
-              if (lastException != null)
-                onError(lastException);
-
-              beginTxIfNeeded();
-
-            } else if (message instanceof DatabaseAsyncCreateRecord) {
-              final DatabaseAsyncCreateRecord task = (DatabaseAsyncCreateRecord) message;
-
-              beginTxIfNeeded();
-
-              try {
-
-                database.createRecordNoLock(task.record, task.bucket.getName());
-
-                if (task.record instanceof MutableDocument) {
-                  final MutableDocument doc = (MutableDocument) task.record;
-                  database.getIndexer().createDocument(doc, database.getSchema().getType(doc.getType()), task.bucket);
-                }
-
-                if (task.callback != null)
-                  task.callback.call(task.record);
-
-                incrementTxOperation();
-
-              } catch (Exception e) {
-                LogManager.instance()
-                    .log(this, Level.SEVERE, "Error on executing async create operation (threadId=%d)", e, Thread.currentThread().getId());
-
-                onError(e);
                 if (!database.isTransactionActive())
                   database.begin();
               }
-
-            } else if (message instanceof DatabaseAsyncCommand) {
-
-              final DatabaseAsyncCommand command = (DatabaseAsyncCommand) message;
-
-              try {
-                final ResultSet resultset = command.idempotent ?
-                    database.query(command.language, command.command, command.parameters) :
-                    database.command(command.language, command.command, command.parameters);
-
-                count++;
-
-                if (!command.idempotent && count % commitEvery == 0)
-                  database.commit();
-
-                if (command.userCallback != null)
-                  command.userCallback.onOk(resultset);
-
-              } catch (Exception e) {
-                if (command.userCallback != null)
-                  command.userCallback.onError(e);
-              } finally {
-                if (!command.idempotent && !database.isTransactionActive())
-                  database.begin();
-              }
-
-            } else if (message instanceof DatabaseAsyncScanBucket) {
-
-              final DatabaseAsyncScanBucket task = (DatabaseAsyncScanBucket) message;
-
-              try {
-                task.bucket.scan((rid, view) -> {
-                  if (shutdown)
-                    return false;
-
-                  final Record record = database.getRecordFactory()
-                      .newImmutableRecord(database, database.getSchema().getTypeNameByBucketId(rid.getBucketId()), rid, view);
-
-                  return task.userCallback.onRecord((Document) record);
-                });
-              } finally {
-                // UNLOCK THE CALLER THREAD
-                task.semaphore.countDown();
-              }
-
-            } else if (message instanceof DatabaseAsyncIndexCompaction) {
-
-              final DatabaseAsyncIndexCompaction task = (DatabaseAsyncIndexCompaction) message;
-
-              if (database.isTransactionActive())
-                database.commit();
-
-              try {
-                ((EmbeddedDatabase) database.getEmbedded()).indexCompactions.incrementAndGet();
-                task.index.compact();
-              } catch (Exception e) {
-                LogManager.instance().log(this, Level.SEVERE, "Error on executing compaction of index '%s'", e, task.index.getName());
-              }
-
-              beginTxIfNeeded();
             }
-
-            message.completed();
 
           } else if (shutdown)
             break;
@@ -284,13 +145,12 @@ public class DatabaseAsyncExecutor {
       }
     }
 
-    private void incrementTxOperation() {
-      count++;
-      if (count % commitEvery == 0) {
-        database.commit();
-        onOk();
-        database.begin();
-      }
+    public void onError(final Exception e) {
+      DatabaseAsyncExecutor.this.onError(e);
+    }
+
+    public void onOk() {
+      DatabaseAsyncExecutor.this.onOk();
     }
   }
 
@@ -386,7 +246,7 @@ public class DatabaseAsyncExecutor {
 
     for (int i = 0; i < semaphores.length; ++i)
       try {
-        semaphores[i].waitForCompletition(2000);
+        semaphores[i].waitForCompetition(2000);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         return;
@@ -607,11 +467,6 @@ public class DatabaseAsyncExecutor {
     public long queueSize;
   }
 
-  private void beginTxIfNeeded() {
-    if (!database.getTransaction().isActive())
-      database.begin();
-  }
-
   private void createThreads(final int parallelLevel) {
     shutdownThreads();
 
@@ -640,7 +495,7 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private void onOk() {
+  protected void onOk() {
     if (onOkCallback != null) {
       try {
         onOkCallback.call();
@@ -650,7 +505,7 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private void onError(final Exception e) {
+  protected void onError(final Exception e) {
     if (onErrorCallback != null) {
       try {
         onErrorCallback.call(e);
@@ -660,7 +515,7 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private void scheduleTask(final int slot, final DatabaseAsyncTask task, final boolean waitIfQueueIsFull) {
+  public void scheduleTask(final int slot, final DatabaseAsyncTask task, final boolean waitIfQueueIsFull) {
     try {
       if (waitIfQueueIsFull)
         executorThreads[slot].queue.put(task);
@@ -673,7 +528,7 @@ public class DatabaseAsyncExecutor {
     }
   }
 
-  private int getSlot(final int value) {
+  public int getSlot(final int value) {
     return value % executorThreads.length;
   }
 }

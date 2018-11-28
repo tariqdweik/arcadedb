@@ -227,7 +227,7 @@ public class RandomTestMultiThreads extends BaseTest {
   private void createTransactions(final Database database, final int txOps) {
     for (long txId = 0; txId < txOps; ++txId) {
       final MutableDocument tx = database.newVertex("Transaction");
-      tx.set("uuid", "" + uuid.getAndIncrement());
+      tx.set("uuid", uuid.getAndIncrement());
       tx.set("date", new Date());
       tx.set("amount", getRandom(STARTING_ACCOUNT));
       tx.save();
@@ -350,7 +350,7 @@ public class RandomTestMultiThreads extends BaseTest {
       database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Account", new String[] { "id" }, 500000);
 
       final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
-      txType.createProperty("uuid", String.class);
+      txType.createProperty("uuid", Long.class);
       txType.createProperty("date", Date.class);
       txType.createProperty("amount", BigDecimal.class);
       txType.createProperty("updated", Boolean.class);

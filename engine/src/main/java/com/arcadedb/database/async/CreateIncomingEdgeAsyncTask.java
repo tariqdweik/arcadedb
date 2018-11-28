@@ -27,7 +27,7 @@ public class CreateIncomingEdgeAsyncTask extends DatabaseAsyncAbstractTask {
     this.callback = callback;
   }
 
-  public void execute(final DatabaseInternal database) {
+  public void execute(final DatabaseAsyncExecutor.AsyncThread async, final DatabaseInternal database) {
     database.getGraphEngine().connectIncomingEdge(database, destinationVertex, sourceVertexRID, edge.getIdentity());
 
     if (callback != null)

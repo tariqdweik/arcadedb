@@ -34,7 +34,7 @@ public class CreateEdgeAsyncTask extends DatabaseAsyncAbstractTask {
     this.callback = callback;
   }
 
-  public void execute(final DatabaseInternal database) {
+  public void execute(final DatabaseAsyncExecutor.AsyncThread async, final DatabaseInternal database) {
     createEdge(database, sourceVertex, destinationVertex, false, false);
   }
 

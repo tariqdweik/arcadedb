@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class DatabaseAsyncAbstractCallbackTask implements DatabaseAsyncTask {
   private final CountDownLatch semaphore = new CountDownLatch(1);
 
-  public void waitForCompletition(final long timeoutInMs) throws InterruptedException {
+  public void waitForCompetition(final long timeoutInMs) throws InterruptedException {
     semaphore.await(timeoutInMs, TimeUnit.MILLISECONDS);
   }
 

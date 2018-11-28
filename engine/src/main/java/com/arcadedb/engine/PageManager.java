@@ -490,13 +490,12 @@ public class PageManager extends LockContext {
 
     final long newTotalRAM = totalReadCacheRAM.get();
 
-    LogManager.instance().log(this, Level.INFO, "Freed %d RAM (current %d - %d max threadId=%d)", null, freedRAM, newTotalRAM, maxRAM,
-        Thread.currentThread().getId());
+    LogManager.instance().log(this, Level.INFO, "Freed %s RAM (current %s - %s max threadId=%d)", null, FileUtils.getSizeAsString(freedRAM),
+        FileUtils.getSizeAsString(newTotalRAM), FileUtils.getSizeAsString(maxRAM), Thread.currentThread().getId());
 
     if (newTotalRAM > maxRAM)
-      LogManager.instance()
-          .log(this, Level.WARNING, "Cannot free pages in RAM (current %d > %d max threadId=%d)", null, newTotalRAM, maxRAM,
-              Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.WARNING, "Cannot free pages in RAM (current %s > %s max threadId=%d)", null,
+          FileUtils.getSizeAsString(newTotalRAM), FileUtils.getSizeAsString(maxRAM), Thread.currentThread().getId());
 
     lastCheckForRAM = System.currentTimeMillis();
   }
