@@ -9,7 +9,6 @@ import com.arcadedb.database.Record;
 import com.arcadedb.database.async.NewRecordCallback;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.log.LogManager;
-import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.utility.FileUtils;
 
 import javax.xml.stream.XMLInputFactory;
@@ -23,7 +22,7 @@ import java.util.logging.Level;
 public class XMLImporter implements ContentImporter {
   @Override
   public void load(SourceSchema sourceSchema, AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser, final DatabaseInternal database,
-      final ImporterContext context, final ImporterSettings settings, final CompressedAny2RIDIndex<Long> inMemoryIndex) throws IOException {
+      final ImporterContext context, final ImporterSettings settings) throws IOException {
     try {
       int objectNestLevel = 1;
       long maxValueSampling = 300;

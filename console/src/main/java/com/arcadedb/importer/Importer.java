@@ -10,7 +10,6 @@ import com.arcadedb.engine.Dictionary;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.*;
-import com.arcadedb.index.CompressedAny2RIDIndex;
 
 import java.io.IOException;
 import java.util.Timer;
@@ -47,11 +46,10 @@ public class Importer {
 
       startImporting();
 
-      final CompressedAny2RIDIndex<Long> inMemoryIndex = new CompressedAny2RIDIndex<>(database, Type.LONG, 50000000);
+      loadFromSource(settings.documents, AnalyzedEntity.ENTITY_TYPE.DOCUMENT, analyzedSchema);
 
-      loadFromSource(settings.documents, AnalyzedEntity.ENTITY_TYPE.DOCUMENT, analyzedSchema, inMemoryIndex);
-      loadFromSource(settings.vertices, AnalyzedEntity.ENTITY_TYPE.VERTEX, analyzedSchema, inMemoryIndex);
-      loadFromSource(settings.edges, AnalyzedEntity.ENTITY_TYPE.EDGE, analyzedSchema, inMemoryIndex);
+      loadFromSource(settings.vertices, AnalyzedEntity.ENTITY_TYPE.VERTEX, analyzedSchema);
+      loadFromSource(settings.edges, AnalyzedEntity.ENTITY_TYPE.EDGE, analyzedSchema);
 
     } catch (Exception e) {
       LogManager.instance().log(this, Level.SEVERE, "Error on parsing source %s", e, source);
@@ -65,8 +63,8 @@ public class Importer {
     }
   }
 
-  protected void loadFromSource(final String url, final AnalyzedEntity.ENTITY_TYPE entityType, final AnalyzedSchema analyzedSchema,
-      final CompressedAny2RIDIndex<Long> inMemoryIndex) throws IOException {
+  protected void loadFromSource(final String url, final AnalyzedEntity.ENTITY_TYPE entityType, final AnalyzedSchema analyzedSchema)
+      throws IOException {
     if (url == null)
       // SKIP IT
       return;
@@ -84,7 +82,7 @@ public class Importer {
     parser = new Parser(source, 0);
     parser.reset();
 
-    sourceSchema.getContentImporter().load(sourceSchema, entityType, parser, database, context, settings, inMemoryIndex);
+    sourceSchema.getContentImporter().load(sourceSchema, entityType, parser, database, context, settings);
   }
 
   protected void printProgress() {

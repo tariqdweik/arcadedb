@@ -5,7 +5,6 @@
 package com.arcadedb.importer;
 
 import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.univocity.parsers.common.AbstractParser;
 
 import java.io.IOException;
@@ -16,7 +15,7 @@ public class RDFImporter extends CSVImporter {
 
   @Override
   public void load(final SourceSchema sourceSchema, AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser, final DatabaseInternal database, final ImporterContext context,
-      final ImporterSettings settings, final CompressedAny2RIDIndex inMemoryIndex) throws ImportException {
+      final ImporterSettings settings) throws ImportException {
     AbstractParser csvParser = createCSVParser(settings, ",");
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {

@@ -17,13 +17,16 @@ public class ImporterSettings {
   String documentTypeName = "Document";
 
   String vertices;
-  String vertexTypeName = "Node";
+  String vertexTypeName   = "Node";
+  long   expectedVertices = 0l;
 
   String  edges;
-  String  edgeTypeName      = "Relationship";
-  String  edgeFromField     = null;
-  String  edgeToField       = null;
-  boolean edgeBidirectional = true;
+  String  edgeTypeName        = "Relationship";
+  long    expectedEdges       = 0l;
+  int     maxRAMIncomingEdges = 256 * 1024 * 1024; // 256MB
+  String  edgeFromField       = null;
+  String  edgeToField         = null;
+  boolean edgeBidirectional   = true;
 
   String  typeIdProperty         = null;
   boolean typeIdPropertyIsUnique = false;
@@ -63,10 +66,16 @@ public class ImporterSettings {
       documentTypeName = value;
     else if ("vertices".equals(name))
       vertices = value;
+    else if ("expectedVertices".equals(name))
+      expectedVertices = Integer.parseInt(value);
     else if ("vertexType".equals(name))
       vertexTypeName = value;
     else if ("edges".equals(name))
       edges = value;
+    else if ("expectedEdges".equals(name))
+      expectedEdges = Integer.parseInt(value);
+    else if ("maxRAMIncomingEdges".equals(name))
+      maxRAMIncomingEdges = Integer.parseInt(value);
     else if ("edgeType".equals(name))
       edgeTypeName = value;
     else if ("edgeFromField".equals(name))

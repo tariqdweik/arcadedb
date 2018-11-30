@@ -4,17 +4,20 @@
 
 package com.arcadedb.importer;
 
+import com.arcadedb.index.CompressedAny2RIDIndex;
+
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ImporterContext {
-  long startedOn;
+  CompressedAny2RIDIndex<Object> verticesIndex;
+  long                           startedOn;
 
   AtomicLong parsed           = new AtomicLong();
   AtomicLong createdVertices  = new AtomicLong();
   AtomicLong createdEdges     = new AtomicLong();
   AtomicLong createdDocuments = new AtomicLong();
 
-  AtomicLong skippedEdges     = new AtomicLong();
+  AtomicLong skippedEdges = new AtomicLong();
 
   long lastLapOn;
   long lastParsed;

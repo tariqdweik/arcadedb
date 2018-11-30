@@ -15,6 +15,7 @@ import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.index.CompressedRID2RIDsIndex;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.schema.Type;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.Pair;
 import com.univocity.parsers.common.AbstractParser;
@@ -33,33 +34,33 @@ import java.util.logging.Level;
 
 public class CSVImporter extends AbstractContentImporter {
   private static final Object[]       NO_PARAMS = new Object[] {};
+  public static final  int            _16MB     = 16 * 1024 * 1024;
   private              Object         lastSourceKey;
   private              VertexInternal lastSourceVertex;
 
   @Override
   public void load(final SourceSchema sourceSchema, final AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser,
-      final DatabaseInternal database, final ImporterContext context, final ImporterSettings settings,
-      final CompressedAny2RIDIndex<Long> inMemoryIndex) throws ImportException {
+      final DatabaseInternal database, final ImporterContext context, final ImporterSettings settings) throws ImportException {
 
     context.parsed.set(0);
 
     switch (entityType) {
     case DOCUMENT:
-      loadDocuments(sourceSchema, parser, database, context, settings, inMemoryIndex);
+      loadDocuments(sourceSchema, parser, database, context, settings);
       break;
 
     case VERTEX:
-      loadVertices(sourceSchema, parser, database, context, settings, inMemoryIndex);
+      loadVertices(sourceSchema, parser, database, context, settings);
       break;
 
     case EDGE:
-      loadEdges(sourceSchema, parser, database, context, settings, inMemoryIndex);
+      loadEdges(sourceSchema, parser, database, context, settings);
       break;
     }
   }
 
   private void loadDocuments(final SourceSchema sourceSchema, final Parser parser, final Database database, final ImporterContext context,
-      final ImporterSettings settings, CompressedAny2RIDIndex<Long> inMemoryIndex) throws ImportException {
+      final ImporterSettings settings) throws ImportException {
     AbstractParser csvParser = createCSVParser(settings, ",");
 
     LogManager.instance().log(this, Level.INFO, "Started importing documents from CSV source", null);
@@ -105,8 +106,25 @@ public class CSVImporter extends AbstractContentImporter {
   }
 
   private void loadVertices(final SourceSchema sourceSchema, final Parser parser, final Database database, final ImporterContext context,
-      final ImporterSettings settings, final CompressedAny2RIDIndex<Long> inMemoryIndex) throws ImportException {
-    AbstractParser csvParser = createCSVParser(settings, ",");
+      final ImporterSettings settings) throws ImportException {
+
+    final AnalyzedEntity entity = sourceSchema.getSchema().getEntity(settings.vertexTypeName);
+    final AnalyzedProperty id = entity.getProperty(settings.typeIdProperty);
+
+    if (context.verticesIndex == null) {
+      long expectedVertices = settings.expectedVertices;
+      if (expectedVertices <= 0 && entity != null)
+        expectedVertices = (int) (sourceSchema.getSource().totalSize / entity.getAverageRowLength());
+
+      if (expectedVertices <= 0)
+        expectedVertices = 1000000;
+      else if (expectedVertices > Integer.MAX_VALUE)
+        expectedVertices = Integer.MAX_VALUE;
+
+      context.verticesIndex = new CompressedAny2RIDIndex<>(database, Type.LONG, (int) expectedVertices);
+    }
+
+    final AbstractParser csvParser = createCSVParser(settings, ",");
 
     LogManager.instance().log(this, Level.INFO, "Started importing vertices from CSV source", null);
 
@@ -115,14 +133,16 @@ public class CSVImporter extends AbstractContentImporter {
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
 
-      final AnalyzedProperty id = sourceSchema.getSchema().getEntity(settings.vertexTypeName).getProperty(settings.typeIdProperty);
-
       if (id == null) {
         LogManager.instance().log(this, Level.INFO, "Property Id '%s.%s' is null. Importing is aborted", null, settings.vertexTypeName,
             settings.typeIdProperty);
         throw new IllegalArgumentException(
             "Property Id '" + settings.vertexTypeName + "." + settings.typeIdProperty + "' is null. Importing is aborted");
       }
+      final int idIndex = id.getIndex();
+
+      final AnalyzedProperty[] properties = new AnalyzedProperty[entity.getProperties().size()];
+      entity.getProperties().toArray(properties);
 
       if (!database.isTransactionActive())
         database.begin();
@@ -135,7 +155,6 @@ public class CSVImporter extends AbstractContentImporter {
           // SKIP IT
           continue;
 
-        final int idIndex = id.getIndex();
         if (idIndex >= row.length) {
           LogManager.instance()
               .log(this, Level.INFO, "Property Id is configured on property %d but cannot be found on current record. Skip it", null,
@@ -146,11 +165,16 @@ public class CSVImporter extends AbstractContentImporter {
         final long vertexId = Long.parseLong(row[idIndex]);
 
         final Vertex sourceVertex;
-        RID sourceVertexRID = inMemoryIndex.get(vertexId);
+        RID sourceVertexRID = context.verticesIndex.get(vertexId);
         if (sourceVertexRID == null) {
           // CREATE THE VERTEX
           sourceVertex = database.newVertex(settings.vertexTypeName);
-          ((MutableVertex) sourceVertex).set(settings.typeIdProperty, vertexId);
+
+          for (int p = 0; p < properties.length; ++p) {
+            AnalyzedProperty prop = properties[p];
+            ((MutableVertex) sourceVertex).set(prop.getName(), row[p]);
+          }
+
           database.async().createRecord((MutableDocument) sourceVertex, new NewRecordCallback() {
             @Override
             public void call(final Record newDocument) {
@@ -161,15 +185,16 @@ public class CSVImporter extends AbstractContentImporter {
               db.getGraphEngine().createInEdgeChunk(db, v);
 
               context.createdVertices.incrementAndGet();
-              inMemoryIndex.put(vertexId, newDocument.getIdentity());
+              context.verticesIndex.put(vertexId, newDocument.getIdentity());
             }
           });
         }
 
         if (line > 0 && line % 10000000 == 0)
           LogManager.instance().log(this, Level.INFO, "Map chunkSize=%s chunkAllocated=%s size=%d totalUsedSlots=%d", null,
-              FileUtils.getSizeAsString(inMemoryIndex.getChunkSize()), FileUtils.getSizeAsString(inMemoryIndex.getChunkAllocated()),
-              inMemoryIndex.size(), inMemoryIndex.getTotalUsedSlots());
+              FileUtils.getSizeAsString(context.verticesIndex.getChunkSize()),
+              FileUtils.getSizeAsString(context.verticesIndex.getChunkAllocated()), context.verticesIndex.size(),
+              context.verticesIndex.getTotalUsedSlots());
       }
 
       database.commit();
@@ -188,29 +213,41 @@ public class CSVImporter extends AbstractContentImporter {
   }
 
   private void loadEdges(final SourceSchema sourceSchema, final Parser parser, final DatabaseInternal database,
-      final ImporterContext context, final ImporterSettings settings, CompressedAny2RIDIndex<Long> verticesIndex) throws ImportException {
+      final ImporterContext context, final ImporterSettings settings) throws ImportException {
     AbstractParser csvParser = createCSVParser(settings, ",");
 
     LogManager.instance().log(this, Level.INFO, "Started importing edges from CSV source", null);
 
     final long beginTime = System.currentTimeMillis();
 
-    if (verticesIndex == null || verticesIndex.isEmpty())
+    if (context.verticesIndex == null || context.verticesIndex.isEmpty())
       LogManager.instance()
           .log(this, Level.WARNING, "Cannot find in-memory index for vertices, loading from disk could be very slow", null);
 
-    List<Pair<Identifiable, Object[]>> connections = new ArrayList<>();
+    final AnalyzedEntity entity = sourceSchema.getSchema().getEntity(settings.edgeTypeName);
+    final AnalyzedProperty from = entity.getProperty(settings.edgeFromField);
+    final AnalyzedProperty to = entity.getProperty(settings.edgeToField);
 
-    final CompressedRID2RIDsIndex edgeIndex = new CompressedRID2RIDsIndex(database, 16 * 1024 * 1024);
+    long expectedEdges = settings.expectedEdges;
+    if (expectedEdges <= 0 && entity != null)
+      expectedEdges = (int) (sourceSchema.getSource().totalSize / entity.getAverageRowLength());
+
+    if (expectedEdges <= 0 || expectedEdges > _16MB)
+      // USE CHUNKS OF 16MB EACH
+      expectedEdges = _16MB;
+
+    final CompressedRID2RIDsIndex incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedEdges);
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
 
-      final AnalyzedProperty from = sourceSchema.getSchema().getEntity(settings.edgeTypeName).getProperty(settings.edgeFromField);
-      final AnalyzedProperty to = sourceSchema.getSchema().getEntity(settings.edgeTypeName).getProperty(settings.edgeToField);
+      final AnalyzedProperty[] properties = new AnalyzedProperty[entity.getProperties().size()];
+      entity.getProperties().toArray(properties);
 
       if (!database.isTransactionActive())
         database.begin();
+
+      List<Pair<Identifiable, Object[]>> connections = new ArrayList<>();
 
       long edgeLines = 0;
       String[] row;
@@ -222,7 +259,8 @@ public class CSVImporter extends AbstractContentImporter {
           continue;
 
         final long destinationVertexKey = Long.parseLong(row[to.getIndex()]);
-        final RID destinationVertexRID = verticesIndex.get(destinationVertexKey);
+        // TODO: LOAD FROM INDEX
+        final RID destinationVertexRID = context.verticesIndex.get(destinationVertexKey);
         if (destinationVertexRID == null) {
           // SKIP IT
           context.skippedEdges.incrementAndGet();
@@ -232,10 +270,11 @@ public class CSVImporter extends AbstractContentImporter {
         final long sourceVertexKey = Long.parseLong(row[from.getIndex()]);
 
         if (lastSourceKey == null || !lastSourceKey.equals(sourceVertexKey)) {
-          createEdgesInBatch(database, edgeIndex, context, settings, connections);
+          createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
           connections = new ArrayList<>();
 
-          final RID sourceVertexRID = verticesIndex.get(sourceVertexKey);
+          // TODO: LOAD FROM INDEX
+          final RID sourceVertexRID = context.verticesIndex.get(sourceVertexKey);
           if (sourceVertexRID == null) {
             // SKIP IT
             context.skippedEdges.incrementAndGet();
@@ -246,16 +285,30 @@ public class CSVImporter extends AbstractContentImporter {
           lastSourceVertex = (VertexInternal) sourceVertexRID.getVertex(true);
         }
 
-        connections.add(new Pair<>(destinationVertexRID, NO_PARAMS));
+        final Object[] params;
+        if (row.length > 2) {
+          params = new Object[row.length * 2];
+          for (int i = 0; i < row.length; ++i) {
+            params[i * 2] = properties[i].getName();
+            params[i * 2 + 1] = row[i];
+          }
+        } else {
+          params = NO_PARAMS;
+        }
+
+        connections.add(new Pair<>(destinationVertexRID, params));
 
         ++edgeLines;
 
-        if (edgeIndex.getChunkSize() >= 256 * 1024 * 1024) {
-          LogManager.instance().log(this, Level.INFO, "Creation of back connections, reached %s size, flushing %d connections (resetCounter=%d)...", null,
-              FileUtils.getSizeAsString(edgeIndex.getChunkSize()), edgeIndex.size(), edgeIndex.getResetCounter());
+        if (incomingConnectionsIndex.getChunkSize() >= settings.maxRAMIncomingEdges) {
+          LogManager.instance()
+              .log(this, Level.INFO, "Creation of back connections, reached %s size (max=%d), flushing %d connections (resetCounter=%d)...",
+                  null, FileUtils.getSizeAsString(incomingConnectionsIndex.getChunkSize()),
+                  FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), incomingConnectionsIndex.size(),
+                  incomingConnectionsIndex.getResetCounter());
 
           // CREATE A NEW CHUNK BEFORE CONTINUING
-          final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, edgeIndex.reset());
+          final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, incomingConnectionsIndex.reset());
 
           database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, settings.edgeTypeName);
 
@@ -263,17 +316,17 @@ public class CSVImporter extends AbstractContentImporter {
         }
 
         if (edgeLines % settings.commitEvery == 0) {
-          createEdgesInBatch(database, edgeIndex, context, settings, connections);
+          createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
           connections = new ArrayList<>();
           database.commit();
           database.begin();
         }
       }
 
-      createEdgesInBatch(database, edgeIndex, context, settings, connections);
+      createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
 
       // FLUSH LAST INCOMING CONNECTIONS
-      final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, edgeIndex.reset());
+      final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, incomingConnectionsIndex.reset());
       database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, settings.edgeTypeName);
       LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
 
@@ -367,11 +420,15 @@ public class CSVImporter extends AbstractContentImporter {
           // HEADER
           for (String cell : row)
             fieldNames.add(cell);
-        } else
+        } else {
           // DATA LINE
-          for (int i = 0; i < row.length; ++i)
-            analyzedSchema.getOrCreateEntity(entityName, entityType).getOrCreateProperty(fieldNames.get(i), row[i]);
+          final AnalyzedEntity entity = analyzedSchema.getOrCreateEntity(entityName, entityType);
 
+          entity.setRowSize(row);
+          for (int i = 0; i < row.length; ++i) {
+            entity.getOrCreateProperty(fieldNames.get(i), row[i]);
+          }
+        }
       }
 
     } catch (EOFException e) {

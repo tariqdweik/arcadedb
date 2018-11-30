@@ -17,6 +17,8 @@ public class AnalyzedEntity {
   private final String                        name;
   private final ENTITY_TYPE                   type;
   private final Map<String, AnalyzedProperty> properties;
+  private       long                          totalRowLength = 0;
+  private       long                          analyzedRows   = 0;
   private       long                          maxValueSampling;
 
   public AnalyzedEntity(final String name, final ENTITY_TYPE type, final long maxValueSampling) {
@@ -42,6 +44,19 @@ public class AnalyzedEntity {
     }
 
     property.setLastContent(content);
+  }
+
+  public int getAverageRowLength() {
+    return (int) (totalRowLength / analyzedRows);
+  }
+
+  public void setRowSize(final String[] row) {
+    for (int i = 0; i < row.length; ++i) {
+      totalRowLength += row[i].length() + 1;
+    }
+    ++totalRowLength; // ADD LF
+
+    ++analyzedRows;
   }
 
   public String getName() {
