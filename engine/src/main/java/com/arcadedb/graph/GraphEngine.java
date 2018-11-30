@@ -73,13 +73,15 @@ public class GraphEngine {
     return edge;
   }
 
-  public void newEdges(final DatabaseInternal database, VertexInternal sourceVertex, final List<Pair<Identifiable, Object[]>> connections,
-      final String edgeType, final boolean bidirectional) {
+  public List<Edge> newEdges(final DatabaseInternal database, VertexInternal sourceVertex,
+      final List<Pair<Identifiable, Object[]>> connections, final String edgeType, final boolean bidirectional) {
+
     if (connections == null || connections.isEmpty())
-      return;
+      return Collections.EMPTY_LIST;
 
     final RID sourceVertexRID = sourceVertex.getIdentity();
 
+    final List<Edge> edges = new ArrayList<>(connections.size());
     final List<Pair<Identifiable, Identifiable>> outEdgePairs = new ArrayList<>();
 
     for (int i = 0; i < connections.size(); ++i) {
@@ -100,6 +102,8 @@ public class GraphEngine {
 //      }
 
       outEdgePairs.add(new Pair<>(edge, destinationVertex));
+
+      edges.add(edge);
     }
 
     final AtomicReference<VertexInternal> v = new AtomicReference<>(sourceVertex);
@@ -115,6 +119,8 @@ public class GraphEngine {
         connectIncomingEdge(database, edge.getSecond(), edge.getFirst().getIdentity(), sourceVertexRID);
       }
     }
+
+    return edges;
   }
 
   public void createIncomingConnectionsInBatch(final DatabaseInternal database, final String vertexTypeName, final String edgeTypeName) {
@@ -167,7 +173,7 @@ public class GraphEngine {
     createIncomingEdgesInBatch(database, index, edgeTypeName);
   }
 
-  private void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index, final String edgeTypeName) {
+  public void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index, final String edgeTypeName) {
     Vertex lastVertex = null;
     final List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
 

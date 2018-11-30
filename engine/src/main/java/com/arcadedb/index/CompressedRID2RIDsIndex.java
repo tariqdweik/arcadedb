@@ -14,6 +14,7 @@ import com.arcadedb.utility.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Map like optimized to avoid stressing the GC by using mechanical sympathy technique + compression of key and values.
@@ -32,10 +33,12 @@ import java.util.NoSuchElementException;
 public class CompressedRID2RIDsIndex {
   protected final Database         database;
   protected final BinarySerializer serializer;
-  protected       Binary           chunk;
-  protected       int              keys;
-  protected       int              totalEntries   = 0;
-  protected       int              totalUsedSlots = 0;
+  protected final AtomicInteger    resetCounter = new AtomicInteger();
+  protected final int keys;
+
+  protected Binary chunk;
+  protected int    totalEntries   = 0;
+  protected int    totalUsedSlots = 0;
 
   public class EntryIterator {
     private int posInHashTable = 0;
@@ -124,8 +127,14 @@ public class CompressedRID2RIDsIndex {
     this.database = database;
     this.keys = expectedSize;
     this.serializer = new BinarySerializer();
-
     reset();
+  }
+
+  public CompressedRID2RIDsIndex(final Database database, final Binary buffer) {
+    this.database = database;
+    this.keys = buffer.size();
+    this.serializer = new BinarySerializer();
+    this.chunk = buffer;
   }
 
   public int size() {
@@ -255,6 +264,7 @@ public class CompressedRID2RIDsIndex {
               chunk.putInt(0);
 
             chunk.putInt(previousEntryOffset, newEntryPosition);
+            ++totalEntries;
             return;
           }
 
@@ -308,9 +318,20 @@ public class CompressedRID2RIDsIndex {
     return totalUsedSlots;
   }
 
-  public void reset() {
-    this.chunk = new Binary(keys * 5);
-    this.chunk.setAllocationChunkSize(keys);
-    this.chunk.fill((byte) 0, keys * Binary.INT_SERIALIZED_SIZE);
+  public int getResetCounter() {
+    return resetCounter.get();
+  }
+
+  public Binary reset() {
+    synchronized (this) {
+      final Binary oldChunk = chunk;
+      this.chunk = new Binary(keys * 5);
+      this.chunk.setAllocationChunkSize(keys);
+      this.chunk.fill((byte) 0, keys * Binary.INT_SERIALIZED_SIZE);
+      totalEntries = 0;
+      totalUsedSlots = 0;
+      resetCounter.incrementAndGet();
+      return oldChunk;
+    }
   }
 }

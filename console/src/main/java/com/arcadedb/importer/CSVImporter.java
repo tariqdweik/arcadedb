@@ -6,13 +6,14 @@ package com.arcadedb.importer;
 
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.CreateOutgoingEdgesAsyncTask;
-import com.arcadedb.database.async.NewEdgeCallback;
+import com.arcadedb.database.async.NewEdgesCallback;
 import com.arcadedb.database.async.NewRecordCallback;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.index.CompressedAny2RIDIndex;
+import com.arcadedb.index.CompressedRID2RIDsIndex;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.Pair;
@@ -165,7 +166,7 @@ public class CSVImporter extends AbstractContentImporter {
           });
         }
 
-        if (line > 0 && line % 1000000 == 0)
+        if (line > 0 && line % 10000000 == 0)
           LogManager.instance().log(this, Level.INFO, "Map chunkSize=%s chunkAllocated=%s size=%d totalUsedSlots=%d", null,
               FileUtils.getSizeAsString(inMemoryIndex.getChunkSize()), FileUtils.getSizeAsString(inMemoryIndex.getChunkAllocated()),
               inMemoryIndex.size(), inMemoryIndex.getTotalUsedSlots());
@@ -198,9 +199,9 @@ public class CSVImporter extends AbstractContentImporter {
       LogManager.instance()
           .log(this, Level.WARNING, "Cannot find in-memory index for vertices, loading from disk could be very slow", null);
 
-//    final CompressedRID2RIDsIndex edgeIndex = new CompressedRID2RIDsIndex(database, 50 * 1024 * 1024);
-
     List<Pair<Identifiable, Object[]>> connections = new ArrayList<>();
+
+    final CompressedRID2RIDsIndex edgeIndex = new CompressedRID2RIDsIndex(database, 16 * 1024 * 1024);
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
@@ -231,7 +232,7 @@ public class CSVImporter extends AbstractContentImporter {
         final long sourceVertexKey = Long.parseLong(row[from.getIndex()]);
 
         if (lastSourceKey == null || !lastSourceKey.equals(sourceVertexKey)) {
-          createEdgesInBatch(database, context, settings, connections);
+          createEdgesInBatch(database, edgeIndex, context, settings, connections);
           connections = new ArrayList<>();
 
           final RID sourceVertexRID = verticesIndex.get(sourceVertexKey);
@@ -249,23 +250,35 @@ public class CSVImporter extends AbstractContentImporter {
 
         ++edgeLines;
 
+        if (edgeIndex.getChunkSize() >= 256 * 1024 * 1024) {
+          LogManager.instance().log(this, Level.INFO, "Creation of back connections, reached %s size, flushing %d connections (resetCounter=%d)...", null,
+              FileUtils.getSizeAsString(edgeIndex.getChunkSize()), edgeIndex.size(), edgeIndex.getResetCounter());
+
+          // CREATE A NEW CHUNK BEFORE CONTINUING
+          final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, edgeIndex.reset());
+
+          database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, settings.edgeTypeName);
+
+          LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
+        }
+
         if (edgeLines % settings.commitEvery == 0) {
-          createEdgesInBatch(database, context, settings, connections);
+          createEdgesInBatch(database, edgeIndex, context, settings, connections);
           connections = new ArrayList<>();
           database.commit();
           database.begin();
         }
       }
 
-      createEdgesInBatch(database, context, settings, connections);
+      createEdgesInBatch(database, edgeIndex, context, settings, connections);
+
+      // FLUSH LAST INCOMING CONNECTIONS
+      final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, edgeIndex.reset());
+      database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, settings.edgeTypeName);
+      LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
 
       database.commit();
       database.async().waitCompletion();
-
-      // CREATE INCOMING CONNECTIONS
-      database.begin();
-      database.getGraphEngine().createIncomingConnectionsInBatch(database, settings.vertexTypeName, settings.edgeTypeName);
-      database.commit();
 
     } catch (IOException e) {
       throw new ImportException("Error on importing CSV");
@@ -285,8 +298,8 @@ public class CSVImporter extends AbstractContentImporter {
     }
   }
 
-  private void createEdgesInBatch(final DatabaseInternal database, final ImporterContext context, final ImporterSettings settings,
-      List<Pair<Identifiable, Object[]>> connections) {
+  private void createEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex edgeIndex, final ImporterContext context,
+      final ImporterSettings settings, final List<Pair<Identifiable, Object[]>> connections) {
     if (!connections.isEmpty()) {
       // CREATE EDGES ALL TOGETHER FOR THE PREVIOUS BATCH
       if (lastSourceVertex.getOutEdgesHeadChunk() == null)
@@ -296,14 +309,15 @@ public class CSVImporter extends AbstractContentImporter {
       final int asyncSlot = database.async().getSlot(lastSourceVertex.getIdentity().getBucketId());
 
       database.async().scheduleTask(asyncSlot,
-          new CreateOutgoingEdgesAsyncTask(lastSourceVertex, connections, settings.edgeTypeName, settings.edgeBidirectional,
-              new NewEdgeCallback() {
-                @Override
-                public void call(Edge newEdge, boolean createdSourceVertex, boolean createdDestinationVertex) {
-                  context.createdEdges.addAndGet(connections.size());
-                  connections.clear();
-                }
-              }), true);
+          new CreateOutgoingEdgesAsyncTask(lastSourceVertex, connections, settings.edgeTypeName, false, new NewEdgesCallback() {
+            @Override
+            public void call(List<Edge> newEdges) {
+              context.createdEdges.addAndGet(connections.size());
+              for (Edge e : newEdges)
+                edgeIndex.put(e.getIn(), e.getIdentity(), lastSourceVertex.getIdentity());
+              connections.clear();
+            }
+          }), true);
     }
   }
 

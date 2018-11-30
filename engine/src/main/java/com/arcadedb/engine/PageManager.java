@@ -412,8 +412,10 @@ public class PageManager extends LockContext {
 
       clear();
 
-      // BEG FOR A GC COLLECTION ASAP
-      System.gc();
+      if (highPressureRAMCounter < 2 || highPressureRAMCounter % 20 == 0) {
+        // BEG FOR A GC COLLECTION ASAP
+        System.gc();
+      }
 
       lastLowRAM = System.currentTimeMillis();
 

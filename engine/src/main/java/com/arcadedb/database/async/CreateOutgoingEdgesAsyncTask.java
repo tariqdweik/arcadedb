@@ -6,6 +6,7 @@ package com.arcadedb.database.async;
 
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Identifiable;
+import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.utility.Pair;
 
@@ -19,10 +20,10 @@ public class CreateOutgoingEdgesAsyncTask extends DatabaseAsyncAbstractTask {
   private final List<Pair<Identifiable, Object[]>> connections;
   private final String                             edgeTypeName;
   private final boolean                            edgeBidirectional;
-  private final NewEdgeCallback                    callback;
+  private final NewEdgesCallback                   callback;
 
   public CreateOutgoingEdgesAsyncTask(final VertexInternal sourceVertex, final List<Pair<Identifiable, Object[]>> connections,
-      final String edgeTypeName, final boolean edgeBidirectional, final NewEdgeCallback callback) {
+      final String edgeTypeName, final boolean edgeBidirectional, final NewEdgesCallback callback) {
     this.sourceVertex = sourceVertex;
     this.connections = connections;
     this.edgeTypeName = edgeTypeName;
@@ -31,10 +32,10 @@ public class CreateOutgoingEdgesAsyncTask extends DatabaseAsyncAbstractTask {
   }
 
   public void execute(final DatabaseAsyncExecutor.AsyncThread async, final DatabaseInternal database) {
-    database.getGraphEngine().newEdges(database, sourceVertex, connections, edgeTypeName, edgeBidirectional);
+    final List<Edge> edges = database.getGraphEngine().newEdges(database, sourceVertex, connections, edgeTypeName, edgeBidirectional);
 
     if (callback != null)
-      callback.call(null, false, false);
+      callback.call(edges);
   }
 
   @Override
