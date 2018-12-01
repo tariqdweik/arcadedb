@@ -355,8 +355,8 @@ public class CSVImporter extends AbstractContentImporter {
 
         final Object[] params;
         if (row.length > 2) {
-          params = new Object[row.length * 2];
-          for (int i = 0; i < row.length; ++i) {
+          params = new Object[properties.size() * 2];
+          for (int i = 0; i < properties.size(); ++i) {
             final AnalyzedProperty property = properties.get(i);
             params[i * 2] = property.getName();
             params[i * 2 + 1] = row[property.getIndex()];
