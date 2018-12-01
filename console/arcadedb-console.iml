@@ -13,9 +13,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="arcadedb-engine" />
-    <orderEntry type="module" module-name="arcadedb-network" />
-    <orderEntry type="module" module-name="arcadedb-server" scope="TEST" />
     <orderEntry type="library" name="Maven: org.jline:jline-terminal:3.9.0" level="project" />
     <orderEntry type="library" name="Maven: org.jline:jline-reader:3.9.0" level="project" />
     <orderEntry type="library" name="Maven: com.univocity:univocity-parsers:2.7.5" level="project" />

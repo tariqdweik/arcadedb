@@ -94,4 +94,9 @@ public class AnalyzedProperty {
   public boolean isCollectingSamples() {
     return collectingSamples;
   }
+
+  @Override
+  public String toString() {
+    return name;
+  }
 }

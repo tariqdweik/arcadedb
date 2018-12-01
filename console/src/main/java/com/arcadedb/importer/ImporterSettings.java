@@ -14,19 +14,22 @@ public class ImporterSettings {
   boolean wal      = false;
 
   String documents;
-  String documentTypeName = "Document";
+  String documentTypeName          = "Document";
+  String documentPropertiesInclude = "*";
 
   String vertices;
-  String vertexTypeName   = "Node";
-  long   expectedVertices = 0l;
+  String vertexTypeName          = "Node";
+  String vertexPropertiesInclude = "*";
+  long   expectedVertices        = 0l;
 
   String  edges;
-  String  edgeTypeName        = "Relationship";
-  long    expectedEdges       = 0l;
-  int     maxRAMIncomingEdges = 256 * 1024 * 1024; // 256MB
-  String  edgeFromField       = null;
-  String  edgeToField         = null;
-  boolean edgeBidirectional   = true;
+  String  edgeTypeName          = "Relationship";
+  String  edgePropertiesInclude = "*";
+  long    expectedEdges         = 0l;
+  int     maxRAMIncomingEdges   = 256 * 1024 * 1024; // 256MB
+  String  edgeFromField         = null;
+  String  edgeToField           = null;
+  boolean edgeBidirectional     = true;
 
   String  typeIdProperty         = null;
   boolean typeIdPropertyIsUnique = false;
@@ -54,6 +57,8 @@ public class ImporterSettings {
       database = value;
     else if ("documents".equals(name))
       documents = value;
+    else if ("documentPropertiesInclude".equals(name))
+      documentPropertiesInclude = value;
     else if ("forceDatabaseCreate".equals(name))
       forceDatabaseCreate = Boolean.parseBoolean(value);
     else if ("wal".equals(name))
@@ -70,6 +75,8 @@ public class ImporterSettings {
       expectedVertices = Integer.parseInt(value);
     else if ("vertexType".equals(name))
       vertexTypeName = value;
+    else if ("vertexPropertiesInclude".equals(name))
+      vertexPropertiesInclude = value;
     else if ("edges".equals(name))
       edges = value;
     else if ("expectedEdges".equals(name))
@@ -78,6 +85,8 @@ public class ImporterSettings {
       maxRAMIncomingEdges = Integer.parseInt(value);
     else if ("edgeType".equals(name))
       edgeTypeName = value;
+    else if ("edgePropertiesInclude".equals(name))
+      edgePropertiesInclude = value;
     else if ("edgeFromField".equals(name))
       edgeFromField = value;
     else if ("edgeToField".equals(name))

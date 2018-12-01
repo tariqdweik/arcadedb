@@ -28,7 +28,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
@@ -73,6 +75,29 @@ public class CSVImporter extends AbstractContentImporter {
       if (!database.isTransactionActive())
         database.begin();
 
+      final AnalyzedEntity entity = sourceSchema.getSchema().getEntity(settings.vertexTypeName);
+
+      final List<AnalyzedProperty> properties = new ArrayList<>();
+      if (!settings.documentPropertiesInclude.equalsIgnoreCase("*")) {
+        final String[] includes = settings.documentPropertiesInclude.split(",");
+        final Set<String> propertiesSet = new HashSet<>();
+
+        for (String i : includes)
+          propertiesSet.add(i);
+
+        for (AnalyzedProperty p : entity.getProperties()) {
+          if (propertiesSet.contains(p.getName())) {
+            properties.add(p);
+          }
+        }
+      } else {
+        // INCLUDE ALL THE PROPERTIES
+        for (AnalyzedProperty p : entity.getProperties())
+          properties.add(p);
+      }
+
+      LogManager.instance().log(this, Level.INFO, "Importing the following document properties: %s", null, properties);
+
       String[] row;
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
         context.parsed.incrementAndGet();
@@ -82,6 +107,12 @@ public class CSVImporter extends AbstractContentImporter {
           continue;
 
         final MutableDocument document = database.newDocument(settings.documentTypeName);
+
+        for (int p = 0; p < properties.size(); ++p) {
+          final AnalyzedProperty prop = properties.get(p);
+          document.set(prop.getName(), row[prop.getIndex()]);
+        }
+
         database.async().createRecord(document, new NewRecordCallback() {
           @Override
           public void call(final Record newDocument) {
@@ -141,8 +172,26 @@ public class CSVImporter extends AbstractContentImporter {
       }
       final int idIndex = id.getIndex();
 
-      final AnalyzedProperty[] properties = new AnalyzedProperty[entity.getProperties().size()];
-      entity.getProperties().toArray(properties);
+      final List<AnalyzedProperty> properties = new ArrayList<>();
+      if (!settings.vertexPropertiesInclude.equalsIgnoreCase("*")) {
+        final String[] includes = settings.vertexPropertiesInclude.split(",");
+        final Set<String> propertiesSet = new HashSet<>();
+
+        for (String i : includes)
+          propertiesSet.add(i);
+
+        for (AnalyzedProperty p : entity.getProperties()) {
+          if (propertiesSet.contains(p.getName())) {
+            properties.add(p);
+          }
+        }
+      } else {
+        // INCLUDE ALL THE PROPERTIES
+        for (AnalyzedProperty p : entity.getProperties())
+          properties.add(p);
+      }
+
+      LogManager.instance().log(this, Level.INFO, "Importing the following vertex properties: %s", null, properties);
 
       if (!database.isTransactionActive())
         database.begin();
@@ -170,9 +219,9 @@ public class CSVImporter extends AbstractContentImporter {
           // CREATE THE VERTEX
           sourceVertex = database.newVertex(settings.vertexTypeName);
 
-          for (int p = 0; p < properties.length; ++p) {
-            AnalyzedProperty prop = properties[p];
-            ((MutableVertex) sourceVertex).set(prop.getName(), row[p]);
+          for (int p = 0; p < properties.size(); ++p) {
+            final AnalyzedProperty prop = properties.get(p);
+            ((MutableVertex) sourceVertex).set(prop.getName(), row[prop.getIndex()]);
           }
 
           database.async().createRecord((MutableDocument) sourceVertex, new NewRecordCallback() {
@@ -210,6 +259,7 @@ public class CSVImporter extends AbstractContentImporter {
       LogManager.instance().log(this, Level.INFO, "- Parsed lines...: %d", null, context.parsed.get());
       LogManager.instance().log(this, Level.INFO, "- Total vertices.: %d", null, context.createdVertices.get());
     }
+
   }
 
   private void loadEdges(final SourceSchema sourceSchema, final Parser parser, final DatabaseInternal database,
@@ -241,8 +291,26 @@ public class CSVImporter extends AbstractContentImporter {
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
 
-      final AnalyzedProperty[] properties = new AnalyzedProperty[entity.getProperties().size()];
-      entity.getProperties().toArray(properties);
+      final List<AnalyzedProperty> properties = new ArrayList<>();
+      if (!settings.edgePropertiesInclude.equalsIgnoreCase("*")) {
+        final String[] includes = settings.edgePropertiesInclude.split(",");
+        final Set<String> propertiesSet = new HashSet<>();
+
+        for (String i : includes)
+          propertiesSet.add(i);
+
+        for (AnalyzedProperty p : entity.getProperties()) {
+          if (propertiesSet.contains(p.getName())) {
+            properties.add(p);
+          }
+        }
+      } else {
+        // INCLUDE ALL THE PROPERTIES
+        for (AnalyzedProperty p : entity.getProperties())
+          properties.add(p);
+      }
+
+      LogManager.instance().log(this, Level.INFO, "Importing the following edge properties: %s", null, properties);
 
       if (!database.isTransactionActive())
         database.begin();
@@ -289,8 +357,9 @@ public class CSVImporter extends AbstractContentImporter {
         if (row.length > 2) {
           params = new Object[row.length * 2];
           for (int i = 0; i < row.length; ++i) {
-            params[i * 2] = properties[i].getName();
-            params[i * 2 + 1] = row[i];
+            final AnalyzedProperty property = properties.get(i);
+            params[i * 2] = property.getName();
+            params[i * 2 + 1] = row[property.getIndex()];
           }
         } else {
           params = NO_PARAMS;
