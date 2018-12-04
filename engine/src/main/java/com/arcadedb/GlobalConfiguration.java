@@ -115,7 +115,7 @@ public enum GlobalConfiguration {// ENVIRONMENT
   }, new Callable<Object, Object>() {
     @Override
     public Object call(final Object value) {
-      return Runtime.getRuntime().maxMemory() / 2 / 1024 / 1024;
+      return Runtime.getRuntime().maxMemory() / 4 / 1024 / 1024;
     }
   }),
 

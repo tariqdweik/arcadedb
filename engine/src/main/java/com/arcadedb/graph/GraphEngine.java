@@ -10,19 +10,16 @@ import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.index.CompressedRID2RIDsIndex;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
-import com.arcadedb.schema.VertexType;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.MultiIterator;
 import com.arcadedb.utility.Pair;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class GraphEngine {
-  public static final int EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
-  //private static final RID NO_RID                              = new RID(null, -1, -1);
+  public static final  int EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
+  private static final RID NO_RID                              = new RID(null, -1, -1);
 
   public void createVertexType(DatabaseInternal database, final DocumentType type) {
     for (Bucket b : type.getBuckets(false)) {
@@ -47,15 +44,12 @@ public class GraphEngine {
 
     final DatabaseInternal database = (DatabaseInternal) fromVertex.getDatabase();
 
-    final MutableEdge edge;
-
+    final MutableEdge edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
 //    if (properties != null && properties.length > 0) {
-    edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
-    setProperties(edge, properties);
-    edge.save();
+      setProperties(edge, properties);
+      edge.save();
 //    } else {
 //      // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
-//      edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
 //      edge.setIdentity(NO_RID);
 //    }
 
@@ -91,13 +85,13 @@ public class GraphEngine {
 
       final Identifiable destinationVertex = connection.getFirst();
 
-//      if (connection.getSecond() != null && connection.getSecond().length > 0) {
       edge = new MutableEdge(database, edgeType, sourceVertexRID, destinationVertex.getIdentity());
-      setProperties(edge, connection.getSecond());
-      edge.save();
+
+//      if (connection.getSecond() != null && connection.getSecond().length > 0) {
+        setProperties(edge, connection.getSecond());
+        edge.save();
 //      } else {
 //        // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
-//        edge = new MutableEdge(database, edgeType, sourceVertexRID, destinationVertex.getIdentity());
 //        edge.setIdentity(NO_RID);
 //      }
 
@@ -121,56 +115,6 @@ public class GraphEngine {
     }
 
     return edges;
-  }
-
-  public void createIncomingConnectionsInBatch(final DatabaseInternal database, final String vertexTypeName, final String edgeTypeName) {
-    final DocumentType type = database.getSchema().getType(vertexTypeName);
-    if (!(type instanceof VertexType))
-      throw new IllegalArgumentException("Type '" + vertexTypeName + "' is not a vertex");
-
-    final CompressedRID2RIDsIndex index = new CompressedRID2RIDsIndex(database, 10 * 1024 * 1024);
-
-    final AtomicLong browsedVertices = new AtomicLong();
-    final AtomicLong browsedEdges = new AtomicLong();
-
-    database.scanType(vertexTypeName, false, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        final VertexInternal v = (VertexInternal) record;
-
-        browsedVertices.incrementAndGet();
-
-        final RID out = v.getOutEdgesHeadChunk();
-        if (out != null) {
-          final EdgeLinkedList edgeList = new EdgeLinkedList(v, Vertex.DIRECTION.OUT, (EdgeChunk) database.lookupByRID(out, true));
-          final Iterator<Pair<RID, RID>> iterator = edgeList.entryIterator(edgeTypeName);
-          while (iterator.hasNext()) {
-            final Pair<RID, RID> entry = iterator.next();
-
-            index.put(entry.getSecond(), entry.getFirst(), v.getIdentity());
-
-            browsedEdges.incrementAndGet();
-
-            if (index.getChunkSize() > 256 * 1024 * 1024) {
-              LogManager.instance().log(this, Level.INFO,
-                  "Creation of back connections, reached %s size, flushing %d connections (from %d vertices and %d edges)...", null,
-                  FileUtils.getSizeAsString(index.getChunkSize()), index.size(), browsedVertices.get(), browsedEdges.get());
-
-              createIncomingEdgesInBatch(database, index, edgeTypeName);
-
-              LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
-
-              // CREATE A NEW CHUNK BEFORE CONTINUING
-              index.reset();
-            }
-          }
-        }
-
-        return true;
-      }
-    });
-
-    createIncomingEdgesInBatch(database, index, edgeTypeName);
   }
 
   public void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index, final String edgeTypeName) {

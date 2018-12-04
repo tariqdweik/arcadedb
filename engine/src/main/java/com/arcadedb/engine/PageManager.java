@@ -395,34 +395,34 @@ public class PageManager extends LockContext {
     final long freeMemory = Runtime.getRuntime().freeMemory();
     final long maxMemory = Runtime.getRuntime().maxMemory();
 
-    if (totMemory - freeMemory >= maxMemory * 80 / 100) {
-      // UNDER HEAP/GC PRESSURE, RELEASE ALL THE IMMUTABLE PAGES
-
-      final boolean highPressure = now - lastLowRAM < 500;
-
-      if (highPressure)
-        // HIGH-PRESSURE AFTER SHORT TIME, INCREASE THE COUNTER
-        ++highPressureRAMCounter;
-
-      // TODO: REDUCE THIS LOG TO DEBUG ONLY
-      LogManager.instance().log(this, Level.INFO,
-          "Free heap memory (%s) is below 20%% of the max available (%s). Freeing %d pages from cache (highPressureRAMCounter=%d threadId=%d)...",
-          null, FileUtils.getSizeAsString(maxMemory - (totMemory - freeMemory)), FileUtils.getSizeAsString(maxMemory), readCache.size(),
-          highPressureRAMCounter, Thread.currentThread().getId());
-
-      clear();
-
-      if (highPressureRAMCounter < 2 || highPressureRAMCounter % 20 == 0) {
-        // BEG FOR A GC COLLECTION ASAP
-        System.gc();
-      }
-
-      lastLowRAM = System.currentTimeMillis();
-
-      return;
-    } else if (highPressureRAMCounter > 0)
-      // RAM IS OK, DECREASE THE COUNTER
-      --highPressureRAMCounter;
+//    if (totMemory - freeMemory >= maxMemory * 80 / 100) {
+//      // UNDER HEAP/GC PRESSURE, RELEASE ALL THE IMMUTABLE PAGES
+//
+//      final boolean highPressure = now - lastLowRAM < 500;
+//
+//      if (highPressure)
+//        // HIGH-PRESSURE AFTER SHORT TIME, INCREASE THE COUNTER
+//        ++highPressureRAMCounter;
+//
+//      // TODO: REDUCE THIS LOG TO DEBUG ONLY
+//      LogManager.instance().log(this, Level.INFO,
+//          "Free heap memory (%s) is below 20%% of the max available (%s). Freeing %d pages from cache (highPressureRAMCounter=%d threadId=%d)...",
+//          null, FileUtils.getSizeAsString(maxMemory - (totMemory - freeMemory)), FileUtils.getSizeAsString(maxMemory), readCache.size(),
+//          highPressureRAMCounter, Thread.currentThread().getId());
+//
+//      clear();
+//
+//      if (highPressureRAMCounter < 2 || highPressureRAMCounter % 20 == 0) {
+//        // BEG FOR A GC COLLECTION ASAP
+//        System.gc();
+//      }
+//
+//      lastLowRAM = System.currentTimeMillis();
+//
+//      return;
+//    } else if (highPressureRAMCounter > 0)
+//      // RAM IS OK, DECREASE THE COUNTER
+//      --highPressureRAMCounter;
 
     final long totalRAM = totalReadCacheRAM.get();
 
@@ -492,11 +492,11 @@ public class PageManager extends LockContext {
 
     final long newTotalRAM = totalReadCacheRAM.get();
 
-    LogManager.instance().log(this, Level.INFO, "Freed %s RAM (current %s - %s max threadId=%d)", null, FileUtils.getSizeAsString(freedRAM),
+    LogManager.instance().log(this, Level.INFO, "Freed %s RAM (current=%s max=%s threadId=%d)", null, FileUtils.getSizeAsString(freedRAM),
         FileUtils.getSizeAsString(newTotalRAM), FileUtils.getSizeAsString(maxRAM), Thread.currentThread().getId());
 
     if (newTotalRAM > maxRAM)
-      LogManager.instance().log(this, Level.WARNING, "Cannot free pages in RAM (current %s > %s max threadId=%d)", null,
+      LogManager.instance().log(this, Level.WARNING, "Cannot free pages in RAM (current=%s > max=%s threadId=%d)", null,
           FileUtils.getSizeAsString(newTotalRAM), FileUtils.getSizeAsString(maxRAM), Thread.currentThread().getId());
 
     lastCheckForRAM = System.currentTimeMillis();
