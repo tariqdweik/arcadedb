@@ -47,7 +47,6 @@ public class Importer {
       startImporting();
 
       loadFromSource(settings.documents, AnalyzedEntity.ENTITY_TYPE.DOCUMENT, analyzedSchema);
-
       loadFromSource(settings.vertices, AnalyzedEntity.ENTITY_TYPE.VERTEX, analyzedSchema);
       loadFromSource(settings.edges, AnalyzedEntity.ENTITY_TYPE.EDGE, analyzedSchema);
 

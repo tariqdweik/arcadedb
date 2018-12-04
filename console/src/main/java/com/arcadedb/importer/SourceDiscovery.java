@@ -34,14 +34,15 @@ public class SourceDiscovery {
     this.url = url;
   }
 
-  public SourceSchema getSchema(final ImporterSettings settings, final AnalyzedEntity.ENTITY_TYPE entityType, final AnalyzedSchema analyzedSchema) throws IOException {
+  public SourceSchema getSchema(final ImporterSettings settings, final AnalyzedEntity.ENTITY_TYPE entityType,
+      final AnalyzedSchema analyzedSchema) throws IOException {
     LogManager.instance().log(this, Level.INFO, "Analyzing url: %s...", null, url);
 
     final Source source = getSource();
 
     final Parser parser = new Parser(source, 0);
 
-    final ContentImporter contentImporter = analyzeSourceContent(parser, settings);
+    final ContentImporter contentImporter = analyzeSourceContent(parser, entityType, settings);
     parser.reset();
 
     final SourceSchema sourceSchema = contentImporter.analyze(entityType, parser, settings, analyzedSchema);
@@ -110,7 +111,42 @@ public class SourceDiscovery {
     });
   }
 
-  private ContentImporter analyzeSourceContent(final Parser parser, final ImporterSettings settings) throws IOException {
+  private ContentImporter analyzeSourceContent(final Parser parser, final AnalyzedEntity.ENTITY_TYPE entityType,
+      final ImporterSettings settings) throws IOException {
+
+    String knownFileType = null;
+    String knownDelimiter = null;
+
+    switch (entityType) {
+    case DOCUMENT:
+      knownFileType = settings.documentsFileType;
+      knownDelimiter = settings.documentsDelimiter;
+      break;
+
+    case VERTEX:
+      knownFileType = settings.verticesFileType;
+      knownDelimiter = settings.verticesDelimiter;
+      break;
+
+    case EDGE:
+      knownFileType = settings.edgesFileType;
+      knownDelimiter = settings.edgesDelimiter;
+      break;
+    }
+
+    if (knownFileType != null) {
+      if (knownFileType.equalsIgnoreCase("csv")) {
+        settings.options.put("delimiter", knownDelimiter);
+        return new CSVImporter();
+      } else if (knownFileType.equalsIgnoreCase("json"))
+        return new JSONImporter();
+      else if (knownFileType.equalsIgnoreCase("xml"))
+        return new XMLImporter();
+      else
+        LogManager.instance()
+            .log(this, Level.WARNING, "File type '%s' is not supported. Trying to understand file type...", null, knownFileType);
+    }
+
     parser.nextChar();
 
     ContentImporter format = analyzeChar(parser, settings);
@@ -130,7 +166,7 @@ public class SourceDiscovery {
     // SKIP COMMENTS '//' IF ANY
     parser.reset();
 
-    while (parser.nextChar() == '/' && parser.nextChar() == '/') {
+    while (parser.getCurrentChar() == '/' && parser.nextChar() == '/') {
       skipLine(parser);
       format = analyzeChar(parser, settings);
       if (format != null)
@@ -174,7 +210,7 @@ public class SourceDiscovery {
     }
 
     // UNKNOWN
-    return null;
+    throw new ImportException("Cannot determine the file type. If it is a CSV file, please specify the header via settings");
   }
 
   private void skipLine(final Parser parser) throws IOException {

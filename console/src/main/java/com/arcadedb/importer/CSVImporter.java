@@ -27,10 +27,7 @@ import com.univocity.parsers.tsv.TsvParserSettings;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
@@ -142,6 +139,13 @@ public class CSVImporter extends AbstractContentImporter {
     final AnalyzedEntity entity = sourceSchema.getSchema().getEntity(settings.vertexTypeName);
     final AnalyzedProperty id = entity.getProperty(settings.typeIdProperty);
 
+    if (id == null) {
+      LogManager.instance().log(this, Level.INFO, "Property Id '%s.%s' is null. Importing is aborted", null, settings.vertexTypeName,
+          settings.typeIdProperty);
+      throw new IllegalArgumentException(
+          "Property Id '" + settings.vertexTypeName + "." + settings.typeIdProperty + "' is null. Importing is aborted");
+    }
+
     if (context.verticesIndex == null) {
       long expectedVertices = settings.expectedVertices;
       if (expectedVertices <= 0 && entity != null)
@@ -164,16 +168,10 @@ public class CSVImporter extends AbstractContentImporter {
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
 
-      if (id == null) {
-        LogManager.instance().log(this, Level.INFO, "Property Id '%s.%s' is null. Importing is aborted", null, settings.vertexTypeName,
-            settings.typeIdProperty);
-        throw new IllegalArgumentException(
-            "Property Id '" + settings.vertexTypeName + "." + settings.typeIdProperty + "' is null. Importing is aborted");
-      }
       final int idIndex = id.getIndex();
 
       final List<AnalyzedProperty> properties = new ArrayList<>();
-      if (!settings.vertexPropertiesInclude.equalsIgnoreCase("*")) {
+      if (!settings.vertexPropertiesInclude.isEmpty() && !settings.vertexPropertiesInclude.equalsIgnoreCase("*")) {
         final String[] includes = settings.vertexPropertiesInclude.split(",");
         final Set<String> propertiesSet = new HashSet<>();
 
@@ -292,7 +290,7 @@ public class CSVImporter extends AbstractContentImporter {
       csvParser.beginParsing(inputFileReader);
 
       final List<AnalyzedProperty> properties = new ArrayList<>();
-      if (!settings.edgePropertiesInclude.equalsIgnoreCase("*")) {
+      if (!settings.edgePropertiesInclude.isEmpty() && !settings.edgePropertiesInclude.equalsIgnoreCase("*")) {
         final String[] includes = settings.edgePropertiesInclude.split(",");
         final Set<String> propertiesSet = new HashSet<>();
 
@@ -458,15 +456,17 @@ public class CSVImporter extends AbstractContentImporter {
     TsvParserSettings tsvParserSettings;
     AbstractParser csvParser;
 
-    if ("\t".equals(delimiter)) {
+    if ("\t".equals(delimiter) || "\\t".equals(delimiter)) {
       tsvParserSettings = new TsvParserSettings();
       csvParser = new TsvParser(tsvParserSettings);
     } else {
       csvParserSettings = new CsvParserSettings();
       csvParser = new CsvParser(csvParserSettings);
       csvParserSettings.setDelimiterDetectionEnabled(false);
-      csvParserSettings.detectFormatAutomatically(delimiter.charAt(0));
-      csvParserSettings.getFormat().setDelimiter(delimiter.charAt(0));
+      if (delimiter != null) {
+        csvParserSettings.detectFormatAutomatically(delimiter.charAt(0));
+        csvParserSettings.getFormat().setDelimiter(delimiter.charAt(0));
+      }
     }
 
     final List<String> fieldNames = new ArrayList<>();
@@ -474,6 +474,32 @@ public class CSVImporter extends AbstractContentImporter {
     final String entityName = entityType == AnalyzedEntity.ENTITY_TYPE.DOCUMENT ?
         settings.documentTypeName :
         entityType == AnalyzedEntity.ENTITY_TYPE.VERTEX ? settings.vertexTypeName : settings.edgeTypeName;
+
+    final String header;
+    switch (entityType) {
+    case VERTEX:
+      header = settings.verticesHeader;
+      break;
+    case EDGE:
+      header = settings.edgesHeader;
+      break;
+    case DOCUMENT:
+      header = settings.documentsHeader;
+      break;
+    default:
+      header = null;
+    }
+
+    if (header != null) {
+      if (delimiter == null)
+        fieldNames.add(header);
+      else {
+        final String[] headerColumns = header.split(",");
+        for (String column : headerColumns)
+          fieldNames.add(column);
+      }
+      LogManager.instance().log(this, Level.INFO, "Parsing with custom header: %s", null, fieldNames);
+    }
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
@@ -486,10 +512,11 @@ public class CSVImporter extends AbstractContentImporter {
         if (settings.analysisLimitEntries > 0 && line > settings.analysisLimitEntries)
           break;
 
-        if (line == 0) {
-          // HEADER
+        if (line == 0 && header == null) {
+          // READ THE HEADER FROM FILE
           for (String cell : row)
             fieldNames.add(cell);
+          LogManager.instance().log(this, Level.INFO, "Reading header from 1st line in data file: %s", null, Arrays.toString(row));
         } else {
           // DATA LINE
           final AnalyzedEntity entity = analyzedSchema.getOrCreateEntity(entityName, entityType);
@@ -530,13 +557,14 @@ public class CSVImporter extends AbstractContentImporter {
     TsvParserSettings tsvParserSettings;
     AbstractParser csvParser;
 
-    if ("\t".equals(delimiter)) {
+    if ("\t".equals(delimiter) || "\\t".equals(delimiter)) {
       tsvParserSettings = new TsvParserSettings();
       csvParser = new TsvParser(tsvParserSettings);
     } else {
       csvParserSettings = new CsvParserSettings();
       csvParser = new CsvParser(csvParserSettings);
-      csvParserSettings.getFormat().setDelimiter(delimiter.charAt(0));
+      if (delimiter != null)
+        csvParserSettings.getFormat().setDelimiter(delimiter.charAt(0));
     }
     return csvParser;
   }

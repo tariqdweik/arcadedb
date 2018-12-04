@@ -14,15 +14,24 @@ public class ImporterSettings {
   boolean wal      = false;
 
   String documents;
+  String documentsFileType;
+  String documentsDelimiter;
+  String documentsHeader;
   String documentTypeName          = "Document";
   String documentPropertiesInclude = "*";
 
   String vertices;
+  String verticesFileType;
+  String verticesDelimiter;
+  String verticesHeader;
   String vertexTypeName          = "Node";
   String vertexPropertiesInclude = "*";
   long   expectedVertices        = 0l;
 
   String  edges;
+  String  edgesFileType;
+  String  edgesDelimiter;
+  String  edgesHeader;
   String  edgeTypeName          = "Relationship";
   String  edgePropertiesInclude = "*";
   long    expectedEdges         = 0l;
@@ -55,10 +64,6 @@ public class ImporterSettings {
   public void parseParameter(final String name, final String value) {
     if ("database".equals(name))
       database = value;
-    else if ("documents".equals(name))
-      documents = value;
-    else if ("documentPropertiesInclude".equals(name))
-      documentPropertiesInclude = value;
     else if ("forceDatabaseCreate".equals(name))
       forceDatabaseCreate = Boolean.parseBoolean(value);
     else if ("wal".equals(name))
@@ -67,32 +72,6 @@ public class ImporterSettings {
       commitEvery = Integer.parseInt(value);
     else if ("parallel".equals(name))
       parallel = Integer.parseInt(value);
-    else if ("documentType".equals(name))
-      documentTypeName = value;
-    else if ("vertices".equals(name))
-      vertices = value;
-    else if ("expectedVertices".equals(name))
-      expectedVertices = Integer.parseInt(value);
-    else if ("vertexType".equals(name))
-      vertexTypeName = value;
-    else if ("vertexPropertiesInclude".equals(name))
-      vertexPropertiesInclude = value;
-    else if ("edges".equals(name))
-      edges = value;
-    else if ("expectedEdges".equals(name))
-      expectedEdges = Integer.parseInt(value);
-    else if ("maxRAMIncomingEdges".equals(name))
-      maxRAMIncomingEdges = Integer.parseInt(value);
-    else if ("edgeType".equals(name))
-      edgeTypeName = value;
-    else if ("edgePropertiesInclude".equals(name))
-      edgePropertiesInclude = value;
-    else if ("edgeFromField".equals(name))
-      edgeFromField = value;
-    else if ("edgeToField".equals(name))
-      edgeToField = value;
-    else if ("edgeBidirectional".equals(name))
-      edgeBidirectional = Boolean.parseBoolean(value);
     else if ("typeIdProperty".equals(name))
       typeIdProperty = value;
     else if ("typeIdUnique".equals(name))
@@ -111,6 +90,63 @@ public class ImporterSettings {
       parsingLimitBytes = FileUtils.getSizeAsNumber(value);
     else if ("parsingLimitEntries".equals(name))
       parsingLimitEntries = Long.parseLong(value);
+
+      // DOCUMENT SETTINGS
+
+    else if ("documents".equals(name))
+      documents = value;
+    else if ("documentsFileType".equals(name))
+      documentsFileType = value;
+    else if ("documentsDelimiter".equals(name))
+      documentsDelimiter = value;
+    else if ("documentsHeader".equals(name))
+      documentsHeader = value;
+    else if ("documentPropertiesInclude".equals(name))
+      documentPropertiesInclude = value;
+    else if ("documentType".equals(name))
+      documentTypeName = value;
+
+      // VERTICES SETTINGS
+
+    else if ("vertices".equals(name))
+      vertices = value;
+    else if ("verticesFileType".equals(name))
+      verticesFileType = value;
+    else if ("verticesDelimiter".equals(name))
+      verticesDelimiter = value;
+    else if ("verticesHeader".equals(name))
+      verticesHeader = value;
+    else if ("expectedVertices".equals(name))
+      expectedVertices = Integer.parseInt(value);
+    else if ("vertexType".equals(name))
+      vertexTypeName = value;
+    else if ("vertexPropertiesInclude".equals(name))
+      vertexPropertiesInclude = value;
+
+      // EDGES SETTINGS
+
+    else if ("edges".equals(name))
+      edges = value;
+    else if ("edgesFileType".equals(name))
+      edgesFileType = value;
+    else if ("edgesDelimiter".equals(name))
+      edgesDelimiter = value;
+    else if ("edgesHeader".equals(name))
+      edgesHeader = value;
+    else if ("expectedEdges".equals(name))
+      expectedEdges = Integer.parseInt(value);
+    else if ("maxRAMIncomingEdges".equals(name))
+      maxRAMIncomingEdges = Integer.parseInt(value);
+    else if ("edgeType".equals(name))
+      edgeTypeName = value;
+    else if ("edgePropertiesInclude".equals(name))
+      edgePropertiesInclude = value;
+    else if ("edgeFromField".equals(name))
+      edgeFromField = value;
+    else if ("edgeToField".equals(name))
+      edgeToField = value;
+    else if ("edgeBidirectional".equals(name))
+      edgeBidirectional = Boolean.parseBoolean(value);
     else
       // ADDITIONAL OPTIONS
       options.put(name, value);
