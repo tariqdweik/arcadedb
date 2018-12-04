@@ -315,6 +315,7 @@ public class CSVImporter extends AbstractContentImporter {
       if (!database.isTransactionActive())
         database.begin();
 
+      // TODO: LET THE EDGE NAME TO BE HERE ON A SINGLE CONNECTION
       List<Pair<Identifiable, Object[]>> connections = new ArrayList<>();
 
       long edgeLines = 0;
@@ -371,7 +372,7 @@ public class CSVImporter extends AbstractContentImporter {
 
         if (incomingConnectionsIndex.getChunkSize() >= settings.maxRAMIncomingEdges) {
           LogManager.instance()
-              .log(this, Level.INFO, "Creation of back connections, reached %s size (max=%d), flushing %d connections (resetCounter=%d)...",
+              .log(this, Level.INFO, "Creation of back connections, reached %s size (max=%s), flushing %d connections (resetCounter=%d)...",
                   null, FileUtils.getSizeAsString(incomingConnectionsIndex.getChunkSize()),
                   FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), incomingConnectionsIndex.size(),
                   incomingConnectionsIndex.getResetCounter());

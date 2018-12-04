@@ -199,7 +199,8 @@ public class Importer {
         type.createProperty(settings.typeIdProperty, Type.getTypeByName(settings.typeIdType));
 //        database.getSchema()
 //            .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, settings.typeIdPropertyIsUnique, name, new String[] { settings.typeIdProperty });
-        LogManager.instance().log(this, Level.INFO, "- Creating indexed property '%s' of type '%s'", null, settings.typeIdType);
+        LogManager.instance()
+            .log(this, Level.INFO, "- Creating indexed property '%s' of type '%s'", null, settings.typeIdProperty, settings.typeIdType);
       }
       return type;
     }
@@ -216,7 +217,8 @@ public class Importer {
         type.createProperty(settings.typeIdProperty, Type.getTypeByName(settings.typeIdType));
 //        database.getSchema()
 //            .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, settings.typeIdPropertyIsUnique, name, new String[] { settings.typeIdProperty });
-        LogManager.instance().log(this, Level.INFO, "- Creating indexed property '%s' of type '%s'", null, settings.typeIdType);
+        LogManager.instance()
+            .log(this, Level.INFO, "- Creating indexed property '%s' of type '%s'", null, settings.typeIdProperty, settings.typeIdType);
       }
       return type;
     }
