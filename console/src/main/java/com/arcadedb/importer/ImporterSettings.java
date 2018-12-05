@@ -46,7 +46,7 @@ public class ImporterSettings {
   String  typeIdProperty         = null;
   boolean typeIdPropertyIsUnique = false;
   String  typeIdType             = "String";
-  int     commitEvery            = 50000;
+  int     commitEvery            = 5000;
   int     parallel               = Runtime.getRuntime().availableProcessors() / 2 - 1;
   boolean forceDatabaseCreate;
   boolean trimText               = true;
