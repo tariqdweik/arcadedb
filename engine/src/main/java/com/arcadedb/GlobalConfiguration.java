@@ -92,30 +92,31 @@ public enum GlobalConfiguration {// ENVIRONMENT
   TEST("arcadedb.test", "Tells if it is running in test mode. This enables the calling of callbacks for testing purpose ", Boolean.class,
       false),
 
-  MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4, new Callable<Object, Object>() {
-    @Override
-    public Object call(final Object value) {
-      final long maxRAM = (long) value * 1024 * 1024;
-      if (maxRAM > Runtime.getRuntime().maxMemory() * 80 / 100) {
-        final long newValue = Runtime.getRuntime().maxMemory() / 2;
-        if (LogManager.instance() != null)
-          LogManager.instance()
-              .log(this, Level.WARNING, "Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", null, MAX_PAGE_RAM.key,
+  MAX_PAGE_RAM("arcadedb.maxPageRAM", "Maximum amount of pages (in MB) to keep in RAM", Long.class, 4 * 1024 * 1024 * 1024,
+      new Callable<Object, Object>() {
+        @Override
+        public Object call(final Object value) {
+          final long maxRAM = (long) value;
+          if (maxRAM > Runtime.getRuntime().maxMemory() * 80 / 100) {
+            final long newValue = Runtime.getRuntime().maxMemory() / 2;
+            if (LogManager.instance() != null)
+              LogManager.instance()
+                  .log(this, Level.WARNING, "Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", null,
+                      MAX_PAGE_RAM.key, FileUtils.getSizeAsString(maxRAM), FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()),
+                      FileUtils.getSizeAsString(newValue));
+            else
+              System.out.println(String.format("Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", MAX_PAGE_RAM.key,
                   FileUtils.getSizeAsString(maxRAM), FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()),
-                  FileUtils.getSizeAsString(newValue));
-        else
-          System.out.println(String.format("Setting '%s=%s' is > than 80%% of maximum heap (%s). Decreasing it to %s", MAX_PAGE_RAM.key,
-              FileUtils.getSizeAsString(maxRAM), FileUtils.getSizeAsString(Runtime.getRuntime().maxMemory()),
-              FileUtils.getSizeAsString(newValue)));
+                  FileUtils.getSizeAsString(newValue)));
 
-        return newValue;
-      }
-      return value;
-    }
-  }, new Callable<Object, Object>() {
+            return newValue;
+          }
+          return value;
+        }
+      }, new Callable<Object, Object>() {
     @Override
     public Object call(final Object value) {
-      return Runtime.getRuntime().maxMemory() / 4 / 1024 / 1024;
+      return Runtime.getRuntime().maxMemory() / 2;
     }
   }),
 

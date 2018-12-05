@@ -81,7 +81,7 @@ public class PageManager extends LockContext {
 
     this.flushOnlyAtClose = configuration.getValueAsBoolean(GlobalConfiguration.FLUSH_ONLY_AT_CLOSE);
 
-    maxRAM = configuration.getValueAsLong(GlobalConfiguration.MAX_PAGE_RAM) * 1024 * 1024;
+    maxRAM = configuration.getValueAsLong(GlobalConfiguration.MAX_PAGE_RAM);
     if (maxRAM < 0)
       throw new ConfigurationException(GlobalConfiguration.MAX_PAGE_RAM.getKey() + " configuration is invalid (" + maxRAM + ")");
 

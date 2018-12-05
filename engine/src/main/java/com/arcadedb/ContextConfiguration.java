@@ -158,7 +158,7 @@ public class ContextConfiguration implements Serializable {
     final Object v = getValue(iConfig);
     if (v == null)
       return 0;
-    return v instanceof Long ? ((Long) v).intValue() : Long.parseLong(v.toString());
+    return v instanceof Long ? ((Long) v).longValue() : Long.parseLong(v.toString());
   }
 
   public float getValueAsFloat(final GlobalConfiguration iConfig) {
