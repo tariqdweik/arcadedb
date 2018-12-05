@@ -14,9 +14,14 @@ public class RDFImporter extends CSVImporter {
   private static final char[] STRING_CONTENT_SKIP = new char[] { '\'', '\'', '"', '"', '<', '>' };
 
   @Override
-  public void load(final SourceSchema sourceSchema, AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser, final DatabaseInternal database, final ImporterContext context,
-      final ImporterSettings settings) throws ImportException {
+  public void load(final SourceSchema sourceSchema, AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser,
+      final DatabaseInternal database, final ImporterContext context, final ImporterSettings settings) throws ImportException {
     AbstractParser csvParser = createCSVParser(settings, ",");
+
+    long skipEntries = settings.edgesSkipEntries != null ? settings.edgesSkipEntries.longValue() : 0;
+    if (settings.edgesSkipEntries == null && settings.edgesSkipEntries == null)
+      // BY DEFAULT SKIP THE FIRST LINE AS HEADER
+      skipEntries = 1l;
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
@@ -28,7 +33,7 @@ public class RDFImporter extends CSVImporter {
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
         context.parsed.incrementAndGet();
 
-        if (settings.skipEntries > 0 && line < settings.skipEntries)
+        if (skipEntries > 0 && line < skipEntries)
           // SKIP IT
           continue;
 

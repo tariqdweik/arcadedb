@@ -42,7 +42,7 @@ public class MoveVertexStep extends AbstractExecutionStep {
       public Result next() {
         Result current = upstream.next();
         throw new UnsupportedOperationException();
-//        current.getVertex().ifPresent(x -> x.moveTo(targetClass, targetCluster));
+//        current.getVertexRID().ifPresent(x -> x.moveTo(targetClass, targetCluster));
 //        return current;
       }
 

@@ -17,6 +17,7 @@ public class ImporterSettings {
   String documentsFileType;
   String documentsDelimiter;
   String documentsHeader;
+  Long   documentsSkipEntries      = null;
   String documentTypeName          = "Document";
   String documentPropertiesInclude = "*";
 
@@ -24,6 +25,7 @@ public class ImporterSettings {
   String verticesFileType;
   String verticesDelimiter;
   String verticesHeader;
+  Long   verticesSkipEntries     = null;
   String vertexTypeName          = "Node";
   String vertexPropertiesInclude = "*";
   long   expectedVertices        = 0l;
@@ -32,6 +34,7 @@ public class ImporterSettings {
   String  edgesFileType;
   String  edgesDelimiter;
   String  edgesHeader;
+  Long    edgesSkipEntries      = null;
   String  edgeTypeName          = "Relationship";
   String  edgePropertiesInclude = "*";
   long    expectedEdges         = 0l;
@@ -43,11 +46,10 @@ public class ImporterSettings {
   String  typeIdProperty         = null;
   boolean typeIdPropertyIsUnique = false;
   String  typeIdType             = "String";
-  int     commitEvery            = 5000;
+  int     commitEvery            = 50000;
   int     parallel               = Runtime.getRuntime().availableProcessors() / 2 - 1;
   boolean forceDatabaseCreate;
   boolean trimText               = true;
-  Long    skipEntries            = null;
   long    analysisLimitBytes     = 100000;
   long    analysisLimitEntries   = 10000;
   long    parsingLimitBytes;
@@ -80,8 +82,6 @@ public class ImporterSettings {
       typeIdType = value;
     else if ("trimText".equals(name))
       trimText = Boolean.parseBoolean(value);
-    else if ("skipEntries".equals(name))
-      skipEntries = FileUtils.getSizeAsNumber(value);
     else if ("analysisLimitBytes".equals(name))
       analysisLimitBytes = FileUtils.getSizeAsNumber(value);
     else if ("analysisLimitEntries".equals(name))
@@ -101,6 +101,8 @@ public class ImporterSettings {
       documentsDelimiter = value;
     else if ("documentsHeader".equals(name))
       documentsHeader = value;
+    else if ("documentsSkipEntries".equals(name))
+      documentsSkipEntries = Long.parseLong(value);
     else if ("documentPropertiesInclude".equals(name))
       documentPropertiesInclude = value;
     else if ("documentType".equals(name))
@@ -116,6 +118,8 @@ public class ImporterSettings {
       verticesDelimiter = value;
     else if ("verticesHeader".equals(name))
       verticesHeader = value;
+    else if ("verticesSkipEntries".equals(name))
+      verticesSkipEntries = Long.parseLong(value);
     else if ("expectedVertices".equals(name))
       expectedVertices = Integer.parseInt(value);
     else if ("vertexType".equals(name))
@@ -133,6 +137,8 @@ public class ImporterSettings {
       edgesDelimiter = value;
     else if ("edgesHeader".equals(name))
       edgesHeader = value;
+    else if ("edgesSkipEntries".equals(name))
+      edgesSkipEntries = Long.parseLong(value);
     else if ("expectedEdges".equals(name))
       expectedEdges = Integer.parseInt(value);
     else if ("maxRAMIncomingEdges".equals(name))

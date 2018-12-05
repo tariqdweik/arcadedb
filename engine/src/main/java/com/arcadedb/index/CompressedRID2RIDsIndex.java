@@ -14,7 +14,6 @@ import com.arcadedb.utility.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Map like optimized to avoid stressing the GC by using mechanical sympathy technique + compression of key and values.
@@ -33,8 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CompressedRID2RIDsIndex {
   protected final Database         database;
   protected final BinarySerializer serializer;
-  protected final AtomicInteger    resetCounter = new AtomicInteger();
-  protected final int keys;
+  protected final int              keys;
 
   protected Binary chunk;
   protected int    totalEntries   = 0;
@@ -46,7 +44,7 @@ public class CompressedRID2RIDsIndex {
     private int nextEntryPos   = 0;
     private int nextKeyPos;
 
-    private RID nextKey;
+    private RID nextKeyRID;
     private RID nextEdgeRID;
     private RID nextVertexRID;
 
@@ -71,7 +69,7 @@ public class CompressedRID2RIDsIndex {
         // NEXT KEY ON SAME POSITION IN HASHTABLE
         chunk.position(nextKeyPos);
 
-        nextKey = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+        nextKeyRID = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
         nextKeyPos = chunk.getInt();
         nextEntryPos = chunk.getInt();
         nextEdgeRID = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
@@ -87,7 +85,7 @@ public class CompressedRID2RIDsIndex {
 
           // READ -> RID|INT|INT|RID|RID
 
-          nextKey = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+          nextKeyRID = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
           nextKeyPos = chunk.getInt();
           nextEntryPos = chunk.getInt();
           nextEdgeRID = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
@@ -100,19 +98,19 @@ public class CompressedRID2RIDsIndex {
       return false;
     }
 
-    public RID getKey() {
+    public RID getKeyRID() {
       if (!hasNext())
         throw new NoSuchElementException();
-      return nextKey;
+      return nextKeyRID;
     }
 
-    public RID getEdge() {
+    public RID getEdgeRID() {
       if (!hasNext())
         throw new NoSuchElementException();
       return nextEdgeRID;
     }
 
-    public RID getVertex() {
+    public RID getVertexRID() {
       if (!hasNext())
         throw new NoSuchElementException();
       return nextVertexRID;
@@ -127,7 +125,13 @@ public class CompressedRID2RIDsIndex {
     this.database = database;
     this.keys = expectedSize;
     this.serializer = new BinarySerializer();
-    reset();
+
+    this.chunk = new Binary(keys * 5);
+    this.chunk.setAllocationChunkSize(keys);
+    this.chunk.fill((byte) 0, keys * Binary.INT_SERIALIZED_SIZE);
+
+    this.totalEntries = 0;
+    this.totalUsedSlots = 0;
   }
 
   public CompressedRID2RIDsIndex(final Database database, final Binary buffer) {
@@ -316,22 +320,5 @@ public class CompressedRID2RIDsIndex {
 
   public int getTotalUsedSlots() {
     return totalUsedSlots;
-  }
-
-  public int getResetCounter() {
-    return resetCounter.get();
-  }
-
-  public Binary reset() {
-    synchronized (this) {
-      final Binary oldChunk = chunk;
-      this.chunk = new Binary(keys * 5);
-      this.chunk.setAllocationChunkSize(keys);
-      this.chunk.fill((byte) 0, keys * Binary.INT_SERIALIZED_SIZE);
-      totalEntries = 0;
-      totalUsedSlots = 0;
-      resetCounter.incrementAndGet();
-      return oldChunk;
-    }
   }
 }

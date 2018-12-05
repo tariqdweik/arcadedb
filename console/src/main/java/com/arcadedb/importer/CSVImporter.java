@@ -6,6 +6,7 @@ package com.arcadedb.importer;
 
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.CreateOutgoingEdgesAsyncTask;
+import com.arcadedb.database.async.NewEdgeBackLinkingCallback;
 import com.arcadedb.database.async.NewEdgesCallback;
 import com.arcadedb.database.async.NewRecordCallback;
 import com.arcadedb.graph.Edge;
@@ -66,6 +67,11 @@ public class CSVImporter extends AbstractContentImporter {
 
     final long beginTime = System.currentTimeMillis();
 
+    long skipEntries = settings.documentsSkipEntries != null ? settings.documentsSkipEntries.longValue() : 0;
+    if (settings.documentsHeader == null && settings.documentsSkipEntries == null)
+      // BY DEFAULT SKIP THE FIRST LINE AS HEADER
+      skipEntries = 1l;
+
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
 
@@ -99,7 +105,7 @@ public class CSVImporter extends AbstractContentImporter {
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
         context.parsed.incrementAndGet();
 
-        if (settings.skipEntries > 0 && line < settings.skipEntries)
+        if (skipEntries > 0 && line < skipEntries)
           // SKIP IT
           continue;
 
@@ -165,6 +171,11 @@ public class CSVImporter extends AbstractContentImporter {
 
     final long beginTime = System.currentTimeMillis();
 
+    long skipEntries = settings.verticesSkipEntries != null ? settings.verticesSkipEntries.longValue() : 0;
+    if (settings.verticesSkipEntries == null && settings.verticesSkipEntries == null)
+      // BY DEFAULT SKIP THE FIRST LINE AS HEADER
+      skipEntries = 1l;
+
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
 
@@ -198,7 +209,7 @@ public class CSVImporter extends AbstractContentImporter {
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
         context.parsed.incrementAndGet();
 
-        if (settings.skipEntries > 0 && line < settings.skipEntries)
+        if (skipEntries > 0 && line < skipEntries)
           // SKIP IT
           continue;
 
@@ -290,7 +301,12 @@ public class CSVImporter extends AbstractContentImporter {
         .log(this, Level.INFO, "Started importing edges from CSV source (expectedVertices=%d expectedEdges=%d)", null, expectedVertices,
             expectedEdges);
 
-    final CompressedRID2RIDsIndex incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedVertices);
+    long skipEntries = settings.edgesSkipEntries != null ? settings.edgesSkipEntries.longValue() : 0;
+    if (settings.edgesSkipEntries == null && settings.edgesSkipEntries == null)
+      // BY DEFAULT SKIP THE FIRST LINE AS HEADER
+      skipEntries = 1l;
+
+    CompressedRID2RIDsIndex incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedVertices);
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
@@ -327,7 +343,7 @@ public class CSVImporter extends AbstractContentImporter {
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
         context.parsed.incrementAndGet();
 
-        if (settings.skipEntries > 0 && line < settings.skipEntries)
+        if (skipEntries > 0 && line < skipEntries)
           // SKIP IT
           continue;
 
@@ -376,32 +392,47 @@ public class CSVImporter extends AbstractContentImporter {
 
         if (incomingConnectionsIndex.getChunkSize() >= settings.maxRAMIncomingEdges) {
           LogManager.instance()
-              .log(this, Level.INFO, "Creation of back connections, reached %s size (max=%s), flushing %d connections (resetCounter=%d)...",
-                  null, FileUtils.getSizeAsString(incomingConnectionsIndex.getChunkSize()),
+              .log(this, Level.INFO, "Creation of back connections, reached %s size (max=%s), flushing %d connections (slots=%d)...", null,
+                  FileUtils.getSizeAsString(incomingConnectionsIndex.getChunkSize()),
                   FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), incomingConnectionsIndex.size(),
-                  incomingConnectionsIndex.getResetCounter());
+                  incomingConnectionsIndex.getTotalUsedSlots());
 
           // CREATE A NEW CHUNK BEFORE CONTINUING
-          final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, incomingConnectionsIndex.reset());
+          final CompressedRID2RIDsIndex oldEdgeIndex = incomingConnectionsIndex;
 
-          database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, settings.edgeTypeName);
+          incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedVertices);
+
+          database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, new NewEdgeBackLinkingCallback() {
+            @Override
+            public void call(final long total) {
+              context.linkedEdges.addAndGet(total);
+            }
+          });
 
           LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
         }
 
         if (edgeLines % settings.commitEvery == 0) {
+          LogManager.instance()
+              .log(this, Level.INFO, "Committing batch of outgoing edges (chunkSize=%s max=%s entries=%d slots=%d)...", null,
+                  FileUtils.getSizeAsString(incomingConnectionsIndex.getChunkSize()),
+                  FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), incomingConnectionsIndex.size(),
+                  incomingConnectionsIndex.getTotalUsedSlots());
+
           createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
           connections = new ArrayList<>();
-          database.commit();
-          database.begin();
         }
       }
 
       createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
 
       // FLUSH LAST INCOMING CONNECTIONS
-      final CompressedRID2RIDsIndex oldEdgeIndex = new CompressedRID2RIDsIndex(database, incomingConnectionsIndex.reset());
-      database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, settings.edgeTypeName);
+      database.getGraphEngine().createIncomingEdgesInBatch(database, incomingConnectionsIndex, new NewEdgeBackLinkingCallback() {
+        @Override
+        public void call(final long total) {
+          context.linkedEdges.addAndGet(total);
+        }
+      });
       LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
 
       database.commit();
@@ -419,9 +450,10 @@ public class CSVImporter extends AbstractContentImporter {
       LogManager.instance()
           .log(this, Level.INFO, "Importing of edges from CSV source completed in %d seconds (%d/sec)", null, elapsedInSecs,
               elapsedInSecs > 0 ? context.createdEdges.get() / elapsedInSecs : context.createdEdges.get());
-      LogManager.instance().log(this, Level.INFO, "- Parsed lines...: %d", null, context.parsed.get());
-      LogManager.instance().log(this, Level.INFO, "- Total edges....: %d", null, context.createdEdges.get());
-      LogManager.instance().log(this, Level.INFO, "- Skipped edges..: %d", null, context.skippedEdges.get());
+      LogManager.instance().log(this, Level.INFO, "- Parsed lines......: %d", null, context.parsed.get());
+      LogManager.instance().log(this, Level.INFO, "- Total edges.......: %d", null, context.createdEdges.get());
+      LogManager.instance().log(this, Level.INFO, "- Total linked Edges: %d", null, context.linkedEdges.get());
+      LogManager.instance().log(this, Level.INFO, "- Skipped edges.....: %d", null, context.skippedEdges.get());
     }
   }
 
@@ -481,17 +513,33 @@ public class CSVImporter extends AbstractContentImporter {
         settings.documentTypeName :
         entityType == AnalyzedEntity.ENTITY_TYPE.VERTEX ? settings.vertexTypeName : settings.edgeTypeName;
 
+    long skipEntries = 0;
     final String header;
     switch (entityType) {
     case VERTEX:
       header = settings.verticesHeader;
+      skipEntries = settings.verticesSkipEntries != null ? settings.verticesSkipEntries.longValue() : 0;
+      if (settings.verticesSkipEntries == null && settings.verticesSkipEntries == null)
+        // BY DEFAULT SKIP THE FIRST LINE AS HEADER
+        skipEntries = 1l;
       break;
+
     case EDGE:
       header = settings.edgesHeader;
+      skipEntries = settings.edgesSkipEntries != null ? settings.edgesSkipEntries.longValue() : 0;
+      if (settings.edgesSkipEntries == null && settings.edgesSkipEntries == null)
+        // BY DEFAULT SKIP THE FIRST LINE AS HEADER
+        skipEntries = 1l;
       break;
+
     case DOCUMENT:
       header = settings.documentsHeader;
+      skipEntries = settings.documentsSkipEntries != null ? settings.documentsSkipEntries.longValue() : 0;
+      if (settings.documentsSkipEntries == null && settings.documentsSkipEntries == null)
+        // BY DEFAULT SKIP THE FIRST LINE AS HEADER
+        skipEntries = 1l;
       break;
+
     default:
       header = null;
     }
@@ -512,6 +560,9 @@ public class CSVImporter extends AbstractContentImporter {
 
       String[] row;
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
+        if (skipEntries > 0 && line < skipEntries)
+          continue;
+
         if (settings.analysisLimitBytes > 0 && csvParser.getContext().currentChar() > settings.analysisLimitBytes)
           break;
 
@@ -554,10 +605,6 @@ public class CSVImporter extends AbstractContentImporter {
   protected AbstractParser createCSVParser(final ImporterSettings settings, String delimiter) {
     if (settings.options.containsKey("delimiter"))
       delimiter = settings.options.get("delimiter");
-
-    if (settings.skipEntries == null)
-      // BY DEFAULT SKIP THE FIRST LINE AS HEADER
-      settings.skipEntries = 1l;
 
     CsvParserSettings csvParserSettings;
     TsvParserSettings tsvParserSettings;

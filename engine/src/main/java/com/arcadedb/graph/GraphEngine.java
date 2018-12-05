@@ -5,6 +5,8 @@
 package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
+import com.arcadedb.database.async.CreateIncomingConnectionAsyncTask;
+import com.arcadedb.database.async.NewEdgeBackLinkingCallback;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.index.CompressedRID2RIDsIndex;
@@ -46,8 +48,8 @@ public class GraphEngine {
 
     final MutableEdge edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
 //    if (properties != null && properties.length > 0) {
-      setProperties(edge, properties);
-      edge.save();
+    setProperties(edge, properties);
+    edge.save();
 //    } else {
 //      // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
 //      edge.setIdentity(NO_RID);
@@ -88,8 +90,8 @@ public class GraphEngine {
       edge = new MutableEdge(database, edgeType, sourceVertexRID, destinationVertex.getIdentity());
 
 //      if (connection.getSecond() != null && connection.getSecond().length > 0) {
-        setProperties(edge, connection.getSecond());
-        edge.save();
+      setProperties(edge, connection.getSecond());
+      edge.save();
 //      } else {
 //        // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
 //        edge.setIdentity(NO_RID);
@@ -117,9 +119,10 @@ public class GraphEngine {
     return edges;
   }
 
-  public void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index, final String edgeTypeName) {
+  public void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index,
+      final NewEdgeBackLinkingCallback newEdgeBackLinkingCallback) {
     Vertex lastVertex = null;
-    final List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
+    List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
 
     long totalVertices = 0;
     long totalEdges = 0;
@@ -127,7 +130,7 @@ public class GraphEngine {
     int maxEdges = -1;
 
     for (final CompressedRID2RIDsIndex.EntryIterator it = index.entryIterator(); it.hasNext(); it.moveNext()) {
-      final Vertex destinationVertex = it.getKey().getVertex(true);
+      final Vertex destinationVertex = it.getKeyRID().getVertex(true);
 
       if (!connections.isEmpty() && !destinationVertex.equals(lastVertex)) {
         ++totalVertices;
@@ -137,34 +140,31 @@ public class GraphEngine {
         if (connections.size() > maxEdges)
           maxEdges = connections.size();
 
-        connectIncomingEdges(database, lastVertex, connections, edgeTypeName);
-        connections.clear();
+        database.async().scheduleTask(database.async().getSlot(lastVertex.getIdentity().getBucketId()),
+            new CreateIncomingConnectionAsyncTask(lastVertex, connections, newEdgeBackLinkingCallback), true);
+
+        connections = new ArrayList<>();
       }
 
       lastVertex = destinationVertex;
 
-      connections.add(new Pair<>(it.getEdge(), it.getVertex()));
+      connections.add(new Pair<>(it.getEdgeRID(), it.getVertexRID()));
 
       ++totalEdges;
-
-      if (totalEdges % 10000 == 0) {
-        // BATCH
-        database.commit();
-        database.begin();
-      }
-
     }
 
     if (lastVertex != null)
-      connectIncomingEdges(database, lastVertex, connections, edgeTypeName);
+      database.async().scheduleTask(database.async().getSlot(lastVertex.getIdentity().getBucketId()),
+          new CreateIncomingConnectionAsyncTask(lastVertex, connections, newEdgeBackLinkingCallback), true);
 
     LogManager.instance()
         .log(this, Level.INFO, "Created %d back connections from %d vertices (min=%d max=%d avg=%d)", null, totalEdges, totalVertices,
             minEdges, maxEdges, totalVertices > 0 ? totalEdges / totalVertices : 0);
   }
 
-  private void connectIncomingEdges(final DatabaseInternal database, final Identifiable toVertex,
-      final List<Pair<Identifiable, Identifiable>> connections, final String edgeType) {
+  public void connectIncomingEdges(final DatabaseInternal database, final Identifiable toVertex,
+      final List<Pair<Identifiable, Identifiable>> connections, final NewEdgeBackLinkingCallback newEdgeBackLinkingCallback) {
+
     VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
 
     final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
@@ -173,6 +173,9 @@ public class GraphEngine {
 
     final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
     inLinkedList.addAll(connections);
+
+    if (newEdgeBackLinkingCallback != null)
+      newEdgeBackLinkingCallback.call(connections.size());
   }
 
   public void connectIncomingEdge(final DatabaseInternal database, final Identifiable toVertex, final RID fromVertexRID,

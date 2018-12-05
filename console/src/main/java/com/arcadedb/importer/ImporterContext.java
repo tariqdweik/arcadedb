@@ -12,10 +12,12 @@ public class ImporterContext {
   CompressedAny2RIDIndex<Object> verticesIndex;
   long                           startedOn;
 
-  AtomicLong parsed           = new AtomicLong();
+  AtomicLong parsed = new AtomicLong();
+
+  AtomicLong createdDocuments = new AtomicLong();
   AtomicLong createdVertices  = new AtomicLong();
   AtomicLong createdEdges     = new AtomicLong();
-  AtomicLong createdDocuments = new AtomicLong();
+  AtomicLong linkedEdges      = new AtomicLong();
 
   AtomicLong skippedEdges = new AtomicLong();
 
@@ -24,4 +26,5 @@ public class ImporterContext {
   long lastDocuments;
   long lastVertices;
   long lastEdges;
+  long lastLinkedEdges;
 }
