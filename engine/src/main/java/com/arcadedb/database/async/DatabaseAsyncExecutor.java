@@ -517,6 +517,8 @@ public class DatabaseAsyncExecutor {
 
   public void scheduleTask(final int slot, final DatabaseAsyncTask task, final boolean waitIfQueueIsFull) {
     try {
+      //LogManager.instance().log(this, Level.FINE, "Scheduling async task %s (slot=%d)", null, task, slot);
+
       if (waitIfQueueIsFull)
         executorThreads[slot].queue.put(task);
       else

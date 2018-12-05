@@ -177,7 +177,7 @@ public class Importer {
 
     database.commit();
 
-    database.setReadYourWrites(true); // THIS IS FUNDAMENTAL TO SPEEDUP EDGE-CONTAINER LOOKUPS
+    database.setReadYourWrites(false); // THIS IS FUNDAMENTAL TO SPEEDUP EDGE-CONTAINER LOOKUPS
     database.async().setParallelLevel(settings.parallel);
     database.async().setCommitEvery(settings.commitEvery);
     database.async().setTransactionUseWAL(settings.wal);
