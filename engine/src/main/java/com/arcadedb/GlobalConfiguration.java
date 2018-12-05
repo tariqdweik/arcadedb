@@ -140,7 +140,7 @@ public enum GlobalConfiguration {// ENVIRONMENT
       String.class, "standard"),
 
   ASYNC_OPERATIONS_QUEUE_SIZE("arcadedb.asyncOperationsQueueSize",
-      "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)", Integer.class, 128),
+      "Size of the total asynchronous operation queues (it is divided by the number of parallel threads in the pool)", Integer.class, 1024),
 
   ASYNC_TX_BATCH_SIZE("arcadedb.asyncTxBatchSize", "Maximum number of operations to commit in batch by async thread", Integer.class,
       1024 * 10),

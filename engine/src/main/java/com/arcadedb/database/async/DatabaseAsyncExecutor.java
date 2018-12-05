@@ -50,7 +50,7 @@ public class DatabaseAsyncExecutor {
   private OkCallback    onOkCallback;
   private ErrorCallback onErrorCallback;
 
-  protected class AsyncThread extends Thread {
+  public class AsyncThread extends Thread {
     public final    BlockingQueue<DatabaseAsyncTask> queue;
     public final    DatabaseInternal                 database;
     public volatile boolean                          shutdown      = false;

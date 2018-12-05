@@ -5,20 +5,14 @@
 package com.arcadedb.importer;
 
 import com.arcadedb.database.*;
-import com.arcadedb.database.async.CreateOutgoingEdgesAsyncTask;
-import com.arcadedb.database.async.NewEdgeBackLinkingCallback;
-import com.arcadedb.database.async.NewEdgesCallback;
 import com.arcadedb.database.async.NewRecordCallback;
-import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.index.CompressedAny2RIDIndex;
-import com.arcadedb.index.CompressedRID2RIDsIndex;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.Type;
 import com.arcadedb.utility.FileUtils;
-import com.arcadedb.utility.Pair;
 import com.univocity.parsers.common.AbstractParser;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -33,10 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class CSVImporter extends AbstractContentImporter {
-  private static final Object[]       NO_PARAMS = new Object[] {};
-  public static final  int            _32MB     = 32 * 1024 * 1024;
-  private              Object         lastSourceKey;
-  private              VertexInternal lastSourceVertex;
+  private static final Object[] NO_PARAMS = new Object[] {};
+  public static final  int      _32MB     = 32 * 1024 * 1024;
 
   @Override
   public void load(final SourceSchema sourceSchema, final AnalyzedEntity.ENTITY_TYPE entityType, final Parser parser,
@@ -152,18 +144,18 @@ public class CSVImporter extends AbstractContentImporter {
           "Property Id '" + settings.vertexTypeName + "." + settings.typeIdProperty + "' is null. Importing is aborted");
     }
 
+    long expectedVertices = settings.expectedVertices;
     if (context.verticesIndex == null) {
-      long expectedVertices = settings.expectedVertices;
       if (expectedVertices <= 0 && entity != null)
         expectedVertices = (int) (sourceSchema.getSource().totalSize / entity.getAverageRowLength());
-
-      if (expectedVertices <= 0)
-        expectedVertices = 1000000;
-      else if (expectedVertices > Integer.MAX_VALUE)
-        expectedVertices = Integer.MAX_VALUE;
-
-      context.verticesIndex = new CompressedAny2RIDIndex<>(database, Type.LONG, (int) expectedVertices);
     }
+    if (expectedVertices <= 0)
+      expectedVertices = 1000000;
+    else if (expectedVertices > Integer.MAX_VALUE)
+      expectedVertices = Integer.MAX_VALUE;
+
+    context.verticesIndex = new CompressedAny2RIDIndex<>(database, Type.LONG, (int) expectedVertices);
+    context.graphImporter = new GraphImporter((DatabaseInternal) database, (int) expectedVertices);
 
     final AbstractParser csvParser = createCSVParser(settings, ",");
 
@@ -268,7 +260,6 @@ public class CSVImporter extends AbstractContentImporter {
       LogManager.instance().log(this, Level.INFO, "- Parsed lines...: %d", null, context.parsed.get());
       LogManager.instance().log(this, Level.INFO, "- Total vertices.: %d", null, context.createdVertices.get());
     }
-
   }
 
   private void loadEdges(final SourceSchema sourceSchema, final Parser parser, final DatabaseInternal database,
@@ -306,7 +297,7 @@ public class CSVImporter extends AbstractContentImporter {
       // BY DEFAULT SKIP THE FIRST LINE AS HEADER
       skipEntries = 1l;
 
-    CompressedRID2RIDsIndex incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedVertices);
+    context.graphImporter.createInternalBuffers(context.verticesIndex);
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
@@ -332,13 +323,7 @@ public class CSVImporter extends AbstractContentImporter {
 
       LogManager.instance().log(this, Level.INFO, "Importing the following edge properties: %s", null, properties);
 
-      if (!database.isTransactionActive())
-        database.begin();
-
       // TODO: LET THE EDGE NAME TO BE HERE ON A SINGLE CONNECTION
-      List<Pair<Identifiable, Object[]>> connections = new ArrayList<>();
-
-      long edgeLines = 0;
       String[] row;
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
         context.parsed.incrementAndGet();
@@ -347,96 +332,8 @@ public class CSVImporter extends AbstractContentImporter {
           // SKIP IT
           continue;
 
-        final long destinationVertexKey = Long.parseLong(row[to.getIndex()]);
-        // TODO: LOAD FROM INDEX
-        final RID destinationVertexRID = context.verticesIndex.get(destinationVertexKey);
-        if (destinationVertexRID == null) {
-          // SKIP IT
-          context.skippedEdges.incrementAndGet();
-          continue;
-        }
-
-        final long sourceVertexKey = Long.parseLong(row[from.getIndex()]);
-
-        if (lastSourceKey == null || !lastSourceKey.equals(sourceVertexKey)) {
-          createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
-          connections = new ArrayList<>();
-
-          // TODO: LOAD FROM INDEX
-          final RID sourceVertexRID = context.verticesIndex.get(sourceVertexKey);
-          if (sourceVertexRID == null) {
-            // SKIP IT
-            context.skippedEdges.incrementAndGet();
-            continue;
-          }
-
-          lastSourceKey = sourceVertexKey;
-          lastSourceVertex = (VertexInternal) sourceVertexRID.getVertex(true);
-        }
-
-        final Object[] params;
-        if (row.length > 2) {
-          params = new Object[properties.size() * 2];
-          for (int i = 0; i < properties.size(); ++i) {
-            final AnalyzedProperty property = properties.get(i);
-            params[i * 2] = property.getName();
-            params[i * 2 + 1] = row[property.getIndex()];
-          }
-        } else {
-          params = NO_PARAMS;
-        }
-
-        connections.add(new Pair<>(destinationVertexRID, params));
-
-        ++edgeLines;
-
-        if (incomingConnectionsIndex.getChunkSize() >= settings.maxRAMIncomingEdges) {
-          LogManager.instance()
-              .log(this, Level.INFO, "Creation of back connections, reached %s size (max=%s), flushing %d connections (slots=%d)...", null,
-                  FileUtils.getSizeAsString(incomingConnectionsIndex.getChunkSize()),
-                  FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), incomingConnectionsIndex.size(),
-                  incomingConnectionsIndex.getTotalUsedSlots());
-
-          // CREATE A NEW CHUNK BEFORE CONTINUING
-          final CompressedRID2RIDsIndex oldEdgeIndex = incomingConnectionsIndex;
-
-          incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedVertices);
-
-          database.getGraphEngine().createIncomingEdgesInBatch(database, oldEdgeIndex, new NewEdgeBackLinkingCallback() {
-            @Override
-            public void call(final long total) {
-              context.linkedEdges.addAndGet(total);
-            }
-          });
-
-          LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
-        }
-
-        if (edgeLines % settings.commitEvery == 0) {
-          LogManager.instance()
-              .log(this, Level.INFO, "Committing batch of outgoing edges (chunkSize=%s max=%s entries=%d slots=%d)...", null,
-                  FileUtils.getSizeAsString(incomingConnectionsIndex.getChunkSize()),
-                  FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), incomingConnectionsIndex.size(),
-                  incomingConnectionsIndex.getTotalUsedSlots());
-
-          createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
-          connections = new ArrayList<>();
-        }
+        createEdgeFromRow(row, properties, from, to, context, settings);
       }
-
-      createEdgesInBatch(database, incomingConnectionsIndex, context, settings, connections);
-
-      // FLUSH LAST INCOMING CONNECTIONS
-      database.getGraphEngine().createIncomingEdgesInBatch(database, incomingConnectionsIndex, new NewEdgeBackLinkingCallback() {
-        @Override
-        public void call(final long total) {
-          context.linkedEdges.addAndGet(total);
-        }
-      });
-      LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
-
-      database.commit();
-      database.async().waitCompletion();
 
     } catch (IOException e) {
       throw new ImportException("Error on importing CSV");
@@ -457,27 +354,25 @@ public class CSVImporter extends AbstractContentImporter {
     }
   }
 
-  private void createEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex edgeIndex, final ImporterContext context,
-      final ImporterSettings settings, final List<Pair<Identifiable, Object[]>> connections) {
-    if (!connections.isEmpty()) {
-      // CREATE EDGES ALL TOGETHER FOR THE PREVIOUS BATCH
-      if (lastSourceVertex.getOutEdgesHeadChunk() == null)
-        // RELOAD IT
-        lastSourceVertex = (VertexInternal) lastSourceVertex.getIdentity().getVertex();
+  public void createEdgeFromRow(final String[] row, final List<AnalyzedProperty> properties, final AnalyzedProperty from,
+      final AnalyzedProperty to, final ImporterContext context, final ImporterSettings settings) {
 
-      final int asyncSlot = database.async().getSlot(lastSourceVertex.getIdentity().getBucketId());
+    final long sourceVertexKey = Long.parseLong(row[from.getIndex()]);
+    final long destinationVertexKey = Long.parseLong(row[to.getIndex()]);
 
-      database.async().scheduleTask(asyncSlot,
-          new CreateOutgoingEdgesAsyncTask(lastSourceVertex, connections, settings.edgeTypeName, false, new NewEdgesCallback() {
-            @Override
-            public void call(List<Edge> newEdges) {
-              context.createdEdges.addAndGet(connections.size());
-              for (Edge e : newEdges)
-                edgeIndex.put(e.getIn(), e.getIdentity(), lastSourceVertex.getIdentity());
-              connections.clear();
-            }
-          }), true);
+    final Object[] params;
+    if (row.length > 2) {
+      params = new Object[properties.size() * 2];
+      for (int i = 0; i < properties.size(); ++i) {
+        final AnalyzedProperty property = properties.get(i);
+        params[i * 2] = property.getName();
+        params[i * 2 + 1] = row[property.getIndex()];
+      }
+    } else {
+      params = NO_PARAMS;
     }
+
+    context.graphImporter.createEdge(sourceVertexKey, settings.edgeTypeName, destinationVertexKey, params, context, settings);
   }
 
   @Override

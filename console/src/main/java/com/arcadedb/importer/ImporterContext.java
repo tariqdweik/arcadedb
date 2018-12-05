@@ -9,6 +9,7 @@ import com.arcadedb.index.CompressedAny2RIDIndex;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ImporterContext {
+  GraphImporter                  graphImporter;
   CompressedAny2RIDIndex<Object> verticesIndex;
   long                           startedOn;
 

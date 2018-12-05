@@ -306,6 +306,10 @@ public class CompressedRID2RIDsIndex {
     }
   }
 
+  public int getKeys() {
+    return keys;
+  }
+
   public EntryIterator entryIterator() {
     return new EntryIterator();
   }

@@ -5,11 +5,8 @@
 package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
-import com.arcadedb.database.async.CreateIncomingConnectionAsyncTask;
-import com.arcadedb.database.async.NewEdgeBackLinkingCallback;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.RecordNotFoundException;
-import com.arcadedb.index.CompressedRID2RIDsIndex;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.MultiIterator;
@@ -22,6 +19,18 @@ import java.util.logging.Level;
 public class GraphEngine {
   public static final  int EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
   private static final RID NO_RID                              = new RID(null, -1, -1);
+
+  public static class CreateEdgeOperation {
+    final String       edgeTypeName;
+    final Identifiable destinationVertex;
+    final Object[]     params;
+
+    public CreateEdgeOperation(final String edgeTypeName, final Identifiable destinationVertex, final Object[] params) {
+      this.edgeTypeName = edgeTypeName;
+      this.destinationVertex = destinationVertex;
+      this.params = params;
+    }
+  }
 
   public void createVertexType(DatabaseInternal database, final DocumentType type) {
     for (Bucket b : type.getBuckets(false)) {
@@ -69,8 +78,8 @@ public class GraphEngine {
     return edge;
   }
 
-  public List<Edge> newEdges(final DatabaseInternal database, VertexInternal sourceVertex,
-      final List<Pair<Identifiable, Object[]>> connections, final String edgeType, final boolean bidirectional) {
+  public List<Edge> newEdges(final DatabaseInternal database, VertexInternal sourceVertex, final List<CreateEdgeOperation> connections,
+      final boolean bidirectional) {
 
     if (connections == null || connections.isEmpty())
       return Collections.EMPTY_LIST;
@@ -81,16 +90,16 @@ public class GraphEngine {
     final List<Pair<Identifiable, Identifiable>> outEdgePairs = new ArrayList<>();
 
     for (int i = 0; i < connections.size(); ++i) {
-      final Pair<Identifiable, Object[]> connection = connections.get(i);
+      final CreateEdgeOperation connection = connections.get(i);
 
       final MutableEdge edge;
 
-      final Identifiable destinationVertex = connection.getFirst();
+      final Identifiable destinationVertex = connection.destinationVertex;
 
-      edge = new MutableEdge(database, edgeType, sourceVertexRID, destinationVertex.getIdentity());
+      edge = new MutableEdge(database, connection.edgeTypeName, sourceVertexRID, destinationVertex.getIdentity());
 
 //      if (connection.getSecond() != null && connection.getSecond().length > 0) {
-      setProperties(edge, connection.getSecond());
+      setProperties(edge, connection.params);
       edge.save();
 //      } else {
 //        // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
@@ -117,65 +126,6 @@ public class GraphEngine {
     }
 
     return edges;
-  }
-
-  public void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index,
-      final NewEdgeBackLinkingCallback newEdgeBackLinkingCallback) {
-    Vertex lastVertex = null;
-    List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
-
-    long totalVertices = 0;
-    long totalEdges = 0;
-    int minEdges = Integer.MAX_VALUE;
-    int maxEdges = -1;
-
-    for (final CompressedRID2RIDsIndex.EntryIterator it = index.entryIterator(); it.hasNext(); it.moveNext()) {
-      final Vertex destinationVertex = it.getKeyRID().getVertex(true);
-
-      if (!connections.isEmpty() && !destinationVertex.equals(lastVertex)) {
-        ++totalVertices;
-
-        if (connections.size() < minEdges)
-          minEdges = connections.size();
-        if (connections.size() > maxEdges)
-          maxEdges = connections.size();
-
-        database.async().scheduleTask(database.async().getSlot(lastVertex.getIdentity().getBucketId()),
-            new CreateIncomingConnectionAsyncTask(lastVertex, connections, newEdgeBackLinkingCallback), true);
-
-        connections = new ArrayList<>();
-      }
-
-      lastVertex = destinationVertex;
-
-      connections.add(new Pair<>(it.getEdgeRID(), it.getVertexRID()));
-
-      ++totalEdges;
-    }
-
-    if (lastVertex != null)
-      database.async().scheduleTask(database.async().getSlot(lastVertex.getIdentity().getBucketId()),
-          new CreateIncomingConnectionAsyncTask(lastVertex, connections, newEdgeBackLinkingCallback), true);
-
-    LogManager.instance()
-        .log(this, Level.INFO, "Created %d back connections from %d vertices (min=%d max=%d avg=%d)", null, totalEdges, totalVertices,
-            minEdges, maxEdges, totalVertices > 0 ? totalEdges / totalVertices : 0);
-  }
-
-  public void connectIncomingEdges(final DatabaseInternal database, final Identifiable toVertex,
-      final List<Pair<Identifiable, Identifiable>> connections, final NewEdgeBackLinkingCallback newEdgeBackLinkingCallback) {
-
-    VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
-
-    final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
-    final EdgeChunk inChunk = createInEdgeChunk(database, toVertexRef);
-    toVertexRecord = toVertexRef.get();
-
-    final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
-    inLinkedList.addAll(connections);
-
-    if (newEdgeBackLinkingCallback != null)
-      newEdgeBackLinkingCallback.call(connections.size());
   }
 
   public void connectIncomingEdge(final DatabaseInternal database, final Identifiable toVertex, final RID fromVertexRID,

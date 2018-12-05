@@ -59,32 +59,36 @@ public class CompressedAny2RIDIndex<K> {
   }
 
   public RID get(final Object key) {
+    synchronized (this) {
+      return get(chunk, key);
+    }
+  }
+
+  public RID get(final Binary threadBuffer, final Object key) {
     if (key == null)
       throw new IllegalArgumentException("Key is null");
 
     final int hash = Math.abs(key.hashCode()) % keys;
 
-    synchronized (this) {
-      final int pos = chunk.getInt(hash * Binary.INT_SERIALIZED_SIZE);
-      if (pos == 0)
-        return null;
+    final int pos = threadBuffer.getInt(hash * Binary.INT_SERIALIZED_SIZE);
+    if (pos == 0)
+      return null;
 
-      // SLOT OCCUPIED, CHECK FOR THE KEY
-      chunk.position(pos);
-      while (true) {
-        Object slotKey = serializer.deserializeValue(database, chunk, keyType);
+    // SLOT OCCUPIED, CHECK FOR THE KEY
+    threadBuffer.position(pos);
+    while (true) {
+      Object slotKey = serializer.deserializeValue(database, threadBuffer, keyType);
 
-        if (slotKey.equals(key)) {
-          chunk.position(chunk.position() + Binary.INT_SERIALIZED_SIZE);
-          return (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
-        }
-
-        final int nextPos = chunk.getInt();
-        if (nextPos <= 0)
-          break;
-
-        chunk.position(nextPos);
+      if (slotKey.equals(key)) {
+        threadBuffer.position(threadBuffer.position() + Binary.INT_SERIALIZED_SIZE);
+        return (RID) serializer.deserializeValue(database, threadBuffer, BinaryTypes.TYPE_COMPRESSED_RID);
       }
+
+      final int nextPos = chunk.getInt();
+      if (nextPos <= 0)
+        break;
+
+      threadBuffer.position(nextPos);
     }
 
     return null;
@@ -167,5 +171,9 @@ public class CompressedAny2RIDIndex<K> {
 
   public int getTotalUsedSlots() {
     return totalUsedSlots;
+  }
+
+  public Binary getInternalBuffer() {
+    return chunk;
   }
 }
