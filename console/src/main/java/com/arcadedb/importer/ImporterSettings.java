@@ -35,7 +35,7 @@ public class ImporterSettings {
   String  edgeTypeName          = "Relationship";
   String  edgePropertiesInclude = "*";
   long    expectedEdges         = 0l;
-  int     maxRAMIncomingEdges   = 256 * 1024 * 1024; // 256MB
+  long    maxRAMIncomingEdges   = 256 * 1024 * 1024; // 256MB
   String  edgeFromField         = null;
   String  edgeToField           = null;
   boolean edgeBidirectional     = true;
@@ -136,7 +136,7 @@ public class ImporterSettings {
     else if ("expectedEdges".equals(name))
       expectedEdges = Integer.parseInt(value);
     else if ("maxRAMIncomingEdges".equals(name))
-      maxRAMIncomingEdges = Integer.parseInt(value);
+      maxRAMIncomingEdges = Long.parseLong(value);
     else if ("edgeType".equals(name))
       edgeTypeName = value;
     else if ("edgePropertiesInclude".equals(name))
