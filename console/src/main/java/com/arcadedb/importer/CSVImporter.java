@@ -33,7 +33,7 @@ import java.util.logging.Level;
 
 public class CSVImporter extends AbstractContentImporter {
   private static final Object[]       NO_PARAMS = new Object[] {};
-  public static final  int            _16MB     = 16 * 1024 * 1024;
+  public static final  int            _32MB     = 32 * 1024 * 1024;
   private              Object         lastSourceKey;
   private              VertexInternal lastSourceVertex;
 
@@ -264,8 +264,6 @@ public class CSVImporter extends AbstractContentImporter {
       final ImporterContext context, final ImporterSettings settings) throws ImportException {
     AbstractParser csvParser = createCSVParser(settings, ",");
 
-    LogManager.instance().log(this, Level.INFO, "Started importing edges from CSV source", null);
-
     final long beginTime = System.currentTimeMillis();
 
     if (context.verticesIndex == null || context.verticesIndex.isEmpty())
@@ -280,11 +278,19 @@ public class CSVImporter extends AbstractContentImporter {
     if (expectedEdges <= 0 && entity != null)
       expectedEdges = (int) (sourceSchema.getSource().totalSize / entity.getAverageRowLength());
 
-    if (expectedEdges <= 0 || expectedEdges > _16MB)
+    if (expectedEdges <= 0 || expectedEdges > _32MB)
       // USE CHUNKS OF 16MB EACH
-      expectedEdges = _16MB;
+      expectedEdges = _32MB;
 
-    final CompressedRID2RIDsIndex incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedEdges);
+    long expectedVertices = settings.expectedVertices;
+    if (expectedVertices <= 0)
+      expectedVertices = expectedEdges / 2;
+
+    LogManager.instance()
+        .log(this, Level.INFO, "Started importing edges from CSV source (expectedVertices=%d expectedEdges=%d)", null, expectedVertices,
+            expectedEdges);
+
+    final CompressedRID2RIDsIndex incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, (int) expectedVertices);
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
