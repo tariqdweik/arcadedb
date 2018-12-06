@@ -83,7 +83,7 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
               FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), threadContext.incomingConnectionsIndex.size(),
               threadContext.incomingConnectionsIndex.getTotalUsedSlots(), Thread.currentThread().getId());
 
-      createIncomingEdgesInBatch(database, threadContext.incomingConnectionsIndex);
+      createIncomingEdgesInBatch(database, threadContext.incomingConnectionsIndex, context);
 
       // CREATE A NEW CHUNK BEFORE CONTINUING
       threadContext.incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, threadContext.incomingConnectionsIndex.getKeys());
@@ -121,7 +121,8 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
     }
   }
 
-  private void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index) {
+  protected static void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index,
+      final ImporterContext context) {
     Vertex lastVertex = null;
     List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
 
@@ -141,7 +142,7 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
         if (connections.size() > maxEdges)
           maxEdges = connections.size();
 
-        connectIncomingEdges(database, lastVertex, connections);
+        connectIncomingEdges(database, lastVertex, connections, context);
 
         connections = new ArrayList<>();
       }
@@ -154,15 +155,15 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
     }
 
     if (lastVertex != null)
-      connectIncomingEdges(database, lastVertex, connections);
+      connectIncomingEdges(database, lastVertex, connections, context);
 
     LogManager.instance()
-        .log(this, Level.INFO, "Created %d back connections from %d vertices (min=%d max=%d avg=%d)", null, totalEdges, totalVertices,
+        .log(CreateEdgeFromImportTask.class, Level.INFO, "Created %d back connections from %d vertices (min=%d max=%d avg=%d)", null, totalEdges, totalVertices,
             minEdges, maxEdges, totalVertices > 0 ? totalEdges / totalVertices : 0);
   }
 
-  public void connectIncomingEdges(final DatabaseInternal database, final Identifiable toVertex,
-      final List<Pair<Identifiable, Identifiable>> connections) {
+  public static void connectIncomingEdges(final DatabaseInternal database, final Identifiable toVertex,
+      final List<Pair<Identifiable, Identifiable>> connections, final ImporterContext context) {
 
     VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
 

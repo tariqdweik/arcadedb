@@ -335,6 +335,8 @@ public class CSVImporter extends AbstractContentImporter {
         createEdgeFromRow(row, properties, from, to, context, settings);
       }
 
+      context.graphImporter.close(context);
+
     } catch (IOException e) {
       throw new ImportException("Error on importing CSV");
     } finally {

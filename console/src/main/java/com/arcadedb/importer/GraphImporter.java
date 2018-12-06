@@ -49,9 +49,11 @@ public class GraphImporter {
       threadContexts[i].vertexIndexThreadBuffer = verticesIndex.getInternalBuffer().slice();
   }
 
-  public void close() {
-    for (int i = 0; i < threadContexts.length; ++i)
+  public void close(final ImporterContext context) {
+    for (int i = 0; i < threadContexts.length; ++i) {
+      CreateEdgeFromImportTask.createIncomingEdgesInBatch(database, threadContexts[i].incomingConnectionsIndex, context);
       threadContexts[i] = null;
+    }
   }
 
   //TODO SUPPORT NOT ONLY LONGS AS VERTICES KEYS
