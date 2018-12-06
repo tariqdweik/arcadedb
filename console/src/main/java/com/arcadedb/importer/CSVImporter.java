@@ -363,6 +363,11 @@ public class CSVImporter extends AbstractContentImporter {
   public void createEdgeFromRow(final String[] row, final List<AnalyzedProperty> properties, final AnalyzedProperty from,
       final AnalyzedProperty to, final ImporterContext context, final ImporterSettings settings) {
 
+    if (from.getIndex() >= row.length || to.getIndex() >= row.length) {
+      context.skippedEdges.incrementAndGet();
+      return;
+    }
+
     final String fromValue = row[from.getIndex()];
     final String toValue = row[to.getIndex()];
 

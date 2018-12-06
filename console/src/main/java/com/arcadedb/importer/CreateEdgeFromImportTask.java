@@ -132,34 +132,40 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
     int maxEdges = -1;
 
     for (final CompressedRID2RIDsIndex.EntryIterator it = index.entryIterator(); it.hasNext(); it.moveNext()) {
-      final Vertex destinationVertex = it.getKeyRID().getVertex(true);
+      try {
+        final Vertex destinationVertex = it.getKeyRID().getVertex(true);
 
-      if (!connections.isEmpty() && !destinationVertex.equals(lastVertex)) {
-        ++totalVertices;
+        if (!connections.isEmpty() && !destinationVertex.equals(lastVertex)) {
+          ++totalVertices;
 
-        if (connections.size() < minEdges)
-          minEdges = connections.size();
-        if (connections.size() > maxEdges)
-          maxEdges = connections.size();
+          if (connections.size() < minEdges)
+            minEdges = connections.size();
+          if (connections.size() > maxEdges)
+            maxEdges = connections.size();
 
-        connectIncomingEdges(database, lastVertex, connections, context);
+          connectIncomingEdges(database, lastVertex, connections, context);
 
-        connections = new ArrayList<>();
+          connections = new ArrayList<>();
+        }
+
+        lastVertex = destinationVertex;
+
+        connections.add(new Pair<>(it.getEdgeRID(), it.getVertexRID()));
+
+        ++totalEdges;
+      } catch (Exception e) {
+        LogManager.instance()
+            .log(CreateEdgeFromImportTask.class, Level.SEVERE, "Error on creating incoming edge from %s -[%s]-> %s", e, it.getVertexRID(),
+                it.getEdgeRID(), it.getKeyRID(), it.getVertexRID());
       }
-
-      lastVertex = destinationVertex;
-
-      connections.add(new Pair<>(it.getEdgeRID(), it.getVertexRID()));
-
-      ++totalEdges;
     }
 
     if (lastVertex != null)
       connectIncomingEdges(database, lastVertex, connections, context);
 
     LogManager.instance()
-        .log(CreateEdgeFromImportTask.class, Level.INFO, "Created %d back connections from %d vertices (min=%d max=%d avg=%d)", null, totalEdges, totalVertices,
-            minEdges, maxEdges, totalVertices > 0 ? totalEdges / totalVertices : 0);
+        .log(CreateEdgeFromImportTask.class, Level.INFO, "Created %d back connections from %d vertices (min=%d max=%d avg=%d)", null,
+            totalEdges, totalVertices, minEdges, maxEdges, totalVertices > 0 ? totalEdges / totalVertices : 0);
   }
 
   public static void connectIncomingEdges(final DatabaseInternal database, final Identifiable toVertex,
