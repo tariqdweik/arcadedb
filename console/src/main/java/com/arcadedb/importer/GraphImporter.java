@@ -4,26 +4,32 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.*;
+import com.arcadedb.database.async.NewRecordCallback;
 import com.arcadedb.graph.GraphEngine;
+import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.graph.Vertex;
 import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.index.CompressedRID2RIDsIndex;
+import com.arcadedb.schema.Type;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GraphImporter {
-  private static final Object[] NO_PARAMS = new Object[] {};
-  public static final  int      _32MB     = 32 * 1024 * 1024;
-
+  private final CompressedAny2RIDIndex       verticesIndex;
   private final DatabaseInternal             database;
   private final GraphImporterThreadContext[] threadContexts;
 
+  enum STATUS {IMPORTING_VERTEX, IMPORTING_EDGE, CLOSED}
+
+  private STATUS status = STATUS.IMPORTING_VERTEX;
+
   public class GraphImporterThreadContext {
     Binary                  vertexIndexThreadBuffer;
-    CompressedRID2RIDsIndex incomingConnectionsIndex;
+    CompressedRID2RIDsIndex incomingConnectionsIndexThread;
 
     Long                                  lastSourceKey    = null;
     VertexInternal                        lastSourceVertex = null;
@@ -31,12 +37,14 @@ public class GraphImporter {
     int                                   importedEdges    = 0;
 
     public GraphImporterThreadContext(final int expectedVertices) {
-      incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, expectedVertices);
+      incomingConnectionsIndexThread = new CompressedRID2RIDsIndex(database, expectedVertices);
     }
   }
 
   public GraphImporter(final DatabaseInternal database, final int expectedVertices) {
     this.database = database;
+
+    this.verticesIndex = new CompressedAny2RIDIndex(database, Type.LONG, expectedVertices);
 
     final int parallel = database.async().getParallelLevel();
     threadContexts = new GraphImporterThreadContext[parallel];
@@ -44,15 +52,48 @@ public class GraphImporter {
       threadContexts[i] = new GraphImporterThreadContext(expectedVertices);
   }
 
-  public void createInternalBuffers(final CompressedAny2RIDIndex verticesIndex) {
-    for (int i = 0; i < threadContexts.length; ++i)
-      threadContexts[i].vertexIndexThreadBuffer = verticesIndex.getInternalBuffer().slice();
+  public void close(final ImporterContext context) {
+    database.commit();
+    database.begin();
+
+    for (int i = 0; i < threadContexts.length; ++i) {
+      CreateEdgeFromImportTask.createIncomingEdgesInBatch(database, threadContexts[i].incomingConnectionsIndexThread, context);
+      threadContexts[i] = null;
+    }
+    database.commit();
+
+    status = STATUS.CLOSED;
   }
 
-  public void close(final ImporterContext context) {
-    for (int i = 0; i < threadContexts.length; ++i) {
-      CreateEdgeFromImportTask.createIncomingEdgesInBatch(database, threadContexts[i].incomingConnectionsIndex, context);
-      threadContexts[i] = null;
+  public RID getVertex(final Binary vertexIndexThreadBuffer, final long vertexId) {
+    return verticesIndex.get(vertexIndexThreadBuffer, vertexId);
+  }
+
+  public RID getVertex(final long vertexId) {
+    return verticesIndex.get(vertexId);
+  }
+
+  public void createVertex(final String vertexTypeName, final long vertexId, final Object[] vertexProperties) {
+
+    final Vertex sourceVertex;
+    RID sourceVertexRID = verticesIndex.get(vertexId);
+    if (sourceVertexRID == null) {
+      // CREATE THE VERTEX
+      sourceVertex = database.newVertex(vertexTypeName);
+      ((MutableVertex) sourceVertex).set(vertexProperties);
+
+      database.async().createRecord((MutableDocument) sourceVertex, new NewRecordCallback() {
+        @Override
+        public void call(final Record newDocument) {
+          final AtomicReference<VertexInternal> v = new AtomicReference<>((VertexInternal) sourceVertex);
+          // PRE-CREATE OUT/IN CHUNKS TO SPEEDUP EDGE CREATION
+          final DatabaseInternal db = (DatabaseInternal) database;
+          db.getGraphEngine().createOutEdgeChunk(db, v);
+          db.getGraphEngine().createInEdgeChunk(db, v);
+
+          verticesIndex.put(vertexId, newDocument.getIdentity());
+        }
+      });
     }
   }
 
@@ -65,4 +106,19 @@ public class GraphImporter {
         new CreateEdgeFromImportTask(threadContexts[slot], edgeTypeName, sourceVertexKey, destinationVertexKey, edgeProperties, context,
             settings), true);
   }
+
+  public void startImportingEdges() {
+    if (status != STATUS.IMPORTING_VERTEX)
+      throw new IllegalStateException("Cannot import edges on current status " + status);
+
+    status = STATUS.IMPORTING_EDGE;
+
+    for (int i = 0; i < threadContexts.length; ++i)
+      threadContexts[i].vertexIndexThreadBuffer = verticesIndex.getInternalBuffer().slice();
+  }
+
+  public CompressedAny2RIDIndex<Object> getVerticesIndex() {
+    return verticesIndex;
+  }
+
 }

@@ -4,14 +4,13 @@
 
 package com.arcadedb.importer;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.MutableDocument;
+import com.arcadedb.database.Record;
 import com.arcadedb.database.async.NewRecordCallback;
-import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.graph.Vertex;
-import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.log.LogManager;
-import com.arcadedb.schema.Type;
 import com.arcadedb.utility.FileUtils;
 import com.univocity.parsers.common.AbstractParser;
 import com.univocity.parsers.csv.CsvParser;
@@ -23,7 +22,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class CSVImporter extends AbstractContentImporter {
@@ -128,6 +126,8 @@ public class CSVImporter extends AbstractContentImporter {
               elapsedInSecs > 0 ? context.createdDocuments.get() / elapsedInSecs : context.createdDocuments.get());
       LogManager.instance().log(this, Level.INFO, "- Parsed lines...: %d", null, context.parsed.get());
       LogManager.instance().log(this, Level.INFO, "- Total documents: %d", null, context.createdDocuments.get());
+
+      csvParser.stopParsing();
     }
   }
 
@@ -145,16 +145,13 @@ public class CSVImporter extends AbstractContentImporter {
     }
 
     long expectedVertices = settings.expectedVertices;
-    if (context.verticesIndex == null) {
-      if (expectedVertices <= 0 && entity != null)
-        expectedVertices = (int) (sourceSchema.getSource().totalSize / entity.getAverageRowLength());
-    }
+    if (expectedVertices <= 0 && entity != null)
+      expectedVertices = (int) (sourceSchema.getSource().totalSize / entity.getAverageRowLength());
     if (expectedVertices <= 0)
       expectedVertices = 1000000;
     else if (expectedVertices > Integer.MAX_VALUE)
       expectedVertices = Integer.MAX_VALUE;
 
-    context.verticesIndex = new CompressedAny2RIDIndex<>(database, Type.LONG, (int) expectedVertices);
     context.graphImporter = new GraphImporter((DatabaseInternal) database, (int) expectedVertices);
 
     final AbstractParser csvParser = createCSVParser(settings, ",");
@@ -194,10 +191,11 @@ public class CSVImporter extends AbstractContentImporter {
 
       LogManager.instance().log(this, Level.INFO, "Importing the following vertex properties: %s", null, properties);
 
-      if (!database.isTransactionActive())
-        database.begin();
-
       String[] row;
+      final Object[] vertexProperties = new Object[properties.size() * 2];
+
+      final CompressedAny2RIDIndex<Object> verticesIndex = context.graphImporter.getVerticesIndex();
+
       for (long line = 0; (row = csvParser.parseNext()) != null; ++line) {
         context.parsed.incrementAndGet();
 
@@ -214,40 +212,23 @@ public class CSVImporter extends AbstractContentImporter {
 
         final long vertexId = Long.parseLong(row[idIndex]);
 
-        final Vertex sourceVertex;
-        RID sourceVertexRID = context.verticesIndex.get(vertexId);
-        if (sourceVertexRID == null) {
-          // CREATE THE VERTEX
-          sourceVertex = database.newVertex(settings.vertexTypeName);
-
-          for (int p = 0; p < properties.size(); ++p) {
-            final AnalyzedProperty prop = properties.get(p);
-            ((MutableVertex) sourceVertex).set(prop.getName(), row[prop.getIndex()]);
-          }
-
-          database.async().createRecord((MutableDocument) sourceVertex, new NewRecordCallback() {
-            @Override
-            public void call(final Record newDocument) {
-              final AtomicReference<VertexInternal> v = new AtomicReference<>((VertexInternal) sourceVertex);
-              // PRE-CREATE OUT/IN CHUNKS TO SPEEDUP EDGE CREATION
-              final DatabaseInternal db = (DatabaseInternal) database;
-              db.getGraphEngine().createOutEdgeChunk(db, v);
-              db.getGraphEngine().createInEdgeChunk(db, v);
-
-              context.createdVertices.incrementAndGet();
-              context.verticesIndex.put(vertexId, newDocument.getIdentity());
-            }
-          });
+        for (int p = 0; p < properties.size(); ++p) {
+          final AnalyzedProperty prop = properties.get(p);
+          vertexProperties[p * 2] = prop.getName();
+          vertexProperties[p * 2 + 1] = row[prop.getIndex()];
         }
 
-        if (line > 0 && line % 10000000 == 0)
+        context.graphImporter.createVertex(settings.vertexTypeName, vertexId, vertexProperties);
+
+        context.createdVertices.incrementAndGet();
+
+        if (line > 0 && line % 10000000 == 0) {
           LogManager.instance().log(this, Level.INFO, "Map chunkSize=%s chunkAllocated=%s size=%d totalUsedSlots=%d", null,
-              FileUtils.getSizeAsString(context.verticesIndex.getChunkSize()),
-              FileUtils.getSizeAsString(context.verticesIndex.getChunkAllocated()), context.verticesIndex.size(),
-              context.verticesIndex.getTotalUsedSlots());
+              FileUtils.getSizeAsString(verticesIndex.getChunkSize()), FileUtils.getSizeAsString(verticesIndex.getChunkAllocated()),
+              verticesIndex.size(), verticesIndex.getTotalUsedSlots());
+        }
       }
 
-      database.commit();
       database.async().waitCompletion();
 
     } catch (IOException e) {
@@ -259,6 +240,10 @@ public class CSVImporter extends AbstractContentImporter {
               elapsedInSecs > 0 ? context.createdVertices.get() / elapsedInSecs : context.createdVertices.get());
       LogManager.instance().log(this, Level.INFO, "- Parsed lines...: %d", null, context.parsed.get());
       LogManager.instance().log(this, Level.INFO, "- Total vertices.: %d", null, context.createdVertices.get());
+
+      csvParser.stopParsing();
+
+      context.graphImporter.startImportingEdges();
     }
   }
 
@@ -267,10 +252,6 @@ public class CSVImporter extends AbstractContentImporter {
     AbstractParser csvParser = createCSVParser(settings, ",");
 
     final long beginTime = System.currentTimeMillis();
-
-    if (context.verticesIndex == null || context.verticesIndex.isEmpty())
-      LogManager.instance()
-          .log(this, Level.WARNING, "Cannot find in-memory index for vertices, loading from disk could be very slow", null);
 
     final AnalyzedEntity entity = sourceSchema.getSchema().getEntity(settings.edgeTypeName);
     final AnalyzedProperty from = entity.getProperty(settings.edgeFromField);
@@ -296,8 +277,6 @@ public class CSVImporter extends AbstractContentImporter {
     if (settings.edgesSkipEntries == null && settings.edgesSkipEntries == null)
       // BY DEFAULT SKIP THE FIRST LINE AS HEADER
       skipEntries = 1l;
-
-    context.graphImporter.createInternalBuffers(context.verticesIndex);
 
     try (final InputStreamReader inputFileReader = new InputStreamReader(parser.getInputStream());) {
       csvParser.beginParsing(inputFileReader);
@@ -357,6 +336,8 @@ public class CSVImporter extends AbstractContentImporter {
       LogManager.instance().log(this, Level.INFO, "- Total edges.......: %d", null, context.createdEdges.get());
       LogManager.instance().log(this, Level.INFO, "- Total linked Edges: %d", null, context.linkedEdges.get());
       LogManager.instance().log(this, Level.INFO, "- Skipped edges.....: %d", null, context.skippedEdges.get());
+
+      csvParser.stopParsing();
     }
   }
 

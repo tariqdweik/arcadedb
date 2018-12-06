@@ -32,6 +32,7 @@ public class Importer {
 
   public static void main(final String[] args) {
     new Importer(args).load();
+    System.exit(0);
   }
 
   public void load() {

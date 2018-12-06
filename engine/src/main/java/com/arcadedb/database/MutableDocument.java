@@ -77,6 +77,17 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     map.put(name, value);
   }
 
+  public void set(final Object... properties) {
+    if (properties.length % 2 != 0)
+      throw new IllegalArgumentException("properties must be an even pair of key/values");
+
+    checkForLazyLoadingProperties();
+    dirty = true;
+
+    for (int p = 0; p < properties.length; p += 2)
+      map.put((String) properties[p], properties[p + 1]);
+  }
+
   public Object remove(final String name) {
     checkForLazyLoadingProperties();
     dirty = true;

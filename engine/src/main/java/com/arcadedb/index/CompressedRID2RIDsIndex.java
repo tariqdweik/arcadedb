@@ -17,7 +17,7 @@ import java.util.NoSuchElementException;
 
 /**
  * Map like optimized to avoid stressing the GC by using mechanical sympathy technique + compression of key and values.
- * This class is synchronized. The key is a RID and values are pairs of RIDs. This Map implementation doesn't support the overwrite of a
+ * This class is not synchronized. The key is a RID and values are pairs of RIDs. This Map implementation doesn't support the overwrite of a
  * value. Values cannot be null.
  * <p>
  * This index is used for invert incoming edge creation.
@@ -162,45 +162,43 @@ public class CompressedRID2RIDsIndex {
 
     final int hash = Math.abs(key.hashCode()) % keys;
 
-    synchronized (this) {
-      final int pos = chunk.getInt(hash * Binary.INT_SERIALIZED_SIZE);
-      if (pos == 0)
-        return null;
+    final int pos = chunk.getInt(hash * Binary.INT_SERIALIZED_SIZE);
+    if (pos == 0)
+      return null;
 
-      // SLOT OCCUPIED, CHECK FOR THE KEY
-      chunk.position(pos);
-      while (true) {
-        Object slotKey = serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+    // SLOT OCCUPIED, CHECK FOR THE KEY
+    chunk.position(pos);
+    while (true) {
+      Object slotKey = serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
 
-        if (slotKey.equals(key)) {
-          // FOUND KEY, COLLECT ALL THE VALUE IN THE LINKED LIST
-          final List<Pair<RID, RID>> list = new ArrayList<>();
+      if (slotKey.equals(key)) {
+        // FOUND KEY, COLLECT ALL THE VALUE IN THE LINKED LIST
+        final List<Pair<RID, RID>> list = new ArrayList<>();
 
-          chunk.position(chunk.position() + Binary.INT_SERIALIZED_SIZE);
-          int nextEntryPos = chunk.getInt();
+        chunk.position(chunk.position() + Binary.INT_SERIALIZED_SIZE);
+        int nextEntryPos = chunk.getInt();
 
-          RID edgeRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
-          RID vertexRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+        RID edgeRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+        RID vertexRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+        list.add(new Pair<>(edgeRid, vertexRid));
+
+        while (nextEntryPos > 0) {
+          nextEntryPos = chunk.getInt(nextEntryPos);
+
+          edgeRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+          vertexRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+
           list.add(new Pair<>(edgeRid, vertexRid));
-
-          while (nextEntryPos > 0) {
-            nextEntryPos = chunk.getInt(nextEntryPos);
-
-            edgeRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
-            vertexRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
-
-            list.add(new Pair<>(edgeRid, vertexRid));
-          }
-
-          return list;
         }
 
-        final int nextPos = chunk.getInt();
-        if (nextPos <= 0)
-          break;
-
-        chunk.position(nextPos);
+        return list;
       }
+
+      final int nextPos = chunk.getInt();
+      if (nextPos <= 0)
+        break;
+
+      chunk.position(nextPos);
     }
 
     return null;
@@ -215,95 +213,93 @@ public class CompressedRID2RIDsIndex {
 
     final int hash = Math.abs(key.hashCode()) % keys;
 
-    synchronized (this) {
-      final int pos = chunk.getInt(hash * Binary.INT_SERIALIZED_SIZE);
-      if (pos == 0) {
-        // NEW KEY
-        chunk.position(chunk.size());
-        chunk.putInt(hash * Binary.INT_SERIALIZED_SIZE, chunk.position());
+    final int pos = chunk.getInt(hash * Binary.INT_SERIALIZED_SIZE);
+    if (pos == 0) {
+      // NEW KEY
+      chunk.putInt(hash * Binary.INT_SERIALIZED_SIZE, chunk.size());
+      chunk.position(chunk.size());
 
-        // WRITE -> RID|INT|INT|RID|RID
+      // WRITE -> RID|INT|INT|RID|RID
 
-        // WRITE THE KEY FIRST
-        serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, key);
+      // WRITE THE KEY FIRST
+      serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, key);
 
-        // LEAVE AN INT AS EMPTY SLOT FOR THE NEXT KEY
-        chunk.putInt(0);
+      // LEAVE AN INT AS EMPTY SLOT FOR THE NEXT KEY
+      chunk.putInt(0);
 
-        // LEAVE AN INT AS EMPTY SLOT FOR THE PREVIOUS ELEMENT
-        chunk.putInt(0);
+      // LEAVE AN INT AS EMPTY SLOT FOR THE PREVIOUS ELEMENT
+      chunk.putInt(0);
 
-        // WRITE THE VALUE
-        serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
-        serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
+      // WRITE THE VALUE
+      serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
+      serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
 
-        ++totalUsedSlots;
+      ++totalUsedSlots;
 
-      } else {
-        // SLOT OCCUPIED, CHECK FOR THE KEY
-        chunk.position(pos);
-        int lastNextPos = 0;
-        while (true) {
-          final RID slotKey = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+    } else {
+      // SLOT OCCUPIED, CHECK FOR THE KEY
+      chunk.position(pos);
+      int lastNextPos = 0;
+      while (true) {
+        final RID slotKey = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
 
-          if (slotKey.equals(key)) {
-            // FOUND THE KEY, GET PREVIOUS ITEM
-            final int previousEntryOffset = chunk.position() + Binary.INT_SERIALIZED_SIZE; // SKIP NEXT KEY
-            final int previousEntryPos = chunk.getInt(previousEntryOffset);
+        if (slotKey.equals(key)) {
+          // FOUND THE KEY, GET PREVIOUS ITEM
+          final int previousEntryOffset = chunk.position() + Binary.INT_SERIALIZED_SIZE; // SKIP NEXT KEY
+          final int previousEntryPos = chunk.getInt(previousEntryOffset);
 
-            // APPEND THE NEW ENTRY
-            chunk.position(chunk.size());
+          // APPEND THE NEW ENTRY
+          chunk.position(chunk.size());
 
-            final int newEntryPosition = chunk.position();
+          final int newEntryPosition = chunk.position();
 
-            // WRITE -> RID|RID|INT
+          // WRITE -> RID|RID|INT
 
-            serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
-            serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
+          serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
+          serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
 
-            if (previousEntryPos > 0)
-              // THIS IS THE 3RD OR MAJOR ENTRY. APPEND THE POSITION OF THE PREVIOUS ENTRY
-              chunk.putInt(previousEntryPos);
-            else
-              chunk.putInt(0);
+          if (previousEntryPos > 0)
+            // THIS IS THE 3RD OR MAJOR ENTRY. APPEND THE POSITION OF THE PREVIOUS ENTRY
+            chunk.putInt(previousEntryPos);
+          else
+            chunk.putInt(0);
 
-            chunk.putInt(previousEntryOffset, newEntryPosition);
-            ++totalEntries;
-            return;
-          }
-
-          lastNextPos = chunk.position();
-
-          final int nextPos = chunk.getInt();
-          if (nextPos <= 0)
-            break;
-
-          chunk.position(nextPos);
+          chunk.putInt(previousEntryOffset, newEntryPosition);
+          ++totalEntries;
+          return;
         }
 
-        // APPEND TO THE END
-        chunk.position(chunk.size());
-        final int entryPosition = chunk.position();
+        lastNextPos = chunk.position();
 
-        // WRITE THE KEY FIRST
-        serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, key);
+        final int nextPos = chunk.getInt();
+        if (nextPos <= 0)
+          break;
 
-        // LEAVE AN INT AS EMPTY SLOT FOR THE NEXT KEY
-        chunk.putInt(0);
-
-        // LEAVE AN INT AS EMPTY SLOT FOR THE PREVIOUS ELEMENT
-        chunk.putInt(0);
-
-        // WRITE THE VALUE
-        serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
-        serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
-
-        // WRITE THIS ENTRY POSITION TO THE PREVIOUS NEXT POSITION FIELD
-        chunk.putInt(lastNextPos, entryPosition);
+        chunk.position(nextPos);
       }
 
-      ++totalEntries;
+      // APPEND TO THE END
+      chunk.position(chunk.size());
+      final int entryPosition = chunk.position();
+
+      // WRITE THE KEY FIRST
+      serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, key);
+
+      // LEAVE AN INT AS EMPTY SLOT FOR THE NEXT KEY
+      chunk.putInt(0);
+
+      // LEAVE AN INT AS EMPTY SLOT FOR THE PREVIOUS ELEMENT
+      chunk.putInt(0);
+
+      // WRITE THE VALUE
+      serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
+      serializer.serializeValue(chunk, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
+
+      // WRITE THIS ENTRY POSITION TO THE PREVIOUS NEXT POSITION FIELD
+      chunk.putInt(lastNextPos, entryPosition);
     }
+
+    ++totalEntries;
   }
 
   public int getKeys() {

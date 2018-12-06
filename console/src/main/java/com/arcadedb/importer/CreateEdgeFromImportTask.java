@@ -49,7 +49,7 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
 //    LogManager.instance().log(this, Level.INFO, "Using context %s from theadId=%d", null, threadContext, Thread.currentThread().getId());
 
     // TODO: LOAD FROM INDEX
-    final RID destinationVertexRID = context.verticesIndex.get(threadContext.vertexIndexThreadBuffer, destinationVertexKey);
+    final RID destinationVertexRID = context.graphImporter.getVertex(threadContext.vertexIndexThreadBuffer, destinationVertexKey);
     if (destinationVertexRID == null) {
       // SKIP IT
       context.skippedEdges.incrementAndGet();
@@ -57,11 +57,11 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
     }
 
     if (threadContext.lastSourceKey == null || !threadContext.lastSourceKey.equals(sourceVertexKey)) {
-      createEdgesInBatch(database, threadContext.incomingConnectionsIndex, context, settings, threadContext.connections);
+      createEdgesInBatch(database, threadContext.incomingConnectionsIndexThread, context, settings, threadContext.connections);
       threadContext.connections = new ArrayList<>();
 
       // TODO: LOAD FROM INDEX
-      final RID sourceVertexRID = context.verticesIndex.get(threadContext.vertexIndexThreadBuffer, sourceVertexKey);
+      final RID sourceVertexRID = context.graphImporter.getVertex(threadContext.vertexIndexThreadBuffer, sourceVertexKey);
       if (sourceVertexRID == null) {
         // SKIP IT
         context.skippedEdges.incrementAndGet();
@@ -76,28 +76,29 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
 
     ++threadContext.importedEdges;
 
-    if (threadContext.incomingConnectionsIndex.getChunkSize() >= settings.maxRAMIncomingEdges) {
+    if (threadContext.incomingConnectionsIndexThread.getChunkSize() >= settings.maxRAMIncomingEdges) {
       LogManager.instance()
           .log(this, Level.INFO, "Creation of back connections, reached %s size (max=%s), flushing %d connections (slots=%d thread=%d)...",
-              null, FileUtils.getSizeAsString(threadContext.incomingConnectionsIndex.getChunkSize()),
-              FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), threadContext.incomingConnectionsIndex.size(),
-              threadContext.incomingConnectionsIndex.getTotalUsedSlots(), Thread.currentThread().getId());
+              null, FileUtils.getSizeAsString(threadContext.incomingConnectionsIndexThread.getChunkSize()),
+              FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), threadContext.incomingConnectionsIndexThread.size(),
+              threadContext.incomingConnectionsIndexThread.getTotalUsedSlots(), Thread.currentThread().getId());
 
-      createIncomingEdgesInBatch(database, threadContext.incomingConnectionsIndex, context);
+      createIncomingEdgesInBatch(database, threadContext.incomingConnectionsIndexThread, context);
 
       // CREATE A NEW CHUNK BEFORE CONTINUING
-      threadContext.incomingConnectionsIndex = new CompressedRID2RIDsIndex(database, threadContext.incomingConnectionsIndex.getKeys());
+      threadContext.incomingConnectionsIndexThread = new CompressedRID2RIDsIndex(database,
+          threadContext.incomingConnectionsIndexThread.getKeys());
 
       LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
     }
 
     if (threadContext.importedEdges % settings.commitEvery == 0) {
 //      LogManager.instance().log(this, Level.INFO, "Committing batch of outgoing edges (chunkSize=%s max=%s entries=%d slots=%d)...", null,
-//          FileUtils.getSizeAsString(threadContext.incomingConnectionsIndex.getChunkSize()),
-//          FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), threadContext.incomingConnectionsIndex.size(),
-//          threadContext.incomingConnectionsIndex.getTotalUsedSlots());
+//          FileUtils.getSizeAsString(threadContext.incomingConnectionsIndexThread.getChunkSize()),
+//          FileUtils.getSizeAsString(settings.maxRAMIncomingEdges), threadContext.incomingConnectionsIndexThread.size(),
+//          threadContext.incomingConnectionsIndexThread.getTotalUsedSlots());
 
-      createEdgesInBatch(database, threadContext.incomingConnectionsIndex, context, settings, threadContext.connections);
+      createEdgesInBatch(database, threadContext.incomingConnectionsIndexThread, context, settings, threadContext.connections);
       threadContext.connections = new ArrayList<>();
     }
   }
@@ -124,6 +125,12 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
   protected static void createIncomingEdgesInBatch(final DatabaseInternal database, final CompressedRID2RIDsIndex index,
       final ImporterContext context) {
     Vertex lastVertex = null;
+
+    LogManager.instance().log(CreateEdgeFromImportTask.class, Level.INFO,
+        "Linking %d incoming connections (chunk=%s allocated=%s totalSlotUsed=%d keys=%d)...", null, index.size(),
+        FileUtils.getSizeAsString(index.getChunkSize()), FileUtils.getSizeAsString(index.getChunkAllocated()), index.getTotalUsedSlots(),
+        index.getKeys());
+
     List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
 
     long totalVertices = 0;
