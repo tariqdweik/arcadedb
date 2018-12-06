@@ -2,7 +2,7 @@
  * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
-package com.arcadedb.importer;
+package com.arcadedb.importer.graph;
 
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.NewRecordCallback;
@@ -10,6 +10,8 @@ import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.graph.VertexInternal;
+import com.arcadedb.importer.ImporterContext;
+import com.arcadedb.importer.ImporterSettings;
 import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.index.CompressedRID2RIDsIndex;
 import com.arcadedb.schema.Type;
@@ -19,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GraphImporter {
-  private final CompressedAny2RIDIndex       verticesIndex;
+  private       CompressedAny2RIDIndex       verticesIndex;
   private final DatabaseInternal             database;
   private final GraphImporterThreadContext[] threadContexts;
 
@@ -52,17 +54,30 @@ public class GraphImporter {
       threadContexts[i] = new GraphImporterThreadContext(expectedVertices);
   }
 
-  public void close(final ImporterContext context) {
+  public void close() {
+    close(null);
+  }
+
+  public void close(final EdgeLinkedCallback callback) {
     database.commit();
+
+    // VERTEX INDEX NOT NEEDED ANYMORE
+    verticesIndex = null;
 
     database.async().waitCompletion();
 
     database.begin();
 
     for (int i = 0; i < threadContexts.length; ++i) {
-      CreateEdgeFromImportTask.createIncomingEdgesInBatch(database, threadContexts[i].incomingConnectionsIndexThread, context);
+      threadContexts[i].incomingConnectionsIndexThread.setReadOnly();
+      CreateEdgeFromImportTask.createIncomingEdgesInBatch(database, threadContexts[i].incomingConnectionsIndexThread, callback);
+
+      database.commit();
+      database.begin();
+
       threadContexts[i] = null;
     }
+
     database.commit();
 
     status = STATUS.CLOSED;

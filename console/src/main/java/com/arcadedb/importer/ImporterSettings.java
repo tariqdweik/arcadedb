@@ -38,7 +38,7 @@ public class ImporterSettings {
   String  edgeTypeName          = "Relationship";
   String  edgePropertiesInclude = "*";
   long    expectedEdges         = 0l;
-  long    maxRAMIncomingEdges   = 256 * 1024 * 1024; // 256MB
+  public long maxRAMIncomingEdges = 256 * 1024 * 1024; // 256MB
   String  edgeFromField         = null;
   String  edgeToField           = null;
   boolean edgeBidirectional     = true;
@@ -46,7 +46,7 @@ public class ImporterSettings {
   String  typeIdProperty         = null;
   boolean typeIdPropertyIsUnique = false;
   String  typeIdType             = "String";
-  int     commitEvery            = 5000;
+  public int commitEvery = 5000;
   int     parallel               = Runtime.getRuntime().availableProcessors() / 2 - 1;
   boolean forceDatabaseCreate;
   boolean trimText               = true;

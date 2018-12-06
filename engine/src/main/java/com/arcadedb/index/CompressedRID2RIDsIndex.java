@@ -35,6 +35,7 @@ public class CompressedRID2RIDsIndex {
   protected final Database         database;
   protected final BinarySerializer serializer;
   protected final int              keys;
+  private         boolean          readOnly = false;
 
   private Thread lastThreadAccessed = null;
 
@@ -147,6 +148,10 @@ public class CompressedRID2RIDsIndex {
 
   public int size() {
     return totalEntries;
+  }
+
+  public void setReadOnly() {
+    readOnly = true;
   }
 
   public boolean isEmpty() {
@@ -334,7 +339,7 @@ public class CompressedRID2RIDsIndex {
   }
 
   private void checkThreadAccess() {
-    if (lastThreadAccessed != null && lastThreadAccessed != Thread.currentThread())
+    if (!readOnly && lastThreadAccessed != null && lastThreadAccessed != Thread.currentThread())
       LogManager.instance()
           .log(this, Level.WARNING, "Access by a different thread %d (%s). Previously it was %d (%s)", null, Thread.currentThread().getId(),
               Thread.currentThread().getName(), lastThreadAccessed.getId(), lastThreadAccessed.getName());

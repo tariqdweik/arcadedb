@@ -86,35 +86,42 @@ public class Importer {
   }
 
   protected void printProgress() {
-    long deltaInSecs = (System.currentTimeMillis() - context.lastLapOn) / 1000;
-    if (deltaInSecs == 0)
-      deltaInSecs = 1;
+    try {
+      long deltaInSecs = (System.currentTimeMillis() - context.lastLapOn) / 1000;
+      if (deltaInSecs == 0)
+        deltaInSecs = 1;
 
-    if (source == null || source.compressed || source.totalSize < 0) {
-      LogManager.instance().log(this, Level.INFO,
-          "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d skipped edges - %d linked edges (%d/sec)",
-          null, context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), context.createdDocuments.get(),
-          (context.createdDocuments.get() - context.lastDocuments) / deltaInSecs, context.createdVertices.get(),
-          (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
-          (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
-          (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs);
-    } else {
-      final int progressPerc = (int) (parser.getPosition() * 100 / source.totalSize);
-      LogManager.instance().log(this, Level.INFO,
-          "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d skipped edges - %d linked edges (%d/sec)",
-          null, context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), progressPerc,
-          context.createdDocuments.get(), (context.createdDocuments.get() - context.lastDocuments) / deltaInSecs,
-          context.createdVertices.get(), (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
-          (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
-          (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs);
+      if (source == null || source.compressed || source.totalSize < 0) {
+        LogManager.instance().log(this, Level.INFO,
+            "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d skipped edges - %d linked edges (%d/sec - %d%%)",
+            null, context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), context.createdDocuments.get(),
+            (context.createdDocuments.get() - context.lastDocuments) / deltaInSecs, context.createdVertices.get(),
+            (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
+            (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
+            (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs,
+            (int) (context.linkedEdges.get() * 100 / context.createdEdges.get()));
+      } else {
+        final int progressPerc = (int) (parser.getPosition() * 100 / source.totalSize);
+        LogManager.instance().log(this, Level.INFO,
+            "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d skipped edges - %d linked edges (%d/sec - %d%%)",
+            null, context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), progressPerc,
+            context.createdDocuments.get(), (context.createdDocuments.get() - context.lastDocuments) / deltaInSecs,
+            context.createdVertices.get(), (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
+            (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
+            (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs,
+            (int) (context.linkedEdges.get() * 100 / context.createdEdges.get()));
+      }
+      context.lastLapOn = System.currentTimeMillis();
+      context.lastParsed = context.parsed.get();
+
+      context.lastDocuments = context.createdDocuments.get();
+      context.lastVertices = context.createdVertices.get();
+      context.lastEdges = context.createdEdges.get();
+      context.lastLinkedEdges = context.linkedEdges.get();
+
+    } catch (Exception e) {
+      LogManager.instance().log(this, Level.SEVERE, "Error on print statistics", e);
     }
-    context.lastLapOn = System.currentTimeMillis();
-    context.lastParsed = context.parsed.get();
-
-    context.lastDocuments = context.createdDocuments.get();
-    context.lastVertices = context.createdVertices.get();
-    context.lastEdges = context.createdEdges.get();
-    context.lastLinkedEdges = context.linkedEdges.get();
   }
 
   protected void startImporting() {

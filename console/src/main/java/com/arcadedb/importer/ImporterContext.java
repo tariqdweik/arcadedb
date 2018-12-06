@@ -4,23 +4,25 @@
 
 package com.arcadedb.importer;
 
+import com.arcadedb.importer.graph.GraphImporter;
+
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ImporterContext {
-  GraphImporter graphImporter;
-  long          startedOn;
+  public GraphImporter graphImporter;
+  public long          startedOn;
 
-  final AtomicLong parsed           = new AtomicLong();
-  final AtomicLong createdDocuments = new AtomicLong();
-  final AtomicLong createdVertices  = new AtomicLong();
-  final AtomicLong createdEdges     = new AtomicLong();
-  final AtomicLong linkedEdges      = new AtomicLong();
-  final AtomicLong skippedEdges     = new AtomicLong();
+  public final AtomicLong parsed           = new AtomicLong();
+  public final AtomicLong createdDocuments = new AtomicLong();
+  public final AtomicLong createdVertices  = new AtomicLong();
+  public final AtomicLong createdEdges     = new AtomicLong();
+  public final AtomicLong linkedEdges      = new AtomicLong();
+  public final AtomicLong skippedEdges     = new AtomicLong();
 
-  long lastLapOn;
-  long lastParsed;
-  long lastDocuments;
-  long lastVertices;
-  long lastEdges;
-  long lastLinkedEdges;
+  public long lastLapOn;
+  public long lastParsed;
+  public long lastDocuments;
+  public long lastVertices;
+  public long lastEdges;
+  public long lastLinkedEdges;
 }

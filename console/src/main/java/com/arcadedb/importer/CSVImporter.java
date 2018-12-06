@@ -9,6 +9,7 @@ import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.database.async.NewRecordCallback;
+import com.arcadedb.importer.graph.GraphImporter;
 import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.FileUtils;
@@ -318,7 +319,7 @@ public class CSVImporter extends AbstractContentImporter {
         }
       }
 
-      context.graphImporter.close(context);
+      context.graphImporter.close();
 
     } catch (IOException e) {
       throw new ImportException("Error on importing CSV");
