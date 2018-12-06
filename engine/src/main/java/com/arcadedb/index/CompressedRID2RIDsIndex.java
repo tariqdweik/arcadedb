@@ -49,7 +49,7 @@ public class CompressedRID2RIDsIndex {
     private RID nextVertexRID;
 
     public boolean hasNext() {
-      if (nextEdgeRID != null)
+      if (nextVertexRID != null)
         return true;
 
       if (totalUsedSlots == 0)
@@ -117,7 +117,7 @@ public class CompressedRID2RIDsIndex {
     }
 
     public void moveNext() {
-      nextEdgeRID = null;
+      nextVertexRID = null;
     }
   }
 
@@ -208,8 +208,8 @@ public class CompressedRID2RIDsIndex {
     if (key == null)
       throw new IllegalArgumentException("Key is null");
 
-    if (edgeRID == null)
-      throw new IllegalArgumentException("Value is null");
+    if (vertexRID == null)
+      throw new IllegalArgumentException("Source vertex RID is null");
 
     final int hash = Math.abs(key.hashCode()) % keys;
 

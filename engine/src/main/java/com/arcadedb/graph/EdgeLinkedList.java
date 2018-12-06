@@ -136,7 +136,7 @@ public class EdgeLinkedList {
     for (int i = 0; i < entries.size(); ++i) {
       final Pair<Identifiable, Identifiable> entry = entries.get(i);
 
-      final RID edgeRID = entry.getFirst().getIdentity();
+      final RID edgeRID = entry.getFirst() != null ? entry.getFirst().getIdentity() : null;
       final RID vertexRID = entry.getSecond().getIdentity();
 
       if (first.add(edgeRID, vertexRID))
