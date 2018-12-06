@@ -99,7 +99,7 @@ public class Importer {
             (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
             (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
             (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs,
-            (int) (context.linkedEdges.get() * 100 / context.createdEdges.get()));
+            context.createdEdges.get() > 0 ? (int) (context.linkedEdges.get() * 100 / context.createdEdges.get()) : 0);
       } else {
         final int progressPerc = (int) (parser.getPosition() * 100 / source.totalSize);
         LogManager.instance().log(this, Level.INFO,
@@ -109,7 +109,7 @@ public class Importer {
             context.createdVertices.get(), (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
             (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
             (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs,
-            (int) (context.linkedEdges.get() * 100 / context.createdEdges.get()));
+            context.createdEdges.get() > 0 ? (int) (context.linkedEdges.get() * 100 / context.createdEdges.get()) : 0);
       }
       context.lastLapOn = System.currentTimeMillis();
       context.lastParsed = context.parsed.get();
