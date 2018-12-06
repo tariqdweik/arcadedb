@@ -54,6 +54,9 @@ public class GraphImporter {
 
   public void close(final ImporterContext context) {
     database.commit();
+
+    database.async().waitCompletion();
+
     database.begin();
 
     for (int i = 0; i < threadContexts.length; ++i) {

@@ -7,6 +7,7 @@ package com.arcadedb.index;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.utility.Pair;
@@ -14,6 +15,7 @@ import com.arcadedb.utility.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
 
 /**
  * Map like optimized to avoid stressing the GC by using mechanical sympathy technique + compression of key and values.
@@ -33,6 +35,8 @@ public class CompressedRID2RIDsIndex {
   protected final Database         database;
   protected final BinarySerializer serializer;
   protected final int              keys;
+
+  private Thread lastThreadAccessed = null;
 
   protected Binary chunk;
   protected int    totalEntries   = 0;
@@ -150,6 +154,8 @@ public class CompressedRID2RIDsIndex {
   }
 
   public boolean containsKey(final RID key) {
+    checkThreadAccess();
+
     if (key == null)
       throw new IllegalArgumentException("Key is null");
 
@@ -157,6 +163,8 @@ public class CompressedRID2RIDsIndex {
   }
 
   public List<Pair<RID, RID>> get(final RID key) {
+    checkThreadAccess();
+
     if (key == null)
       throw new IllegalArgumentException("Key is null");
 
@@ -205,6 +213,8 @@ public class CompressedRID2RIDsIndex {
   }
 
   public void put(final RID key, final RID edgeRID, final RID vertexRID) {
+    checkThreadAccess();
+
     if (key == null)
       throw new IllegalArgumentException("Key is null");
 
@@ -307,6 +317,7 @@ public class CompressedRID2RIDsIndex {
   }
 
   public EntryIterator entryIterator() {
+    checkThreadAccess();
     return new EntryIterator();
   }
 
@@ -320,5 +331,13 @@ public class CompressedRID2RIDsIndex {
 
   public int getTotalUsedSlots() {
     return totalUsedSlots;
+  }
+
+  private void checkThreadAccess() {
+    if (lastThreadAccessed != null && lastThreadAccessed != Thread.currentThread())
+      LogManager.instance()
+          .log(this, Level.WARNING, "Access by a different thread %d (%s). Previously it was %d (%s)", null, Thread.currentThread().getId(),
+              Thread.currentThread().getName(), lastThreadAccessed.getId(), lastThreadAccessed.getName());
+    lastThreadAccessed = Thread.currentThread();
   }
 }
