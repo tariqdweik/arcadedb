@@ -18,17 +18,16 @@ import java.util.logging.Level;
 
 public class GraphEngine {
   public static final  int EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
-  private static final RID NO_RID                              = new RID(null, -1, -1);
 
   public static class CreateEdgeOperation {
     final String       edgeTypeName;
     final Identifiable destinationVertex;
-    final Object[]     params;
+    final Object[]     edgeProperties;
 
-    public CreateEdgeOperation(final String edgeTypeName, final Identifiable destinationVertex, final Object[] params) {
+    public CreateEdgeOperation(final String edgeTypeName, final Identifiable destinationVertex, final Object[] edgeProperties) {
       this.edgeTypeName = edgeTypeName;
       this.destinationVertex = destinationVertex;
-      this.params = params;
+      this.edgeProperties = edgeProperties;
     }
   }
 
@@ -42,7 +41,7 @@ public class GraphEngine {
   }
 
   public MutableEdge newEdge(VertexInternal fromVertex, final String edgeType, Identifiable toVertex, final boolean bidirectional,
-      final Object... properties) {
+      final Object... edgeProperties) {
     if (toVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
 
@@ -56,13 +55,12 @@ public class GraphEngine {
     final DatabaseInternal database = (DatabaseInternal) fromVertex.getDatabase();
 
     final MutableEdge edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
-//    if (properties != null && properties.length > 0) {
-    setProperties(edge, properties);
-    edge.save();
-//    } else {
-//      // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
-//      edge.setIdentity(NO_RID);
-//    }
+    if (edgeProperties != null && edgeProperties.length > 0) {
+      setProperties(edge, edgeProperties);
+      edge.save();
+    } else {
+      // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
+    }
 
     final AtomicReference<VertexInternal> fromVertexRef = new AtomicReference<>(fromVertex);
     final EdgeChunk outChunk = createOutEdgeChunk(database, fromVertexRef);
@@ -98,13 +96,12 @@ public class GraphEngine {
 
       edge = new MutableEdge(database, connection.edgeTypeName, sourceVertexRID, destinationVertex.getIdentity());
 
-//      if (connection.getSecond() != null && connection.getSecond().length > 0) {
-      setProperties(edge, connection.params);
-      edge.save();
-//      } else {
-//        // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
-//        edge.setIdentity(NO_RID);
-//      }
+      if (connection.edgeProperties != null && connection.edgeProperties.length > 0) {
+        setProperties(edge, connection.edgeProperties);
+        edge.save();
+      } else {
+        // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
+      }
 
       outEdgePairs.add(new Pair<>(edge, destinationVertex));
 

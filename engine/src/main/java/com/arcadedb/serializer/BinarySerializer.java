@@ -261,9 +261,13 @@ public class BinarySerializer {
       content.putBytes(((BigDecimal) value).unscaledValue().toByteArray());
       break;
     case BinaryTypes.TYPE_COMPRESSED_RID: {
-      final RID rid = ((Identifiable) value).getIdentity();
-      content.putUnsignedNumber(rid.getBucketId());
-      content.putUnsignedNumber(rid.getPosition());
+      if (value == null)
+        content.putUnsignedNumber(0);
+      else {
+        final RID rid = ((Identifiable) value).getIdentity();
+        content.putUnsignedNumber(rid.getBucketId());
+        content.putUnsignedNumber(rid.getPosition());
+      }
       break;
     }
     case BinaryTypes.TYPE_RID: {
@@ -384,7 +388,11 @@ public class BinarySerializer {
       value = new BigDecimal(new BigInteger(unscaledValue), scale);
       break;
     case BinaryTypes.TYPE_COMPRESSED_RID:
-      value = new RID(database, (int) content.getUnsignedNumber(), content.getUnsignedNumber());
+      final long bucketId = content.getUnsignedNumber();
+      if (bucketId > 0)
+        value = new RID(database, (int) bucketId, content.getUnsignedNumber());
+      else
+        value = null;
       break;
     case BinaryTypes.TYPE_RID:
       value = new RID(database, content.getInt(), content.getLong());
