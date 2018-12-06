@@ -112,7 +112,7 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
 
       final List<Edge> newEdges = database.getGraphEngine().newEdges(database, threadContext.lastSourceVertex, connections, false);
 
-      context.createdEdges.addAndGet(connections.size());
+      context.createdEdges.addAndGet(newEdges.size());
 
       for (Edge e : newEdges)
         edgeIndex.put(e.getIn(), e.getIdentity(), threadContext.lastSourceVertex.getIdentity());

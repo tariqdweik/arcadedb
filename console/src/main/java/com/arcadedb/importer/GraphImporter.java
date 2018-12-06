@@ -46,7 +46,7 @@ public class GraphImporter {
 
   public void createInternalBuffers(final CompressedAny2RIDIndex verticesIndex) {
     for (int i = 0; i < threadContexts.length; ++i)
-      threadContexts[i].vertexIndexThreadBuffer = verticesIndex.getInternalBuffer();
+      threadContexts[i].vertexIndexThreadBuffer = verticesIndex.getInternalBuffer().slice();
   }
 
   public void close() {

@@ -33,9 +33,10 @@ public class CompressedAny2RIDIndex<K> {
   public CompressedAny2RIDIndex(final Database database, final Type keyType, final int expectedSize) {
     this.database = database;
 
+    this.keys = expectedSize;
+
     this.chunk = new Binary(expectedSize * 5);
     this.chunk.setAllocationChunkSize(expectedSize);
-    this.keys = expectedSize;
     this.chunk.fill((byte) 0, keys * Binary.INT_SERIALIZED_SIZE);
 
     this.serializer = new BinarySerializer();
@@ -84,7 +85,7 @@ public class CompressedAny2RIDIndex<K> {
         return (RID) serializer.deserializeValue(database, threadBuffer, BinaryTypes.TYPE_COMPRESSED_RID);
       }
 
-      final int nextPos = chunk.getInt();
+      final int nextPos = threadBuffer.getInt();
       if (nextPos <= 0)
         break;
 

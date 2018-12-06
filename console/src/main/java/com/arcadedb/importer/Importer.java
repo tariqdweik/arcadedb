@@ -89,22 +89,22 @@ public class Importer {
     if (deltaInSecs == 0)
       deltaInSecs = 1;
 
-    if (source == null || source.totalSize < 0) {
+    if (source == null || source.compressed || source.totalSize < 0) {
       LogManager.instance().log(this, Level.INFO,
-          "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d linked edges (%d/sec)", null,
-          context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), context.createdDocuments.get(),
+          "Parsed %d (%d/sec) - %d documents (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d skipped edges - %d linked edges (%d/sec)",
+          null, context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), context.createdDocuments.get(),
           (context.createdDocuments.get() - context.lastDocuments) / deltaInSecs, context.createdVertices.get(),
           (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
-          (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.linkedEdges.get(),
+          (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
           (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs);
     } else {
       final int progressPerc = (int) (parser.getPosition() * 100 / source.totalSize);
       LogManager.instance().log(this, Level.INFO,
-          "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d linked edges (%d/sec)", null,
-          context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), progressPerc, context.createdDocuments.get(),
-          (context.createdDocuments.get() - context.lastDocuments) / deltaInSecs, context.createdVertices.get(),
-          (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
-          (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.linkedEdges.get(),
+          "Parsed %d (%d/sec - %d%%) - %d records (%d/sec) - %d vertices (%d/sec) - %d edges (%d/sec) - %d skipped edges - %d linked edges (%d/sec)",
+          null, context.parsed.get(), ((context.parsed.get() - context.lastParsed) / deltaInSecs), progressPerc,
+          context.createdDocuments.get(), (context.createdDocuments.get() - context.lastDocuments) / deltaInSecs,
+          context.createdVertices.get(), (context.createdVertices.get() - context.lastVertices) / deltaInSecs, context.createdEdges.get(),
+          (context.createdEdges.get() - context.lastEdges) / deltaInSecs, context.skippedEdges.get(), context.linkedEdges.get(),
           (context.linkedEdges.get() - context.lastLinkedEdges) / deltaInSecs);
     }
     context.lastLapOn = System.currentTimeMillis();
