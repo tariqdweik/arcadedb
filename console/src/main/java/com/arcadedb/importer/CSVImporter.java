@@ -332,7 +332,11 @@ public class CSVImporter extends AbstractContentImporter {
           // SKIP IT
           continue;
 
-        createEdgeFromRow(row, properties, from, to, context, settings);
+        try {
+          createEdgeFromRow(row, properties, from, to, context, settings);
+        } catch (Exception e) {
+          LogManager.instance().log(this, Level.SEVERE, "Error on parsing line %d", e, line);
+        }
       }
 
       context.graphImporter.close(context);
@@ -359,8 +363,16 @@ public class CSVImporter extends AbstractContentImporter {
   public void createEdgeFromRow(final String[] row, final List<AnalyzedProperty> properties, final AnalyzedProperty from,
       final AnalyzedProperty to, final ImporterContext context, final ImporterSettings settings) {
 
-    final long sourceVertexKey = Long.parseLong(row[from.getIndex()]);
-    final long destinationVertexKey = Long.parseLong(row[to.getIndex()]);
+    final String fromValue = row[from.getIndex()];
+    final String toValue = row[to.getIndex()];
+
+    if (fromValue == null || toValue == null) {
+      context.skippedEdges.incrementAndGet();
+      return;
+    }
+
+    final long sourceVertexKey = Long.parseLong(fromValue);
+    final long destinationVertexKey = Long.parseLong(toValue);
 
     final Object[] params;
     if (row.length > 2) {
