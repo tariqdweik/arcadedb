@@ -30,28 +30,28 @@ public class ImporterSettings {
   String vertexPropertiesInclude = "*";
   long   expectedVertices        = 0l;
 
-  String  edges;
-  String  edgesFileType;
-  String  edgesDelimiter;
-  String  edgesHeader;
-  Long    edgesSkipEntries      = null;
-  String  edgeTypeName          = "Relationship";
-  String  edgePropertiesInclude = "*";
-  long    expectedEdges         = 0l;
+  String edges;
+  String edgesFileType;
+  String edgesDelimiter;
+  String edgesHeader;
+  Long   edgesSkipEntries      = null;
+  String edgeTypeName          = "Relationship";
+  String edgePropertiesInclude = "*";
+  public long expectedEdges       = 0l;
   public long maxRAMIncomingEdges = 256 * 1024 * 1024; // 256MB
-  String  edgeFromField         = null;
-  String  edgeToField           = null;
-  boolean edgeBidirectional     = true;
+  String  edgeFromField     = null;
+  String  edgeToField       = null;
+  boolean edgeBidirectional = true;
 
   String  typeIdProperty         = null;
   boolean typeIdPropertyIsUnique = false;
   String  typeIdType             = "String";
   public int commitEvery = 5000;
-  int     parallel               = Runtime.getRuntime().availableProcessors() / 2 - 1;
+  int     parallel             = Runtime.getRuntime().availableProcessors() / 2 - 1;
   boolean forceDatabaseCreate;
-  boolean trimText               = true;
-  long    analysisLimitBytes     = 100000;
-  long    analysisLimitEntries   = 10000;
+  boolean trimText             = true;
+  long    analysisLimitBytes   = 100000;
+  long    analysisLimitEntries = 10000;
   long    parsingLimitBytes;
   long    parsingLimitEntries;
 

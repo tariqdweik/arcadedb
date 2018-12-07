@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 public class DatabaseChecker {
-  public void check(Database database) {
+  public void check(final Database database) {
     LogManager.instance().log(this, Level.INFO, "Starting checking database '%s'...", null, database.getName());
 
     long autofix = 0;

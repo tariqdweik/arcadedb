@@ -94,7 +94,7 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
 
       // CREATE A NEW CHUNK BEFORE CONTINUING
       threadContext.incomingConnectionsIndexThread = new CompressedRID2RIDsIndex(database,
-          threadContext.incomingConnectionsIndexThread.getKeys());
+          threadContext.incomingConnectionsIndexThread.getKeys(), (int) settings.expectedEdges);
 
       LogManager.instance().log(this, Level.INFO, "Creation done, reset index buffer and continue", null);
     }

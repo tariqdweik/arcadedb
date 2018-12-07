@@ -126,13 +126,13 @@ public class CompressedRID2RIDsIndex {
     }
   }
 
-  public CompressedRID2RIDsIndex(final Database database, final int expectedSize) {
+  public CompressedRID2RIDsIndex(final Database database, final int expectedVertices, final int expectedEdges) {
     this.database = database;
-    this.keys = expectedSize;
+    this.keys = expectedVertices;
     this.serializer = new BinarySerializer();
 
-    this.chunk = new Binary(keys * 5);
-    this.chunk.setAllocationChunkSize(keys);
+    this.chunk = new Binary(expectedVertices * 10 + expectedEdges * 10);
+    this.chunk.setAllocationChunkSize(expectedEdges * 10 / 2);
     this.chunk.fill((byte) 0, keys * Binary.INT_SERIALIZED_SIZE);
 
     this.totalEntries = 0;

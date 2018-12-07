@@ -93,7 +93,7 @@ public class CompressedAny2RIDIndex<K> {
 
     this.keys = expectedSize;
 
-    this.chunk = new Binary(expectedSize * 5);
+    this.chunk = new Binary(expectedSize * 16); // 14 as an average size per entry
     this.chunk.setAllocationChunkSize(expectedSize);
     this.chunk.fill((byte) 0, keys * Binary.INT_SERIALIZED_SIZE);
 

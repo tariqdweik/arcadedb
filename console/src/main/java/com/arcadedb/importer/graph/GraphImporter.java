@@ -41,20 +41,23 @@ public class GraphImporter {
     List<GraphEngine.CreateEdgeOperation> connections      = new ArrayList<>();
     int                                   importedEdges    = 0;
 
-    public GraphImporterThreadContext(final int expectedVertices) {
-      incomingConnectionsIndexThread = new CompressedRID2RIDsIndex(database, expectedVertices);
+    public GraphImporterThreadContext(final int expectedVertices, final int expectedEdges) {
+      incomingConnectionsIndexThread = new CompressedRID2RIDsIndex(database, expectedVertices, expectedEdges);
     }
   }
 
-  public GraphImporter(final DatabaseInternal database, final int expectedVertices) {
+  public GraphImporter(final DatabaseInternal database, final int expectedVertices, final int expectedEdges) {
     this.database = database;
+
+    final int parallel = database.async().getParallelLevel();
 
     this.verticesIndex = new CompressedAny2RIDIndex(database, Type.LONG, expectedVertices);
 
-    final int parallel = database.async().getParallelLevel();
+    final int expectedEdgesPerThread = expectedEdges / parallel;
+
     threadContexts = new GraphImporterThreadContext[parallel];
     for (int i = 0; i < parallel; ++i)
-      threadContexts[i] = new GraphImporterThreadContext(expectedVertices);
+      threadContexts[i] = new GraphImporterThreadContext(expectedVertices, expectedEdgesPerThread);
   }
 
   public void close() {

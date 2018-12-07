@@ -154,7 +154,7 @@ public class CSVImporter extends AbstractContentImporter {
     else if (expectedVertices > Integer.MAX_VALUE)
       expectedVertices = Integer.MAX_VALUE;
 
-    context.graphImporter = new GraphImporter((DatabaseInternal) database, (int) expectedVertices);
+    context.graphImporter = new GraphImporter((DatabaseInternal) database, (int) expectedVertices, (int) settings.expectedEdges);
 
     final AbstractParser csvParser = createCSVParser(settings, ",");
 
