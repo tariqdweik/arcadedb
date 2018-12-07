@@ -10,6 +10,7 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.TransactionContext;
+import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.remote.RemoteDatabase;
@@ -118,6 +119,8 @@ public class Console {
     if (line != null && !line.isEmpty()) {
       if (line.startsWith("begin"))
         executeBegin();
+      else if (line.startsWith("check database"))
+        executeCheckDatabase();
       else if (line.startsWith("close"))
         executeClose();
       else if (line.startsWith("commit"))
@@ -221,6 +224,16 @@ public class Console {
       remoteDatabase.close();
       remoteDatabase = null;
     }
+  }
+
+  private void executeCheckDatabase() {
+    if (database == null)
+      throw new ConsoleException("Database is closed");
+
+    if (database.isTransactionActive())
+      database.commit();
+
+    new DatabaseChecker().check(database);
   }
 
   private void executeConnect(final String line) {
@@ -491,6 +504,7 @@ public class Console {
   private void executeHelp() {
     output("\nHELP");
     output("\nbegin                               -> begins a new transaction");
+    output("\ncheck database                      -> check database integrity");
     output("\nclose                               -> closes the database");
     output("\ncreate database <path>|remote:<url> -> creates a new database");
     output("\ncommit                              -> commits current transaction");

@@ -14,11 +14,14 @@ import com.arcadedb.importer.ImporterContext;
 import com.arcadedb.importer.ImporterSettings;
 import com.arcadedb.index.CompressedAny2RIDIndex;
 import com.arcadedb.index.CompressedRID2RIDsIndex;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.Type;
+import com.arcadedb.utility.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 public class GraphImporter {
   private       CompressedAny2RIDIndex       verticesIndex;
@@ -61,24 +64,17 @@ public class GraphImporter {
   public void close(final EdgeLinkedCallback callback) {
     database.commit();
 
-    // VERTEX INDEX NOT NEEDED ANYMORE
-    verticesIndex = null;
+    database.async().waitCompletion();
+
+    for (int i = 0; i < threadContexts.length; ++i)
+      threadContexts[i].incomingConnectionsIndexThread.setReadOnly();
+
+    createIncomingEdges(database, callback);
 
     database.async().waitCompletion();
 
-    database.begin();
-
-    for (int i = 0; i < threadContexts.length; ++i) {
-      threadContexts[i].incomingConnectionsIndexThread.setReadOnly();
-      CreateEdgeFromImportTask.createIncomingEdgesInBatch(database, threadContexts[i].incomingConnectionsIndexThread, callback);
-
-      database.commit();
-      database.begin();
-
+    for (int i = 0; i < threadContexts.length; ++i)
       threadContexts[i] = null;
-    }
-
-    database.commit();
 
     status = STATUS.CLOSED;
   }
@@ -139,4 +135,44 @@ public class GraphImporter {
     return verticesIndex;
   }
 
+  protected void createIncomingEdges(final DatabaseInternal database, final EdgeLinkedCallback callback) {
+    List<Pair<Identifiable, Identifiable>> connections = new ArrayList<>();
+
+    long browsedVertices = 0;
+    long browsedEdges = 0;
+    long verticesWithNoEdges = 0;
+    long verticesWithEdges = 0;
+
+    LogManager.instance().log(this, Level.INFO, "Linking back edges for %d vertices...", null, verticesIndex.size());
+
+    // BROWSE ALL THE VERTICES AND COLLECT ALL THE EDGES FROM THE OTHER IN RAM INDEXES
+    for (final CompressedAny2RIDIndex.EntryIterator it = verticesIndex.vertexIterator(); it.hasNext(); ) {
+      final RID destinationVertex = it.next();
+
+      ++browsedVertices;
+
+      for (int t = 0; t < threadContexts.length; ++t) {
+        final List<Pair<RID, RID>> edges = threadContexts[t].incomingConnectionsIndexThread.get(destinationVertex);
+        if (edges != null) {
+          for (int e = 0; e < edges.size(); ++e) {
+            final Pair<RID, RID> edge = edges.get(e);
+            connections.add(new Pair<>(edge.getFirst(), edge.getSecond()));
+            ++browsedEdges;
+          }
+        }
+      }
+
+      if (!connections.isEmpty()) {
+        final int slot = database.async().getSlot(destinationVertex.getBucketId());
+        database.async().scheduleTask(slot, new LinkEdgeFromImportTask(destinationVertex, connections, callback), true);
+        connections = new ArrayList<>();
+        ++verticesWithEdges;
+      } else
+        ++verticesWithNoEdges;
+    }
+
+    LogManager.instance().log(this, Level.INFO,
+        "Linking back edges completed: browsedVertices=%d browsedEdges=%d verticesWithEdges=%d verticesWithNoEdges=%d", null,
+        browsedVertices, browsedEdges, verticesWithEdges, verticesWithNoEdges);
+  }
 }

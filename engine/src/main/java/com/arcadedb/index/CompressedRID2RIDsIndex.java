@@ -189,6 +189,7 @@ public class CompressedRID2RIDsIndex {
         final List<Pair<RID, RID>> list = new ArrayList<>();
 
         chunk.position(chunk.position() + Binary.INT_SERIALIZED_SIZE);
+
         int nextEntryPos = chunk.getInt();
 
         RID edgeRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
@@ -196,10 +197,12 @@ public class CompressedRID2RIDsIndex {
         list.add(new Pair<>(edgeRid, vertexRid));
 
         while (nextEntryPos > 0) {
-          nextEntryPos = chunk.getInt(nextEntryPos);
+          chunk.position(nextEntryPos);
 
           edgeRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
           vertexRid = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+
+          nextEntryPos = chunk.getInt();
 
           list.add(new Pair<>(edgeRid, vertexRid));
         }

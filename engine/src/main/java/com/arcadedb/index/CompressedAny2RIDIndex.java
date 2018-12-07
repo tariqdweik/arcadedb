@@ -11,6 +11,9 @@ import com.arcadedb.schema.Type;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.serializer.BinaryTypes;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
 /**
  * Map like optimized to don't stress GC by using mechanical sympathy technique + compression of key and values.
  * This class is synchronized. Values are RIDs, key can be anything. This Map implementation doesn't support the overwrite of a value.
@@ -30,6 +33,61 @@ public class CompressedAny2RIDIndex<K> {
   private       int              totalEntries   = 0;
   private       int              totalUsedSlots = 0;
 
+  public class EntryIterator implements Iterator<RID> {
+    private int posInHashTable = 0;
+    private int posInChunk     = 0;
+    private int nextKeyPos;
+
+    private RID nextVertexRID;
+
+    public boolean hasNext() {
+      if (nextVertexRID != null)
+        return true;
+
+      if (totalUsedSlots == 0)
+        return false;
+
+      if (nextKeyPos > 0) {
+        // IGNORE THE KEY AND TAKE THE VERTEX RID
+        chunk.position(nextKeyPos);
+        serializer.deserializeValue(database, chunk, keyType);
+
+        // NEXT KEY ON SAME POSITION IN HASHTABLE
+        nextKeyPos = chunk.getInt();
+        nextVertexRID = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+        return true;
+      }
+
+      // NEXT POSITION IN HASHTABLE
+      for (; posInHashTable < keys; ++posInHashTable) {
+        posInChunk = chunk.getInt(posInHashTable * Binary.INT_SERIALIZED_SIZE);
+        if (posInChunk > 0) {
+          chunk.position(posInChunk);
+
+          // IGNORE THE KEY AND TAKE THE VERTEX RID
+          serializer.deserializeValue(database, chunk, keyType);
+
+          nextKeyPos = chunk.getInt();
+          nextVertexRID = (RID) serializer.deserializeValue(database, chunk, BinaryTypes.TYPE_COMPRESSED_RID);
+          ++posInHashTable;
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    public RID next() {
+      if (!hasNext())
+        throw new NoSuchElementException();
+      try {
+        return nextVertexRID;
+      } finally {
+        nextVertexRID = null;
+      }
+    }
+  }
+
   public CompressedAny2RIDIndex(final Database database, final Type keyType, final int expectedSize) {
     this.database = database;
 
@@ -42,6 +100,10 @@ public class CompressedAny2RIDIndex<K> {
     this.serializer = new BinarySerializer();
 
     this.keyType = keyType.getBinaryType();
+  }
+
+  public EntryIterator vertexIterator() {
+    return new EntryIterator();
   }
 
   public int size() {
@@ -125,7 +187,7 @@ public class CompressedAny2RIDIndex<K> {
       } else {
         // SLOT OCCUPIED, CHECK FOR THE KEY
         chunk.position(pos);
-        int lastNextPos = 0;
+        int lastNextPos;
         while (true) {
           Object slotKey = serializer.deserializeValue(database, chunk, keyType);
 
