@@ -80,8 +80,8 @@ public class MutableEdge extends MutableDocument implements Edge {
   private void init() {
     if (buffer != null) {
       buffer.position(1);
-      this.out = new RID(database, buffer.getInt(), buffer.getLong());
-      this.in = new RID(database, buffer.getInt(), buffer.getLong());
+      this.out = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
+      this.in = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
       this.propertiesStartingPosition = buffer.position();
     }
   }

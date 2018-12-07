@@ -123,12 +123,12 @@ public class BinarySerializer {
 
     // WRITE OUT AND IN EDGES POINTER FIRST, THEN SERIALIZE THE VERTEX PROPERTIES (AS A DOCUMENT)
     final RID outEdges = edge.getOut();
-    header.putInt(outEdges.getBucketId());
-    header.putLong(outEdges.getPosition());
+    header.putUnsignedNumber(outEdges.getBucketId());
+    header.putUnsignedNumber(outEdges.getPosition());
 
     final RID inEdges = edge.getIn();
-    header.putInt(inEdges.getBucketId());
-    header.putLong(inEdges.getPosition());
+    header.putUnsignedNumber(inEdges.getBucketId());
+    header.putUnsignedNumber(inEdges.getPosition());
 
     if (serializeProperties)
       return serializeProperties(database, edge, header);

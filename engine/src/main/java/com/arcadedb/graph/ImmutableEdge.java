@@ -13,7 +13,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
   private RID out;
   private RID in;
 
-  public ImmutableEdge(final Database graph, final String typeName, final RID edgeRID, final RID out, RID in) {
+  public ImmutableEdge(final Database graph, final String typeName, final RID edgeRID, final RID out, final RID in) {
     super(graph, typeName, edgeRID, null);
     this.out = out;
     this.in = in;
@@ -23,8 +23,8 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
     super(graph, typeName, rid, buffer);
     if (buffer != null) {
       buffer.position(1); // SKIP RECORD TYPE
-      out = new RID(graph, buffer.getInt(), buffer.getLong());
-      in = new RID(graph, buffer.getInt(), buffer.getLong());
+      out = new RID(graph, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
+      in = new RID(graph, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
       propertiesStartingPosition = buffer.position();
     }
   }
@@ -77,8 +77,8 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
   protected boolean checkForLazyLoading() {
     if (super.checkForLazyLoading()) {
       buffer.position(1); // SKIP RECORD TYPE
-      out = new RID(database, buffer.getInt(), buffer.getLong());
-      in = new RID(database, buffer.getInt(), buffer.getLong());
+      out = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
+      in = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
       propertiesStartingPosition = buffer.position();
       return true;
     }
