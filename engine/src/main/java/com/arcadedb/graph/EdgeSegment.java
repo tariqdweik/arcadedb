@@ -11,7 +11,7 @@ import com.arcadedb.database.Record;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public interface EdgeChunk extends Record {
+public interface EdgeSegment extends Record {
   byte RECORD_TYPE = 3;
 
   boolean add(RID edgeRID, RID vertexRID);
@@ -24,17 +24,15 @@ public interface EdgeChunk extends Record {
 
   int removeVertex(RID vertexRID);
 
-  EdgeChunk getNext();
+  EdgeSegment getNext();
 
-  void setNext(EdgeChunk next);
+  void setNext(EdgeSegment next);
 
   Binary getContent();
 
   int getUsed();
 
-  RID getEdge(AtomicInteger currentPosition);
-
-  RID getVertex(AtomicInteger currentPosition);
+  RID getRID(AtomicInteger currentPosition);
 
   int getRecordSize();
 

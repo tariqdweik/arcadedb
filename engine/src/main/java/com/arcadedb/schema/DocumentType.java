@@ -100,7 +100,8 @@ public class DocumentType {
       throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name + "' because it already exists");
 
     if (getPolymorphicPropertyNames().contains(propertyName))
-      throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name + "' because it was already defined in a parent class");
+      throw new SchemaException(
+          "Cannot create the property '" + propertyName + "' in type '" + name + "' because it was already defined in a parent class");
 
     final Property property = new Property(this, propertyName, propertyType);
 
@@ -364,9 +365,8 @@ public class DocumentType {
   protected void addBucketInternal(final Bucket bucket) {
     for (DocumentType cl : schema.getTypes()) {
       if (cl.hasBucket(bucket.getName()))
-        throw new SchemaException(
-            "Cannot add the bucket '" + bucket.getName() + "' to the type '" + name + "', because the bucket is already associated to the type '" + cl.getName()
-                + "'");
+        throw new SchemaException("Cannot add the bucket '" + bucket.getName() + "' to the type '" + name
+            + "', because the bucket is already associated to the type '" + cl.getName() + "'");
     }
 
     buckets.add(bucket);
@@ -388,5 +388,9 @@ public class DocumentType {
       if (b.getName().equals(bucketName))
         return true;
     return false;
+  }
+
+  public int getFirstBucketId() {
+    return buckets.get(0).getId();
   }
 }

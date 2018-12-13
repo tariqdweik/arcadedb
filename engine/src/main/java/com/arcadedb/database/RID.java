@@ -127,4 +127,8 @@ public class RID implements Identifiable, Comparable<Identifiable>, Serializable
 
     return 0;
   }
+
+  public Database getDatabase() {
+    return database;
+  }
 }

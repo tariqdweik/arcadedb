@@ -20,9 +20,9 @@ import java.util.Set;
 public class EdgeLinkedList {
   private final Vertex           vertex;
   private final Vertex.DIRECTION direction;
-  private       EdgeChunk        first;
+  private       EdgeSegment      first;
 
-  public EdgeLinkedList(final Vertex vertex, final Vertex.DIRECTION direction, final EdgeChunk first) {
+  public EdgeLinkedList(final Vertex vertex, final Vertex.DIRECTION direction, final EdgeSegment first) {
     this.vertex = vertex;
     this.direction = direction;
     this.first = first;
@@ -36,8 +36,8 @@ public class EdgeLinkedList {
 
   public Iterator<Edge> edgeIterator(final String... edgeTypes) {
     if (edgeTypes == null || edgeTypes.length == 0)
-      return new EdgeIterator(first);
-    return new EdgeIteratorFilter((DatabaseInternal) vertex.getDatabase(), first, edgeTypes);
+      return new EdgeIterator(first, vertex.getIdentity(), direction);
+    return new EdgeIteratorFilter((DatabaseInternal) vertex.getDatabase(), vertex.getIdentity(), direction, first, edgeTypes);
   }
 
   public Iterator<Vertex> vertexIterator(final String... edgeTypes) {
@@ -47,7 +47,7 @@ public class EdgeLinkedList {
   }
 
   public boolean containsEdge(final RID rid) {
-    EdgeChunk current = first;
+    EdgeSegment current = first;
     while (current != null) {
       if (current.containsEdge(rid))
         return true;
@@ -59,7 +59,7 @@ public class EdgeLinkedList {
   }
 
   public boolean containsVertex(final RID rid) {
-    EdgeChunk current = first;
+    EdgeSegment current = first;
     while (current != null) {
       if (current.containsVertex(rid))
         return true;
@@ -84,13 +84,13 @@ public class EdgeLinkedList {
     if (edgeType != null) {
       final DocumentType type = vertex.getDatabase().getSchema().getType(edgeType);
       final List<Bucket> buckets = type.getBuckets(true);
-      fileIdToFilter = new HashSet<Integer>(buckets.size());
+      fileIdToFilter = new HashSet<>(buckets.size());
       for (Bucket b : buckets)
         fileIdToFilter.add(b.getId());
     } else
       fileIdToFilter = null;
 
-    EdgeChunk current = first;
+    EdgeSegment current = first;
     while (current != null) {
       total += current.count(fileIdToFilter);
       current = current.getNext();
@@ -106,7 +106,7 @@ public class EdgeLinkedList {
       // CHUNK FULL, ALLOCATE A NEW ONE
       DatabaseInternal database = (DatabaseInternal) vertex.getDatabase();
 
-      final MutableEdgeChunk newChunk = new MutableEdgeChunk(database, computeBestSize());
+      final MutableEdgeSegment newChunk = new MutableEdgeSegment(database, computeBestSize());
 
       newChunk.add(edgeRID, vertexRID);
       newChunk.setNext(first);
@@ -143,7 +143,7 @@ public class EdgeLinkedList {
         recordsToUpdate.add(first);
       else {
         // CHUNK FULL, ALLOCATE A NEW ONE
-        final MutableEdgeChunk newChunk = new MutableEdgeChunk(database, computeBestSize());
+        final MutableEdgeSegment newChunk = new MutableEdgeSegment(database, computeBestSize());
 
         newChunk.add(edgeRID, vertexRID);
         newChunk.setNext(first);
@@ -168,10 +168,20 @@ public class EdgeLinkedList {
       database.updateRecord(r);
   }
 
-  public void removeEdge(final RID edgeRID) {
-    EdgeChunk current = first;
+  public void removeEdge(final Edge edge) {
+    EdgeSegment current = first;
     while (current != null) {
-      if (current.removeEdge(edgeRID) > 0)
+      RID rid = edge.getIdentity();
+
+      int deleted = 0;
+      if (rid.getPosition() > -1)
+        // DELETE BY EDGE RID
+        deleted = current.removeEdge(rid);
+      else
+        // DELETE BY EDGE RID
+        deleted = current.removeVertex(direction == Vertex.DIRECTION.OUT ? edge.getIn() : edge.getOut());
+
+      if (deleted > 0)
         ((DatabaseInternal) vertex.getDatabase()).updateRecord(current);
 
       current = current.getNext();
@@ -179,7 +189,7 @@ public class EdgeLinkedList {
   }
 
   public void removeVertex(final RID vertexRID) {
-    EdgeChunk current = first;
+    EdgeSegment current = first;
     while (current != null) {
       if (current.removeVertex(vertexRID) > 0)
         ((DatabaseInternal) vertex.getDatabase()).updateRecord(current);

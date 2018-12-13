@@ -8,6 +8,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.ImmutableDocument;
 import com.arcadedb.database.RID;
+import com.arcadedb.serializer.BinaryTypes;
 
 public class ImmutableEdge extends ImmutableDocument implements Edge {
   private RID out;
@@ -23,8 +24,8 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
     super(graph, typeName, rid, buffer);
     if (buffer != null) {
       buffer.position(1); // SKIP RECORD TYPE
-      out = new RID(graph, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
-      in = new RID(graph, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
+      out = (RID) database.getSerializer().deserializeValue(graph, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
+      in = (RID) database.getSerializer().deserializeValue(graph, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
       propertiesStartingPosition = buffer.position();
     }
   }
@@ -75,10 +76,10 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
 
   @Override
   protected boolean checkForLazyLoading() {
-    if (super.checkForLazyLoading()) {
+    if (rid != null && rid.getPosition() > -1 && super.checkForLazyLoading()) {
       buffer.position(1); // SKIP RECORD TYPE
-      out = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
-      in = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
+      out = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
+      in = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
       propertiesStartingPosition = buffer.position();
       return true;
     }

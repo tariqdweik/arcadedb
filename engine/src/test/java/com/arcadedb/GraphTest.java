@@ -85,7 +85,7 @@ public class GraphTest extends BaseGraphTest {
     try {
 
       Assertions.assertEquals(1, database.countType(EDGE1_TYPE_NAME, false));
-      Assertions.assertEquals(2, database.countType(EDGE2_TYPE_NAME, false));
+      Assertions.assertEquals(1, database.countType(EDGE2_TYPE_NAME, false));
 
       final Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);
@@ -142,7 +142,7 @@ public class GraphTest extends BaseGraphTest {
     try {
 
       Assertions.assertEquals(1, database.countType(EDGE1_TYPE_NAME, false));
-      Assertions.assertEquals(2, database.countType(EDGE2_TYPE_NAME, false));
+      Assertions.assertEquals(1, database.countType(EDGE2_TYPE_NAME, false));
 
       final Vertex v1 = (Vertex) database.lookupByRID(root, false);
       Assertions.assertNotNull(v1);

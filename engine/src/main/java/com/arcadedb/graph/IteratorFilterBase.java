@@ -16,14 +16,15 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> {
-  protected       EdgeChunk     currentContainer;
-  protected final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeChunk.CONTENT_START_POSITION);
+  protected       EdgeSegment   currentContainer;
+  protected final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
 
   protected RID          nextEdge;
+  protected RID          nextVertex;
   protected RID          next;
   protected Set<Integer> validBuckets;
 
-  protected IteratorFilterBase(final DatabaseInternal database, final EdgeChunk current, final String[] edgeTypes) {
+  protected IteratorFilterBase(final DatabaseInternal database, final EdgeSegment current, final String[] edgeTypes) {
     this.currentContainer = current;
 
     validBuckets = new HashSet<>();
@@ -49,11 +50,12 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
     while (true) {
       if (currentPosition.get() < currentContainer.getUsed()) {
         if (edge) {
-          nextEdge = next = currentContainer.getEdge(currentPosition);
-          currentContainer.getVertex(currentPosition); // SKIP VERTEX
+          nextEdge = next = currentContainer.getRID(currentPosition);
+          nextVertex = currentContainer.getRID(currentPosition); // SKIP VERTEX
+
         } else {
-          nextEdge = currentContainer.getEdge(currentPosition);
-          next = currentContainer.getVertex(currentPosition);
+          nextEdge = currentContainer.getRID(currentPosition);
+          nextVertex = next = currentContainer.getRID(currentPosition);
         }
 
         if (validBuckets.contains(nextEdge.getBucketId()))
@@ -63,7 +65,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
         // FETCH NEXT CHUNK
         currentContainer = currentContainer.getNext();
         if (currentContainer != null) {
-          currentPosition.set(MutableEdgeChunk.CONTENT_START_POSITION);
+          currentPosition.set(MutableEdgeSegment.CONTENT_START_POSITION);
         } else
           // END
           break;
@@ -71,6 +73,10 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
     }
 
     return false;
+  }
+
+  public RID getNextVertex() {
+    return nextVertex;
   }
 
   @Override

@@ -10,26 +10,27 @@ import com.arcadedb.serializer.BinaryTypes;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInternal {
+public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, RecordInternal {
   public static final  byte RECORD_TYPE            = 3;
-  public static final  int  CONTENT_START_POSITION = Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + BinaryTypes.getTypeSize(BinaryTypes.TYPE_RID);
+  public static final  int  CONTENT_START_POSITION =
+      Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + BinaryTypes.getTypeSize(BinaryTypes.TYPE_RID);
   private static final RID  NULL_RID               = new RID(null, -1, -1);
 
   private int bufferSize;
 
-  public MutableEdgeChunk(final Database database, final RID rid) {
+  public MutableEdgeSegment(final Database database, final RID rid) {
     super(database, rid, null);
     this.buffer = null;
   }
 
-  public MutableEdgeChunk(final Database database, final RID rid, final Binary buffer) {
+  public MutableEdgeSegment(final Database database, final RID rid, final Binary buffer) {
     super(database, rid, buffer);
     this.buffer = buffer;
     this.buffer.setAutoResizable(false);
     this.bufferSize = buffer.size();
   }
 
-  public MutableEdgeChunk(final DatabaseInternal database, final int bufferSize) {
+  public MutableEdgeSegment(final DatabaseInternal database, final int bufferSize) {
     super(database, null, new Binary(bufferSize));
     this.buffer.setAutoResizable(false);
     this.bufferSize = bufferSize;
@@ -46,7 +47,7 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
 
   @Override
   public boolean add(final RID edgeRID, final RID vertexRID) {
-    final Binary ridSerialized = ((EmbeddedDatabase) database).getContext().getTemporaryBuffer1();
+    final Binary ridSerialized = database.getContext().getTemporaryBuffer1();
     database.getSerializer().serializeValue(ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
     database.getSerializer().serializeValue(ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
 
@@ -79,14 +80,14 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     buffer.position(CONTENT_START_POSITION);
 
     while (buffer.position() < used) {
-      final int currEdgeBucketId = (int) buffer.getUnsignedNumber();
-      final long currEdgePosition = buffer.getUnsignedNumber();
+      final int currEdgeBucketId = (int) buffer.getNumber();
+      final long currEdgePosition = buffer.getNumber();
       if (currEdgeBucketId == bucketId && currEdgePosition == position)
         return true;
 
       // SKIP VERTEX RID
-      buffer.getUnsignedNumber();
-      buffer.getUnsignedNumber();
+      buffer.getNumber();
+      buffer.getNumber();
     }
 
     return false;
@@ -105,11 +106,11 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
 
     while (buffer.position() < used) {
       // SKIP EDGE RID
-      buffer.getUnsignedNumber();
-      buffer.getUnsignedNumber();
+      buffer.getNumber();
+      buffer.getNumber();
 
-      final int currEdgeBucketId = (int) buffer.getUnsignedNumber();
-      final long currEdgePosition = buffer.getUnsignedNumber();
+      final int currEdgeBucketId = (int) buffer.getNumber();
+      final long currEdgePosition = buffer.getNumber();
       if (currEdgeBucketId == bucketId && currEdgePosition == position)
         return true;
     }
@@ -132,11 +133,11 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     while (buffer.position() < used) {
       final int lastPos = buffer.position();
 
-      final int currEdgeBucketId = (int) buffer.getUnsignedNumber();
-      final long currEdgePosition = buffer.getUnsignedNumber();
+      final int currEdgeBucketId = (int) buffer.getNumber();
+      final long currEdgePosition = buffer.getNumber();
 
-      buffer.getUnsignedNumber();
-      buffer.getUnsignedNumber();
+      buffer.getNumber();
+      buffer.getNumber();
 
       if (currEdgeBucketId == bucketId && currEdgePosition == position) {
         // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
@@ -168,11 +169,11 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     while (buffer.position() < used) {
       final int lastPos = buffer.position();
 
-      buffer.getUnsignedNumber();
-      buffer.getUnsignedNumber();
+      buffer.getNumber();
+      buffer.getNumber();
 
-      final int currVertexBucketId = (int) buffer.getUnsignedNumber();
-      final long currVertexPosition = buffer.getUnsignedNumber();
+      final int currVertexBucketId = (int) buffer.getNumber();
+      final long currVertexPosition = buffer.getNumber();
 
       if (currVertexBucketId == bucketId && currVertexPosition == position) {
         // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
@@ -198,11 +199,11 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
       buffer.position(CONTENT_START_POSITION);
 
       while (buffer.position() < used) {
-        final int fileId = (int) buffer.getUnsignedNumber();
+        final int fileId = (int) buffer.getNumber();
         // SKIP EDGE RID POSITION AND VERTEX RID
-        buffer.getUnsignedNumber();
-        buffer.getUnsignedNumber();
-        buffer.getUnsignedNumber();
+        buffer.getNumber();
+        buffer.getNumber();
+        buffer.getNumber();
 
         if (fileIds != null) {
           if (fileIds.contains(fileId))
@@ -216,7 +217,7 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
   }
 
   @Override
-  public EdgeChunk getNext() {
+  public EdgeSegment getNext() {
     buffer.position(Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE);
 
     final RID nextRID = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_RID); // NEXT
@@ -224,11 +225,11 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
     if (nextRID.getBucketId() == -1 && nextRID.getPosition() == -1)
       return null;
 
-    return (EdgeChunk) database.lookupByRID(nextRID, true);
+    return (EdgeSegment) database.lookupByRID(nextRID, true);
   }
 
   @Override
-  public void setNext(final EdgeChunk next) {
+  public void setNext(final EdgeSegment next) {
     final RID nextRID = next.getIdentity();
     if (nextRID == null)
       throw new IllegalArgumentException("Next chunk is not persistent");
@@ -253,15 +254,7 @@ public class MutableEdgeChunk extends BaseRecord implements EdgeChunk, RecordInt
   }
 
   @Override
-  public RID getEdge(final AtomicInteger currentPosition) {
-    buffer.position(currentPosition.get());
-    final RID next = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID); // NEXT
-    currentPosition.set(buffer.position());
-    return next;
-  }
-
-  @Override
-  public RID getVertex(final AtomicInteger currentPosition) {
+  public RID getRID(final AtomicInteger currentPosition) {
     buffer.position(currentPosition.get());
     final RID next = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID); // NEXT
     currentPosition.set(buffer.position());

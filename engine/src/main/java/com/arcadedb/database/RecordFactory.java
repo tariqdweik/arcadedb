@@ -16,8 +16,8 @@ public class RecordFactory {
       return new ImmutableVertex(database, typeName, rid, null);
     case Edge.RECORD_TYPE:
       return new ImmutableEdge(database, typeName, rid, null);
-    case EdgeChunk.RECORD_TYPE:
-      return new MutableEdgeChunk(database, rid, null);
+    case EdgeSegment.RECORD_TYPE:
+      return new MutableEdgeSegment(database, rid, null);
     }
     throw new DatabaseMetadataException("Cannot find record type '" + type + "'");
   }
@@ -32,8 +32,8 @@ public class RecordFactory {
       return new ImmutableVertex(database, typeName, rid, content);
     case Edge.RECORD_TYPE:
       return new ImmutableEdge(database, typeName, rid, content);
-    case EdgeChunk.RECORD_TYPE:
-      return new MutableEdgeChunk(database, rid, content);
+    case EdgeSegment.RECORD_TYPE:
+      return new MutableEdgeSegment(database, rid, content);
     }
     throw new DatabaseMetadataException("Cannot find record type '" + type + "'");
   }
@@ -48,8 +48,8 @@ public class RecordFactory {
       return new MutableVertex(database, typeName, rid);
     case Edge.RECORD_TYPE:
       return new MutableEdge(database, typeName, rid);
-    case EdgeChunk.RECORD_TYPE:
-      return new MutableEdgeChunk(database, rid);
+    case EdgeSegment.RECORD_TYPE:
+      return new MutableEdgeSegment(database, rid);
     }
     throw new DatabaseMetadataException("Cannot find record type '" + type + "'");
   }

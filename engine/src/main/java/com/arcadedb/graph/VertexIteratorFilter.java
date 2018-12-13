@@ -9,7 +9,7 @@ import com.arcadedb.database.DatabaseInternal;
 import java.util.NoSuchElementException;
 
 public class VertexIteratorFilter extends IteratorFilterBase<Vertex> {
-  public VertexIteratorFilter(final DatabaseInternal database, final EdgeChunk current, final String[] edgeTypes) {
+  public VertexIteratorFilter(final DatabaseInternal database, final EdgeSegment current, final String[] edgeTypes) {
     super(database, current, edgeTypes);
   }
 

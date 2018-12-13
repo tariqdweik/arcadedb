@@ -11,19 +11,23 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
-  private       EdgeChunk     currentContainer;
-  private final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeChunk.CONTENT_START_POSITION);
+  private final RID              vertex;
+  private final Vertex.DIRECTION direction;
+  private       EdgeSegment      currentContainer;
+  private final AtomicInteger    currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
 
-  public EdgeIterator(final EdgeChunk current) {
+  public EdgeIterator(final EdgeSegment current, final RID vertex, final Vertex.DIRECTION direction) {
     if (current == null)
       throw new IllegalArgumentException("Edge chunk is null");
 
     this.currentContainer = current;
+    this.vertex = vertex;
+    this.direction = direction;
   }
 
   @Override
   public boolean hasNext() {
-    if( currentContainer == null )
+    if (currentContainer == null)
       return false;
 
     if (currentPosition.get() < currentContainer.getUsed())
@@ -31,7 +35,7 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
 
     currentContainer = currentContainer.getNext();
     if (currentContainer != null) {
-      currentPosition.set(MutableEdgeChunk.CONTENT_START_POSITION);
+      currentPosition.set(MutableEdgeSegment.CONTENT_START_POSITION);
       return currentPosition.get() < currentContainer.getUsed();
     }
     return false;
@@ -42,10 +46,21 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
     if (!hasNext())
       throw new NoSuchElementException();
 
-    final RID rid = currentContainer.getEdge(currentPosition);
-    currentContainer.getVertex(currentPosition); // SKIP VERTEX
+    final RID nextEdgeRID = currentContainer.getRID(currentPosition);
+    final RID nextVertexRID = currentContainer.getRID(currentPosition); // SKIP VERTEX
 
-    return rid.getEdge();
+    if (nextEdgeRID.getPosition() < 0) {
+      // CREATE LIGHTWEIGHT EDGE
+
+      final String edgeType = currentContainer.getDatabase().getSchema().getTypeByBucketId(nextEdgeRID.getBucketId()).getName();
+
+      if (direction == Vertex.DIRECTION.OUT)
+        return new ImmutableEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, vertex, nextVertexRID);
+      else
+        return new ImmutableEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, nextVertexRID, vertex);
+    }
+
+    return nextEdgeRID.getEdge();
   }
 
   @Override

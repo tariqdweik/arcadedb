@@ -8,6 +8,7 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
+import com.arcadedb.serializer.BinaryTypes;
 
 public class MutableEdge extends MutableDocument implements Edge {
   private RID out;
@@ -77,11 +78,29 @@ public class MutableEdge extends MutableDocument implements Edge {
     return Edge.RECORD_TYPE;
   }
 
+  @Override
+  public MutableEdge save() {
+    if (getIdentity() != null && getIdentity().getPosition() < 0)
+      // LIGHTWEIGHT
+      return this;
+
+    return (MutableEdge) super.save();
+  }
+
+  @Override
+  public MutableEdge save(final String bucketName) {
+    if (getIdentity() != null && getIdentity().getPosition() < 0)
+      // LIGHTWEIGHT
+      return this;
+
+    return (MutableEdge) super.save(bucketName);
+  }
+
   private void init() {
     if (buffer != null) {
       buffer.position(1);
-      this.out = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
-      this.in = new RID(database, (int) buffer.getUnsignedNumber(), buffer.getUnsignedNumber());
+      out = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
+      in = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
       this.propertiesStartingPosition = buffer.position();
     }
   }

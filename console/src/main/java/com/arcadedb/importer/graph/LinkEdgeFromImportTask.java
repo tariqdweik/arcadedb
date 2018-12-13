@@ -8,7 +8,7 @@ import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.async.DatabaseAsyncAbstractTask;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
-import com.arcadedb.graph.EdgeChunk;
+import com.arcadedb.graph.EdgeSegment;
 import com.arcadedb.graph.EdgeLinkedList;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.graph.VertexInternal;
@@ -37,7 +37,7 @@ public class LinkEdgeFromImportTask extends DatabaseAsyncAbstractTask {
     VertexInternal toVertexRecord = (VertexInternal) destinationVertex.getRecord();
 
     final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
-    final EdgeChunk inChunk = database.getGraphEngine().createInEdgeChunk(database, toVertexRef);
+    final EdgeSegment inChunk = database.getGraphEngine().createInEdgeChunk(database, toVertexRef);
     toVertexRecord = toVertexRef.get();
 
     final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);

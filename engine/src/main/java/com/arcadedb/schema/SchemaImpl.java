@@ -473,6 +473,7 @@ public class SchemaImpl implements Schema {
     return null;
   }
 
+  // TODO: CREATE A MAP FOR THIS
   @Override
   public DocumentType getTypeByBucketId(final int bucketId) {
     for (DocumentType t : types.values()) {

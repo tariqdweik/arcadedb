@@ -38,8 +38,8 @@ public class BinarySerializer {
       return serializeVertex(database, (MutableVertex) record);
     case Edge.RECORD_TYPE:
       return serializeEdge(database, (MutableEdge) record);
-    case EdgeChunk.RECORD_TYPE:
-      return serializeEdgeContainer(database, (EdgeChunk) record);
+    case EdgeSegment.RECORD_TYPE:
+      return serializeEdgeContainer(database, (EdgeSegment) record);
     default:
       throw new IllegalArgumentException("Cannot serialize a record of type=" + record.getRecordType());
     }
@@ -122,13 +122,8 @@ public class BinarySerializer {
     }
 
     // WRITE OUT AND IN EDGES POINTER FIRST, THEN SERIALIZE THE VERTEX PROPERTIES (AS A DOCUMENT)
-    final RID outEdges = edge.getOut();
-    header.putUnsignedNumber(outEdges.getBucketId());
-    header.putUnsignedNumber(outEdges.getPosition());
-
-    final RID inEdges = edge.getIn();
-    header.putUnsignedNumber(inEdges.getBucketId());
-    header.putUnsignedNumber(inEdges.getPosition());
+    serializeValue(header, BinaryTypes.TYPE_COMPRESSED_RID, edge.getOut());
+    serializeValue(header, BinaryTypes.TYPE_COMPRESSED_RID, edge.getIn());
 
     if (serializeProperties)
       return serializeProperties(database, edge, header);
@@ -136,7 +131,7 @@ public class BinarySerializer {
     return header;
   }
 
-  public Binary serializeEdgeContainer(final Database database, final EdgeChunk record) {
+  public Binary serializeEdgeContainer(final Database database, final EdgeSegment record) {
     return record.getContent();
   }
 
@@ -262,23 +257,20 @@ public class BinarySerializer {
       break;
     case BinaryTypes.TYPE_COMPRESSED_RID: {
       if (value == null)
-        content.putNumber(0);
-      else {
-        final RID rid = ((Identifiable) value).getIdentity();
-        content.putNumber(rid.getBucketId());
-        content.putUnsignedNumber(rid.getPosition());
-      }
+        throw new IllegalArgumentException("RID is null");
+
+      final RID rid = ((Identifiable) value).getIdentity();
+      content.putNumber(rid.getBucketId());
+      content.putNumber(rid.getPosition());
       break;
     }
     case BinaryTypes.TYPE_RID: {
-      if (value == null) {
-        content.putInt(-1);
-        content.putLong(-1);
-      } else {
-        final RID rid = ((Identifiable) value).getIdentity();
-        content.putInt(rid.getBucketId());
-        content.putLong(rid.getPosition());
-      }
+      if (value == null)
+        throw new IllegalArgumentException("RID is null");
+
+      final RID rid = ((Identifiable) value).getIdentity();
+      content.putInt(rid.getBucketId());
+      content.putLong(rid.getPosition());
       break;
     }
     case BinaryTypes.TYPE_UUID: {
@@ -388,11 +380,7 @@ public class BinarySerializer {
       value = new BigDecimal(new BigInteger(unscaledValue), scale);
       break;
     case BinaryTypes.TYPE_COMPRESSED_RID:
-      final long bucketId = content.getNumber();
-      if (bucketId == 0)
-        value = null;
-      else
-        value = new RID(database, (int) bucketId, content.getUnsignedNumber());
+      value = new RID(database, (int) content.getNumber(), content.getNumber());
       break;
     case BinaryTypes.TYPE_RID:
       value = new RID(database, content.getInt(), content.getLong());

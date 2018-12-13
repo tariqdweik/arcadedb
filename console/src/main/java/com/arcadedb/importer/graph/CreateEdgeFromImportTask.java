@@ -189,7 +189,7 @@ public class CreateEdgeFromImportTask extends DatabaseAsyncAbstractTask {
     VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
 
     final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
-    final EdgeChunk inChunk = database.getGraphEngine().createInEdgeChunk(database, toVertexRef);
+    final EdgeSegment inChunk = database.getGraphEngine().createInEdgeChunk(database, toVertexRef);
     toVertexRecord = toVertexRef.get();
 
     final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);

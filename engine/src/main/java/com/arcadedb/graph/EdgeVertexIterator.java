@@ -12,10 +12,10 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class EdgeVertexIterator implements Iterator<Pair<RID, RID>>, Iterable<Pair<RID, RID>> {
-  private       EdgeChunk     currentContainer;
-  private final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeChunk.CONTENT_START_POSITION);
+  private       EdgeSegment   currentContainer;
+  private final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
 
-  public EdgeVertexIterator(final EdgeChunk current) {
+  public EdgeVertexIterator(final EdgeSegment current) {
     if (current == null)
       throw new IllegalArgumentException("Edge chunk is null");
 
@@ -32,7 +32,7 @@ public class EdgeVertexIterator implements Iterator<Pair<RID, RID>>, Iterable<Pa
 
     currentContainer = currentContainer.getNext();
     if (currentContainer != null) {
-      currentPosition.set(MutableEdgeChunk.CONTENT_START_POSITION);
+      currentPosition.set(MutableEdgeSegment.CONTENT_START_POSITION);
       return currentPosition.get() < currentContainer.getUsed();
     }
     return false;
@@ -43,8 +43,8 @@ public class EdgeVertexIterator implements Iterator<Pair<RID, RID>>, Iterable<Pa
     if (!hasNext())
       throw new NoSuchElementException();
 
-    final RID rid = currentContainer.getEdge(currentPosition);
-    final RID vertex = currentContainer.getVertex(currentPosition);
+    final RID rid = currentContainer.getRID(currentPosition);
+    final RID vertex = currentContainer.getRID(currentPosition);
 
     return new Pair(rid, vertex);
   }

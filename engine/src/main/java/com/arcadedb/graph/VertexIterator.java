@@ -11,10 +11,10 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class VertexIterator implements Iterator<Vertex>, Iterable<Vertex> {
-  private       EdgeChunk     currentContainer;
-  private final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeChunk.CONTENT_START_POSITION);
+  private       EdgeSegment   currentContainer;
+  private final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
 
-  public VertexIterator(final EdgeChunk current) {
+  public VertexIterator(final EdgeSegment current) {
     if (current == null)
       throw new IllegalArgumentException("Edge chunk is null");
     this.currentContainer = current;
@@ -30,7 +30,7 @@ public class VertexIterator implements Iterator<Vertex>, Iterable<Vertex> {
 
     currentContainer = currentContainer.getNext();
     if (currentContainer != null) {
-      currentPosition.set(MutableEdgeChunk.CONTENT_START_POSITION);
+      currentPosition.set(MutableEdgeSegment.CONTENT_START_POSITION);
       return currentPosition.get() < currentContainer.getUsed();
     }
     return false;
@@ -41,8 +41,8 @@ public class VertexIterator implements Iterator<Vertex>, Iterable<Vertex> {
     if (!hasNext())
       throw new NoSuchElementException();
 
-    currentContainer.getEdge(currentPosition); // SKIP EDGE
-    final RID rid = currentContainer.getVertex(currentPosition);
+    currentContainer.getRID(currentPosition); // SKIP EDGE
+    final RID rid = currentContainer.getRID(currentPosition);
 
     return rid.getVertex();
   }

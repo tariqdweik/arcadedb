@@ -11,7 +11,7 @@ import com.arcadedb.utility.Pair;
 import java.util.NoSuchElementException;
 
 public class EdgeVertexIteratorFilter extends IteratorFilterBase<Pair<RID, RID>> {
-  public EdgeVertexIteratorFilter(final DatabaseInternal database, final EdgeChunk current, final String[] edgeTypes) {
+  public EdgeVertexIteratorFilter(final DatabaseInternal database, final EdgeSegment current, final String[] edgeTypes) {
     super(database, current, edgeTypes);
   }
 
