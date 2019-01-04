@@ -20,16 +20,17 @@
 
     <properties>
         <asciidoctor.maven.plugin.version>1.5.6</asciidoctor.maven.plugin.version>
-        <asciidoctorj.version>1.5.8</asciidoctorj.version>
-        <asciidoctorj.diagram.version>1.5.8</asciidoctorj.diagram.version>
+        <asciidoctorj.version>1.5.10</asciidoctorj.version>
+        <asciidoctorj.diagram.version>1.5.11</asciidoctorj.diagram.version>
         <asciidoctorj.pdf.version>1.5.0-alpha.16</asciidoctorj.pdf.version>
+        <jetty-maven-plugin.version>9.4.14.v20181114</jetty-maven-plugin.version>
     </properties>
     <build>
         <plugins>
             <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
-                <version>9.4.11.v20180605</version>
+                <version>${jetty-maven-plugin.version}</version>
                 <configuration>
                     <webAppSourceDirectory>${project.basedir}/target/generated-docs</webAppSourceDirectory>
                     <webApp>
@@ -120,9 +121,5 @@
 
         </plugins>
     </build>
-    <dependencies>
-
-
-    </dependencies>
 
 </project>
