@@ -3,3 +3,5 @@
 == API
 
 include::java-api.adoc[]
+
+include::http.adoc[]

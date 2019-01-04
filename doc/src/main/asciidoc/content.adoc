@@ -6,11 +6,13 @@ This document is intended for personal use only and may not be distributed or re
 ----------
 
 include::introduction/chapter.adoc[]
-include::api/chapter.adoc[]
+
+include::server/chapter.adoc[]
+
 include::tools/chapter.adoc[]
-include::ha.adoc[]
-include::http.adoc[]
-include::settings.adoc[]
+
+include::api/chapter.adoc[]
+
 include::comparison/chapter.adoc[]
 
 include::footer.adoc[]
