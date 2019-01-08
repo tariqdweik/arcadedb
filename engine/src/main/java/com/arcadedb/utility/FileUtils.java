@@ -48,7 +48,8 @@ public class FileUtils {
     if (s == null)
       return null;
 
-    if (s.length() > 1 && (s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'' || s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"'))
+    if (s.length() > 1 && (s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\''
+        || s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"'))
       return s.substring(1, s.length() - 1);
 
     if (s.length() > 1 && (s.charAt(0) == '`' && s.charAt(s.length() - 1) == '`'))
@@ -306,21 +307,22 @@ public class FileUtils {
   }
 
   public static void writeFile(final File iFile, final String iContent) throws IOException {
-    final FileOutputStream fos = new FileOutputStream(iFile);
+    try (FileOutputStream fos = new FileOutputStream(iFile)) {
+      writeContentToStream(fos, iContent);
+    }
+  }
+
+  public static void writeContentToStream(final OutputStream output, final String iContent) throws IOException {
+    final OutputStreamWriter os = new OutputStreamWriter(output);
     try {
-      final OutputStreamWriter os = new OutputStreamWriter(fos);
+      final BufferedWriter writer = new BufferedWriter(os);
       try {
-        final BufferedWriter writer = new BufferedWriter(os);
-        try {
-          writer.write(iContent);
-        } finally {
-          writer.close();
-        }
+        writer.write(iContent);
       } finally {
-        os.close();
+        writer.close();
       }
     } finally {
-      fos.close();
+      os.close();
     }
   }
 

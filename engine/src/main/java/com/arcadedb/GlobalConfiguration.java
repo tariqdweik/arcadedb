@@ -20,7 +20,8 @@ import java.util.logging.Level;
 /**
  * Keeps all configuration settings. At startup assigns the configuration values by reading system properties.
  */
-public enum GlobalConfiguration {// ENVIRONMENT
+public enum GlobalConfiguration {
+  // ENVIRONMENT
   DUMP_CONFIG_AT_STARTUP("arcadedb.dumpConfigAtStartup", "Dumps the configuration at startup", Boolean.class, false,
       new Callable<Object, Object>() {
         @Override
@@ -116,7 +117,7 @@ public enum GlobalConfiguration {// ENVIRONMENT
       }, new Callable<Object, Object>() {
     @Override
     public Object call(final Object value) {
-      return Runtime.getRuntime().maxMemory() / 2;
+      return Runtime.getRuntime().maxMemory() / 4;
     }
   }),
 

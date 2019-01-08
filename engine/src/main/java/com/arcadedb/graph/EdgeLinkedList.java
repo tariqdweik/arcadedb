@@ -99,6 +99,11 @@ public class EdgeLinkedList {
     return total;
   }
 
+  public void upgrade(final RID newEdgeRID, final RID vertexRID) {
+    // TODO: ???HOW TO MANAGE THE NEW SPACE REQUESTED FOR THE COMPRESSED RIDS??????
+
+  }
+
   public void add(final RID edgeRID, final RID vertexRID) {
     if (first.add(edgeRID, vertexRID))
       ((DatabaseInternal) vertex.getDatabase()).updateRecord(first);

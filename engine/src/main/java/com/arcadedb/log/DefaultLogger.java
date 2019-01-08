@@ -60,7 +60,8 @@ public class DefaultLogger implements Logger {
 
   public void log(final Object requester, final Level level, String message, final Throwable exception, final String context,
       final Object arg1, final Object arg2, final Object arg3, final Object arg4, final Object arg5, final Object arg6, final Object arg7,
-      final Object arg8, final Object arg9, final Object arg10, final Object arg11, final Object arg12, final Object arg13) {
+      final Object arg8, final Object arg9, final Object arg10, final Object arg11, final Object arg12, final Object arg13,
+      final Object arg14, final Object arg15, final Object arg16, final Object arg17) {
     if (message != null) {
       final String requesterName;
       if (requester instanceof Class<?>) {
@@ -89,7 +90,9 @@ public class DefaultLogger implements Logger {
 
         // USE SYSERR
         try {
-          System.err.println(String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13));
+          System.err.println(String
+              .format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16,
+                  arg17));
         } catch (Exception e) {
           System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
         }
@@ -99,7 +102,9 @@ public class DefaultLogger implements Logger {
           if (context != null)
             message = "<" + context + "> " + message;
 
-          final String msg = String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
+          final String msg = String
+              .format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16,
+                  arg17);
           if (exception != null)
             log.log(level, msg, exception);
           else
