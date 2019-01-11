@@ -285,7 +285,7 @@ public class GraphEngine {
     }
 
     final RID edgeRID = edge.getIdentity();
-    if (edgeRID != null)
+    if (edgeRID != null && !edge.isLightweight())
       // DELETE EDGE RECORD TOO
       database.getSchema().getBucketById(edge.getIdentity().getBucketId()).deleteRecord(edge.getIdentity());
   }

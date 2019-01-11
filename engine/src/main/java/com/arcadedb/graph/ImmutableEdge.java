@@ -9,6 +9,10 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.ImmutableDocument;
 import com.arcadedb.database.RID;
 import com.arcadedb.serializer.BinaryTypes;
+import org.json.JSONObject;
+
+import java.util.Collections;
+import java.util.Map;
 
 public class ImmutableEdge extends ImmutableDocument implements Edge {
   private RID out;
@@ -30,8 +34,19 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
     }
   }
 
+  @Override
+  public Object get(final String name) {
+    if (isLightweight())
+      return null;
+    return super.get(name);
+  }
+
   public MutableEdge modify() {
     checkForLazyLoading();
+    if (isLightweight())
+      // TODO: TRANSFORM LIGHTWEIGHT EDGE INTO REGULAR ONE AND UPDATE LINKS IN OUT/IN VERTICES
+      throw new IllegalStateException("Lightweight edges cannot be modified");
+
     if (buffer != null) {
       buffer.rewind();
       return new MutableEdge(database, typeName, rid, buffer.copy());
@@ -79,7 +94,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
 
   @Override
   protected boolean checkForLazyLoading() {
-    if (rid != null && rid.getPosition() > -1 && super.checkForLazyLoading()) {
+    if (rid != null && !isLightweight() && super.checkForLazyLoading()) {
       buffer.position(1); // SKIP RECORD TYPE
       out = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
       in = (RID) database.getSerializer().deserializeValue(database, buffer, BinaryTypes.TYPE_COMPRESSED_RID);
@@ -87,5 +102,40 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
       return true;
     }
     return false;
+  }
+
+  @Override
+  public Map<String, Object> toMap() {
+    if (isLightweight())
+      return Collections.emptyMap();
+    return super.toMap();
+  }
+
+  @Override
+  public JSONObject toJSON() {
+    if (isLightweight())
+      return new JSONObject();
+    return super.toJSON();
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder buffer = new StringBuilder();
+    buffer.append(out.toString());
+    buffer.append("<->");
+    buffer.append(in.toString());
+
+    if (!isLightweight()) {
+      buffer.append("(");
+      buffer.append(super.toString());
+      buffer.append(")");
+    }
+
+    return buffer.toString();
+  }
+
+  @Override
+  public boolean isLightweight() {
+    return rid.getPosition() < 0;
   }
 }

@@ -90,9 +90,16 @@ public class DefaultLogger implements Logger {
 
         // USE SYSERR
         try {
-          System.err.println(String
-              .format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16,
-                  arg17));
+          String msg = message;
+          if (arg1 != null || arg2 != null || arg3 != null || arg4 != null || arg5 != null || arg6 != null || arg7 != null || arg8 != null
+              || arg9 != null || arg10 != null || arg11 != null || arg12 != null || arg13 != null || arg14 != null || arg15 != null
+              || arg16 != null || arg17 != null)
+            msg = String
+                .format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16,
+                    arg17);
+
+          System.err.println(msg);
+
         } catch (Exception e) {
           System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
         }
@@ -102,9 +109,14 @@ public class DefaultLogger implements Logger {
           if (context != null)
             message = "<" + context + "> " + message;
 
-          final String msg = String
-              .format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16,
-                  arg17);
+          String msg = message;
+          if (arg1 != null || arg2 != null || arg3 != null || arg4 != null || arg5 != null || arg6 != null || arg7 != null || arg8 != null
+              || arg9 != null || arg10 != null || arg11 != null || arg12 != null || arg13 != null || arg14 != null || arg15 != null
+              || arg16 != null || arg17 != null)
+            msg = String
+                .format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16,
+                    arg17);
+
           if (exception != null)
             log.log(level, msg, exception);
           else
