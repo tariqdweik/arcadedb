@@ -245,6 +245,8 @@ public class TableFormatter {
         if (room > 1) {
           for (int k = 0; k < room / 2; ++k)
             valueAsString = " " + valueAsString;
+          for (int k = strippedValue.length() + (room / 2); k < columnWidth; ++k)
+            valueAsString = valueAsString + " ";
         }
         break;
       }
