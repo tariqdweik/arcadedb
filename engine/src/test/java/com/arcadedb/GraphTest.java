@@ -80,6 +80,28 @@ public class GraphTest extends BaseGraphTest {
   }
 
   @Test
+  public void autoPersistLightWeightEdge() {
+    database.begin();
+    try {
+      final Vertex v1 = (Vertex) database.lookupByRID(root, false);
+      Assertions.assertNotNull(v1);
+
+      final Iterator<Edge> edges3 = v1.getEdges(Vertex.DIRECTION.OUT, new String[] { EDGE2_TYPE_NAME }).iterator();
+      Assertions.assertNotNull(edges3);
+      Assertions.assertTrue(edges3.hasNext());
+
+      final MutableEdge edge = edges3.next().modify();
+      edge.set("upgraded", true);
+      edge.save();
+
+      Assertions.assertTrue(edge.getIdentity().getPosition() > -1);
+
+    } finally {
+      database.commit();
+    }
+  }
+
+  @Test
   public void checkEdges() {
     database.begin();
     try {

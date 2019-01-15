@@ -64,6 +64,13 @@ public class GraphEngine {
       edge.setIdentity(new RID(database, database.getSchema().getType(edgeType).getFirstBucketId(), -1l));
     }
 
+    connectEdge(database, fromVertex, toVertex, edge, bidirectional);
+
+    return edge;
+  }
+
+  public void connectEdge(final DatabaseInternal database, VertexInternal fromVertex, final Identifiable toVertex, final MutableEdge edge,
+      final boolean bidirectional) {
     final AtomicReference<VertexInternal> fromVertexRef = new AtomicReference<>(fromVertex);
     final EdgeSegment outChunk = createOutEdgeChunk(database, fromVertexRef);
     fromVertex = fromVertexRef.get();
@@ -73,9 +80,33 @@ public class GraphEngine {
     outLinkedList.add(edge.getIdentity(), toVertex.getIdentity());
 
     if (bidirectional)
-      connectIncomingEdge(database, toVertex, fromVertexRID, edge.getIdentity());
+      connectIncomingEdge(database, toVertex, fromVertex.getIdentity(), edge.getIdentity());
+  }
 
-    return edge;
+  public void upgradeEdge(final DatabaseInternal database, VertexInternal fromVertex, final Identifiable toVertex, final MutableEdge edge,
+      final boolean bidirectional) {
+    final AtomicReference<VertexInternal> fromVertexRef = new AtomicReference<>(fromVertex);
+    final EdgeSegment outChunk = createOutEdgeChunk(database, fromVertexRef);
+    fromVertex = fromVertexRef.get();
+
+    final EdgeLinkedList outLinkedList = new EdgeLinkedList(fromVertex, Vertex.DIRECTION.OUT, outChunk);
+
+    outLinkedList.upgrade(edge.getIdentity(), toVertex.getIdentity());
+
+    if (bidirectional)
+      upgradeIncomingEdge(database, toVertex, fromVertex.getIdentity(), edge.getIdentity());
+  }
+
+  public void upgradeIncomingEdge(final DatabaseInternal database, final Identifiable toVertex, final RID fromVertexRID,
+      final RID edgeRID) {
+    VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
+
+    final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
+    final EdgeSegment inChunk = createInEdgeChunk(database, toVertexRef);
+    toVertexRecord = toVertexRef.get();
+
+    final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
+    inLinkedList.upgrade(edgeRID, fromVertexRID);
   }
 
   public List<Edge> newEdges(final DatabaseInternal database, VertexInternal sourceVertex, final List<CreateEdgeOperation> connections,
@@ -254,7 +285,7 @@ public class GraphEngine {
     }
 
     final RID edgeRID = edge.getIdentity();
-    if (edgeRID != null)
+    if (edgeRID != null && !edge.isLightweight())
       // DELETE EDGE RECORD TOO
       database.getSchema().getBucketById(edge.getIdentity().getBucketId()).deleteRecord(edge.getIdentity());
   }

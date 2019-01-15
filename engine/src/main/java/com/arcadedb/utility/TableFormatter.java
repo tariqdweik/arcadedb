@@ -24,8 +24,8 @@ public class TableFormatter {
   protected final static SimpleDateFormat DEF_DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
   protected       Pair<String, Boolean>            columnSorting        = null;
-  protected final Map<String, ALIGNMENT>           columnAlignment      = new HashMap<String, ALIGNMENT>();
-  protected final Map<String, Map<String, String>> columnMetadata       = new HashMap<String, Map<String, String>>();
+  protected final Map<String, ALIGNMENT>           columnAlignment      = new LinkedHashMap<String, ALIGNMENT>();
+  protected final Map<String, Map<String, String>> columnMetadata       = new LinkedHashMap<String, Map<String, String>>();
   protected final Set<String>                      columnHidden         = new HashSet<String>();
   protected       Set<String>                      prefixedColumns      = new LinkedHashSet<>();
   protected final TableOutput                      out;
@@ -196,18 +196,20 @@ public class TableFormatter {
 
         Object value = getFieldValue(iIndex, iRecord, columnName);
         String valueAsString = null;
+        String strippedValue = null;
 
         if (value != null) {
           valueAsString = value.toString();
-          if (valueAsString.length() > columnWidth) {
+          strippedValue = getStrippedString(valueAsString);
+          if (strippedValue.length() > columnWidth) {
             // APPEND ...
             valueAsString = valueAsString.substring(0, columnWidth - 3) + MORE;
           }
         }
 
-        valueAsString = formatCell(columnName, columnWidth, valueAsString);
+        valueAsString = formatCell(columnName, columnWidth, valueAsString, strippedValue);
 
-        vargs.add(valueAsString);
+        vargs.add(AnsiCode.format(valueAsString));
       }
 
       if (rightBorder)
@@ -220,25 +222,37 @@ public class TableFormatter {
     }
   }
 
-  protected String formatCell(final String columnName, final int columnWidth, String valueAsString) {
+  protected String formatCell(final String columnName, final int columnWidth, String valueAsString, String strippedValue) {
     if (valueAsString == null)
       valueAsString = nullValue;
+    if (strippedValue == null)
+      strippedValue = nullValue;
 
     final ALIGNMENT alignment = columnAlignment.get(columnName);
     if (alignment != null) {
       switch (alignment) {
-      case LEFT:
-        break;
-      case CENTER: {
-        final int room = columnWidth - valueAsString.length();
-        if (room > 1) {
-          for (int k = 0; k < room / 2; ++k)
-            valueAsString = " " + valueAsString;
+      case LEFT: {
+        final int room = columnWidth - strippedValue.length();
+        if (room > 0) {
+          for (int k = 0; k < room; ++k)
+            valueAsString = valueAsString + " ";
         }
         break;
       }
+
+      case CENTER: {
+        final int room = columnWidth - strippedValue.length();
+        if (room > 1) {
+          for (int k = 0; k < room / 2; ++k)
+            valueAsString = " " + valueAsString;
+          for (int k = strippedValue.length() + (room / 2); k < columnWidth; ++k)
+            valueAsString = valueAsString + " ";
+        }
+        break;
+      }
+
       case RIGHT: {
-        final int room = columnWidth - valueAsString.length();
+        final int room = columnWidth - strippedValue.length();
         if (room > 0) {
           for (int k = 0; k < room; ++k)
             valueAsString = " " + valueAsString;
@@ -367,7 +381,7 @@ public class TableFormatter {
 
       if (colName.length() > column.getValue())
         colName = colName.substring(0, column.getValue());
-      columnRow.append(String.format("%-" + column.getValue() + "s", formatCell(colName, column.getValue(), colName)));
+      columnRow.append(String.format("%-" + column.getValue() + "s", formatCell(colName, column.getValue(), colName, colName)));
 
       if (!metadataRows.isEmpty()) {
         // METADATA VALUE
@@ -380,7 +394,7 @@ public class TableFormatter {
 
           if (metadataValue.length() > column.getValue())
             metadataValue = metadataValue.substring(0, column.getValue());
-          buffer.append(String.format("%-" + column.getValue() + "s", formatCell(colName, column.getValue(), metadataValue)));
+          buffer.append(String.format("%-" + column.getValue() + "s", formatCell(colName, column.getValue(), metadataValue, colName)));
         }
       }
 
@@ -431,7 +445,7 @@ public class TableFormatter {
         buffer.append('+');
     }
 
-    out.onMessage(buffer.toString());
+    out.onMessage(AnsiCode.format(buffer.toString()));
   }
 
   /**
@@ -494,7 +508,6 @@ public class TableFormatter {
       final List<Entry<String, Integer>> orderedColumns = new ArrayList<Entry<String, Integer>>();
       orderedColumns.addAll(columns.entrySet());
       Collections.sort(orderedColumns, new Comparator<Entry<String, Integer>>() {
-
         public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2) {
           return o1.getValue().compareTo(o2.getValue());
         }
@@ -525,14 +538,12 @@ public class TableFormatter {
       }
 
       // POPULATE THE COLUMNS WITH THE REDUXED VALUES
-      columns.clear();
       for (String c : prefixedColumns)
         columns.put(c, minColumnSize);
       Collections.reverse(orderedColumns);
       for (Entry<String, Integer> col : orderedColumns)
         // if (!col.getKey().equals("#") && !col.getKey().equals("@RID"))
         columns.put(col.getKey(), col.getValue());
-
     }
 
     if (tempRids)
@@ -569,8 +580,11 @@ public class TableFormatter {
 
     if (fieldValue != null) {
       final String fieldValueAsString = fieldValue.toString();
-      if (fieldValueAsString.length() > newColumnSize)
-        newColumnSize = fieldValueAsString.length();
+
+      final String formattedString = getStrippedString(fieldValueAsString);
+
+      if (formattedString.length() > newColumnSize)
+        newColumnSize = formattedString.length();
     }
 
     if (newColumnSize < minColumnSize)
@@ -578,5 +592,29 @@ public class TableFormatter {
       newColumnSize = minColumnSize;
 
     return newColumnSize;
+  }
+
+  private String getStrippedString(final String fieldValueAsString) {
+    final StringBuilder formattedString = new StringBuilder();
+
+    int lastPos = 0;
+    while (true) {
+      int pos = fieldValueAsString.indexOf("$ANSI{", lastPos);
+      if (pos < 0) {
+        formattedString.append(fieldValueAsString.substring(lastPos, fieldValueAsString.length()));
+        break;
+      }
+
+      formattedString.append(fieldValueAsString.substring(lastPos, pos));
+
+      final int sepPos = fieldValueAsString.indexOf(" ", pos);
+
+      final int closePos = fieldValueAsString.indexOf("}", sepPos);
+
+      formattedString.append(fieldValueAsString.substring(sepPos + 1, closePos));
+
+      lastPos = closePos + 1;
+    }
+    return formattedString.toString();
   }
 }

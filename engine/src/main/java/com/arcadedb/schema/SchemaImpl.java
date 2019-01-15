@@ -38,7 +38,7 @@ public class SchemaImpl implements Schema {
   public static final String DEFAULT_ENCODING        = "UTF-8";
 
   public static final  String                    SCHEMA_FILE_NAME   = "schema.json";
-  private static final int                       EDGE_DEF_PAGE_SIZE = 32_768;
+  private static final int                       EDGE_DEF_PAGE_SIZE = Bucket.DEF_PAGE_SIZE / 3;
   private final        DatabaseInternal          database;
   private final        List<PaginatedComponent>  files              = new ArrayList<PaginatedComponent>();
   private final        Map<String, DocumentType> types              = new HashMap<String, DocumentType>();

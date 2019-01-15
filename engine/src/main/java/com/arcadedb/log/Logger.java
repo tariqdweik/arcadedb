@@ -10,9 +10,9 @@ import java.util.logging.Level;
  * Logger interface that avoids using varargs to remove garbage on the GC
  */
 public interface Logger {
-  void log(final Object iRequester, final Level iLevel, String iMessage, final Throwable iException, final String context,
-      final Object arg1, final Object arg2, final Object arg3, final Object arg4, final Object arg5, final Object arg6, final Object arg7,
-      final Object arg8, final Object arg9, final Object arg10, Object arg11, Object arg12, Object arg13);
+  void log(Object iRequester, Level iLevel, String iMessage, Throwable iException, String context, Object arg1, Object arg2, Object arg3,
+      Object arg4, Object arg5, Object arg6, Object arg7, Object arg8, Object arg9, Object arg10, Object arg11, Object arg12, Object arg13,
+      Object arg14, Object arg15, Object arg16, Object arg17);
 
   void flush();
 }
