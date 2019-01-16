@@ -93,17 +93,7 @@ public class RemoteDatabase extends RWLockContext {
   }
 
   public ResultSet command(final String language, final String command, final Object... args) {
-    Map<String, Object> params = null;
-    if (args != null && args.length > 0) {
-      if (args.length == 1 && args[0] instanceof Map)
-        params = (Map<String, Object>) args[0];
-      else {
-        params = new HashMap<>();
-        for (Object o : args) {
-          params.put("" + params.size(), o);
-        }
-      }
-    }
+    Map<String, Object> params = mapArgs(args);
 
     return (ResultSet) databaseCommand("command", language, command, params, true, new Callback() {
       @Override
@@ -121,7 +111,7 @@ public class RemoteDatabase extends RWLockContext {
     });
   }
 
-  public ResultSet query(final String language, final String command, final Object... args) {
+  private Map<String, Object> mapArgs(Object[] args) {
     Map<String, Object> params = null;
     if (args != null && args.length > 0) {
       if (args.length == 1 && args[0] instanceof Map)
@@ -133,6 +123,11 @@ public class RemoteDatabase extends RWLockContext {
         }
       }
     }
+    return params;
+  }
+
+  public ResultSet query(final String language, final String command, final Object... args) {
+    Map<String, Object> params = mapArgs(args);
 
     return (ResultSet) databaseCommand("query", language, command, params, false, new Callback() {
       @Override
