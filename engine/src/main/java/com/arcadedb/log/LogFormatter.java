@@ -72,6 +72,12 @@ public class LogFormatter extends Formatter {
 
     buffer.append(String.format(" %-5.5s ", level.getName()));
 
+    if (requester != null) {
+      buffer.append("[");
+      buffer.append(requester);
+      buffer.append("] ");
+    }
+
     // FORMAT THE MESSAGE
     try {
       if (additionalArgs != null)
@@ -80,12 +86,6 @@ public class LogFormatter extends Formatter {
         buffer.append(message);
     } catch (IllegalFormatException ignore) {
       buffer.append(message);
-    }
-
-    if (requester != null) {
-      buffer.append(" [");
-      buffer.append(requester);
-      buffer.append(']');
     }
 
     return AnsiCode.format(buffer.toString(), false);

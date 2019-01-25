@@ -64,13 +64,14 @@ public class DefaultLogger implements Logger {
       final Object arg14, final Object arg15, final Object arg16, final Object arg17) {
     if (message != null) {
       final String requesterName;
-      if (requester instanceof Class<?>) {
+      if (requester instanceof String)
+        requesterName = (String) requester;
+      else if (requester instanceof Class<?>)
         requesterName = ((Class<?>) requester).getName();
-      } else if (requester != null) {
+      else if (requester != null)
         requesterName = requester.getClass().getName();
-      } else {
+      else
         requesterName = DEFAULT_LOG;
-      }
 
       java.util.logging.Logger log = loggersCache.get(requesterName);
       if (log == null) {
