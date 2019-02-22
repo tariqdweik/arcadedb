@@ -44,6 +44,11 @@ public abstract class BaseRecord implements Record {
   }
 
   @Override
+  public void delete() {
+    database.deleteRecord(this);
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o)
       return true;

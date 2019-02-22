@@ -12,8 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, RecordInternal {
   public static final  byte RECORD_TYPE            = 3;
-  public static final  int  CONTENT_START_POSITION =
-      Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + BinaryTypes.getTypeSize(BinaryTypes.TYPE_RID);
+  public static final  int  CONTENT_START_POSITION = Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE + BinaryTypes.getTypeSize(BinaryTypes.TYPE_RID);
   private static final RID  NULL_RID               = new RID(null, -1, -1);
 
   private int bufferSize;
@@ -177,7 +176,7 @@ public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, Recor
 
       if (currVertexBucketId == bucketId && currVertexPosition == position) {
         // FOUND MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
-        buffer.move(buffer.position(), lastPos, used - lastPos);
+        buffer.move(buffer.position(), lastPos, used - buffer.position());
 
         used -= (buffer.position() - lastPos);
         setUsed(used);

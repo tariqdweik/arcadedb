@@ -31,6 +31,11 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
     return Vertex.RECORD_TYPE;
   }
 
+  @Override
+  public void delete() {
+    database.getGraphEngine().deleteVertex(this);
+  }
+
   public MutableVertex modify() {
     checkForLazyLoading();
     buffer.rewind();
