@@ -63,6 +63,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
   @Override
   public JSONObject toJSON() {
+    checkForLazyLoadingProperties();
     return new JSONObject(map);
   }
 

@@ -9,6 +9,7 @@ import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.DatabaseOperationException;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 import static com.arcadedb.database.Binary.SHORT_SERIALIZED_SIZE;
@@ -32,6 +33,14 @@ public class BucketIterator implements Iterator<Record> {
     fetchNext();
   }
 
+  public void setPosition(final RID position) throws IOException {
+    next = position.getRecord();
+    nextPageNumber = (int) (position.getPosition() / Bucket.MAX_RECORDS_IN_PAGE);
+    currentRecordInPage = (int) (position.getPosition() % Bucket.MAX_RECORDS_IN_PAGE) + 1;
+    currentPage = database.getTransaction().getPage(new PageId(position.getBucketId(), nextPageNumber), bucket.pageSize);
+    recordCountInCurrentPage = currentPage.readShort(Bucket.PAGE_RECORD_COUNT_IN_PAGE_OFFSET);
+  }
+
   private void fetchNext() {
     database.executeInReadLock(() -> {
       next = null;
@@ -45,8 +54,7 @@ public class BucketIterator implements Iterator<Record> {
         }
 
         if (recordCountInCurrentPage > 0 && currentRecordInPage < recordCountInCurrentPage) {
-          final int recordPositionInPage = currentPage
-              .readUnsignedShort(Bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
+          final int recordPositionInPage = currentPage.readUnsignedShort(Bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
 
           final int recordSize = currentPage.readUnsignedShort(recordPositionInPage);
 
