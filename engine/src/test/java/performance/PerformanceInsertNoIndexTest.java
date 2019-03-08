@@ -33,6 +33,10 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
       }
 
       @Override
+      public void log(Object iRequester, Level iLevel, String iMessage, Throwable iException, String context, Object... args) {
+      }
+
+      @Override
       public void flush() {
       }
     });

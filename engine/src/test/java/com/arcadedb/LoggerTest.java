@@ -28,6 +28,11 @@ public class LoggerTest extends BaseTest {
         }
 
         @Override
+        public void log(Object iRequester, Level iLevel, String iMessage, Throwable iException, String context, Object... args) {
+          logged = true;
+        }
+
+        @Override
         public void flush() {
           flushed = true;
         }
