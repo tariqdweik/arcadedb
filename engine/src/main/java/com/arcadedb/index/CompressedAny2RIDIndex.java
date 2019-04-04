@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Map like optimized to don't stress GC by using mechanical sympathy technique + compression of key and values.
+ * Map like optimized to avoid stressing the GC by using mechanical sympathy technique + compression of key and values.
  * This class is synchronized. Values are RIDs, key can be anything. This Map implementation doesn't support the overwrite of a value.
  * Values cannot be null.
  * <p>

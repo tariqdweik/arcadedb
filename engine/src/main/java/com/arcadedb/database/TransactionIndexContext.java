@@ -16,7 +16,7 @@ import java.util.*;
 
 public class TransactionIndexContext {
   private final DatabaseInternal                               database;
-  private       Map<String, Map<ComparableKey, Set<IndexKey>>> indexEntries = new HashMap<>();
+  private       Map<String, Map<ComparableKey, Set<IndexKey>>> indexEntries = new LinkedHashMap<>(); // MOST COMMON USE CASE INSERTION IS ORDERED, USE AN ORDERED MAP TO OPTIMIZE THE INDEX
 
   public static class IndexKey {
     public final boolean  addOperation;
@@ -165,7 +165,7 @@ public class TransactionIndexContext {
 
     Set<IndexKey> values;
     if (keys == null) {
-      keys = new HashMap<>();
+      keys = new LinkedHashMap<>(); // ORDERD TO KEEP INSERTION ORDER
       indexEntries.put(indexName, keys);
 
       values = new HashSet<>();
