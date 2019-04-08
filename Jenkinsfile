@@ -15,26 +15,27 @@ node {
             checkout scm
         }
 
-        stage('check java') {
-            sh "java -version"
-        }
+        docker.image('openjdk:8-jdk-alpine').inside('-v  /home/player/volumes/jenkins_home/.m2:/home/root/.m2"') {
 
 
+            stage('check java') {
+                sh "java -version"
+            }
 
-        stage('build') {
-            try {
-                sh "./mvnw --fail-at-end clean install"
-            } catch (err) {
-                throw err
-            } finally {
-                junit '**/surefire-reports/**/*.xml'
-                step([$class       : 'JacocoPublisher',
-                      execPattern  : '**/**.exec',
-                      classPattern : '**/classes',
-                      sourcePattern: '**/src/main/java'])
+            stage('build') {
+                try {
+                    sh "./mvnw --fail-at-end clean install"
+                } catch (err) {
+                    throw err
+                } finally {
+                    junit '**/surefire-reports/**/*.xml'
+                    step([$class       : 'JacocoPublisher',
+                          execPattern  : '**/**.exec',
+                          classPattern : '**/classes',
+                          sourcePattern: '**/src/main/java'])
+                }
             }
         }
-
         googlechatnotification url: 'id:chat_jenkins_id', message: "SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
     } catch (e) {
         currentBuild.result = 'FAILURE'
