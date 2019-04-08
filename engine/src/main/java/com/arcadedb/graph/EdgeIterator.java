@@ -55,9 +55,9 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
       final String edgeType = currentContainer.getDatabase().getSchema().getTypeByBucketId(nextEdgeRID.getBucketId()).getName();
 
       if (direction == Vertex.DIRECTION.OUT)
-        return new ImmutableEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, vertex, nextVertexRID);
+        return new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, vertex, nextVertexRID);
       else
-        return new ImmutableEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, nextVertexRID, vertex);
+        return new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, nextVertexRID, vertex);
     }
 
     return nextEdgeRID.getEdge();

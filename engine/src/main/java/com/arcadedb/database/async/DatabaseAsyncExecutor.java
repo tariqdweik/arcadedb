@@ -70,8 +70,7 @@ public class DatabaseAsyncExecutor {
         this.queue = new ArrayBlockingQueue<>(queueSize);
       else {
         // WARNING AND THEN USE THE DEFAULT
-        LogManager.instance()
-            .log(this, Level.WARNING, "Error on async operation queue implementation setting: %s is not supported", null, cfgQueueImpl);
+        LogManager.instance().log(this, Level.WARNING, "Error on async operation queue implementation setting: %s is not supported", null, cfgQueueImpl);
         this.queue = new ArrayBlockingQueue<>(queueSize);
       }
     }
@@ -93,8 +92,7 @@ public class DatabaseAsyncExecutor {
         try {
           final DatabaseAsyncTask message = queue.poll(500, TimeUnit.MILLISECONDS);
           if (message != null) {
-            LogManager.instance()
-                .log(this, Level.FINE, "Received async message %s (threadId=%d)", null, message, Thread.currentThread().getId());
+            LogManager.instance().log(this, Level.FINE, "Received async message %s (threadId=%d)", null, message, Thread.currentThread().getId());
 
             if (message == FORCE_EXIT) {
 
@@ -258,8 +256,7 @@ public class DatabaseAsyncExecutor {
     scheduleTask(slot, new DatabaseAsyncCommand(true, language, query, parameters, callback), true);
   }
 
-  public void query(final String language, final String query, final AsyncResultsetCallback callback,
-      final Map<String, Object> parameters) {
+  public void query(final String language, final String query, final AsyncResultsetCallback callback, final Map<String, Object> parameters) {
     final int slot = getSlot((int) commandRoundRobinIndex.getAndIncrement());
     scheduleTask(slot, new DatabaseAsyncCommand(true, language, query, parameters, callback), true);
   }
@@ -269,8 +266,7 @@ public class DatabaseAsyncExecutor {
     scheduleTask(slot, new DatabaseAsyncCommand(false, language, query, parameters, callback), true);
   }
 
-  public void command(final String language, final String query, final AsyncResultsetCallback callback,
-      final Map<String, Object> parameters) {
+  public void command(final String language, final String query, final AsyncResultsetCallback callback, final Map<String, Object> parameters) {
     final int slot = getSlot((int) commandRoundRobinIndex.getAndIncrement());
     scheduleTask(slot, new DatabaseAsyncCommand(false, language, query, parameters, callback), true);
   }
@@ -327,7 +323,7 @@ public class DatabaseAsyncExecutor {
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
 
-  public void newEdge(final Vertex sourceVertex, final String edgeType, final RID destinationVertexRID, final boolean bidirectional,
+  public void newEdge(final Vertex sourceVertex, final String edgeType, final RID destinationVertexRID, final boolean bidirectional, final boolean light,
       final NewEdgeCallback callback, final Object... properties) {
     if (sourceVertex == null)
       throw new IllegalArgumentException("Source vertex is null");
@@ -340,35 +336,31 @@ public class DatabaseAsyncExecutor {
 
     if (sourceSlot == destinationSlot)
       // BOTH VERTICES HAVE THE SAME SLOT, CREATE THE EDGE USING IT
-      scheduleTask(sourceSlot, new CreateEdgeAsyncTask(sourceVertex, destinationVertexRID, edgeType, properties, bidirectional, callback),
-          true);
+      scheduleTask(sourceSlot, new CreateEdgeAsyncTask(sourceVertex, destinationVertexRID, edgeType, properties, bidirectional, light, callback), true);
     else {
       // CREATE THE EDGE IN THE SOURCE VERTEX'S SLOT AND A CASCADE TASK TO ADD THE INCOMING EDGE FROM DESTINATION VERTEX (THIS IS THE MOST EXPENSIVE CASE WHERE 2 TASKS ARE EXECUTED)
-      scheduleTask(sourceSlot,
-          new CreateEdgeAsyncTask(sourceVertex, destinationVertexRID, edgeType, properties, false, new NewEdgeCallback() {
-            @Override
-            public void call(final Edge newEdge, final boolean createdSourceVertex, final boolean createdDestinationVertex) {
-              if (bidirectional) {
-                scheduleTask(destinationSlot,
-                    new CreateIncomingEdgeAsyncTask(sourceVertex.getIdentity(), destinationVertexRID, newEdge, new NewEdgeCallback() {
-                      @Override
-                      public void call(final Edge newEdge, final boolean createdSourceVertex, final boolean createdDestinationVertex) {
-                        if (callback != null)
-                          callback.call(newEdge, createdSourceVertex, createdDestinationVertex);
-                      }
-                    }), true);
-              } else if (callback != null)
-                callback.call(newEdge, createdSourceVertex, createdDestinationVertex);
+      scheduleTask(sourceSlot, new CreateEdgeAsyncTask(sourceVertex, destinationVertexRID, edgeType, properties, false, light, new NewEdgeCallback() {
+        @Override
+        public void call(final Edge newEdge, final boolean createdSourceVertex, final boolean createdDestinationVertex) {
+          if (bidirectional) {
+            scheduleTask(destinationSlot, new CreateIncomingEdgeAsyncTask(sourceVertex.getIdentity(), destinationVertexRID, newEdge, new NewEdgeCallback() {
+              @Override
+              public void call(final Edge newEdge, final boolean createdSourceVertex, final boolean createdDestinationVertex) {
+                if (callback != null)
+                  callback.call(newEdge, createdSourceVertex, createdDestinationVertex);
+              }
+            }), true);
+          } else if (callback != null)
+            callback.call(newEdge, createdSourceVertex, createdDestinationVertex);
 
-            }
-          }), true);
+        }
+      }), true);
     }
   }
 
-  public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
-      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final NewEdgeCallback callback,
-      final Object... properties) {
+  public void newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
+      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
+      final boolean bidirectional, final boolean light, final NewEdgeCallback callback, final Object... properties) {
 
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
@@ -383,8 +375,7 @@ public class DatabaseAsyncExecutor {
       throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
 
     final Iterator<Identifiable> sourceResult = database.lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
-    final Iterator<Identifiable> destinationResult = database
-        .lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
+    final Iterator<Identifiable> destinationResult = database.lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
 
     final RID sourceRID = sourceResult.hasNext() ? sourceResult.next().getIdentity() : null;
     final RID destinationRID = destinationResult.hasNext() ? destinationResult.next().getIdentity() : null;
@@ -393,40 +384,38 @@ public class DatabaseAsyncExecutor {
 
       if (!createVertexIfNotExist)
         throw new IllegalArgumentException(
-            "Cannot find source and destination vertices with respectively key " + Arrays.toString(sourceVertexKey) + "=" + Arrays
-                .toString(sourceVertexValue) + " and " + Arrays.toString(destinationVertexKey) + "=" + Arrays
-                .toString(destinationVertexValue));
+            "Cannot find source and destination vertices with respectively key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue)
+                + " and " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
 
       // SOURCE AND DESTINATION VERTICES BOTH DON'T EXIST: CREATE 2 VERTICES + EDGE IN THE SAME TASK PICKING THE BEST SLOT
       scheduleTask(getRandomSlot(),
-          new CreateBothVerticesAndEdgeAsyncTask(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType,
-              destinationVertexKey, destinationVertexValue, edgeType, properties, bidirectional, callback), true);
+          new CreateBothVerticesAndEdgeAsyncTask(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationVertexType, destinationVertexKey,
+              destinationVertexValue, edgeType, properties, bidirectional, light, callback), true);
 
     } else if (sourceRID != null && destinationRID == null) {
 
       if (!createVertexIfNotExist)
-        throw new IllegalArgumentException("Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
-            .toString(destinationVertexValue));
+        throw new IllegalArgumentException(
+            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
 
       // ONLY SOURCE VERTEX EXISTS, CREATE DESTINATION VERTEX + EDGE IN SOURCE'S SLOT
       scheduleTask(getSlot(sourceRID.getBucketId()),
-          new CreateDestinationVertexAndEdgeAsyncTask(sourceRID, destinationVertexType, destinationVertexKey, destinationVertexValue,
-              edgeType, properties, bidirectional, callback), true);
+          new CreateDestinationVertexAndEdgeAsyncTask(sourceRID, destinationVertexType, destinationVertexKey, destinationVertexValue, edgeType, properties,
+              bidirectional, light, callback), true);
 
     } else if (sourceRID == null && destinationRID != null) {
 
       if (!createVertexIfNotExist)
-        throw new IllegalArgumentException(
-            "Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+        throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
 
       // ONLY DESTINATION VERTEX EXISTS
       scheduleTask(getSlot(destinationRID.getBucketId()),
-          new CreateSourceVertexAndEdgeAsyncTask(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationRID, edgeType, properties,
-              bidirectional, callback), true);
+          new CreateSourceVertexAndEdgeAsyncTask(sourceVertexType, sourceVertexKey, sourceVertexValue, destinationRID, edgeType, properties, bidirectional,
+              light, callback), true);
 
     } else
       // BOTH VERTICES EXIST
-      newEdge(sourceRID.getVertex(true), edgeType, destinationRID, bidirectional, callback, properties);
+      newEdge(sourceRID.getVertex(true), edgeType, destinationRID, bidirectional, light, callback, properties);
   }
 
   /**

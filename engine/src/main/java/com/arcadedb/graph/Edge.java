@@ -21,6 +21,4 @@ public interface Edge extends Document {
   Vertex getInVertex();
 
   Vertex getVertex(Vertex.DIRECTION iDirection);
-
-  boolean isLightweight();
 }

@@ -21,9 +21,9 @@ public class CreateBothVerticesAndEdgeAsyncTask extends CreateEdgeAsyncTask {
 
   public CreateBothVerticesAndEdgeAsyncTask(final String sourceVertexType, final String[] sourceVertexAttributeNames,
       final Object[] sourceVertexAttributeValues, final String destinationVertexType, final String[] destinationVertexAttributeNames,
-      final Object[] destinationVertexAttributeValues, final String edgeType, final Object[] edgeAttributes, final boolean bidirectional,
+      final Object[] destinationVertexAttributeValues, final String edgeType, final Object[] edgeAttributes, final boolean bidirectional, final boolean light,
       final NewEdgeCallback callback) {
-    super(null, null, edgeType, edgeAttributes, bidirectional, callback);
+    super(null, null, edgeType, edgeAttributes, bidirectional, light, callback);
 
     this.sourceVertexType = sourceVertexType;
     this.sourceVertexAttributeNames = sourceVertexAttributeNames;

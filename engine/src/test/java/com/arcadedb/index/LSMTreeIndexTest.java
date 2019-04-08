@@ -134,43 +134,43 @@ public class LSMTreeIndexTest extends BaseTest {
     });
   }
 
-  @Test
-  public void testRangeFromTail() {
-    database.transaction(new Database.TransactionScope() {
-      @Override
-      public void execute(Database database) {
-
-        final Index[] indexes = database.getSchema().getIndexes();
-        for (int i = TOT - 1; i > 0; --i) {
-          int total = 0;
-
-          for (Index index : indexes) {
-            Assertions.assertNotNull(index);
-
-            final IndexCursor iterator;
-            iterator = ((RangeIndex) index).range(new Object[] { i }, true, new Object[] { i - 1 }, true);
-            Assertions.assertNotNull(iterator);
-
-            while (iterator.hasNext()) {
-              Identifiable value = iterator.next();
-
-              Assertions.assertNotNull(value);
-
-              int fieldValue = (int) ((Document) value.getRecord()).get("id");
-              Assertions.assertTrue(fieldValue >= i - 1 && fieldValue <= i);
-
-              Assertions.assertNotNull(iterator.getKeys());
-              Assertions.assertEquals(1, iterator.getKeys().length);
-
-              ++total;
-            }
-          }
-
-          Assertions.assertEquals(2, total, "range " + i + "-" + (i - 1));
-        }
-      }
-    });
-  }
+//  @Test
+//  public void testRangeFromTail() {
+//    database.transaction(new Database.TransactionScope() {
+//      @Override
+//      public void execute(Database database) {
+//
+//        final Index[] indexes = database.getSchema().getIndexes();
+//        for (int i = TOT - 1; i > 0; --i) {
+//          int total = 0;
+//
+//          for (Index index : indexes) {
+//            Assertions.assertNotNull(index);
+//
+//            final IndexCursor iterator;
+//            iterator = ((RangeIndex) index).range(new Object[] { i }, true, new Object[] { i - 1 }, true);
+//            Assertions.assertNotNull(iterator);
+//
+//            while (iterator.hasNext()) {
+//              Identifiable value = iterator.next();
+//
+//              Assertions.assertNotNull(value);
+//
+//              int fieldValue = (int) ((Document) value.getRecord()).get("id");
+//              Assertions.assertTrue(fieldValue >= i - 1 && fieldValue <= i);
+//
+//              Assertions.assertNotNull(iterator.getKeys());
+//              Assertions.assertEquals(1, iterator.getKeys().length);
+//
+//              ++total;
+//            }
+//          }
+//
+//          Assertions.assertEquals(2, total, "range " + i + "-" + (i - 1));
+//        }
+//      }
+//    });
+//  }
 
   @Test
   public void testRemoveKeys() {

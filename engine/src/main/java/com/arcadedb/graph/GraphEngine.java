@@ -17,8 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class GraphEngine {
-  private final static boolean SUPPORT_LIGHTWEIGHT_EDGES           = true;
-  public static final  int     EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
+  public static final int EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
 
   public static class CreateEdgeOperation {
     final String       edgeTypeName;
@@ -41,6 +40,28 @@ public class GraphEngine {
     }
   }
 
+  public ImmutableLightEdge newLightEdge(VertexInternal fromVertex, final String edgeType, Identifiable toVertex, final boolean bidirectional) {
+    if (toVertex == null)
+      throw new IllegalArgumentException("Destination vertex is null");
+
+    final RID fromVertexRID = fromVertex.getIdentity();
+    if (fromVertexRID == null)
+      throw new IllegalArgumentException("Current vertex is not persistent");
+
+    if (toVertex instanceof MutableDocument && toVertex.getIdentity() == null)
+      throw new IllegalArgumentException("Target vertex is not persistent");
+
+    final DatabaseInternal database = (DatabaseInternal) fromVertex.getDatabase();
+
+    final RID edgeRID = new RID(database, database.getSchema().getType(edgeType).getFirstBucketId(), -1l);
+
+    final ImmutableLightEdge edge = new ImmutableLightEdge(database, edgeType, edgeRID, fromVertexRID, toVertex.getIdentity());
+
+    connectEdge(database, fromVertex, toVertex, edge, bidirectional);
+
+    return edge;
+  }
+
   public MutableEdge newEdge(VertexInternal fromVertex, final String edgeType, Identifiable toVertex, final boolean bidirectional,
       final Object... edgeProperties) {
     if (toVertex == null)
@@ -56,21 +77,17 @@ public class GraphEngine {
     final DatabaseInternal database = (DatabaseInternal) fromVertex.getDatabase();
 
     final MutableEdge edge = new MutableEdge(database, edgeType, fromVertexRID, toVertex.getIdentity());
-    if (!SUPPORT_LIGHTWEIGHT_EDGES || (edgeProperties != null && edgeProperties.length > 0)) {
+    if (edgeProperties != null && edgeProperties.length > 0)
       setProperties(edge, edgeProperties);
-      edge.save();
-    } else {
-      // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
-      // SAVE A SPECIAL RID 0,<EDGE-CLUSTER-ID>
-      edge.setIdentity(new RID(database, database.getSchema().getType(edgeType).getFirstBucketId(), -1l));
-    }
+
+    edge.save();
 
     connectEdge(database, fromVertex, toVertex, edge, bidirectional);
 
     return edge;
   }
 
-  public void connectEdge(final DatabaseInternal database, VertexInternal fromVertex, final Identifiable toVertex, final MutableEdge edge,
+  public void connectEdge(final DatabaseInternal database, VertexInternal fromVertex, final Identifiable toVertex, final Edge edge,
       final boolean bidirectional) {
     final AtomicReference<VertexInternal> fromVertexRef = new AtomicReference<>(fromVertex);
     final EdgeSegment outChunk = createOutEdgeChunk(database, fromVertexRef);
@@ -129,14 +146,10 @@ public class GraphEngine {
 
       edge = new MutableEdge(database, connection.edgeTypeName, sourceVertexRID, destinationVertex.getIdentity());
 
-      if (!SUPPORT_LIGHTWEIGHT_EDGES || (connection.edgeProperties != null && connection.edgeProperties.length > 0)) {
+      if (connection.edgeProperties != null && connection.edgeProperties.length > 0)
         setProperties(edge, connection.edgeProperties);
-        edge.save();
-      } else {
-        // TODO: MANAGE NO RID WITH THE CREATION OF A NEW ONE AT THE FIRST PROPERTY
-        // SAVE A SPECIAL RID 0,<EDGE-CLUSTER-ID>
-        edge.setIdentity(new RID(database, database.getSchema().getType(connection.edgeTypeName).getFirstBucketId(), -1l));
-      }
+
+      edge.save();
 
       outEdgePairs.add(new Pair<>(edge, destinationVertex));
 
@@ -281,7 +294,7 @@ public class GraphEngine {
     }
 
     final RID edgeRID = edge.getIdentity();
-    if (edgeRID != null && !edge.isLightweight())
+    if (edgeRID != null && !(edge instanceof LightEdge))
       // DELETE EDGE RECORD TOO
       database.getSchema().getBucketById(edge.getIdentity().getBucketId()).deleteRecord(edge.getIdentity());
   }

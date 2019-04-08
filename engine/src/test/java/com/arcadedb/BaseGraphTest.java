@@ -6,6 +6,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.RID;
+import com.arcadedb.graph.ImmutableLightEdge;
 import com.arcadedb.graph.MutableEdge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.utility.FileUtils;
@@ -70,7 +71,7 @@ public abstract class BaseGraphTest extends BaseTest {
     Assertions.assertEquals(e2.getOut(), v2);
     Assertions.assertEquals(e2.getIn(), v3);
 
-    MutableEdge e3 = v1.newEdge(EDGE2_TYPE_NAME, v3, true);
+    ImmutableLightEdge e3 = v1.newLightEdge(EDGE2_TYPE_NAME, v3, true);
     Assertions.assertEquals(e3.getOut(), v1);
     Assertions.assertEquals(e3.getIn(), v3);
 

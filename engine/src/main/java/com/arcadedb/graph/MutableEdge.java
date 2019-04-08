@@ -80,11 +80,6 @@ public class MutableEdge extends MutableDocument implements Edge {
   }
 
   @Override
-  public boolean isLightweight() {
-    return false;
-  }
-
-  @Override
   public void set(final Object... properties) {
     super.set(properties);
     checkForUpgradeLightWeigth();

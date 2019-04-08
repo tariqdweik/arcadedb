@@ -80,6 +80,7 @@ public class GraphTest extends BaseGraphTest {
   }
 
   @Test
+  //TODO
   public void autoPersistLightWeightEdge() {
     database.begin();
     try {
@@ -90,11 +91,15 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertNotNull(edges3);
       Assertions.assertTrue(edges3.hasNext());
 
-      final MutableEdge edge = edges3.next().modify();
-      edge.set("upgraded", true);
-      edge.save();
-
-      Assertions.assertTrue(edge.getIdentity().getPosition() > -1);
+      try {
+        final MutableEdge edge = edges3.next().modify();
+        Assertions.fail("Cannot modify lightweight edges");
+//        edge.set("upgraded", true);
+//        edge.save();
+//
+//        Assertions.assertTrue(edge.getIdentity().getPosition() > -1);
+      } catch (IllegalStateException e) {
+      }
 
     } finally {
       database.commit();

@@ -36,9 +36,9 @@ public class EdgeIteratorFilter extends IteratorFilterBase<Edge> {
         final String edgeType = currentContainer.getDatabase().getSchema().getTypeByBucketId(nextEdge.getBucketId()).getName();
 
         if (direction == Vertex.DIRECTION.OUT)
-          return new ImmutableEdge(currentContainer.getDatabase(), edgeType, nextEdge, vertex, nextVertex);
+          return new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdge, vertex, nextVertex);
         else
-          return new ImmutableEdge(currentContainer.getDatabase(), edgeType, nextEdge, nextVertex, vertex);
+          return new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdge, nextVertex, vertex);
       }
 
       return next.getEdge();

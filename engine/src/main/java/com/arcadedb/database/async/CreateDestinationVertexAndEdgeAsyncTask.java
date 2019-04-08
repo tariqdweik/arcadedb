@@ -16,10 +16,10 @@ public class CreateDestinationVertexAndEdgeAsyncTask extends CreateEdgeAsyncTask
   private final String[] destinationVertexAttributeNames;
   private final Object[] destinationVertexAttributeValues;
 
-  public CreateDestinationVertexAndEdgeAsyncTask(final RID sourceVertex, final String destinationVertexType,
-      final String[] destinationVertexAttributeNames, final Object[] destinationVertexAttributeValues, final String edgeType,
-      final Object[] edgeAttributes, final boolean bidirectional, final NewEdgeCallback callback) {
-    super(sourceVertex, null, edgeType, edgeAttributes, bidirectional, callback);
+  public CreateDestinationVertexAndEdgeAsyncTask(final RID sourceVertex, final String destinationVertexType, final String[] destinationVertexAttributeNames,
+      final Object[] destinationVertexAttributeValues, final String edgeType, final Object[] edgeAttributes, final boolean bidirectional, final boolean light,
+      final NewEdgeCallback callback) {
+    super(sourceVertex, null, edgeType, edgeAttributes, bidirectional, light, callback);
 
     this.destinationVertexType = destinationVertexType;
     this.destinationVertexAttributeNames = destinationVertexAttributeNames;

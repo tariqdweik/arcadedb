@@ -75,6 +75,10 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
     return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
   }
 
+  public ImmutableLightEdge newLightEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional) {
+    return database.getGraphEngine().newLightEdge(this, edgeType, toVertex, bidirectional);
+  }
+
   @Override
   public long countEdges(DIRECTION direction, String edgeType) {
     return database.getGraphEngine().countEdges(this, direction, edgeType);

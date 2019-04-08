@@ -6,7 +6,7 @@ package com.arcadedb.database.async;
 
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Identifiable;
-import com.arcadedb.graph.MutableEdge;
+import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.VertexInternal;
 
 /**
@@ -20,10 +20,11 @@ public class CreateEdgeAsyncTask extends DatabaseAsyncAbstractTask {
   protected final Object[] edgeAttributes;
 
   protected final boolean         bidirectional;
+  protected final boolean         light;
   protected final NewEdgeCallback callback;
 
-  public CreateEdgeAsyncTask(final Identifiable sourceVertex, final Identifiable destinationVertex, final String edgeType,
-      final Object[] edgeAttributes, final boolean bidirectional, final NewEdgeCallback callback) {
+  public CreateEdgeAsyncTask(final Identifiable sourceVertex, final Identifiable destinationVertex, final String edgeType, final Object[] edgeAttributes,
+      final boolean bidirectional, final boolean light, final NewEdgeCallback callback) {
     this.sourceVertex = sourceVertex;
     this.destinationVertex = destinationVertex;
 
@@ -31,6 +32,7 @@ public class CreateEdgeAsyncTask extends DatabaseAsyncAbstractTask {
     this.edgeAttributes = edgeAttributes;
 
     this.bidirectional = bidirectional;
+    this.light = light;
     this.callback = callback;
   }
 
@@ -41,8 +43,13 @@ public class CreateEdgeAsyncTask extends DatabaseAsyncAbstractTask {
   protected void createEdge(final DatabaseInternal database, final Identifiable sourceVertex, final Identifiable destinationVertex,
       final boolean createdSourceVertex, boolean createdDestinationVertex) {
 
-    final MutableEdge edge = database.getGraphEngine()
-        .newEdge((VertexInternal) sourceVertex.getRecord(), edgeType, destinationVertex.getIdentity(), bidirectional, edgeAttributes);
+    final Edge edge;
+
+    if (light)
+      edge = database.getGraphEngine().newLightEdge((VertexInternal) sourceVertex.getRecord(), edgeType, destinationVertex.getIdentity(), bidirectional);
+    else
+      edge = database.getGraphEngine()
+          .newEdge((VertexInternal) sourceVertex.getRecord(), edgeType, destinationVertex.getIdentity(), bidirectional, edgeAttributes);
 
     if (callback != null)
       callback.call(edge, createdSourceVertex, createdDestinationVertex);
