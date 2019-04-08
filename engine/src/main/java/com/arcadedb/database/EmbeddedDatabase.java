@@ -8,8 +8,8 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
-import com.arcadedb.engine.*;
 import com.arcadedb.engine.Dictionary;
+import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.*;
 import com.arcadedb.graph.*;
@@ -714,8 +714,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       if (originalBuffer == null)
         throw new IllegalStateException("Cannot read original buffer for indexing");
       originalBuffer.rewind();
-      final Document originalRecord = (Document) recordFactory
-          .newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
+      final Document originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
 
       schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
@@ -848,6 +847,18 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
+  public MutableEmbeddedDocument newEmbeddedDocument(final String typeName) {
+    if (typeName == null)
+      throw new IllegalArgumentException("Type is null");
+
+    final DocumentType type = schema.getType(typeName);
+    if (!type.getClass().equals(DocumentType.class))
+      throw new IllegalArgumentException("Cannot create an embedded document of type '" + typeName + "' because is not a document type");
+
+    return new MutableEmbeddedDocument(wrappedDatabaseInstance, typeName);
+  }
+
+  @Override
   public MutableVertex newVertex(final String typeName) {
     if (typeName == null)
       throw new IllegalArgumentException("Type is null");
@@ -861,9 +872,9 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     return new MutableVertex(wrappedDatabaseInstance, typeName, null);
   }
 
-  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue,
-      final String destinationVertexType, final String[] destinationVertexKey, final Object[] destinationVertexValue,
-      final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional, final Object... properties) {
+  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
+      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
+      final boolean bidirectional, final Object... properties) {
     if (sourceVertexKey == null)
       throw new IllegalArgumentException("Source vertex key is null");
 
@@ -886,8 +897,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
         ((MutableVertex) sourceVertex).save();
       } else
-        throw new IllegalArgumentException(
-            "Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+        throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
     } else
       sourceVertex = v1Result.next().getIdentity().getVertex();
 
@@ -900,8 +910,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
         ((MutableVertex) destinationVertex).save();
       } else
-        throw new IllegalArgumentException("Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
-            .toString(destinationVertexValue));
+        throw new IllegalArgumentException(
+            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
       destinationVertex = v2Result.next().getIdentity().getVertex();
 
@@ -931,8 +941,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
         ((MutableVertex) destinationVertex).save();
       } else
-        throw new IllegalArgumentException("Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays
-            .toString(destinationVertexValue));
+        throw new IllegalArgumentException(
+            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
     } else
       destinationVertex = v2Result.next().getIdentity().getVertex();
 

@@ -8,6 +8,7 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.MutableEmbeddedDocument;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.IndexCursor;
@@ -78,11 +79,12 @@ public interface Database extends AutoCloseable {
 
   MutableDocument newDocument(String typeName);
 
+  MutableEmbeddedDocument newEmbeddedDocument(String typeName);
+
   MutableVertex newVertex(String typeName);
 
-  Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType,
-      String[] destinationVertexKey, Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType,
-      boolean bidirectional, Object... properties);
+  Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType, String[] destinationVertexKey,
+      Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
 
   Edge newEdgeByKeys(Vertex sourceVertex, String destinationVertexType, String[] destinationVertexKey, Object[] destinationVertexValue,
       boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);

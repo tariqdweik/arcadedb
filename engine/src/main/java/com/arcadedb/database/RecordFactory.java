@@ -18,6 +18,8 @@ public class RecordFactory {
       return new ImmutableEdge(database, typeName, rid, null);
     case EdgeSegment.RECORD_TYPE:
       return new MutableEdgeSegment(database, rid, null);
+    case EmbeddedDocument.RECORD_TYPE:
+      return new ImmutableEmbeddedDocument(database, typeName, null);
     }
     throw new DatabaseMetadataException("Cannot find record type '" + type + "'");
   }
@@ -34,6 +36,8 @@ public class RecordFactory {
       return new ImmutableEdge(database, typeName, rid, content);
     case EdgeSegment.RECORD_TYPE:
       return new MutableEdgeSegment(database, rid, content);
+    case EmbeddedDocument.RECORD_TYPE:
+      return new ImmutableEmbeddedDocument(database, typeName, content);
     }
     throw new DatabaseMetadataException("Cannot find record type '" + type + "'");
   }
@@ -50,6 +54,8 @@ public class RecordFactory {
       return new MutableEdge(database, typeName, rid);
     case EdgeSegment.RECORD_TYPE:
       return new MutableEdgeSegment(database, rid);
+    case EmbeddedDocument.RECORD_TYPE:
+      return new MutableEmbeddedDocument(database, typeName, content);
     }
     throw new DatabaseMetadataException("Cannot find record type '" + type + "'");
   }

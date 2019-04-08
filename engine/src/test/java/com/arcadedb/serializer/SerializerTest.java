@@ -7,8 +7,12 @@ package com.arcadedb.serializer;
 import com.arcadedb.BaseTest;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.engine.Bucket;
+import com.arcadedb.graph.EmbeddedDocument;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Type;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -360,4 +364,119 @@ public class SerializerTest extends BaseTest {
       }
     });
   }
+
+  @Test
+  public void testListOfEmbedded() {
+    final BinarySerializer serializer = new BinarySerializer();
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        final DocumentType test = database.getSchema().createDocumentType("Test");
+        test.createProperty("list", Type.LIST);
+
+        final DocumentType embedded = database.getSchema().createDocumentType("Embedded");
+        database.commit();
+
+        database.begin();
+
+        MutableDocument testDocument = database.newDocument("Test");
+        testDocument.set("id", 0);
+        MutableDocument embDocument1 = database.newEmbeddedDocument("Embedded");
+        embDocument1.set("id", 1);
+        MutableDocument embDocument2 = database.newEmbeddedDocument("Embedded");
+        embDocument2.set("id", 2);
+
+        try {
+          embDocument2.save();
+          Assertions.fail("Embedded documents shouldn't be able to be saved");
+        } catch (UnsupportedOperationException e) {
+        }
+
+        List<Document> embeddedList = new ArrayList<>();
+        testDocument.set("embedded", embeddedList);
+
+        embeddedList.add(embDocument1);
+        embeddedList.add(embDocument2);
+
+        final Binary buffer = serializer.serialize(database, testDocument);
+
+        final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
+        buffer2.put(buffer.toByteArray());
+        buffer2.flip();
+
+        Binary buffer3 = new Binary(buffer2);
+        buffer3.getByte(); // SKIP RECORD TYPE
+        Map<String, Object> record2 = serializer.deserializeProperties(database, buffer3);
+
+        Assertions.assertEquals(0, record2.get("id"));
+
+        List<Document> embeddedList2 = (List<Document>) record2.get("embedded");
+
+        Assertions.assertIterableEquals(embeddedList, embeddedList2);
+
+        for (Document d : embeddedList2)
+          Assertions.assertTrue(d instanceof EmbeddedDocument);
+      }
+    });
+  }
+
+  @Test
+  public void testMapOfEmbedded() {
+    final BinarySerializer serializer = new BinarySerializer();
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        final DocumentType test = database.getSchema().createDocumentType("Test");
+        test.createProperty("list", Type.LIST);
+
+        final DocumentType embedded = database.getSchema().createDocumentType("Embedded");
+        database.commit();
+
+        database.begin();
+
+        MutableDocument testDocument = database.newDocument("Test");
+        testDocument.set("id", 0);
+        MutableDocument embDocument1 = database.newEmbeddedDocument("Embedded");
+        embDocument1.set("id", 1);
+        MutableDocument embDocument2 = database.newEmbeddedDocument("Embedded");
+        embDocument2.set("id", 2);
+
+        try {
+          embDocument2.save();
+          Assertions.fail("Embedded documents shouldn't be able to be saved");
+        } catch (UnsupportedOperationException e) {
+        }
+
+        Map<Integer, Document> embeddedMap = new HashMap<>();
+        testDocument.set("embedded", embeddedMap);
+
+        embeddedMap.put(1, embDocument1);
+        embeddedMap.put(2, embDocument2);
+
+        final Binary buffer = serializer.serialize(database, testDocument);
+
+        final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
+        buffer2.put(buffer.toByteArray());
+        buffer2.flip();
+
+        Binary buffer3 = new Binary(buffer2);
+        buffer3.getByte(); // SKIP RECORD TYPE
+        Map<String, Object> record2 = serializer.deserializeProperties(database, buffer3);
+
+        Assertions.assertEquals(0, record2.get("id"));
+
+        Map<Integer, Document> embeddedMap2 = (Map<Integer, Document>) record2.get("embedded");
+
+        Assertions.assertIterableEquals(embeddedMap.entrySet(), embeddedMap2.entrySet());
+
+        for (Map.Entry<Integer, Document> d : embeddedMap2.entrySet()) {
+          Assertions.assertTrue(d.getKey() instanceof Integer);
+          Assertions.assertTrue(d.getValue() instanceof EmbeddedDocument);
+        }
+      }
+    });
+  }
+
 }

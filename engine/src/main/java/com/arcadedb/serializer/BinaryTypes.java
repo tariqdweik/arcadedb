@@ -5,6 +5,7 @@
 package com.arcadedb.serializer;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.MurmurHash;
 import com.arcadedb.exception.DatabaseMetadataException;
@@ -36,6 +37,7 @@ public class BinaryTypes {
   public final static byte TYPE_LIST              = 16;
   public final static byte TYPE_MAP               = 17;
   public final static byte TYPE_COMPRESSED_STRING = 18;
+  public final static byte TYPE_EMBEDDED          = 19;
 
   public static byte getTypeFromValue(final Object value) {
     final byte type;
@@ -73,6 +75,8 @@ public class BinaryTypes {
       type = TYPE_LIST;
     else if (value instanceof Map)
       type = TYPE_MAP;
+    else if (value instanceof Document)
+      type = TYPE_EMBEDDED;
     else
       throw new IllegalArgumentException("Cannot serialize value '" + value + "' of type " + value.getClass());
 
@@ -150,6 +154,8 @@ public class BinaryTypes {
       type = TYPE_LIST;
     else if (Map.class.isAssignableFrom(typez))
       type = TYPE_MAP;
+    else if (Document.class.isAssignableFrom(typez))
+      type = TYPE_EMBEDDED;
     else
       throw new DatabaseMetadataException("Cannot find type for class '" + typez + "'");
 
@@ -194,6 +200,9 @@ public class BinaryTypes {
     case BinaryTypes.TYPE_RID:
     case BinaryTypes.TYPE_UUID:
       return RID.class;
+
+    case BinaryTypes.TYPE_EMBEDDED:
+      return Document.class;
 
     default:
       // UNKNOWN

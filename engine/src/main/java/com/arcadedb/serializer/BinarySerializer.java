@@ -61,7 +61,7 @@ public class BinarySerializer {
     }
 
     if (serializeProperties)
-      return serializeProperties(database, document, header);
+      return serializeProperties(database, document, header, ((EmbeddedDatabase) database).getContext().getTemporaryBuffer2());
 
     return header;
   }
@@ -101,7 +101,7 @@ public class BinarySerializer {
     }
 
     if (serializeProperties)
-      return serializeProperties(database, vertex, header);
+      return serializeProperties(database, vertex, header, ((EmbeddedDatabase) database).getContext().getTemporaryBuffer2());
 
     return header;
   }
@@ -126,7 +126,7 @@ public class BinarySerializer {
     serializeValue(header, BinaryTypes.TYPE_COMPRESSED_RID, edge.getIn());
 
     if (serializeProperties)
-      return serializeProperties(database, edge, header);
+      return serializeProperties(database, edge, header, ((EmbeddedDatabase) database).getContext().getTemporaryBuffer2());
 
     return header;
   }
@@ -151,7 +151,7 @@ public class BinarySerializer {
   }
 
   public Map<String, Object> deserializeProperties(final Database database, final Binary buffer, final String... fieldNames) {
-    final int headerSize = buffer.getInt();
+    final int headerEndOffset = buffer.getInt();
     final int properties = (int) buffer.getUnsignedNumber();
 
     if (properties < 0)
@@ -188,7 +188,7 @@ public class BinarySerializer {
 
       final String name = dictionary.getNameById(nameId);
 
-      buffer.position(headerSize + contentPosition);
+      buffer.position(headerEndOffset + contentPosition);
 
       final byte type = buffer.getByte();
 
@@ -209,7 +209,7 @@ public class BinarySerializer {
     return values;
   }
 
-  public void serializeValue(final Binary content, final byte type, final Object value) {
+  public void serializeValue(Binary content, final byte type, final Object value) {
     switch (type) {
     case BinaryTypes.TYPE_NULL:
       break;
@@ -329,6 +329,20 @@ public class BinarySerializer {
       }
       break;
     }
+    case BinaryTypes.TYPE_EMBEDDED: {
+      final EmbeddedDocument document = (EmbeddedDocument) value;
+      content.putUnsignedNumber(document.getDatabase().getSchema().getDictionary().getIdByName(document.getType(), true));
+
+      final Binary header = new Binary(8196);
+      final Binary body = new Binary(8196);
+
+      header.putByte(EmbeddedDocument.RECORD_TYPE);
+      serializeProperties(document.getDatabase(), document, header, body);
+
+      content.putUnsignedNumber(header.size());
+      content.append(header);
+      break;
+    }
 
     default:
       LogManager.instance().log(this, Level.INFO, "Error on serializing value '" + value + "', type not supported", null);
@@ -413,6 +427,19 @@ public class BinarySerializer {
       value = map;
       break;
     }
+    case BinaryTypes.TYPE_EMBEDDED: {
+      final String typeName = database.getSchema().getDictionary().getNameById((int) content.getUnsignedNumber());
+
+      final int embeddedObjectSize = (int) content.getUnsignedNumber();
+
+      final Binary embeddedBuffer = content.slice(content.position(), embeddedObjectSize);
+
+      final Document document = (Document) ((DatabaseInternal) database).getRecordFactory().newImmutableRecord(database, typeName, null, embeddedBuffer);
+      value = document;
+
+      content.position(content.position() + embeddedObjectSize);
+      break;
+    }
 
     default:
       LogManager.instance().log(this, Level.INFO, "Error on deserializing value of type " + type, null);
@@ -421,14 +448,12 @@ public class BinarySerializer {
     return value;
   }
 
-  public Binary serializeProperties(final Database database, final Document record, final Binary header) {
+  public Binary serializeProperties(final Database database, final Document record, final Binary header, final Binary content) {
     final int headerSizePosition = header.position();
     header.putInt(0); // TEMPORARY PLACEHOLDER FOR HEADER SIZE
 
     final Set<String> propertyNames = record.getPropertyNames();
     header.putUnsignedNumber(propertyNames.size());
-
-    final Binary content = ((EmbeddedDatabase) database).getContext().getTemporaryBuffer2();
 
     final Dictionary dictionary = database.getSchema().getDictionary();
 
@@ -460,12 +485,12 @@ public class BinarySerializer {
 
     content.flip();
 
-    final int headerSize = header.position();
+    final int headerEndOffset = header.position();
 
     header.append(content);
 
     // UPDATE HEADER SIZE
-    header.putInt(headerSizePosition, headerSize);
+    header.putInt(headerSizePosition, headerEndOffset);
 
     header.position(header.size());
     header.flip();
