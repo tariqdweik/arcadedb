@@ -15,7 +15,7 @@ node {
             checkout scm
         }
 
-        docker.image('openjdk:8-jdk-alpine').inside('-v  /home/player/volumes/jenkins_home/.m2:/.m2"') {
+        docker.image('openjdk:8-jdk').inside('-v  /home/player/volumes/jenkins_home/.m2:/.m2"') {
 
 
             stage('check java') {
