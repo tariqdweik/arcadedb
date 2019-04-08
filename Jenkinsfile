@@ -15,7 +15,7 @@ node {
             checkout scm
         }
 
-        docker.image('openjdk:8-jdk').inside('-v  /home/player/volumes/jenkins_home/.m2:/.m2"') {
+        docker.image('openjdk:8-jdk').inside(' -u root -v /home/player/volumes/jenkins_home/.m2:/root/.m2"') {
 
 
             stage('check java') {
@@ -24,7 +24,7 @@ node {
 
             stage('build') {
                 try {
-                    sh "./mvnw -fae clean install"
+                    sh "./mvnw -fae clean install "
                 } catch (err) {
                     throw err
                 } finally {
