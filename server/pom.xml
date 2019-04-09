@@ -17,6 +17,8 @@
 
     <properties>
         <metrics.version>4.0.3</metrics.version>
+        <slf4j-simple.version>1.7.25</slf4j-simple.version>
+        <undertow-core.version>2.0.20.Final</undertow-core.version>
     </properties>
 
     <artifactId>arcadedb-server</artifactId>
@@ -38,7 +40,7 @@
         <dependency>
             <groupId>io.undertow</groupId>
             <artifactId>undertow-core</artifactId>
-            <version>2.0.13.Final</version>
+            <version>${undertow-core.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
@@ -53,7 +55,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>1.7.25</version>
+            <version>${slf4j-simple.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

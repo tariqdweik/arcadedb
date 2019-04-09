@@ -7,6 +7,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <properties>
+        <javacc-maven-plugin.version>2.6</javacc-maven-plugin.version>
+        <disruptor.version>1.2.15</disruptor.version>
+        <json.version>20180813</json.version>
+        <lz4-java.version>1.5.1</lz4-java.version>
+        <lucene.version>8.0.0</lucene.version>
+    </properties>
 
     <parent>
         <groupId>com.arcadeanalytics</groupId>
@@ -23,7 +30,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>javacc-maven-plugin</artifactId>
-                <version>2.6</version>
+                <version>${javacc-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>jjtree-javacc</id>
@@ -46,28 +53,28 @@
         <dependency>
             <groupId>com.conversantmedia</groupId>
             <artifactId>disruptor</artifactId>
-            <version>1.2.13</version>
+            <version>${disruptor.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20180813</version>
+            <version>${json.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.4.1</version>
+            <version>${lz4-java.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-common</artifactId>
-            <version>7.4.0</version>
+            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
-            <version>7.4.0</version>
+            <version>${lucene.version}</version>
         </dependency>
     </dependencies>
 
