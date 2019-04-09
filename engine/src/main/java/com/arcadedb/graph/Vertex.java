@@ -18,6 +18,8 @@ public interface Vertex extends Document {
 
   MutableEdge newEdge(String edgeType, Identifiable toVertex, boolean bidirectional, final Object... properties);
 
+  ImmutableLightEdge newLightEdge(String edgeType, Identifiable toVertex, boolean bidirectional);
+
   long countEdges(DIRECTION direction, String edgeType);
 
   Iterable<Edge> getEdges();

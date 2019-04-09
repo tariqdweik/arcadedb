@@ -100,14 +100,25 @@ public class DocumentType {
       throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name + "' because it already exists");
 
     if (getPolymorphicPropertyNames().contains(propertyName))
-      throw new SchemaException(
-          "Cannot create the property '" + propertyName + "' in type '" + name + "' because it was already defined in a parent class");
+      throw new SchemaException("Cannot create the property '" + propertyName + "' in type '" + name + "' because it was already defined in a parent class");
 
     final Property property = new Property(this, propertyName, propertyType);
 
     properties.put(propertyName, property);
 
     return property;
+  }
+
+  public Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String... propertyNames) {
+    return schema.createIndexes(indexType, unique, name, propertyNames);
+  }
+
+  public Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String[] propertyNames, int pageSize) {
+    return schema.createIndexes(indexType, unique, name, propertyNames, pageSize);
+  }
+
+  public Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String[] propertyNames, int pageSize, Index.BuildIndexCallback callback) {
+    return schema.createIndexes(indexType, unique, name, propertyNames, pageSize, callback);
   }
 
   public List<Bucket> getBuckets(final boolean polymorphic) {
@@ -365,8 +376,9 @@ public class DocumentType {
   protected void addBucketInternal(final Bucket bucket) {
     for (DocumentType cl : schema.getTypes()) {
       if (cl.hasBucket(bucket.getName()))
-        throw new SchemaException("Cannot add the bucket '" + bucket.getName() + "' to the type '" + name
-            + "', because the bucket is already associated to the type '" + cl.getName() + "'");
+        throw new SchemaException(
+            "Cannot add the bucket '" + bucket.getName() + "' to the type '" + name + "', because the bucket is already associated to the type '" + cl.getName()
+                + "'");
     }
 
     buckets.add(bucket);

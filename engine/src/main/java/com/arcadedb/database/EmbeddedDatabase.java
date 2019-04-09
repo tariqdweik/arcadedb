@@ -789,9 +789,14 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
     for (int retry = 0; retry < retries; ++retry) {
       try {
-        wrappedDatabaseInstance.begin();
+        final boolean joinTx = wrappedDatabaseInstance.isTransactionActive();
+        if (!joinTx)
+          wrappedDatabaseInstance.begin();
+
         txBlock.execute(wrappedDatabaseInstance);
-        wrappedDatabaseInstance.commit();
+
+        if (!joinTx)
+          wrappedDatabaseInstance.commit();
 
         // OK
         return;

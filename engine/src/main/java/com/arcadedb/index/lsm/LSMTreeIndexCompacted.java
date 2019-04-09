@@ -172,7 +172,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
     if (mainPageCount == 0) {
       // NO PAGES. THIS SHOULD NEVER HAPPEN
-      LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' main page 0 has pageNumber=%d totalPages=%d", null, getName(), totalPages);
+      LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' main page 0 has totalPages=%d", null, getName(), totalPages);
       return Collections.emptyList();
     }
 
@@ -280,7 +280,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
 
     if (mainPageCount == 0) {
       // NO PAGES. THIS SHOULD NEVER HAPPEN
-      LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' main page 0 has pageNumber=%d totalPages=%d", null, getName(), totalPages);
+      LogManager.instance().log(this, Level.WARNING, "Compacted index '%s' main page 0 has totalPages=%d", null, getName(), totalPages);
       return;
     }
 

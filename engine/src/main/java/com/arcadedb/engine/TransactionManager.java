@@ -355,7 +355,7 @@ public class TransactionManager {
     // ERROR: UNLOCK LOCKED FILES
     unlockFilesInOrder(lockedFiles);
 
-    throw new TransactionException("Timeout on locking resource during commit");
+    throw new TransactionException("Timeout on locking resource during commit (fileIds=" + fileIds.toString() + ")");
   }
 
   public void unlockFilesInOrder(final Collection<Integer> lockedFileIds) {

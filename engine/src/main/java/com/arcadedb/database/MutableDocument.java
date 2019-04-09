@@ -72,10 +72,11 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     return map.get(name);
   }
 
-  public void set(final String name, final Object value) {
+  public MutableDocument set(final String name, final Object value) {
     checkForLazyLoadingProperties();
     dirty = true;
     map.put(name, value);
+    return this;
   }
 
   public void set(final Object... properties) {
