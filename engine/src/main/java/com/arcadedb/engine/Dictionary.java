@@ -8,14 +8,12 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
-import com.arcadedb.utility.RWLockContext;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * HEADER = [itemCount(int:4),pageSize(int:4)] CONTENT-PAGES = [propertyName(string)]
@@ -27,9 +25,8 @@ public class Dictionary extends PaginatedComponent {
 
   private int itemCount;
 
-  private final List<String>         dictionary    = new ArrayList<String>();
-  private final Map<String, Integer> dictionaryMap = new HashMap<String, Integer>();
-  private final RWLockContext        lock          = new RWLockContext();
+  private final List<String>         dictionary    = new CopyOnWriteArrayList<>();
+  private final Map<String, Integer> dictionaryMap = new ConcurrentHashMap<>();
 
   private static final int DICTIONARY_ITEM_COUNT  = 0;
   private static final int DICTIONARY_HEADER_SIZE = Binary.INT_SERIALIZED_SIZE;
@@ -73,9 +70,8 @@ public class Dictionary extends PaginatedComponent {
 
       // LOAD THE DICTIONARY IN RAM
       header.setBufferPosition(DICTIONARY_HEADER_SIZE);
-      for (int i = 0; i < itemCount; ++i) {
-        dictionary.add(new String(header.readString()));
-      }
+      for (int i = 0; i < itemCount; ++i)
+        dictionary.add(header.readString());
 
       for (int i = 0; i < dictionary.size(); ++i)
         dictionaryMap.put(dictionary.get(i), i);
@@ -89,21 +85,13 @@ public class Dictionary extends PaginatedComponent {
 
     Integer pos = dictionaryMap.get(name);
     if (pos == null && create) {
-      pos = (Integer) lock.executeInWriteLock(new Callable<Object>() {
-        @Override
-        public Object call() {
-          Integer pos = dictionaryMap.get(name);
-          if (pos == null) {
-            addItemToPage(name);
-
-            dictionary.add(name);
-            dictionaryMap.put(name, itemCount - 1);
-
-            return itemCount - 1;
-          }
-          return pos;
+      database.transaction((tx) -> {
+        if (dictionaryMap.putIfAbsent(name, itemCount) == null) {
+          dictionary.add(name);
+          addItemToPage(name);
         }
       });
+      pos = dictionaryMap.get(name);
     }
 
     if (pos == null)

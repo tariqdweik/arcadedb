@@ -4,7 +4,10 @@
 
 package com.arcadedb;
 
-import com.arcadedb.database.*;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.DocumentCallback;
+import com.arcadedb.database.MutableDocument;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
@@ -180,6 +183,20 @@ public class TransactionTypeTest extends BaseTest {
     });
 
     reopenDatabase();
+  }
+
+  @Test
+  public void testNextedTx() {
+    database.transaction((tx1) -> {
+      database.newDocument(TYPE_NAME).set("id", -1, "tx", 1).save();
+      database.transaction((tx2) -> {
+        database.newDocument(TYPE_NAME).set("id", -2, "tx", 2).save();
+      });
+    });
+
+    Assertions.assertEquals(0, database.query("sql", "select from " + TYPE_NAME + " where tx = 0").countEntries());
+    Assertions.assertEquals(1, database.query("sql", "select from " + TYPE_NAME + " where tx = 1").countEntries());
+    Assertions.assertEquals(1, database.query("sql", "select from " + TYPE_NAME + " where tx = 2").countEntries());
   }
 
   @Override

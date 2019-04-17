@@ -79,7 +79,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     return this;
   }
 
-  public void set(final Object... properties) {
+  public MutableDocument set(final Object... properties) {
     if (properties.length % 2 != 0)
       throw new IllegalArgumentException("properties must be an even pair of key/values");
 
@@ -88,6 +88,8 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
     for (int p = 0; p < properties.length; p += 2)
       map.put((String) properties[p], properties[p + 1]);
+
+    return this;
   }
 
   public Object remove(final String name) {

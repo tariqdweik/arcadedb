@@ -261,12 +261,15 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           async.close();
 
         final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.removeContext(databasePath);
-        if (dbContext != null && dbContext.transaction != null) {
-          if (dbContext.transaction != null && dbContext.transaction.isActive()) {
-            // ROLLBACK ANY PENDING OPERATION
-            dbContext.transaction.rollback();
+        if (dbContext != null && !dbContext.transaction.isEmpty()) {
+          // ROLLBACK ALL THE TX FROM LAST TO FIRST
+          for (int i = dbContext.transaction.size() - 1; i > -1; --i) {
+            final TransactionContext tx = dbContext.transaction.get(i);
+            if (tx.isActive())
+              // ROLLBACK ANY PENDING OPERATION
+              tx.rollback();
           }
-          dbContext.transaction = null;
+          dbContext.transaction.clear();
         }
 
         try {
@@ -335,7 +338,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   public TransactionContext getTransaction() {
     final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
     if (dbContext != null) {
-      final TransactionContext tx = dbContext.transaction;
+      final TransactionContext tx = dbContext.getLastTransaction();
       if (tx != null) {
         final DatabaseInternal txDb = tx.getDatabase();
         if (txDb == null)
@@ -356,9 +359,16 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         checkDatabaseIsOpen();
 
         // FORCE THE RESET OF TL
-        DatabaseContext.INSTANCE.init(EmbeddedDatabase.this);
+        final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
+        TransactionContext tx = current.getLastTransaction();
+        if (tx.isActive()) {
+          // CREATE A NESTED TX
+          tx = new TransactionContext(getWrappedDatabaseInstance());
+          current.pushTransaction(tx);
+        }
 
-        getTransaction().begin();
+        tx.begin();
+
         return null;
       }
     });
@@ -376,7 +386,10 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       @Override
       public Object call() {
         checkTransactionIsActive();
-        getTransaction().commit();
+
+        final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
+        current.popIfNotLastTransaction().commit();
+
         return null;
       }
     });
@@ -391,7 +404,10 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       public Object call() {
         try {
           checkTransactionIsActive();
-          getTransaction().rollback();
+
+          final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
+          current.popIfNotLastTransaction().rollback();
+
         } catch (TransactionException e) {
           // ALREADY ROLLBACKED
         }
@@ -788,15 +804,16 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       retries = 1;
 
     for (int retry = 0; retry < retries; ++retry) {
+      boolean txBegun = false;
+
       try {
-        final boolean joinTx = wrappedDatabaseInstance.isTransactionActive();
-        if (!joinTx)
-          wrappedDatabaseInstance.begin();
+        wrappedDatabaseInstance.begin();
+
+        txBegun = true;
 
         txBlock.execute(wrappedDatabaseInstance);
 
-        if (!joinTx)
-          wrappedDatabaseInstance.commit();
+        wrappedDatabaseInstance.commit();
 
         // OK
         return;
@@ -806,8 +823,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         lastException = e;
         continue;
       } catch (Exception e) {
-        final Transaction tx = getTransaction();
-        if (tx != null && tx.isActive())
+        if (txBegun)
           rollback();
         throw e;
       }

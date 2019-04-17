@@ -4,14 +4,16 @@
 
 package com.arcadedb.database;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Thread local to store transaction data.
  */
 public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.DatabaseContextTL>> {
-  public void init(final DatabaseInternal database) {
+  public DatabaseContextTL init(final DatabaseInternal database) {
     Map<String, DatabaseContextTL> map = get();
 
     final String key = database.getDatabasePath();
@@ -29,16 +31,20 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
         current = new DatabaseContextTL();
         map.put(key, current);
       } else {
-        if (current.transaction != null) {
-          // ROLLBACK PREVIOUS TX
-          final Transaction tx = current.transaction;
-          current.transaction = null;
-          tx.rollback();
+        if (!current.transaction.isEmpty()) {
+          // ROLLBACK PREVIOUS TXS
+          while (!current.transaction.isEmpty()) {
+            final Transaction tx = current.transaction.remove(current.transaction.size() - 1);
+            tx.rollback();
+          }
         }
       }
     }
 
-    current.transaction = new TransactionContext(database.getWrappedDatabaseInstance());
+    if (current.transaction.isEmpty())
+      current.transaction.add(new TransactionContext(database.getWrappedDatabaseInstance()));
+
+    return current;
   }
 
   public DatabaseContextTL getContext(final String name) {
@@ -54,10 +60,10 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
   }
 
   public static class DatabaseContextTL {
-    public  boolean            asyncMode = false;
-    public  TransactionContext transaction;
-    private Binary             temporaryBuffer1;
-    private Binary             temporaryBuffer2;
+    public final List<TransactionContext> transaction = new ArrayList<>(1);
+    public       boolean                  asyncMode   = false;
+    private      Binary                   temporaryBuffer1;
+    private      Binary                   temporaryBuffer2;
 
     public Binary getTemporaryBuffer1() {
       if (temporaryBuffer1 == null)
@@ -71,6 +77,26 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
         temporaryBuffer2 = new Binary(8196);
       temporaryBuffer2.clear();
       return temporaryBuffer2;
+    }
+
+    public TransactionContext getLastTransaction() {
+      if (transaction.isEmpty())
+        return null;
+      return transaction.get(transaction.size() - 1);
+    }
+
+    public void pushTransaction(final TransactionContext tx) {
+      transaction.add(tx);
+    }
+
+    public TransactionContext popIfNotLastTransaction() {
+      if (transaction.isEmpty())
+        return null;
+
+      if (transaction.size() > 1)
+        return transaction.remove(transaction.size() - 1);
+
+      return transaction.get(0);
     }
   }
 

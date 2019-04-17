@@ -48,29 +48,38 @@ public interface Database extends AutoCloseable {
   boolean checkTransactionIsActive();
 
   /**
-   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is joined and no commit is executed at the end
-   * of the lambda execution. Ibstead, if there is no transaction running, then a new transacton is created and committed at the end of the lambda execution.
+   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun.
    *
-   * @param txBlock
+   * @param txBlock Transaction lambda to execute
    */
   void transaction(TransactionScope txBlock);
 
   /**
-   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is joined and no commit is executed at the end
-   * of the lambda execution. Ibstead, if there is no transaction running, then a new transacton is created and committed at the end of the lambda execution.
-   * The difference with the methos {@link #transaction(TransactionScope)} is that in case the NeedRetryException exception is thrown, the transaction is
+   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun.
+   * The difference with the method {@link #transaction(TransactionScope)} is that in case the NeedRetryException exception is thrown, the transaction is
    * re-executed for a number of retries.
    *
-   * @param txBlock number of retries in case the NeedRetryException exception is thrown
+   * @param txBlock Transaction lambda to execute
+   * @param retries number of retries in case the NeedRetryException exception is thrown
    */
   void transaction(TransactionScope txBlock, int retries);
 
   void setAutoTransaction(boolean autoTransaction);
 
+  /**
+   * Begins a new transaction. If a transaction is already begun, the current transaction is parked and a new sub-transaction is begun. The new sub-transaction
+   * does not access to the content of the previous transaction. Sub transactions are totally isolated.
+   */
   void begin();
 
+  /**
+   * Commits the current transaction. If it was a sub-transaction, then the previous in the stack becomes active again.
+   */
   void commit();
 
+  /**
+   * Rolls back the current transaction. If it was a sub-transaction, then the previous in the stack becomes active again.
+   */
   void rollback();
 
   void scanType(String className, boolean polymorphic, DocumentCallback callback);
