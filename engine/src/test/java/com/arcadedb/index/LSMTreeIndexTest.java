@@ -211,7 +211,7 @@ public class LSMTreeIndexTest extends BaseTest {
           }
         }
       }
-    }, 0);
+    }, true, 0);
 
     // CHECK ALSO AFTER THE TX HAS BEEN COMMITTED
     database.transaction(new Database.TransactionScope() {
@@ -224,7 +224,7 @@ public class LSMTreeIndexTest extends BaseTest {
           }
         }
       }
-    }, 0);
+    }, true, 0);
   }
 
   @Test

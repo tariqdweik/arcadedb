@@ -90,7 +90,7 @@ public class Dictionary extends PaginatedComponent {
           dictionary.add(name);
           addItemToPage(name);
         }
-      });
+      }, false);
       pos = dictionaryMap.get(name);
     }
 

@@ -55,14 +55,25 @@ public interface Database extends AutoCloseable {
   void transaction(TransactionScope txBlock);
 
   /**
-   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun.
+   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun
+   * if joinCurrentTx is true, otherwise the current active transaction is joined.
+   *
+   * @param txBlock       Transaction lambda to execute
+   * @param joinCurrentTx if active joins the current transaction, otherwise always create a new one
+   */
+  void transaction(TransactionScope txBlock, boolean joinCurrentTx);
+
+  /**
+   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun
+   * if joinCurrentTx is true, otherwise the current active transaction is joined.
    * The difference with the method {@link #transaction(TransactionScope)} is that in case the NeedRetryException exception is thrown, the transaction is
    * re-executed for a number of retries.
    *
-   * @param txBlock Transaction lambda to execute
-   * @param retries number of retries in case the NeedRetryException exception is thrown
+   * @param txBlock       Transaction lambda to execute
+   * @param joinCurrentTx if active joins the current transaction, otherwise always create a new one
+   * @param retries       number of retries in case the NeedRetryException exception is thrown
    */
-  void transaction(TransactionScope txBlock, int retries);
+  void transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries);
 
   void setAutoTransaction(boolean autoTransaction);
 

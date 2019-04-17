@@ -790,11 +790,16 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
   @Override
   public void transaction(final TransactionScope txBlock) {
-    transaction(txBlock, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
+    transaction(txBlock, true, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
   }
 
   @Override
-  public void transaction(final TransactionScope txBlock, int retries) {
+  public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx) {
+    transaction(txBlock, joinCurrentTx, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
+  }
+
+  @Override
+  public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx, int retries) {
     if (txBlock == null)
       throw new IllegalArgumentException("Transaction block is null");
 
@@ -804,16 +809,18 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       retries = 1;
 
     for (int retry = 0; retry < retries; ++retry) {
-      boolean txBegun = false;
+      boolean txJoined = false;
 
       try {
-        wrappedDatabaseInstance.begin();
-
-        txBegun = true;
+        if (joinCurrentTx && wrappedDatabaseInstance.isTransactionActive())
+          txJoined = true;
+        else
+          wrappedDatabaseInstance.begin();
 
         txBlock.execute(wrappedDatabaseInstance);
 
-        wrappedDatabaseInstance.commit();
+        if (!txJoined)
+          wrappedDatabaseInstance.commit();
 
         // OK
         return;
@@ -823,7 +830,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         lastException = e;
         continue;
       } catch (Exception e) {
-        if (txBegun)
+        if (getTransaction().isActive())
           rollback();
         throw e;
       }
