@@ -372,6 +372,8 @@ public class LSMTreeIndex implements RangeIndex {
         mutable.drop();
         mutable = newMutableIndex;
 
+        ((SchemaImpl) database.getSchema()).saveConfiguration();
+
         return newMutableIndex;
       });
     } finally {

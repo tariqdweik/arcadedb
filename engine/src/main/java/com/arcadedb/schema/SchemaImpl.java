@@ -7,8 +7,8 @@ package com.arcadedb.schema;
 import com.arcadedb.Constants;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseInternal;
-import com.arcadedb.engine.*;
 import com.arcadedb.engine.Dictionary;
+import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
@@ -64,10 +64,8 @@ public class SchemaImpl implements Schema {
     paginatedComponentFactory = new PaginatedComponentFactory(database);
     paginatedComponentFactory.registerComponent(Dictionary.DICT_EXT, new Dictionary.PaginatedComponentFactoryHandler());
     paginatedComponentFactory.registerComponent(Bucket.BUCKET_EXT, new Bucket.PaginatedComponentFactoryHandler());
-    paginatedComponentFactory
-        .registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerUnique());
-    paginatedComponentFactory
-        .registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
 
     indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new LSMTreeIndex.IndexFactoryHandler());
     indexFactory.register(INDEX_TYPE.FULL_TEXT.name(), new LSMTreeFullTextIndex.IndexFactoryHandler());
@@ -278,14 +276,13 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
-      final int pageSize) {
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
     return createIndexes(indexType, unique, typeName, propertyNames, pageSize, null);
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
-      final int pageSize, final Index.BuildIndexCallback callback) {
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
+      final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
@@ -298,8 +295,8 @@ public class SchemaImpl implements Schema {
           final TypeIndex index = type.getIndexByProperties(propertyNames);
           if (index != null)
             throw new IllegalArgumentException(
-                "Found the existent index '" + index.getName() + "' defined on the properties '" + Arrays.asList(propertyNames)
-                    + "' for type '" + typeName + "'");
+                "Found the existent index '" + index.getName() + "' defined on the properties '" + Arrays.asList(propertyNames) + "' for type '" + typeName
+                    + "'");
 
           // CHECK ALL THE PROPERTIES EXIST
           final byte[] keyTypes = new byte[propertyNames.length];
@@ -308,8 +305,7 @@ public class SchemaImpl implements Schema {
           for (String propertyName : propertyNames) {
             final Property property = type.getPolymorphicProperty(propertyName);
             if (property == null)
-              throw new SchemaException(
-                  "Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
+              throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
             keyTypes[i++] = property.getType().getBinaryType();
           }
@@ -334,8 +330,8 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index createIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName,
-      final String[] propertyNames, final int pageSize, final Index.BuildIndexCallback callback) {
+  public Index createIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName, final String[] propertyNames,
+      final int pageSize, final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
@@ -352,8 +348,7 @@ public class SchemaImpl implements Schema {
           for (String propertyName : propertyNames) {
             final Property property = type.getPolymorphicProperty(propertyName);
             if (property == null)
-              throw new SchemaException(
-                  "Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
+              throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
             keyTypes[i++] = property.getType().getBinaryType();
           }
@@ -380,9 +375,8 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  private Index createIndexOnBucket(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName,
-      final INDEX_TYPE indexType, final boolean unique, final int pageSize, final Index.BuildIndexCallback callback,
-      final String[] propertyNames) throws IOException {
+  private Index createIndexOnBucket(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName, final INDEX_TYPE indexType,
+      final boolean unique, final int pageSize, final Index.BuildIndexCallback callback, final String[] propertyNames) throws IOException {
     if (bucket == null)
       throw new DatabaseMetadataException(
           "Cannot create index on type '" + typeName + "' because the specified bucket '" + bucket.getName() + "' is not part of the type");
@@ -393,8 +387,8 @@ public class SchemaImpl implements Schema {
       throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
     final Index index = indexFactory
-        .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes,
-            pageSize, callback);
+        .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize,
+            callback);
 
     registerFile(index.getPaginatedComponent());
 
@@ -406,8 +400,7 @@ public class SchemaImpl implements Schema {
     return index;
   }
 
-  public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes,
-      final int pageSize) {
+  public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
     return (Index) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -670,6 +663,8 @@ public class SchemaImpl implements Schema {
 
       final Map<String, String[]> parentTypes = new HashMap<>();
 
+      final Map<String, JSONObject> orphanIndexes = new HashMap<>();
+
       for (String typeName : types.keySet()) {
         final JSONObject schemaType = types.getJSONObject(typeName);
 
@@ -722,15 +717,48 @@ public class SchemaImpl implements Schema {
             final JSONObject index = schemaIndexes.getJSONObject(indexName);
 
             final JSONArray schemaIndexProperties = index.getJSONArray("properties");
-
             final String[] properties = new String[schemaIndexProperties.length()];
             for (int i = 0; i < properties.length; ++i)
               properties[i] = schemaIndexProperties.getString(i);
 
-            try {
-              type.addIndexInternal(getIndexByName(indexName), bucketMap.get(index.getString("bucket")), properties);
-            } catch (SchemaException e) {
-              LogManager.instance().log(this, Level.WARNING, "Cannot find '%s' defined in type '%s'. Ignoring it.", null, indexName, type);
+            final Index idx = indexMap.get(indexName);
+            if (idx != null)
+              type.addIndexInternal(idx, bucketMap.get(index.getString("bucket")), properties);
+            else {
+              orphanIndexes.put(indexName, index);
+              index.put("type", typeName);
+              LogManager.instance().log(this, Level.WARNING, "Cannot find index '%s' defined in type '%s'. Ignoring it", null, indexName, type);
+            }
+          }
+        }
+      }
+
+      // ASSOCIATE ORPHAN INDEXES
+      for (Index index : indexMap.values()) {
+        if (index.getTypeName() == null) {
+          final String indexName = index.getName();
+
+          final int pos = indexName.lastIndexOf("_");
+          final String bucketName = indexName.substring(0, pos);
+          Bucket bucket = bucketMap.get(bucketName);
+          if (bucket != null) {
+            for (Map.Entry<String, JSONObject> entry : orphanIndexes.entrySet()) {
+              final int pos2 = entry.getKey().lastIndexOf("_");
+              final String bucketNameIndex = entry.getKey().substring(0, pos2);
+
+              if (bucketName.equals(bucketNameIndex)) {
+                final DocumentType type = this.types.get(entry.getValue().getString("type"));
+                if (type != null) {
+                  final JSONArray schemaIndexProperties = entry.getValue().getJSONArray("properties");
+                  final String[] properties = new String[schemaIndexProperties.length()];
+                  for (int i = 0; i < properties.length; ++i)
+                    properties[i] = schemaIndexProperties.getString(i);
+
+                  type.addIndexInternal(index, bucket, properties);
+                  LogManager.instance().log(this, Level.WARNING, "Relinked orphan index '%s' to type '%s'", null, indexName, type.getName());
+                  saveConfiguration();
+                }
+              }
             }
           }
         }
@@ -742,6 +770,7 @@ public class SchemaImpl implements Schema {
         for (String p : entry.getValue())
           type.addParent(getType(p));
       }
+
     } catch (Exception e) {
       LogManager.instance().log(this, Level.SEVERE, "Error on loading schema. The schema will be reset", e);
     }
@@ -818,8 +847,7 @@ public class SchemaImpl implements Schema {
       file.close();
 
     } catch (IOException e) {
-      LogManager.instance()
-          .log(this, Level.SEVERE, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
+      LogManager.instance().log(this, Level.SEVERE, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
     }
   }
 

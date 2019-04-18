@@ -54,6 +54,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     this.indexName = index.getName();
     this.condition = condition;
     this.additionalRangeCondition = additionalRangeCondition;
+
     this.orderAsc = orderAsc;
   }
 

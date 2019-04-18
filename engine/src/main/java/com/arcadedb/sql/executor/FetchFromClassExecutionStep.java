@@ -4,11 +4,16 @@
 
 package com.arcadedb.sql.executor;
 
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.utility.FileUtils;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -56,7 +61,8 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
     if (type == null) {
       throw new CommandExecutionException("Type " + className + " not found");
     }
-    int[] typeBuckets = type.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
+
+    final int[] typeBuckets = type.getBuckets(true).stream().mapToInt(x -> x.getId()).toArray();
     List<Integer> filteredTypeBuckets = new ArrayList<>();
     for (int bucketId : typeBuckets) {
       String bucketName = ctx.getDatabase().getSchema().getBucketById(bucketId).getName();
@@ -69,6 +75,27 @@ public class FetchFromClassExecutionStep extends AbstractExecutionStep {
       bucketIds[i] = filteredTypeBuckets.get(i);
     }
     bucketIds[bucketIds.length - 1] = -1;//temporary bucket, data in tx
+
+    long typeFileSize = 0;
+    for (int i = 0; i < bucketIds.length; i++) {
+      final int fileId = bucketIds[i];
+      if (fileId > -1) {
+        final PaginatedFile f = ctx.getDatabase().getFileManager().getFile(fileId);
+        if (f != null) {
+          try {
+            typeFileSize += f.getSize();
+          } catch (IOException e) {
+            // IGNORE IT
+          }
+        }
+      }
+    }
+
+    if (typeFileSize > 100_000_000) {
+      LogManager.instance()
+          .log(this, Level.WARNING, "Attempt to scan type '%s' of total size %s. This operation is very expensive, consider using an index", null, className,
+              FileUtils.getSizeAsString(typeFileSize));
+    }
 
     sortBuckets(bucketIds);
     for (int i = 0; i < bucketIds.length; i++) {

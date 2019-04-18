@@ -10,12 +10,14 @@ import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.sql.parser.*;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 
 /**
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
