@@ -619,13 +619,13 @@ public class BinaryComparator {
 
       case BinaryTypes.TYPE_DATETIME:
       case BinaryTypes.TYPE_DATE:
-        if (value1 instanceof Date)
+        if (value2 instanceof Date)
           v2 = ((Date) value2).getTime();
-        else if (value1 instanceof Calendar)
+        else if (value2 instanceof Calendar)
           v2 = ((Calendar) value2).getTimeInMillis();
-        else if (value1 instanceof Number)
+        else if (value2 instanceof Number)
           v2 = ((Number) value2).longValue();
-        else if (value1 instanceof String)
+        else if (value2 instanceof String)
           v2 = Long.parseLong(value2.toString());
         else
           throw new IllegalArgumentException("Type '" + value2 + "' not supported in comparison for dates");
