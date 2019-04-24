@@ -106,6 +106,8 @@ public class DocumentType {
 
     properties.put(propertyName, property);
 
+    schema.saveConfiguration();
+
     return property;
   }
 
