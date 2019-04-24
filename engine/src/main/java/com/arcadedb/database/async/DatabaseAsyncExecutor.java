@@ -224,10 +224,14 @@ public class DatabaseAsyncExecutor {
     return random.nextInt(executorThreads.length);
   }
 
+  public void waitCompletion() {
+    waitCompletion(0l);
+  }
+
   /**
    * Waits for the completion of all the pending tasks.
    */
-  public void waitCompletion() {
+  public void waitCompletion(long timeout) {
     if (executorThreads == null)
       return;
 
@@ -244,7 +248,10 @@ public class DatabaseAsyncExecutor {
 
     for (int i = 0; i < semaphores.length; ++i)
       try {
-        semaphores[i].waitForCompetition(2000);
+        if (timeout <= 0)
+          timeout = Long.MAX_VALUE;
+
+        semaphores[i].waitForCompetition(timeout);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         return;
