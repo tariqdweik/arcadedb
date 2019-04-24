@@ -96,8 +96,13 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     if (subIndexFileId > -1) {
       try {
         subIndex = (LSMTreeIndexCompacted) database.getSchema().getFileById(subIndexFileId);
+        subIndex.mainIndex = mainIndex;
+        subIndex.keyTypes = keyTypes;
+
       } catch (Exception e) {
-        LogManager.instance().log(this, Level.INFO, "Invalid subindex for index '%s', ignoring it", null, name);
+        LogManager.instance().log(this, Level.SEVERE,
+            "Invalid sub-index for index '%s', ignoring it. WARNING: This could lead on using partial indexes. Please recreate the index from scratch.", null,
+            name);
       }
     }
   }

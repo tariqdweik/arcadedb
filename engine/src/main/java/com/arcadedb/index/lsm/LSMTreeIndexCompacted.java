@@ -11,6 +11,7 @@ import com.arcadedb.database.TrackableBinary;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.MutablePage;
 import com.arcadedb.engine.PageId;
+import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.index.IndexCursorEntry;
 import com.arcadedb.log.LogManager;
@@ -35,6 +36,14 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
   public LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, final String filePath,
       final byte[] keyTypes, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, keyTypes, pageSize);
+  }
+
+  /**
+   * Called at load time (1st page only).
+   */
+  protected LSMTreeIndexCompacted(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, final String filePath,
+      final int id, final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+    super(mainIndex, database, name, unique, filePath, id, mode, pageSize);
   }
 
   public Set<IndexCursorEntry> get(final Object[] keys, final int limit) {

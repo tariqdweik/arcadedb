@@ -47,8 +47,10 @@ public class LSMTreeIndex implements RangeIndex {
     @Override
     public PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id,
         final PaginatedFile.MODE mode, final int pageSize) throws IOException {
-      final LSMTreeIndex mainIndex = new LSMTreeIndex(database, name, true, filePath, id, mode, pageSize);
-      return mainIndex.mutable;
+      if (filePath.endsWith(LSMTreeIndexCompacted.UNIQUE_INDEX_EXT))
+        return new LSMTreeIndexCompacted(null, database, name, true, filePath, id, mode, pageSize);
+
+      return new LSMTreeIndex(database, name, true, filePath, id, mode, pageSize).mutable;
     }
   }
 
@@ -56,8 +58,10 @@ public class LSMTreeIndex implements RangeIndex {
     @Override
     public PaginatedComponent createOnLoad(final DatabaseInternal database, final String name, final String filePath, final int id,
         final PaginatedFile.MODE mode, final int pageSize) throws IOException {
-      final LSMTreeIndex mainIndex = new LSMTreeIndex(database, name, false, filePath, id, mode, pageSize);
-      return mainIndex.mutable;
+      if (filePath.endsWith(LSMTreeIndexCompacted.UNIQUE_INDEX_EXT))
+        return new LSMTreeIndexCompacted(null, database, name, false, filePath, id, mode, pageSize);
+
+      return new LSMTreeIndex(database, name, false, filePath, id, mode, pageSize).mutable;
     }
   }
 

@@ -46,7 +46,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   protected static final LSMTreeIndexCompacted.LookupResult LOWER  = new LSMTreeIndexCompacted.LookupResult(false, true, 0, null);
   protected static final LSMTreeIndexCompacted.LookupResult HIGHER = new LSMTreeIndexCompacted.LookupResult(false, true, 0, null);
 
-  protected final LSMTreeIndex     mainIndex;
+  protected       LSMTreeIndex     mainIndex;
   protected final BinaryComparator comparator;
   protected final BinarySerializer serializer;
   protected final byte             valueType = BinaryTypes.TYPE_COMPRESSED_RID;

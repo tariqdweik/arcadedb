@@ -15,10 +15,7 @@ import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
 import com.arcadedb.index.TypeIndex;
-import com.arcadedb.index.lsm.LSMTreeFullTextIndex;
-import com.arcadedb.index.lsm.LSMTreeIndex;
-import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
-import com.arcadedb.index.lsm.LSMTreeIndexMutable;
+import com.arcadedb.index.lsm.*;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.FileUtils;
 import org.json.JSONArray;
@@ -66,6 +63,8 @@ public class SchemaImpl implements Schema {
     paginatedComponentFactory.registerComponent(Bucket.BUCKET_EXT, new Bucket.PaginatedComponentFactoryHandler());
     paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.UNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerUnique());
     paginatedComponentFactory.registerComponent(LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexCompacted.UNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerUnique());
+    paginatedComponentFactory.registerComponent(LSMTreeIndexCompacted.NOTUNIQUE_INDEX_EXT, new LSMTreeIndex.PaginatedComponentFactoryHandlerNotUnique());
 
     indexFactory.register(INDEX_TYPE.LSM_TREE.name(), new LSMTreeIndex.IndexFactoryHandler());
     indexFactory.register(INDEX_TYPE.FULL_TEXT.name(), new LSMTreeFullTextIndex.IndexFactoryHandler());
