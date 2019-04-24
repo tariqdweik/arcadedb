@@ -99,6 +99,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   }
 
   public MutableDocument save() {
+    dirty = true;
     if (rid != null)
       database.updateRecord(this);
     else
@@ -107,6 +108,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   }
 
   public MutableDocument save(final String bucketName) {
+    dirty = true;
     if (rid != null)
       throw new IllegalStateException("Cannot update a record in a custom bucket");
 
