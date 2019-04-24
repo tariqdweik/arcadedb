@@ -109,7 +109,10 @@ public class CRUDTest extends BaseTest {
 
         db.begin();
 
+        Assertions.assertEquals(TOT, db.countType("V", true));
+
         updateAll("largeField" + i);
+
         Assertions.assertEquals(TOT, db.countType("V", true));
 
         db.commit();
@@ -134,19 +137,16 @@ public class CRUDTest extends BaseTest {
 
         db.commit();
 
-        db.begin();
-
-        Assertions.assertEquals(0, db.countType("V", true));
+        database.transaction((tx) -> {
+          Assertions.assertEquals(0, db.countType("V", true));
+        });
 
         LogManager.instance().log(this, Level.INFO, "Completed %d cycle of updates+delete", null, i);
 
         createAll();
 
-        database.transaction(new Database.TransactionScope() {
-          @Override
-          public void execute(Database database) {
-            Assertions.assertEquals(TOT, db.countType("V", true));
-          }
+        database.transaction((tx) -> {
+          Assertions.assertEquals(TOT, db.countType("V", true));
         });
       }
 
