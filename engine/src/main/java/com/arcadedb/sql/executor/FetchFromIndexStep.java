@@ -58,15 +58,6 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
     this.orderAsc = orderAsc;
   }
 
-  public FetchFromIndexStep(String indexName, BooleanExpression condition, BinaryCondition additionalRangeCondition, boolean orderAsc, CommandContext ctx,
-      boolean profilingEnabled) {
-    super(ctx, profilingEnabled);
-    this.indexName = indexName;
-    this.condition = condition;
-    this.additionalRangeCondition = additionalRangeCondition;
-    this.orderAsc = orderAsc;
-  }
-
   @Override
   public ResultSet syncPull(CommandContext ctx, int nRecords) throws TimeoutException {
     init(ctx.getDatabase());
@@ -714,7 +705,7 @@ public class FetchFromIndexStep extends AbstractExecutionStep {
 
   @Override
   public ExecutionStep copy(final CommandContext ctx) {
-    return new FetchFromIndexStep(indexName, this.condition == null ? null : this.condition.copy(),
+    return new FetchFromIndexStep(index, this.condition == null ? null : this.condition.copy(),
         this.additionalRangeCondition == null ? null : this.additionalRangeCondition.copy(), this.orderAsc, ctx, this.profilingEnabled);
   }
 }

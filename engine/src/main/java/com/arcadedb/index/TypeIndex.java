@@ -148,7 +148,7 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public String getName() {
-    return indexesOnBuckets.get(0).getName();
+    return logicName;
   }
 
   @Override

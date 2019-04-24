@@ -6,6 +6,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALException;
@@ -13,12 +14,18 @@ import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.SchemaImpl;
+import com.arcadedb.schema.Type;
+import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -281,6 +288,88 @@ public class ACIDTransactionTest extends BaseTest {
       @Override
       public void execute(Database database) {
         Assertions.assertEquals(TOT, database.countType("V", true));
+      }
+    });
+  }
+
+  @Test
+  public void multiThreadConcurrentTransactions() {
+    database.transaction((tx) -> {
+      final DocumentType type = database.getSchema().createDocumentType("Stock");
+      type.createProperty("symbol", Type.STRING);
+      type.createProperty("date", Type.DATETIME);
+      type.createProperty("history", Type.LIST);
+      type.createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, new String[] { "symbol", "date" });
+
+      final DocumentType type2 = database.getSchema().createDocumentType("Aggregate", 1);
+      type2.createProperty("volume", Type.LONG);
+    });
+
+    final int TOT_STOCKS = 100;
+    final int TOT_DAYS = 150;
+    final int TOT_MINS = 400;
+
+    final Calendar startingDay = Calendar.getInstance();
+    for (int i = 0; i < TOT_DAYS; ++i)
+      startingDay.add(Calendar.DAY_OF_YEAR, -1);
+
+    final AtomicInteger errors = new AtomicInteger();
+
+    for (int stockId = 0; stockId < TOT_STOCKS; ++stockId) {
+      final int id = stockId;
+
+      database.async().transaction((tx) -> {
+        try {
+          final Calendar now = Calendar.getInstance();
+          now.setTimeInMillis(startingDay.getTimeInMillis());
+
+          for (int i = 0; i < TOT_DAYS; ++i) {
+            final MutableDocument stock = database.newDocument("Stock");
+
+            stock.set("symbol", "" + id);
+            stock.set("date", now.getTimeInMillis());
+
+            final List<Document> history = new ArrayList<>();
+            for (int e = 0; e < TOT_MINS; ++e) {
+              final MutableDocument embedded = database.newEmbeddedDocument("Aggregate");
+              embedded.set("volume", 1_000_000l);
+              history.add(embedded);
+            }
+
+            stock.set("history", history);
+            stock.save();
+
+//            LogManager.instance().log(this, Level.INFO, "- Saved stockId=%d date=%d", null, id, now.getTimeInMillis());
+
+            now.add(Calendar.DAY_OF_YEAR, +1);
+          }
+
+          LogManager.instance().log(this, Level.INFO, "Finished stockId=%d", null, id);
+        } catch (Exception e) {
+          errors.incrementAndGet();
+          LogManager.instance().log(this, Level.SEVERE, "Error on saving stockId=%d", null, id);
+        }
+      });
+    }
+
+    database.async().waitCompletion();
+
+    Assertions.assertEquals(0, errors.get());
+
+    database.transaction((tx) -> {
+      Assertions.assertEquals(TOT_STOCKS * TOT_DAYS, database.countType("Stock", true));
+      Assertions.assertEquals(0, database.countType("Aggregate", true));
+
+      final Calendar now = Calendar.getInstance();
+      now.setTimeInMillis(startingDay.getTimeInMillis());
+
+      for (int i = 0; i < TOT_DAYS; ++i) {
+        for (int stockId = 0; stockId < TOT_STOCKS; ++stockId) {
+          final ResultSet result = database.query("sql", "select from Stock where symbol = ? and date = ?", "" + stockId, now.getTimeInMillis());
+          Assertions.assertNotNull(result);
+          Assertions.assertTrue(result.hasNext(), "Cannot find stock=" + stockId + " date=" + now.getTimeInMillis());
+        }
+        now.add(Calendar.DAY_OF_YEAR, +1);
       }
     });
   }
