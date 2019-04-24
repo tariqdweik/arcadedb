@@ -4,6 +4,9 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Type;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -72,13 +75,23 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     return map.get(name);
   }
 
+  /**
+   * Sets the property value in the document. If the property has been defined in the schema, the value is converted according to the property type.
+   */
   public MutableDocument set(final String name, final Object value) {
     checkForLazyLoadingProperties();
     dirty = true;
-    map.put(name, value);
+
+    final DocumentType type = database.getSchema().getType(typeName);
+    map.put(name, convertValueToSchemaType(name, value, type));
     return this;
   }
 
+  /**
+   * Sets the property values in the document. If any properties has been defined in the schema, the value is converted according to the property type.
+   *
+   * @param properties Array containing pairs of name (String) and value (Object)
+   */
   public MutableDocument set(final Object... properties) {
     if (properties.length % 2 != 0)
       throw new IllegalArgumentException("properties must be an even pair of key/values");
@@ -86,8 +99,10 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     checkForLazyLoadingProperties();
     dirty = true;
 
+    final DocumentType type = database.getSchema().getType(typeName);
+
     for (int p = 0; p < properties.length; p += 2)
-      map.put((String) properties[p], properties[p + 1]);
+      map.put((String) properties[p], convertValueToSchemaType((String) properties[p], properties[p + 1], type));
 
     return this;
   }
@@ -175,5 +190,13 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
       buffer.position(propertiesStartingPosition);
       this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
     }
+  }
+
+  private Object convertValueToSchemaType(final String name, final Object value, final DocumentType type) {
+    final Property prop = type.getPropertyIfExists(name);
+    if (prop != null)
+      return Type.convert(database, value, prop.getType().getDefaultJavaType());
+
+    return value;
   }
 }
