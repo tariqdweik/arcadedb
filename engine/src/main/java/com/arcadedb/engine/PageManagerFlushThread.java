@@ -24,6 +24,7 @@ public class PageManagerFlushThread extends Thread {
 
   public PageManagerFlushThread(final PageManager pageManager, final ContextConfiguration configuration) {
     super("AsyncFlush");
+    setDaemon(true);
     this.pageManager = pageManager;
     this.logContext = LogManager.instance().getContext();
     this.queue = new ArrayBlockingQueue<>(configuration.getValueAsInteger(GlobalConfiguration.PAGE_FLUSH_QUEUE));
