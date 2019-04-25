@@ -193,7 +193,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   }
 
   private Object convertValueToSchemaType(final String name, final Object value, final DocumentType type) {
-    final Property prop = type.getPropertyIfExists(name);
+    final Property prop = type.getPolymorphicPropertyIfExists(name);
     if (prop != null)
       return Type.convert(database, value, prop.getType().getDefaultJavaType());
 

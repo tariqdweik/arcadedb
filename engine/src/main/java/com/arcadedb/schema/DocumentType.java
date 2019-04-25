@@ -164,8 +164,12 @@ public class DocumentType {
     return getPolymorphicPropertyNames().contains(propertyName);
   }
 
-  public Property getPropertyIfExists(final String name) {
-    return properties.get(name);
+  public Property getPolymorphicPropertyIfExists(final String propertyName) {
+    return getPolymorphicProperties().get(propertyName);
+  }
+
+  public Property getPropertyIfExists(final String propertyName) {
+    return properties.get(propertyName);
   }
 
   public Property getProperty(final String propertyName) {

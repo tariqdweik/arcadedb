@@ -34,21 +34,22 @@ public class SchemaImpl implements Schema {
   public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
   public static final String DEFAULT_ENCODING        = "UTF-8";
 
-  public static final  String                    SCHEMA_FILE_NAME   = "schema.json";
-  private static final int                       EDGE_DEF_PAGE_SIZE = Bucket.DEF_PAGE_SIZE / 3;
+  public static final  String                    SCHEMA_FILE_NAME      = "schema.json";
+  public static final  String                    SCHEMA_PREV_FILE_NAME = "schema.prev.json";
+  private static final int                       EDGE_DEF_PAGE_SIZE    = Bucket.DEF_PAGE_SIZE / 3;
   private final        DatabaseInternal          database;
-  private final        List<PaginatedComponent>  files              = new ArrayList<PaginatedComponent>();
-  private final        Map<String, DocumentType> types              = new HashMap<String, DocumentType>();
-  private final        Map<String, Bucket>       bucketMap          = new HashMap<String, Bucket>();
-  private final        Map<String, Index>        indexMap           = new HashMap<String, Index>();
+  private final        List<PaginatedComponent>  files                 = new ArrayList<PaginatedComponent>();
+  private final        Map<String, DocumentType> types                 = new HashMap<String, DocumentType>();
+  private final        Map<String, Bucket>       bucketMap             = new HashMap<String, Bucket>();
+  private final        Map<String, Index>        indexMap              = new HashMap<String, Index>();
   private final        String                    databasePath;
   private              Dictionary                dictionary;
-  private              String                    dateFormat         = DEFAULT_DATE_FORMAT;
-  private              String                    dateTimeFormat     = DEFAULT_DATETIME_FORMAT;
-  private              String                    encoding           = DEFAULT_ENCODING;
-  private              TimeZone                  timeZone           = TimeZone.getDefault();
+  private              String                    dateFormat            = DEFAULT_DATE_FORMAT;
+  private              String                    dateTimeFormat        = DEFAULT_DATETIME_FORMAT;
+  private              String                    encoding              = DEFAULT_ENCODING;
+  private              TimeZone                  timeZone              = TimeZone.getDefault();
   private final        PaginatedComponentFactory paginatedComponentFactory;
-  private final        IndexFactory              indexFactory       = new IndexFactory();
+  private final        IndexFactory              indexFactory          = new IndexFactory();
 
   public enum INDEX_TYPE {
     LSM_TREE, FULL_TEXT
@@ -302,7 +303,7 @@ public class SchemaImpl implements Schema {
           int i = 0;
 
           for (String propertyName : propertyNames) {
-            final Property property = type.getPolymorphicProperty(propertyName);
+            final Property property = type.getPolymorphicPropertyIfExists(propertyName);
             if (property == null)
               throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
@@ -345,7 +346,7 @@ public class SchemaImpl implements Schema {
           int i = 0;
 
           for (String propertyName : propertyNames) {
-            final Property property = type.getPolymorphicProperty(propertyName);
+            final Property property = type.getPolymorphicPropertyIfExists(propertyName);
             if (property == null)
               throw new SchemaException("Cannot create the index on type '" + typeName + "." + propertyName + "' because the property does not exist");
 
@@ -640,9 +641,14 @@ public class SchemaImpl implements Schema {
     types.clear();
 
     try {
-      final File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
-      if (!file.exists())
-        return;
+      File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
+      if (!file.exists()) {
+        file = new File(databasePath + "/" + SCHEMA_PREV_FILE_NAME);
+        if (!file.exists())
+          return;
+
+        LogManager.instance().log(this, Level.WARNING, "Could not find schema fila, loading the previous version saved");
+      }
 
       final String fileContent = FileUtils.readStreamAsString(new FileInputStream(file), encoding);
 
@@ -695,7 +701,7 @@ public class SchemaImpl implements Schema {
           for (int i = 0; i < schemaBucket.length(); ++i) {
             final PaginatedComponent bucket = bucketMap.get(schemaBucket.getString(i));
             if (bucket == null || !(bucket instanceof Bucket))
-              LogManager.instance().log(this, Level.WARNING, "Cannot find bucket %s for type '%s'", null, schemaBucket.getInt(i), type);
+              LogManager.instance().log(this, Level.WARNING, "Cannot find bucket %s for type '%s'", null, schemaBucket.getString(i), type);
             type.addBucketInternal((Bucket) bucket);
           }
         }
@@ -777,6 +783,15 @@ public class SchemaImpl implements Schema {
 
   public void saveConfiguration() {
     try {
+      final File prevFile = new File(databasePath + "/" + SCHEMA_FILE_NAME);
+      if (prevFile.exists()) {
+        final File copy = new File(databasePath + "/" + SCHEMA_PREV_FILE_NAME);
+        if (copy.exists())
+          copy.delete();
+
+        prevFile.renameTo(copy);
+      }
+
       final FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME);
 
       final JSONObject root = new JSONObject();

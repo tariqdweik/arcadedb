@@ -279,7 +279,7 @@ public class Importer {
 
         if (type.existsProperty(propName)) {
           // CHECK TYPE
-          final Property property = type.getProperty(propName);
+          final Property property = type.getPolymorphicProperty(propName);
           if (property.getType() != propValue.getType()) {
             LogManager.instance()
                 .log(this, Level.WARNING, "- found schema property %s.%s of type %s, while analyzing the source type %s was found", null,

@@ -151,7 +151,7 @@ public class UpdateItem extends SimpleNode {
     if (!optSchema.get().existsProperty(attrName.getStringValue()))
       return newValue;
 
-    final Property prop = optSchema.get().getProperty(attrName.getStringValue());
+    final Property prop = optSchema.get().getPolymorphicPropertyIfExists(attrName.getStringValue());
     if (prop == null) {
       return newValue;
     }

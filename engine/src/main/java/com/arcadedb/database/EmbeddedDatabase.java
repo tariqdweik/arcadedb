@@ -144,7 +144,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   protected void create() {
-    if (new File(databasePath + "/" + SchemaImpl.SCHEMA_FILE_NAME).exists())
+    if (new File(databasePath + "/" + SchemaImpl.SCHEMA_FILE_NAME).exists() || new File(databasePath + "/" + SchemaImpl.SCHEMA_PREV_FILE_NAME).exists())
       throw new DatabaseOperationException("Database '" + databasePath + "' already exists");
 
     openInternal();
