@@ -3,10 +3,10 @@
  */
 package com.arcadedb.schema;
 
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.Identifiable;
-import com.arcadedb.database.RID;
+import com.arcadedb.database.*;
+import com.arcadedb.graph.EmbeddedDocument;
+import com.arcadedb.graph.ImmutableEmbeddedDocument;
+import com.arcadedb.graph.MutableEmbeddedDocument;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.serializer.BinaryTypes;
 import com.arcadedb.sql.executor.MultiValue;
@@ -56,12 +56,15 @@ public enum Type {
   DATE("Date", 13, BinaryTypes.TYPE_DATE, Date.class, new Class<?>[] { Number.class }),
 
   DECIMAL("Decimal", 14, BinaryTypes.TYPE_DECIMAL, BigDecimal.class, new Class<?>[] { BigDecimal.class, Number.class }),
+
+  EMBEDDED("Embedded", 15, BinaryTypes.TYPE_EMBEDDED, Document.class,
+      new Class<?>[] { EmbeddedDocument.class, ImmutableEmbeddedDocument.class, MutableEmbeddedDocument.class }),
   ;
 
   // Don't change the order, the type discover get broken if you change the order.
   protected static final Type[] TYPES = new Type[] { LIST, MAP, LINK, STRING, DATETIME };
 
-  protected static final Type[]              TYPES_BY_ID    = new Type[17];
+  protected static final Type[]              TYPES_BY_ID       = new Type[17];
   // Values previosly stored in javaTypes
   protected static final Map<Class<?>, Type> TYPES_BY_USERTYPE = new HashMap<Class<?>, Type>();
 
@@ -94,6 +97,9 @@ public enum Type {
     TYPES_BY_USERTYPE.put(BigDecimal.class, DECIMAL);
     TYPES_BY_USERTYPE.put(List.class, LIST);
     TYPES_BY_USERTYPE.put(Map.class, MAP);
+    TYPES_BY_USERTYPE.put(EmbeddedDocument.class, EMBEDDED);
+    TYPES_BY_USERTYPE.put(ImmutableEmbeddedDocument.class, EMBEDDED);
+    TYPES_BY_USERTYPE.put(MutableEmbeddedDocument.class, EMBEDDED);
 
     BYTE.castable.add(BOOLEAN);
     SHORT.castable.addAll(Arrays.asList(BOOLEAN, BYTE));

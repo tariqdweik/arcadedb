@@ -366,6 +366,53 @@ public class SerializerTest extends BaseTest {
   }
 
   @Test
+  public void testEmbedded() {
+    final BinarySerializer serializer = new BinarySerializer();
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        final DocumentType test = database.getSchema().createDocumentType("Test");
+        test.createProperty("embedded", Type.EMBEDDED);
+
+        final DocumentType embedded = database.getSchema().createDocumentType("Embedded");
+        database.commit();
+
+        database.begin();
+
+        MutableDocument testDocument = database.newDocument("Test");
+        testDocument.set("id", 0);
+        MutableDocument embDocument1 = database.newEmbeddedDocument("Embedded");
+        embDocument1.set("id", 1);
+
+        try {
+          embDocument1.save();
+          Assertions.fail("Embedded documents shouldn't be able to be saved");
+        } catch (UnsupportedOperationException e) {
+        }
+
+        testDocument.set("embedded", embDocument1);
+
+        final Binary buffer = serializer.serialize(database, testDocument);
+
+        final ByteBuffer buffer2 = ByteBuffer.allocate(Bucket.DEF_PAGE_SIZE);
+        buffer2.put(buffer.toByteArray());
+        buffer2.flip();
+
+        Binary buffer3 = new Binary(buffer2);
+        buffer3.getByte(); // SKIP RECORD TYPE
+        Map<String, Object> record2 = serializer.deserializeProperties(database, buffer3);
+
+        Assertions.assertEquals(0, record2.get("id"));
+
+        EmbeddedDocument embeddedDoc = (EmbeddedDocument) record2.get("embedded");
+
+        Assertions.assertEquals(1, embeddedDoc.get("id"));
+      }
+    });
+  }
+
+  @Test
   public void testListOfEmbedded() {
     final BinarySerializer serializer = new BinarySerializer();
 
