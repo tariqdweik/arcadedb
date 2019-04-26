@@ -85,7 +85,8 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public void remove(final Object[] keys) {
-    throw new UnsupportedOperationException("remove");
+    for (Index index : indexesOnBuckets)
+      index.remove(keys);
   }
 
   @Override

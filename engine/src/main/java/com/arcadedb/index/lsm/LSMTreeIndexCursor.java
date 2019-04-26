@@ -263,7 +263,8 @@ public class LSMTreeIndexCursor implements IndexCursor {
         keys[minorKeyIndex] = null;
         --validIterators;
       }
-    } while ((currentValues == null || currentValues.length == 0 || index.isDeletedEntry(currentValues[currentValueIndex])) && hasNext());
+    } while ((currentValues == null || currentValues.length == 0 || (currentValueIndex < currentValues.length && index
+        .isDeletedEntry(currentValues[currentValueIndex]))) && hasNext());
 
     return currentValues == null || currentValueIndex >= currentValues.length ? null : currentValues[currentValueIndex++];
   }

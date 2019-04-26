@@ -642,7 +642,7 @@ public class SchemaImpl implements Schema {
 
     try {
       File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
-      if (!file.exists()) {
+      if (!file.exists() || file.length() == 0) {
         file = new File(databasePath + "/" + SCHEMA_PREV_FILE_NAME);
         if (!file.exists())
           return;

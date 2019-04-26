@@ -6,13 +6,16 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.DuplicatedKeyException;
+import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.TypeIndex;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class TransactionIndexContext {
   private final DatabaseInternal                               database;
@@ -203,9 +206,23 @@ public class TransactionIndexContext {
     if (idx != null) {
       final IndexCursor found = idx.get(key.keyValues, 2);
 
-      if (found.size() > 1 || (found.size() == 1 && !found.next().equals(key.rid)))
-        throw new DuplicatedKeyException(idx.getName(), Arrays.toString(key.keyValues), found.getRecord().getIdentity());
+      if (found.size() > 1 || (found.size() == 1 && !found.next().equals(key.rid))) {
+        try {
+          database.lookupByRID(found.getRecord().getIdentity(), true);
+          // NO EXCEPTION = FOUND
+          throw new DuplicatedKeyException(idx.getName(), Arrays.toString(key.keyValues), found.getRecord().getIdentity());
+
+        } catch (RecordNotFoundException e) {
+          // INDEX DIRTY, THE RECORD WA DELETED, REMOVE THE ENTRY IN THE INDEX TO FIX IT
+          LogManager.instance()
+              .log(this, Level.WARNING, "Found entry in index '%s' with key %s pointing to the deleted record %s. Overriding it.", null, idx.getName(),
+                  Arrays.toString(key.keyValues), found.getRecord().getIdentity());
+
+          idx.remove(key.keyValues);
+        }
+      }
     }
+
   }
 
   private void checkUniqueIndexKeys() {
