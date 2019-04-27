@@ -384,6 +384,8 @@ public enum Type {
       } else if (iTargetClass.equals(Date.class)) {
         if (iValue instanceof Number)
           return new Date(((Number) iValue).longValue());
+        if (iValue instanceof Calendar)
+          return ((Calendar) iValue).getTime();
         if (iValue instanceof String) {
           if (FileUtils.isLong(iValue.toString()))
             return new Date(Long.parseLong(iValue.toString()));

@@ -6,6 +6,8 @@ package com.arcadedb.database;
 
 import org.json.JSONObject;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,7 +16,27 @@ public interface Document extends Record {
 
   MutableDocument modify();
 
-  Object get(String name);
+  Object get(String propertyName);
+
+  String getString(String propertyName);
+
+  Boolean getBoolean(String propertyName);
+
+  Byte getByte(String propertyName);
+
+  Short getShort(String propertyName);
+
+  Integer getInteger(String propertyName);
+
+  Long getLong(String propertyName);
+
+  Float getFloat(String propertyName);
+
+  Double getDouble(String propertyName);
+
+  BigDecimal getDecimal(String propertyName);
+
+  Date getDate(String propertyName);
 
   Set<String> getPropertyNames();
 
@@ -22,5 +44,5 @@ public interface Document extends Record {
 
   JSONObject toJSON();
 
-  Map<String,Object> toMap();
+  Map<String, Object> toMap();
 }
