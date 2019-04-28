@@ -151,7 +151,7 @@ public interface SqlParserVisitor
   Object visit(TruncateTypeStatement node, Object data);
   Object visit(TruncateBucketStatement node, Object data);
   Object visit(TruncateRecordStatement node, Object data);
-  Object visit(CreateTypeStatement node, Object data);
+  Object visit(CreateDocumentTypeStatement node, Object data);
   Object visit(AlterTypeStatement node, Object data);
   Object visit(DropTypeStatement node, Object data);
   Object visit(IfNotExists node, Object data);

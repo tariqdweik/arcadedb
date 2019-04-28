@@ -47,12 +47,12 @@ If you already have a database, you can simply connect to it:
 Now let's create a "Profile" type:
 
 ```
-{mydb}> create type Profile
+{mydb}> create document type Profile
 
 +-----------+--------+
 |operation  |typeName|
 +-----------+--------+
-|create type|Profile |
+|create document type|Profile |
 +-----------+--------+
 Command executed in 176ms
 ```

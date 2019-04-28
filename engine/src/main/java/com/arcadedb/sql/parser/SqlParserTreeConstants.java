@@ -146,31 +146,33 @@ public interface SqlParserTreeConstants
   public int JJTTRUNCATETYPESTATEMENT = 140;
   public int JJTTRUNCATEBUCKETSTATEMENT = 141;
   public int JJTTRUNCATERECORDSTATEMENT = 142;
-  public int JJTCREATETYPESTATEMENT = 143;
-  public int JJTALTERTYPESTATEMENT = 144;
-  public int JJTDROPTYPESTATEMENT = 145;
-  public int JJTIFNOTEXISTS = 146;
-  public int JJTCREATEPROPERTYSTATEMENT = 147;
-  public int JJTCREATEPROPERTYATTRIBUTESTATEMENT = 148;
-  public int JJTALTERPROPERTYSTATEMENT = 149;
-  public int JJTDROPPROPERTYSTATEMENT = 150;
-  public int JJTCREATEINDEXSTATEMENT = 151;
-  public int JJTREBUILDINDEXSTATEMENT = 152;
-  public int JJTDROPINDEXSTATEMENT = 153;
-  public int JJTCREATEBUCKETSTATEMENT = 154;
-  public int JJTALTERBUCKETSTATEMENT = 155;
-  public int JJTDROPBUCKETSTATEMENT = 156;
-  public int JJTALTERDATABASESTATEMENT = 157;
-  public int JJTCOMMANDLINEOPTION = 158;
-  public int JJTEXPLAINSTATEMENT = 159;
-  public int JJTPROFILESTATEMENT = 160;
-  public int JJTLETSTATEMENT = 161;
-  public int JJTBEGINSTATEMENT = 162;
-  public int JJTCOMMITSTATEMENT = 163;
-  public int JJTROLLBACKSTATEMENT = 164;
-  public int JJTRETURNSTATEMENT = 165;
-  public int JJTIFSTATEMENT = 166;
-  public int JJTSLEEPSTATEMENT = 167;
+  public int JJTCREATEDOCUMENTTYPESTATEMENT = 143;
+  public int JJTCREATEVERTEXTYPESTATEMENT = 144;
+  public int JJTCREATEEDGETYPESTATEMENT = 145;
+  public int JJTALTERTYPESTATEMENT = 146;
+  public int JJTDROPTYPESTATEMENT = 147;
+  public int JJTIFNOTEXISTS = 148;
+  public int JJTCREATEPROPERTYSTATEMENT = 149;
+  public int JJTCREATEPROPERTYATTRIBUTESTATEMENT = 150;
+  public int JJTALTERPROPERTYSTATEMENT = 151;
+  public int JJTDROPPROPERTYSTATEMENT = 152;
+  public int JJTCREATEINDEXSTATEMENT = 153;
+  public int JJTREBUILDINDEXSTATEMENT = 154;
+  public int JJTDROPINDEXSTATEMENT = 155;
+  public int JJTCREATEBUCKETSTATEMENT = 156;
+  public int JJTALTERBUCKETSTATEMENT = 157;
+  public int JJTDROPBUCKETSTATEMENT = 158;
+  public int JJTALTERDATABASESTATEMENT = 159;
+  public int JJTCOMMANDLINEOPTION = 160;
+  public int JJTEXPLAINSTATEMENT = 161;
+  public int JJTPROFILESTATEMENT = 162;
+  public int JJTLETSTATEMENT = 163;
+  public int JJTBEGINSTATEMENT = 164;
+  public int JJTCOMMITSTATEMENT = 165;
+  public int JJTROLLBACKSTATEMENT = 166;
+  public int JJTRETURNSTATEMENT = 167;
+  public int JJTIFSTATEMENT = 168;
+  public int JJTSLEEPSTATEMENT = 169;
 
 
   public String[] jjtNodeName = {
@@ -317,7 +319,9 @@ public interface SqlParserTreeConstants
     "TruncateTypeStatement",
     "TruncateBucketStatement",
     "TruncateRecordStatement",
-    "CreateTypeStatement",
+    "CreateDocumentTypeStatement",
+    "CreateVertexTypeStatement",
+    "CreateEdgeTypeStatement",
     "AlterTypeStatement",
     "DropTypeStatement",
     "IfNotExists",
@@ -344,4 +348,4 @@ public interface SqlParserTreeConstants
     "SleepStatement",
   };
 }
-/* JavaCC - OriginalChecksum=0f537ee2c2ebb49328c96098a19ad3c5 (do not edit this line) */
+/* JavaCC - OriginalChecksum=d649ab9a550b47dabe05f1f211594fe7 (do not edit this line) */

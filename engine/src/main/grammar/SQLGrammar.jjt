@@ -89,6 +89,8 @@ TOKEN:
 	|
 	< DELETE: ( "d" | "D" ) ( "e" | "E" ) ( "l" | "L" ) ( "e" | "E" ) ( "t" | "T" ) ( "e" | "E" ) >
 	|
+	< DOCUMENT: ( "d" | "D" ) ( "o" | "O" ) ( "c" | "C" ) ( "u" | "U" ) ( "m" | "M" ) ( "e" | "E" ) ( "n" | "N" ) ( "t" | "T" ) >
+	|
 	< VERTEX: ( "v" | "V" ) ( "e" | "E" ) ( "r" | "R" ) ( "t" | "T" ) ( "e" | "E" ) ( "x" | "X" ) >
 	|
 	< EDGE: ( "e" | "E" ) ( "d" | "D" ) ( "g" | "G" ) ( "e" | "E" ) >
@@ -975,7 +977,13 @@ Statement StatementInternal():
                 result = InsertStatement()
                 |
                 LOOKAHEAD(2)
-                result = CreateTypeStatement()
+                result = CreateDocumentTypeStatement()
+                |
+                LOOKAHEAD(2)
+                result = CreateVertexTypeStatement()
+                |
+                LOOKAHEAD(2)
+                result = CreateEdgeTypeStatement()
                 |
                 LOOKAHEAD(2)
                 result = CreatePropertyStatement()
@@ -3892,14 +3900,73 @@ TruncateRecordStatement TruncateRecordStatement():
 	{ return jjtThis; }
 }
 
-
-CreateTypeStatement CreateTypeStatement():
+CreateDocumentTypeStatement CreateDocumentTypeStatement():
 {
 	Identifier lastIdentifier;
 	PInteger lastInteger;
 }
 {
-	<CREATE> <TYPE>
+	<CREATE> <DOCUMENT> <TYPE>
+	(
+		jjtThis.name = Identifier()
+		[ <IF> <NOT> <EXISTS> { jjtThis.ifNotExists = true; }]
+		[
+			<EXTENDS> lastIdentifier = Identifier() { jjtThis.supertypes = new ArrayList<Identifier>(); jjtThis.supertypes.add(lastIdentifier); }
+			 (
+			 	<COMMA>
+			 	lastIdentifier = Identifier() { jjtThis.supertypes.add(lastIdentifier); }
+			 )*
+		]
+		[
+			<BUCKET> lastInteger = PInteger() { jjtThis.buckets = new ArrayList<PInteger>(); jjtThis.buckets.add(lastInteger); }
+		 	(
+				<COMMA>
+				lastInteger = PInteger() { jjtThis.buckets.add(lastInteger); }
+		 	)*
+		]
+		[ <BUCKETS> jjtThis.totalBucketNo = PInteger() ]
+		[ <ABSTRACT> { jjtThis.abstractType = true; } ]
+	)
+	{ return jjtThis; }
+}
+
+CreateVertexTypeStatement CreateVertexTypeStatement():
+{
+	Identifier lastIdentifier;
+	PInteger lastInteger;
+}
+{
+	<CREATE> <VERTEX> <TYPE>
+	(
+		jjtThis.name = Identifier()
+		[ <IF> <NOT> <EXISTS> { jjtThis.ifNotExists = true; }]
+		[
+			<EXTENDS> lastIdentifier = Identifier() { jjtThis.supertypes = new ArrayList<Identifier>(); jjtThis.supertypes.add(lastIdentifier); }
+			 (
+			 	<COMMA>
+			 	lastIdentifier = Identifier() { jjtThis.supertypes.add(lastIdentifier); }
+			 )*
+		]
+		[
+			<BUCKET> lastInteger = PInteger() { jjtThis.buckets = new ArrayList<PInteger>(); jjtThis.buckets.add(lastInteger); }
+		 	(
+				<COMMA>
+				lastInteger = PInteger() { jjtThis.buckets.add(lastInteger); }
+		 	)*
+		]
+		[ <BUCKETS> jjtThis.totalBucketNo = PInteger() ]
+		[ <ABSTRACT> { jjtThis.abstractType = true; } ]
+	)
+	{ return jjtThis; }
+}
+
+CreateEdgeTypeStatement CreateEdgeTypeStatement():
+{
+	Identifier lastIdentifier;
+	PInteger lastInteger;
+}
+{
+	<CREATE> <EDGE> <TYPE>
 	(
 		jjtThis.name = Identifier()
 		[ <IF> <NOT> <EXISTS> { jjtThis.ifNotExists = true; }]

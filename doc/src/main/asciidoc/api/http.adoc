@@ -23,7 +23,7 @@ Now let's create the type "Class":
 
 ```
 curl -X POST http://localhost:2480/command/school
-     -d '{ "language": "sql", "command": "create type Class"}'
+     -d '{ "language": "sql", "command": "create document type Class"}'
      -H "Content-Type: application/json"
      --user root:root
 ```
@@ -63,7 +63,7 @@ Example to create the new document type "Class":
 
 ```
 curl -X POST http://localhost:2480/command/school
-     -d '{ "language": "sql", "command": "create type Class"}'
+     -d '{ "language": "sql", "command": "create document type Class"}'
      -H "Content-Type: application/json"
      --user root:root
 ```
