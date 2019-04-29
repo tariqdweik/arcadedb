@@ -439,28 +439,30 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
       // REAL ALL THE ENTRIES
       final List<RID> allValues = readAllValuesFromResult(currentPageBuffer, result);
 
+      final Set<RID> validRIDs = new HashSet<>();
+
       // START FROM THE LAST ENTRY
       for (int i = allValues.size() - 1; i > -1; --i) {
         final RID rid = allValues.get(i);
 
         if (REMOVED_ENTRY_RID.equals(rid)) {
           // DELETED ITEM
-          set.clear();
           return false;
         }
 
         if (rid.getBucketId() < 0) {
           // RID DELETED, SKIP THE RID
           final RID originalRID = getOriginalRID(rid);
-          if (!set.contains(originalRID))
+          if (!validRIDs.contains(originalRID))
             removedRIDs.add(originalRID);
           continue;
         }
 
         if (removedRIDs.contains(rid))
-          // ALREADY FOUND AS DELETED
+          // HAS BEEN DELETED
           continue;
 
+        validRIDs.add(rid);
         set.add(new IndexCursorEntry(originalKeys, rid, 1));
 
         if (limit > -1 && set.size() >= limit) {
