@@ -80,6 +80,9 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
           int totalPerKeyword = 0;
 
           for (Index idx : indexes) {
+            if( idx instanceof TypeIndex)
+              continue;
+
             final IndexCursor result = idx.get(new Object[] { k });
 
             int totalPerIndex = 0;
