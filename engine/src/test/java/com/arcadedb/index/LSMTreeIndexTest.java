@@ -256,13 +256,7 @@ public class LSMTreeIndexTest extends BaseTest {
               continue;
 
             final IndexCursor cursor = ((RangeIndex) index).range(new Object[] { i }, true, new Object[] { i }, true);
-            if (cursor.hasNext()) {
-              MutableDocument rec = ((Document) cursor.next().getRecord()).modify();
-              rec.set("test", "zombie");
-              rec.save();
-            }
-
-            //Assertions.assertFalse(cursor.hasNext(), "Found item with key " + i + " after the TX was committed by using range()");
+            Assertions.assertFalse(cursor.hasNext(), "Found item with key " + i + " after the TX was committed by using range()");
           }
         }
       }
