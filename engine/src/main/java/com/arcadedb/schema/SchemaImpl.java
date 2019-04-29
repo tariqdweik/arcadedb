@@ -41,7 +41,7 @@ public class SchemaImpl implements Schema {
   private final        List<PaginatedComponent>  files                 = new ArrayList<PaginatedComponent>();
   private final        Map<String, DocumentType> types                 = new HashMap<String, DocumentType>();
   private final        Map<String, Bucket>       bucketMap             = new HashMap<String, Bucket>();
-  private final        Map<String, Index>        indexMap              = new HashMap<String, Index>();
+  protected final      Map<String, Index>        indexMap              = new HashMap<String, Index>();
   private final        String                    databasePath;
   private              Dictionary                dictionary;
   private              String                    dateFormat            = DEFAULT_DATE_FORMAT;

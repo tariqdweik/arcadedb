@@ -10,6 +10,7 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.Document;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
@@ -41,39 +42,46 @@ public class RebuildIndexStatement extends SimpleExecStatement {
     final AtomicLong total = new AtomicLong();
 
     final Database database = ctx.getDatabase();
-    if (all) {
-      final Index[] indexes = database.getSchema().getIndexes();
+    database.transaction((tx) -> {
+      if (all) {
+        final Index[] indexes = database.getSchema().getIndexes();
 
-      for (Index idx : indexes) {
+        for (Index idx : indexes) {
+          idx.drop();
+          database.getSchema().createIndexes(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames());
+        }
+
+      } else {
+        final Index idx = database.getSchema().getIndexByName(name.getValue());
+        if (idx == null)
+          throw new CommandExecutionException("Index '" + name + "' not found");
+
+        if (!idx.isAutomatic())
+          throw new CommandExecutionException("Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
+
         idx.drop();
-        database.getSchema().createIndexes(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames());
+
+        final String typeName = idx.getTypeName();
+        if (typeName != null && idx instanceof TypeIndex) {
+          database.getSchema().getType(typeName).createIndexes(idx.getType(), idx.isUnique(), idx.getPropertyNames());
+        } else
+          database.getSchema()
+              .createIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
+                  idx.getPropertyNames(), pageSize, new Index.BuildIndexCallback() {
+                    @Override
+                    public void onDocumentIndexed(final Document document, final long totalIndexed) {
+                      total.incrementAndGet();
+
+                      if (totalIndexed % 100000 == 0) {
+                        System.out.print(".");
+                        System.out.flush();
+                      }
+                    }
+                  });
       }
 
-    } else {
-      final Index idx = database.getSchema().getIndexByName(name.getValue());
-      if (idx == null)
-        throw new CommandExecutionException("Index '" + name + "' not found");
-
-      if (!idx.isAutomatic())
-        throw new CommandExecutionException("Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
-
-      idx.drop();
-      database.getSchema()
-          .createIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
-              idx.getPropertyNames(), pageSize, new Index.BuildIndexCallback() {
-                @Override
-                public void onDocumentIndexed(final Document document, final long totalIndexed) {
-                  total.incrementAndGet();
-
-                  if (totalIndexed % 100000 == 0) {
-                    System.out.print(".");
-                    System.out.flush();
-                  }
-                }
-              });
-    }
-
-    result.setProperty("totalIndexed", total.get());
+      result.setProperty("totalIndexed", total.get());
+    });
 
     final InternalResultSet rs = new InternalResultSet();
     rs.add(result);

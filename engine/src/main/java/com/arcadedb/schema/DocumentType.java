@@ -359,7 +359,8 @@ public class DocumentType {
     TypeIndex propIndex = indexesByProperties.get(propertyList);
     if (propIndex == null) {
       // CREATE THE TYPE-INDEX FOR THE 1ST TIME
-      propIndex = new TypeIndex(name + Arrays.toString(propertyNames));
+      propIndex = new TypeIndex(name + Arrays.toString(propertyNames).replace(" ", ""), schema);
+      schema.indexMap.put(propIndex.getName(), propIndex);
       indexesByProperties.put(propertyList, propIndex);
     }
 
@@ -367,7 +368,7 @@ public class DocumentType {
     propIndex.addIndexOnBucket(index);
   }
 
-  protected void removeIndexInternal(final String indexName) {
+  public void removeIndexInternal(final String indexName) {
     for (List<Index> indexes : indexesByBucket.values()) {
       for (Iterator<Index> it = indexes.iterator(); it.hasNext(); ) {
         final Index idx = it.next();
