@@ -8,6 +8,7 @@ import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.IndexCursorCollection;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedComponent;
+import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
 
 import java.io.IOException;
@@ -19,9 +20,11 @@ import java.util.*;
 public class TypeIndex implements RangeIndex {
   private final String      logicName;
   private       List<Index> indexesOnBuckets = new ArrayList<>();
+  private final Schema      schema;
 
-  public TypeIndex(final String logicName) {
+  public TypeIndex(final String logicName, final Schema schema) {
     this.logicName = logicName;
+    this.schema = schema;
   }
 
   @Override
@@ -91,8 +94,8 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public void remove(final Object[] keys, final Identifiable rid) {
-    throw new UnsupportedOperationException("remove");
-  }
+    for (Index index : indexesOnBuckets)
+      index.remove(keys, rid);  }
 
   @Override
   public boolean compact() throws IOException, InterruptedException {
@@ -143,8 +146,11 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public void drop() {
-    for (Index index : indexesOnBuckets)
+    for (Index index : indexesOnBuckets) {
       index.drop();
+      schema.getType(getTypeName()).removeIndexInternal(index.getName());
+    }
+    schema.getType(getTypeName()).removeIndexInternal(logicName);
   }
 
   @Override

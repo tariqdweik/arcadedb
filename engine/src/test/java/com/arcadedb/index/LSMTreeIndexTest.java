@@ -39,6 +39,9 @@ public class LSMTreeIndexTest extends BaseTest {
         for (int i = 0; i < TOT; ++i) {
           final List<Integer> results = new ArrayList<>();
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             final IndexCursor value = index.get(new Object[] { i });
             if (value.hasNext())
               results.add((Integer) ((Document) value.next().getRecord()).get("id"));
@@ -65,6 +68,9 @@ public class LSMTreeIndexTest extends BaseTest {
           int total = 0;
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             Assertions.assertNotNull(index);
 
             final IndexCursor iterator;
@@ -107,6 +113,9 @@ public class LSMTreeIndexTest extends BaseTest {
           int total = 0;
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             Assertions.assertNotNull(index);
 
             final IndexCursor iterator;
@@ -145,6 +154,8 @@ public class LSMTreeIndexTest extends BaseTest {
 //          int total = 0;
 //
 //          for (Index index : indexes) {
+//            if( index instanceof TypeIndex)
+//              continue;
 //            Assertions.assertNotNull(index);
 //
 //            final IndexCursor iterator;
@@ -187,6 +198,9 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
               index.remove(key);
@@ -203,11 +217,20 @@ public class LSMTreeIndexTest extends BaseTest {
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes) {
-            if (!index.get(new Object[] { i }).hasNext()) {
-              LogManager.instance().log(this, Level.FINE, "FOUND KEY " + i + " -> " + index.get(new Object[] { i }));
-            }
+            if (index instanceof TypeIndex)
+              continue;
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i + " inside the TX by using get()");
+          }
+        }
 
-//            Assertions.assertTrue(index.get(new Object[] { i }).isEmpty(), "Found item with key " + i);
+        // CHECK ALSO WITH RANGE
+        for (int i = 0; i < TOT; ++i) {
+          for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+            final IndexCursor cursor = ((RangeIndex) index).range(new Object[] { i }, true, new Object[] { i }, true);
+
+            Assertions.assertFalse(cursor.hasNext() && cursor.next() != null, "Found item with key " + i + " inside the TX by using range()");
           }
         }
       }
@@ -220,7 +243,26 @@ public class LSMTreeIndexTest extends BaseTest {
         final Index[] indexes = database.getSchema().getIndexes();
         for (int i = 0; i < TOT; ++i) {
           for (Index index : indexes) {
-            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
+            if (index instanceof TypeIndex)
+              continue;
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i + " after the TX was committed");
+          }
+        }
+
+        // CHECK ALSO WITH RANGE
+        for (int i = 0; i < TOT; ++i) {
+          for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
+            final IndexCursor cursor = ((RangeIndex) index).range(new Object[] { i }, true, new Object[] { i }, true);
+            if (cursor.hasNext()) {
+              MutableDocument rec = ((Document) cursor.next().getRecord()).modify();
+              rec.set("test", "zombie");
+              rec.save();
+            }
+
+            //Assertions.assertFalse(cursor.hasNext(), "Found item with key " + i + " after the TX was committed by using range()");
           }
         }
       }
@@ -243,6 +285,9 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
               for (Identifiable r : value)
@@ -259,12 +304,53 @@ public class LSMTreeIndexTest extends BaseTest {
 
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
-          for (Index index : indexes)
+          for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
+          }
         }
 
+        // CHECK ALSO WITH RANGE
+        for (int i = 0; i < TOT; ++i) {
+          for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
+            Assertions.assertFalse(((RangeIndex) index).range(new Object[] { i }, true, new Object[] { i }, true).hasNext(),
+                "Found item with key " + i + " inside the TX by using range()");
+          }
+        }
       }
     });
+
+    // CHECK ALSO AFTER THE TX HAS BEEN COMMITTED
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        final Index[] indexes = database.getSchema().getIndexes();
+        for (int i = 0; i < TOT; ++i) {
+          for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
+            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i + " after the TX was committed");
+          }
+        }
+
+        // CHECK ALSO WITH RANGE
+        for (int i = 0; i < TOT; ++i) {
+          for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
+            Assertions.assertFalse(((RangeIndex) index).range(new Object[] { i }, true, new Object[] { i }, true).hasNext(),
+                "Found item with key " + i + " after the TX was committed by using range()");
+          }
+        }
+      }
+    }, true, 0);
   }
 
   @Test
@@ -282,6 +368,9 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
               for (Identifiable r : value) {
@@ -300,8 +389,12 @@ public class LSMTreeIndexTest extends BaseTest {
 
         // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
         for (int i = 0; i < TOT; ++i) {
-          for (Index index : indexes)
+          for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
+          }
         }
       }
     });
@@ -309,41 +402,102 @@ public class LSMTreeIndexTest extends BaseTest {
 
   @Test
   public void testRemoveAndPutEntries() {
-    database.transaction(new Database.TransactionScope() {
-      @Override
-      public void execute(Database database) {
+    database.getConfiguration().setValue(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE, 0);
 
-        int total = 0;
+    database.transaction((database) -> {
+      int total = 0;
 
-        final Index[] indexes = database.getSchema().getIndexes();
+      final Index[] indexes = database.getSchema().getIndexes();
 
-        for (int i = 0; i < TOT; ++i) {
-          int found = 0;
+      for (int i = 0; i < TOT; ++i) {
+        int found = 0;
 
-          final Object[] key = new Object[] { i };
+        final Object[] key = new Object[] { i };
 
-          for (Index index : indexes) {
-            final IndexCursor value = index.get(key);
-            if (value.hasNext()) {
-              for (Identifiable r : value) {
-                index.remove(key, r);
-                index.put(key, new RID[] { r.getIdentity() });
-                index.remove(key, r);
-              }
-              found++;
-              total++;
+        for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
+          final IndexCursor value = index.get(key);
+          if (value.hasNext()) {
+            for (Identifiable r : value) {
+              index.remove(key, r);
+              index.put(key, new RID[] { r.getIdentity() });
+              index.remove(key, r);
             }
+            found++;
+            total++;
           }
-
-          Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
         }
 
-        Assertions.assertEquals(TOT, total);
+        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
 
-        // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
-        for (int i = 0; i < TOT; ++i) {
-          for (Index index : indexes)
-            Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
+      Assertions.assertEquals(TOT, total);
+
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
+          Assertions.assertFalse(index.get(new Object[] { i }).hasNext(), "Found item with key " + i);
+        }
+      }
+    });
+
+    database.transaction((database) -> {
+      int total = 0;
+
+      Index[] indexes = database.getSchema().getIndexes();
+
+      for (int i = 0; i < TOT; ++i) {
+        int found = 0;
+
+        final Object[] key = new Object[] { i };
+
+        for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
+          final IndexCursor value = index.get(key);
+          if (value.hasNext()) {
+            for (Identifiable r : value) {
+              index.put(key, new RID[] { r.getIdentity() });
+            }
+            found++;
+            total++;
+          }
+        }
+
+        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
+      }
+
+      Assertions.assertEquals(TOT, total);
+
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
+          Assertions.assertTrue(index.get(new Object[] { i }).hasNext(), "Cannot find item with key " + i);
+        }
+      }
+    });
+
+    database.transaction((database) -> {
+      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
+      TypeIndex[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+
+      for (int i = 0; i < TOT; ++i) {
+        for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
+          Assertions.assertTrue(index.get(new Object[] { i }).hasNext(), "Cannot find item with key " + i);
         }
       }
     });
@@ -380,6 +534,9 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
               found++;
@@ -401,6 +558,9 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
+
             final IndexCursor value = index.get(key);
 
             if (value.hasNext()) {
@@ -443,6 +603,8 @@ public class LSMTreeIndexTest extends BaseTest {
           final Object[] key = new Object[] { i };
 
           for (Index index : indexes) {
+            if (index instanceof TypeIndex)
+              continue;
 
             final IndexCursor value = index.get(key);
             if (value.hasNext()) {
@@ -484,6 +646,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -534,6 +699,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -571,6 +739,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -607,6 +778,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -643,6 +817,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -678,6 +855,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -713,6 +893,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -753,6 +936,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -793,6 +979,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;
@@ -833,6 +1022,9 @@ public class LSMTreeIndexTest extends BaseTest {
 
         final Index[] indexes = database.getSchema().getIndexes();
         for (Index index : indexes) {
+          if (index instanceof TypeIndex)
+            continue;
+
           Assertions.assertNotNull(index);
 
           final IndexCursor iterator;

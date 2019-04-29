@@ -53,7 +53,7 @@ public class FileManager {
             registerFile(file);
 
           } catch (FileNotFoundException e) {
-            LogManager.instance().log(this, Level.WARNING, "Cannot load file '%s'", null,f);
+            LogManager.instance().log(this, Level.WARNING, "Cannot load file '%s'", null, f);
           }
       }
     }
@@ -74,8 +74,8 @@ public class FileManager {
     if (file != null) {
       fileNameMap.remove(file.getComponentName());
       files.set(fileId, null);
+      file.drop();
     }
-    file.drop();
   }
 
   public long getVirtualFileSize(final Integer fileId) throws IOException {
