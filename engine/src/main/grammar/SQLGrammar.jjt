@@ -976,13 +976,13 @@ Statement StatementInternal():
                 |
                 result = InsertStatement()
                 |
-                LOOKAHEAD(2)
+                LOOKAHEAD(4)
                 result = CreateDocumentTypeStatement()
                 |
-                LOOKAHEAD(2)
+                LOOKAHEAD(4)
                 result = CreateVertexTypeStatement()
                 |
-                LOOKAHEAD(2)
+                LOOKAHEAD(4)
                 result = CreateEdgeTypeStatement()
                 |
                 LOOKAHEAD(2)

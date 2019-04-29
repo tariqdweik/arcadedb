@@ -270,4 +270,26 @@ public class QueryTest extends BaseTest {
       }
     });
   }
+
+
+  @Test
+  public void testCreateVertexType() {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database db) {
+        db.command("SQL", "CREATE VERTEX TYPE Foo");
+        db.command("SQL", "CREATE VERTEX Foo SET name = 'foo'");
+        db.command("SQL", "CREATE VERTEX Foo SET name = 'bar'");
+
+        ResultSet rs = db.query("SQL", "SELECT FROM Foo");
+        Assertions.assertTrue(rs.hasNext());
+        rs.next();
+        Assertions.assertTrue(rs.hasNext());
+        rs.next();
+        Assertions.assertFalse(rs.hasNext());
+
+        rs.close();
+      }
+    });
+  }
 }
