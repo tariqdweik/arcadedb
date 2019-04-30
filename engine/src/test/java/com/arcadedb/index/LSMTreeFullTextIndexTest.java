@@ -32,11 +32,9 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
 
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 1);
         type.createProperty("text", String.class);
-        database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.FULL_TEXT, false, TYPE_NAME, new String[] { "text" }, PAGE_SIZE);
+        Index[] indexes = database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.FULL_TEXT, false, TYPE_NAME, new String[] { "text" }, PAGE_SIZE);
 
         Assertions.assertTrue(database.getSchema().existsType(TYPE_NAME));
-
-        final Index[] indexes = database.getSchema().getIndexes();
 
         final String text =
             "Jay Glenn Miner (May 31, 1932 – June 20, 1994) was an American integrated circuit designer, known primarily for developing multimedia chips for the Atari 2600 and Atari 8-bit family and as the \"father of the Amiga\". He received a BS in EECS from UC Berkeley in 1959.[2]\n"
@@ -95,7 +93,7 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
 
             totalPerKeyword += totalPerIndex;
           }
-          Assertions.assertEquals(totalPerKeyword, TOT);
+          Assertions.assertEquals(TOT, totalPerKeyword);
         }
 
         LogManager.instance().log(this, Level.INFO, "Check completed");

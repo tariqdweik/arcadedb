@@ -88,8 +88,8 @@ public class TransactionIndexContext {
         final Set<IndexKey> values = keyValueEntries.getValue();
 
         if (values.size() > 1) {
-          // BATCH MODE
-          final List<RID> rids2Insert = new ArrayList<>(values.size());
+          // BATCH MODE. USE SET TO SKIP DUPLICATES
+          final Set<RID> rids2Insert = new LinkedHashSet<>(values.size());
 
           for (IndexKey key : values) {
             if (key.addOperation)

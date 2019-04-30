@@ -19,9 +19,7 @@ import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.utility.FileUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 
 public class LSMTreeIndexCompactor {
@@ -103,12 +101,13 @@ public class LSMTreeIndexCompactor {
 
       final LSMTreeIndexUnderlyingPageCursor[] iterators = new LSMTreeIndexUnderlyingPageCursor[pagesToCompact];
       for (int i = 0; i < pagesToCompact; ++i)
-        iterators[i] = index.newPageIterator(pageIndex + i, 0, true);
+        iterators[i] = index.newPageIterator(pageIndex + i, -1, true);
 
       final Object[][] keys = new Object[pagesToCompact][keyTypes.length];
 
       for (int p = 0; p < pagesToCompact; ++p) {
         if (iterators[p].hasNext()) {
+          iterators[p].next();
           keys[p] = iterators[p].getKeys();
         } else {
           iterators[p].close();
@@ -123,7 +122,7 @@ public class LSMTreeIndexCompactor {
       MutablePage lastPage = null;
       TrackableBinary currentPageBuffer = null;
 
-      final List<RID> rids = new ArrayList<>();
+      final Set<RID> rids = new LinkedHashSet<>();
 
       boolean moreItems = true;
       for (; moreItems; ++iterations) {
