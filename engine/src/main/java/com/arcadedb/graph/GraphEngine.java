@@ -308,13 +308,20 @@ public class GraphEngine {
 
       while (outIterator.hasNext()) {
         final Edge nextEdge = outIterator.next();
-        VertexInternal nextVertex = (VertexInternal) nextEdge.getInVertex();
-        if (nextVertex.getInEdgesHeadChunk() != null) {
-          new EdgeLinkedList(nextVertex, Vertex.DIRECTION.IN, (EdgeSegment) database.lookupByRID(nextVertex.getInEdgesHeadChunk(), true)).removeEdge(nextEdge);
+        try {
+          VertexInternal nextVertex = (VertexInternal) nextEdge.getInVertex();
+          if (nextVertex.getInEdgesHeadChunk() != null) {
+            new EdgeLinkedList(nextVertex, Vertex.DIRECTION.IN, (EdgeSegment) database.lookupByRID(nextVertex.getInEdgesHeadChunk(), true))
+                .removeEdge(nextEdge);
 
-          if (nextEdge.getIdentity().getPosition() > -1)
-            // NON LIGHTWEIGHT
-            database.getSchema().getBucketById(nextEdge.getIdentity().getBucketId()).deleteRecord(nextEdge.getIdentity());
+            if (nextEdge.getIdentity().getPosition() > -1)
+              // NON LIGHTWEIGHT
+              database.getSchema().getBucketById(nextEdge.getIdentity().getBucketId()).deleteRecord(nextEdge.getIdentity());
+          }
+        } catch (RecordNotFoundException e) {
+          // ALREADY DELETED, IGNORE THIS
+          LogManager.instance()
+              .log(this, Level.WARNING, "Error on deleting outgoing vertex %s connected from vertex %s", null, nextEdge.getIn(), vertex.getIdentity());
         }
       }
 
@@ -327,14 +334,20 @@ public class GraphEngine {
 
       while (inIterator.hasNext()) {
         final Edge nextEdge = inIterator.next();
-        VertexInternal nextVertex = (VertexInternal) nextEdge.getInVertex();
-        if (nextVertex.getOutEdgesHeadChunk() != null) {
-          new EdgeLinkedList(nextVertex, Vertex.DIRECTION.OUT, (EdgeSegment) database.lookupByRID(nextVertex.getOutEdgesHeadChunk(), true))
-              .removeEdge(nextEdge);
+        try {
+          VertexInternal nextVertex = (VertexInternal) nextEdge.getOutVertex();
+          if (nextVertex.getOutEdgesHeadChunk() != null) {
+            new EdgeLinkedList(nextVertex, Vertex.DIRECTION.OUT, (EdgeSegment) database.lookupByRID(nextVertex.getOutEdgesHeadChunk(), true))
+                .removeEdge(nextEdge);
 
-          if (nextEdge.getIdentity().getPosition() > -1)
-            // NON LIGHTWEIGHT
-            database.getSchema().getBucketById(nextEdge.getIdentity().getBucketId()).deleteRecord(nextEdge.getIdentity());
+            if (nextEdge.getIdentity().getPosition() > -1)
+              // NON LIGHTWEIGHT
+              database.getSchema().getBucketById(nextEdge.getIdentity().getBucketId()).deleteRecord(nextEdge.getIdentity());
+          }
+        } catch (RecordNotFoundException e) {
+          // ALREADY DELETED, IGNORE THIS
+          LogManager.instance()
+              .log(this, Level.WARNING, "Error on deleting incoming vertex %s connected to vertex %s", null, nextEdge.getOut(), vertex.getIdentity());
         }
       }
 
