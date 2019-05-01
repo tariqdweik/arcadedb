@@ -37,7 +37,7 @@ public class ConsoleTest {
   @Test
   public void testCreateClass() throws IOException {
     Assertions.assertTrue(console.parse("connect " + DB_PATH, false));
-    Assertions.assertTrue(console.parse("create type Person", false));
+    Assertions.assertTrue(console.parse("create document type Person", false));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -53,7 +53,7 @@ public class ConsoleTest {
   @Test
   public void testInsertAndSelectRecord() throws IOException {
     Assertions.assertTrue(console.parse("connect " + DB_PATH, false));
-    Assertions.assertTrue(console.parse("create type Person", false));
+    Assertions.assertTrue(console.parse("create document type Person", false));
     Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'", false));
 
     final StringBuilder buffer = new StringBuilder();
@@ -71,7 +71,7 @@ public class ConsoleTest {
   public void testInsertAndRollback() throws IOException {
     Assertions.assertTrue(console.parse("connect " + DB_PATH, false));
     Assertions.assertTrue(console.parse("begin", false));
-    Assertions.assertTrue(console.parse("create type Person", false));
+    Assertions.assertTrue(console.parse("create document type Person", false));
     Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'", false));
     Assertions.assertTrue(console.parse("rollback", false));
 

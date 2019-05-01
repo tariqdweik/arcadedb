@@ -65,7 +65,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @Test
   public void testConnectNoCredentials() throws IOException {
     try {
-      Assertions.assertTrue(console.parse("connect " + URL_NOCREDENTIALS + ";create type VVVV", false));
+      Assertions.assertTrue(console.parse("connect " + URL_NOCREDENTIALS + ";create document type VVVV", false));
       Assertions.fail("Security was bypassed!");
     } catch (ConsoleException e) {
     }
@@ -74,7 +74,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @Test
   public void testConnectWrongPassword() throws IOException {
     try {
-      Assertions.assertTrue(console.parse("connect " + URL_WRONGPASSWD + ";create type VVVV", false));
+      Assertions.assertTrue(console.parse("connect " + URL_WRONGPASSWD + ";create document type VVVV", false));
       Assertions.fail("Security was bypassed!");
     } catch (RemoteException e) {
     }
@@ -83,7 +83,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @Test
   public void testCreateType() throws IOException {
     Assertions.assertTrue(console.parse("connect " + URL, false));
-    Assertions.assertTrue(console.parse("create type Person2", false));
+    Assertions.assertTrue(console.parse("create document type Person2", false));
 
     final StringBuilder buffer = new StringBuilder();
     console.setOutput(new ConsoleOutput() {
@@ -100,7 +100,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
   @Test
   public void testInsertAndSelectRecord() throws IOException {
     Assertions.assertTrue(console.parse("connect " + URL, false));
-    Assertions.assertTrue(console.parse("create type Person2", false));
+    Assertions.assertTrue(console.parse("create document type Person2", false));
     Assertions.assertTrue(console.parse("insert into Person2 set name = 'Jay', lastname='Miner'", false));
 
     final StringBuilder buffer = new StringBuilder();
@@ -119,7 +119,7 @@ public class RemoteConsoleTest extends BaseGraphServerTest {
 //  public void testInsertAndRollback() throws IOException {
 //    Assertions.assertTrue(console.parse("connect " + URL));
 //    Assertions.assertTrue(console.parse("begin"));
-//    Assertions.assertTrue(console.parse("create type Person"));
+//    Assertions.assertTrue(console.parse("create document type Person"));
 //    Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'"));
 //    Assertions.assertTrue(console.parse("rollback"));
 //
