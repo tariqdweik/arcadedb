@@ -41,20 +41,25 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
           final ResultInternal r = new ResultInternal();
           result.add(r);
 
+          final int fileId = index.getFileId();
+
           r.setProperty("name", index.getName());
           r.setProperty("typeName", index.getTypeName());
           if (index.getPropertyNames() != null)
             r.setProperty("properties", Arrays.asList(index.getPropertyNames()));
           r.setProperty("unique", index.isUnique());
           r.setProperty("compacting", index.isCompacting());
-          r.setProperty("fileId", index.getFileId());
-//          r.setProperty("supportsOrderedIterations", index.supportsOrderedIterations());
-          r.setProperty("associatedBucketId", index.getAssociatedBucketId());
-          try {
-            r.setProperty("size", FileUtils.getSizeAsString(ctx.getDatabase().getFileManager().getFile(index.getFileId()).getSize()));
-          } catch (IOException e) {
-            // IGNORE IT, NO SIZE AVAILABLE
+          if (fileId > -1) {
+            r.setProperty("fileId", fileId);
+            try {
+              r.setProperty("size", FileUtils.getSizeAsString(ctx.getDatabase().getFileManager().getFile(index.getFileId()).getSize()));
+            } catch (IOException e) {
+              // IGNORE IT, NO SIZE AVAILABLE
+            }
           }
+//          r.setProperty("supportsOrderedIterations", index.supportsOrderedIterations());
+          if (index.getAssociatedBucketId() > -1)
+            r.setProperty("associatedBucketId", index.getAssociatedBucketId());
         }
       } finally {
         if (profilingEnabled) {

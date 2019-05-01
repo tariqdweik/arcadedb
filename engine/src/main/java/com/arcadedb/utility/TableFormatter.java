@@ -31,7 +31,7 @@ public class TableFormatter {
   protected final TableOutput                      out;
   protected       int                              maxMultiValueEntries = 10;
   protected       int                              minColumnSize        = 4;
-  protected       int                              maxWidthSize         = 150;
+  protected       int                              maxWidthSize         = 180;
   protected       String                           nullValue            = "";
   protected       boolean                          leftBorder           = true;
   protected       boolean                          rightBorder          = true;
@@ -290,19 +290,25 @@ public class TableFormatter {
 
   public static String getPrettyFieldMultiValue(final Iterator<?> iterator, final int maxMultiValueEntries) {
     final StringBuilder value = new StringBuilder("[");
-    for (int i = 0; iterator.hasNext(); i++) {
-      if (i >= maxMultiValueEntries) {
-        value.append("(more)");
-        break;
+    int i = 0;
+    boolean more = false;
+    for (; iterator.hasNext(); i++) {
+      final Object v = iterator.next();
+
+      if (i >= maxMultiValueEntries)
+        more = true;
+      else {
+        if (i > 0)
+          value.append(',');
+
+        value.append(getPrettyFieldValue(v, maxMultiValueEntries));
       }
-
-      if (i > 0)
-        value.append(',');
-
-      value.append(getPrettyFieldValue(iterator.next(), maxMultiValueEntries));
     }
 
     value.append("]");
+    value.insert(0, i);
+    if (more)
+      value.append("(more)");
 
     return value.toString();
   }

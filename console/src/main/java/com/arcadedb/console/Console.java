@@ -22,6 +22,8 @@ import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.utility.RecordTableFormatter;
 import com.arcadedb.utility.TableFormatter;
 import org.jline.reader.*;
+import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -56,12 +58,18 @@ public class Console {
     GlobalConfiguration.PROFILE.setValue("low-cpu");
 
     terminal = TerminalBuilder.builder().system(system).streams(System.in, System.out).jansi(true).build();
-    lineReader = LineReaderBuilder.builder().terminal(terminal).parser(parser).build();
+    Completer completer = new StringsCompleter("begin", "rollback", "commit", "check database", "close", "connect", "create database", "drop database", "help",
+        "info types", "load", "exit", "quit", "set", "select", "insert into", "update", "delete");
+
+    lineReader = LineReaderBuilder.builder().terminal(terminal).parser(parser).variable("history-file", ".history").history(new DefaultHistory())
+        .completer(completer).build();
 
     output("%s Console v.%s - %s (%s)\n", Constants.PRODUCT, Constants.VERSION, Constants.COPYRIGHT, Constants.URL);
 
     if (!interactive)
       return;
+
+    lineReader.getHistory().load();
 
     try {
       while (true) {
@@ -70,6 +78,8 @@ public class Console {
           String line = lineReader.readLine(getPrompt());
           if (line == null)
             continue;
+
+          lineReader.getHistory().save();
 
           if (!parse(line, false))
             return;

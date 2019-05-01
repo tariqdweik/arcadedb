@@ -241,7 +241,7 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public int getFileId() {
-    throw new UnsupportedOperationException("getFileId");
+    return-1;
   }
 
   @Override
@@ -251,7 +251,7 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public int getAssociatedBucketId() {
-    throw new UnsupportedOperationException("getAssociatedBucketId");
+    return -1;
   }
 
   public void addIndexOnBucket(final Index index) {

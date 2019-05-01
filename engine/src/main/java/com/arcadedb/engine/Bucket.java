@@ -203,7 +203,7 @@ public class Bucket extends PaginatedComponent {
 
     final int totalPages = getTotalPages();
 
-    LogManager.instance().log(this, Level.FINE, "- Checking bucket '%s' (totalPages=%d spaceOnDisk=%s pageSize=%s)...", null, name, totalPages,
+    LogManager.instance().log(this, Level.INFO, "- Checking bucket '%s' (totalPages=%d spaceOnDisk=%s pageSize=%s)...", null, name, totalPages,
         FileUtils.getSizeAsString(totalPages * pageSize), FileUtils.getSizeAsString(pageSize));
 
     long totalRecords = 0;

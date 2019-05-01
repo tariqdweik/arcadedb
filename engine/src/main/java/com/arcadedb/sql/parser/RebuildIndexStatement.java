@@ -17,6 +17,8 @@ import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,12 +45,30 @@ public class RebuildIndexStatement extends SimpleExecStatement {
 
     final Database database = ctx.getDatabase();
     database.transaction((tx) -> {
+      final Index.BuildIndexCallback callback = new Index.BuildIndexCallback() {
+        @Override
+        public void onDocumentIndexed(final Document document, final long totalIndexed) {
+          total.incrementAndGet();
+
+          if (totalIndexed % 100000 == 0) {
+            System.out.print(".");
+            System.out.flush();
+          }
+        }
+      };
+
+      final List<String> indexList = new ArrayList<>();
+
       if (all) {
         final Index[] indexes = database.getSchema().getIndexes();
 
         for (Index idx : indexes) {
-          idx.drop();
-          database.getSchema().createIndexes(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames());
+          if (idx instanceof TypeIndex) {
+            idx.drop();
+            database.getSchema()
+                .createIndexes(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+            indexList.add(idx.getName());
+          }
         }
 
       } else {
@@ -62,24 +82,20 @@ public class RebuildIndexStatement extends SimpleExecStatement {
         idx.drop();
 
         final String typeName = idx.getTypeName();
+
         if (typeName != null && idx instanceof TypeIndex) {
-          database.getSchema().getType(typeName).createIndexes(idx.getType(), idx.isUnique(), idx.getPropertyNames());
-        } else
+          database.getSchema().getType(typeName)
+              .createIndexes(idx.getType(), idx.isUnique(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+        } else {
           database.getSchema()
               .createIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
-                  idx.getPropertyNames(), pageSize, new Index.BuildIndexCallback() {
-                    @Override
-                    public void onDocumentIndexed(final Document document, final long totalIndexed) {
-                      total.incrementAndGet();
+                  idx.getPropertyNames(), pageSize, callback);
+        }
 
-                      if (totalIndexed % 100000 == 0) {
-                        System.out.print(".");
-                        System.out.flush();
-                      }
-                    }
-                  });
+        indexList.add(idx.getName());
       }
 
+      result.setProperty("indexes", indexList);
       result.setProperty("totalIndexed", total.get());
     });
 

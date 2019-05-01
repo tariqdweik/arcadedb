@@ -22,12 +22,12 @@
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-terminal</artifactId>
-            <version>3.9.0</version>
+            <version>3.11.0</version>
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-reader</artifactId>
-            <version>3.9.0</version>
+            <version>3.11.0</version>
         </dependency>
         <dependency>
             <groupId>com.univocity</groupId>

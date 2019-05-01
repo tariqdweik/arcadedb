@@ -535,7 +535,7 @@ public class TransactionContext implements Transaction {
     if (lockedFiles != null)
       lockedFiles.remove(fileId);
 
-    final PaginatedComponent component = database.getSchema().getFileById(fileId);
+    final PaginatedComponent component = database.getSchema().getFileByIdIfExists(fileId);
     if (component instanceof LSMTreeIndexAbstract)
       indexChanges.removeIndex(component.getName());
   }
