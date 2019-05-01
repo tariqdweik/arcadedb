@@ -163,8 +163,20 @@ public class LSMTreeIndexCursor implements IndexCursor {
             pageCursors[i] = null;
         }
 
-        if (pageCursors[i] != null)
-          validIterators++;
+        if (pageCursors[i] != null) {
+          final RID[] rids = pageCursors[i].getValue();
+          if (rids != null && rids.length > 0) {
+            boolean valid = true;
+            for (RID r : rids) {
+              if (r.getBucketId() < 0) {
+                valid = false;
+                break;
+              }
+            }
+            if (valid)
+              validIterators++;
+          }
+        }
       }
     }
   }
@@ -213,56 +225,108 @@ public class LSMTreeIndexCursor implements IndexCursor {
       currentValueIndex = 0;
 
       Object[] minorKey = null;
-      int minorKeyIndex = -1;
+      final List<Integer> minorKeyIndexes = new ArrayList<>();
 
       // FIND THE MINOR KEY
       for (int p = 0; p < totalCursors; ++p) {
         if (pageCursors[p] != null) {
           if (minorKey == null) {
             minorKey = keys[p];
-            minorKeyIndex = p;
+            minorKeyIndexes.add(p);
           } else {
             if (keys[p] != null) {
               final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[p], minorKey);
-              if ((ascendingOrder && compare < 0) || (!ascendingOrder && compare > 0)) {
+              if (compare == 0) {
+                minorKeyIndexes.add(p);
+              } else if ((ascendingOrder && compare < 0) || (!ascendingOrder && compare > 0)) {
                 minorKey = keys[p];
-                minorKeyIndex = p;
+                minorKeyIndexes.clear();
+                minorKeyIndexes.add(p);
               }
             }
           }
         }
       }
 
-      if (minorKeyIndex < 0)
+      if (minorKeyIndexes.isEmpty())
         throw new NoSuchElementException();
 
-      currentCursor = pageCursors[minorKeyIndex];
-      currentKeys = currentCursor.getKeys();
-      currentValues = currentCursor.getValue();
+      for (int i = 0; i < minorKeyIndexes.size(); ++i) {
+        final int minorKeyIndex = minorKeyIndexes.get(i);
 
-      if (currentCursor.hasNext()) {
-        currentCursor.next();
-        keys[minorKeyIndex] = currentCursor.getKeys();
+        currentCursor = pageCursors[minorKeyIndex];
 
-        if (serializedToKeys != null) {
-          final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys);
+        currentKeys = currentCursor.getKeys();
 
-          if ((ascendingOrder && ((toKeysInclusive && compare > 0) || (!toKeysInclusive && compare >= 0))) || (!ascendingOrder && (
-              (toKeysInclusive && compare < 0) || (!toKeysInclusive && compare <= 0)))) {
-            currentCursor.close();
-            currentCursor = null;
-            pageCursors[minorKeyIndex] = null;
-            keys[minorKeyIndex] = null;
-            --validIterators;
-          }
+        final RID[] tempCurrentValues = currentCursor.getValue();
+
+        if (i == 0)
+          currentValues = tempCurrentValues;
+        else {
+          // MERGE VALUES
+          final RID[] newArray = Arrays.copyOf(currentValues, currentValues.length + tempCurrentValues.length);
+          for (int k = currentValues.length; k < newArray.length; ++k)
+            newArray[k] = tempCurrentValues[k - currentValues.length];
+          currentValues = newArray;
         }
-      } else {
-        currentCursor.close();
-        currentCursor = null;
-        pageCursors[minorKeyIndex] = null;
-        keys[minorKeyIndex] = null;
-        --validIterators;
+
+        // FILTER DELETED ITEMS
+        final Set<RID> removedRIDs = new HashSet<>();
+        final Set<RID> validRIDs = new HashSet<>();
+
+        // START FROM THE LAST ENTRY
+        for (int k = currentValues.length - 1; k > -1; --k) {
+          final RID rid = currentValues[k];
+
+          if (LSMTreeIndexAbstract.REMOVED_ENTRY_RID.equals(rid))
+            break;
+
+          if (rid.getBucketId() < 0) {
+            // RID DELETED, SKIP THE RID
+            final RID originalRID = index.getOriginalRID(rid);
+            if (!validRIDs.contains(originalRID))
+              removedRIDs.add(originalRID);
+            continue;
+          }
+
+          if (removedRIDs.contains(rid))
+            // HAS BEEN DELETED
+            continue;
+
+          validRIDs.add(rid);
+        }
+
+        if (validRIDs.isEmpty())
+          currentValues = null;
+        else
+          validRIDs.toArray(currentValues);
+
+        // PREPARE THE NEXT ENTRY
+        if (currentCursor.hasNext()) {
+          currentCursor.next();
+          keys[minorKeyIndex] = currentCursor.getKeys();
+
+          if (serializedToKeys != null) {
+            final int compare = LSMTreeIndexMutable.compareKeys(comparator, keyTypes, keys[minorKeyIndex], toKeys);
+
+            if ((ascendingOrder && ((toKeysInclusive && compare > 0) || (!toKeysInclusive && compare >= 0))) || (!ascendingOrder && (
+                (toKeysInclusive && compare < 0) || (!toKeysInclusive && compare <= 0)))) {
+              currentCursor.close();
+              currentCursor = null;
+              pageCursors[minorKeyIndex] = null;
+              keys[minorKeyIndex] = null;
+              --validIterators;
+            }
+          }
+        } else {
+          currentCursor.close();
+          currentCursor = null;
+          pageCursors[minorKeyIndex] = null;
+          keys[minorKeyIndex] = null;
+          --validIterators;
+        }
       }
+
     } while ((currentValues == null || currentValues.length == 0 || (currentValueIndex < currentValues.length && index
         .isDeletedEntry(currentValues[currentValueIndex]))) && hasNext());
 

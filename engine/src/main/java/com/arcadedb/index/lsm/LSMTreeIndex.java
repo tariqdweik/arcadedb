@@ -142,11 +142,13 @@ public class LSMTreeIndex implements RangeIndex {
       // ALREADY COMPACTING
       return false;
 
-    try {
-      return LSMTreeIndexCompactor.compact(this);
-    } finally {
-      compactingStatus.set(LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
-    }
+    return false;
+//
+//    try {
+//      return LSMTreeIndexCompactor.compact(this);
+//    } finally {
+//      compactingStatus.set(LSMTreeIndexAbstract.COMPACTING_STATUS.NO);
+//    }
   }
 
   @Override
