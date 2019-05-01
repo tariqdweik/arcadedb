@@ -50,6 +50,7 @@ public class SchemaImpl implements Schema {
   private              TimeZone                  timeZone              = TimeZone.getDefault();
   private final        PaginatedComponentFactory paginatedComponentFactory;
   private final        IndexFactory              indexFactory          = new IndexFactory();
+  private              boolean                   readingFromFile       = false;
 
   public enum INDEX_TYPE {
     LSM_TREE, FULL_TEXT
@@ -640,6 +641,7 @@ public class SchemaImpl implements Schema {
   protected void readConfiguration() {
     types.clear();
 
+    readingFromFile = true;
     try {
       File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
       if (!file.exists() || file.length() == 0) {
@@ -778,10 +780,15 @@ public class SchemaImpl implements Schema {
 
     } catch (Exception e) {
       LogManager.instance().log(this, Level.SEVERE, "Error on loading schema. The schema will be reset", e);
+    } finally {
+      readingFromFile = false;
     }
   }
 
   public void saveConfiguration() {
+    if( readingFromFile )
+      return;
+
     try {
       final File prevFile = new File(databasePath + "/" + SCHEMA_FILE_NAME);
       if (prevFile.exists()) {
