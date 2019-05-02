@@ -5,7 +5,7 @@
 package com.arcadedb.server;
 
 import com.arcadedb.ContextConfiguration;
-import com.arcadedb.GlobalConfiguration;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LRUCache;
 import org.json.JSONObject;
@@ -27,12 +27,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
+import static com.arcadedb.GlobalConfiguration.*;
+
 public class ServerSecurity implements ServerPlugin {
-  public class ServerUser {
-    public String      name;
-    public String      password;
-    public boolean     databaseBlackList;
-    public Set<String> databases = new HashSet<>();
+
+  private final ServerSecurityFileRepository securityRepository;
+
+
+    public static class ServerUser {
+    public final String      name;
+    public final String      password;
+    public final boolean     databaseBlackList;
+    public final Set<String> databases = new HashSet<>();
 
     public ServerUser(final String name, final String password, final boolean databaseBlackList, final Collection<String> databases) {
       this.name = name;
@@ -43,32 +49,33 @@ public class ServerSecurity implements ServerPlugin {
     }
   }
 
-  private final        ArcadeDBServer                    server;
   private final        String                            configPath;
-  private              ConcurrentMap<String, ServerUser> users      = new ConcurrentHashMap<>();
+  private final        ConcurrentMap<String, ServerUser> users      = new ConcurrentHashMap<>();
   private final        String                            algorithm;
   private final        SecretKeyFactory                  secretKeyFactory;
+  private final        Map<String, String>               saltCache;
   private final        int                               saltIteration;
   private static final Random                            RANDOM     = new SecureRandom();
-  private final static String                            FILE_NAME  = "security.json";
+  public static final  String                            FILE_NAME  = "security.json";
   public static final  int                               SALT_SIZE  = 32;
-  private static       Map<String, String>               SALT_CACHE = null;
 
-  public ServerSecurity(final ArcadeDBServer server, final String configPath) {
-    this.server = server;
+  public ServerSecurity(final ContextConfiguration configuration , final String configPath) {
     this.configPath = configPath;
-    this.algorithm = server.getConfiguration().getValueAsString(GlobalConfiguration.SERVER_SECURITY_ALGORITHM);
+    this.algorithm = configuration.getValueAsString(SERVER_SECURITY_ALGORITHM);
 
-    final int cacheSize = server.getConfiguration().getValueAsInteger(GlobalConfiguration.SERVER_SECURITY_SALT_CACHE_SIZE);
+    final int cacheSize = configuration.getValueAsInteger(SERVER_SECURITY_SALT_CACHE_SIZE);
+
     if (cacheSize > 0)
-      SALT_CACHE = Collections.synchronizedMap(new LRUCache<>(cacheSize));
+      saltCache = Collections.synchronizedMap(new LRUCache<>(cacheSize));
+    else saltCache = Collections.emptyMap();
 
-    saltIteration = server.getConfiguration().getValueAsInteger(GlobalConfiguration.SERVER_SECURITY_SALT_ITERATIONS);
+    saltIteration = configuration.getValueAsInteger(SERVER_SECURITY_SALT_ITERATIONS);
 
+    securityRepository = new ServerSecurityFileRepository(configPath + "/" + FILE_NAME);
     try {
       secretKeyFactory = SecretKeyFactory.getInstance(algorithm);
     } catch (NoSuchAlgorithmException e) {
-      server.log(this, Level.SEVERE, "Security algorithm '%s' not available (error=%s)", algorithm, e);
+        LogManager.instance().log(this,Level.SEVERE, "Security algorithm '%s' not available (error=%s)",  e, algorithm);
       throw new ServerSecurityException("Security algorithm '" + algorithm + "' not available", e);
     }
   }
@@ -82,13 +89,11 @@ public class ServerSecurity implements ServerPlugin {
   @Override
   public void startService() {
     try {
-      createDefaultSecurity();
-      final File f = new File(configPath + "/" + FILE_NAME);
-      if (!f.exists()) {
-        return;
+      if (!securityRepository.isSecurityConfPresent()) {
+        createDefaultSecurity();
       }
 
-      loadConfiguration(f);
+      users.putAll( securityRepository.loadConfiguration());
     } catch (IOException e) {
       throw new ServerException("Error on starting Security service", e);
     }
@@ -117,7 +122,7 @@ public class ServerSecurity implements ServerPlugin {
 
   public void createUser(final String name, final String password, final boolean databaseBlackList, final Collection<String> databases) throws IOException {
     users.put(name, new ServerUser(name, this.encode(password, generateRandomSalt()), databaseBlackList, databases));
-    saveConfiguration();
+    securityRepository.saveConfiguration(users);
   }
 
   public String getEncodedHash(final String password, final String salt, final int iterations) {
@@ -169,8 +174,8 @@ public class ServerSecurity implements ServerPlugin {
   }
 
   protected String encode(final String password, final String salt, final int iterations) {
-    if (!SALT_CACHE.isEmpty()) {
-      final String encoded = SALT_CACHE.get(password + "$" + salt + "$" + iterations);
+    if (!saltCache.isEmpty()) {
+      final String encoded = saltCache.get(password + "$" + salt + "$" + iterations);
       if (encoded != null)
         // FOUND CACHED
         return encoded;
@@ -180,7 +185,7 @@ public class ServerSecurity implements ServerPlugin {
     final String encoded = String.format("%s$%d$%s$%s", algorithm, iterations, salt, hash);
 
     // CACHE IT
-    SALT_CACHE.put(password + "$" + salt + "$" + iterations, encoded);
+    saltCache.put(password + "$" + salt + "$" + iterations, encoded);
 
     return encoded;
   }
@@ -189,44 +194,8 @@ public class ServerSecurity implements ServerPlugin {
     createUser("root", "root", true, null);
   }
 
-  protected void saveConfiguration() throws IOException {
-    final File file = new File(configPath + "/" + FILE_NAME);
-    if (!file.exists())
-      file.getParentFile().mkdirs();
-
-    final FileWriter writer = new FileWriter(file);
-
-    final JSONObject root = new JSONObject();
-
-    final JSONObject users = new JSONObject();
-    root.put("users", users);
-
-    for (ServerUser u : this.users.values()) {
-      final JSONObject user = new JSONObject();
-      users.put(u.name, user);
-
-      user.put("name", u.name);
-      user.put("password", u.password);
-      user.put("databaseBlackList", u.databaseBlackList);
-      user.put("databases", u.databases);
-    }
-
-    writer.write(root.toString());
-    writer.close();
+  public void saveConfiguration() throws IOException {
+      securityRepository.saveConfiguration(users);
   }
 
-  private void loadConfiguration(final File file) throws IOException {
-    final JSONObject json = new JSONObject(FileUtils.readStreamAsString(new FileInputStream(file), "UTF-8"));
-    final JSONObject users = json.getJSONObject("users");
-    for (String user : users.keySet()) {
-      final JSONObject userObject = users.getJSONObject(user);
-
-      final List<String> databases = new ArrayList<>();
-
-      for (Object o : userObject.getJSONArray("databases").toList())
-        databases.add(o.toString());
-
-      this.users.put(user, new ServerUser(user, userObject.getString("password"), userObject.getBoolean("databaseBlackList"), databases));
-    }
-  }
 }

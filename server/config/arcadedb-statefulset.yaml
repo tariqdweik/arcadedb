@@ -28,8 +28,8 @@ metadata:
 spec:
   clusterIP:
   ports:
-  - name: http
-    port: 2480
+    - name: http
+      port: 2480
   selector:
     app: arcadedb-server
   type: LoadBalancer
@@ -47,10 +47,10 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - name: http
-    port: 2480
-  - name: rpc-port
-    port: 2424
+    - name: http
+      port: 2480
+    - name: rpc-port
+      port: 2424
   selector:
     app: arcadedb-server
 ---
@@ -76,54 +76,54 @@ spec:
         # Set the anti-affinity selector scope to arcadedb servers.
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - arcadedb-server
-              topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - arcadedb-server
+                topologyKey: kubernetes.io/hostname
       containers:
-      - name: arcadedb-server
-        image: arcade/arcadedb:latest
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        command:
-          - "bin/server.sh"
-          - "-Darcadedb.dumpConfigAtStartup=true"
-          - "-Darcadedb.server.name=${HOSTNAME}"
-          - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
-          - "-Darcadedb.server.defaultDatabases=Universe[elon:musk]"
-          - "-Darcadedb.ha.enabled=true"
-          - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
-          - "-Darcadedb.ha.serverList=arcadedb-server-0.arcadedb-servers.default.svc.cluster.local:2424"
-        ports:
-        - containerPort: 2480
-          name: master-http
-        - containerPort: 2424
-          name: master-rpc
-        # These volume mounts are persistent. They are like inline claims,
-        # but not exactly because the names need to match exactly one of
-        # the stateful pod volumes.
-        volumeMounts:
-        - name: datadir
-          mountPath: /mnt/data0
+        - name: arcadedb-server
+          image: arcade/arcadedb:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          command:
+            - "bin/server.sh"
+            - "-Darcadedb.dumpConfigAtStartup=true"
+            - "-Darcadedb.server.name=${HOSTNAME}"
+            - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
+            - "-Darcadedb.server.defaultDatabases=Universe[elon:musk]"
+            - "-Darcadedb.ha.enabled=true"
+            - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
+            - "-Darcadedb.ha.serverList=arcadedb-server-0.arcadedb-servers.default.svc.cluster.local:2424"
+          ports:
+            - containerPort: 2480
+              name: master-http
+            - containerPort: 2424
+              name: master-rpc
+          # These volume mounts are persistent. They are like inline claims,
+          # but not exactly because the names need to match exactly one of
+          # the stateful pod volumes.
+          volumeMounts:
+            - name: datadir
+              mountPath: /mnt/data0
   updateStrategy:
     type: RollingUpdate
   # These are converted to volume claims by the controller
   # and mounted at the paths mentioned above.
   # do not use these in production until ssd GCEPersistentDisk or other ssd pd
   volumeClaimTemplates:
-  - metadata:
-      name: datadir
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
+    - metadata:
+        name: datadir
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi
