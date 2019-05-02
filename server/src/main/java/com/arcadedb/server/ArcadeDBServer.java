@@ -87,7 +87,7 @@ public class ArcadeDBServer {
       log(this, Level.INFO, "- JMX Metrics Started...");
     }
 
-    security = new ServerSecurity(this, "config");
+    security = new ServerSecurity(configuration, "config");
     security.startService();
 
     loadDatabases();
@@ -379,24 +379,25 @@ public class ArcadeDBServer {
           final int passwordSeparator = credential.indexOf(":");
 
           if (passwordSeparator < 0) {
-            if (!getSecurity().existsUser(credential)) {
+            if (!security.existsUser(credential)) {
               LogManager.instance()
                   .log(this, Level.WARNING, "Cannot create user '%s' accessing to database '%s' because the user does not exists", null, credential, dbName);
               continue;
             }
+            //FIXME: else if user exists, should we give him access to the dbName?
           } else {
             final String userName = credential.substring(0, passwordSeparator);
             final String userPassword = credential.substring(passwordSeparator + 1);
 
-            if (getSecurity().existsUser(userName)) {
+            if (security.existsUser(userName)) {
               // EXISTING USER: CHECK CREDENTIALS
               try {
-                final ServerSecurity.ServerUser user = getSecurity().authenticate(userName, userPassword);
+                final ServerSecurity.ServerUser user = security.authenticate(userName, userPassword);
                 if (!user.databaseBlackList && !user.databases.contains(dbName)) {
                   // UPDATE DB LIST
                   user.databases.add(dbName);
                   try {
-                    getSecurity().saveConfiguration();
+                    security.saveConfiguration();
                   } catch (IOException e) {
                     LogManager.instance().log(this, Level.SEVERE, "Cannot create database '%s' because security configuration cannot be saved", e, dbName);
                     continue;
@@ -412,7 +413,8 @@ public class ArcadeDBServer {
             } else {
               // CREATE A NEW USER
               try {
-                getSecurity().createUser(userName, userPassword, false, Collections.singletonList(dbName));
+                security.createUser(userName, userPassword, false, Collections.singletonList(dbName));
+
               } catch (IOException e) {
                 LogManager.instance().log(this, Level.SEVERE, "Cannot create database '%s' because the new user '%s' cannot be saved", e, dbName, userName);
                 continue;

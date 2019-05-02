@@ -48,9 +48,10 @@
                 <groupId>com.spotify</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
                 <configuration>
-                    <imageName>arcade/arcadedb</imageName>
+                    <imageName>arcadeanalytics/arcadedb</imageName>
                     <imageTags>
                         <imageTag>${project.version}</imageTag>
+                        <imageTag>latest</imageTag>
                     </imageTags>
                     <dockerDirectory>src/main/docker</dockerDirectory>
                     <!-- copy the service's jar file from target into the root directory of the image -->

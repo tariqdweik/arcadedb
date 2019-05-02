@@ -413,6 +413,7 @@ public class Binary implements BinaryStructure {
 
   /**
    * Creates a copy of this object referring to the same underlying buffer.
+   * @return the binary copy
    */
   public Binary slice() {
     buffer.rewind();
@@ -421,6 +422,8 @@ public class Binary implements BinaryStructure {
 
   /**
    * Creates a copy of this object referring to the same underlying buffer, starting from a position.
+   * @param position the starting position
+   * @return the binary copy
    */
   public Binary slice(final int position) {
     buffer.position(position);
@@ -429,6 +432,9 @@ public class Binary implements BinaryStructure {
 
   /**
    * Creates a copy of this object referring to the same underlying buffer, starting from a position and with a custom length.
+   * @param  position the starting position
+   * @param length the length
+   * @return the binary copy
    */
   public Binary slice(final int position, final int length) {
     buffer.position(position);
@@ -486,6 +492,8 @@ public class Binary implements BinaryStructure {
 
   /**
    * Allocates enough space (max 1 page) and update the size according to the bytes to write.
+   * @param offset the offset
+   * @param bytesToWrite number of bytes to write
    */
   protected void checkForAllocation(final int offset, final int bytesToWrite) {
     if (offset + bytesToWrite > content.length) {

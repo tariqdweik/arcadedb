@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # Copyright (c) Arcade Analytics LTD (https://www.arcadeanalytics.com)
 
 # resolve links - $0 may be a softlink
