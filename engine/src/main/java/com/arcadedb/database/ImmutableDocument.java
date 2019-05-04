@@ -35,7 +35,8 @@ public class ImmutableDocument extends BaseDocument {
   @Override
   public JSONObject toJSON() {
     checkForLazyLoading();
-    return new JSONObject(database.getSerializer().deserializeProperties(database, buffer));
+    final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer);
+    return new JSONSerializer(database).map2json(map);
   }
 
   @Override

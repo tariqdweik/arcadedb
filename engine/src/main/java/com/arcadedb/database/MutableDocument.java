@@ -51,7 +51,13 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   }
 
   public void fromMap(final Map<String, Object> map) {
-    this.map = new HashMap<>(map);
+    this.map = new LinkedHashMap<>();
+
+    final DocumentType type = database.getSchema().getType(typeName);
+
+    for (Map.Entry<String, Object> entry : map.entrySet())
+      this.map.put(entry.getKey(), convertValueToSchemaType(entry.getKey(), entry.getValue(), type));
+
     dirty = true;
   }
 
@@ -61,13 +67,13 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   }
 
   public void fromJSON(final JSONObject json) {
-    fromMap(json.toMap());
+    fromMap(new JSONSerializer(database).json2map(json));
   }
 
   @Override
   public JSONObject toJSON() {
     checkForLazyLoadingProperties();
-    return new JSONObject(map);
+    return new JSONSerializer(database).map2json(map);
   }
 
   public Object get(final String name) {
