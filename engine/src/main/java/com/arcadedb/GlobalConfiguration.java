@@ -296,7 +296,7 @@ public enum GlobalConfiguration {
 
   public static void dumpConfiguration(final PrintStream out) {
     out.print("ARCADEDB ");
-    out.print(Constants.VERSION);
+    out.print(Constants.getRawVersion());
     out.println(" configuration:");
 
     String lastSection = "";
