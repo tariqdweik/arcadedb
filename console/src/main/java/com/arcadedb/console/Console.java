@@ -64,7 +64,7 @@ public class Console {
     lineReader = LineReaderBuilder.builder().terminal(terminal).parser(parser).variable("history-file", ".history").history(new DefaultHistory())
         .completer(completer).build();
 
-    output("%s Console v.%s - %s (%s)\n", Constants.PRODUCT, Constants.VERSION, Constants.COPYRIGHT, Constants.URL);
+    output("%s Console v.%s - %s (%s)\n", Constants.PRODUCT, Constants.getRawVersion(), Constants.COPYRIGHT, Constants.URL);
 
     if (!interactive)
       return;

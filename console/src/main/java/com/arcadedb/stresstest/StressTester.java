@@ -44,7 +44,7 @@ public class StressTester {
   }
 
   public static void main(String[] args) {
-    System.out.println(String.format("%s Stress Tool v.%s - %s", Constants.PRODUCT, Constants.VERSION, Constants.COPYRIGHT));
+    System.out.println(String.format("%s Stress Tool v.%s - %s", Constants.PRODUCT, Constants.getRawVersion(), Constants.COPYRIGHT));
 
     int returnValue = 1;
     try {

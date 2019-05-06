@@ -802,7 +802,7 @@ public class SchemaImpl implements Schema {
       final FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME);
 
       final JSONObject root = new JSONObject();
-      root.put("version", Constants.VERSION);
+      root.put("version", Constants.getRawVersion());
 
       final JSONObject settings = new JSONObject();
       root.put("settings", settings);

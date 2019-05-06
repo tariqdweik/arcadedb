@@ -138,7 +138,7 @@ public class Profiler {
         walTotalFiles += (Long) walStats.get("logFiles");
       }
 
-      buffer.append(String.format("ARCADEDB %s Profiler", Constants.VERSION));
+      buffer.append(String.format("ARCADEDB %s Profiler", Constants.getRawVersion()));
 
       final Runtime runtime = Runtime.getRuntime();
 
