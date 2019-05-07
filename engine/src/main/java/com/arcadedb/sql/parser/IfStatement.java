@@ -7,7 +7,15 @@
 package com.arcadedb.sql.parser;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.sql.executor.*;
+import com.arcadedb.sql.executor.BasicCommandContext;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.ExecutionStepInternal;
+import com.arcadedb.sql.executor.IfExecutionPlan;
+import com.arcadedb.sql.executor.IfStep;
+import com.arcadedb.sql.executor.ResultSet;
+import com.arcadedb.sql.executor.ScriptExecutionPlan;
+import com.arcadedb.sql.executor.SelectExecutionPlan;
+import com.arcadedb.sql.executor.UpdateExecutionPlan;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,158 +24,201 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class IfStatement extends Statement {
-  protected BooleanExpression expression;
-  protected List<Statement> statements     = new ArrayList<Statement>();
-  protected List<Statement> elseStatements = new ArrayList<Statement>();//TODO support ELSE in the SQL syntax
+    protected BooleanExpression expression;
+    protected List<Statement> statements = new ArrayList<Statement>();
+    protected List<Statement> elseStatements = new ArrayList<Statement>();//TODO support ELSE in the SQL syntax
 
-  public IfStatement(int id) {
-    super(id);
-  }
+    public IfStatement(int id) {
+        super(id);
+    }
 
-  public IfStatement(SqlParser p, int id) {
-    super(p, id);
-  }
+    public IfStatement(SqlParser p, int id) {
+        super(p, id);
+    }
 
-  @Override public boolean isIdempotent() {
-    for (Statement stm : statements) {
-      if (!stm.isIdempotent()) {
+    @Override
+    public boolean isIdempotent() {
+        for (Statement stm : statements) {
+            if (!stm.isIdempotent()) {
+                return false;
+            }
+        }
+        for (Statement stm : elseStatements) {
+            if (!stm.isIdempotent()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
+        BasicCommandContext ctx = new BasicCommandContext();
+        if (parentCtx != null) {
+            ctx.setParentWithoutOverridingChild(parentCtx);
+        }
+        ctx.setDatabase(db);
+        Map<Object, Object> params = new HashMap<>();
+        if (args != null) {
+            for (int i = 0; i < args.length; i++) {
+                params.put(i, args[i]);
+            }
+        }
+        ctx.setInputParameters(params);
+        IfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+
+        ExecutionStepInternal last = executionPlan.executeUntilReturn();
+        if (isIdempotent()) {
+            SelectExecutionPlan finalPlan = new SelectExecutionPlan(ctx);
+            finalPlan.chain(last);
+            return new LocalResultSet(finalPlan);
+        } else {
+            UpdateExecutionPlan finalPlan = new UpdateExecutionPlan(ctx);
+            finalPlan.chain(last);
+            finalPlan.executeInternal();
+            return new LocalResultSet(finalPlan);
+        }
+    }
+
+    @Override
+    public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
+        BasicCommandContext ctx = new BasicCommandContext();
+        if (parentCtx != null) {
+            ctx.setParentWithoutOverridingChild(parentCtx);
+        }
+        ctx.setDatabase(db);
+        ctx.setInputParameters(params);
+        IfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
+
+        ExecutionStepInternal last = executionPlan.executeUntilReturn();
+        if (isIdempotent()) {
+            SelectExecutionPlan finalPlan = new SelectExecutionPlan(ctx);
+            finalPlan.chain(last);
+            return new LocalResultSet(finalPlan);
+        } else {
+            UpdateExecutionPlan finalPlan = new UpdateExecutionPlan(ctx);
+            finalPlan.chain(last);
+            finalPlan.executeInternal();
+            return new LocalResultSet(finalPlan);
+        }
+    }
+
+    @Override
+    public IfExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
+
+        IfExecutionPlan plan = new IfExecutionPlan(ctx);
+
+        IfStep step = new IfStep(ctx, enableProfiling);
+        step.setCondition(this.expression);
+        plan.chain(step);
+
+        BasicCommandContext subCtx1 = new BasicCommandContext();
+        subCtx1.setParent(ctx);
+        ScriptExecutionPlan positivePlan = new ScriptExecutionPlan(subCtx1);
+        for (Statement stm : statements) {
+            positivePlan.chain(stm.createExecutionPlan(subCtx1, enableProfiling), enableProfiling);
+        }
+        step.setPositivePlan(positivePlan);
+        if (elseStatements.size() > 0) {
+            BasicCommandContext subCtx2 = new BasicCommandContext();
+            subCtx2.setParent(ctx);
+            ScriptExecutionPlan negativePlan = new ScriptExecutionPlan(subCtx2);
+            for (Statement stm : elseStatements) {
+                negativePlan.chain(stm.createExecutionPlan(subCtx2, enableProfiling), enableProfiling);
+            }
+            step.setNegativePlan(negativePlan);
+        }
+        return plan;
+    }
+
+    @Override
+    public void toString(Map<Object, Object> params, StringBuilder builder) {
+        builder.append("IF(");
+        expression.toString(params, builder);
+        builder.append("){\n");
+        for (Statement stm : statements) {
+            stm.toString(params, builder);
+            builder.append(";\n");
+        }
+        builder.append("}");
+        if (elseStatements.size() > 0) {
+            builder.append("\nELSE {\n");
+            for (Statement stm : elseStatements) {
+                stm.toString(params, builder);
+                builder.append(";\n");
+            }
+            builder.append("}");
+
+        }
+    }
+
+    @Override
+    public IfStatement copy() {
+        IfStatement result = new IfStatement(-1);
+        result.expression = expression == null ? null : expression.copy();
+        result.statements = statements == null ? null : statements.stream().map(Statement::copy).collect(Collectors.toList());
+        result.elseStatements =
+                elseStatements == null ? null : elseStatements.stream().map(Statement::copy).collect(Collectors.toList());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        IfStatement that = (IfStatement) o;
+
+        if (expression != null ? !expression.equals(that.expression) : that.expression != null)
+            return false;
+        if (statements != null ? !statements.equals(that.statements) : that.statements != null)
+            return false;
+        return elseStatements != null ? elseStatements.equals(that.elseStatements) : that.elseStatements == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = expression != null ? expression.hashCode() : 0;
+        result = 31 * result + (statements != null ? statements.hashCode() : 0);
+        result = 31 * result + (elseStatements != null ? elseStatements.hashCode() : 0);
+        return result;
+    }
+
+    public List<Statement> getStatements() {
+        return statements;
+    }
+
+    public boolean containsReturn() {
+        for (Statement stm : this.statements) {
+            if (stm instanceof ReturnStatement) {
+                return true;
+            }
+            if (stm instanceof ForEachBlock && ((ForEachBlock) stm).containsReturn()) {
+                return true;
+            }
+            if (stm instanceof IfStatement && ((IfStatement) stm).containsReturn()) {
+                return true;
+            }
+        }
+
+        if (elseStatements != null) {
+            for (Statement stm : this.elseStatements) {
+                if (stm instanceof ReturnStatement) {
+                    return true;
+                }
+                if (stm instanceof ForEachBlock && ((ForEachBlock) stm).containsReturn()) {
+                    return true;
+                }
+                if (stm instanceof IfStatement && ((IfStatement) stm).containsReturn()) {
+                    return true;
+                }
+            }
+        }
         return false;
-      }
     }
-    for (Statement stm : elseStatements) {
-      if (!stm.isIdempotent()) {
-        return false;
-      }
-    }
-    return true;
-  }
 
-  @Override public ResultSet execute(Database db, Object[] args, CommandContext parentCtx) {
-    BasicCommandContext ctx = new BasicCommandContext();
-    if (parentCtx != null) {
-      ctx.setParentWithoutOverridingChild(parentCtx);
-    }
-    ctx.setDatabase(db);
-    Map<Object, Object> params = new HashMap<>();
-    if (args != null) {
-      for (int i = 0; i < args.length; i++) {
-        params.put(i, args[i]);
-      }
-    }
-    ctx.setInputParameters(params);
-    IfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-
-    ExecutionStepInternal last = executionPlan.executeUntilReturn();
-    if (isIdempotent()) {
-      SelectExecutionPlan finalPlan = new SelectExecutionPlan(ctx);
-      finalPlan.chain(last);
-      return new LocalResultSet(finalPlan);
-    } else {
-      UpdateExecutionPlan finalPlan = new UpdateExecutionPlan(ctx);
-      finalPlan.chain(last);
-      finalPlan.executeInternal();
-      return new LocalResultSet(finalPlan);
-    }
-  }
-
-  @Override public ResultSet execute(Database db, Map params, CommandContext parentCtx) {
-    BasicCommandContext ctx = new BasicCommandContext();
-    if (parentCtx != null) {
-      ctx.setParentWithoutOverridingChild(parentCtx);
-    }
-    ctx.setDatabase(db);
-    ctx.setInputParameters(params);
-    IfExecutionPlan executionPlan = createExecutionPlan(ctx, false);
-
-    ExecutionStepInternal last = executionPlan.executeUntilReturn();
-    if (isIdempotent()) {
-      SelectExecutionPlan finalPlan = new SelectExecutionPlan(ctx);
-      finalPlan.chain(last);
-      return new LocalResultSet(finalPlan);
-    } else {
-      UpdateExecutionPlan finalPlan = new UpdateExecutionPlan(ctx);
-      finalPlan.chain(last);
-      finalPlan.executeInternal();
-      return new LocalResultSet(finalPlan);
-    }
-  }
-
-  @Override public IfExecutionPlan createExecutionPlan(CommandContext ctx, boolean enableProfiling) {
-
-    IfExecutionPlan plan = new IfExecutionPlan(ctx);
-
-    IfStep step = new IfStep(ctx, enableProfiling);
-    step.setCondition(this.expression);
-    plan.chain(step);
-
-    BasicCommandContext subCtx1 = new BasicCommandContext();
-    subCtx1.setParent(ctx);
-    ScriptExecutionPlan positivePlan = new ScriptExecutionPlan(subCtx1);
-    for (Statement stm : statements) {
-      positivePlan.chain(stm.createExecutionPlan(subCtx1, enableProfiling), enableProfiling);
-    }
-    step.setPositivePlan(positivePlan);
-    if (elseStatements.size() > 0) {
-      BasicCommandContext subCtx2 = new BasicCommandContext();
-      subCtx2.setParent(ctx);
-      ScriptExecutionPlan negativePlan = new ScriptExecutionPlan(subCtx2);
-      for (Statement stm : elseStatements) {
-        negativePlan.chain(stm.createExecutionPlan(subCtx2, enableProfiling), enableProfiling);
-      }
-      step.setNegativePlan(negativePlan);
-    }
-    return plan;
-  }
-
-  @Override public void toString(Map<Object, Object> params, StringBuilder builder) {
-    builder.append("IF(");
-    expression.toString(params, builder);
-    builder.append("){\n");
-    for (Statement stm : statements) {
-      stm.toString(params, builder);
-      builder.append(";\n");
-    }
-    builder.append("}");
-    if (elseStatements.size() > 0) {
-      builder.append("\nELSE {\n");
-      for (Statement stm : elseStatements) {
-        stm.toString(params, builder);
-        builder.append(";\n");
-      }
-      builder.append("}");
-
-    }
-  }
-
-  @Override public IfStatement copy() {
-    IfStatement result = new IfStatement(-1);
-    result.expression = expression == null ? null : expression.copy();
-    result.statements = statements == null ? null : statements.stream().map(Statement::copy).collect(Collectors.toList());
-    result.elseStatements =
-        elseStatements == null ? null : elseStatements.stream().map(Statement::copy).collect(Collectors.toList());
-    return result;
-  }
-
-  @Override public boolean equals(Object o) {
-    if (this == o)
-      return true;
-    if (o == null || getClass() != o.getClass())
-      return false;
-
-    IfStatement that = (IfStatement) o;
-
-    if (expression != null ? !expression.equals(that.expression) : that.expression != null)
-      return false;
-    if (statements != null ? !statements.equals(that.statements) : that.statements != null)
-      return false;
-    return elseStatements != null ? elseStatements.equals(that.elseStatements) : that.elseStatements == null;
-  }
-
-  @Override public int hashCode() {
-    int result = expression != null ? expression.hashCode() : 0;
-    result = 31 * result + (statements != null ? statements.hashCode() : 0);
-    result = 31 * result + (elseStatements != null ? elseStatements.hashCode() : 0);
-    return result;
-  }
 }
+
 /* JavaCC - OriginalChecksum=a8cd4fb832a4f3b6e71bb1a12f8d8819 (do not edit this line) */

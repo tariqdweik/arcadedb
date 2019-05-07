@@ -17,7 +17,8 @@ import java.util.Optional;
  */
 public class SingleOpExecutionPlan implements InternalExecutionPlan {
 
-  private final SimpleExecStatement statement;
+  protected final SimpleExecStatement statement;
+
   CommandContext ctx;
 
   boolean executed = false;

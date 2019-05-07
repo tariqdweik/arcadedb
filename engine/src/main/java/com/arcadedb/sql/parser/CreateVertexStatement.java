@@ -36,7 +36,7 @@ public class CreateVertexStatement extends Statement {
     ctx.setDatabase(db);
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = (InsertExecutionPlan) createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetType.getStringValue());
+    executionPlan.executeInternal();
     return new LocalResultSet(executionPlan);
   }
 
@@ -54,7 +54,7 @@ public class CreateVertexStatement extends Statement {
     }
     ctx.setInputParameters(params);
     InsertExecutionPlan executionPlan = (InsertExecutionPlan) createExecutionPlan(ctx, false);
-    executionPlan.executeInternal(targetType.getStringValue());
+    executionPlan.executeInternal();
     return new LocalResultSet(executionPlan);
   }
 

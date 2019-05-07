@@ -1,7 +1,6 @@
 package com.arcadedb.sql;
 
 import com.arcadedb.BaseTest;
-import com.arcadedb.database.EmbeddedDatabase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -59,10 +58,12 @@ public class DDLTest extends BaseTest {
 
         database.execute("sql",
                 "BEGIN;" +
-                "CREATE VERTEX TYPE Person EXTENDS V; " +
-                "CREATE VERTEX TYPE Car EXTENDS V; " +
-                "COMMIT;  " +
-                        "" );
+                        "CREATE VERTEX TYPE Person EXTENDS V; " +
+                        "CREATE PROPERTY Person.name STRING;" +
+                        "CREATE VERTEX TYPE Car EXTENDS V; " +
+                        "CREATE PROPERTY Car.model STRING;" +
+                        "COMMIT;  " +
+                        "");
 
 
         database.transaction(db -> {
@@ -95,6 +96,21 @@ public class DDLTest extends BaseTest {
             Assertions.assertEquals(2000, vs);
         });
 
+
+        database.transaction(db -> {
+            db.query("sql", "select from schema:types")
+                    .stream()
+                    .forEach(r -> System.out.println(r));
+
+        });
+
+        System.out.println("----------");
+        database.transaction(db -> {
+            db.query("sql", "select from schema:indexes")
+                    .stream()
+                    .forEach(r -> System.out.println(r));
+
+        });
 
     }
 }

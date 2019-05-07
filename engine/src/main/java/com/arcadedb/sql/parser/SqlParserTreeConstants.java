@@ -173,6 +173,8 @@ public interface SqlParserTreeConstants
   public int JJTRETURNSTATEMENT = 167;
   public int JJTIFSTATEMENT = 168;
   public int JJTSLEEPSTATEMENT = 169;
+  public int JJTFOREACHBLOCK = 170;
+  public int JJTWHILEBLOCK = 171;
 
 
   public String[] jjtNodeName = {
@@ -346,6 +348,8 @@ public interface SqlParserTreeConstants
     "ReturnStatement",
     "IfStatement",
     "SleepStatement",
+    "ForEachBlock",
+    "WhileBlock",
   };
 }
-/* JavaCC - OriginalChecksum=d649ab9a550b47dabe05f1f211594fe7 (do not edit this line) */
+/* JavaCC - OriginalChecksum=803212ce5d4be9ec82263597eae57e09 (do not edit this line) */

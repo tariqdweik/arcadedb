@@ -42,7 +42,6 @@ import com.arcadedb.schema.VertexType;
 import com.arcadedb.serializer.BinarySerializer;
 import com.arcadedb.sql.executor.BasicCommandContext;
 import com.arcadedb.sql.executor.CommandContext;
-import com.arcadedb.sql.executor.ExecutionStepInternal;
 import com.arcadedb.sql.executor.InternalExecutionPlan;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.executor.SQLEngine;
@@ -1142,7 +1141,6 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         try {
             original = executeInternal(statements, context);
         } finally {
-            System.out.println("finally! = ");
 
         }
         LocalResultSetLifecycleDecorator result = new LocalResultSetLifecycleDecorator(original);
@@ -1158,7 +1156,6 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
         for (Statement stm : statements) {
             if (stm instanceof BeginStatement) {
-                System.out.println("stm = " + stm);
                 nestedTxLevel++;
             }
 
@@ -1174,7 +1171,6 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
                 if (nestedTxLevel == 0) {
 
                     for (Statement statement : lastRetryBlock) {
-                        System.out.println("statement = " + statement);
                         InternalExecutionPlan sub = statement.createExecutionPlan(scriptContext);
                         plan.chain(sub, false);
                     }
@@ -1184,8 +1180,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
         }
 
-        System.out.println("plan = " + plan.prettyPrint(1, 1));
-        final LocalResultSet original= new LocalResultSet(plan);
+        final LocalResultSet original = new LocalResultSet(plan);
         return original;
 
 

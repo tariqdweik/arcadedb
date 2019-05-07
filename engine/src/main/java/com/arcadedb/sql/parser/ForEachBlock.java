@@ -105,5 +105,20 @@ public class ForEachBlock extends Statement {
     result = 31 * result + (statements != null ? statements.hashCode() : 0);
     return result;
   }
+
+  public boolean containsReturn() {
+    for (Statement stm : this.statements) {
+      if (stm instanceof ReturnStatement) {
+        return true;
+      }
+      if (stm instanceof ForEachBlock && ((ForEachBlock) stm).containsReturn()) {
+        return true;
+      }
+      if (stm instanceof IfStatement && ((IfStatement) stm).containsReturn()) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 /* JavaCC - OriginalChecksum=071053b057a38c57f3c90d28399615d0 (do not edit this line) */
