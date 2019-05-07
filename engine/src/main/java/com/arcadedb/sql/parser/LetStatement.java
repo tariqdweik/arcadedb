@@ -94,5 +94,9 @@ public class LetStatement extends SimpleExecStatement {
     result = 31 * result + (expression != null ? expression.hashCode() : 0);
     return result;
   }
+
+  public Identifier getName() {
+    return name;
+  }
 }
 /* JavaCC - OriginalChecksum=cc646e5449351ad9ced844f61b687928 (do not edit this line) */

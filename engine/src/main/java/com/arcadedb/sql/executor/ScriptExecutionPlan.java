@@ -10,6 +10,8 @@ package com.arcadedb.sql.executor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -17,11 +19,17 @@ import java.util.stream.Collectors;
  */
 public class ScriptExecutionPlan implements InternalExecutionPlan {
 
+  boolean executed = false;
+
   private String location;
 
   private final CommandContext ctx;
 
   protected List<ScriptLineStep> steps = new ArrayList<>();
+
+
+  ResultSet finalResult = null;
+
 
   ExecutionStepInternal lastStep = null;
 
@@ -38,8 +46,60 @@ public class ScriptExecutionPlan implements InternalExecutionPlan {
     lastStep.close();
   }
 
-  @Override public ResultSet fetchNext(int n) {
-    return lastStep.syncPull(ctx, n);
+  @Override
+  public ResultSet fetchNext(int n) {
+    doExecute(n);
+    return new ResultSet() {
+      int totalFetched = 0;
+
+      @Override
+      public boolean hasNext() {
+        return finalResult.hasNext() && totalFetched < n;
+      }
+
+      @Override
+      public Result next() {
+        if (!hasNext()) {
+          throw new IllegalStateException();
+        }
+        return finalResult.next();
+      }
+
+      @Override
+      public void close() {
+        finalResult.close();
+      }
+
+      @Override
+      public Optional<ExecutionPlan> getExecutionPlan() {
+        return finalResult == null ? Optional.empty() : finalResult.getExecutionPlan();
+      }
+
+      @Override
+      public Map<String, Long> getQueryStats() {
+        return null;
+      }
+    };
+  }
+
+  private void doExecute(int n) {
+    if (!executed) {
+      executeUntilReturn();
+      executed = true;
+      finalResult = new InternalResultSet();
+      ResultSet partial = lastStep.syncPull(ctx, n);
+      while (partial.hasNext()) {
+        while (partial.hasNext()) {
+          ((InternalResultSet) finalResult).add(partial.next());
+        }
+        partial = lastStep.syncPull(ctx, n);
+      }
+//      if (lastStep instanceof ScriptLineStep) {
+//
+//        ((InternalResultSet) finalResult).setPlan(lastStep.);
+//        ((InternalResultSet) finalResult).setPlan(lastStep.getSubExecutionPlans());
+//      }
+    }
   }
 
   @Override public String prettyPrint(int depth, int indent) {
@@ -64,6 +124,7 @@ public class ScriptExecutionPlan implements InternalExecutionPlan {
     steps.add(nextStep);
     this.lastStep = nextStep;
   }
+
 
   @Override public List<ExecutionStep> getSteps() {
     //TODO do a copy of the steps

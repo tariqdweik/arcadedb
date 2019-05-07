@@ -20,124 +20,128 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface Database extends AutoCloseable {
-  interface TransactionScope {
-    void execute(Database db);
-  }
+    ContextConfiguration getConfiguration();
 
-  ContextConfiguration getConfiguration();
+    String getName();
 
-  String getName();
+    PaginatedFile.MODE getMode();
 
-  PaginatedFile.MODE getMode();
+    @Override
+    void close();
 
-  @Override
-  void close();
+    boolean isOpen();
 
-  boolean isOpen();
+    void drop();
 
-  void drop();
+    DatabaseAsyncExecutor async();
 
-  DatabaseAsyncExecutor async();
+    String getDatabasePath();
 
-  String getDatabasePath();
+    TransactionContext getTransaction();
 
-  TransactionContext getTransaction();
+    boolean isTransactionActive();
 
-  boolean isTransactionActive();
+    boolean checkTransactionIsActive();
 
-  boolean checkTransactionIsActive();
+    /**
+     * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun.
+     *
+     * @param txBlock Transaction lambda to execute
+     */
+    void transaction(TransactionScope txBlock);
 
-  /**
-   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun.
-   *
-   * @param txBlock Transaction lambda to execute
-   */
-  void transaction(TransactionScope txBlock);
+    /**
+     * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun
+     * if joinCurrentTx is true, otherwise the current active transaction is joined.
+     *
+     * @param txBlock       Transaction lambda to execute
+     * @param joinCurrentTx if active joins the current transaction, otherwise always create a new one
+     */
+    void transaction(TransactionScope txBlock, boolean joinCurrentTx);
 
-  /**
-   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun
-   * if joinCurrentTx is true, otherwise the current active transaction is joined.
-   *
-   * @param txBlock       Transaction lambda to execute
-   * @param joinCurrentTx if active joins the current transaction, otherwise always create a new one
-   */
-  void transaction(TransactionScope txBlock, boolean joinCurrentTx);
+    /**
+     * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun
+     * if joinCurrentTx is true, otherwise the current active transaction is joined.
+     * The difference with the method {@link #transaction(TransactionScope)} is that in case the NeedRetryException exception is thrown, the transaction is
+     * re-executed for a number of retries.
+     *
+     * @param txBlock       Transaction lambda to execute
+     * @param joinCurrentTx if active joins the current transaction, otherwise always create a new one
+     * @param retries       number of retries in case the NeedRetryException exception is thrown
+     */
+    void transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries);
 
-  /**
-   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun
-   * if joinCurrentTx is true, otherwise the current active transaction is joined.
-   * The difference with the method {@link #transaction(TransactionScope)} is that in case the NeedRetryException exception is thrown, the transaction is
-   * re-executed for a number of retries.
-   *
-   * @param txBlock       Transaction lambda to execute
-   * @param joinCurrentTx if active joins the current transaction, otherwise always create a new one
-   * @param retries       number of retries in case the NeedRetryException exception is thrown
-   */
-  void transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries);
+    void setAutoTransaction(boolean autoTransaction);
 
-  void setAutoTransaction(boolean autoTransaction);
+    /**
+     * Begins a new transaction. If a transaction is already begun, the current transaction is parked and a new sub-transaction is begun. The new sub-transaction
+     * does not access to the content of the previous transaction. Sub transactions are totally isolated.
+     */
+    void begin();
 
-  /**
-   * Begins a new transaction. If a transaction is already begun, the current transaction is parked and a new sub-transaction is begun. The new sub-transaction
-   * does not access to the content of the previous transaction. Sub transactions are totally isolated.
-   */
-  void begin();
+    /**
+     * Commits the current transaction. If it was a sub-transaction, then the previous in the stack becomes active again.
+     */
+    void commit();
 
-  /**
-   * Commits the current transaction. If it was a sub-transaction, then the previous in the stack becomes active again.
-   */
-  void commit();
+    /**
+     * Rolls back the current transaction. If it was a sub-transaction, then the previous in the stack becomes active again.
+     */
+    void rollback();
 
-  /**
-   * Rolls back the current transaction. If it was a sub-transaction, then the previous in the stack becomes active again.
-   */
-  void rollback();
+    void scanType(String className, boolean polymorphic, DocumentCallback callback);
 
-  void scanType(String className, boolean polymorphic, DocumentCallback callback);
+    void scanBucket(String bucketName, RecordCallback callback);
 
-  void scanBucket(String bucketName, RecordCallback callback);
+    Record lookupByRID(RID rid, boolean loadContent);
 
-  Record lookupByRID(RID rid, boolean loadContent);
+    IndexCursor lookupByKey(String type, String[] properties, Object[] keys);
 
-  IndexCursor lookupByKey(String type, String[] properties, Object[] keys);
+    Iterator<Record> iterateType(String typeName, boolean polymorphic);
 
-  Iterator<Record> iterateType(String typeName, boolean polymorphic);
+    Iterator<Record> iterateBucket(String bucketName);
 
-  Iterator<Record> iterateBucket(String bucketName);
+    void deleteRecord(Record record);
 
-  void deleteRecord(Record record);
+    long countType(String typeName, boolean polymorphic);
 
-  long countType(String typeName, boolean polymorphic);
+    long countBucket(String bucketName);
 
-  long countBucket(String bucketName);
+    MutableDocument newDocument(String typeName);
 
-  MutableDocument newDocument(String typeName);
+    MutableEmbeddedDocument newEmbeddedDocument(String typeName);
 
-  MutableEmbeddedDocument newEmbeddedDocument(String typeName);
+    MutableVertex newVertex(String typeName);
 
-  MutableVertex newVertex(String typeName);
+    Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType, String[] destinationVertexKey,
+                       Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
 
-  Edge newEdgeByKeys(String sourceVertexType, String[] sourceVertexKey, Object[] sourceVertexValue, String destinationVertexType, String[] destinationVertexKey,
-      Object[] destinationVertexValue, boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
+    Edge newEdgeByKeys(Vertex sourceVertex, String destinationVertexType, String[] destinationVertexKey, Object[] destinationVertexValue,
+                       boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
 
-  Edge newEdgeByKeys(Vertex sourceVertex, String destinationVertexType, String[] destinationVertexKey, Object[] destinationVertexValue,
-      boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties);
+    Schema getSchema();
 
-  Schema getSchema();
+    ResultSet command(String language, String query, Map<String, Object> args);
 
-  ResultSet command(String language, String query, Map<String, Object> args);
+    ResultSet command(String language, String query, Object... args);
 
-  ResultSet command(String language, String query, Object... args);
+    ResultSet query(String language, String query, Object... args);
 
-  ResultSet query(String language, String query, Object... args);
+    ResultSet query(String language, String query, Map<String, Object> args);
 
-  ResultSet query(String language, String query, Map<String, Object> args);
+    ResultSet execute(String language, String script, Object... args);
 
-  <RET extends Object> RET executeInReadLock(Callable<RET> callable);
+    ResultSet execute(String language, String script, Map<Object, Object> args);
 
-  <RET extends Object> RET executeInWriteLock(Callable<RET> callable);
+    <RET extends Object> RET executeInReadLock(Callable<RET> callable);
 
-  boolean isReadYourWrites();
+    <RET extends Object> RET executeInWriteLock(Callable<RET> callable);
 
-  void setReadYourWrites(boolean value);
+    boolean isReadYourWrites();
+
+    void setReadYourWrites(boolean value);
+
+    interface TransactionScope {
+        void execute(Database db);
+    }
 }
