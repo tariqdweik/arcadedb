@@ -11,6 +11,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.graph.MutableEdge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.FileUtils;
@@ -69,20 +70,21 @@ public abstract class BaseGraphServerTest {
       getDatabase(0).transaction(new Database.TransactionScope() {
         @Override
         public void execute(Database database) {
-          Assertions.assertFalse(database.getSchema().existsType(VERTEX1_TYPE_NAME));
+          final Schema schema = database.getSchema();
+          Assertions.assertFalse(schema.existsType(VERTEX1_TYPE_NAME));
 
-          VertexType v = database.getSchema().createVertexType(VERTEX1_TYPE_NAME, 3);
+          VertexType v = schema.createVertexType(VERTEX1_TYPE_NAME, 3);
           v.createProperty("id", Long.class);
 
-          database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, VERTEX1_TYPE_NAME, new String[] { "id" });
+          schema.createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, VERTEX1_TYPE_NAME, new String[] { "id" });
 
-          Assertions.assertFalse(database.getSchema().existsType(VERTEX2_TYPE_NAME));
-          database.getSchema().createVertexType(VERTEX2_TYPE_NAME, 3);
+          Assertions.assertFalse(schema.existsType(VERTEX2_TYPE_NAME));
+          schema.createVertexType(VERTEX2_TYPE_NAME, 3);
 
-          database.getSchema().createEdgeType(EDGE1_TYPE_NAME);
-          database.getSchema().createEdgeType(EDGE2_TYPE_NAME);
+          schema.createEdgeType(EDGE1_TYPE_NAME);
+          schema.createEdgeType(EDGE2_TYPE_NAME);
 
-          database.getSchema().createDocumentType("Person");
+          schema.createDocumentType("Person");
         }
       });
 

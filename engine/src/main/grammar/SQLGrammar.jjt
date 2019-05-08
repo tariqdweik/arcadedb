@@ -311,6 +311,12 @@ TOKEN:
     |
     < IF: ( "I" | "i") ( "F" | "f") >
     |
+    < ELSE: ( "E" | "e") ( "L" | "l") ( "S" | "s") ( "E" | "e") >
+    |
+    < CONTINUE: ( "C" | "c") ( "O" | "o") ( "N" | "n") ( "T" | "t") ( "I" | "i") ( "N" | "n") ( "U" | "u") ( "E" | "e") >
+    |
+    < FAIL: ( "F" | "f") ( "A" | "a") ( "I" | "i") ( "L" | "l") >
+    |
     < ISOLATION: ( "I" | "i") ( "S" | "s") ( "O" | "o") ( "L" | "l") ( "A" | "a") ( "T" | "t") ( "I" | "i") ( "O" | "o") ( "N" | "n") >
     |
     < SLEEP: ( "S" | "s") ( "L" | "l") ( "E" | "e") ( "E" | "e") ( "P" | "p")  >
@@ -651,6 +657,10 @@ List<Statement> parseScript() :
         |
         last = IfStatement() {result.add(last);}
         |
+        last = ForEachBlock() {result.add(last);}
+        |
+        last = WhileBlock() {result.add(last);}
+        |
         <SEMICOLON>
     )*
 
@@ -827,6 +837,12 @@ Identifier Identifier():
   |
   token = <IF>
   |
+    token = <ELSE>
+    |
+    token = <CONTINUE>
+    |
+    token = <FAIL>
+    |
   token = <ISOLATION>
   |
   token = <SLEEP>
@@ -4565,6 +4581,10 @@ IfStatement IfStatement():
             |
             last = IfStatement() { jjtThis.statements.add(last); }
             |
+            last = WhileBlock() {jjtThis.statements.add(last); }
+            |
+            last = ForEachBlock() {jjtThis.statements.add(last); }
+            |
             <SEMICOLON>
         )*
         <RBRACE>
@@ -4578,5 +4598,58 @@ SleepStatement SleepStatement():
     (
         <SLEEP> jjtThis.millis = PInteger()
     )
+    { return jjtThis; }
+}
+
+ForEachBlock ForEachBlock():
+{
+    Statement last;
+}
+{
+    <FOREACH> <LPAREN>
+    jjtThis.loopVariable = Identifier()
+    <IN>
+    jjtThis.loopValues = Expression()
+    <RPAREN>
+    <LBRACE>
+    (
+        LOOKAHEAD(StatementSemicolon())
+        last = StatementSemicolon() {jjtThis.statements.add(last); }
+        |
+        last = IfStatement() {jjtThis.statements.add(last); }
+        |
+        last = ForEachBlock() {jjtThis.statements.add(last); }
+        |
+        last = WhileBlock() {jjtThis.statements.add(last); }
+        |
+        <SEMICOLON>
+    )*
+    <RBRACE>
+    { return jjtThis; }
+}
+
+
+WhileBlock WhileBlock():
+{
+    Statement last;
+}
+{
+    <WHILE> <LPAREN>
+    jjtThis.condition = OrBlock()
+    <RPAREN>
+    <LBRACE>
+    (
+        LOOKAHEAD(StatementSemicolon())
+        last = StatementSemicolon() {jjtThis.statements.add(last); }
+        |
+        last = IfStatement() {jjtThis.statements.add(last); }
+        |
+        last = ForEachBlock() {jjtThis.statements.add(last); }
+        |
+        last = WhileBlock() {jjtThis.statements.add(last); }
+        |
+        <SEMICOLON>
+    )*
+    <RBRACE>
     { return jjtThis; }
 }

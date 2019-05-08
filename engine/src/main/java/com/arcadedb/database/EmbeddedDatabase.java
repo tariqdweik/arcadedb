@@ -8,11 +8,27 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
+import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.Dictionary;
-import com.arcadedb.engine.*;
+import com.arcadedb.engine.FileManager;
+import com.arcadedb.engine.PageManager;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.engine.RawRecordCallback;
+import com.arcadedb.engine.TransactionManager;
+import com.arcadedb.engine.WALFileFactory;
+import com.arcadedb.engine.WALFileFactoryEmbedded;
 import com.arcadedb.exception.ConcurrentModificationException;
-import com.arcadedb.exception.*;
-import com.arcadedb.graph.*;
+import com.arcadedb.exception.DatabaseIsClosedException;
+import com.arcadedb.exception.DatabaseIsReadOnlyException;
+import com.arcadedb.exception.DatabaseMetadataException;
+import com.arcadedb.exception.DatabaseOperationException;
+import com.arcadedb.exception.TransactionException;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.GraphEngine;
+import com.arcadedb.graph.MutableEmbeddedDocument;
+import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.graph.Vertex;
+import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.TypeIndex;
@@ -24,9 +40,17 @@ import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.serializer.BinarySerializer;
+import com.arcadedb.sql.executor.BasicCommandContext;
+import com.arcadedb.sql.executor.CommandContext;
+import com.arcadedb.sql.executor.InternalExecutionPlan;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.executor.SQLEngine;
+import com.arcadedb.sql.executor.ScriptExecutionPlan;
+import com.arcadedb.sql.parser.BeginStatement;
+import com.arcadedb.sql.parser.CommitStatement;
 import com.arcadedb.sql.parser.ExecutionPlanCache;
+import com.arcadedb.sql.parser.LocalResultSet;
+import com.arcadedb.sql.parser.LocalResultSetLifecycleDecorator;
 import com.arcadedb.sql.parser.Statement;
 import com.arcadedb.sql.parser.StatementCache;
 import com.arcadedb.utility.FileUtils;
@@ -39,7 +63,14 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileLock;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -47,1209 +78,1294 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal {
-  protected final    String                name;
-  protected final    PaginatedFile.MODE    mode;
-  protected final    ContextConfiguration  configuration;
-  protected final    String                databasePath;
-  protected          FileManager           fileManager;
-  protected          PageManager           pageManager;
-  protected final    BinarySerializer      serializer     = new BinarySerializer();
-  protected final    RecordFactory         recordFactory  = new RecordFactory();
-  protected          SchemaImpl            schema;
-  protected final    GraphEngine           graphEngine    = new GraphEngine();
-  protected          TransactionManager    transactionManager;
-  protected final    WALFileFactory        walFactory;
-  protected volatile DatabaseAsyncExecutor async          = null;
-  protected          Lock                  asyncLock      = new ReentrantLock();
-  protected final    DocumentIndexer       indexer;
-  private            boolean               readYourWrites = true;
+    protected static final Set<String> SUPPORTED_FILE_EXT = new HashSet<String>(Arrays
+            .asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, LSMTreeIndexMutable.UNIQUE_INDEX_EXT,
+                    LSMTreeIndexCompacted.NOTUNIQUE_INDEX_EXT, LSMTreeIndexCompacted.UNIQUE_INDEX_EXT));
+    public final AtomicLong indexCompactions = new AtomicLong();
+    protected final String name;
+    protected final PaginatedFile.MODE mode;
+    protected final ContextConfiguration configuration;
+    protected final String databasePath;
+    protected final BinarySerializer serializer = new BinarySerializer();
+    protected final RecordFactory recordFactory = new RecordFactory();
+    protected final GraphEngine graphEngine = new GraphEngine();
+    protected final WALFileFactory walFactory;
+    protected final DocumentIndexer indexer;
+    // STATISTICS
+    private final AtomicLong statsTxCommits = new AtomicLong();
+    private final AtomicLong statsTxRollbacks = new AtomicLong();
+    private final AtomicLong statsCreateRecord = new AtomicLong();
+    private final AtomicLong statsReadRecord = new AtomicLong();
+    private final AtomicLong statsUpdateRecord = new AtomicLong();
+    private final AtomicLong statsDeleteRecord = new AtomicLong();
+    private final AtomicLong statsQueries = new AtomicLong();
+    private final AtomicLong statsCommands = new AtomicLong();
+    private final AtomicLong statsScanType = new AtomicLong();
+    private final AtomicLong statsScanBucket = new AtomicLong();
+    private final AtomicLong statsIterateType = new AtomicLong();
+    private final AtomicLong statsIterateBucket = new AtomicLong();
+    private final AtomicLong statsCountType = new AtomicLong();
+    private final AtomicLong statsCountBucket = new AtomicLong();
+    protected FileManager fileManager;
+    protected PageManager pageManager;
+    protected SchemaImpl schema;
+    protected TransactionManager transactionManager;
+    protected volatile DatabaseAsyncExecutor async = null;
+    protected Lock asyncLock = new ReentrantLock();
+    protected boolean autoTransaction = false;
+    protected volatile boolean open = false;
+    private boolean readYourWrites = true;
+    private File lockFile;
+    private FileLock lockFileIO;
+    private Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
+    private StatementCache statementCache;
+    private ExecutionPlanCache executionPlanCache;
+    private DatabaseInternal wrappedDatabaseInstance = this;
 
-  protected          boolean autoTransaction = false;
-  protected volatile boolean open            = false;
+    protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
+                               final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
+        try {
+            this.mode = mode;
+            this.configuration = configuration;
+            this.callbacks = callbacks;
+            this.walFactory = mode == PaginatedFile.MODE.READ_WRITE ? new WALFileFactoryEmbedded() : null;
+            this.statementCache = new StatementCache(this, configuration.getValueAsInteger(GlobalConfiguration.SQL_STATEMENT_CACHE));
+            this.executionPlanCache = new ExecutionPlanCache(this, configuration.getValueAsInteger(GlobalConfiguration.SQL_STATEMENT_CACHE));
 
-  protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(Arrays
-      .asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, LSMTreeIndexMutable.UNIQUE_INDEX_EXT,
-          LSMTreeIndexCompacted.NOTUNIQUE_INDEX_EXT, LSMTreeIndexCompacted.UNIQUE_INDEX_EXT));
-  private                File                                      lockFile;
-  private                FileLock                                  lockFileIO;
-  private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
-  private                StatementCache                            statementCache;
-  private                ExecutionPlanCache                        executionPlanCache;
-  private                DatabaseInternal                          wrappedDatabaseInstance = this;
+            if (path.endsWith("/"))
+                databasePath = path.substring(0, path.length() - 1);
+            else
+                databasePath = path;
 
-  // STATISTICS
-  private final AtomicLong statsTxCommits     = new AtomicLong();
-  private final AtomicLong statsTxRollbacks   = new AtomicLong();
-  private final AtomicLong statsCreateRecord  = new AtomicLong();
-  private final AtomicLong statsReadRecord    = new AtomicLong();
-  private final AtomicLong statsUpdateRecord  = new AtomicLong();
-  private final AtomicLong statsDeleteRecord  = new AtomicLong();
-  private final AtomicLong statsQueries       = new AtomicLong();
-  private final AtomicLong statsCommands      = new AtomicLong();
-  private final AtomicLong statsScanType      = new AtomicLong();
-  private final AtomicLong statsScanBucket    = new AtomicLong();
-  private final AtomicLong statsIterateType   = new AtomicLong();
-  private final AtomicLong statsIterateBucket = new AtomicLong();
-  private final AtomicLong statsCountType     = new AtomicLong();
-  private final AtomicLong statsCountBucket   = new AtomicLong();
-  public final  AtomicLong indexCompactions   = new AtomicLong();
+            final int lastSeparatorPos = path.lastIndexOf("/");
+            if (lastSeparatorPos > -1)
+                name = path.substring(lastSeparatorPos + 1);
+            else
+                name = path;
 
-  protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
-      final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
-    try {
-      this.mode = mode;
-      this.configuration = configuration;
-      this.callbacks = callbacks;
-      this.walFactory = mode == PaginatedFile.MODE.READ_WRITE ? new WALFileFactoryEmbedded() : null;
-      this.statementCache = new StatementCache(this, configuration.getValueAsInteger(GlobalConfiguration.SQL_STATEMENT_CACHE));
-      this.executionPlanCache = new ExecutionPlanCache(this, configuration.getValueAsInteger(GlobalConfiguration.SQL_STATEMENT_CACHE));
+            indexer = new DocumentIndexer(this);
 
-      if (path.endsWith("/"))
-        databasePath = path.substring(0, path.length() - 1);
-      else
-        databasePath = path;
+        } catch (Exception e) {
+            if (e instanceof DatabaseOperationException)
+                throw (DatabaseOperationException) e;
 
-      final int lastSeparatorPos = path.lastIndexOf("/");
-      if (lastSeparatorPos > -1)
-        name = path.substring(lastSeparatorPos + 1);
-      else
-        name = path;
-
-      indexer = new DocumentIndexer(this);
-
-    } catch (Exception e) {
-      if (e instanceof DatabaseOperationException)
-        throw (DatabaseOperationException) e;
-
-      throw new DatabaseOperationException("Error on creating new database instance", e);
-    }
-  }
-
-  protected void open() {
-    if (!new File(databasePath).exists())
-      throw new DatabaseOperationException("Database '" + databasePath + "' not exists");
-
-    final File file = new File(databasePath + "/configuration.json");
-    if (file.exists()) {
-      try {
-        final String content = FileUtils.readFileAsString(file, "UTF8");
-        configuration.reset();
-        configuration.fromJSON(content);
-      } catch (IOException e) {
-        LogManager.instance().log(this, Level.SEVERE, "Error on loading configuration from file '%s'", e, file);
-      }
+            throw new DatabaseOperationException("Error on creating new database instance", e);
+        }
     }
 
-    openInternal();
-  }
+    protected void open() {
+        if (!new File(databasePath).exists())
+            throw new DatabaseOperationException("Database '" + databasePath + "' not exists");
 
-  protected void create() {
-    if (new File(databasePath + "/" + SchemaImpl.SCHEMA_FILE_NAME).exists() || new File(databasePath + "/" + SchemaImpl.SCHEMA_PREV_FILE_NAME).exists())
-      throw new DatabaseOperationException("Database '" + databasePath + "' already exists");
-
-    openInternal();
-
-    schema.saveConfiguration();
-
-    String cfgFileName = databasePath + "/configuration.json";
-    try {
-      FileUtils.writeFile(new File(cfgFileName), configuration.toJSON());
-    } catch (IOException e) {
-      LogManager.instance().log(this, Level.SEVERE, "Error on saving configuration to file '%s'", e, cfgFileName);
-    }
-  }
-
-  private void openInternal() {
-    try {
-      DatabaseContext.INSTANCE.init(this);
-
-      fileManager = new FileManager(databasePath, mode, SUPPORTED_FILE_EXT);
-      transactionManager = new TransactionManager(wrappedDatabaseInstance);
-      pageManager = new PageManager(fileManager, transactionManager, configuration);
-
-      open = true;
-
-      try {
-        schema = new SchemaImpl(wrappedDatabaseInstance, databasePath, mode);
-
-        if (fileManager.getFiles().isEmpty())
-          schema.create(mode);
-        else
-          schema.load(mode);
-
-        checkForRecovery();
-
-        Profiler.INSTANCE.registerDatabase(this);
-
-      } catch (RuntimeException e) {
-        open = false;
-        pageManager.close();
-        throw e;
-      } catch (Exception e) {
-        open = false;
-        pageManager.close();
-        throw new DatabaseOperationException("Error on creating new database instance", e);
-      }
-    } catch (Exception e) {
-      open = false;
-
-      if (e instanceof DatabaseOperationException)
-        throw (DatabaseOperationException) e;
-
-      throw new DatabaseOperationException("Error on creating new database instance", e);
-    }
-  }
-
-  private void checkForRecovery() throws IOException {
-    lockFile = new File(databasePath + "/database.lck");
-
-    if (lockFile.exists()) {
-      lockDatabase();
-
-      // RECOVERY
-      LogManager.instance().log(this, Level.WARNING, "Database '%s' was not closed properly last time", null, name);
-
-      if (mode == PaginatedFile.MODE.READ_ONLY)
-        throw new DatabaseMetadataException("Database needs recovery but has been open in read only mode");
-
-      executeCallbacks(CALLBACK_EVENT.DB_NOT_CLOSED);
-
-      transactionManager.checkIntegrity();
-    } else {
-      if (mode == PaginatedFile.MODE.READ_WRITE) {
-        lockFile.createNewFile();
-        lockDatabase();
-      } else
-        lockFile = null;
-    }
-  }
-
-  @Override
-  public void drop() {
-    checkDatabaseIsOpen();
-    if (mode == PaginatedFile.MODE.READ_ONLY)
-      throw new DatabaseIsReadOnlyException("Cannot drop database");
-
-    close();
-
-    executeInWriteLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        FileUtils.deleteRecursively(new File(databasePath));
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public void close() {
-    if (async != null) {
-      // EXECUTE OUTSIDE LOCK
-      async.waitCompletion();
-      async.close();
-    }
-
-    executeInWriteLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        if (!open)
-          return null;
-
-        open = false;
-
-        if (async != null)
-          async.close();
-
-        final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.removeContext(databasePath);
-        if (dbContext != null && !dbContext.transaction.isEmpty()) {
-          // ROLLBACK ALL THE TX FROM LAST TO FIRST
-          for (int i = dbContext.transaction.size() - 1; i > -1; --i) {
-            final TransactionContext tx = dbContext.transaction.get(i);
-            if (tx.isActive())
-              // ROLLBACK ANY PENDING OPERATION
-              tx.rollback();
-          }
-          dbContext.transaction.clear();
+        final File file = new File(databasePath + "/configuration.json");
+        if (file.exists()) {
+            try {
+                final String content = FileUtils.readFileAsString(file, "UTF8");
+                configuration.reset();
+                configuration.fromJSON(content);
+            } catch (IOException e) {
+                LogManager.instance().log(this, Level.SEVERE, "Error on loading configuration from file '%s'", e, file);
+            }
         }
 
-        try {
-          schema.close();
-          pageManager.close();
-          fileManager.close();
-          transactionManager.close();
-          statementCache.clear();
+        openInternal();
+    }
 
-          if (lockFile != null) {
+    protected void create() {
+        if (new File(databasePath + "/" + SchemaImpl.SCHEMA_FILE_NAME).exists() || new File(databasePath + "/" + SchemaImpl.SCHEMA_PREV_FILE_NAME).exists())
+            throw new DatabaseOperationException("Database '" + databasePath + "' already exists");
+
+        openInternal();
+
+        schema.saveConfiguration();
+
+        String cfgFileName = databasePath + "/configuration.json";
+        try {
+            FileUtils.writeFile(new File(cfgFileName), configuration.toJSON());
+        } catch (IOException e) {
+            LogManager.instance().log(this, Level.SEVERE, "Error on saving configuration to file '%s'", e, cfgFileName);
+        }
+    }
+
+    private void openInternal() {
+        try {
+            DatabaseContext.INSTANCE.init(this);
+
+            fileManager = new FileManager(databasePath, mode, SUPPORTED_FILE_EXT);
+            transactionManager = new TransactionManager(wrappedDatabaseInstance);
+            pageManager = new PageManager(fileManager, transactionManager, configuration);
+
+            open = true;
+
             try {
-              lockFileIO.release();
-            } catch (IOException e) {
-              // IGNORE IT
+                schema = new SchemaImpl(wrappedDatabaseInstance, databasePath, mode);
+
+                if (fileManager.getFiles().isEmpty())
+                    schema.create(mode);
+                else
+                    schema.load(mode);
+
+                checkForRecovery();
+
+                Profiler.INSTANCE.registerDatabase(this);
+
+            } catch (RuntimeException e) {
+                open = false;
+                pageManager.close();
+                throw e;
+            } catch (Exception e) {
+                open = false;
+                pageManager.close();
+                throw new DatabaseOperationException("Error on creating new database instance", e);
             }
-            lockFile.delete();
-          }
+        } catch (Exception e) {
+            open = false;
+
+            if (e instanceof DatabaseOperationException)
+                throw (DatabaseOperationException) e;
+
+            throw new DatabaseOperationException("Error on creating new database instance", e);
+        }
+    }
+
+    private void checkForRecovery() throws IOException {
+        lockFile = new File(databasePath + "/database.lck");
+
+        if (lockFile.exists()) {
+            lockDatabase();
+
+            // RECOVERY
+            LogManager.instance().log(this, Level.WARNING, "Database '%s' was not closed properly last time", null, name);
+
+            if (mode == PaginatedFile.MODE.READ_ONLY)
+                throw new DatabaseMetadataException("Database needs recovery but has been open in read only mode");
+
+            executeCallbacks(CALLBACK_EVENT.DB_NOT_CLOSED);
+
+            transactionManager.checkIntegrity();
+        } else {
+            if (mode == PaginatedFile.MODE.READ_WRITE) {
+                lockFile.createNewFile();
+                lockDatabase();
+            } else
+                lockFile = null;
+        }
+    }
+
+    @Override
+    public void drop() {
+        checkDatabaseIsOpen();
+        if (mode == PaginatedFile.MODE.READ_ONLY)
+            throw new DatabaseIsReadOnlyException("Cannot drop database");
+
+        close();
+
+        executeInWriteLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                FileUtils.deleteRecursively(new File(databasePath));
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public void close() {
+        if (async != null) {
+            // EXECUTE OUTSIDE LOCK
+            async.waitCompletion();
+            async.close();
+        }
+
+        executeInWriteLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                if (!open)
+                    return null;
+
+                open = false;
+
+                if (async != null)
+                    async.close();
+
+                final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.removeContext(databasePath);
+                if (dbContext != null && !dbContext.transaction.isEmpty()) {
+                    // ROLLBACK ALL THE TX FROM LAST TO FIRST
+                    for (int i = dbContext.transaction.size() - 1; i > -1; --i) {
+                        final TransactionContext tx = dbContext.transaction.get(i);
+                        if (tx.isActive())
+                            // ROLLBACK ANY PENDING OPERATION
+                            tx.rollback();
+                    }
+                    dbContext.transaction.clear();
+                }
+
+                try {
+                    schema.close();
+                    pageManager.close();
+                    fileManager.close();
+                    transactionManager.close();
+                    statementCache.clear();
+
+                    if (lockFile != null) {
+                        try {
+                            lockFileIO.release();
+                        } catch (IOException e) {
+                            // IGNORE IT
+                        }
+                        lockFile.delete();
+                    }
+
+                } finally {
+                    Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
+                }
+                return null;
+            }
+        });
+    }
+
+    public DatabaseAsyncExecutor async() {
+        if (async == null) {
+            asyncLock.lock();
+            try {
+                if (async == null)
+                    async = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
+            } finally {
+                asyncLock.unlock();
+            }
+        }
+        return async;
+    }
+
+    @Override
+    public Map<String, Object> getStats() {
+        final Map<String, Object> map = new HashMap<>();
+        map.put("txCommits", statsTxCommits.get());
+        map.put("txRollbacks", statsTxRollbacks.get());
+        map.put("createRecord", statsCreateRecord.get());
+        map.put("readRecord", statsReadRecord.get());
+        map.put("updateRecord", statsUpdateRecord.get());
+        map.put("deleteRecord", statsDeleteRecord.get());
+        map.put("queries", statsQueries.get());
+        map.put("commands", statsCommands.get());
+        map.put("scanType", statsScanType.get());
+        map.put("scanBucket", statsScanBucket.get());
+        map.put("iterateType", statsIterateType.get());
+        map.put("iterateBucket", statsIterateBucket.get());
+        map.put("countType", statsCountType.get());
+        map.put("countBucket", statsCountBucket.get());
+        map.put("indexCompactions", indexCompactions.get());
+        return map;
+    }
+
+    @Override
+    public String getDatabasePath() {
+        return databasePath;
+    }
+
+    public TransactionContext getTransaction() {
+        final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
+        if (dbContext != null) {
+            final TransactionContext tx = dbContext.getLastTransaction();
+            if (tx != null) {
+                final DatabaseInternal txDb = tx.getDatabase();
+                if (txDb == null)
+                    throw new TransactionException("Invalid transactional context (db is null)");
+                if (txDb.getEmbedded() != this)
+                    throw new TransactionException("Invalid transactional context (different db)");
+                return tx;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void begin() {
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                checkDatabaseIsOpen();
+
+                // FORCE THE RESET OF TL
+                final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
+                TransactionContext tx = current.getLastTransaction();
+                if (tx.isActive()) {
+                    // CREATE A NESTED TX
+                    tx = new TransactionContext(getWrappedDatabaseInstance());
+                    current.pushTransaction(tx);
+                }
+
+                tx.begin();
+
+                return null;
+            }
+        });
+    }
+
+    public void incrementStatsTxCommits() {
+        statsTxCommits.incrementAndGet();
+    }
+
+    @Override
+    public void commit() {
+        statsTxCommits.incrementAndGet();
+
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                checkTransactionIsActive();
+
+                final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
+                current.popIfNotLastTransaction().commit();
+
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public void rollback() {
+        statsTxRollbacks.incrementAndGet();
+
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                try {
+                    checkTransactionIsActive();
+
+                    final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
+                    current.popIfNotLastTransaction().rollback();
+
+                } catch (TransactionException e) {
+                    // ALREADY ROLLBACKED
+                }
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public long countBucket(final String bucketName) {
+        statsCountBucket.incrementAndGet();
+
+        return (Long) executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                checkTransactionIsActive();
+                return schema.getBucketByName(bucketName).count();
+            }
+        });
+    }
+
+    @Override
+    public long countType(final String typeName, final boolean polymorphic) {
+        statsCountType.incrementAndGet();
+
+        return (Long) executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                checkTransactionIsActive();
+                final DocumentType type = schema.getType(typeName);
+
+                long total = 0;
+                for (Bucket b : type.getBuckets(polymorphic))
+                    total += b.count();
+
+                return total;
+            }
+        });
+    }
+
+    @Override
+    public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
+        statsScanType.incrementAndGet();
+
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+
+                checkTransactionIsActive();
+
+                final DocumentType type = schema.getType(typeName);
+
+                for (Bucket b : type.getBuckets(polymorphic)) {
+                    b.scan(new RawRecordCallback() {
+                        @Override
+                        public boolean onRecord(final RID rid, final Binary view) {
+                            final Document record = (Document) recordFactory.newImmutableRecord(wrappedDatabaseInstance, typeName, rid, view);
+                            return callback.onRecord(record);
+                        }
+                    });
+                }
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public void scanBucket(final String bucketName, final RecordCallback callback) {
+        statsScanBucket.incrementAndGet();
+
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+
+                checkDatabaseIsOpen();
+
+                final String type = schema.getTypeNameByBucketId(schema.getBucketByName(bucketName).getId());
+                schema.getBucketByName(bucketName).scan(new RawRecordCallback() {
+                    @Override
+                    public boolean onRecord(final RID rid, final Binary view) {
+                        final Record record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type, rid, view);
+                        return callback.onRecord(record);
+                    }
+                });
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public Iterator<Record> iterateType(final String typeName, final boolean polymorphic) {
+        statsIterateType.incrementAndGet();
+
+        return (Iterator<Record>) executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+
+                checkDatabaseIsOpen();
+                try {
+                    final DocumentType type = schema.getType(typeName);
+
+                    final MultiIterator iter = new MultiIterator();
+
+                    for (Bucket b : type.getBuckets(polymorphic))
+                        iter.add(b.iterator());
+
+                    return iter;
+
+                } catch (IOException e) {
+                    throw new DatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
+                }
+            }
+        });
+    }
+
+    @Override
+    public Iterator<Record> iterateBucket(final String bucketName) {
+        statsIterateBucket.incrementAndGet();
+
+        readLock();
+        try {
+
+            checkDatabaseIsOpen();
+            try {
+                final Bucket bucket = schema.getBucketByName(bucketName);
+                return bucket.iterator();
+            } catch (Exception e) {
+                throw new DatabaseOperationException("Error on executing scan of bucket '" + bucketName + "'", e);
+            }
 
         } finally {
-          Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
+            readUnlock();
         }
-        return null;
-      }
-    });
-  }
-
-  public DatabaseAsyncExecutor async() {
-    if (async == null) {
-      asyncLock.lock();
-      try {
-        if (async == null)
-          async = new DatabaseAsyncExecutor(wrappedDatabaseInstance);
-      } finally {
-        asyncLock.unlock();
-      }
     }
-    return async;
-  }
 
-  @Override
-  public Map<String, Object> getStats() {
-    final Map<String, Object> map = new HashMap<>();
-    map.put("txCommits", statsTxCommits.get());
-    map.put("txRollbacks", statsTxRollbacks.get());
-    map.put("createRecord", statsCreateRecord.get());
-    map.put("readRecord", statsReadRecord.get());
-    map.put("updateRecord", statsUpdateRecord.get());
-    map.put("deleteRecord", statsDeleteRecord.get());
-    map.put("queries", statsQueries.get());
-    map.put("commands", statsCommands.get());
-    map.put("scanType", statsScanType.get());
-    map.put("scanBucket", statsScanBucket.get());
-    map.put("iterateType", statsIterateType.get());
-    map.put("iterateBucket", statsIterateBucket.get());
-    map.put("countType", statsCountType.get());
-    map.put("countBucket", statsCountBucket.get());
-    map.put("indexCompactions", indexCompactions.get());
-    return map;
-  }
+    @Override
+    public Record lookupByRID(final RID rid, final boolean loadContent) {
+        if (rid == null)
+            throw new IllegalArgumentException("record is null");
 
-  @Override
-  public String getDatabasePath() {
-    return databasePath;
-  }
+        statsReadRecord.incrementAndGet();
 
-  public TransactionContext getTransaction() {
-    final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.getContext(databasePath);
-    if (dbContext != null) {
-      final TransactionContext tx = dbContext.getLastTransaction();
-      if (tx != null) {
-        final DatabaseInternal txDb = tx.getDatabase();
-        if (txDb == null)
-          throw new TransactionException("Invalid transactional context (db is null)");
-        if (txDb.getEmbedded() != this)
-          throw new TransactionException("Invalid transactional context (different db)");
-        return tx;
-      }
-    }
-    return null;
-  }
-
-  @Override
-  public void begin() {
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        checkDatabaseIsOpen();
-
-        // FORCE THE RESET OF TL
-        final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
-        TransactionContext tx = current.getLastTransaction();
-        if (tx.isActive()) {
-          // CREATE A NESTED TX
-          tx = new TransactionContext(getWrappedDatabaseInstance());
-          current.pushTransaction(tx);
-        }
-
-        tx.begin();
-
-        return null;
-      }
-    });
-  }
-
-  public void incrementStatsTxCommits() {
-    statsTxCommits.incrementAndGet();
-  }
-
-  @Override
-  public void commit() {
-    statsTxCommits.incrementAndGet();
-
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        checkTransactionIsActive();
-
-        final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
-        current.popIfNotLastTransaction().commit();
-
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public void rollback() {
-    statsTxRollbacks.incrementAndGet();
-
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        try {
-          checkTransactionIsActive();
-
-          final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
-          current.popIfNotLastTransaction().rollback();
-
-        } catch (TransactionException e) {
-          // ALREADY ROLLBACKED
-        }
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public long countBucket(final String bucketName) {
-    statsCountBucket.incrementAndGet();
-
-    return (Long) executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        checkTransactionIsActive();
-        return schema.getBucketByName(bucketName).count();
-      }
-    });
-  }
-
-  @Override
-  public long countType(final String typeName, final boolean polymorphic) {
-    statsCountType.incrementAndGet();
-
-    return (Long) executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        checkTransactionIsActive();
-        final DocumentType type = schema.getType(typeName);
-
-        long total = 0;
-        for (Bucket b : type.getBuckets(polymorphic))
-          total += b.count();
-
-        return total;
-      }
-    });
-  }
-
-  @Override
-  public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
-    statsScanType.incrementAndGet();
-
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-
-        checkTransactionIsActive();
-
-        final DocumentType type = schema.getType(typeName);
-
-        for (Bucket b : type.getBuckets(polymorphic)) {
-          b.scan(new RawRecordCallback() {
+        return (Record) executeInReadLock(new Callable<Object>() {
             @Override
-            public boolean onRecord(final RID rid, final Binary view) {
-              final Document record = (Document) recordFactory.newImmutableRecord(wrappedDatabaseInstance, typeName, rid, view);
-              return callback.onRecord(record);
+            public Object call() {
+
+                checkDatabaseIsOpen();
+
+                // CHECK IN TX CACHE FIRST
+                final TransactionContext tx = getTransaction();
+                Record record = tx.getRecordFromCache(rid);
+                if (record != null)
+                    return record;
+
+                final DocumentType type = schema.getTypeByBucketId(rid.getBucketId());
+
+                if (loadContent) {
+                    final Binary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
+                    record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type != null ? type.getName() : null, rid, buffer.copy());
+                    return record;
+                }
+
+                if (type != null)
+                    record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type.getName(), rid, type.getType());
+                else
+                    record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, null, rid, Document.RECORD_TYPE);
+
+                return record;
             }
-          });
-        }
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public void scanBucket(final String bucketName, final RecordCallback callback) {
-    statsScanBucket.incrementAndGet();
-
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-
-        checkDatabaseIsOpen();
-
-        final String type = schema.getTypeNameByBucketId(schema.getBucketByName(bucketName).getId());
-        schema.getBucketByName(bucketName).scan(new RawRecordCallback() {
-          @Override
-          public boolean onRecord(final RID rid, final Binary view) {
-            final Record record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type, rid, view);
-            return callback.onRecord(record);
-          }
         });
-        return null;
-      }
-    });
-  }
+    }
 
-  @Override
-  public Iterator<Record> iterateType(final String typeName, final boolean polymorphic) {
-    statsIterateType.incrementAndGet();
+    @Override
+    public IndexCursor lookupByKey(final String type, final String[] properties, final Object[] keys) {
+        statsReadRecord.incrementAndGet();
 
-    return (Iterator<Record>) executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
+        return (IndexCursor) executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
 
-        checkDatabaseIsOpen();
-        try {
-          final DocumentType type = schema.getType(typeName);
+                checkDatabaseIsOpen();
+                final DocumentType t = schema.getType(type);
 
-          final MultiIterator iter = new MultiIterator();
+                final TypeIndex idx = t.getIndexByProperties(properties);
+                if (idx == null)
+                    throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
-          for (Bucket b : type.getBuckets(polymorphic))
-            iter.add(b.iterator());
+                return idx.get(keys);
+            }
+        });
+    }
 
-          return iter;
-
-        } catch (IOException e) {
-          throw new DatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
+    @Override
+    public void registerCallback(final CALLBACK_EVENT event, final Callable<Void> callback) {
+        List<Callable<Void>> callbacks = this.callbacks.get(event);
+        if (callbacks == null) {
+            callbacks = new ArrayList<Callable<Void>>();
+            this.callbacks.put(event, callbacks);
         }
-      }
-    });
-  }
-
-  @Override
-  public Iterator<Record> iterateBucket(final String bucketName) {
-    statsIterateBucket.incrementAndGet();
-
-    readLock();
-    try {
-
-      checkDatabaseIsOpen();
-      try {
-        final Bucket bucket = schema.getBucketByName(bucketName);
-        return bucket.iterator();
-      } catch (Exception e) {
-        throw new DatabaseOperationException("Error on executing scan of bucket '" + bucketName + "'", e);
-      }
-
-    } finally {
-      readUnlock();
+        callbacks.add(callback);
     }
-  }
 
-  @Override
-  public Record lookupByRID(final RID rid, final boolean loadContent) {
-    if (rid == null)
-      throw new IllegalArgumentException("record is null");
-
-    statsReadRecord.incrementAndGet();
-
-    return (Record) executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-
-        checkDatabaseIsOpen();
-
-        // CHECK IN TX CACHE FIRST
-        final TransactionContext tx = getTransaction();
-        Record record = tx.getRecordFromCache(rid);
-        if (record != null)
-          return record;
-
-        final DocumentType type = schema.getTypeByBucketId(rid.getBucketId());
-
-        if (loadContent) {
-          final Binary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
-          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type != null ? type.getName() : null, rid, buffer.copy());
-          return record;
+    @Override
+    public void unregisterCallback(final CALLBACK_EVENT event, final Callable<Void> callback) {
+        List<Callable<Void>> callbacks = this.callbacks.get(event);
+        if (callbacks != null) {
+            callbacks.remove(callback);
+            if (callbacks.isEmpty())
+                this.callbacks.remove(event);
         }
-
-        if (type != null)
-          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type.getName(), rid, type.getType());
-        else
-          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, null, rid, Document.RECORD_TYPE);
-
-        return record;
-      }
-    });
-  }
-
-  @Override
-  public IndexCursor lookupByKey(final String type, final String[] properties, final Object[] keys) {
-    statsReadRecord.incrementAndGet();
-
-    return (IndexCursor) executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-
-        checkDatabaseIsOpen();
-        final DocumentType t = schema.getType(type);
-
-        final TypeIndex idx = t.getIndexByProperties(properties);
-        if (idx == null)
-          throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
-
-        return idx.get(keys);
-      }
-    });
-  }
-
-  @Override
-  public void registerCallback(final CALLBACK_EVENT event, final Callable<Void> callback) {
-    List<Callable<Void>> callbacks = this.callbacks.get(event);
-    if (callbacks == null) {
-      callbacks = new ArrayList<Callable<Void>>();
-      this.callbacks.put(event, callbacks);
     }
-    callbacks.add(callback);
-  }
 
-  @Override
-  public void unregisterCallback(final CALLBACK_EVENT event, final Callable<Void> callback) {
-    List<Callable<Void>> callbacks = this.callbacks.get(event);
-    if (callbacks != null) {
-      callbacks.remove(callback);
-      if (callbacks.isEmpty())
-        this.callbacks.remove(event);
+    @Override
+    public GraphEngine getGraphEngine() {
+        return graphEngine;
     }
-  }
 
-  @Override
-  public GraphEngine getGraphEngine() {
-    return graphEngine;
-  }
+    @Override
+    public TransactionManager getTransactionManager() {
+        return transactionManager;
+    }
 
-  @Override
-  public TransactionManager getTransactionManager() {
-    return transactionManager;
-  }
+    @Override
+    public boolean isReadYourWrites() {
+        return readYourWrites;
+    }
 
-  @Override
-  public boolean isReadYourWrites() {
-    return readYourWrites;
-  }
+    @Override
+    public void setReadYourWrites(final boolean readYourWrites) {
+        this.readYourWrites = readYourWrites;
+    }
 
-  @Override
-  public void setReadYourWrites(final boolean readYourWrites) {
-    this.readYourWrites = readYourWrites;
-  }
+    @Override
+    public void createRecord(final MutableDocument record) {
+        if (record.getIdentity() != null)
+            throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
-  @Override
-  public void createRecord(final MutableDocument record) {
-    if (record.getIdentity() != null)
-      throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
 
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
+                final boolean begunHere = checkTransactionIsActive();
+
+                if (mode == PaginatedFile.MODE.READ_ONLY)
+                    throw new DatabaseIsReadOnlyException("Cannot create a new record");
+
+                final DocumentType type = schema.getType(record.getType());
+
+                final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.getContext(databasePath).asyncMode);
+                record.setIdentity(bucket.createRecord(record));
+                indexer.createDocument(record, type, bucket);
+
+                getTransaction().updateRecordInCache(record);
+
+                if (begunHere)
+                    wrappedDatabaseInstance.commit();
+
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public void createRecord(final Record record, final String bucketName) {
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                createRecordNoLock(record, bucketName);
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public void createRecordNoLock(final Record record, final String bucketName) {
+        if (record.getIdentity() != null)
+            throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
         final boolean begunHere = checkTransactionIsActive();
 
         if (mode == PaginatedFile.MODE.READ_ONLY)
-          throw new DatabaseIsReadOnlyException("Cannot create a new record");
+            throw new DatabaseIsReadOnlyException("Cannot create a new record");
 
-        final DocumentType type = schema.getType(record.getType());
+        final Bucket bucket = schema.getBucketByName(bucketName);
 
-        final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.getContext(databasePath).asyncMode);
-        record.setIdentity(bucket.createRecord(record));
-        indexer.createDocument(record, type, bucket);
+        ((RecordInternal) record).setIdentity(bucket.createRecord(record));
 
         getTransaction().updateRecordInCache(record);
 
         if (begunHere)
-          wrappedDatabaseInstance.commit();
+            wrappedDatabaseInstance.commit();
+    }
 
-        return null;
-      }
-    });
-  }
+    @Override
+    public void updateRecord(final Record record) {
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                updateRecordNoLock(record);
+                return null;
+            }
+        });
+    }
 
-  @Override
-  public void createRecord(final Record record, final String bucketName) {
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        createRecordNoLock(record, bucketName);
-        return null;
-      }
-    });
-  }
+    @Override
+    public void updateRecordNoLock(final Record record) {
+        if (record.getIdentity() == null)
+            throw new IllegalArgumentException("Cannot update the record because it is not persistent");
 
-  @Override
-  public void createRecordNoLock(final Record record, final String bucketName) {
-    if (record.getIdentity() != null)
-      throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
-
-    final boolean begunHere = checkTransactionIsActive();
-
-    if (mode == PaginatedFile.MODE.READ_ONLY)
-      throw new DatabaseIsReadOnlyException("Cannot create a new record");
-
-    final Bucket bucket = schema.getBucketByName(bucketName);
-
-    ((RecordInternal) record).setIdentity(bucket.createRecord(record));
-
-    getTransaction().updateRecordInCache(record);
-
-    if (begunHere)
-      wrappedDatabaseInstance.commit();
-  }
-
-  @Override
-  public void updateRecord(final Record record) {
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        updateRecordNoLock(record);
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public void updateRecordNoLock(final Record record) {
-    if (record.getIdentity() == null)
-      throw new IllegalArgumentException("Cannot update the record because it is not persistent");
-
-    final boolean begunHere = checkTransactionIsActive();
-
-    if (mode == PaginatedFile.MODE.READ_ONLY)
-      throw new DatabaseIsReadOnlyException("Cannot update a record");
-
-    final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : null;
-
-    if (indexes != null && !indexes.isEmpty()) {
-      // UPDATE THE INDEXES TOO
-      final Binary originalBuffer = ((RecordInternal) record).getBuffer();
-      if (originalBuffer == null)
-        throw new IllegalStateException("Cannot read original buffer for indexing");
-      originalBuffer.rewind();
-      final Document originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
-
-      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
-
-      indexer.updateDocument(originalRecord, (Document) record, indexes);
-    } else
-      // NO INDEXES
-      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
-
-    getTransaction().updateRecordInCache(record);
-    getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
-
-    if (begunHere)
-      wrappedDatabaseInstance.commit();
-  }
-
-  @Override
-  public void deleteRecord(final Record record) {
-    if (record.getIdentity() == null)
-      throw new IllegalArgumentException("Cannot delete a non persistent record");
-
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
         final boolean begunHere = checkTransactionIsActive();
 
         if (mode == PaginatedFile.MODE.READ_ONLY)
-          throw new DatabaseIsReadOnlyException("Cannot delete record " + record.getIdentity());
+            throw new DatabaseIsReadOnlyException("Cannot update a record");
 
-        final Bucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
+        final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : null;
 
-        if (record instanceof Document)
-          indexer.deleteDocument((Document) record);
+        if (indexes != null && !indexes.isEmpty()) {
+            // UPDATE THE INDEXES TOO
+            final Binary originalBuffer = ((RecordInternal) record).getBuffer();
+            if (originalBuffer == null)
+                throw new IllegalStateException("Cannot read original buffer for indexing");
+            originalBuffer.rewind();
+            final Document originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
 
-        if (record instanceof Edge) {
-          graphEngine.deleteEdge((Edge) record);
-        } else if (record instanceof Vertex) {
-          graphEngine.deleteVertex((VertexInternal) record);
+            schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+
+            indexer.updateDocument(originalRecord, (Document) record, indexes);
         } else
-          bucket.deleteRecord(record.getIdentity());
+            // NO INDEXES
+            schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
-        getTransaction().removeRecordFromCache(record);
+        getTransaction().updateRecordInCache(record);
         getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
 
         if (begunHere)
-          wrappedDatabaseInstance.commit();
+            wrappedDatabaseInstance.commit();
+    }
 
-        return null;
-      }
-    });
-  }
+    @Override
+    public void deleteRecord(final Record record) {
+        if (record.getIdentity() == null)
+            throw new IllegalArgumentException("Cannot delete a non persistent record");
 
-  @Override
-  public boolean isTransactionActive() {
-    final Transaction tx = getTransaction();
-    return tx != null && tx.isActive();
-  }
+        executeInReadLock(new Callable<Object>() {
+            @Override
+            public Object call() {
+                final boolean begunHere = checkTransactionIsActive();
 
-  @Override
-  public void transaction(final TransactionScope txBlock) {
-    transaction(txBlock, true, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
-  }
+                if (mode == PaginatedFile.MODE.READ_ONLY)
+                    throw new DatabaseIsReadOnlyException("Cannot delete record " + record.getIdentity());
 
-  @Override
-  public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx) {
-    transaction(txBlock, joinCurrentTx, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
-  }
+                final Bucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
 
-  @Override
-  public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx, int retries) {
-    if (txBlock == null)
-      throw new IllegalArgumentException("Transaction block is null");
+                if (record instanceof Document)
+                    indexer.deleteDocument((Document) record);
 
-    ConcurrentModificationException lastException = null;
+                if (record instanceof Edge) {
+                    graphEngine.deleteEdge((Edge) record);
+                } else if (record instanceof Vertex) {
+                    graphEngine.deleteVertex((VertexInternal) record);
+                } else
+                    bucket.deleteRecord(record.getIdentity());
 
-    if (retries < 1)
-      retries = 1;
+                getTransaction().removeRecordFromCache(record);
+                getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
 
-    for (int retry = 0; retry < retries; ++retry) {
-      boolean txJoined = false;
+                if (begunHere)
+                    wrappedDatabaseInstance.commit();
 
-      try {
-        if (joinCurrentTx && wrappedDatabaseInstance.isTransactionActive())
-          txJoined = true;
-        else
-          wrappedDatabaseInstance.begin();
+                return null;
+            }
+        });
+    }
 
-        txBlock.execute(wrappedDatabaseInstance);
+    @Override
+    public boolean isTransactionActive() {
+        final Transaction tx = getTransaction();
+        return tx != null && tx.isActive();
+    }
 
-        if (!txJoined)
-          wrappedDatabaseInstance.commit();
+    @Override
+    public void transaction(final TransactionScope txBlock) {
+        transaction(txBlock, true, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
+    }
 
-        // OK
-        return;
+    @Override
+    public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx) {
+        transaction(txBlock, joinCurrentTx, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
+    }
 
-      } catch (ConcurrentModificationException e) {
-        // RETRY
-        lastException = e;
-        continue;
-      } catch (Exception e) {
+    @Override
+    public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx, int retries) {
+        if (txBlock == null)
+            throw new IllegalArgumentException("Transaction block is null");
+
+        ConcurrentModificationException lastException = null;
+
+        if (retries < 1)
+            retries = 1;
+
+        for (int retry = 0; retry < retries; ++retry) {
+            boolean txJoined = false;
+
+            try {
+                if (joinCurrentTx && wrappedDatabaseInstance.isTransactionActive())
+                    txJoined = true;
+                else
+                    wrappedDatabaseInstance.begin();
+
+                txBlock.execute(wrappedDatabaseInstance);
+
+                if (!txJoined)
+                    wrappedDatabaseInstance.commit();
+
+                // OK
+                return;
+
+            } catch (ConcurrentModificationException e) {
+                // RETRY
+                lastException = e;
+                continue;
+            } catch (Exception e) {
+                if (getTransaction().isActive())
+                    rollback();
+                throw e;
+            }
+        }
+        throw lastException;
+    }
+
+    @Override
+    public RecordFactory getRecordFactory() {
+        return recordFactory;
+    }
+
+    @Override
+    public Schema getSchema() {
+        checkDatabaseIsOpen();
+        return schema;
+    }
+
+    @Override
+    public BinarySerializer getSerializer() {
+        return serializer;
+    }
+
+    @Override
+    public PageManager getPageManager() {
+        checkDatabaseIsOpen();
+        return pageManager;
+    }
+
+    @Override
+    public MutableDocument newDocument(final String typeName) {
+        if (typeName == null)
+            throw new IllegalArgumentException("Type is null");
+
+        final DocumentType type = schema.getType(typeName);
+        if (!type.getClass().equals(DocumentType.class))
+            throw new IllegalArgumentException("Cannot create a document of type '" + typeName + "' because is not a document type");
+
+        statsCreateRecord.incrementAndGet();
+
+        return new MutableDocument(wrappedDatabaseInstance, typeName, null);
+    }
+
+    @Override
+    public MutableEmbeddedDocument newEmbeddedDocument(final String typeName) {
+        if (typeName == null)
+            throw new IllegalArgumentException("Type is null");
+
+        final DocumentType type = schema.getType(typeName);
+        if (!type.getClass().equals(DocumentType.class))
+            throw new IllegalArgumentException("Cannot create an embedded document of type '" + typeName + "' because is not a document type");
+
+        return new MutableEmbeddedDocument(wrappedDatabaseInstance, typeName);
+    }
+
+    @Override
+    public MutableVertex newVertex(final String typeName) {
+        if (typeName == null)
+            throw new IllegalArgumentException("Type is null");
+
+        final DocumentType type = schema.getType(typeName);
+        if (!type.getClass().equals(VertexType.class))
+            throw new IllegalArgumentException("Cannot create a vertex of type '" + typeName + "' because is not a vertex type");
+
+        statsCreateRecord.incrementAndGet();
+
+        return new MutableVertex(wrappedDatabaseInstance, typeName, null);
+    }
+
+    public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
+                              final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
+                              final boolean bidirectional, final Object... properties) {
+        if (sourceVertexKey == null)
+            throw new IllegalArgumentException("Source vertex key is null");
+
+        if (sourceVertexKey.length != sourceVertexValue.length)
+            throw new IllegalArgumentException("Source vertex key and value arrays have different sizes");
+
+        if (destinationVertexKey == null)
+            throw new IllegalArgumentException("Destination vertex key is null");
+
+        if (destinationVertexKey.length != destinationVertexValue.length)
+            throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
+
+        final Iterator<Identifiable> v1Result = lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
+
+        Vertex sourceVertex;
+        if (!v1Result.hasNext()) {
+            if (createVertexIfNotExist) {
+                sourceVertex = newVertex(sourceVertexType);
+                for (int i = 0; i < sourceVertexKey.length; ++i)
+                    ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
+                ((MutableVertex) sourceVertex).save();
+            } else
+                throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
+        } else
+            sourceVertex = v1Result.next().getIdentity().getVertex();
+
+        final Iterator<Identifiable> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
+        Vertex destinationVertex;
+        if (!v2Result.hasNext()) {
+            if (createVertexIfNotExist) {
+                destinationVertex = newVertex(destinationVertexType);
+                for (int i = 0; i < destinationVertexKey.length; ++i)
+                    ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+                ((MutableVertex) destinationVertex).save();
+            } else
+                throw new IllegalArgumentException(
+                        "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
+        } else
+            destinationVertex = v2Result.next().getIdentity().getVertex();
+
+        statsCreateRecord.incrementAndGet();
+
+        return sourceVertex.newEdge(edgeType, destinationVertex, bidirectional, properties);
+    }
+
+    public Edge newEdgeByKeys(final Vertex sourceVertex, final String destinationVertexType, final String[] destinationVertexKey,
+                              final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional,
+                              final Object... properties) {
+        if (sourceVertex == null)
+            throw new IllegalArgumentException("Source vertex is null");
+
+        if (destinationVertexKey == null)
+            throw new IllegalArgumentException("Destination vertex key is null");
+
+        if (destinationVertexKey.length != destinationVertexValue.length)
+            throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
+
+        final Iterator<Identifiable> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
+        Vertex destinationVertex;
+        if (!v2Result.hasNext()) {
+            if (createVertexIfNotExist) {
+                destinationVertex = newVertex(destinationVertexType);
+                for (int i = 0; i < destinationVertexKey.length; ++i)
+                    ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
+                ((MutableVertex) destinationVertex).save();
+            } else
+                throw new IllegalArgumentException(
+                        "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
+        } else
+            destinationVertex = v2Result.next().getIdentity().getVertex();
+
+        statsCreateRecord.incrementAndGet();
+
+        return sourceVertex.newEdge(edgeType, destinationVertex, bidirectional, properties);
+    }
+
+    @Override
+    public void setAutoTransaction(final boolean autoTransaction) {
+        this.autoTransaction = autoTransaction;
+    }
+
+    @Override
+    public FileManager getFileManager() {
+        checkDatabaseIsOpen();
+        return fileManager;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public PaginatedFile.MODE getMode() {
+        return mode;
+    }
+
+    @Override
+    public boolean checkTransactionIsActive() {
+        checkDatabaseIsOpen();
+        if (autoTransaction && !isTransactionActive()) {
+            wrappedDatabaseInstance.begin();
+            return true;
+        } else if (!getTransaction().isActive())
+            throw new DatabaseOperationException("Transaction not begun");
+
+        return false;
+    }
+
+    /**
+     * Test only API.
+     */
+    @Override
+    public void kill() {
+        if (async != null)
+            async.kill();
+
         if (getTransaction().isActive())
-          rollback();
-        throw e;
-      }
-    }
-    throw lastException;
-  }
+            // ROLLBACK ANY PENDING OPERATION
+            getTransaction().kill();
 
-  @Override
-  public RecordFactory getRecordFactory() {
-    return recordFactory;
-  }
-
-  @Override
-  public Schema getSchema() {
-    checkDatabaseIsOpen();
-    return schema;
-  }
-
-  @Override
-  public BinarySerializer getSerializer() {
-    return serializer;
-  }
-
-  @Override
-  public PageManager getPageManager() {
-    checkDatabaseIsOpen();
-    return pageManager;
-  }
-
-  @Override
-  public MutableDocument newDocument(final String typeName) {
-    if (typeName == null)
-      throw new IllegalArgumentException("Type is null");
-
-    final DocumentType type = schema.getType(typeName);
-    if (!type.getClass().equals(DocumentType.class))
-      throw new IllegalArgumentException("Cannot create a document of type '" + typeName + "' because is not a document type");
-
-    statsCreateRecord.incrementAndGet();
-
-    return new MutableDocument(wrappedDatabaseInstance, typeName, null);
-  }
-
-  @Override
-  public MutableEmbeddedDocument newEmbeddedDocument(final String typeName) {
-    if (typeName == null)
-      throw new IllegalArgumentException("Type is null");
-
-    final DocumentType type = schema.getType(typeName);
-    if (!type.getClass().equals(DocumentType.class))
-      throw new IllegalArgumentException("Cannot create an embedded document of type '" + typeName + "' because is not a document type");
-
-    return new MutableEmbeddedDocument(wrappedDatabaseInstance, typeName);
-  }
-
-  @Override
-  public MutableVertex newVertex(final String typeName) {
-    if (typeName == null)
-      throw new IllegalArgumentException("Type is null");
-
-    final DocumentType type = schema.getType(typeName);
-    if (!type.getClass().equals(VertexType.class))
-      throw new IllegalArgumentException("Cannot create a vertex of type '" + typeName + "' because is not a vertex type");
-
-    statsCreateRecord.incrementAndGet();
-
-    return new MutableVertex(wrappedDatabaseInstance, typeName, null);
-  }
-
-  public Edge newEdgeByKeys(final String sourceVertexType, final String[] sourceVertexKey, final Object[] sourceVertexValue, final String destinationVertexType,
-      final String[] destinationVertexKey, final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType,
-      final boolean bidirectional, final Object... properties) {
-    if (sourceVertexKey == null)
-      throw new IllegalArgumentException("Source vertex key is null");
-
-    if (sourceVertexKey.length != sourceVertexValue.length)
-      throw new IllegalArgumentException("Source vertex key and value arrays have different sizes");
-
-    if (destinationVertexKey == null)
-      throw new IllegalArgumentException("Destination vertex key is null");
-
-    if (destinationVertexKey.length != destinationVertexValue.length)
-      throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
-
-    final Iterator<Identifiable> v1Result = lookupByKey(sourceVertexType, sourceVertexKey, sourceVertexValue);
-
-    Vertex sourceVertex;
-    if (!v1Result.hasNext()) {
-      if (createVertexIfNotExist) {
-        sourceVertex = newVertex(sourceVertexType);
-        for (int i = 0; i < sourceVertexKey.length; ++i)
-          ((MutableVertex) sourceVertex).set(sourceVertexKey[i], sourceVertexValue[i]);
-        ((MutableVertex) sourceVertex).save();
-      } else
-        throw new IllegalArgumentException("Cannot find source vertex with key " + Arrays.toString(sourceVertexKey) + "=" + Arrays.toString(sourceVertexValue));
-    } else
-      sourceVertex = v1Result.next().getIdentity().getVertex();
-
-    final Iterator<Identifiable> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
-    Vertex destinationVertex;
-    if (!v2Result.hasNext()) {
-      if (createVertexIfNotExist) {
-        destinationVertex = newVertex(destinationVertexType);
-        for (int i = 0; i < destinationVertexKey.length; ++i)
-          ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
-        ((MutableVertex) destinationVertex).save();
-      } else
-        throw new IllegalArgumentException(
-            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
-    } else
-      destinationVertex = v2Result.next().getIdentity().getVertex();
-
-    statsCreateRecord.incrementAndGet();
-
-    return sourceVertex.newEdge(edgeType, destinationVertex, bidirectional, properties);
-  }
-
-  public Edge newEdgeByKeys(final Vertex sourceVertex, final String destinationVertexType, final String[] destinationVertexKey,
-      final Object[] destinationVertexValue, final boolean createVertexIfNotExist, final String edgeType, final boolean bidirectional,
-      final Object... properties) {
-    if (sourceVertex == null)
-      throw new IllegalArgumentException("Source vertex is null");
-
-    if (destinationVertexKey == null)
-      throw new IllegalArgumentException("Destination vertex key is null");
-
-    if (destinationVertexKey.length != destinationVertexValue.length)
-      throw new IllegalArgumentException("Destination vertex key and value arrays have different sizes");
-
-    final Iterator<Identifiable> v2Result = lookupByKey(destinationVertexType, destinationVertexKey, destinationVertexValue);
-    Vertex destinationVertex;
-    if (!v2Result.hasNext()) {
-      if (createVertexIfNotExist) {
-        destinationVertex = newVertex(destinationVertexType);
-        for (int i = 0; i < destinationVertexKey.length; ++i)
-          ((MutableVertex) destinationVertex).set(destinationVertexKey[i], destinationVertexValue[i]);
-        ((MutableVertex) destinationVertex).save();
-      } else
-        throw new IllegalArgumentException(
-            "Cannot find destination vertex with key " + Arrays.toString(destinationVertexKey) + "=" + Arrays.toString(destinationVertexValue));
-    } else
-      destinationVertex = v2Result.next().getIdentity().getVertex();
-
-    statsCreateRecord.incrementAndGet();
-
-    return sourceVertex.newEdge(edgeType, destinationVertex, bidirectional, properties);
-  }
-
-  @Override
-  public void setAutoTransaction(final boolean autoTransaction) {
-    this.autoTransaction = autoTransaction;
-  }
-
-  @Override
-  public FileManager getFileManager() {
-    checkDatabaseIsOpen();
-    return fileManager;
-  }
-
-  @Override
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public PaginatedFile.MODE getMode() {
-    return mode;
-  }
-
-  @Override
-  public boolean checkTransactionIsActive() {
-    checkDatabaseIsOpen();
-    if (autoTransaction && !isTransactionActive()) {
-      wrappedDatabaseInstance.begin();
-      return true;
-    } else if (!getTransaction().isActive())
-      throw new DatabaseOperationException("Transaction not begun");
-
-    return false;
-  }
-
-  /**
-   * Test only API.
-   */
-  @Override
-  public void kill() {
-    if (async != null)
-      async.kill();
-
-    if (getTransaction().isActive())
-      // ROLLBACK ANY PENDING OPERATION
-      getTransaction().kill();
-
-    try {
-      schema.close();
-      pageManager.kill();
-      fileManager.close();
-      transactionManager.kill();
-
-      if (lockFile != null) {
         try {
-          lockFileIO.release();
-        } catch (IOException e) {
-          // IGNORE IT
+            schema.close();
+            pageManager.kill();
+            fileManager.close();
+            transactionManager.kill();
+
+            if (lockFile != null) {
+                try {
+                    lockFileIO.release();
+                } catch (IOException e) {
+                    // IGNORE IT
+                }
+            }
+
+        } finally {
+            open = false;
+            Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
         }
-      }
-
-    } finally {
-      open = false;
-      Profiler.INSTANCE.unregisterDatabase(EmbeddedDatabase.this);
     }
-  }
 
-  @Override
-  public DocumentIndexer getIndexer() {
-    return indexer;
-  }
-
-  @Override
-  public ResultSet command(final String language, final String query, final Object... parameters) {
-    checkDatabaseIsOpen();
-
-    statsCommands.incrementAndGet();
-
-    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
-    return original;
-  }
-
-  @Override
-  public ResultSet command(final String language, final String query, final Map<String, Object> parameters) {
-    checkDatabaseIsOpen();
-
-    statsCommands.incrementAndGet();
-
-    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
-    return original;
-  }
-
-  @Override
-  public ResultSet query(final String language, final String query, final Object... parameters) {
-    checkDatabaseIsOpen();
-
-    statsQueries.incrementAndGet();
-
-    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
-    if (!statement.isIdempotent())
-      throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
-    return original;
-  }
-
-  @Override
-  public ResultSet query(final String language, final String query, final Map<String, Object> parameters) {
-    checkDatabaseIsOpen();
-
-    statsQueries.incrementAndGet();
-
-    final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
-    if (!statement.isIdempotent())
-      throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
-    final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
-    return original;
-  }
-
-  /**
-   * Returns true if two databases are the same.
-   */
-  public boolean equals(final Object o) {
-    if (this == o)
-      return true;
-    if (o == null || getClass() != o.getClass())
-      return false;
-
-    final EmbeddedDatabase pDatabase = (EmbeddedDatabase) o;
-
-    return databasePath != null ? databasePath.equals(pDatabase.databasePath) : pDatabase.databasePath == null;
-  }
-
-  public DatabaseContext.DatabaseContextTL getContext() {
-    return DatabaseContext.INSTANCE.getContext(databasePath);
-  }
-
-  /**
-   * Executes a callback in an shared lock.
-   */
-  @Override
-  public <RET extends Object> RET executeInReadLock(final Callable<RET> callable) {
-    readLock();
-    try {
-
-      return callable.call();
-
-    } catch (ClosedChannelException e) {
-      LogManager.instance().log(this, Level.SEVERE, "Database '%s' has some files that are closed", e, name);
-      close();
-      throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
-
-    } catch (RuntimeException e) {
-      throw e;
-
-    } catch (Throwable e) {
-      throw new DatabaseOperationException("Error in execution in lock", e);
-
-    } finally {
-      readUnlock();
+    @Override
+    public DocumentIndexer getIndexer() {
+        return indexer;
     }
-  }
 
-  /**
-   * Executes a callback in an exclusive lock.
-   */
-  @Override
-  public <RET extends Object> RET executeInWriteLock(final Callable<RET> callable) {
-    writeLock();
-    try {
+    @Override
+    public ResultSet command(final String language, final String query, final Object... parameters) {
+        checkDatabaseIsOpen();
 
-      return callable.call();
+        statsCommands.incrementAndGet();
 
-    } catch (ClosedChannelException e) {
-      LogManager.instance().log(this, Level.SEVERE, "Database '%s' has some files that are closed", e, name);
-      close();
-      throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
-
-    } catch (RuntimeException e) {
-      throw e;
-
-    } catch (Throwable e) {
-      throw new DatabaseOperationException("Error in execution in lock", e);
-
-    } finally {
-      writeUnlock();
+        final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
+        final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
+        return original;
     }
-  }
 
-  @Override
-  public StatementCache getStatementCache() {
-    return statementCache;
-  }
+    @Override
+    public ResultSet command(final String language, final String query, final Map<String, Object> parameters) {
+        checkDatabaseIsOpen();
 
-  @Override
-  public ExecutionPlanCache getExecutionPlanCache() {
-    return executionPlanCache;
-  }
+        statsCommands.incrementAndGet();
 
-  @Override
-  public WALFileFactory getWALFileFactory() {
-    return walFactory;
-  }
+        final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
+        final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
+        return original;
+    }
 
-  @Override
-  public int hashCode() {
-    return databasePath != null ? databasePath.hashCode() : 0;
-  }
 
-  @Override
-  public void executeCallbacks(final CALLBACK_EVENT event) throws IOException {
-    final List<Callable<Void>> callbacks = this.callbacks.get(event);
-    if (callbacks != null && !callbacks.isEmpty()) {
-      for (Callable<Void> cb : callbacks) {
+    @Override
+    public ResultSet execute(String language, String script, Map<Object, Object> params) {
+        checkDatabaseIsOpen();
+
+        BasicCommandContext context = new BasicCommandContext();
+        context.setDatabase(this);
+
+        context.setInputParameters(params);
+
+        final List<Statement> statements = SQLEngine.parseScript(script, wrappedDatabaseInstance);
+        ResultSet original;
         try {
-          cb.call();
-        } catch (RuntimeException | IOException e) {
-          throw e;
+            original = executeInternal(statements, context);
+        } finally {
+
+        }
+        LocalResultSetLifecycleDecorator result = new LocalResultSetLifecycleDecorator(original);
+        return result;
+    }
+
+    @Override
+    public ResultSet execute(String language, String script, Object... args) {
+        checkDatabaseIsOpen();
+
+        BasicCommandContext context = new BasicCommandContext();
+        context.setDatabase(this);
+
+        Map<Object, Object> params = new HashMap<>();
+        if (args != null) {
+            for (int i = 0; i < args.length; i++) {
+                params.put(i, args[i]);
+            }
+        }
+
+        context.setInputParameters(params);
+
+        final List<Statement> statements = SQLEngine.parseScript(script, wrappedDatabaseInstance);
+        ResultSet original;
+        try {
+            original = executeInternal(statements, context);
+        } finally {
+
+        }
+        LocalResultSetLifecycleDecorator result = new LocalResultSetLifecycleDecorator(original);
+
+        return result;
+    }
+
+    private ResultSet executeInternal(List<Statement> statements, CommandContext scriptContext) {
+        ScriptExecutionPlan plan = new ScriptExecutionPlan(scriptContext);
+
+        List<Statement> lastRetryBlock = new ArrayList<>();
+        int nestedTxLevel = 0;
+
+        for (Statement stm : statements) {
+            if (stm instanceof BeginStatement) {
+                nestedTxLevel++;
+            }
+
+            if (nestedTxLevel <= 0) {
+                InternalExecutionPlan sub = stm.createExecutionPlan(scriptContext);
+                plan.chain(sub, false);
+            } else {
+                lastRetryBlock.add(stm);
+            }
+
+            if (stm instanceof CommitStatement && nestedTxLevel > 0) {
+                nestedTxLevel--;
+                if (nestedTxLevel == 0) {
+
+                    for (Statement statement : lastRetryBlock) {
+                        InternalExecutionPlan sub = statement.createExecutionPlan(scriptContext);
+                        plan.chain(sub, false);
+                    }
+                    lastRetryBlock = new ArrayList<>();
+                }
+            }
+
+        }
+
+        final LocalResultSet original = new LocalResultSet(plan);
+        return original;
+
+
+    }
+
+
+    @Override
+    public ResultSet query(final String language, final String query, final Object... parameters) {
+        checkDatabaseIsOpen();
+
+        statsQueries.incrementAndGet();
+
+        final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
+        if (!statement.isIdempotent())
+            throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
+        final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
+        return original;
+    }
+
+    @Override
+    public ResultSet query(final String language, final String query, final Map<String, Object> parameters) {
+        checkDatabaseIsOpen();
+
+        statsQueries.incrementAndGet();
+
+        final Statement statement = SQLEngine.parse(query, wrappedDatabaseInstance);
+        if (!statement.isIdempotent())
+            throw new IllegalArgumentException("Query '" + query + "' is not idempotent");
+        final ResultSet original = statement.execute(wrappedDatabaseInstance, parameters);
+        return original;
+    }
+
+    /**
+     * Returns true if two databases are the same.
+     */
+    public boolean equals(final Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        final EmbeddedDatabase pDatabase = (EmbeddedDatabase) o;
+
+        return databasePath != null ? databasePath.equals(pDatabase.databasePath) : pDatabase.databasePath == null;
+    }
+
+    public DatabaseContext.DatabaseContextTL getContext() {
+        return DatabaseContext.INSTANCE.getContext(databasePath);
+    }
+
+    /**
+     * Executes a callback in an shared lock.
+     */
+    @Override
+    public <RET extends Object> RET executeInReadLock(final Callable<RET> callable) {
+        readLock();
+        try {
+
+            return callable.call();
+
+        } catch (ClosedChannelException e) {
+            LogManager.instance().log(this, Level.SEVERE, "Database '%s' has some files that are closed", e, name);
+            close();
+            throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
+
+        } catch (RuntimeException e) {
+            throw e;
+
+        } catch (Throwable e) {
+            throw new DatabaseOperationException("Error in execution in lock", e);
+
+        } finally {
+            readUnlock();
+        }
+    }
+
+    /**
+     * Executes a callback in an exclusive lock.
+     */
+    @Override
+    public <RET extends Object> RET executeInWriteLock(final Callable<RET> callable) {
+        writeLock();
+        try {
+
+            return callable.call();
+
+        } catch (ClosedChannelException e) {
+            LogManager.instance().log(this, Level.SEVERE, "Database '%s' has some files that are closed", e, name);
+            close();
+            throw new DatabaseOperationException("Database '" + name + "' has some files that are closed", e);
+
+        } catch (RuntimeException e) {
+            throw e;
+
+        } catch (Throwable e) {
+            throw new DatabaseOperationException("Error in execution in lock", e);
+
+        } finally {
+            writeUnlock();
+        }
+    }
+
+    @Override
+    public StatementCache getStatementCache() {
+        return statementCache;
+    }
+
+    @Override
+    public ExecutionPlanCache getExecutionPlanCache() {
+        return executionPlanCache;
+    }
+
+    @Override
+    public WALFileFactory getWALFileFactory() {
+        return walFactory;
+    }
+
+    @Override
+    public int hashCode() {
+        return databasePath != null ? databasePath.hashCode() : 0;
+    }
+
+    @Override
+    public void executeCallbacks(final CALLBACK_EVENT event) throws IOException {
+        final List<Callable<Void>> callbacks = this.callbacks.get(event);
+        if (callbacks != null && !callbacks.isEmpty()) {
+            for (Callable<Void> cb : callbacks) {
+                try {
+                    cb.call();
+                } catch (RuntimeException | IOException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException("Error on executing test callback EVENT=" + event, e);
+                }
+            }
+        }
+    }
+
+    @Override
+    public DatabaseInternal getEmbedded() {
+        return this;
+    }
+
+    @Override
+    public ContextConfiguration getConfiguration() {
+        return configuration;
+    }
+
+    @Override
+    public boolean isOpen() {
+        return open;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    @Override
+    public DatabaseInternal getWrappedDatabaseInstance() {
+        return wrappedDatabaseInstance;
+    }
+
+    public void setWrappedDatabaseInstance(final DatabaseInternal wrappedDatabaseInstance) {
+        this.wrappedDatabaseInstance = wrappedDatabaseInstance;
+    }
+
+    protected void checkDatabaseIsOpen() {
+        if (!open)
+            throw new DatabaseIsClosedException(name);
+
+        if (DatabaseContext.INSTANCE.get() == null)
+            DatabaseContext.INSTANCE.init(this);
+    }
+
+    private void lockDatabase() throws IOException {
+        try {
+            lockFileIO = new RandomAccessFile(lockFile, "rw").getChannel().tryLock();
+
+            if (lockFileIO == null)
+                throw new LockException("Database '" + name + "' is locked by another process");
+
         } catch (Exception e) {
-          throw new IOException("Error on executing test callback EVENT=" + event, e);
+            // IGNORE HERE
+            throw new LockException("Database '" + name + "' is locked by another process", e);
         }
-      }
     }
-  }
-
-  @Override
-  public DatabaseInternal getEmbedded() {
-    return this;
-  }
-
-  @Override
-  public ContextConfiguration getConfiguration() {
-    return configuration;
-  }
-
-  @Override
-  public boolean isOpen() {
-    return open;
-  }
-
-  @Override
-  public String toString() {
-    return name;
-  }
-
-  @Override
-  public DatabaseInternal getWrappedDatabaseInstance() {
-    return wrappedDatabaseInstance;
-  }
-
-  public void setWrappedDatabaseInstance(final DatabaseInternal wrappedDatabaseInstance) {
-    this.wrappedDatabaseInstance = wrappedDatabaseInstance;
-  }
-
-  protected void checkDatabaseIsOpen() {
-    if (!open)
-      throw new DatabaseIsClosedException(name);
-
-    if (DatabaseContext.INSTANCE.get() == null)
-      DatabaseContext.INSTANCE.init(this);
-  }
-
-  private void lockDatabase() throws IOException {
-    try {
-      lockFileIO = new RandomAccessFile(lockFile, "rw").getChannel().tryLock();
-
-      if (lockFileIO == null)
-        throw new LockException("Database '" + name + "' is locked by another process");
-
-    } catch (Exception e) {
-      // IGNORE HERE
-      throw new LockException("Database '" + name + "' is locked by another process", e);
-    }
-  }
 }

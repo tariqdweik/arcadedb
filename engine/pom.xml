@@ -41,25 +41,48 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>org.codehaus.mojo</groupId>-->
+            <!--                <artifactId>javacc-maven-plugin</artifactId>-->
+            <!--                <version>${javacc-maven-plugin.version}</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>jjtree-javacc</id>-->
+            <!--                        <goals>-->
+            <!--                            <goal>jjtree-javacc</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--                <configuration>-->
+            <!--                    <sourceDirectory>${basedir}/src/main/grammar</sourceDirectory>-->
+            <!--                    <interimDirectory>${basedir}/src/main/java</interimDirectory>-->
+            <!--                    <outputDirectory>${basedir}/src/main/java</outputDirectory>-->
+            <!--                </configuration>-->
+            <!--            </plugin>-->
+
+
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>javacc-maven-plugin</artifactId>
-                <version>${javacc-maven-plugin.version}</version>
+                <groupId>com.helger.maven</groupId>
+                <artifactId>ph-javacc-maven-plugin</artifactId>
+                <version>4.1.3</version>
                 <executions>
                     <execution>
-                        <id>jjtree-javacc</id>
+                        <id>jjc1</id>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>jjtree-javacc</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <sourceDirectory>${basedir}/src/main/grammar</sourceDirectory>
-                    <interimDirectory>${basedir}/src/main/java</interimDirectory>
-                    <outputDirectory>${basedir}/src/main/java</outputDirectory>
-                </configuration>
-            </plugin>
+                            <goal>jjdoc</goal>
 
+                        </goals>
+                        <configuration>
+                            <jdkVersion>1.8</jdkVersion>
+                            <sourceDirectory>${basedir}/src/main/grammar</sourceDirectory>
+                            <outputDirectory>${basedir}/src/main/java</outputDirectory>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
         </plugins>
     </build>
     <dependencies>

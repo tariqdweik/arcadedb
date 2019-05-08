@@ -18,51 +18,54 @@ import java.util.List;
  */
 public class InsertExecutionPlan extends SelectExecutionPlan {
 
-  List<Result> result = new ArrayList<>();
-  int          next   = 0;
+    List<Result> result = new ArrayList<>();
+    int next = 0;
 
-  public InsertExecutionPlan(CommandContext ctx) {
-    super(ctx);
-  }
-
-  @Override public ResultSet fetchNext(int n) {
-    if (next >= result.size()) {
-      return new InternalResultSet();//empty
+    public InsertExecutionPlan(CommandContext ctx) {
+        super(ctx);
     }
 
-    IteratorResultSet nextBlock = new IteratorResultSet(result.subList(next, Math.min(next + n, result.size())).iterator());
-    next += n;
-    return nextBlock;
-  }
+    @Override
+    public ResultSet fetchNext(int n) {
+        if (next >= result.size()) {
+            return new InternalResultSet();//empty
+        }
 
-  @Override public void reset(CommandContext ctx) {
-    result.clear();
-    next = 0;
-    super.reset(ctx);
-    executeInternal(null);
-  }
-
-  public void executeInternal(final String typeName) throws CommandExecutionException {
-    while (true) {
-      ResultSet nextBlock = super.fetchNext(100);
-      if (!nextBlock.hasNext()) {
-        return;
-      }
-      while (nextBlock.hasNext()) {
-        result.add(nextBlock.next());
-      }
+        IteratorResultSet nextBlock = new IteratorResultSet(result.subList(next, Math.min(next + n, result.size())).iterator());
+        next += n;
+        return nextBlock;
     }
-  }
 
-  @Override public Result toResult() {
-    ResultInternal res = (ResultInternal) super.toResult();
-    res.setProperty("type", "InsertExecutionPlan");
-    return res;
-  }
+    @Override
+    public void reset(CommandContext ctx) {
+        result.clear();
+        next = 0;
+        super.reset(ctx);
+        executeInternal();
+    }
 
-  @Override
-  public boolean canBeCached() {
-    return false;
-  }
+    public void executeInternal() throws CommandExecutionException {
+        while (true) {
+            ResultSet nextBlock = super.fetchNext(100);
+            if (!nextBlock.hasNext()) {
+                return;
+            }
+            while (nextBlock.hasNext()) {
+                result.add(nextBlock.next());
+            }
+        }
+    }
+
+    @Override
+    public Result toResult() {
+        ResultInternal res = (ResultInternal) super.toResult();
+        res.setProperty("type", "InsertExecutionPlan");
+        return res;
+    }
+
+    @Override
+    public boolean canBeCached() {
+        return false;
+    }
 }
 

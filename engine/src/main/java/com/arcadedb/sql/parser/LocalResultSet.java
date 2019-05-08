@@ -29,42 +29,38 @@ public class LocalResultSet implements ResultSet {
   }
 
   private boolean fetchNext() {
-    do {
-      try {
-        lastFetch = executionPlan.fetchNext(100000);
-        if (!lastFetch.hasNext()) {
-          finished = true;
-          return false;
-        }
-
-        return true;
-
-      } catch (RecordNotFoundException e) {
-        // IGNORE, FETCH NEXT
+    try {
+      lastFetch = executionPlan.fetchNext(100);
+      if (!lastFetch.hasNext()) {
+        finished = true;
+        return false;
       }
-    } while (true);
+      return true;
+    } finally {
+    }
   }
 
   @Override
   public boolean hasNext() {
-    if (finished)
+    if (finished) {
       return false;
-
-    if (lastFetch.hasNext())
+    }
+    if (lastFetch.hasNext()) {
       return true;
-    else
+    } else {
       return fetchNext();
+    }
   }
 
   @Override
   public Result next() {
-    if (finished)
+    if (finished) {
       throw new IllegalStateException();
-
+    }
     if (!lastFetch.hasNext()) {
-      if (!fetchNext())
+      if (!fetchNext()) {
         throw new IllegalStateException();
-
+      }
     }
     return lastFetch.next();
   }

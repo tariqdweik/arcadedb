@@ -16,7 +16,7 @@
     </parent>
 
     <properties>
-        <metrics.version>4.0.3</metrics.version>
+        <metrics.version>4.1.0</metrics.version>
         <slf4j-simple.version>1.7.25</slf4j-simple.version>
         <undertow-core.version>2.0.20.Final</undertow-core.version>
     </properties>

@@ -9,16 +9,21 @@ import com.arcadedb.sql.parser.SimpleExecStatement;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
 public class SingleOpExecutionPlan implements InternalExecutionPlan {
 
-  private final SimpleExecStatement statement;
+  protected final SimpleExecStatement statement;
+
   CommandContext ctx;
 
   boolean executed = false;
+
+  private ResultSet result;
 
   public SingleOpExecutionPlan(CommandContext ctx, SimpleExecStatement stm) {
     this.ctx = ctx;
@@ -32,7 +37,49 @@ public class SingleOpExecutionPlan implements InternalExecutionPlan {
 
   @Override
   public ResultSet fetchNext(int n) {
-    return null;
+
+    if (executed && result == null) {
+      return new InternalResultSet();
+    }
+    if (!executed) {
+      executed = true;
+      result = statement.executeSimple(this.ctx);
+      if (result instanceof InternalResultSet) {
+        ((InternalResultSet) result).plan = this;
+      }
+    }
+    return new ResultSet() {
+      int fetched = 0;
+
+      @Override
+      public boolean hasNext() {
+        return fetched < n && result.hasNext();
+      }
+
+      @Override
+      public Result next() {
+        if (fetched >= n) {
+          throw new IllegalStateException();
+        }
+        fetched++;
+        return result.next();
+      }
+
+      @Override
+      public void close() {
+        result.close();
+      }
+
+      @Override
+      public Optional<ExecutionPlan> getExecutionPlan() {
+        return null;
+      }
+
+      @Override
+      public Map<String, Long> getQueryStats() {
+        return null;
+      }
+    };
   }
 
   public void reset(CommandContext ctx) {

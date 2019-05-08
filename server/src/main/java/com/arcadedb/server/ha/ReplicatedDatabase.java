@@ -436,6 +436,16 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public ResultSet execute(String language, String script, Object... args) {
+    return proxied.execute(language, script, args);
+  }
+
+  @Override
+  public ResultSet execute(String language, String script, Map<Object, Object> args) {
+    return proxied.execute(language, script, args);
+  }
+
+  @Override
   public <RET extends Object> RET executeInReadLock(final Callable<RET> callable) {
     return proxied.executeInReadLock(callable);
   }

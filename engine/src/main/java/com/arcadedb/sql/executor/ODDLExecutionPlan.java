@@ -32,7 +32,7 @@ public class ODDLExecutionPlan implements InternalExecutionPlan {
 
   @Override
   public ResultSet fetchNext(int n) {
-    return null;
+    return new InternalResultSet();
   }
 
   public void reset(CommandContext ctx) {
