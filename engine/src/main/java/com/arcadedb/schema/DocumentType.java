@@ -21,6 +21,11 @@ public class DocumentType {
   private final List<DocumentType>           subTypes                = new ArrayList<>();
   private final List<Bucket>                 buckets                 = new ArrayList<>();
   private       BucketSelectionStrategy      bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
+
+  public Map<String, Property> getProperties() {
+    return properties;
+  }
+
   private final Map<String, Property>        properties              = new HashMap<>();
   private       Map<Integer, List<Index>>    indexesByBucket         = new HashMap<>();
   private       Map<List<String>, TypeIndex> indexesByProperties     = new HashMap<>();

@@ -48,6 +48,7 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
           if (index.getPropertyNames() != null)
             r.setProperty("properties", Arrays.asList(index.getPropertyNames()));
           r.setProperty("unique", index.isUnique());
+          r.setProperty("automatic", index.isAutomatic());
           r.setProperty("compacting", index.isCompacting());
           if (fileId > -1) {
             r.setProperty("fileId", fileId);
@@ -57,7 +58,7 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
               // IGNORE IT, NO SIZE AVAILABLE
             }
           }
-//          r.setProperty("supportsOrderedIterations", index.supportsOrderedIterations());
+          r.setProperty("supportsOrderedIterations", index.supportsOrderedIterations());
           if (index.getAssociatedBucketId() > -1)
             r.setProperty("associatedBucketId", index.getAssociatedBucketId());
         }

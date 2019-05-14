@@ -62,6 +62,7 @@ public class HttpServer implements ServerPlugin {
     routes.post("/document/{database}", new CreateDocumentHandler(this));
     routes.post("/server", new ServersHandler(this));
     routes.post("/create/{database}", new CreateDatabaseHandler(this));
+    routes.post("/exists/{database}", new ExistsDatabaseHandler(this));
     routes.post("/drop/{database}", new DropDatabaseHandler(this));
 
     do {

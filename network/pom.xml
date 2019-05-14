@@ -15,6 +15,9 @@
         <relativePath>../</relativePath>
     </parent>
 
+    <properties>
+        <slf4j-simple.version>1.7.25</slf4j-simple.version>
+    </properties>
     <artifactId>arcadedb-network</artifactId>
     <packaging>jar</packaging>
 
@@ -24,6 +27,18 @@
             <artifactId>arcadedb-engine</artifactId>
             <version>${project.parent.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j-simple.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>${slf4j-simple.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
     </dependencies>
