@@ -291,8 +291,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public void scanType(final String className, final boolean polymorphic, final DocumentCallback callback) {
-    proxied.scanType(className, polymorphic, callback);
+  public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
+    proxied.scanType(typeName, polymorphic, callback);
   }
 
   @Override

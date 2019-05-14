@@ -89,7 +89,7 @@ public interface Database extends AutoCloseable {
      */
     void rollback();
 
-    void scanType(String className, boolean polymorphic, DocumentCallback callback);
+    void scanType(String typeName, boolean polymorphic, DocumentCallback callback);
 
     void scanBucket(String bucketName, RecordCallback callback);
 

@@ -6,6 +6,10 @@ package com.arcadedb;
 
 import com.arcadedb.database.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.MutableEdge;
+import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -165,6 +169,90 @@ public class TransactionBucketTest extends BaseTest {
     });
 
     reopenDatabase();
+  }
+
+  @Test
+  public void testIteratorOnEdges() {
+    final AtomicInteger total = new AtomicInteger();
+
+    database.begin();
+
+    database.getSchema().createVertexType("testIteratorOnEdges_Vertex");
+    database.getSchema().createEdgeType("testIteratorOnEdges_Edge");
+
+    MutableVertex v1 = database.newVertex("testIteratorOnEdges_Vertex").save();
+    MutableVertex v2 = database.newVertex("testIteratorOnEdges_Vertex").save();
+    MutableEdge e = v1.newEdge("testIteratorOnEdges_Edge", v2, true).save();
+
+    database.scanType("testIteratorOnEdges_Edge", true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+
+        Edge e = (Edge) record;
+        Assertions.assertEquals(v1.getIdentity(), e.getOut());
+        Assertions.assertEquals(v2.getIdentity(), e.getIn());
+
+        total.incrementAndGet();
+        return true;
+      }
+    });
+
+    database.commit();
+
+    Assertions.assertEquals(1, total.get());
+  }
+
+  @Test
+  public void testScanOnEdges() {
+    database.begin();
+
+    database.getSchema().createVertexType("testIteratorOnEdges_Vertex");
+    database.getSchema().createEdgeType("testIteratorOnEdges_Edge");
+
+    MutableVertex v1 = database.newVertex("testIteratorOnEdges_Vertex").save();
+    MutableVertex v2 = database.newVertex("testIteratorOnEdges_Vertex").save();
+    MutableEdge e = v1.newEdge("testIteratorOnEdges_Edge", v2, true).save();
+
+    final ResultSet result = database.query("sql", "select from testIteratorOnEdges_Edge");
+
+    Assertions.assertTrue(result.hasNext());
+
+    final Record record = result.next().getRecord().get();
+
+    Assertions.assertNotNull(record);
+
+    Edge e2 = (Edge) record;
+    Assertions.assertEquals(v1.getIdentity(), e2.getOut());
+    Assertions.assertEquals(v2.getIdentity(), e2.getIn());
+
+    database.commit();
+  }
+
+  @Test
+  public void testScanOnEdgesAfterTx() {
+    database.transaction((tx) -> {
+      database.getSchema().createVertexType("testIteratorOnEdges_Vertex");
+      database.getSchema().createEdgeType("testIteratorOnEdges_Edge");
+
+      MutableVertex v1 = database.newVertex("testIteratorOnEdges_Vertex").save();
+      MutableVertex v2 = database.newVertex("testIteratorOnEdges_Vertex").save();
+      MutableEdge e = v1.newEdge("testIteratorOnEdges_Edge", v2, true).save();
+    });
+
+
+    database.transaction((tx) -> {
+      final ResultSet result = database.query("sql", "select from testIteratorOnEdges_Edge");
+
+      Assertions.assertTrue(result.hasNext());
+
+      final Record record = result.next().getRecord().get();
+
+      Assertions.assertNotNull(record);
+
+      Edge e2 = (Edge) record;
+      Assertions.assertNotNull(e2.getOutVertex());
+      Assertions.assertNotNull(e2.getInVertex());
+    });
   }
 
   @Override
