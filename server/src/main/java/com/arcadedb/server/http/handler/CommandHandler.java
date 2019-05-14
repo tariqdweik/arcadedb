@@ -5,7 +5,6 @@
 package com.arcadedb.server.http.handler;
 
 import com.arcadedb.database.Database;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.serializer.JsonSerializer;
 import com.arcadedb.server.ServerMetrics;
 import com.arcadedb.server.http.HttpServer;
@@ -14,8 +13,9 @@ import io.undertow.server.HttpServerExchange;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
-import java.util.logging.Level;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class CommandHandler extends DatabaseAbstractHandler {
@@ -25,7 +25,6 @@ public class CommandHandler extends DatabaseAbstractHandler {
 
     @Override
     public void execute(final HttpServerExchange exchange, final Database database) throws IOException {
-        Object[] params = null;
 
         final String payload = parseRequestPayload(exchange);
         if (payload == null || payload.isEmpty()) {
@@ -35,8 +34,6 @@ public class CommandHandler extends DatabaseAbstractHandler {
         }
 
         final JSONObject json = new JSONObject(payload);
-
-        LogManager.instance().log(this, Level.INFO, "json:: " + json.toString());
 
         final Map<String, Object> requestMap = json.toMap();
 
@@ -51,6 +48,38 @@ public class CommandHandler extends DatabaseAbstractHandler {
         }
 
         final Map<String, Object> paramMap = (Map<String, Object>) requestMap.get("params");
+
+        final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.command");
+
+        try {
+
+            final ResultSet qResult = command(database, language, command, paramMap);
+
+            final JsonSerializer serializer = httpServer.getJsonSerializer();
+
+            final String result = qResult.stream()
+                    .map(r -> serializer.serializeResult(r).toString())
+                    .collect(Collectors.joining());
+
+            exchange.setStatusCode(200);
+            exchange.getResponseSender().send("{ \"result\" : [" + result + "] }");
+
+        } finally {
+            timer.stop();
+        }
+
+    }
+
+    private ResultSet command(Database database, String language, String command, Map<String, Object> paramMap) {
+        Object params = mapParams(paramMap);
+
+        if (params instanceof Object[])
+            return database.command(language, command, (Object[]) params);
+
+        return database.command(language, command, (Map<String, Object>) params);
+    }
+
+    private Object mapParams(Map<String, Object> paramMap) {
         if (paramMap != null) {
             if (!paramMap.isEmpty() && paramMap.containsKey("0")) {
                 // ORDINAL
@@ -58,38 +87,9 @@ public class CommandHandler extends DatabaseAbstractHandler {
                 for (int i = 0; i < array.length; ++i) {
                     array[i] = paramMap.get("" + i);
                 }
-                params = array;
-            } else
-                params = new Object[]{paramMap};
+                return array;
+            }
         }
-
-
-        final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.command");
-
-        String result;
-        try {
-
-            final ResultSet qResult = database.command(language, command, params);
-
-            final JsonSerializer serializer = httpServer.getJsonSerializer();
-
-
-            result = qResult.stream().map(r -> serializer.serializeResult(r).toString()).collect(Collectors.joining());
-//            while (qResult.hasNext()) {
-//                if (result.length() > 0)
-//                    result.append(",");
-//                final Result record = qResult.next();
-//
-////                LogManager.instance().log(this, Level.INFO, "record:: " + record);
-//
-//                result.append(serializer.serializeResult(record).toString());
-//            }
-
-        } finally {
-            timer.stop();
-        }
-
-        exchange.setStatusCode(200);
-        exchange.getResponseSender().send("{ \"result\" : [" + result + "] }");
+        return Optional.ofNullable(paramMap).orElse(Collections.emptyMap());
     }
 }
