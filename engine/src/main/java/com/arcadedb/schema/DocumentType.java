@@ -15,20 +15,20 @@ import com.arcadedb.index.TypeIndex;
 import java.util.*;
 
 public class DocumentType {
-  private final SchemaImpl                   schema;
-  private final String                       name;
-  private final List<DocumentType>           parentTypes             = new ArrayList<>();
-  private final List<DocumentType>           subTypes                = new ArrayList<>();
-  private final List<Bucket>                 buckets                 = new ArrayList<>();
-  private       BucketSelectionStrategy      bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
+  private final SchemaImpl              schema;
+  private final String                  name;
+  private final List<DocumentType>      parentTypes             = new ArrayList<>();
+  private final List<DocumentType>      subTypes                = new ArrayList<>();
+  private final List<Bucket>            buckets                 = new ArrayList<>();
+  private       BucketSelectionStrategy bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
 
   public Map<String, Property> getProperties() {
     return properties;
   }
 
-  private final Map<String, Property>        properties              = new HashMap<>();
-  private       Map<Integer, List<Index>>    indexesByBucket         = new HashMap<>();
-  private       Map<List<String>, TypeIndex> indexesByProperties     = new HashMap<>();
+  private final Map<String, Property>        properties          = new HashMap<>();
+  private       Map<Integer, List<Index>>    indexesByBucket     = new HashMap<>();
+  private       Map<List<String>, TypeIndex> indexesByProperties = new HashMap<>();
 
   public DocumentType(final SchemaImpl schema, final String name) {
     this.schema = schema;
@@ -114,6 +114,11 @@ public class DocumentType {
     schema.saveConfiguration();
 
     return property;
+  }
+
+  public void dropProperty(final String propertyName) {
+    properties.remove(propertyName);
+    schema.saveConfiguration();
   }
 
   public Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String... propertyNames) {
