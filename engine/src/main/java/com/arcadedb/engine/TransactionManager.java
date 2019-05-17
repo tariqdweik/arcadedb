@@ -252,6 +252,11 @@ public class TransactionManager {
     for (WALFile.WALPage txPage : tx.pages) {
       final PaginatedFile file;
 
+      if (!database.getFileManager().existsFile(txPage.fileId)) {
+        LogManager.instance().log(this, Level.WARNING, "Error on restoring transaction. Found deleted file %d", null, txPage.fileId);
+        continue;
+      }
+
       try {
         file = database.getFileManager().getFile(txPage.fileId);
       } catch (Exception e) {
