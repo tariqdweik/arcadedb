@@ -12,7 +12,7 @@ import com.arcadedb.exception.DatabaseOperationException;
 import java.io.IOException;
 import java.util.Iterator;
 
-import static com.arcadedb.database.Binary.SHORT_SERIALIZED_SIZE;
+import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
 public class BucketIterator implements Iterator<Record> {
 
@@ -54,11 +54,9 @@ public class BucketIterator implements Iterator<Record> {
         }
 
         if (recordCountInCurrentPage > 0 && currentRecordInPage < recordCountInCurrentPage) {
-          final int recordPositionInPage = currentPage.readUnsignedShort(Bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * SHORT_SERIALIZED_SIZE);
-
-          final int recordSize = currentPage.readUnsignedShort(recordPositionInPage);
-
-          if (recordSize > 0) {
+          int recordPositionInPage = (int) currentPage.readUnsignedInt(Bucket.PAGE_RECORD_TABLE_OFFSET + currentRecordInPage * INT_SERIALIZED_SIZE);
+          final long recordSize[] = currentPage.readNumberAndSize(recordPositionInPage);
+          if (recordSize[0] > 0) {
             // NOT DELETED
             final RID rid = new RID(database, bucket.id, nextPageNumber * Bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
 
