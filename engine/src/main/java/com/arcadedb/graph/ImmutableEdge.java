@@ -31,8 +31,8 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
   }
 
   @Override
-  public Object get(final String name) {
-    return super.get(name);
+  public Object get(final String propertyName) {
+    return super.get(propertyName);
   }
 
   public MutableEdge modify() {

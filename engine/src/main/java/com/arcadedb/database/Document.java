@@ -16,6 +16,8 @@ public interface Document extends Record {
 
   MutableDocument modify();
 
+  boolean has(String propertyName);
+
   Object get(String propertyName);
 
   String getString(String propertyName);
@@ -37,6 +39,8 @@ public interface Document extends Record {
   BigDecimal getDecimal(String propertyName);
 
   Date getDate(String propertyName);
+
+  Document getEmbedded(String propertyName);
 
   Set<String> getPropertyNames();
 

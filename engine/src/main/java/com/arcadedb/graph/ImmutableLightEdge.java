@@ -35,7 +35,7 @@ public class ImmutableLightEdge extends ImmutableDocument implements LightEdge {
   }
 
   @Override
-  public Object get(final String name) {
+  public Object get(final String propertyName) {
     return null;
   }
 

@@ -76,9 +76,15 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     return new JSONSerializer(database).map2json(map);
   }
 
-  public Object get(final String name) {
+  @Override
+  public boolean has(String propertyName) {
     checkForLazyLoadingProperties();
-    return map.get(name);
+    return map.containsKey(propertyName);
+  }
+
+  public Object get(final String propertyName) {
+    checkForLazyLoadingProperties();
+    return map.get(propertyName);
   }
 
   /**

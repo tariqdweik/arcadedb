@@ -19,10 +19,17 @@ public class ImmutableDocument extends BaseDocument {
   }
 
   @Override
-  public Object get(final String name) {
+  public boolean has(final String propertyName) {
     checkForLazyLoading();
-    final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, name);
-    return map.get(name);
+    final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, propertyName);
+    return map.containsKey(propertyName);
+  }
+
+  @Override
+  public Object get(final String propertyName) {
+    checkForLazyLoading();
+    final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, propertyName);
+    return map.get(propertyName);
   }
 
   @Override

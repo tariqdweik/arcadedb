@@ -38,10 +38,10 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
   }
 
   @Override
-  public Object get(final String name) {
+  public Object get(final String propertyName) {
     checkForLazyLoading();
-    final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, name);
-    return map.get(name);
+    final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, propertyName);
+    return map.get(propertyName);
   }
 
   @Override

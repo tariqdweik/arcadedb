@@ -68,6 +68,11 @@ public abstract class BaseDocument extends BaseRecord implements Document {
     return (Date) Type.convert(database, get(propertyName), Date.class);
   }
 
+  @Override
+  public Document getEmbedded(final String propertyName) {
+    return (Document) Type.convert(database, get(propertyName), Document.class);
+  }
+
   public String getType() {
     return typeName;
   }
