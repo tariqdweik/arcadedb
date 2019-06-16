@@ -17,12 +17,7 @@ import com.arcadedb.engine.RawRecordCallback;
 import com.arcadedb.engine.TransactionManager;
 import com.arcadedb.engine.WALFileFactory;
 import com.arcadedb.engine.WALFileFactoryEmbedded;
-import com.arcadedb.exception.ConcurrentModificationException;
-import com.arcadedb.exception.DatabaseIsClosedException;
-import com.arcadedb.exception.DatabaseIsReadOnlyException;
-import com.arcadedb.exception.DatabaseMetadataException;
-import com.arcadedb.exception.DatabaseOperationException;
-import com.arcadedb.exception.TransactionException;
+import com.arcadedb.exception.*;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.MutableEmbeddedDocument;
@@ -818,12 +813,12 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
     @Override
     public void transaction(final TransactionScope txBlock) {
-        transaction(txBlock, true, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
+        transaction(txBlock, true, configuration.getValueAsInteger(GlobalConfiguration.TX_RETRIES));
     }
 
     @Override
     public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx) {
-        transaction(txBlock, joinCurrentTx, configuration.getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
+        transaction(txBlock, joinCurrentTx, configuration.getValueAsInteger(GlobalConfiguration.TX_RETRIES));
     }
 
     @Override
@@ -831,7 +826,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         if (txBlock == null)
             throw new IllegalArgumentException("Transaction block is null");
 
-        ConcurrentModificationException lastException = null;
+        NeedRetryException lastException = null;
 
         if (retries < 1)
             retries = 1;
@@ -853,7 +848,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
                 // OK
                 return;
 
-            } catch (ConcurrentModificationException e) {
+            } catch (NeedRetryException e) {
                 // RETRY
                 lastException = e;
                 continue;

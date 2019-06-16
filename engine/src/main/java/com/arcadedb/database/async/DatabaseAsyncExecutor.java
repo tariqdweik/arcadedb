@@ -298,7 +298,7 @@ public class DatabaseAsyncExecutor {
   }
 
   public void transaction(final Database.TransactionScope txBlock) {
-    transaction(txBlock, database.getConfiguration().getValueAsInteger(GlobalConfiguration.MVCC_RETRIES));
+    transaction(txBlock, database.getConfiguration().getValueAsInteger(GlobalConfiguration.TX_RETRIES));
   }
 
   public void transaction(final Database.TransactionScope txBlock, final int retries) {

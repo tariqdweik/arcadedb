@@ -150,7 +150,7 @@ public enum GlobalConfiguration {
 
   COMMIT_LOCK_TIMEOUT("arcadedb.commitLockTimeout", "Timeout in ms to lock resources during commit", Long.class, 5000),
 
-  MVCC_RETRIES("arcadedb.mvccRetries", "Number of retries in case of MVCC exception", Integer.class, 50),
+  TX_RETRIES("arcadedb.txRetries", "Number of retries in case of MVCC exception", Integer.class, 50),
 
   // SQL
   SQL_STATEMENT_CACHE("arcadedb.sqlStatementCache", "Maximum number of parsed statements to keep in cache", Integer.class, 300),
