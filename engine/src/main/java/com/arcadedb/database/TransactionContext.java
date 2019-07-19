@@ -254,8 +254,9 @@ public class TransactionContext implements Transaction {
     final LinkedHashMap<String, Object> map = new LinkedHashMap<>();
 
     final Set<Integer> involvedFiles = new LinkedHashSet<>();
-    for (PageId pid : modifiedPages.keySet())
-      involvedFiles.add(pid.getFileId());
+    if (modifiedPages != null)
+      for (PageId pid : modifiedPages.keySet())
+        involvedFiles.add(pid.getFileId());
     for (PageId pid : newPages.keySet())
       involvedFiles.add(pid.getFileId());
     for (Integer fid : newPageCounters.keySet())
