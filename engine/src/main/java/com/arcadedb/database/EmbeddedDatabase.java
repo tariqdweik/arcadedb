@@ -10,20 +10,9 @@ import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.Dictionary;
-import com.arcadedb.engine.FileManager;
-import com.arcadedb.engine.PageManager;
-import com.arcadedb.engine.PaginatedFile;
-import com.arcadedb.engine.RawRecordCallback;
-import com.arcadedb.engine.TransactionManager;
-import com.arcadedb.engine.WALFileFactory;
-import com.arcadedb.engine.WALFileFactoryEmbedded;
+import com.arcadedb.engine.*;
 import com.arcadedb.exception.*;
-import com.arcadedb.graph.Edge;
-import com.arcadedb.graph.GraphEngine;
-import com.arcadedb.graph.MutableEmbeddedDocument;
-import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.graph.Vertex;
-import com.arcadedb.graph.VertexInternal;
+import com.arcadedb.graph.*;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.TypeIndex;
@@ -35,19 +24,8 @@ import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.serializer.BinarySerializer;
-import com.arcadedb.sql.executor.BasicCommandContext;
-import com.arcadedb.sql.executor.CommandContext;
-import com.arcadedb.sql.executor.InternalExecutionPlan;
-import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.sql.executor.SQLEngine;
-import com.arcadedb.sql.executor.ScriptExecutionPlan;
-import com.arcadedb.sql.parser.BeginStatement;
-import com.arcadedb.sql.parser.CommitStatement;
-import com.arcadedb.sql.parser.ExecutionPlanCache;
-import com.arcadedb.sql.parser.LocalResultSet;
-import com.arcadedb.sql.parser.LocalResultSetLifecycleDecorator;
-import com.arcadedb.sql.parser.Statement;
-import com.arcadedb.sql.parser.StatementCache;
+import com.arcadedb.sql.executor.*;
+import com.arcadedb.sql.parser.*;
 import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LockException;
 import com.arcadedb.utility.MultiIterator;
@@ -58,14 +36,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileLock;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -73,49 +44,49 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal {
-  protected static final Set<String> SUPPORTED_FILE_EXT = new HashSet<String>(Arrays
+  protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(Arrays
       .asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, LSMTreeIndexMutable.UNIQUE_INDEX_EXT,
           LSMTreeIndexCompacted.NOTUNIQUE_INDEX_EXT, LSMTreeIndexCompacted.UNIQUE_INDEX_EXT));
-  public final AtomicLong indexCompactions = new AtomicLong();
-  protected final String name;
-  protected final PaginatedFile.MODE mode;
-  protected final ContextConfiguration configuration;
-  protected final String databasePath;
-  protected final BinarySerializer serializer = new BinarySerializer();
-  protected final RecordFactory recordFactory = new RecordFactory();
-  protected final GraphEngine graphEngine = new GraphEngine();
-  protected final WALFileFactory walFactory;
-  protected final DocumentIndexer indexer;
+  public final           AtomicLong                                indexCompactions        = new AtomicLong();
+  protected final        String                                    name;
+  protected final        PaginatedFile.MODE                        mode;
+  protected final        ContextConfiguration                      configuration;
+  protected final        String                                    databasePath;
+  protected final        BinarySerializer                          serializer              = new BinarySerializer();
+  protected final        RecordFactory                             recordFactory           = new RecordFactory();
+  protected final        GraphEngine                               graphEngine             = new GraphEngine();
+  protected final        WALFileFactory                            walFactory;
+  protected final        DocumentIndexer                           indexer;
   // STATISTICS
-  private final AtomicLong statsTxCommits = new AtomicLong();
-  private final AtomicLong statsTxRollbacks = new AtomicLong();
-  private final AtomicLong statsCreateRecord = new AtomicLong();
-  private final AtomicLong statsReadRecord = new AtomicLong();
-  private final AtomicLong statsUpdateRecord = new AtomicLong();
-  private final AtomicLong statsDeleteRecord = new AtomicLong();
-  private final AtomicLong statsQueries = new AtomicLong();
-  private final AtomicLong statsCommands = new AtomicLong();
-  private final AtomicLong statsScanType = new AtomicLong();
-  private final AtomicLong statsScanBucket = new AtomicLong();
-  private final AtomicLong statsIterateType = new AtomicLong();
-  private final AtomicLong statsIterateBucket = new AtomicLong();
-  private final AtomicLong statsCountType = new AtomicLong();
-  private final AtomicLong statsCountBucket = new AtomicLong();
-  protected FileManager fileManager;
-  protected PageManager pageManager;
-  protected SchemaImpl schema;
-  protected TransactionManager transactionManager;
-  protected volatile DatabaseAsyncExecutor async = null;
-  protected Lock asyncLock = new ReentrantLock();
-  protected boolean autoTransaction = false;
-  protected volatile boolean open = false;
-  private boolean readYourWrites = true;
-  private File lockFile;
-  private FileLock lockFileIO;
-  private Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
-  private StatementCache statementCache;
-  private ExecutionPlanCache executionPlanCache;
-  private DatabaseInternal wrappedDatabaseInstance = this;
+  private final          AtomicLong                                statsTxCommits          = new AtomicLong();
+  private final          AtomicLong                                statsTxRollbacks        = new AtomicLong();
+  private final          AtomicLong                                statsCreateRecord       = new AtomicLong();
+  private final          AtomicLong                                statsReadRecord         = new AtomicLong();
+  private final          AtomicLong                                statsUpdateRecord       = new AtomicLong();
+  private final          AtomicLong                                statsDeleteRecord       = new AtomicLong();
+  private final          AtomicLong                                statsQueries            = new AtomicLong();
+  private final          AtomicLong                                statsCommands           = new AtomicLong();
+  private final          AtomicLong                                statsScanType           = new AtomicLong();
+  private final          AtomicLong                                statsScanBucket         = new AtomicLong();
+  private final          AtomicLong                                statsIterateType        = new AtomicLong();
+  private final          AtomicLong                                statsIterateBucket      = new AtomicLong();
+  private final          AtomicLong                                statsCountType          = new AtomicLong();
+  private final          AtomicLong                                statsCountBucket        = new AtomicLong();
+  protected              FileManager                               fileManager;
+  protected              PageManager                               pageManager;
+  protected              SchemaImpl                                schema;
+  protected              TransactionManager                        transactionManager;
+  protected volatile     DatabaseAsyncExecutor                     async                   = null;
+  protected              Lock                                      asyncLock               = new ReentrantLock();
+  protected              boolean                                   autoTransaction         = false;
+  protected volatile     boolean                                   open                    = false;
+  private                boolean                                   readYourWrites          = true;
+  private                File                                      lockFile;
+  private                FileLock                                  lockFileIO;
+  private                Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks;
+  private                StatementCache                            statementCache;
+  private                ExecutionPlanCache                        executionPlanCache;
+  private                DatabaseInternal                          wrappedDatabaseInstance = this;
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
@@ -364,10 +335,14 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       final TransactionContext tx = dbContext.getLastTransaction();
       if (tx != null) {
         final DatabaseInternal txDb = tx.getDatabase();
-        if (txDb == null)
+        if (txDb == null) {
+          tx.rollback();
           throw new TransactionException("Invalid transactional context (db is null)");
-        if (txDb.getEmbedded() != this)
+        }
+        if (txDb.getEmbedded() != this) {
+          tx.rollback();
           throw new TransactionException("Invalid transactional context (different db)");
+        }
         return tx;
       }
     }
@@ -1094,7 +1069,6 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     return original;
   }
 
-
   @Override
   public ResultSet execute(String language, String script, Map<Object, Object> params) {
     checkDatabaseIsOpen();
@@ -1178,9 +1152,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     final LocalResultSet original = new LocalResultSet(plan);
     return original;
 
-
   }
-
 
   @Override
   public ResultSet query(final String language, final String query, final Object... parameters) {
