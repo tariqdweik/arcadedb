@@ -1319,7 +1319,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (!open)
       throw new DatabaseIsClosedException(name);
 
-    if (DatabaseContext.INSTANCE.get() == null)
+    if (DatabaseContext.INSTANCE.getContext(databasePath) == null)
       DatabaseContext.INSTANCE.init(this);
   }
 
