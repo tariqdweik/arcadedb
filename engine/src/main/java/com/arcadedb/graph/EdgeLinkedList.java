@@ -11,6 +11,8 @@ import com.arcadedb.database.Record;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.utility.Pair;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -56,6 +58,23 @@ public class EdgeLinkedList {
     }
 
     return false;
+  }
+
+  public JSONArray toJSON() {
+    final JSONArray array = new JSONArray();
+
+    EdgeSegment current = first;
+    while (current != null) {
+      final JSONObject j = current.toJSON();
+      if (j.has("array")) {
+        final JSONArray a = j.getJSONArray("array");
+        for (int i = 0; i < a.length(); ++i)
+          array.put(a.getString(i));
+      }
+      current = current.getNext();
+    }
+
+    return array;
   }
 
   public boolean containsVertex(final RID rid) {

@@ -504,19 +504,15 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       public Object call() {
 
         checkDatabaseIsOpen();
-        try {
-          final DocumentType type = schema.getType(typeName);
 
-          final MultiIterator iter = new MultiIterator();
+        final DocumentType type = schema.getType(typeName);
 
-          for (Bucket b : type.getBuckets(polymorphic))
-            iter.add(b.iterator());
+        final MultiIterator iter = new MultiIterator();
 
-          return iter;
+        for (Bucket b : type.getBuckets(polymorphic))
+          iter.add(b.iterator());
 
-        } catch (IOException e) {
-          throw new DatabaseOperationException("Error on executing scan of type '" + schema.getType(typeName) + "'", e);
-        }
+        return iter;
       }
     });
   }
@@ -562,16 +558,13 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
         final DocumentType type = schema.getTypeByBucketId(rid.getBucketId());
 
-        if (loadContent) {
+        if (loadContent || type == null) {
           final Binary buffer = schema.getBucketById(rid.getBucketId()).getRecord(rid);
           record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type != null ? type.getName() : null, rid, buffer.copy());
           return record;
         }
 
-        if (type != null)
-          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type.getName(), rid, type.getType());
-        else
-          record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, null, rid, Document.RECORD_TYPE);
+        record = recordFactory.newImmutableRecord(wrappedDatabaseInstance, type.getName(), rid, type.getType());
 
         return record;
       }

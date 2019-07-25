@@ -6,6 +6,8 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.*;
 import com.arcadedb.serializer.BinaryTypes;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -115,6 +117,27 @@ public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, Recor
     }
 
     return false;
+  }
+
+  @Override
+  public JSONObject toJSON() {
+    final JSONObject json = new JSONObject();
+    final int used = getUsed();
+    if (used > 0) {
+      final JSONArray array = new JSONArray();
+
+      buffer.position(CONTENT_START_POSITION);
+      while (buffer.position() < used) {
+        // EDGE RID
+        array.put("#" + buffer.getNumber() + ":" + buffer.getNumber());
+        // VERTEX RID
+        array.put("#" + buffer.getNumber() + ":" + buffer.getNumber());
+      }
+
+      if (array.length() > 0)
+        json.put("array", array);
+    }
+    return json;
   }
 
   @Override

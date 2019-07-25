@@ -145,7 +145,7 @@ public class Bucket extends PaginatedComponent {
     }
   }
 
-  public Iterator<Record> iterator() throws IOException {
+  public Iterator<Record> iterator() {
     return new BucketIterator(this, database);
   }
 

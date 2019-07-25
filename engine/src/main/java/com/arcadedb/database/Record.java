@@ -4,6 +4,8 @@
 
 package com.arcadedb.database;
 
+import org.json.JSONObject;
+
 public interface Record extends Identifiable {
   RID getIdentity();
 
@@ -14,4 +16,6 @@ public interface Record extends Identifiable {
   void reload();
 
   void delete();
+
+  JSONObject toJSON();
 }

@@ -10,23 +10,20 @@ import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.exception.TimeoutException;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.sql.parser.*;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Level;
 
 /**
  * @author Luigi Dell'Aquila (l.dellaquila-(at)-orientdb.com)
  */
 public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 
-  public static final Object ORDER_ASC  = "ASC";
-  public static final Object ORDER_DESC = "DESC";
-  private final QueryPlanningInfo queryPlanning;
+  public static final Object            ORDER_ASC  = "ASC";
+  public static final Object            ORDER_DESC = "DESC";
+  private final       QueryPlanningInfo queryPlanning;
 
   private int    bucketId;
   private Object order;
@@ -38,8 +35,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
     this(bucketId, null, ctx, profilingEnabled);
   }
 
-  public FetchFromClusterExecutionStep(int bucketId, QueryPlanningInfo queryPlanning, CommandContext ctx,
-      boolean profilingEnabled) {
+  public FetchFromClusterExecutionStep(int bucketId, QueryPlanningInfo queryPlanning, CommandContext ctx, boolean profilingEnabled) {
     super(ctx, profilingEnabled);
     this.bucketId = bucketId;
     this.queryPlanning = queryPlanning;
@@ -77,7 +73,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 //            if (ORDER_DESC == order) {
 //              return iterator.hasPrevious();
 //            } else {
-              return iterator.hasNext();
+            return iterator.hasNext();
 //            }
           } finally {
             if (profilingEnabled) {
@@ -96,7 +92,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 //            if (ORDER_DESC == order && !iterator.hasPrevious()) {
 //              throw new IllegalStateException();
 //            } else
-              if (!iterator.hasNext()) {
+            if (!iterator.hasNext()) {
               throw new IllegalStateException();
             }
 
@@ -104,7 +100,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 //            if (ORDER_DESC == order) {
 //              record = iterator.previous();
 //            } else {
-              record = iterator.next();
+            record = iterator.next();
 //            }
             nFetched++;
             ResultInternal result = new ResultInternal();
@@ -135,8 +131,6 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 
       };
       return rs;
-    } catch (IOException e) {
-      throw new CommandExecutionException(e);
     } finally {
       if (profilingEnabled) {
         cost += (System.nanoTime() - begin);
@@ -217,10 +211,7 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 
   @Override
   public String prettyPrint(int depth, int indent) {
-    String result =
-        ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM CLUSTER " + bucketId + " " + (ORDER_DESC.equals(order) ?
-            "DESC" :
-            "ASC");
+    String result = ExecutionStepInternal.getIndent(depth, indent) + "+ FETCH FROM CLUSTER " + bucketId + " " + (ORDER_DESC.equals(order) ? "DESC" : "ASC");
     if (profilingEnabled) {
       result += " (" + getCostFormatted() + ")";
     }
@@ -265,8 +256,8 @@ public class FetchFromClusterExecutionStep extends AbstractExecutionStep {
 
   @Override
   public ExecutionStep copy(CommandContext ctx) {
-    FetchFromClusterExecutionStep result = new FetchFromClusterExecutionStep(this.bucketId,
-        this.queryPlanning == null ? null : this.queryPlanning.copy(), ctx, profilingEnabled);
+    FetchFromClusterExecutionStep result = new FetchFromClusterExecutionStep(this.bucketId, this.queryPlanning == null ? null : this.queryPlanning.copy(), ctx,
+        profilingEnabled);
     return result;
   }
 }
