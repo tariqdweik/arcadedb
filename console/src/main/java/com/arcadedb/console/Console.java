@@ -6,8 +6,10 @@ package com.arcadedb.console;
 
 import com.arcadedb.Constants;
 import com.arcadedb.GlobalConfiguration;
-import com.arcadedb.database.*;
-import com.arcadedb.engine.Bucket;
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.TransactionContext;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
@@ -17,7 +19,6 @@ import com.arcadedb.sql.executor.MultiValue;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.RecordTableFormatter;
 import com.arcadedb.utility.TableFormatter;
 import org.jline.reader.*;
@@ -26,11 +27,13 @@ import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.zip.GZIPOutputStream;
 
 public class Console {
   private static final String          PROMPT               = "\n%s> ";
@@ -167,85 +170,16 @@ public class Console {
 
   private void executeImportDatabase(final String line) throws IOException {
     checkDatabaseIsOpen();
-    final String params = line.substring("import".length()).trim();
+    final String fileName = line.substring("import".length()).trim();
+
+    new DatabaseImporter().export(fileName, database, terminal.writer());
   }
 
   private void executeExportDatabase(final String line) throws IOException {
     checkDatabaseIsOpen();
     final String fileName = line.substring("export".length()).trim();
 
-    final long beginTime = System.currentTimeMillis();
-
-    final File outputFile = new File(fileName);
-    if (outputFile.exists())
-      outputFile.delete();
-
-    final FileOutputStream fos = new FileOutputStream(outputFile);
-    final OutputStream os = fileName.endsWith(".tgz") ? new GZIPOutputStream(fos) : fos;
-
-    try {
-
-      terminal.writer().printf("Exporting database to file %s...\n", fileName);
-
-      os.write(("#ARCADEDB EXPORT v1.0").getBytes());
-      terminal.writer().flush();
-
-      long written = 0;
-
-      for (Bucket bucket : database.getSchema().getBuckets()) {
-        terminal.writer().printf("- Exporting bucket %s...", bucket.getName());
-        terminal.writer().flush();
-
-        os.write(("\n#BUCKET " + bucket.getName()).getBytes());
-
-        final byte[] sep = "=".getBytes();
-        final byte[] lf = "\n".getBytes();
-
-        try {
-          int i = 0;
-          for (Iterator<Record> it = bucket.iterator(); it.hasNext(); ) {
-            final Record rec = it.next();
-
-            byte[] buffer = rec.getIdentity().toString().getBytes();
-            os.write(buffer);
-            written += buffer.length;
-
-            os.write(sep);
-            written += sep.length;
-
-            buffer = rec.toJSON().toString().getBytes();
-            os.write(buffer);
-            written += buffer.length;
-
-            os.write(lf);
-            written += lf.length;
-
-            if (++i % 1000 == 0) {
-              terminal.writer().print(".");
-              terminal.writer().flush();
-            }
-          }
-
-          terminal.writer().print("\n");
-
-        } catch (Exception e) {
-          terminal.writer().printf("!Error on exporting bucket %s: %s\n", bucket.getName(), e.getMessage());
-          terminal.writer().flush();
-        }
-      }
-
-      final long elapsedInSecs = (System.currentTimeMillis() - beginTime) / 1000;
-
-      terminal.writer()
-          .printf("Export completed in %d seconds. Written %s (%dMB/sec), final file size is %s...\n", elapsedInSecs, FileUtils.getSizeAsString(written),
-              written / elapsedInSecs / FileUtils.MEGABYTE, FileUtils.getSizeAsString(outputFile.length()));
-      terminal.writer().flush();
-
-    } finally {
-      os.close();
-      fos.close();
-    }
-
+    new DatabaseExporter().export(fileName, database, terminal.writer());
   }
 
   private void executeSet(final String line) {
