@@ -380,13 +380,13 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public void transaction(final TransactionScope txBlock, final boolean joinActiveTx) {
-    proxied.transaction(txBlock, joinActiveTx);
+  public boolean transaction(final TransactionScope txBlock, final boolean joinActiveTx) {
+    return proxied.transaction(txBlock, joinActiveTx);
   }
 
   @Override
-  public void transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries) {
-    proxied.transaction(txBlock, joinCurrentTx, retries);
+  public boolean transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries) {
+    return proxied.transaction(txBlock, joinCurrentTx, retries);
   }
 
   @Override

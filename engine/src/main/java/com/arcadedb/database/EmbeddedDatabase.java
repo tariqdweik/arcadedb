@@ -785,12 +785,12 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
-  public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx) {
-    transaction(txBlock, joinCurrentTx, configuration.getValueAsInteger(GlobalConfiguration.TX_RETRIES));
+  public boolean transaction(final TransactionScope txBlock, final boolean joinCurrentTx) {
+    return transaction(txBlock, joinCurrentTx, configuration.getValueAsInteger(GlobalConfiguration.TX_RETRIES));
   }
 
   @Override
-  public void transaction(final TransactionScope txBlock, final boolean joinCurrentTx, int retries) {
+  public boolean transaction(final TransactionScope txBlock, final boolean joinCurrentTx, int retries) {
     if (txBlock == null)
       throw new IllegalArgumentException("Transaction block is null");
 
@@ -814,7 +814,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           wrappedDatabaseInstance.commit();
 
         // OK
-        return;
+        return !joinCurrentTx;
 
       } catch (NeedRetryException e) {
         // RETRY
