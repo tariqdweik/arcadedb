@@ -643,7 +643,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         final boolean begunHere = checkTransactionIsActive();
 
         if (mode == PaginatedFile.MODE.READ_ONLY)
-          throw new DatabaseIsReadOnlyException("Cannot create a new record");
+          throw new DatabaseIsReadOnlyException("Cannot create a new record because the database is open in read-only mode");
 
         final DocumentType type = schema.getType(record.getType());
 
