@@ -649,7 +649,7 @@ public class SchemaImpl implements Schema {
         if (!file.exists())
           return;
 
-        LogManager.instance().log(this, Level.WARNING, "Could not find schema fila, loading the previous version saved");
+        LogManager.instance().log(this, Level.WARNING, "Could not find schema file, loading the previous version saved");
       }
 
       final String fileContent = FileUtils.readStreamAsString(new FileInputStream(file), encoding);
