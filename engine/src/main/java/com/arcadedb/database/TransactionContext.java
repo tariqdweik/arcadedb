@@ -428,6 +428,9 @@ public class TransactionContext implements Transaction {
   }
 
   public void commit2ndPhase(final Pair<Binary, List<MutablePage>> changes) {
+    if( database.getMode() == PaginatedFile.MODE.READ_ONLY)
+      throw new TransactionException("Cannot commit changes because the database is open in read-only mode");
+
     if (status != STATUS.COMMIT_1ST_PHASE)
       throw new TransactionException("Cannot execute 2nd phase commit without having started the 1st phase");
 
