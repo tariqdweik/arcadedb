@@ -392,7 +392,7 @@ public class PageManager extends LockContext {
     if (totalRAM < maxRAM)
       return;
 
-    final long ramToFree = maxRAM * freePageRAM / 100;
+    final long ramToFree = totalRAM * freePageRAM / 100;
 
     evictionRuns.incrementAndGet();
 
