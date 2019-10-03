@@ -704,7 +704,8 @@ public class SchemaImpl implements Schema {
             final PaginatedComponent bucket = bucketMap.get(schemaBucket.getString(i));
             if (bucket == null || !(bucket instanceof Bucket))
               LogManager.instance().log(this, Level.WARNING, "Cannot find bucket %s for type '%s'", null, schemaBucket.getString(i), type);
-            type.addBucketInternal((Bucket) bucket);
+            else
+              type.addBucketInternal((Bucket) bucket);
           }
         }
 
@@ -786,7 +787,7 @@ public class SchemaImpl implements Schema {
   }
 
   public void saveConfiguration() {
-    if( readingFromFile )
+    if (readingFromFile)
       return;
 
     try {
