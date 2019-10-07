@@ -357,7 +357,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
     } catch (Exception e) {
       shutdown();
-      server.getServer().log(this, Level.SEVERE, "Error on starting HA service (error=%s)", e);
+      server.getServer().log(this, Level.SEVERE, "Error starting HA service (error=%s)", e);
       throw new ServerException("Cannot start HA service", e);
     }
   }

@@ -25,10 +25,10 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
   protected            DataInputStream  in;
   protected            DataOutputStream out;
 
-  public ChannelBinary(final Socket iSocket) throws IOException {
+  public ChannelBinary(final Socket iSocket, int chunkMaxSize) throws IOException {
     super(iSocket);
 
-    maxChunkSize = 16384 * 1024;
+    maxChunkSize = chunkMaxSize;
     debug = false;
 
     if (debug)

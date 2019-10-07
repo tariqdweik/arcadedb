@@ -30,7 +30,7 @@ public class RedisNetworkExecutor extends Thread {
   public RedisNetworkExecutor(final ArcadeDBServer server, final Socket socket) throws IOException {
     setName(Constants.PRODUCT + "-redis/" + socket.getInetAddress());
     this.server = server;
-    this.channel = new ChannelBinaryServer(socket);
+    this.channel = new ChannelBinaryServer(socket, server.getConfiguration());
   }
 
   @Override
