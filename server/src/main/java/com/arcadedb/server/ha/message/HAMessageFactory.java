@@ -5,9 +5,9 @@ package com.arcadedb.server.ha.message;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.exception.ConfigurationException;
-import com.arcadedb.server.ArcadeDBServer;
-import com.arcadedb.server.ha.ReplicationMessage;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.server.ha.ReplicationMessage;
+import com.arcadedb.server.log.ServerLogger;
 import com.arcadedb.utility.Pair;
 
 import java.util.ArrayList;
@@ -17,12 +17,12 @@ import java.util.Map;
 import java.util.logging.Level;
 
 public class HAMessageFactory {
-  private final ArcadeDBServer                        server;
+  private final ServerLogger serverLogger;
   private final List<Class<? extends HACommand>>      commands   = new ArrayList<>();
   private final Map<Class<? extends HACommand>, Byte> commandMap = new HashMap<>();
 
-  public HAMessageFactory(final ArcadeDBServer server) {
-    this.server = server;
+  public HAMessageFactory(final ServerLogger serverLogger) {
+    this.serverLogger = serverLogger;
 
     registerCommand(ReplicaConnectRequest.class);
     registerCommand(ReplicaConnectFullResyncResponse.class);
@@ -65,7 +65,7 @@ public class HAMessageFactory {
       return new Pair<>(new ReplicationMessage(messageNumber, buffer), request);
     }
 
-    server.log(this, Level.SEVERE, "Error on reading request, command %d not valid", commandId);
+    serverLogger.log(this, Level.SEVERE, "Error on reading request, command %d not valid", commandId);
     return null;
   }
 

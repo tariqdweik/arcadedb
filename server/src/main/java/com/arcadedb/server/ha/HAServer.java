@@ -129,7 +129,7 @@ public class HAServer implements ServerPlugin {
 
     final String fileName = replicationPath + "/replication_" + server.getServerName() + ".rlog";
     try {
-      replicationLogFile = new ReplicationLogFile(this, fileName);
+      replicationLogFile = new ReplicationLogFile(fileName, this.getServer());
       final ReplicationMessage lastMessage = replicationLogFile.getLastMessage();
       if (lastMessage != null) {
         lastDistributedOperationNumber.set(lastMessage.messageNumber);
