@@ -216,6 +216,9 @@ public enum GlobalConfiguration {
   HA_REPLICATION_FILE_MAXSIZE("arcadedb.ha.replicationFileMaxSize", "Maximum file size for replicating messages between servers. Default is 1GB", Long.class,
       1024 * 1024 * 1024),
 
+  HA_REPLICATION_CHUNK_MAXSIZE("arcadedb.ha.replicationChunkMaxSize", "Maximum channel chunk size for replicating messages between servers. Default is 16777216", Integer.class,
+          16384 * 1024),
+
   HA_REPLICATION_INCOMING_HOST("arcadedb.ha.replicationIncomingHost", "TCP/IP host name used for incoming replication connections", String.class, "localhost"),
 
   HA_REPLICATION_INCOMING_PORTS("arcadedb.ha.replicationIncomingPorts", "TCP/IP port number used for incoming replication connections", String.class,

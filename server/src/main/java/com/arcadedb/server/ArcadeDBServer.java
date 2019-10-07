@@ -388,7 +388,7 @@ public class ArcadeDBServer {
                     if (passwordSeparator < 0) {
                         if (!security.existsUser(credential)) {
                             LogManager.instance()
-                                    .log(this, Level.WARNING, "Cannot create user '%s' accessing to database '%s' because the user does not exists", null, credential, dbName);
+                                    .log(this, Level.WARNING, "Cannot create user '%s' to access database '%s' because the user does not exist", null, credential, dbName);
                             continue;
                         }
                         //FIXME: else if user exists, should we give him access to the dbName?
@@ -413,7 +413,7 @@ public class ArcadeDBServer {
 
                             } catch (ServerSecurityException e) {
                                 LogManager.instance()
-                                        .log(this, Level.WARNING, "Cannot create database '%s' because the user '%s' already exists with different password", null, dbName,
+                                        .log(this, Level.WARNING, "Cannot create database '%s' because the user '%s' already exists with a different password", null, dbName,
                                                 userName);
                                 continue;
                             }

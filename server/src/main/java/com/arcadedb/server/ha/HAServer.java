@@ -254,8 +254,6 @@ public class HAServer implements ServerPlugin {
 
     // TODO: IF A LEADER START THE ELECTION, SHOULD IT CLOSE THE EXISTENT CONNECTIONS TO THE REPLICAS?
 
-    final String localServerAddress = getServerAddress();
-
     for (int retry = 0; leaderConnection == null && started; ++retry) {
       final int majorityOfVotes = (configuredServers / 2) + 1;
 
@@ -381,8 +379,6 @@ public class HAServer implements ServerPlugin {
   }
 
   private void sendNewLeadershipToOtherNodes() {
-    final String localServerAddress = getServerAddress();
-
     lastDistributedOperationNumber.set(replicationLogFile.getLastMessageNumber());
 
     setElectionStatus(ELECTION_STATUS.LEADER_WAITING_FOR_QUORUM);
@@ -900,7 +896,7 @@ public class HAServer implements ServerPlugin {
       connectToLeader(leader[0], Integer.parseInt(leader[1]));
 
     } catch (Exception e) {
-      server.log(this, Level.INFO, "Error on connecting to the remote Leader server %s:%d (error=%s)", serverParts[0], Integer.parseInt(serverParts[1]), e);
+      server.log(this, Level.INFO, "Error connecting to the remote Leader server %s:%d (error=%s)", serverParts[0], Integer.parseInt(serverParts[1]), e);
     }
     return false;
   }

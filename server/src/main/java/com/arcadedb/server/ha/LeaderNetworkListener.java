@@ -118,7 +118,7 @@ public class LeaderNetworkListener extends Thread {
 
         if (serverSocket.isBound()) {
           ha.getServer().log(this, Level.INFO,
-              "Listening Replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr.getPort() + "} (protocol v."
+              "Listening for replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr.getPort() + "} (protocol v."
                   + protocolVersion + ")");
 
           port = tryPort;
@@ -141,7 +141,7 @@ public class LeaderNetworkListener extends Thread {
   }
 
   private void handleConnection(final Socket socket) throws IOException {
-    final ChannelBinaryServer channel = new ChannelBinaryServer(socket);
+    final ChannelBinaryServer channel = new ChannelBinaryServer(socket, ha.getServer().getConfiguration());
 
     final long mn = channel.readLong();
     if (mn != ReplicationProtocol.MAGIC_NUMBER) {

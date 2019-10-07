@@ -117,7 +117,7 @@ public class RedisNetworkListener extends Thread {
 
         if (serverSocket.isBound()) {
           server.log(this, Level.INFO,
-              "Listening Replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr
+              "Listening for replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr
                   .getPort() + "} (protocol v." + protocolVersion + ")");
 
           port = tryPort;
