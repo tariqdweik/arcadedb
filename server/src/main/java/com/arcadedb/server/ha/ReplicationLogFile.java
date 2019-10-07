@@ -66,6 +66,7 @@ public class ReplicationLogFile extends LockContext {
     executeInLock(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
+        channel.force(true);
         channel.close();
         return null;
       }

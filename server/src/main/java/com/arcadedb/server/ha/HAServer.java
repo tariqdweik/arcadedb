@@ -232,6 +232,9 @@ public class HAServer implements ServerPlugin {
       }
       replicaConnections.clear();
     }
+
+    if (replicationLogFile != null)
+      replicationLogFile.close();
   }
 
   public void startElection() {

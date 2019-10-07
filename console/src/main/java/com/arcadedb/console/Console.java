@@ -143,7 +143,7 @@ public class Console {
         executeDropDatabase(line);
       else if (line.startsWith("export"))
         executeExportDatabase(line);
-      else if (line.startsWith("imort"))
+      else if (line.startsWith("import"))
         executeImportDatabase(line);
       else if (line.equalsIgnoreCase("help") || line.equals("?"))
         executeHelp();
