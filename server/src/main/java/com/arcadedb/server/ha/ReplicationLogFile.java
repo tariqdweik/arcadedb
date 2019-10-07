@@ -5,6 +5,7 @@
 package com.arcadedb.server.ha;
 
 import com.arcadedb.database.Binary;
+import com.arcadedb.server.log.ServerLogger;
 import com.arcadedb.utility.LockContext;
 import com.arcadedb.utility.Pair;
 
@@ -20,7 +21,7 @@ import java.util.logging.Level;
  * Replication Log File. Writes the messages to send to a remote node on reconnection.
  */
 public class ReplicationLogFile extends LockContext {
-  private final HAServer server;
+  private final ServerLogger serverLogger;
   private final String   filePath;
 
   private FileChannel channel;
@@ -47,8 +48,8 @@ public class ReplicationLogFile extends LockContext {
     }
   }
 
-  public ReplicationLogFile(final HAServer server, final String filePath) throws FileNotFoundException {
-    this.server = server;
+  public ReplicationLogFile(final String filePath, final ServerLogger serverLogger) throws FileNotFoundException {
+    this.serverLogger = serverLogger;
     this.filePath = filePath;
     final File f = new File(filePath);
     if (!f.exists())
@@ -195,13 +196,13 @@ public class ReplicationLogFile extends LockContext {
   public boolean checkMessageOrder(final ReplicationMessage message) {
     if (lastMessageNumber > -1) {
       if (message.messageNumber < lastMessageNumber) {
-        server.getServer().log(this, Level.WARNING, "Wrong sequence in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
+        serverLogger.log(this, Level.WARNING, "Wrong sequence in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
             lastMessageNumber, message.messageNumber, Thread.currentThread().getId());
         return false;
       }
 
       if (message.messageNumber != lastMessageNumber + 1) {
-        server.getServer().log(this, Level.WARNING, "Found a jump in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
+        serverLogger.log(this, Level.WARNING, "Found a jump in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
             lastMessageNumber, message.messageNumber, Thread.currentThread().getId());
 
         return false;

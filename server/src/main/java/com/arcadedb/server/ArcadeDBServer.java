@@ -16,6 +16,7 @@ import com.arcadedb.log.LogManager;
 import com.arcadedb.server.ha.HAServer;
 import com.arcadedb.server.ha.ReplicatedDatabase;
 import com.arcadedb.server.http.HttpServer;
+import com.arcadedb.server.log.ServerLogger;
 import com.arcadedb.utility.FileUtils;
 
 import java.io.File;
@@ -31,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
-public class ArcadeDBServer {
+public class ArcadeDBServer implements ServerLogger {
     public static final String CONFIG_SERVER_CONFIGURATION_FILENAME = "config/server-configuration.json";
     private final ContextConfiguration configuration;
     private final boolean fileConfiguration;
