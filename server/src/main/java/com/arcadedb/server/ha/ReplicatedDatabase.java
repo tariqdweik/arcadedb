@@ -74,6 +74,8 @@ public class ReplicatedDatabase implements DatabaseInternal {
               server.getHA().forwardCommandToLeader(command, timeout * 2);
               tx.reset();
             }
+          } else {
+            tx.reset();
           }
 
         } catch (NeedRetryException e) {
