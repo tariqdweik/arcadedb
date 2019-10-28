@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 - Arcade Analytics LTD (https://arcadeanalytics.com)
+ * Copyright (c) - Arcade Analytics LTD (https://arcadeanalytics.com)
  */
 
 package com.arcadedb.sql.executor;
@@ -23,7 +23,7 @@ public class FetchFromIndexedFunctionStep extends AbstractExecutionStep {
   private FromClause      queryTarget;
 
   private long cost = 0;
-  //runtime
+  //runtime0
   Iterator<Record> fullResult = null;
 
   public FetchFromIndexedFunctionStep(BinaryCondition functionCondition, FromClause queryTarget, CommandContext ctx,
