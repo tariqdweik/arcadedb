@@ -10,7 +10,7 @@
     <properties>
         <javacc-maven-plugin.version>2.6</javacc-maven-plugin.version>
         <disruptor.version>1.2.15</disruptor.version>
-        <json.version>20180813</json.version>
+        <json.version>20190722</json.version>
         <lz4-java.version>1.6.0</lz4-java.version>
         <lucene.version>8.3.0</lucene.version>
         <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
