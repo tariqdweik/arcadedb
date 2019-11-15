@@ -80,17 +80,17 @@ public class MutableEdge extends MutableDocument implements Edge {
   }
 
   @Override
-  public MutableDocument set(final Object... properties) {
+  public MutableEdge set(final Object... properties) {
     super.set(properties);
     checkForUpgradeLightWeigth();
     return this;
   }
 
   @Override
-  public MutableDocument set(final String name, final Object value) {
+  public MutableEdge set(final String name, final Object value) {
     super.set(name, value);
     checkForUpgradeLightWeigth();
-    return null;
+    return this;
   }
 
   @Override
