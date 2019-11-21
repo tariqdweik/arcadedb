@@ -11,10 +11,14 @@ import com.arcadedb.exception.ConcurrentModificationException;
 public class DatabaseAsyncTransaction extends DatabaseAsyncAbstractTask {
   public final Database.TransactionScope tx;
   public final int                       retries;
+  private      OkCallback                onOkCallback;
+  private      ErrorCallback             onErrorCallback;
 
-  public DatabaseAsyncTransaction(final Database.TransactionScope tx, final int retries) {
+  public DatabaseAsyncTransaction(final Database.TransactionScope tx, final int retries, final OkCallback okCallback, final ErrorCallback errorCallback) {
     this.tx = tx;
     this.retries = retries;
+    this.onOkCallback = okCallback;
+    this.onErrorCallback = errorCallback;
   }
 
   @Override
@@ -37,6 +41,9 @@ public class DatabaseAsyncTransaction extends DatabaseAsyncAbstractTask {
 
         lastException = null;
 
+        if (onOkCallback != null)
+          onOkCallback.call();
+
         // OK
         break;
 
@@ -50,6 +57,9 @@ public class DatabaseAsyncTransaction extends DatabaseAsyncAbstractTask {
           database.rollback();
 
         async.onError(e);
+
+        if (onErrorCallback != null)
+          onErrorCallback.call(e);
 
         throw e;
       }

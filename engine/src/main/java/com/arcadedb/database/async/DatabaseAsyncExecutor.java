@@ -302,7 +302,11 @@ public class DatabaseAsyncExecutor {
   }
 
   public void transaction(final Database.TransactionScope txBlock, final int retries) {
-    scheduleTask(getSlot((int) transactionCounter.getAndIncrement()), new DatabaseAsyncTransaction(txBlock, retries), true);
+    transaction(txBlock, retries, null, null);
+  }
+
+  public void transaction(final Database.TransactionScope txBlock, final int retries, final OkCallback ok, final ErrorCallback error) {
+    scheduleTask(getSlot((int) transactionCounter.getAndIncrement()), new DatabaseAsyncTransaction(txBlock, retries, ok, error), true);
   }
 
   public void createRecord(final MutableDocument record, final NewRecordCallback newRecordCallback) {
