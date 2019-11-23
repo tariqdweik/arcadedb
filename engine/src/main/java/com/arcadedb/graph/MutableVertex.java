@@ -42,6 +42,12 @@ public class MutableVertex extends MutableDocument implements VertexInternal {
   }
 
   @Override
+  public MutableVertex set(final String name, final Object value) {
+    super.set(name, value);
+    return this;
+  }
+
+  @Override
   public void setBuffer(final Binary buffer) {
     super.setBuffer(buffer);
     init();
