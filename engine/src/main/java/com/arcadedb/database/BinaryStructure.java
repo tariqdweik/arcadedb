@@ -99,6 +99,8 @@ public interface BinaryStructure {
 
   byte[] toByteArray();
 
+  byte[] remainingToByteArray();
+
   ByteBuffer getByteBuffer();
 
   int size();

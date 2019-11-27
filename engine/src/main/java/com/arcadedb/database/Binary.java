@@ -4,9 +4,14 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.log.LogManager;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 
 public class Binary implements BinaryStructure {
   public static final int BYTE_SERIALIZED_SIZE   = 1;
@@ -18,11 +23,16 @@ public class Binary implements BinaryStructure {
 
   private final static int DEFAULT_ALLOCATION_CHUNK = 512;
 
-  protected boolean    autoResizable       = true;
-  protected byte[]     content;
-  protected ByteBuffer buffer;
-  protected int        size;
-  protected int        allocationChunkSize = DEFAULT_ALLOCATION_CHUNK;
+  public interface FetchCallback {
+    void fetch(Binary newBuffer) throws IOException;
+  }
+
+  protected boolean       autoResizable       = true;
+  protected byte[]        content;
+  protected ByteBuffer    buffer;
+  protected int           size;
+  protected int           allocationChunkSize = DEFAULT_ALLOCATION_CHUNK;
+  protected FetchCallback fetchCallback;
 
   public Binary() {
     this.content = new byte[allocationChunkSize];
@@ -261,6 +271,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public byte getByte() {
+    checkForFetching(1);
     return buffer.get();
   }
 
@@ -288,6 +299,8 @@ public class Binary implements BinaryStructure {
 
   @Override
   public long getUnsignedNumber() {
+    checkForFetching(8);
+
     long value = 0L;
     int i = 0;
     long b;
@@ -302,6 +315,8 @@ public class Binary implements BinaryStructure {
 
   @Override
   public long[] getUnsignedNumberAndSize() {
+    checkForFetching(8);
+
     long value = 0L;
     int i = 0;
     long b;
@@ -323,11 +338,13 @@ public class Binary implements BinaryStructure {
 
   @Override
   public short getShort() {
+    checkForFetching(2);
     return buffer.getShort();
   }
 
   @Override
   public short getUnsignedShort() {
+    checkForFetching(2);
     int firstByte = (0x000000FF & ((int) buffer.get()));
     int secondByte = (0x000000FF & ((int) buffer.get()));
     return (short) (firstByte << 8 | secondByte);
@@ -335,6 +352,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public int getInt() {
+    checkForFetching(4);
     return buffer.getInt();
   }
 
@@ -345,6 +363,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public long getLong() {
+    checkForFetching(8);
     return buffer.getLong();
   }
 
@@ -383,8 +402,10 @@ public class Binary implements BinaryStructure {
   @Override
   public byte[] getBytes() {
     final byte[] result = new byte[(int) getUnsignedNumber()];
-    if (result.length > 0)
+    if (result.length > 0) {
+      checkForFetching(result.length);
       buffer.get(result);
+    }
     return result;
   }
 
@@ -402,6 +423,13 @@ public class Binary implements BinaryStructure {
   }
 
   @Override
+  public byte[] remainingToByteArray() {
+    final byte[] result = new byte[content.length - buffer.position()];
+    System.arraycopy(content, buffer.position(), result, 0, result.length);
+    return result;
+  }
+
+  @Override
   public ByteBuffer getByteBuffer() {
     return buffer;
   }
@@ -413,6 +441,7 @@ public class Binary implements BinaryStructure {
 
   /**
    * Creates a copy of this object referring to the same underlying buffer.
+   *
    * @return the binary copy
    */
   public Binary slice() {
@@ -422,7 +451,9 @@ public class Binary implements BinaryStructure {
 
   /**
    * Creates a copy of this object referring to the same underlying buffer, starting from a position.
+   *
    * @param position the starting position
+   *
    * @return the binary copy
    */
   public Binary slice(final int position) {
@@ -432,8 +463,10 @@ public class Binary implements BinaryStructure {
 
   /**
    * Creates a copy of this object referring to the same underlying buffer, starting from a position and with a custom length.
-   * @param  position the starting position
-   * @param length the length
+   *
+   * @param position the starting position
+   * @param length   the length
+   *
    * @return the binary copy
    */
   public Binary slice(final int position, final int length) {
@@ -467,6 +500,12 @@ public class Binary implements BinaryStructure {
     return content;
   }
 
+  public int readFromStream(final InputStream is) throws IOException {
+    final int read = is.read(content, buffer.position(), buffer.capacity() - buffer.position() - 1);
+    size += read;
+    return read;
+  }
+
   public int getContentSize() {
     return content.length;
   }
@@ -492,7 +531,8 @@ public class Binary implements BinaryStructure {
 
   /**
    * Allocates enough space (max 1 page) and update the size according to the bytes to write.
-   * @param offset the offset
+   *
+   * @param offset       the offset
    * @param bytesToWrite number of bytes to write
    */
   protected void checkForAllocation(final int offset, final int bytesToWrite) {
@@ -533,5 +573,36 @@ public class Binary implements BinaryStructure {
     checkForAllocation(buffer.position(), size);
     for (int i = 0; i < size; ++i)
       buffer.put(filler);
+  }
+
+  public void fetch(final FetchCallback callback) {
+    fetchCallback = callback;
+  }
+
+  private void checkForFetching(final int bytes) {
+    if( fetchCallback == null )
+      return;
+
+    if (buffer.capacity() - buffer.position() < bytes) {
+      try {
+
+        // ADD REMAINING CONTENT
+        final Binary newBuffer = new Binary();
+        newBuffer.putByteArray(this.remainingToByteArray());
+        newBuffer.position(newBuffer.size() - 1);
+
+        // FETCH NEW CONTENT
+        fetchCallback.fetch(newBuffer);
+
+        // REPLACE NEW CONTENT WITH CURRENT ONE
+        newBuffer.rewind();
+        buffer = newBuffer.buffer;
+        content = newBuffer.content;
+        size = newBuffer.size;
+
+      } catch (Exception e) {
+        LogManager.instance().log(this, Level.SEVERE, "Error on fetching", e);
+      }
+    }
   }
 }
