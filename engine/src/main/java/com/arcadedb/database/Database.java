@@ -6,6 +6,8 @@ package com.arcadedb.database;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.database.async.OkCallback;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableEmbeddedDocument;
@@ -74,6 +76,22 @@ public interface Database extends AutoCloseable {
    * @return true if a new transaction has been created or false if an existent transaction has been joined
    */
   boolean transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries);
+
+  /**
+   * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun
+   * if joinCurrentTx is true, otherwise the current active transaction is joined.
+   * The difference with the method {@link #transaction(TransactionScope)} is that in case the NeedRetryException exception is thrown, the transaction is
+   * re-executed for a number of retries.
+   *
+   * @param txBlock       Transaction lambda to execute
+   * @param joinCurrentTx if active joins the current transaction, otherwise always create a new one
+   * @param retries       number of retries in case the NeedRetryException exception is thrown
+   * @param ok            callback invoked if the transaction completes the commit
+   * @param error         callback invoked if the transaction cannot complete the commit, after the rollback
+   *
+   * @return true if a new transaction has been created or false if an existent transaction has been joined
+   */
+  boolean transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries, final OkCallback ok, final ErrorCallback error);
 
   void setAutoTransaction(boolean autoTransaction);
 

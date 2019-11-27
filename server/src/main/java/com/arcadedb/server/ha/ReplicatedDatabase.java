@@ -8,6 +8,8 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.database.async.OkCallback;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConfigurationException;
 import com.arcadedb.exception.NeedRetryException;
@@ -387,8 +389,13 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public boolean transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries) {
+  public boolean transaction(final TransactionScope txBlock, final boolean joinCurrentTx, final int retries) {
     return proxied.transaction(txBlock, joinCurrentTx, retries);
+  }
+
+  @Override
+  public boolean transaction(final TransactionScope txBlock, final boolean joinCurrentTx, final int retries, final OkCallback ok, final ErrorCallback error) {
+    return proxied.transaction(txBlock, joinCurrentTx, retries, ok, error);
   }
 
   @Override

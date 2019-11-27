@@ -8,6 +8,8 @@ import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.Profiler;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
+import com.arcadedb.database.async.ErrorCallback;
+import com.arcadedb.database.async.OkCallback;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.Dictionary;
 import com.arcadedb.engine.*;
@@ -791,6 +793,11 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
   @Override
   public boolean transaction(final TransactionScope txBlock, final boolean joinCurrentTx, int retries) {
+    return transaction(txBlock, joinCurrentTx, retries, null, null);
+  }
+
+  @Override
+  public boolean transaction(final TransactionScope txBlock, final boolean joinCurrentTx, int retries, final OkCallback ok, final ErrorCallback error) {
     if (txBlock == null)
       throw new IllegalArgumentException("Transaction block is null");
 
@@ -813,6 +820,9 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         if (!txJoined)
           wrappedDatabaseInstance.commit();
 
+        if (ok != null)
+          ok.call();
+
         // OK
         return !joinCurrentTx;
 
@@ -823,9 +833,17 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       } catch (Exception e) {
         if (getTransaction().isActive())
           rollback();
+
+        if (error != null)
+          error.call(e);
+
         throw e;
       }
     }
+
+    if (error != null)
+      error.call(lastException);
+
     throw lastException;
   }
 
