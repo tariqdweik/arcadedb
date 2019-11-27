@@ -565,7 +565,7 @@ public class Binary implements BinaryStructure {
     return callable.call();
   }
 
-  public int getAllocatedSize() {
+  public int capacity() {
     return content.length;
   }
 

@@ -337,7 +337,7 @@ public class CompressedRID2RIDsIndex {
   }
 
   public int getChunkAllocated() {
-    return chunk.getAllocatedSize();
+    return chunk.capacity();
   }
 
   public int getTotalUsedSlots() {

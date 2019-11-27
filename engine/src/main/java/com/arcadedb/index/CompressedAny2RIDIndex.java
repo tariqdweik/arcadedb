@@ -229,7 +229,7 @@ public class CompressedAny2RIDIndex<K> {
   }
 
   public int getChunkAllocated() {
-    return chunk.getAllocatedSize();
+    return chunk.capacity();
   }
 
   public int getTotalUsedSlots() {
