@@ -9,6 +9,7 @@ import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
+import com.arcadedb.schema.Type;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -157,9 +158,12 @@ public interface Result {
     } else if (val instanceof Date) {
       new SimpleDateFormat().format(val);//TODO
 //      jsonVal = "\"" + ODateHelper.getDateTimeFormatInstance().format(val) + "\"";
+    } else if (val instanceof Type) {
+      jsonVal = ((Type) val).name();
     } else {
 
-      throw new UnsupportedOperationException("Cannot convert " + val + " - " + val.getClass() + " to JSON");
+      jsonVal = val.toString();
+      //throw new UnsupportedOperationException("Cannot convert " + val + " - " + val.getClass() + " to JSON");
     }
     return jsonVal;
   }
