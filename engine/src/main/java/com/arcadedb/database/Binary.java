@@ -580,14 +580,14 @@ public class Binary implements BinaryStructure {
   }
 
   private void checkForFetching(final int bytes) {
-    if( fetchCallback == null )
+    if (fetchCallback == null)
       return;
 
     if (buffer.capacity() - buffer.position() < bytes) {
       try {
 
         // ADD REMAINING CONTENT
-        final Binary newBuffer = new Binary();
+        final Binary newBuffer = new Binary(65536);
         newBuffer.putByteArray(this.remainingToByteArray());
         newBuffer.position(newBuffer.size() - 1);
 
