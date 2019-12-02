@@ -586,10 +586,9 @@ public class Binary implements BinaryStructure {
     if (size - buffer.position() - 1 < bytes) {
       try {
 
-        // ADD REMAINING CONTENT
-        final Binary newBuffer = new Binary(65536);
+        // ADD REMAINING CONTENT USING A NEW BUFFER OF THE SAME SIZE OF THE CURRENT ONE
+        final Binary newBuffer = new Binary(buffer.capacity());
         newBuffer.putByteArray(this.remainingToByteArray());
-        //newBuffer.position(newBuffer.size() - 1);
 
         // FETCH NEW CONTENT
         fetchCallback.fetch(newBuffer);

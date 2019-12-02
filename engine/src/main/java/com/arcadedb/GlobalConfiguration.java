@@ -213,6 +213,7 @@ public enum GlobalConfiguration {
 
   HA_REPLICATION_QUEUE_SIZE("arcadedb.ha.replicationQueueSize", "Queue size for replicating messages between servers", Integer.class, 512),
 
+  // TODO: USE THIS FOR CREATING NEW FILES
   HA_REPLICATION_FILE_MAXSIZE("arcadedb.ha.replicationFileMaxSize", "Maximum file size for replicating messages between servers. Default is 1GB", Long.class,
       1024 * 1024 * 1024),
 
