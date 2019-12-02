@@ -299,12 +299,10 @@ public class Binary implements BinaryStructure {
 
   @Override
   public long getUnsignedNumber() {
-    checkForFetching(8);
-
     long value = 0L;
     int i = 0;
     long b;
-    while (((b = buffer.get()) & 0x80L) != 0) {
+    while (((b = getByte()) & 0x80L) != 0) {
       value |= (b & 0x7F) << i;
       i += 7;
       if (i > 63)
@@ -315,13 +313,11 @@ public class Binary implements BinaryStructure {
 
   @Override
   public long[] getUnsignedNumberAndSize() {
-    checkForFetching(8);
-
     long value = 0L;
     int i = 0;
     long b;
     int byteRead = 1;
-    while (((b = buffer.get()) & 0x80L) != 0) {
+    while (((b = getByte()) & 0x80L) != 0) {
       value |= (b & 0x7F) << i;
       i += 7;
       if (i > 63)
@@ -424,7 +420,11 @@ public class Binary implements BinaryStructure {
 
   @Override
   public byte[] remainingToByteArray() {
-    final byte[] result = new byte[content.length - buffer.position()];
+    final int tot = size - buffer.position();
+    if (tot < 1)
+      return new byte[0];
+
+    final byte[] result = new byte[tot];
     System.arraycopy(content, buffer.position(), result, 0, result.length);
     return result;
   }
@@ -501,7 +501,7 @@ public class Binary implements BinaryStructure {
   }
 
   public int readFromStream(final InputStream is) throws IOException {
-    final int read = is.read(content, buffer.position(), buffer.capacity() - buffer.position() - 1);
+    final int read = is.read(content, buffer.position(), buffer.capacity() - buffer.position());
     size += read;
     return read;
   }
@@ -583,13 +583,13 @@ public class Binary implements BinaryStructure {
     if (fetchCallback == null)
       return;
 
-    if (buffer.capacity() - buffer.position() < bytes) {
+    if (size - buffer.position() - 1 < bytes) {
       try {
 
         // ADD REMAINING CONTENT
         final Binary newBuffer = new Binary(65536);
         newBuffer.putByteArray(this.remainingToByteArray());
-        newBuffer.position(newBuffer.size() - 1);
+        //newBuffer.position(newBuffer.size() - 1);
 
         // FETCH NEW CONTENT
         fetchCallback.fetch(newBuffer);
