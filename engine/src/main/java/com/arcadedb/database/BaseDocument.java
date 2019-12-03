@@ -4,6 +4,7 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.graph.EmbeddedDocument;
 import com.arcadedb.schema.Type;
 
 import java.math.BigDecimal;
@@ -69,8 +70,8 @@ public abstract class BaseDocument extends BaseRecord implements Document {
   }
 
   @Override
-  public Document getEmbedded(final String propertyName) {
-    return (Document) Type.convert(database, get(propertyName), Document.class);
+  public EmbeddedDocument getEmbedded(final String propertyName) {
+    return (EmbeddedDocument) Type.convert(database, get(propertyName), EmbeddedDocument.class);
   }
 
   public String getType() {

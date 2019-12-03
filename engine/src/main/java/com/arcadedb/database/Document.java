@@ -4,6 +4,7 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.graph.EmbeddedDocument;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
@@ -40,7 +41,7 @@ public interface Document extends Record {
 
   Date getDate(String propertyName);
 
-  Document getEmbedded(String propertyName);
+  EmbeddedDocument getEmbedded(String propertyName);
 
   Set<String> getPropertyNames();
 
