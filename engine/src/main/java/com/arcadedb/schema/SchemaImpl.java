@@ -543,6 +543,9 @@ public class SchemaImpl implements Schema {
     if (typeName == null || typeName.isEmpty())
       throw new IllegalArgumentException("Missing type");
 
+    if (buckets > 32)
+      throw new IllegalArgumentException("Cannot create " + buckets + " buckets: maximum is 32");
+
     return (DocumentType) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -578,6 +581,9 @@ public class SchemaImpl implements Schema {
   public VertexType createVertexType(String typeName, final int buckets, final int pageSize) {
     if (typeName == null || typeName.isEmpty())
       throw new IllegalArgumentException("Missing type");
+
+    if (buckets > 32)
+      throw new IllegalArgumentException("Cannot create " + buckets + " buckets: maximum is 32");
 
     return (VertexType) database.executeInWriteLock(new Callable<Object>() {
       @Override
@@ -616,6 +622,9 @@ public class SchemaImpl implements Schema {
   public EdgeType createEdgeType(final String typeName, final int buckets, final int pageSize) {
     if (typeName == null || typeName.isEmpty())
       throw new IllegalArgumentException("Missing type");
+
+    if (buckets > 32)
+      throw new IllegalArgumentException("Cannot create " + buckets + " buckets: maximum is 32");
 
     return (EdgeType) database.executeInWriteLock(new Callable<Object>() {
       @Override
