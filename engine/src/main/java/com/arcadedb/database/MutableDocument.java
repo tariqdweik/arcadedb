@@ -110,11 +110,13 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     checkForLazyLoadingProperties();
     dirty = true;
 
-    final DocumentType type = database.getSchema().getType(typeName);
+    if (properties.length > 0) {
+      final DocumentType type = database.getSchema().getType(typeName);
 
-    for (int p = 0; p < properties.length; p += 2) {
-      final Object value = setTransformValue(properties[p + 1]);
-      map.put((String) properties[p], convertValueToSchemaType((String) properties[p], value, type));
+      for (int p = 0; p < properties.length; p += 2) {
+        final Object value = setTransformValue(properties[p + 1]);
+        map.put((String) properties[p], convertValueToSchemaType((String) properties[p], value, type));
+      }
     }
 
     return this;
@@ -227,7 +229,12 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   private Object convertValueToSchemaType(final String name, final Object value, final DocumentType type) {
     final Property prop = type.getPolymorphicPropertyIfExists(name);
     if (prop != null)
-      return Type.convert(database, value, prop.getType().getDefaultJavaType());
+      try {
+        return Type.convert(database, value, prop.getType().getDefaultJavaType());
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Cannot convert type '" + value.getClass() + "' to '" + prop.getType().name() + "' found in property '" + name + "'",
+            e);
+      }
 
     return value;
   }
