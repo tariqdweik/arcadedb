@@ -4,10 +4,7 @@
 
 package com.arcadedb.graph;
 
-import com.arcadedb.database.Binary;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.ImmutableDocument;
-import com.arcadedb.database.RID;
+import com.arcadedb.database.*;
 import com.arcadedb.serializer.BinaryTypes;
 
 public class ImmutableEdge extends ImmutableDocument implements Edge {
@@ -36,6 +33,10 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
   }
 
   public MutableEdge modify() {
+    final Record recordInCache = database.getTransaction().getRecordFromCache(rid);
+    if (recordInCache != null && recordInCache != this && recordInCache instanceof MutableEdge)
+      return (MutableEdge) recordInCache;
+
     checkForLazyLoading();
     if (buffer != null) {
       buffer.rewind();

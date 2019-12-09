@@ -8,7 +8,6 @@ import com.arcadedb.database.*;
 import com.arcadedb.database.async.NewRecordCallback;
 import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.graph.Vertex;
 import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.importer.ImporterContext;
 import com.arcadedb.importer.ImporterSettings;
@@ -20,7 +19,6 @@ import com.arcadedb.utility.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class GraphImporter {
@@ -92,21 +90,20 @@ public class GraphImporter {
 
   public void createVertex(final String vertexTypeName, final long vertexId, final Object[] vertexProperties) {
 
-    final Vertex sourceVertex;
+    final MutableVertex sourceVertex;
     RID sourceVertexRID = verticesIndex.get(vertexId);
     if (sourceVertexRID == null) {
       // CREATE THE VERTEX
       sourceVertex = database.newVertex(vertexTypeName);
-      ((MutableVertex) sourceVertex).set(vertexProperties);
+      sourceVertex.set(vertexProperties);
 
-      database.async().createRecord((MutableDocument) sourceVertex, new NewRecordCallback() {
+      database.async().createRecord((MutableVertex) sourceVertex, new NewRecordCallback() {
         @Override
         public void call(final Record newDocument) {
-          final AtomicReference<VertexInternal> v = new AtomicReference<>((VertexInternal) sourceVertex);
           // PRE-CREATE OUT/IN CHUNKS TO SPEEDUP EDGE CREATION
           final DatabaseInternal db = (DatabaseInternal) database;
-          db.getGraphEngine().createOutEdgeChunk(db, v);
-          db.getGraphEngine().createInEdgeChunk(db, v);
+          db.getGraphEngine().createOutEdgeChunk(db, sourceVertex);
+          db.getGraphEngine().createInEdgeChunk(db, sourceVertex);
 
           verticesIndex.put(vertexId, newDocument.getIdentity());
         }

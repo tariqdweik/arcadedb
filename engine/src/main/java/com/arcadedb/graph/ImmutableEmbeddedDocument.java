@@ -7,6 +7,7 @@ package com.arcadedb.graph;
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.ImmutableDocument;
+import com.arcadedb.database.Record;
 
 public class ImmutableEmbeddedDocument extends ImmutableDocument implements EmbeddedDocument {
 
@@ -20,6 +21,10 @@ public class ImmutableEmbeddedDocument extends ImmutableDocument implements Embe
   }
 
   public MutableEmbeddedDocument modify() {
+    final Record recordInCache = database.getTransaction().getRecordFromCache(rid);
+    if (recordInCache != null && recordInCache != this && recordInCache instanceof MutableEmbeddedDocument)
+      return (MutableEmbeddedDocument) recordInCache;
+
     checkForLazyLoading();
     buffer.rewind();
     return new MutableEmbeddedDocument(database, typeName, buffer.copy());

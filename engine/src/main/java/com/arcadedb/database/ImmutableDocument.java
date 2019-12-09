@@ -34,6 +34,10 @@ public class ImmutableDocument extends BaseDocument {
 
   @Override
   public MutableDocument modify() {
+    final Record recordInCache = database.getTransaction().getRecordFromCache(rid);
+    if (recordInCache != null && recordInCache != this && recordInCache instanceof MutableDocument)
+      return (MutableDocument) recordInCache;
+
     checkForLazyLoading();
     buffer.rewind();
     return new MutableDocument(database, typeName, rid, buffer.copy());

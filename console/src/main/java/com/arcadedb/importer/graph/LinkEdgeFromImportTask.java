@@ -8,14 +8,13 @@ import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.async.DatabaseAsyncAbstractTask;
 import com.arcadedb.database.async.DatabaseAsyncExecutor;
-import com.arcadedb.graph.EdgeSegment;
 import com.arcadedb.graph.EdgeLinkedList;
+import com.arcadedb.graph.EdgeSegment;
+import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
-import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.utility.Pair;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Asynchronous Task that links the destination vertex back to the edges/vertices.
@@ -34,11 +33,9 @@ public class LinkEdgeFromImportTask extends DatabaseAsyncAbstractTask {
 
   public void execute(final DatabaseAsyncExecutor.AsyncThread async, final DatabaseInternal database) {
 
-    VertexInternal toVertexRecord = (VertexInternal) destinationVertex.getRecord();
+    final MutableVertex toVertexRecord = ((Vertex) destinationVertex.getRecord()).modify();
 
-    final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
-    final EdgeSegment inChunk = database.getGraphEngine().createInEdgeChunk(database, toVertexRef);
-    toVertexRecord = toVertexRef.get();
+    final EdgeSegment inChunk = database.getGraphEngine().createInEdgeChunk(database, toVertexRecord);
 
     final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
     inLinkedList.addAll(connections);

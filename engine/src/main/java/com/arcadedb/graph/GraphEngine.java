@@ -13,7 +13,6 @@ import com.arcadedb.utility.MultiIterator;
 import com.arcadedb.utility.Pair;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 public class GraphEngine {
@@ -62,7 +61,7 @@ public class GraphEngine {
     return edge;
   }
 
-  public MutableEdge newEdge(VertexInternal fromVertex, final String edgeType, Identifiable toVertex, final boolean bidirectional,
+  public MutableEdge newEdge(final VertexInternal fromVertex, final String edgeType, Identifiable toVertex, final boolean bidirectional,
       final Object... edgeProperties) {
     if (toVertex == null)
       throw new IllegalArgumentException("Destination vertex is null");
@@ -89,9 +88,9 @@ public class GraphEngine {
 
   public void connectEdge(final DatabaseInternal database, VertexInternal fromVertex, final Identifiable toVertex, final Edge edge,
       final boolean bidirectional) {
-    final AtomicReference<VertexInternal> fromVertexRef = new AtomicReference<>(fromVertex);
-    final EdgeSegment outChunk = createOutEdgeChunk(database, fromVertexRef);
-    fromVertex = fromVertexRef.get();
+    fromVertex = fromVertex.modify();
+
+    final EdgeSegment outChunk = createOutEdgeChunk(database, (MutableVertex) fromVertex);
 
     final EdgeLinkedList outLinkedList = new EdgeLinkedList(fromVertex, Vertex.DIRECTION.OUT, outChunk);
 
@@ -103,9 +102,8 @@ public class GraphEngine {
 
   public void upgradeEdge(final DatabaseInternal database, VertexInternal fromVertex, final Identifiable toVertex, final MutableEdge edge,
       final boolean bidirectional) {
-    final AtomicReference<VertexInternal> fromVertexRef = new AtomicReference<>(fromVertex);
-    final EdgeSegment outChunk = createOutEdgeChunk(database, fromVertexRef);
-    fromVertex = fromVertexRef.get();
+    fromVertex = fromVertex.modify();
+    final EdgeSegment outChunk = createOutEdgeChunk(database, (MutableVertex) fromVertex);
 
     final EdgeLinkedList outLinkedList = new EdgeLinkedList(fromVertex, Vertex.DIRECTION.OUT, outChunk);
 
@@ -116,11 +114,9 @@ public class GraphEngine {
   }
 
   public void upgradeIncomingEdge(final DatabaseInternal database, final Identifiable toVertex, final RID fromVertexRID, final RID edgeRID) {
-    VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
+    final MutableVertex toVertexRecord = ((VertexInternal) toVertex.getRecord()).modify();
 
-    final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
-    final EdgeSegment inChunk = createInEdgeChunk(database, toVertexRef);
-    toVertexRecord = toVertexRef.get();
+    final EdgeSegment inChunk = createInEdgeChunk(database, toVertexRecord);
 
     final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
     inLinkedList.upgrade(edgeRID, fromVertexRID);
@@ -156,9 +152,9 @@ public class GraphEngine {
       edges.add(edge);
     }
 
-    final AtomicReference<VertexInternal> v = new AtomicReference<>(sourceVertex);
-    final EdgeSegment outChunk = createOutEdgeChunk(database, v);
-    sourceVertex = v.get();
+    sourceVertex = sourceVertex.modify();
+
+    final EdgeSegment outChunk = createOutEdgeChunk(database, (MutableVertex) sourceVertex);
 
     final EdgeLinkedList outLinkedList = new EdgeLinkedList(sourceVertex, Vertex.DIRECTION.OUT, outChunk);
     outLinkedList.addAll(outEdgePairs);
@@ -174,19 +170,15 @@ public class GraphEngine {
   }
 
   public void connectIncomingEdge(final DatabaseInternal database, final Identifiable toVertex, final RID fromVertexRID, final RID edgeRID) {
-    VertexInternal toVertexRecord = (VertexInternal) toVertex.getRecord();
+    final MutableVertex toVertexRecord = ((VertexInternal) toVertex.getRecord()).modify();
 
-    final AtomicReference<VertexInternal> toVertexRef = new AtomicReference<>(toVertexRecord);
-    final EdgeSegment inChunk = createInEdgeChunk(database, toVertexRef);
-    toVertexRecord = toVertexRef.get();
+    final EdgeSegment inChunk = createInEdgeChunk(database, toVertexRecord);
 
     final EdgeLinkedList inLinkedList = new EdgeLinkedList(toVertexRecord, Vertex.DIRECTION.IN, inChunk);
     inLinkedList.add(edgeRID, fromVertexRID);
   }
 
-  public EdgeSegment createInEdgeChunk(final DatabaseInternal database, final AtomicReference<VertexInternal> vertex) {
-    VertexInternal toVertex = vertex.get();
-
+  public EdgeSegment createInEdgeChunk(final DatabaseInternal database, final MutableVertex toVertex) {
     RID inEdgesHeadChunk = toVertex.getInEdgesHeadChunk();
 
     EdgeSegment inChunk = null;
@@ -204,8 +196,6 @@ public class GraphEngine {
       database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
       inEdgesHeadChunk = inChunk.getIdentity();
 
-      toVertex = toVertex.modify();
-      vertex.set(toVertex);
       toVertex.setInEdgesHeadChunk(inEdgesHeadChunk);
       database.updateRecord(toVertex);
     }
@@ -213,9 +203,7 @@ public class GraphEngine {
     return inChunk;
   }
 
-  public EdgeSegment createOutEdgeChunk(final DatabaseInternal database, final AtomicReference<VertexInternal> vertex) {
-    VertexInternal fromVertex = vertex.get();
-
+  public EdgeSegment createOutEdgeChunk(final DatabaseInternal database, final MutableVertex fromVertex) {
     RID outEdgesHeadChunk = fromVertex.getOutEdgesHeadChunk();
 
     EdgeSegment outChunk = null;
@@ -233,8 +221,6 @@ public class GraphEngine {
       database.createRecord(outChunk, getEdgesBucketName(database, fromVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
       outEdgesHeadChunk = outChunk.getIdentity();
 
-      fromVertex = fromVertex.modify();
-      vertex.set(fromVertex);
       fromVertex.setOutEdgesHeadChunk(outEdgesHeadChunk);
       database.updateRecord(fromVertex);
     }
@@ -321,7 +307,8 @@ public class GraphEngine {
         } catch (RecordNotFoundException e) {
           // ALREADY DELETED, IGNORE THIS
           LogManager.instance()
-              .log(this, Level.FINE, "Error on deleting outgoing vertex %s connected from vertex %s (record not found)", null, nextEdge.getIn(), vertex.getIdentity());
+              .log(this, Level.FINE, "Error on deleting outgoing vertex %s connected from vertex %s (record not found)", null, nextEdge.getIn(),
+                  vertex.getIdentity());
         }
       }
 

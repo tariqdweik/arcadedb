@@ -4,15 +4,13 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.graph.EmbeddedDocument;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Type;
 import org.json.JSONObject;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class MutableDocument extends BaseDocument implements RecordInternal {
   private   Map<String, Object> map;
@@ -90,11 +88,12 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   /**
    * Sets the property value in the document. If the property has been defined in the schema, the value is converted according to the property type.
    */
-  public MutableDocument set(final String name, final Object value) {
+  public MutableDocument set(final String name, Object value) {
     checkForLazyLoadingProperties();
     dirty = true;
 
     final DocumentType type = database.getSchema().getType(typeName);
+    value = setTransformValue(value);
     map.put(name, convertValueToSchemaType(name, value, type));
     return this;
   }
@@ -113,8 +112,10 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
     final DocumentType type = database.getSchema().getType(typeName);
 
-    for (int p = 0; p < properties.length; p += 2)
-      map.put((String) properties[p], convertValueToSchemaType((String) properties[p], properties[p + 1], type));
+    for (int p = 0; p < properties.length; p += 2) {
+      final Object value = setTransformValue(properties[p + 1]);
+      map.put((String) properties[p], convertValueToSchemaType((String) properties[p], value, type));
+    }
 
     return this;
   }
@@ -130,8 +131,10 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
     final DocumentType type = database.getSchema().getType(typeName);
 
-    for (Map.Entry<String, Object> entry : properties.entrySet())
-      map.put(entry.getKey(), convertValueToSchemaType(entry.getKey(), entry.getValue(), type));
+    for (Map.Entry<String, Object> entry : properties.entrySet()) {
+      final Object value = setTransformValue(entry.getValue());
+      map.put(entry.getKey(), convertValueToSchemaType(entry.getKey(), value, type));
+    }
 
     return this;
   }
@@ -226,6 +229,27 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     if (prop != null)
       return Type.convert(database, value, prop.getType().getDefaultJavaType());
 
+    return value;
+  }
+
+  private Object setTransformValue(Object value) {
+    if (value instanceof EmbeddedDocument)
+      value = ((EmbeddedDocument) value).modify();
+    else if (value instanceof List) {
+      List<Object> list = (List) value;
+      for (int i = 0; i < list.size(); i++) {
+        final Object v = list.get(i);
+        if (v instanceof Document)
+          list.set(i, ((Document) v).modify());
+      }
+    } else if (value instanceof Map) {
+      final Map<Object, Object> map = (Map) value;
+      for (Object key : map.keySet()) {
+        final Object v = map.get(key);
+        if (v instanceof Document)
+          map.put(key, ((Document) v).modify());
+      }
+    }
     return value;
   }
 }
