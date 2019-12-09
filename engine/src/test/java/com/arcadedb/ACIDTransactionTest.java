@@ -347,7 +347,7 @@ public class ACIDTransactionTest extends BaseTest {
           LogManager.instance().log(this, Level.INFO, "Finished stockId=%d", null, id);
         } catch (Exception e) {
           errors.incrementAndGet();
-          LogManager.instance().log(this, Level.SEVERE, "Error on saving stockId=%d", null, id);
+          LogManager.instance().log(this, Level.SEVERE, "Error on saving stockId=%d", e, id);
         }
       });
     }

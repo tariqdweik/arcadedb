@@ -232,22 +232,45 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     return value;
   }
 
-  private Object setTransformValue(Object value) {
-    if (value instanceof EmbeddedDocument)
-      value = ((EmbeddedDocument) value).modify();
-    else if (value instanceof List) {
+  private Object setTransformValue(final Object value) {
+    // SET DIRTY TO FORCE RE-MARSHALL. IF THE RECORD COMES FROM ANOTHER DATABASE WITHOUT A FULL RE-MARSHALL, IT WILL HAVE THE DICTIONARY IDS OF THE OTHER DATABASE
+    if (value instanceof EmbeddedDocument) {
+      if (!((EmbeddedDocument) value).getDatabase().getName().equals(database.getName())) {
+        ((BaseDocument) value).buffer.rewind();
+        final MutableDocument newRecord = (MutableDocument) database.getRecordFactory()
+            .newModifiableRecord(database, ((EmbeddedDocument) value).getType(), null, ((BaseDocument) value).buffer);
+        newRecord.checkForLazyLoadingProperties();
+        newRecord.dirty = true;
+        newRecord.buffer = null;
+        return newRecord;
+      }
+    } else if (value instanceof List) {
       List<Object> list = (List) value;
       for (int i = 0; i < list.size(); i++) {
-        final Object v = list.get(i);
-        if (v instanceof Document)
-          list.set(i, ((Document) v).modify());
+        Object v = list.get(i);
+        if (v instanceof Document && !((Document) v).getDatabase().getName().equals(database.getName())) {
+          ((BaseDocument) v).buffer.rewind();
+          final MutableDocument newRecord = (MutableDocument) database.getRecordFactory()
+              .newModifiableRecord(database, ((EmbeddedDocument) v).getType(), null, ((BaseDocument) v).buffer);
+          newRecord.checkForLazyLoadingProperties();
+          newRecord.dirty = true;
+          newRecord.buffer = null;
+          list.set(i, newRecord);
+        }
       }
     } else if (value instanceof Map) {
       final Map<Object, Object> map = (Map) value;
       for (Object key : map.keySet()) {
-        final Object v = map.get(key);
-        if (v instanceof Document)
-          map.put(key, ((Document) v).modify());
+        Object v = map.get(key);
+        if (v instanceof Document && !((Document) v).getDatabase().getName().equals(database.getName())) {
+          ((BaseDocument) v).buffer.rewind();
+          final MutableDocument newRecord = (MutableDocument) database.getRecordFactory()
+              .newModifiableRecord(database, ((EmbeddedDocument) v).getType(), null, ((BaseDocument) v).buffer);
+          newRecord.checkForLazyLoadingProperties();
+          newRecord.dirty = true;
+          newRecord.buffer = null;
+          map.put(key, newRecord);
+        }
       }
     }
     return value;

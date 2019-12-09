@@ -40,6 +40,8 @@ public class BinarySerializer {
       return serializeEdge(database, (MutableEdge) record);
     case EdgeSegment.RECORD_TYPE:
       return serializeEdgeContainer(database, (EdgeSegment) record);
+    case EmbeddedDocument.RECORD_TYPE:
+      return serializeDocument(database, (MutableDocument) record);
     default:
       throw new IllegalArgumentException("Cannot serialize a record of type=" + record.getRecordType());
     }
@@ -331,7 +333,10 @@ public class BinarySerializer {
     }
     case BinaryTypes.TYPE_EMBEDDED: {
       final EmbeddedDocument document = (EmbeddedDocument) value;
-      content.putUnsignedNumber(document.getDatabase().getSchema().getDictionary().getIdByName(document.getType(), true));
+      final long schemaId = document.getDatabase().getSchema().getDictionary().getIdByName(document.getType(), false);
+      if (schemaId == -1)
+        throw new IllegalArgumentException("Cannot find type '" + document.getType() + "' declared in embedded document");
+      content.putUnsignedNumber(schemaId);
 
       final Binary header = new Binary(8196);
       final Binary body = new Binary(8196);

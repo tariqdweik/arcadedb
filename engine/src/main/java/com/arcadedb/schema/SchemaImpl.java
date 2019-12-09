@@ -554,6 +554,10 @@ public class SchemaImpl implements Schema {
 
         if (types.containsKey(typeName))
           throw new SchemaException("Type '" + typeName + "' already exists");
+
+        // CREATE ENTRY IN DICTIONARY IF NEEDED
+        dictionary.getIdByName(typeName, true);
+
         final DocumentType c = new DocumentType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
