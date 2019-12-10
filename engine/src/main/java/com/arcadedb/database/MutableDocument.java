@@ -18,7 +18,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
   protected MutableDocument(final Database database, final String typeName, final RID rid) {
     super(database, typeName, rid, null);
-    this.map = new LinkedHashMap<String, Object>();
+    this.map = new LinkedHashMap<>();
   }
 
   protected MutableDocument(final Database database, final String typeName, final RID rid, final Binary buffer) {
@@ -172,30 +172,30 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
   @Override
   public String toString() {
-    final StringBuilder buffer = new StringBuilder(256);
+    final StringBuilder result = new StringBuilder(256);
     if (rid != null)
-      buffer.append(rid);
+      result.append(rid);
     if (typeName != null) {
-      buffer.append('@');
-      buffer.append(typeName);
+      result.append('@');
+      result.append(typeName);
     }
-    buffer.append('[');
+    result.append('[');
     if (map == null) {
-      buffer.append('?');
+      result.append('?');
     } else {
       int i = 0;
       for (Map.Entry<String, Object> entry : map.entrySet()) {
         if (i > 0)
-          buffer.append(',');
+          result.append(',');
 
-        buffer.append(entry.getKey());
-        buffer.append('=');
-        buffer.append(entry.getValue());
+        result.append(entry.getKey());
+        result.append('=');
+        result.append(entry.getValue());
         i++;
       }
     }
-    buffer.append(']');
-    return buffer.toString();
+    result.append(']');
+    return result.toString();
   }
 
   @Override
@@ -218,8 +218,12 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
   protected void checkForLazyLoadingProperties() {
     if (this.map == null) {
-      if (buffer == null)
+      if (buffer == null) {
+        if (this instanceof EmbeddedDocument)
+          return;
+
         reload();
+      }
 
       buffer.position(propertiesStartingPosition);
       this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
@@ -246,9 +250,10 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
         ((BaseDocument) value).buffer.rewind();
         final MutableDocument newRecord = (MutableDocument) database.getRecordFactory()
             .newModifiableRecord(database, ((EmbeddedDocument) value).getType(), null, ((BaseDocument) value).buffer);
-        newRecord.checkForLazyLoadingProperties();
-        newRecord.dirty = true;
         newRecord.buffer = null;
+        newRecord.map = new LinkedHashMap<>();
+        newRecord.dirty = true;
+        newRecord.set(((BaseDocument) value).toMap());
         return newRecord;
       }
     } else if (value instanceof List) {
@@ -259,9 +264,10 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
           ((BaseDocument) v).buffer.rewind();
           final MutableDocument newRecord = (MutableDocument) database.getRecordFactory()
               .newModifiableRecord(database, ((EmbeddedDocument) v).getType(), null, ((BaseDocument) v).buffer);
-          newRecord.checkForLazyLoadingProperties();
-          newRecord.dirty = true;
           newRecord.buffer = null;
+          newRecord.map = new LinkedHashMap<>();
+          newRecord.dirty = true;
+          newRecord.set(((BaseDocument) v).toMap());
           list.set(i, newRecord);
         }
       }
@@ -273,9 +279,10 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
           ((BaseDocument) v).buffer.rewind();
           final MutableDocument newRecord = (MutableDocument) database.getRecordFactory()
               .newModifiableRecord(database, ((EmbeddedDocument) v).getType(), null, ((BaseDocument) v).buffer);
-          newRecord.checkForLazyLoadingProperties();
-          newRecord.dirty = true;
           newRecord.buffer = null;
+          newRecord.map = new LinkedHashMap<>();
+          newRecord.dirty = true;
+          newRecord.set(((BaseDocument) v).toMap());
           map.put(key, newRecord);
         }
       }
