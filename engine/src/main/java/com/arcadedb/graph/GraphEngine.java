@@ -8,7 +8,7 @@ import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.log.LogManager;
-import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.MultiIterator;
 import com.arcadedb.utility.Pair;
 
@@ -30,12 +30,21 @@ public class GraphEngine {
     }
   }
 
-  public void createVertexType(DatabaseInternal database, final DocumentType type) {
+  public void createVertexType(DatabaseInternal database, final VertexType type) {
     for (Bucket b : type.getBuckets(false)) {
       if (!database.getSchema().existsBucket(b.getName() + "_out_edges"))
         database.getSchema().createBucket(b.getName() + "_out_edges");
       if (!database.getSchema().existsBucket(b.getName() + "_in_edges"))
         database.getSchema().createBucket(b.getName() + "_in_edges");
+    }
+  }
+
+  public void dropVertexType(DatabaseInternal database, final VertexType type) {
+    for (Bucket b : type.getBuckets(false)) {
+      if (database.getSchema().existsBucket(b.getName() + "_out_edges"))
+        database.getSchema().dropBucket(b.getName() + "_out_edges");
+      if (database.getSchema().existsBucket(b.getName() + "_in_edges"))
+        database.getSchema().dropBucket(b.getName() + "_in_edges");
     }
   }
 

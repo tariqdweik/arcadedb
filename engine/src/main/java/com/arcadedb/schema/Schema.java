@@ -60,6 +60,8 @@ public interface Schema {
 
   boolean existsType(String typeName);
 
+  void dropBucket(String bucketName);
+
   DocumentType createDocumentType(String typeName);
 
   DocumentType createDocumentType(String typeName, int buckets);

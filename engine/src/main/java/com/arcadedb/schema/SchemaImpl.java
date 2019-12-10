@@ -500,6 +500,9 @@ public class SchemaImpl implements Schema {
         for (Bucket b : buckets)
           dropBucket(b.getName());
 
+        if (type instanceof VertexType)
+          database.getGraphEngine().dropVertexType(database, (VertexType) type);
+
         if (types.remove(typeName) == null)
           throw new SchemaException("Type '" + typeName + "' not found");
 
@@ -509,6 +512,7 @@ public class SchemaImpl implements Schema {
     });
   }
 
+  @Override
   public void dropBucket(final String bucketName) {
     database.executeInWriteLock(new Callable<Object>() {
       @Override
@@ -597,7 +601,7 @@ public class SchemaImpl implements Schema {
 
         if (types.containsKey(typeName))
           throw new SchemaException("Vertex type '" + typeName + "' already exists");
-        final DocumentType c = new VertexType(SchemaImpl.this, typeName);
+        final VertexType c = new VertexType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
         for (int i = 0; i < buckets; ++i)
