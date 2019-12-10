@@ -16,7 +16,9 @@ import java.util.*;
 import java.util.logging.Level;
 
 public class GraphEngine {
-  public static final int EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
+  public static final int    EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
+  public static final String OUT_EDGES_SUFFIX                    = "_out_edges";
+  public static final String IN_EDGES_SUFFIX                     = "_in_edges";
 
   public static class CreateEdgeOperation {
     final String       edgeTypeName;
@@ -32,19 +34,19 @@ public class GraphEngine {
 
   public void createVertexType(DatabaseInternal database, final VertexType type) {
     for (Bucket b : type.getBuckets(false)) {
-      if (!database.getSchema().existsBucket(b.getName() + "_out_edges"))
-        database.getSchema().createBucket(b.getName() + "_out_edges");
-      if (!database.getSchema().existsBucket(b.getName() + "_in_edges"))
-        database.getSchema().createBucket(b.getName() + "_in_edges");
+      if (!database.getSchema().existsBucket(b.getName() + OUT_EDGES_SUFFIX))
+        database.getSchema().createBucket(b.getName() + OUT_EDGES_SUFFIX);
+      if (!database.getSchema().existsBucket(b.getName() + IN_EDGES_SUFFIX))
+        database.getSchema().createBucket(b.getName() + IN_EDGES_SUFFIX);
     }
   }
 
   public void dropVertexType(DatabaseInternal database, final VertexType type) {
     for (Bucket b : type.getBuckets(false)) {
-      if (database.getSchema().existsBucket(b.getName() + "_out_edges"))
-        database.getSchema().dropBucket(b.getName() + "_out_edges");
-      if (database.getSchema().existsBucket(b.getName() + "_in_edges"))
-        database.getSchema().dropBucket(b.getName() + "_in_edges");
+      if (database.getSchema().existsBucket(b.getName() + OUT_EDGES_SUFFIX))
+        database.getSchema().dropBucket(b.getName() + OUT_EDGES_SUFFIX);
+      if (database.getSchema().existsBucket(b.getName() + IN_EDGES_SUFFIX))
+        database.getSchema().dropBucket(b.getName() + IN_EDGES_SUFFIX);
     }
   }
 
@@ -502,9 +504,9 @@ public class GraphEngine {
     final Bucket vertexBucket = database.getSchema().getBucketById(bucketId);
 
     if (direction == Vertex.DIRECTION.OUT)
-      return vertexBucket.getName() + "_out_edges";
+      return vertexBucket.getName() + OUT_EDGES_SUFFIX;
     else if (direction == Vertex.DIRECTION.IN)
-      return vertexBucket.getName() + "_in_edges";
+      return vertexBucket.getName() + IN_EDGES_SUFFIX;
 
     throw new IllegalArgumentException("Invalid direction");
   }

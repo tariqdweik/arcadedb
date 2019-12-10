@@ -7,6 +7,7 @@ package com.arcadedb.console;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.Bucket;
+import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.utility.FileUtils;
 
 import java.io.*;
@@ -41,7 +42,7 @@ public class DatabaseExporter {
       int moved = 0;
       for (int i = 0; i < orderedBuckets.size() - moved; ++i) {
         final String bName = orderedBuckets.get(i).getName();
-        if (bName.endsWith("_out_edges") || bName.endsWith("_in_edges")) {
+        if (bName.endsWith(GraphEngine.OUT_EDGES_SUFFIX) || bName.endsWith(GraphEngine.IN_EDGES_SUFFIX)) {
           orderedBuckets.add(orderedBuckets.remove(i));
           ++moved;
           --i;
