@@ -5,6 +5,9 @@
 package com.arcadedb.database;
 
 import com.arcadedb.graph.MutableEmbeddedDocument;
+import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.VertexType;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -60,10 +63,18 @@ public class JSONSerializer {
     if (value instanceof JSONObject) {
       final JSONObject json = (JSONObject) value;
       final String embeddedTypeName = json.getString("@type");
-      final MutableEmbeddedDocument embeddedDocument = database.newEmbeddedDocument(embeddedTypeName);
-      embeddedDocument.fromJSON((JSONObject) value);
-      value = embeddedDocument;
 
+      final DocumentType type = database.getSchema().getType(embeddedTypeName);
+
+      if (type instanceof VertexType) {
+        final MutableVertex v = database.newVertex(embeddedTypeName);
+        v.fromJSON((JSONObject) value);
+        value = v;
+      } else if (type instanceof DocumentType) {
+        final MutableEmbeddedDocument embeddedDocument = database.newEmbeddedDocument(embeddedTypeName);
+        embeddedDocument.fromJSON((JSONObject) value);
+        value = embeddedDocument;
+      }
     } else if (value instanceof JSONArray) {
       final JSONArray array = (JSONArray) value;
       final List<Object> list = new ArrayList<>();
