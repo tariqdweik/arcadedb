@@ -286,7 +286,7 @@ public enum Type {
         if (iValue instanceof Short)
           return iValue;
         else if (iValue instanceof String)
-          return Short.parseShort((String) iValue);
+          return ((String) iValue).isEmpty() ? 0 : Short.parseShort((String) iValue);
         else
           return ((Number) iValue).shortValue();
 
@@ -294,7 +294,7 @@ public enum Type {
         if (iValue instanceof Integer)
           return iValue;
         else if (iValue instanceof String)
-          return Integer.parseInt((String) iValue);
+          return ((String) iValue).isEmpty() ? 0 : Integer.parseInt((String) iValue);
         else
           return ((Number) iValue).intValue();
 
@@ -302,7 +302,7 @@ public enum Type {
         if (iValue instanceof Long)
           return iValue;
         else if (iValue instanceof String)
-          return Long.parseLong((String) iValue);
+          return ((String) iValue).isEmpty() ? 0l : Long.parseLong((String) iValue);
         else if (iValue instanceof Date)
           return ((Date) iValue).getTime();
         else
@@ -312,7 +312,7 @@ public enum Type {
         if (iValue instanceof Float)
           return iValue;
         else if (iValue instanceof String)
-          return Float.parseFloat((String) iValue);
+          return ((String) iValue).isEmpty() ? 0f : Float.parseFloat((String) iValue);
         else
           return ((Number) iValue).floatValue();
 
@@ -326,7 +326,7 @@ public enum Type {
         if (iValue instanceof Double)
           return iValue;
         else if (iValue instanceof String)
-          return Double.parseDouble((String) iValue);
+          return ((String) iValue).isEmpty() ? 0d : Double.parseDouble((String) iValue);
         else if (iValue instanceof Float)
           // THIS IS NECESSARY DUE TO A BUG/STRANGE BEHAVIOR OF JAVA BY LOSSING PRECISION
           return Double.parseDouble(iValue.toString());
