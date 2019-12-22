@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ArcadeDBServer Vanilla" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.arcadedb.server.ArcadeDBServer" />
+    <module name="arcadedb-server" />
+    <option name="VM_PARAMETERS" value="-server -Darcadedb.server.defaultDatabases=Universe[elon:musk] -Darcadedb.dumpMetricsEvery=5000" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -371,3 +371,5 @@ security.json
 
 databases
 .history
+
+!.idea/

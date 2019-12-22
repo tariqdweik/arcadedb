@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Production System" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="11" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="com.deepwolf.trader.System" />
+    <module name="trader" />
+    <option name="VM_PARAMETERS" value="-XX:+UseG1GC -Xmx10G -Ddeepwolf.data=&quot;../../&quot; -Ddeepwolf.http.port=2481 -Djava.util.logging.config.file=../../target/classes/deepwolf-log.properties -Ddeepwolf.filelog.enabled=false -Ddeepwolf.localNodeName=production" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../deepwolf/runtime/production" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

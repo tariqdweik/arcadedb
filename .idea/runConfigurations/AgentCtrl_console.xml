@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="AgentCtrl console" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.deepwolf.agent.AgentCtrl" />
+    <module name="trader" />
+    <option name="PROGRAM_PARAMETERS" value="console" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../deepwolf/runtime/sandbox" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.deepwolf.agent.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
