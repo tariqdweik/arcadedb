@@ -24,7 +24,7 @@ node {
 
             stage('build') {
                 try {
-                    sh "./mvnw -fae clean install "
+                    sh "./mvnw -fae clean install -DskipTests "
                 } catch (err) {
                     throw err
                 } finally {
