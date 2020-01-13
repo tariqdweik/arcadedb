@@ -22,7 +22,7 @@
         <asciidoctor.maven.plugin.version>2.0.0-RC.1</asciidoctor.maven.plugin.version>
         <asciidoctorj.version>2.1.0</asciidoctorj.version>
         <asciidoctorj.diagram.version>2.0.0</asciidoctorj.diagram.version>
-        <asciidoctorj.pdf.version>1.5.0-beta.8</asciidoctorj.pdf.version>
+        <asciidoctorj.pdf.version>1.5.0-rc.1</asciidoctorj.pdf.version>
         <jetty-maven-plugin.version>9.4.25.v20191220</jetty-maven-plugin.version>
     </properties>
     <build>
