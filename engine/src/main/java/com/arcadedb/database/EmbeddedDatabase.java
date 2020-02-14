@@ -1337,11 +1337,11 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       lockFileIO = new RandomAccessFile(lockFile, "rw").getChannel().tryLock();
 
       if (lockFileIO == null)
-        throw new LockException("Database '" + name + "' is locked by another process");
+        throw new LockException("Database '" + name + "' is locked by another process (path=" + new File(databasePath).getAbsolutePath() + ")");
 
     } catch (Exception e) {
       // IGNORE HERE
-      throw new LockException("Database '" + name + "' is locked by another process", e);
+      throw new LockException("Database '" + name + "' is locked by another process (path=" + new File(databasePath).getAbsolutePath() + ")", e);
     }
   }
 }
