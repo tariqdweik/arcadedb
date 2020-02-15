@@ -300,6 +300,20 @@ public class BinarySerializer {
           content.putByte(entryType);
           serializeValue(content, entryType, entryValue);
         }
+      } else if (value instanceof Iterable) {
+        final Iterable iter = (Iterable) value;
+
+        final List list = new ArrayList();
+        for (Iterator it = iter.iterator(); it.hasNext(); )
+          list.add(it.next());
+
+        content.putUnsignedNumber(list.size());
+        for (Iterator it = list.iterator(); it.hasNext(); ) {
+          final Object entryValue = it.next();
+          final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
+          content.putByte(entryType);
+          serializeValue(content, entryType, entryValue);
+        }
       } else {
         // ARRAY
         final int length = Array.getLength(value);

@@ -70,13 +70,13 @@ public class BinaryTypes {
       type = TYPE_COMPRESSED_RID;
     else if (value instanceof UUID)
       type = TYPE_UUID;
-    else if (value instanceof Collection || value.getClass().isArray())
-      // TODO: SUPPORT SET SEMANTIC TOO
-      type = TYPE_LIST;
     else if (value instanceof Map)
       type = TYPE_MAP;
     else if (value instanceof Document)
       type = TYPE_EMBEDDED;
+    else if (value instanceof Iterable || value.getClass().isArray())
+      // TODO: SUPPORT SET SEMANTIC TOO
+      type = TYPE_LIST;
     else
       throw new IllegalArgumentException("Cannot serialize value '" + value + "' of type " + value.getClass());
 
