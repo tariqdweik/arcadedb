@@ -31,7 +31,7 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
     return Vertex.RECORD_TYPE;
   }
 
-  public MutableVertex modify() {
+  public synchronized MutableVertex modify() {
     final Record recordInCache = database.getTransaction().getRecordFromCache(rid);
     if (recordInCache != null && recordInCache != this && recordInCache instanceof MutableVertex)
       return (MutableVertex) recordInCache;
@@ -42,20 +42,20 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
   }
 
   @Override
-  public Object get(final String propertyName) {
+  public synchronized Object get(final String propertyName) {
     checkForLazyLoading();
     final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, propertyName);
     return map.get(propertyName);
   }
 
   @Override
-  public RID getOutEdgesHeadChunk() {
+  public synchronized RID getOutEdgesHeadChunk() {
     checkForLazyLoading();
     return outEdges;
   }
 
   @Override
-  public RID getInEdgesHeadChunk() {
+  public synchronized RID getInEdgesHeadChunk() {
     checkForLazyLoading();
     return inEdges;
   }

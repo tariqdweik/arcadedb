@@ -32,7 +32,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
     return super.get(propertyName);
   }
 
-  public MutableEdge modify() {
+  public synchronized MutableEdge modify() {
     final Record recordInCache = database.getTransaction().getRecordFromCache(rid);
     if (recordInCache != null && recordInCache != this && recordInCache instanceof MutableEdge)
       return (MutableEdge) recordInCache;
@@ -46,31 +46,31 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
   }
 
   @Override
-  public RID getOut() {
+  public synchronized RID getOut() {
     checkForLazyLoading();
     return out;
   }
 
   @Override
-  public Vertex getOutVertex() {
+  public synchronized Vertex getOutVertex() {
     checkForLazyLoading();
     return out.getVertex();
   }
 
   @Override
-  public RID getIn() {
+  public synchronized RID getIn() {
     checkForLazyLoading();
     return in;
   }
 
   @Override
-  public Vertex getInVertex() {
+  public synchronized Vertex getInVertex() {
     checkForLazyLoading();
     return in.getVertex();
   }
 
   @Override
-  public Vertex getVertex(final Vertex.DIRECTION iDirection) {
+  public synchronized Vertex getVertex(final Vertex.DIRECTION iDirection) {
     checkForLazyLoading();
     if (iDirection == Vertex.DIRECTION.OUT)
       return (Vertex) out.getRecord();

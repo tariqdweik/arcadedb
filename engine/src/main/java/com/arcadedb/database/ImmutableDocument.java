@@ -19,21 +19,21 @@ public class ImmutableDocument extends BaseDocument {
   }
 
   @Override
-  public boolean has(final String propertyName) {
+  public synchronized boolean has(final String propertyName) {
     checkForLazyLoading();
     final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, propertyName);
     return map.containsKey(propertyName);
   }
 
   @Override
-  public Object get(final String propertyName) {
+  public synchronized Object get(final String propertyName) {
     checkForLazyLoading();
     final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer, propertyName);
     return map.get(propertyName);
   }
 
   @Override
-  public MutableDocument modify() {
+  public synchronized MutableDocument modify() {
     final Record recordInCache = database.getTransaction().getRecordFromCache(rid);
     if (recordInCache != null && recordInCache != this && recordInCache instanceof MutableDocument)
       return (MutableDocument) recordInCache;
@@ -44,20 +44,20 @@ public class ImmutableDocument extends BaseDocument {
   }
 
   @Override
-  public JSONObject toJSON() {
+  public synchronized JSONObject toJSON() {
     checkForLazyLoading();
     final Map<String, Object> map = database.getSerializer().deserializeProperties(database, buffer);
     return new JSONSerializer(database).map2json(map);
   }
 
   @Override
-  public Map<String, Object> toMap() {
+  public synchronized Map<String, Object> toMap() {
     checkForLazyLoading();
     return database.getSerializer().deserializeProperties(database, buffer);
   }
 
   @Override
-  public String toString() {
+  public synchronized String toString() {
     final StringBuilder output = new StringBuilder(256);
     if (rid != null)
       output.append(rid);
@@ -88,7 +88,7 @@ public class ImmutableDocument extends BaseDocument {
   }
 
   @Override
-  public Set<String> getPropertyNames() {
+  public synchronized Set<String> getPropertyNames() {
     checkForLazyLoading();
     return database.getSerializer().getPropertyNames(database, buffer);
   }
