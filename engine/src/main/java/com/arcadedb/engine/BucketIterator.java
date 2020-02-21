@@ -4,9 +4,7 @@
 
 package com.arcadedb.engine;
 
-import com.arcadedb.database.Database;
-import com.arcadedb.database.RID;
-import com.arcadedb.database.Record;
+import com.arcadedb.database.*;
 import com.arcadedb.exception.DatabaseOperationException;
 
 import java.io.IOException;
@@ -16,8 +14,8 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
 
 public class BucketIterator implements Iterator<Record> {
 
-  private final Database database;
-  private final Bucket   bucket;
+  private final DatabaseInternal database;
+  private final Bucket           bucket;
   int      nextPageNumber      = 0;
   BasePage currentPage         = null;
   short    recordCountInCurrentPage;
@@ -27,7 +25,7 @@ public class BucketIterator implements Iterator<Record> {
 
   BucketIterator(Bucket bucket, Database db) {
     this.bucket = bucket;
-    this.database = db;
+    this.database = (DatabaseInternal) db;
     this.totalPages = bucket.pageCount.get();
 
     fetchNext();
@@ -66,6 +64,24 @@ public class BucketIterator implements Iterator<Record> {
               continue;
 
             final Record record = rid.getRecord(false);
+            next = record;
+            return null;
+
+          } else if (recordSize[0] == -1) {
+            // PLACEHOLDER
+            final RID rid = new RID(database, bucket.id, nextPageNumber * Bucket.MAX_RECORDS_IN_PAGE + currentRecordInPage);
+
+            currentRecordInPage++;
+
+            final Binary view = bucket
+                .getRecordInternal(new RID(database, bucket.id, currentPage.readLong((int) (recordPositionInPage + recordSize[1]))), true);
+
+            if (view == null)
+              continue;
+
+            final Record record = database.getRecordFactory()
+                .newImmutableRecord(database, database.getSchema().getTypeNameByBucketId(rid.getBucketId()), rid, view);
+
             next = record;
             return null;
           }

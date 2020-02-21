@@ -4,10 +4,7 @@
 
 package com.arcadedb;
 
-import com.arcadedb.database.Database;
-import com.arcadedb.database.Document;
-import com.arcadedb.database.DocumentCallback;
-import com.arcadedb.database.MutableDocument;
+import com.arcadedb.database.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
@@ -18,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -164,6 +162,94 @@ public class TransactionTypeTest extends BaseTest {
   }
 
   @Test
+  public void testDeleteRecordsCheckScanAndIterators() throws IOException {
+    final AtomicInteger total = new AtomicInteger();
+
+    database.begin();
+
+    final long originalCount = database.countType(TYPE_NAME, true);
+
+    database.scanType(TYPE_NAME, true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        database.deleteRecord(record);
+        total.incrementAndGet();
+        return false;
+      }
+    });
+
+    database.commit();
+
+    Assertions.assertEquals(1, total.get());
+
+    database.begin();
+
+    Assertions.assertEquals(originalCount - 1, database.countType(TYPE_NAME, true));
+
+    // COUNT WITH SCAN
+    total.set(0);
+    database.scanType(TYPE_NAME, true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        total.incrementAndGet();
+        return true;
+      }
+    });
+    Assertions.assertEquals(originalCount - 1, total.get());
+
+    // COUNT WITH ITERATE TYPE
+    total.set(0);
+    for (Iterator<Record> it = database.iterateType(TYPE_NAME, true); it.hasNext(); it.next())
+      total.incrementAndGet();
+
+    Assertions.assertEquals(originalCount - 1, total.get());
+  }
+
+  @Test
+  public void testPlaceholderOnScanAndIterate() throws IOException {
+    final AtomicInteger total = new AtomicInteger();
+
+    database.begin();
+
+    final long originalCount = database.countType(TYPE_NAME, true);
+
+    database.scanType(TYPE_NAME, true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        record.modify().set("additionalProperty", "Something just to create a placeholder").save();
+        total.incrementAndGet();
+        return false;
+      }
+    });
+
+    database.commit();
+
+    Assertions.assertEquals(1, total.get());
+
+    database.begin();
+
+    Assertions.assertEquals(originalCount, database.countType(TYPE_NAME, true));
+
+    // COUNT WITH SCAN
+    total.set(0);
+    database.scanType(TYPE_NAME, true, new DocumentCallback() {
+      @Override
+      public boolean onRecord(final Document record) {
+        total.incrementAndGet();
+        return true;
+      }
+    });
+    Assertions.assertEquals(originalCount, total.get());
+
+    // COUNT WITH ITERATE TYPE
+    total.set(0);
+    for (Iterator<Record> it = database.iterateType(TYPE_NAME, true); it.hasNext(); it.next())
+      total.incrementAndGet();
+
+    Assertions.assertEquals(originalCount, total.get());
+  }
+
+  @Test
   public void testDeleteFail() {
     reopenDatabaseInReadOnlyMode();
 
@@ -186,7 +272,7 @@ public class TransactionTypeTest extends BaseTest {
   }
 
   @Test
-  public void testNextedTx() {
+  public void testNestedTx() {
     database.transaction((tx1) -> {
       database.newDocument(TYPE_NAME).set("id", -1, "tx", 1).save();
       database.transaction((tx2) -> {

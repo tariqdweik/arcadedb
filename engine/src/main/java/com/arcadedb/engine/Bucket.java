@@ -279,7 +279,7 @@ public class Bucket extends PaginatedComponent {
     return stats;
   }
 
-  private Binary getRecordInternal(final RID rid, final boolean readPlaceHolder) {
+  Binary getRecordInternal(final RID rid, final boolean readPlaceHolder) {
     final int pageId = (int) rid.getPosition() / Bucket.MAX_RECORDS_IN_PAGE;
     final int positionInPage = (int) (rid.getPosition() % Bucket.MAX_RECORDS_IN_PAGE);
 

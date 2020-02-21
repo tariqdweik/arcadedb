@@ -40,6 +40,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileLock;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -458,14 +459,20 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
         final DocumentType type = schema.getType(typeName);
 
+        final AtomicBoolean continueScan = new AtomicBoolean(true);
+
         for (Bucket b : type.getBuckets(polymorphic)) {
           b.scan(new RawRecordCallback() {
             @Override
             public boolean onRecord(final RID rid, final Binary view) {
               final Document record = (Document) recordFactory.newImmutableRecord(wrappedDatabaseInstance, typeName, rid, view);
-              return callback.onRecord(record);
+              continueScan.set(callback.onRecord(record));
+              return continueScan.get();
             }
           });
+
+          if (!continueScan.get())
+            break;
         }
         return null;
       }
