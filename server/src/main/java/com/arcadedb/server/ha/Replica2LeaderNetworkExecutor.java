@@ -58,7 +58,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     LogManager.instance().setContext(server.getServer().getServerName());
 
     // REUSE THE SAME BUFFER TO AVOID MALLOC
-    final Binary buffer = new Binary(1024);
+    final Binary buffer = new Binary(8192);
+    buffer.setAllocationChunkSize(1024);
 
     while (!shutdown) {
       long reqId = -1;
@@ -314,7 +315,8 @@ public class Replica2LeaderNetworkExecutor extends Thread {
   }
 
   private void installDatabases() {
-    final Binary buffer = new Binary(1024);
+    final Binary buffer = new Binary(8192);
+    buffer.setAllocationChunkSize(1024);
 
     final ReplicationMessage lastMessage = server.getReplicationLogFile().getLastMessage();
     long lastLogNumber = lastMessage != null ? lastMessage.messageNumber - 1 : -1;

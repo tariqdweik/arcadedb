@@ -184,7 +184,8 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       public void run() {
         LogManager.instance().setContext(server.getServerName());
 
-        final Binary buffer = new Binary(1024);
+        final Binary buffer = new Binary(8192);
+        buffer.setAllocationChunkSize(1024);
 
         while (!shutdownCommunication || !forwarderQueue.isEmpty()) {
           try {
@@ -216,7 +217,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
     forwarderThread.setName(Constants.PRODUCT + "-ha-leader-forwarder/" + server.getServer().getServerName());
 
     // REUSE THE SAME BUFFER TO AVOID MALLOC
-    final Binary buffer = new Binary(1024);
+    final Binary buffer = new Binary(8192);
 
     while (!shutdownCommunication) {
       try {

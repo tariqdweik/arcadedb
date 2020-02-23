@@ -66,15 +66,19 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
     private      Binary                   temporaryBuffer2;
 
     public Binary getTemporaryBuffer1() {
-      if (temporaryBuffer1 == null)
-        temporaryBuffer1 = new Binary(8196);
+      if (temporaryBuffer1 == null) {
+        temporaryBuffer1 = new Binary(8192);
+        temporaryBuffer1.setAllocationChunkSize(1024);
+      }
       temporaryBuffer1.clear();
       return temporaryBuffer1;
     }
 
     public Binary getTemporaryBuffer2() {
-      if (temporaryBuffer2 == null)
-        temporaryBuffer2 = new Binary(8196);
+      if (temporaryBuffer2 == null) {
+        temporaryBuffer2 = new Binary(8192);
+        temporaryBuffer2.setAllocationChunkSize(1024);
+      }
       temporaryBuffer2.clear();
       return temporaryBuffer2;
     }

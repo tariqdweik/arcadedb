@@ -352,8 +352,10 @@ public class BinarySerializer {
         throw new IllegalArgumentException("Cannot find type '" + document.getType() + "' declared in embedded document");
       content.putUnsignedNumber(schemaId);
 
-      final Binary header = new Binary(8196);
-      final Binary body = new Binary(8196);
+      final Binary header = new Binary(8192);
+      header.setAllocationChunkSize(2048);
+      final Binary body = new Binary(8192);
+      body.setAllocationChunkSize(2048);
 
       header.putByte(EmbeddedDocument.RECORD_TYPE);
       serializeProperties(document.getDatabase(), document, header, body);
