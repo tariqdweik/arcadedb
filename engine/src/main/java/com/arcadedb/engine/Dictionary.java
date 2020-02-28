@@ -85,13 +85,26 @@ public class Dictionary extends PaginatedComponent {
 
     Integer pos = dictionaryMap.get(name);
     if (pos == null && create) {
-      database.transaction((tx) -> {
-        if (dictionaryMap.putIfAbsent(name, itemCount) == null) {
-          dictionary.add(name);
-          addItemToPage(name);
+      // SYNCHRONIZE THIS BLOCK TO AVOID RACE CONDITIONS WITH RETRIES
+      synchronized (this) {
+        final int itemCountBeforeIncrement = itemCount;
+
+        try {
+          database.transaction((tx) -> {
+            itemCount = itemCountBeforeIncrement; // RESET COUNTER IN CASE OF RETRY
+            addItemToPage(name);
+          }, false);
+
+          if (dictionaryMap.putIfAbsent(name, itemCountBeforeIncrement) == null)
+            dictionary.add(name);
+
+          pos = dictionaryMap.get(name);
+
+        } catch (Exception e) {
+          itemCount = itemCountBeforeIncrement; // RESET COUNTER IN CASE OF ERROR
+          throw e;
         }
-      }, false);
-      pos = dictionaryMap.get(name);
+      }
     }
 
     if (pos == null)
