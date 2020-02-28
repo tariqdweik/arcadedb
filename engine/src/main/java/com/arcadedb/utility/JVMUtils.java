@@ -19,24 +19,39 @@ import java.util.Locale;
 import java.util.logging.Level;
 
 public class JVMUtils {
-  public static String generateThreadDump() {
-    final StringBuilder dump = new StringBuilder();
+  public static String generateThreadDump(final String filter) {
+    final StringBuilder output = new StringBuilder();
     final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     final ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 100);
     for (ThreadInfo threadInfo : threadInfos) {
-      dump.append('"');
-      dump.append(threadInfo.getThreadName());
-      dump.append("\" ");
+      if (filter != null) {
+        boolean found = false;
+        final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
+        for (final StackTraceElement stackTraceElement : stackTraceElements) {
+          if (stackTraceElement.toString().contains(filter)) {
+            found = true;
+            break;
+          }
+        }
+
+        if (!found)
+          continue;
+      }
+
+      output.append('"');
+      output.append(threadInfo.getThreadName());
+      output.append("\" ");
       final Thread.State state = threadInfo.getThreadState();
-      dump.append("\n   java.lang.Thread.State: ");
-      dump.append(state);
+      output.append("\n   java.lang.Thread.State: ");
+      output.append(state);
+
       final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
       for (final StackTraceElement stackTraceElement : stackTraceElements) {
-        dump.append("\n        at ");
-        dump.append(stackTraceElement);
+        output.append("\n        at ");
+        output.append(stackTraceElement);
       }
-      dump.append("\n\n");
+      output.append("\n\n");
     }
-    return dump.toString();
+    return output.toString();
   }
 }
