@@ -87,22 +87,24 @@ public class Dictionary extends PaginatedComponent {
     if (pos == null && create) {
       // SYNCHRONIZE THIS BLOCK TO AVOID RACE CONDITIONS WITH RETRIES
       synchronized (this) {
-        final int itemCountBeforeIncrement = itemCount;
+        pos = dictionaryMap.get(name);
+        if (pos == null) {
+          final int itemCountBeforeIncrement = itemCount;
 
-        try {
-          database.transaction((tx) -> {
-            itemCount = itemCountBeforeIncrement; // RESET COUNTER IN CASE OF RETRY
-            addItemToPage(name);
-          }, false);
+          try {
+            database.transaction((tx) -> {
+              itemCount = itemCountBeforeIncrement; // RESET COUNTER IN CASE OF RETRY
+              addItemToPage(name);
+            }, false);
 
-          if (dictionaryMap.putIfAbsent(name, itemCountBeforeIncrement) == null)
-            dictionary.add(name);
+            if (dictionaryMap.putIfAbsent(name, itemCountBeforeIncrement) == null)
+              dictionary.add(name);
+            pos = dictionaryMap.get(name);
 
-          pos = dictionaryMap.get(name);
-
-        } catch (Exception e) {
-          itemCount = itemCountBeforeIncrement; // RESET COUNTER IN CASE OF ERROR
-          throw e;
+          } catch (Exception e) {
+            itemCount = itemCountBeforeIncrement; // RESET COUNTER IN CASE OF ERROR
+            throw e;
+          }
         }
       }
     }
@@ -115,7 +117,7 @@ public class Dictionary extends PaginatedComponent {
 
   public String getNameById(final int nameId) {
     if (nameId < 0 || nameId >= dictionary.size())
-      throw new IllegalArgumentException("Dictionary item with id " + nameId + " is not valid");
+      throw new IllegalArgumentException("Dictionary item with id " + nameId + " is not valid (total=" + dictionary.size() + ")");
 
     final String itemName = dictionary.get(nameId);
     if (itemName == null)
