@@ -4,32 +4,33 @@
 
 package com.arcadedb.utility;
 
-import com.arcadedb.log.LogManager;
-
-import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-import java.nio.channels.FileChannel;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Locale;
-import java.util.logging.Level;
 
 public class JVMUtils {
-  public static String generateThreadDump(final String filter) {
+  public static String generateThreadDump(String filterInclude, String filterExclude) {
+    if (filterInclude != null && filterInclude.trim().isEmpty())
+      filterInclude = null;
+
+    if (filterExclude != null && filterExclude.trim().isEmpty())
+      filterExclude = null;
+
     final StringBuilder output = new StringBuilder();
     final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     final ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 100);
     for (ThreadInfo threadInfo : threadInfos) {
-      if (filter != null) {
+      if (filterInclude != null || filterExclude != null) {
         boolean found = false;
         final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
         for (final StackTraceElement stackTraceElement : stackTraceElements) {
-          if (stackTraceElement.toString().contains(filter)) {
+          if (filterInclude != null && stackTraceElement.toString().contains(filterInclude)) {
             found = true;
+            break;
+          }
+
+          if (filterExclude != null && stackTraceElement.toString().contains(filterExclude)) {
+            found = false;
             break;
           }
         }
@@ -41,6 +42,17 @@ public class JVMUtils {
       output.append('"');
       output.append(threadInfo.getThreadName());
       output.append("\" ");
+
+      output.append(String.format("\nWaited %d times = %dms - Blocked %d times = %dms - Locked monitors=%d synchronizers=%d - InNative=%s",//
+          threadInfo.getWaitedCount(), threadInfo.getWaitedTime(), threadInfo.getBlockedCount(), threadInfo.getBlockedTime(),//
+          threadInfo.getLockedMonitors().length, threadInfo.getLockedSynchronizers().length, threadInfo.isInNative()));
+
+      if (threadInfo.getLockInfo() != null) {
+        output.append(String.format("\nWaiting for lock %s", threadInfo.getLockName()));
+        if (threadInfo.getLockOwnerName() != null)
+          output.append(String.format(" owned by %s(%s)", threadInfo.getLockOwnerName(), threadInfo.getLockOwnerId()));
+      }
+
       final Thread.State state = threadInfo.getThreadState();
       output.append("\n   java.lang.Thread.State: ");
       output.append(state);
