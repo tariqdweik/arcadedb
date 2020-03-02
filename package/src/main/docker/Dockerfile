@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk12:alpine
+FROM adoptopenjdk/openjdk11:alpine-slim
 
 MAINTAINER ArcateAnalytics LTD (info@arcadeanalytics.com)
 
