@@ -1,5 +1,5 @@
 /*
- * Copyright (c) - Arcade Analytics LTD (https://arcadeanalytics.com)
+ * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
  */
 package com.arcadedb.sql.executor;
 

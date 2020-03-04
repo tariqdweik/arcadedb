@@ -1,7 +1,7 @@
 package com.arcadedb.console;
 
 /*
- * Copyright (c) - Arcade Analytics LTD (https://arcadeanalytics.com)
+ * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
  */
 
 import com.arcadedb.Constants;

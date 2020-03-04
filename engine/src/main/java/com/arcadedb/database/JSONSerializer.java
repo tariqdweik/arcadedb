@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - Arcade Analytics LTD (https://arcadeanalytics.com)
+ * Copyright (c) 2019 - Arcade Data LTD (https://arcadedata.com)
  */
 
 package com.arcadedb.database;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) - Arcade Analytics LTD (https://arcadeanalytics.com)
+ * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
  */
 
 package com.arcadedb;
@@ -13,8 +13,8 @@ import java.util.logging.Level;
 
 public class Constants {
     public static final String PRODUCT = "ArcadeDB";
-    public static final String URL = "https://arcadeanalytics.com";
-    public static final String COPYRIGHT = "Copyrights (c) 2019 Arcade Analytics";
+    public static final String URL = "https://arcadedata.com";
+    public static final String COPYRIGHT = "Copyrights (c) 2019 Arcade Data";
 
     private static final Properties properties = new Properties();
 
