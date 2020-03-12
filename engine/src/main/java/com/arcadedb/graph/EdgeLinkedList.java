@@ -202,7 +202,7 @@ public class EdgeLinkedList {
         // DELETE BY EDGE RID
         deleted = current.removeEdge(rid);
       else
-        // DELETE BY EDGE RID
+        // DELETE BY VERTEX RID
         deleted = current.removeVertex(direction == Vertex.DIRECTION.OUT ? edge.getIn() : edge.getOut());
 
       if (deleted > 0)

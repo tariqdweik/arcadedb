@@ -16,8 +16,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> {
-  protected       EdgeSegment   currentContainer;
-  protected final AtomicInteger currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
+  protected final DatabaseInternal database;
+  protected       EdgeSegment      currentContainer;
+  protected final AtomicInteger    currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
 
   protected RID          nextEdge;
   protected RID          nextVertex;
@@ -25,6 +26,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
   protected Set<Integer> validBuckets;
 
   protected IteratorFilterBase(final DatabaseInternal database, final EdgeSegment current, final String[] edgeTypes) {
+    this.database = database;
     this.currentContainer = current;
 
     validBuckets = new HashSet<>();
@@ -73,6 +75,11 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
     }
 
     return false;
+  }
+
+  @Override
+  public void remove() {
+    currentContainer.removeEntry(currentPosition.get());
   }
 
   public RID getNextVertex() {

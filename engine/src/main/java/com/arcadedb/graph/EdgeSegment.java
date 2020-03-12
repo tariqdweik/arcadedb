@@ -37,4 +37,6 @@ public interface EdgeSegment extends Record {
   int getRecordSize();
 
   long count(Set<Integer> fileIds);
+
+  boolean removeEntry(int position);
 }

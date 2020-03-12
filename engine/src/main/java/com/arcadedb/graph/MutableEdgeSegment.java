@@ -141,6 +141,27 @@ public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, Recor
   }
 
   @Override
+  public boolean removeEntry(final int index) {
+    int used = getUsed();
+    if (used == 0)
+      return false;
+
+    if (index > used)
+      return false;
+
+    buffer.position(index);
+
+    // MOVE THE ENTIRE BUFFER FROM THE NEXT ITEM TO THE CURRENT ONE
+    buffer.move(buffer.position(), index, used - buffer.position());
+
+    used -= (buffer.position() - index);
+    setUsed(used);
+
+    buffer.position(index);
+    return true;
+  }
+
+  @Override
   public int removeEdge(final RID rid) {
     int used = getUsed();
     if (used == 0)

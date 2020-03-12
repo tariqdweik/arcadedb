@@ -272,7 +272,6 @@ public class GraphTest extends BaseGraphTest {
 
   @Test
   public void deleteEdges() {
-    final Database db = database;
     database.begin();
     try {
 
@@ -291,6 +290,63 @@ public class GraphTest extends BaseGraphTest {
       // DELETE THE EDGE
       // -----------------------
       database.deleteRecord(e2);
+
+      Vertex vOut = e2.getOutVertex();
+      edges = vOut.getEdges(Vertex.DIRECTION.OUT).iterator();
+      Assertions.assertTrue(edges.hasNext());
+
+      edges.next();
+      Assertions.assertFalse(edges.hasNext());
+
+      Vertex vIn = e2.getInVertex();
+      edges = vIn.getEdges(Vertex.DIRECTION.IN).iterator();
+      Assertions.assertFalse(edges.hasNext());
+
+      // RELOAD AND CHECK AGAIN
+      // -----------------------
+      try {
+        database.lookupByRID(e2.getIdentity(), true);
+        Assertions.fail("Expected deleted record");
+      } catch (RecordNotFoundException e) {
+      }
+
+      vOut = e2.getOutVertex();
+      edges = vOut.getEdges(Vertex.DIRECTION.OUT).iterator();
+      Assertions.assertTrue(edges.hasNext());
+
+      edges.next();
+      Assertions.assertFalse(edges.hasNext());
+
+      vIn = e2.getInVertex();
+      edges = vIn.getEdges(Vertex.DIRECTION.IN).iterator();
+      Assertions.assertFalse(edges.hasNext());
+
+    } finally {
+      database.commit();
+      new DatabaseChecker().check(database);
+    }
+  }
+
+  @Test
+  public void deleteEdgesFromEdgeIterator() {
+    database.begin();
+    try {
+
+      Vertex v1 = (Vertex) database.lookupByRID(root, false);
+      Assertions.assertNotNull(v1);
+
+      Iterator<Edge> edges = v1.getEdges(Vertex.DIRECTION.OUT).iterator();
+      Assertions.assertTrue(edges.hasNext());
+      Edge e2 = edges.next();
+      Assertions.assertNotNull(e2);
+
+      // DELETE THE EDGE
+      // -----------------------
+      edges.remove();
+
+      Assertions.assertTrue(edges.hasNext());
+      Edge e3 = edges.next();
+      Assertions.assertNotNull(e3);
 
       Vertex vOut = e2.getOutVertex();
       edges = vOut.getEdges(Vertex.DIRECTION.OUT).iterator();

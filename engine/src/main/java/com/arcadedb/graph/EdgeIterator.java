@@ -15,6 +15,8 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
   private final Vertex.DIRECTION direction;
   private       EdgeSegment      currentContainer;
   private final AtomicInteger    currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
+  private       RID              nextEdgeRID;
+  private       RID              nextVertexRID;
 
   public EdgeIterator(final EdgeSegment current, final RID vertex, final Vertex.DIRECTION direction) {
     if (current == null)
@@ -46,12 +48,12 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
     if (!hasNext())
       throw new NoSuchElementException();
 
-    final RID nextEdgeRID = currentContainer.getRID(currentPosition);
-    final RID nextVertexRID = currentContainer.getRID(currentPosition); // SKIP VERTEX
+    nextEdgeRID = currentContainer.getRID(currentPosition);
+    // SKIP VERTEX
+    nextVertexRID = currentContainer.getRID(currentPosition);
 
     if (nextEdgeRID.getPosition() < 0) {
       // CREATE LIGHTWEIGHT EDGE
-
       final String edgeType = currentContainer.getDatabase().getSchema().getTypeByBucketId(nextEdgeRID.getBucketId()).getName();
 
       if (direction == Vertex.DIRECTION.OUT)
@@ -61,6 +63,22 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
     }
 
     return nextEdgeRID.getEdge();
+  }
+
+  @Override
+  public void remove() {
+    if (nextEdgeRID.getPosition() < 0) {
+      // CREATE LIGHTWEIGHT EDGE
+      final String edgeType = currentContainer.getDatabase().getSchema().getTypeByBucketId(nextEdgeRID.getBucketId()).getName();
+
+      if (direction == Vertex.DIRECTION.OUT)
+        new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, vertex, nextVertexRID).delete();
+      else
+        new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, nextVertexRID, vertex).delete();
+    } else
+      nextEdgeRID.getEdge().delete();
+
+    currentContainer.removeEntry(currentPosition.get());
   }
 
   @Override
