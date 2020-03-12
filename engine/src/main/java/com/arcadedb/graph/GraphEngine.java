@@ -7,6 +7,7 @@ package com.arcadedb.graph;
 import com.arcadedb.database.*;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.RecordNotFoundException;
+import com.arcadedb.exception.SchemaException;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.MultiIterator;
@@ -277,17 +278,25 @@ public class GraphEngine {
   public void deleteEdge(final Edge edge) {
     final Database database = edge.getDatabase();
 
-    final VertexInternal vOut = (VertexInternal) edge.getOutVertex();
+    try {
+      final VertexInternal vOut = (VertexInternal) edge.getOutVertex();
 
-    if (vOut != null) {
-      if (vOut.getOutEdgesHeadChunk() != null)
-        new EdgeLinkedList(vOut, Vertex.DIRECTION.OUT, (EdgeSegment) database.lookupByRID(vOut.getOutEdgesHeadChunk(), true)).removeEdge(edge);
+      if (vOut != null) {
+        if (vOut.getOutEdgesHeadChunk() != null)
+          new EdgeLinkedList(vOut, Vertex.DIRECTION.OUT, (EdgeSegment) database.lookupByRID(vOut.getOutEdgesHeadChunk(), true)).removeEdge(edge);
+      }
+    } catch (SchemaException e) {
+      LogManager.instance().log(this, Level.FINE, "Error on loading outgoing vertex %s from edge %s", e, edge.getOut(), edge.getIdentity());
     }
 
-    final VertexInternal vIn = (VertexInternal) edge.getInVertex();
-    if (vIn != null) {
-      if (vIn.getInEdgesHeadChunk() != null)
-        new EdgeLinkedList(vIn, Vertex.DIRECTION.IN, (EdgeSegment) database.lookupByRID(vIn.getInEdgesHeadChunk(), true)).removeEdge(edge);
+    try {
+      final VertexInternal vIn = (VertexInternal) edge.getInVertex();
+      if (vIn != null) {
+        if (vIn.getInEdgesHeadChunk() != null)
+          new EdgeLinkedList(vIn, Vertex.DIRECTION.IN, (EdgeSegment) database.lookupByRID(vIn.getInEdgesHeadChunk(), true)).removeEdge(edge);
+      }
+    } catch (SchemaException e) {
+      LogManager.instance().log(this, Level.FINE, "Error on loading incoming vertex %s from edge %s", e, edge.getIn(), edge.getIdentity());
     }
 
     final RID edgeRID = edge.getIdentity();
