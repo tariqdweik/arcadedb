@@ -5,10 +5,12 @@
 package com.arcadedb.graph;
 
 import com.arcadedb.database.RID;
+import com.arcadedb.log.LogManager;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
   private final RID              vertex;
@@ -67,16 +69,23 @@ public class EdgeIterator implements Iterator<Edge>, Iterable<Edge> {
 
   @Override
   public void remove() {
-    if (nextEdgeRID.getPosition() < 0) {
-      // CREATE LIGHTWEIGHT EDGE
-      final String edgeType = currentContainer.getDatabase().getSchema().getTypeByBucketId(nextEdgeRID.getBucketId()).getName();
+    if (nextEdgeRID == null)
+      throw new NoSuchElementException();
 
-      if (direction == Vertex.DIRECTION.OUT)
-        new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, vertex, nextVertexRID).delete();
-      else
-        new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, nextVertexRID, vertex).delete();
-    } else
-      nextEdgeRID.getEdge().delete();
+    try {
+      if (nextEdgeRID.getPosition() < 0) {
+        // CREATE LIGHTWEIGHT EDGE
+        final String edgeType = currentContainer.getDatabase().getSchema().getTypeByBucketId(nextEdgeRID.getBucketId()).getName();
+
+        if (direction == Vertex.DIRECTION.OUT)
+          new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, vertex, nextVertexRID).delete();
+        else
+          new ImmutableLightEdge(currentContainer.getDatabase(), edgeType, nextEdgeRID, nextVertexRID, vertex).delete();
+      } else
+        nextEdgeRID.getEdge().delete();
+    } catch (Exception e) {
+      LogManager.instance().log(this, Level.WARNING, "Error on deleting edge record %s", e, nextEdgeRID);
+    }
 
     currentContainer.removeEntry(currentPosition.get());
   }
