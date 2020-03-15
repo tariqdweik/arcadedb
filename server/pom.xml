@@ -15,14 +15,15 @@
         <relativePath>../</relativePath>
     </parent>
 
+    <artifactId>arcadedb-server</artifactId>
+    <packaging>jar</packaging>
+
     <properties>
         <metrics.version>4.1.2</metrics.version>
         <slf4j-simple.version>1.7.30</slf4j-simple.version>
         <undertow-core.version>2.0.20.Final</undertow-core.version>
     </properties>
 
-    <artifactId>arcadedb-server</artifactId>
-    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>

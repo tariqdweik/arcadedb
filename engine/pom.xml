@@ -7,15 +7,6 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <properties>
-        <javacc-maven-plugin.version>2.6</javacc-maven-plugin.version>
-        <disruptor.version>1.2.15</disruptor.version>
-        <json.version>20190722</json.version>
-        <lz4-java.version>1.7.0</lz4-java.version>
-        <lucene.version>8.4.0</lucene.version>
-        <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
-    </properties>
-
     <parent>
         <groupId>com.arcadeanalytics</groupId>
         <artifactId>arcadedb-parent</artifactId>
@@ -26,41 +17,16 @@
     <artifactId>arcadedb-engine</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <javacc-maven-plugin.version>2.6</javacc-maven-plugin.version>
+        <disruptor.version>1.2.15</disruptor.version>
+        <json.version>20190722</json.version>
+        <lz4-java.version>1.7.0</lz4-java.version>
+        <lucene.version>8.4.0</lucene.version>
+    </properties>
+
     <build>
         <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.codehaus.mojo</groupId>-->
-<!--                <artifactId>buildnumber-maven-plugin</artifactId>-->
-<!--                <version>${buildnumber-maven-plugin.version}</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <phase>validate</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>create</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
-            <!--            <plugin>-->
-            <!--                <groupId>org.codehaus.mojo</groupId>-->
-            <!--                <artifactId>javacc-maven-plugin</artifactId>-->
-            <!--                <version>${javacc-maven-plugin.version}</version>-->
-            <!--                <executions>-->
-            <!--                    <execution>-->
-            <!--                        <id>jjtree-javacc</id>-->
-            <!--                        <goals>-->
-            <!--                            <goal>jjtree-javacc</goal>-->
-            <!--                        </goals>-->
-            <!--                    </execution>-->
-            <!--                </executions>-->
-            <!--                <configuration>-->
-            <!--                    <sourceDirectory>${basedir}/src/main/grammar</sourceDirectory>-->
-            <!--                    <interimDirectory>${basedir}/src/main/java</interimDirectory>-->
-            <!--                    <outputDirectory>${basedir}/src/main/java</outputDirectory>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
-
-
             <plugin>
                 <groupId>com.helger.maven</groupId>
                 <artifactId>ph-javacc-maven-plugin</artifactId>
@@ -85,14 +51,13 @@
             </plugin>
         </plugins>
     </build>
-    <dependencies>
 
+    <dependencies>
         <dependency>
             <groupId>com.conversantmedia</groupId>
             <artifactId>disruptor</artifactId>
             <version>${disruptor.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
