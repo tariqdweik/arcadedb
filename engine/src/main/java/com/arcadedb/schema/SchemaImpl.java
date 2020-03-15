@@ -51,6 +51,8 @@ public class SchemaImpl implements Schema {
   private final        PaginatedComponentFactory paginatedComponentFactory;
   private final        IndexFactory              indexFactory          = new IndexFactory();
   private              boolean                   readingFromFile       = false;
+  private              boolean dirtyConfiguration = false;
+  private              boolean loadInRamCompleted = false;
 
   public enum INDEX_TYPE {
     LSM_TREE, FULL_TEXT
@@ -73,6 +75,7 @@ public class SchemaImpl implements Schema {
   }
 
   public void create(final PaginatedFile.MODE mode) {
+    loadInRamCompleted = true;
     database.begin();
     try {
       dictionary = new Dictionary(database, "dictionary", databasePath + "/dictionary", mode, Dictionary.DEF_PAGE_SIZE);
@@ -565,8 +568,15 @@ public class SchemaImpl implements Schema {
         final DocumentType c = new DocumentType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
-        for (int i = 0; i < buckets; ++i)
-          c.addBucket(createBucket(FileUtils.encode(typeName, encoding) + "_" + i, pageSize));
+        for (int i = 0; i < buckets; ++i) {
+          final String bucketName = FileUtils.encode(typeName, encoding) + "_" + i;
+          if (existsBucket(bucketName)) {
+            LogManager.instance().log(this, Level.WARNING, "Reusing found bucket '%s' for type '%s'", null, bucketName, typeName);
+            c.addBucket(getBucketByName(bucketName));
+          } else
+            // CREATE A NEW ONE
+            c.addBucket(createBucket(bucketName, pageSize));
+        }
 
         saveConfiguration();
 
@@ -604,8 +614,15 @@ public class SchemaImpl implements Schema {
         final VertexType c = new VertexType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
-        for (int i = 0; i < buckets; ++i)
-          c.addBucket(createBucket(FileUtils.encode(typeName, encoding) + "_" + i, pageSize));
+        for (int i = 0; i < buckets; ++i) {
+          final String bucketName = FileUtils.encode(typeName, encoding) + "_" + i;
+          if (existsBucket(bucketName)) {
+            LogManager.instance().log(this, Level.WARNING, "Reusing found bucket '%s' for type '%s'", null, bucketName, typeName);
+            c.addBucket(getBucketByName(bucketName));
+          } else
+            // CREATE A NEW ONE
+            c.addBucket(createBucket(bucketName, pageSize));
+        }
 
         database.getGraphEngine().createVertexType(database, c);
 
@@ -645,8 +662,15 @@ public class SchemaImpl implements Schema {
         final DocumentType c = new EdgeType(SchemaImpl.this, typeName);
         types.put(typeName, c);
 
-        for (int i = 0; i < buckets; ++i)
-          c.addBucket(createBucket(FileUtils.encode(typeName, encoding) + "_" + i, pageSize));
+        for (int i = 0; i < buckets; ++i) {
+          final String bucketName = FileUtils.encode(typeName, encoding) + "_" + i;
+          if (existsBucket(bucketName)) {
+            LogManager.instance().log(this, Level.WARNING, "Reusing found bucket '%s' for type '%s'", null, bucketName, typeName);
+            c.addBucket(getBucketByName(bucketName));
+          } else
+            // CREATE A NEW ONE
+            c.addBucket(createBucket(bucketName, pageSize));
+        }
 
         saveConfiguration();
 
@@ -658,6 +682,7 @@ public class SchemaImpl implements Schema {
   protected void readConfiguration() {
     types.clear();
 
+    loadInRamCompleted = false;
     readingFromFile = true;
     try {
       File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
@@ -759,31 +784,40 @@ public class SchemaImpl implements Schema {
       }
 
       // ASSOCIATE ORPHAN INDEXES
-      for (Index index : indexMap.values()) {
-        if (index.getTypeName() == null) {
-          final String indexName = index.getName();
+      boolean completed = false;
+      while (!completed) {
+        completed = true;
+        for (Index index : indexMap.values()) {
+          if (index.getTypeName() == null) {
+            final String indexName = index.getName();
 
-          final int pos = indexName.lastIndexOf("_");
-          final String bucketName = indexName.substring(0, pos);
-          Bucket bucket = bucketMap.get(bucketName);
-          if (bucket != null) {
-            for (Map.Entry<String, JSONObject> entry : orphanIndexes.entrySet()) {
-              final int pos2 = entry.getKey().lastIndexOf("_");
-              final String bucketNameIndex = entry.getKey().substring(0, pos2);
+            final int pos = indexName.lastIndexOf("_");
+            final String bucketName = indexName.substring(0, pos);
+            Bucket bucket = bucketMap.get(bucketName);
+            if (bucket != null) {
+              for (Map.Entry<String, JSONObject> entry : orphanIndexes.entrySet()) {
+                final int pos2 = entry.getKey().lastIndexOf("_");
+                final String bucketNameIndex = entry.getKey().substring(0, pos2);
 
-              if (bucketName.equals(bucketNameIndex)) {
-                final DocumentType type = this.types.get(entry.getValue().getString("type"));
-                if (type != null) {
-                  final JSONArray schemaIndexProperties = entry.getValue().getJSONArray("properties");
-                  final String[] properties = new String[schemaIndexProperties.length()];
-                  for (int i = 0; i < properties.length; ++i)
-                    properties[i] = schemaIndexProperties.getString(i);
+                if (bucketName.equals(bucketNameIndex)) {
+                  final DocumentType type = this.types.get(entry.getValue().getString("type"));
+                  if (type != null) {
+                    final JSONArray schemaIndexProperties = entry.getValue().getJSONArray("properties");
+                    final String[] properties = new String[schemaIndexProperties.length()];
+                    for (int i = 0; i < properties.length; ++i)
+                      properties[i] = schemaIndexProperties.getString(i);
 
-                  type.addIndexInternal(index, bucket, properties);
-                  LogManager.instance().log(this, Level.WARNING, "Relinked orphan index '%s' to type '%s'", null, indexName, type.getName());
-                  saveConfiguration();
+                    type.addIndexInternal(index, bucket, properties);
+                    LogManager.instance().log(this, Level.WARNING, "Relinked orphan index '%s' to type '%s'", null, indexName, type.getName());
+                    saveConfiguration();
+                    completed = false;
+                    break;
+                  }
                 }
               }
+
+              if (!completed)
+                break;
             }
           }
         }
@@ -796,6 +830,8 @@ public class SchemaImpl implements Schema {
           type.addParent(getType(p));
       }
 
+      loadInRamCompleted = true;
+
     } catch (Exception e) {
       LogManager.instance().log(this, Level.SEVERE, "Error on loading schema. The schema will be reset", e);
     } finally {
@@ -807,18 +843,17 @@ public class SchemaImpl implements Schema {
     if (readingFromFile)
       return;
 
+    if (!loadInRamCompleted)
+      // DATABASE OPENING, DO NOT SAVE
+      return;
+
+    if (database.isTransactionActive()) {
+      // POSTPONE THE SAVING AFTER TX COMMIT SUCCEED
+      dirtyConfiguration = true;
+      return;
+    }
+
     try {
-      final File prevFile = new File(databasePath + "/" + SCHEMA_FILE_NAME);
-      if (prevFile.exists()) {
-        final File copy = new File(databasePath + "/" + SCHEMA_PREV_FILE_NAME);
-        if (copy.exists())
-          copy.delete();
-
-        prevFile.renameTo(copy);
-      }
-
-      final FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME);
-
       final JSONObject root = new JSONObject();
       root.put("version", Constants.getRawVersion());
 
@@ -882,8 +917,20 @@ public class SchemaImpl implements Schema {
         }
       }
 
+      final File prevFile = new File(databasePath + "/" + SCHEMA_FILE_NAME);
+      if (prevFile.exists()) {
+        final File copy = new File(databasePath + "/" + SCHEMA_PREV_FILE_NAME);
+        if (copy.exists())
+          copy.delete();
+
+        prevFile.renameTo(copy);
+      }
+
+      final FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME);
       file.write(root.toString());
       file.close();
+
+      dirtyConfiguration = false;
 
     } catch (IOException e) {
       LogManager.instance().log(this, Level.SEVERE, "Error on saving schema configuration to file: %s", e, databasePath + "/" + SCHEMA_FILE_NAME);
@@ -900,5 +947,9 @@ public class SchemaImpl implements Schema {
       throw new SchemaException("File with id '" + fileId + "' already exists (previous=" + files.get(fileId) + " new=" + file + ")");
 
     files.set(fileId, file);
+  }
+
+  public boolean isDirty() {
+    return dirtyConfiguration;
   }
 }

@@ -12,6 +12,7 @@ import com.arcadedb.exception.TransactionException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
@@ -80,6 +81,9 @@ public class TransactionContext implements Transaction {
       commit2ndPhase(changes);
     else
       reset();
+
+    if (((SchemaImpl) database.getSchema()).isDirty())
+      ((SchemaImpl) database.getSchema()).saveConfiguration();
 
     return changes != null ? changes.getFirst() : null;
   }
@@ -428,7 +432,7 @@ public class TransactionContext implements Transaction {
   }
 
   public void commit2ndPhase(final Pair<Binary, List<MutablePage>> changes) {
-    if( database.getMode() == PaginatedFile.MODE.READ_ONLY)
+    if (database.getMode() == PaginatedFile.MODE.READ_ONLY)
       throw new TransactionException("Cannot commit changes because the database is open in read-only mode");
 
     if (status != STATUS.COMMIT_1ST_PHASE)
