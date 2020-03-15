@@ -14,12 +14,10 @@ node {
         stage('checkout') {
             checkout scm
         }
-
-        docker.image('openjdk:8-jdk').inside(' -u root -v /home/player/volumes/jenkins_home/.m2:/root/.m2"') {
-
+        docker.image('adoptopenjdk:11-jdk-hotspot').inside(' -u root -v /home/player/volumes/jenkins_home/.m2:/root/.m2"') {
 
             stage('check java') {
-                sh "java -version"
+                sh "./mvnw -version"
             }
 
             stage('build') {
@@ -34,6 +32,10 @@ node {
 //                          classPattern : '**/classes',
 //                          sourcePattern: '**/src/main/java'])
                 }
+            }
+
+            stage('build downstream') {
+                build job: "trader/${env.BRANCH_NAME}", wait: false
             }
         }
         googlechatnotification url: 'id:chat_jenkins_id', message: "SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
