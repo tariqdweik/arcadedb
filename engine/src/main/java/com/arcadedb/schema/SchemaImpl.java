@@ -51,8 +51,8 @@ public class SchemaImpl implements Schema {
   private final        PaginatedComponentFactory paginatedComponentFactory;
   private final        IndexFactory              indexFactory          = new IndexFactory();
   private              boolean                   readingFromFile       = false;
-  private              boolean dirtyConfiguration = false;
-  private              boolean loadInRamCompleted = false;
+  private              boolean                   dirtyConfiguration    = false;
+  private              boolean                   loadInRamCompleted    = false;
 
   public enum INDEX_TYPE {
     LSM_TREE, FULL_TEXT
@@ -679,7 +679,7 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  protected void readConfiguration() {
+  protected synchronized void readConfiguration() {
     types.clear();
 
     loadInRamCompleted = false;
@@ -839,16 +839,9 @@ public class SchemaImpl implements Schema {
     }
   }
 
-  public void saveConfiguration() {
-    if (readingFromFile)
-      return;
-
-    if (!loadInRamCompleted)
-      // DATABASE OPENING, DO NOT SAVE
-      return;
-
-    if (database.isTransactionActive()) {
-      // POSTPONE THE SAVING AFTER TX COMMIT SUCCEED
+  public synchronized void saveConfiguration() {
+    if (readingFromFile || !loadInRamCompleted || database.isTransactionActive()) {
+      // POSTPONE THE SAVING
       dirtyConfiguration = true;
       return;
     }
