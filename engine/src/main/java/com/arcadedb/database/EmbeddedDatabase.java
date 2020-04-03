@@ -836,7 +836,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         lastException = e;
         continue;
       } catch (Exception e) {
-        if (getTransaction().isActive())
+        final TransactionContext tx = getTransaction();
+        if (tx != null && tx.isActive())
           rollback();
 
         if (error != null)
