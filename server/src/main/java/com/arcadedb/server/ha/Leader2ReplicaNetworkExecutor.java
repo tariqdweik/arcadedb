@@ -256,7 +256,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
       sendMessage(buffer);
 
       if (response instanceof ReplicaConnectHotResyncResponse) {
-        server.resendMessagesToReplica(((ReplicaConnectHotResyncResponse) response).getPositionInLog(), remoteServerName);
+        server.resendMessagesToReplica(((ReplicaConnectHotResyncResponse) response).getMessageNumber(), remoteServerName);
         server.setReplicaStatus(remoteServerName, true);
       }
     }

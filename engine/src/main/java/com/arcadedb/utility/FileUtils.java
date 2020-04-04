@@ -20,6 +20,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 import java.util.logging.Level;
+import java.util.zip.GZIPOutputStream;
 
 public class FileUtils {
   public static final int    KILOBYTE = 1024;
@@ -328,6 +329,21 @@ public class FileUtils {
       LogManager.instance().log(FileUtils.class, Level.SEVERE, "Error on using encoding " + encoding, e);
       return value;
     }
+  }
+
+  public static void gzipFile(final File sourceFile, final File destFile) throws IOException {
+    FileInputStream fis = new FileInputStream(sourceFile);
+    FileOutputStream fos = new FileOutputStream(destFile);
+    GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
+    byte[] buffer = new byte[1024 * 1024];
+    int len;
+    while ((len = fis.read(buffer)) != -1) {
+      gzipOS.write(buffer, 0, len);
+    }
+    //close resources
+    gzipOS.close();
+    fos.close();
+    fis.close();
   }
 
   public static String getFileChecksum(final File file) throws IOException, NoSuchAlgorithmException {

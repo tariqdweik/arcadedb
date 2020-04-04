@@ -844,13 +844,15 @@ public class HAServer implements ServerPlugin {
     if (replica == null)
       throw new ReplicationException("Server '" + getServerName() + "' cannot sync replica '" + replicaName + "' because it is offline");
 
+    final long fromPositionInLog = getReplicationLogFile().findMessagePosition(fromMessageNumber);
+
     final AtomicInteger totalSentMessages = new AtomicInteger();
 
     long min = -1, max = -1;
 
     synchronized (sendingLock) {
 
-      for (long pos = fromMessageNumber; pos < replicationLogFile.getSize(); ) {
+      for (long pos = fromPositionInLog; pos < replicationLogFile.getSize(); ) {
         final Pair<ReplicationMessage, Long> entry = replicationLogFile.getMessage(pos);
 
         // STARTING FROM THE SECOND SERVER, COPY THE BUFFER
