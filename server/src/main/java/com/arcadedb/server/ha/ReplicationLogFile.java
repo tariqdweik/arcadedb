@@ -174,7 +174,7 @@ public class ReplicationLogFile extends LockContext {
 
         while (chunkId > -1) {
           if (!openChunk(chunkId))
-            return -1;
+            return -1l;
 
           bufferHeader.clear();
           searchChannel.read(bufferHeader, 0);
@@ -183,7 +183,7 @@ public class ReplicationLogFile extends LockContext {
           final long chunkBeginMessageNumber = bufferHeader.getLong();
           if (messageNumberToFind == chunkBeginMessageNumber)
             // MESSAGE FOUND AS FIRST MESSAGE OF THE CHUNK
-            return (chunkId * CHUNK_SIZE);
+            return (long) (chunkId * CHUNK_SIZE);
           else if (messageNumberToFind > chunkBeginMessageNumber)
             // CHUNK FOUND
             break;
