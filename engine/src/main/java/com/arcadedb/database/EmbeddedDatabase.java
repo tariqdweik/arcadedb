@@ -343,7 +343,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           throw new InvalidDatabaseInstanceException("Invalid transactional context (db is null)");
         }
         if (txDb.getEmbedded() != this) {
-          tx.rollback();
+          txDb.getEmbedded().rollback();
           throw new InvalidDatabaseInstanceException("Invalid transactional context (different db)");
         }
         return tx;
@@ -386,7 +386,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        checkTransactionIsActive();
+        checkTransactionIsActive(false);
 
         final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
         current.popIfNotLastTransaction().commit();
@@ -404,7 +404,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       @Override
       public Object call() {
         try {
-          checkTransactionIsActive();
+          checkTransactionIsActive(false);
 
           final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
           current.popIfNotLastTransaction().rollback();
@@ -454,8 +454,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-
-        checkTransactionIsActive();
+        checkTransactionIsActive(autoTransaction);
 
         final DocumentType type = schema.getType(typeName);
 
@@ -646,8 +645,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-
-        final boolean begunHere = checkTransactionIsActive();
+        final boolean begunHere = checkTransactionIsActive(autoTransaction);
 
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot create a new record because the database is open in read-only mode");
@@ -684,7 +682,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (record.getIdentity() != null)
       throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
-    final boolean begunHere = checkTransactionIsActive();
+    final boolean begunHere = checkTransactionIsActive(autoTransaction);
 
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot create a new record");
@@ -715,7 +713,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (record.getIdentity() == null)
       throw new IllegalArgumentException("Cannot update the record because it is not persistent");
 
-    final boolean begunHere = checkTransactionIsActive();
+    final boolean begunHere = checkTransactionIsActive(autoTransaction);
 
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
@@ -752,7 +750,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        final boolean begunHere = checkTransactionIsActive();
+        final boolean begunHere = checkTransactionIsActive(autoTransaction);
 
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot delete record " + record.getIdentity());
@@ -995,6 +993,11 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
+  public boolean isAutoTransaction() {
+    return autoTransaction;
+  }
+
+  @Override
   public void setAutoTransaction(final boolean autoTransaction) {
     this.autoTransaction = autoTransaction;
   }
@@ -1016,13 +1019,16 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
-  public boolean checkTransactionIsActive() {
+  public boolean checkTransactionIsActive(boolean createTx) {
     checkDatabaseIsOpen();
-    if (autoTransaction && !isTransactionActive()) {
-      wrappedDatabaseInstance.begin();
-      return true;
-    } else if (!getTransaction().isActive())
+
+    if (!isTransactionActive()) {
+      if (createTx) {
+        wrappedDatabaseInstance.begin();
+        return true;
+      }
       throw new DatabaseOperationException("Transaction not begun");
+    }
 
     return false;
   }

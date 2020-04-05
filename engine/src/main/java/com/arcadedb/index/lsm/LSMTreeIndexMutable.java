@@ -43,7 +43,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
   protected LSMTreeIndexMutable(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, final String filePath,
       final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
     super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
-    database.checkTransactionIsActive();
+    database.checkTransactionIsActive(database.isAutoTransaction());
     createNewPage();
     minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
   }
@@ -381,7 +381,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
     checkForNulls(keys);
 
-    database.checkTransactionIsActive();
+    database.checkTransactionIsActive(database.isAutoTransaction());
 
     final int txPageCounter = getTotalPages();
 
@@ -469,7 +469,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
 
     checkForNulls(keys);
 
-    database.checkTransactionIsActive();
+    database.checkTransactionIsActive(database.isAutoTransaction());
 
     final int txPageCounter = getTotalPages();
 

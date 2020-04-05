@@ -43,7 +43,7 @@ public interface Database extends AutoCloseable {
 
   boolean isTransactionActive();
 
-  boolean checkTransactionIsActive();
+  boolean checkTransactionIsActive(boolean createTx);
 
   /**
    * Executes a lambda in the transaction scope. If there is an active transaction, then the current transaction is parked and a new sub-transaction is begun.
@@ -92,6 +92,8 @@ public interface Database extends AutoCloseable {
    * @return true if a new transaction has been created or false if an existent transaction has been joined
    */
   boolean transaction(TransactionScope txBlock, boolean joinCurrentTx, int retries, final OkCallback ok, final ErrorCallback error);
+
+  boolean isAutoTransaction();
 
   void setAutoTransaction(boolean autoTransaction);
 

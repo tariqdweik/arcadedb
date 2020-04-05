@@ -58,9 +58,10 @@ public class ReplicatedDatabase implements DatabaseInternal {
     proxied.executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        proxied.checkTransactionIsActive();
+        proxied.checkTransactionIsActive(false);
 
-        final TransactionContext tx = proxied.getTransaction();
+        final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(proxied.getDatabasePath());
+        final TransactionContext tx = current.popIfNotLastTransaction();
 
         final Pair<Binary, List<MutablePage>> changes = tx.commit1stPhase(isLeader);
 
@@ -81,13 +82,13 @@ public class ReplicatedDatabase implements DatabaseInternal {
           }
 
         } catch (NeedRetryException e) {
-          tx.rollback();
+          rollback();
           throw e;
         } catch (TransactionException e) {
-          tx.rollback();
+          rollback();
           throw e;
         } catch (Exception e) {
-          tx.rollback();
+          rollback();
           throw new TransactionException("Error on commit distributed transaction", e);
         }
 
@@ -270,13 +271,18 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public boolean checkTransactionIsActive() {
-    return proxied.checkTransactionIsActive();
+  public boolean checkTransactionIsActive(boolean createTx) {
+    return proxied.checkTransactionIsActive(createTx);
   }
 
   @Override
   public void transaction(final TransactionScope txBlock) {
     proxied.transaction(txBlock);
+  }
+
+  @Override
+  public boolean isAutoTransaction() {
+    return proxied.isAutoTransaction();
   }
 
   @Override
