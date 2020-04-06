@@ -174,7 +174,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         else
           schema.load(mode);
 
-        checkForRecovery();
+        if (mode == PaginatedFile.MODE.READ_WRITE)
+          checkForRecovery();
 
         Profiler.INSTANCE.registerDatabase(this);
 
