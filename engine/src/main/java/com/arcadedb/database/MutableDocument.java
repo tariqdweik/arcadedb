@@ -225,6 +225,9 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
         reload();
       }
 
+      if (buffer == null)
+        return;
+
       buffer.position(propertiesStartingPosition);
       this.map = this.database.getSerializer().deserializeProperties(this.database, buffer);
     }
