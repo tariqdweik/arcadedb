@@ -48,6 +48,12 @@ public class ReplicationLogFile extends LockContext {
   private              int                           totalArchivedChunks  = 0;
   private              int                           maxArchivedChunks    = 200;
 
+  private static final Comparator<File> LOG_COMPARATOR = (file1, file2)->{
+    int seq1 = Integer.parseInt(file1.getName().substring(file1.getName().lastIndexOf(".") + 1));
+    int seq2 = Integer.parseInt(file2.getName().substring(file2.getName().lastIndexOf(".") + 1));
+    return seq1 - seq2;
+  };
+
   public interface ReplicationLogArchiveCallback {
     void archiveChunk(File chunkFile, int chunkId);
   }
@@ -201,7 +207,7 @@ public class ReplicationLogFile extends LockContext {
           final long messageNumber = bufferHeader.getLong();
           if (messageNumber == messageNumberToFind)
             // FOUND
-            return pos + (chunkId * CHUNK_SIZE);
+            return pos + ((long)chunkId * CHUNK_SIZE);
 
           if (messageNumber > messageNumberToFind)
             // NOT IN LOG ANYMORE
@@ -396,7 +402,7 @@ public class ReplicationLogFile extends LockContext {
   private void openLastFileChunk(final File logFile) throws FileNotFoundException {
     final String prefix = logFile.getName() + ".";
     final List<File> fileChunks = Arrays.asList(logFile.getParentFile().listFiles((f) -> f.getName().startsWith(prefix)));
-    fileChunks.sort(Comparator.comparing(File::getName));
+    fileChunks.sort(LOG_COMPARATOR);
 
     totalArchivedChunks = fileChunks.isEmpty() ? 0 : fileChunks.size() - 1;
 
