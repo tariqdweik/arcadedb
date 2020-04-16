@@ -7,6 +7,7 @@ package com.arcadedb.engine;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.TransactionContext;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,13 +22,13 @@ public abstract class PaginatedComponent {
   protected final int              pageSize;
   protected final AtomicInteger    pageCount = new AtomicInteger();
 
-  protected PaginatedComponent(final DatabaseInternal database, final String name, String filePath, final String ext,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  protected PaginatedComponent(final DatabaseInternal database, final String name, String filePath, final String ext, final PaginatedFile.MODE mode,
+      final int pageSize) throws IOException {
     this(database, name, filePath, ext, database.getFileManager().newFileId(), mode, pageSize);
   }
 
-  protected PaginatedComponent(final DatabaseInternal database, final String name, String filePath, final int id,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  protected PaginatedComponent(final DatabaseInternal database, final String name, String filePath, final int id, final PaginatedFile.MODE mode,
+      final int pageSize) throws IOException {
     this.database = database;
     this.name = name;
     this.id = id;
@@ -42,9 +43,13 @@ public abstract class PaginatedComponent {
       pageCount.set((int) (file.getSize() / getPageSize()));
   }
 
-  private PaginatedComponent(final DatabaseInternal database, final String name, String filePath, final String ext, final int id,
-      final PaginatedFile.MODE mode, final int pageSize) throws IOException {
+  private PaginatedComponent(final DatabaseInternal database, final String name, String filePath, final String ext, final int id, final PaginatedFile.MODE mode,
+      final int pageSize) throws IOException {
     this(database, name, filePath + "." + id + "." + pageSize + "." + ext, id, mode, pageSize);
+  }
+
+  public File getOSFile() {
+    return file.getOSFile();
   }
 
   public void onAfterLoad() {

@@ -15,20 +15,15 @@ import com.arcadedb.index.TypeIndex;
 import java.util.*;
 
 public class DocumentType {
-  private final SchemaImpl              schema;
-  private final String                  name;
-  private final List<DocumentType>      parentTypes             = new ArrayList<>();
-  private final List<DocumentType>      subTypes                = new ArrayList<>();
-  private final List<Bucket>            buckets                 = new ArrayList<>();
-  private       BucketSelectionStrategy bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
-
-  public Map<String, Property> getProperties() {
-    return properties;
-  }
-
-  private final Map<String, Property>        properties          = new HashMap<>();
-  private       Map<Integer, List<Index>>    indexesByBucket     = new HashMap<>();
-  private       Map<List<String>, TypeIndex> indexesByProperties = new HashMap<>();
+  private final SchemaImpl                   schema;
+  private final String                       name;
+  private final List<DocumentType>           parentTypes             = new ArrayList<>();
+  private final List<DocumentType>           subTypes                = new ArrayList<>();
+  private final List<Bucket>                 buckets                 = new ArrayList<>();
+  private       BucketSelectionStrategy      bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
+  private final Map<String, Property>        properties              = new HashMap<>();
+  private       Map<Integer, List<Index>>    indexesByBucket         = new HashMap<>();
+  private       Map<List<String>, TypeIndex> indexesByProperties     = new HashMap<>();
 
   public DocumentType(final SchemaImpl schema, final String name) {
     this.schema = schema;
@@ -121,15 +116,16 @@ public class DocumentType {
     schema.saveConfiguration();
   }
 
-  public Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String... propertyNames) {
+  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
     return schema.createIndexes(indexType, unique, name, propertyNames);
   }
 
-  public Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String[] propertyNames, int pageSize) {
+  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
     return schema.createIndexes(indexType, unique, name, propertyNames, pageSize);
   }
 
-  public Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String[] propertyNames, int pageSize, Index.BuildIndexCallback callback) {
+  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+      final Index.BuildIndexCallback callback) {
     return schema.createIndexes(indexType, unique, name, propertyNames, pageSize, callback);
   }
 

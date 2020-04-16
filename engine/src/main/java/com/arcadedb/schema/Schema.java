@@ -30,6 +30,8 @@ public interface Schema {
 
   boolean existsIndex(String indexName);
 
+  DocumentType copyType(String typeName, String newTypeName, Class<? extends DocumentType> newType, int buckets, int pageSize, int transactionBatchSize);
+
   Index[] getIndexes();
 
   Index getIndexByName(String indexName);

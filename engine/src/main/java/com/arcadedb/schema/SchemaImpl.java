@@ -5,8 +5,7 @@
 package com.arcadedb.schema;
 
 import com.arcadedb.Constants;
-import com.arcadedb.database.Database;
-import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.database.*;
 import com.arcadedb.engine.Dictionary;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConfigurationException;
@@ -243,6 +242,87 @@ public class SchemaImpl implements Schema {
 
   public String getEncoding() {
     return encoding;
+  }
+
+  @Override
+  public DocumentType copyType(final String typeName, final String newTypeName, final Class<? extends DocumentType> newTypeClass, final int buckets,
+      final int pageSize, final int transactionBatchSize) {
+    if (existsType(newTypeName))
+      throw new IllegalArgumentException("Type '" + newTypeName + "' already exists");
+
+    final DocumentType oldType = getType(typeName);
+
+    DocumentType newType = null;
+    try {
+      // CREATE THE NEW TYPE
+      if (newTypeClass == VertexType.class)
+        newType = createVertexType(newTypeName, buckets, pageSize);
+      else if (newTypeClass == EdgeType.class)
+        throw new IllegalArgumentException("Type '" + newTypeClass + "' not supported");
+      else if (newTypeClass == DocumentType.class)
+        newType = createDocumentType(newTypeName, buckets, pageSize);
+      else
+        throw new IllegalArgumentException("Type '" + newTypeClass + "' not supported");
+
+      // COPY PROPERTIES
+      for (String propName : oldType.getPropertyNames()) {
+        final Property prop = oldType.getProperty(propName);
+        newType.createProperty(propName, prop.getType());
+      }
+
+      // COPY ALL THE RECORDS
+      long copied = 0;
+      database.begin();
+      try {
+        for (Iterator<Record> iter = database.iterateType(typeName, false); iter.hasNext(); ) {
+
+          Document record = (Document) iter.next();
+
+          final MutableDocument newRecord;
+          if (newType instanceof VertexType)
+            newRecord = database.newVertex(newTypeName);
+          else if (newType instanceof DocumentType)
+            newRecord = database.newDocument(newTypeName);
+          else
+            throw new IllegalArgumentException("Type '" + newType + "' not supported");
+
+          newRecord.fromMap(record.toMap());
+          newRecord.save();
+
+          ++copied;
+
+          if (copied > 0 && copied % transactionBatchSize == 0) {
+            database.commit();
+            database.begin();
+          }
+        }
+
+        // COPY INDEXES
+        for (TypeIndex index : oldType.getAllIndexes())
+          newType.createIndexes(index.getType(), index.isUnique(), index.getPropertyNames());
+
+        database.commit();
+
+      } finally {
+        if (database.isTransactionActive())
+          database.rollback();
+      }
+
+    } catch (Exception e) {
+      LogManager.instance().log(this, Level.SEVERE, "Error on renaming type '%s' into '%s'", e, typeName, newTypeName);
+
+      if (newType != null)
+        try {
+          dropType(newTypeName);
+        } catch (Exception e2) {
+          LogManager.instance()
+              .log(this, Level.WARNING, "Error on dropping temporary type '%s' created during copyType() operation from type '%s'", e2, newTypeName, typeName);
+        }
+
+      throw e;
+    }
+
+    return newType;
   }
 
   @Override

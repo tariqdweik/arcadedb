@@ -22,6 +22,7 @@ public class PaginatedFile {
   private final MODE        mode;
   private       String      filePath;
   private       String      fileName;
+  private       File        osFile;
   private       FileChannel channel;
   private       int         fileId;
   private       int         pageSize;
@@ -57,6 +58,7 @@ public class PaginatedFile {
     new File(filePath).renameTo(newFile);
 
     open(newFile.getAbsolutePath(), mode);
+    osFile = newFile;
   }
 
   public void drop() throws IOException {
@@ -147,6 +149,10 @@ public class PaginatedFile {
     return fileId;
   }
 
+  public File getOSFile() {
+    return osFile;
+  }
+
   public void setFileId(final int fileId) {
     this.fileId = fileId;
   }
@@ -202,7 +208,8 @@ public class PaginatedFile {
     else
       fileName = filePath;
 
-    this.channel = new RandomAccessFile(filePath, mode == MODE.READ_WRITE ? "rw" : "r").getChannel();
+    this.osFile = new File(filePath);
+    this.channel = new RandomAccessFile(osFile, mode == MODE.READ_WRITE ? "rw" : "r").getChannel();
     this.open = true;
   }
 }
