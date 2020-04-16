@@ -19,6 +19,10 @@ public abstract class BaseDocument extends BaseRecord implements Document {
     this.typeName = typeName;
   }
 
+  public DetachedDocument detach() {
+    return new DetachedDocument(this);
+  }
+
   @Override
   public String getString(final String propertyName) {
     return (String) Type.convert(database, get(propertyName), String.class);

@@ -17,6 +17,8 @@ public interface Document extends Record {
 
   MutableDocument modify();
 
+  DetachedDocument detach();
+
   boolean has(String propertyName);
 
   Object get(String propertyName);

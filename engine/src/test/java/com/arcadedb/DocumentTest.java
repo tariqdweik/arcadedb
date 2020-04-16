@@ -4,6 +4,7 @@
 
 package com.arcadedb;
 
+import com.arcadedb.database.DetachedDocument;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Type;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
+import java.util.Set;
 
 public class DocumentTest extends BaseTest {
   @Override
@@ -98,6 +101,42 @@ public class DocumentTest extends BaseTest {
       doc.set("datetime", df.format(now));
       Assertions.assertEquals(df.format(now), df.format(doc.get("date")));
       Assertions.assertEquals(df.format(now), df.format(doc.get("datetime")));
+    });
+  }
+
+  @Test
+  public void testDetached() {
+    database.transaction((tx) -> {
+      final MutableDocument doc = database.newDocument("ConversionTest");
+      doc.set("name", "Tim");
+      final DetachedDocument detached = doc.detach();
+
+      Assertions.assertEquals("Tim", detached.getString("name"));
+      Assertions.assertNull(detached.getString("lastname"));
+
+      Set<String> props = detached.getPropertyNames();
+      Assertions.assertEquals(1, props.size());
+      Assertions.assertEquals("name", props.iterator().next());
+
+      final Map<String, Object> map = detached.toMap();
+      Assertions.assertEquals(1, map.size());
+      Assertions.assertEquals("name", map.keySet().iterator().next());
+      Assertions.assertEquals("Tim", map.values().iterator().next());
+
+      Assertions.assertEquals("Tim", detached.toJSON().get("name"));
+
+      detached.toString();
+
+      detached.reload();
+
+      try {
+        detached.setBuffer(null);
+        Assertions.fail("setBuffer");
+      } catch (UnsupportedOperationException e) {
+      }
+
+      Assertions.assertNull(detached.getString("name"));
+      Assertions.assertNull(detached.getString("lastname"));
     });
   }
 }
