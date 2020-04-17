@@ -4,6 +4,7 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.graph.EmbeddedDocument;
 import org.json.JSONObject;
 
 import java.util.*;
@@ -18,7 +19,21 @@ public class DetachedDocument extends ImmutableDocument {
 
   private void init(Document sourceDocument) {
     this.map = new LinkedHashMap<>();
-    this.map.putAll(sourceDocument.toMap());
+    final Map<String, Object> sourceMap = sourceDocument.toMap();
+    for (Map.Entry<String, Object> entry : sourceMap.entrySet()) {
+      Object value = entry.getValue();
+
+      if (value instanceof List) {
+        for (int i = 0; i < ((List) value).size(); i++) {
+          final Object embValue = ((List) value).get(i);
+          if (embValue instanceof EmbeddedDocument)
+            ((List) value).set(i, ((EmbeddedDocument) embValue).detach());
+        }
+      } else if (value instanceof EmbeddedDocument)
+        value = ((EmbeddedDocument) value).detach();
+
+      this.map.put(entry.getKey(), value);
+    }
   }
 
   @Override

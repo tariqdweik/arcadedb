@@ -6,6 +6,7 @@ package com.arcadedb;
 
 import com.arcadedb.database.DetachedDocument;
 import com.arcadedb.database.MutableDocument;
+import com.arcadedb.graph.EmbeddedDocument;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Type;
 import org.junit.jupiter.api.Assertions;
@@ -13,9 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class DocumentTest extends BaseTest {
   @Override
@@ -109,19 +108,33 @@ public class DocumentTest extends BaseTest {
     database.transaction((tx) -> {
       final MutableDocument doc = database.newDocument("ConversionTest");
       doc.set("name", "Tim");
+      final EmbeddedDocument embeddedObj = (EmbeddedDocument) database.newEmbeddedDocument("ConversionTest").set("embeddedObj", true);
+      doc.set("embeddedObj", embeddedObj);
+      final List<EmbeddedDocument> embeddedList = new ArrayList<EmbeddedDocument>();
+      embeddedList.add((EmbeddedDocument) database.newEmbeddedDocument("ConversionTest").set("embeddedList", true));
+      doc.set("embeddedList", embeddedList);
+
       final DetachedDocument detached = doc.detach();
 
       Assertions.assertEquals("Tim", detached.getString("name"));
+      Assertions.assertEquals(embeddedObj, detached.get("embeddedObj"));
+      Assertions.assertEquals(embeddedList, detached.get("embeddedList"));
       Assertions.assertNull(detached.getString("lastname"));
 
       Set<String> props = detached.getPropertyNames();
-      Assertions.assertEquals(1, props.size());
-      Assertions.assertEquals("name", props.iterator().next());
+      Assertions.assertEquals(3, props.size());
+      Assertions.assertTrue(props.contains("name"));
+      Assertions.assertTrue(props.contains("embeddedObj"));
+      Assertions.assertTrue(props.contains("embeddedList"));
 
       final Map<String, Object> map = detached.toMap();
-      Assertions.assertEquals(1, map.size());
-      Assertions.assertEquals("name", map.keySet().iterator().next());
-      Assertions.assertEquals("Tim", map.values().iterator().next());
+      Assertions.assertEquals(3, map.size());
+
+      Assertions.assertEquals("Tim", map.get("name"));
+      Assertions.assertEquals(embeddedObj, map.get("embeddedObj"));
+      Assertions.assertTrue(((DetachedDocument) map.get("embeddedObj")).getBoolean("embeddedObj"));
+      Assertions.assertEquals(embeddedList, map.get("embeddedList"));
+      Assertions.assertTrue(((List<DetachedDocument>) map.get("embeddedList")).get(0).getBoolean("embeddedList"));
 
       Assertions.assertEquals("Tim", detached.toJSON().get("name"));
 
