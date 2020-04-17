@@ -140,6 +140,13 @@ public class DocumentTest extends BaseTest {
 
       detached.toString();
 
+      try {
+        detached.modify();
+        Assertions.fail("modify");
+      } catch (UnsupportedOperationException e) {
+      }
+
+
       detached.reload();
 
       try {

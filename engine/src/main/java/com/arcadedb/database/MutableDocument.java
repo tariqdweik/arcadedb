@@ -26,6 +26,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     buffer.position(buffer.position() + 1); // SKIP RECORD TYPE
   }
 
+
   public void merge(final Document other) {
     for (String p : other.getPropertyNames())
       set(p, other.get(p));

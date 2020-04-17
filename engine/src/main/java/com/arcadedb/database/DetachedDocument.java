@@ -37,6 +37,11 @@ public class DetachedDocument extends ImmutableDocument {
   }
 
   @Override
+  public synchronized MutableDocument modify() {
+    throw new UnsupportedOperationException("Detached document cannot be modified. Get a new regular object from the database by its id to modify it");
+  }
+
+  @Override
   public Map<String, Object> toMap() {
     return new HashMap<>(map);
   }
