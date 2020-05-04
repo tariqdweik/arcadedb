@@ -41,8 +41,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
    * Called at creation time.
    */
   protected LSMTreeIndexMutable(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, final String filePath,
-      final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
-    super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize);
+      final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize, final NULL_STRATEGY nullStrategy) throws IOException {
+    super(mainIndex, database, name, unique, filePath, unique ? UNIQUE_INDEX_EXT : NOTUNIQUE_INDEX_EXT, mode, keyTypes, pageSize, nullStrategy);
     database.checkTransactionIsActive(database.isAutoTransaction());
     createNewPage();
     minPagesToScheduleACompaction = database.getConfiguration().getValueAsInteger(GlobalConfiguration.INDEX_COMPACTION_MIN_PAGES_SCHEDULE);
@@ -171,9 +171,12 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
   }
 
   public IndexCursor get(final Object[] keys, final int limit) throws IOException {
-    checkForNulls(keys);
+    if (nullStrategy == NULL_STRATEGY.ERROR)
+      checkForNulls(keys);
 
     final Object[] convertedKeys = convertKeys(keys, keyTypes);
+    if (convertedKeys == null && nullStrategy == NULL_STRATEGY.SKIP)
+      return new TempIndexCursor(Collections.emptyList());
 
     final Set<IndexCursorEntry> set = new HashSet<>();
 
@@ -379,7 +382,8 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     if (keys.length != keyTypes.length)
       throw new IllegalArgumentException("Cannot put an entry in the index with a partial key");
 
-    checkForNulls(keys);
+    if (nullStrategy == NULL_STRATEGY.ERROR)
+      checkForNulls(keys);
 
     database.checkTransactionIsActive(database.isAutoTransaction());
 
@@ -398,6 +402,9 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       int count = getCount(currentPage);
 
       final Object[] convertedKeys = convertKeys(keys, keyTypes);
+      if (convertedKeys == null && nullStrategy == NULL_STRATEGY.SKIP)
+        // SKIP THIS RECORD
+        return;
 
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, convertedKeys, unique ? 0 : 1);
 
@@ -467,7 +474,12 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     if (keys.length != keyTypes.length)
       throw new IllegalArgumentException("Cannot remove an entry in the index with a partial key");
 
-    checkForNulls(keys);
+    if (nullStrategy == NULL_STRATEGY.ERROR)
+      checkForNulls(keys);
+
+    final Object[] convertedKeys = convertKeys(keys, keyTypes);
+    if (convertedKeys == null && nullStrategy == NULL_STRATEGY.SKIP)
+      return;
 
     database.checkTransactionIsActive(database.isAutoTransaction());
 
@@ -488,8 +500,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       int count = getCount(currentPage);
 
       final RID removedRID = rid != null ? getRemovedRID(rid) : REMOVED_ENTRY_RID;
-
-      final Object[] convertedKeys = convertKeys(keys, keyTypes);
 
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, convertedKeys, 1);
       if (result.found) {

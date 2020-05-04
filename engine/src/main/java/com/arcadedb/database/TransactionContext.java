@@ -425,7 +425,7 @@ public class TransactionContext implements Transaction {
       rollback();
       throw e;
     } catch (Exception e) {
-      LogManager.instance().log(this, Level.INFO, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.FINE, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
       rollback();
       throw new TransactionException("Transaction error on commit", e);
     }
@@ -474,7 +474,7 @@ public class TransactionContext implements Transaction {
     } catch (ConcurrentModificationException e) {
       throw e;
     } catch (Exception e) {
-      LogManager.instance().log(this, Level.INFO, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.FINE, "Unknown exception during commit (threadId=%d)", e, Thread.currentThread().getId());
       throw new TransactionException("Transaction error on commit", e);
     } finally {
       reset();

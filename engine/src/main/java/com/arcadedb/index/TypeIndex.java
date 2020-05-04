@@ -8,6 +8,7 @@ import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.IndexCursorCollection;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedComponent;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
 
@@ -95,7 +96,8 @@ public class TypeIndex implements RangeIndex {
   @Override
   public void remove(final Object[] keys, final Identifiable rid) {
     for (Index index : indexesOnBuckets)
-      index.remove(keys, rid);  }
+      index.remove(keys, rid);
+  }
 
   @Override
   public boolean compact() throws IOException, InterruptedException {
@@ -164,6 +166,16 @@ public class TypeIndex implements RangeIndex {
     for (Index index : indexesOnBuckets)
       stats.putAll(index.getStats());
     return stats;
+  }
+
+  @Override
+  public LSMTreeIndexAbstract.NULL_STRATEGY getNullStrategy() {
+    return indexesOnBuckets.get(0).getNullStrategy();
+  }
+
+  @Override
+  public void setNullStrategy(final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy) {
+    indexesOnBuckets.get(0).setNullStrategy(nullStrategy);
   }
 
   @Override
@@ -241,7 +253,7 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public int getFileId() {
-    return-1;
+    return -1;
   }
 
   @Override

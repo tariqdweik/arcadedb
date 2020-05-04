@@ -8,6 +8,7 @@ import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedComponent;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.schema.SchemaImpl;
 
 import java.io.IOException;
@@ -72,6 +73,10 @@ public interface Index {
   String getName();
 
   Map<String, Long> getStats();
+
+  LSMTreeIndexAbstract.NULL_STRATEGY getNullStrategy();
+
+  void setNullStrategy(LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy);
 
   int getFileId();
 

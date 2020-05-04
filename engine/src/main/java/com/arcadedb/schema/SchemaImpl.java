@@ -361,12 +361,18 @@ public class SchemaImpl implements Schema {
 
   @Override
   public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
-    return createIndexes(indexType, unique, typeName, propertyNames, pageSize, null);
+    return createIndexes(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, null);
   }
 
   @Override
   public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
       final Index.BuildIndexCallback callback) {
+    return createIndexes(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, callback);
+  }
+
+  @Override
+  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
+      final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
@@ -399,7 +405,7 @@ public class SchemaImpl implements Schema {
           final Index[] indexes = new Index[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
             final Bucket bucket = buckets.get(idx);
-            indexes[idx] = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, callback, propertyNames);
+            indexes[idx] = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, nullStrategy, callback, propertyNames);
           }
 
           saveConfiguration();
@@ -415,7 +421,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public Index createIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName, final String[] propertyNames,
-      final int pageSize, final Index.BuildIndexCallback callback) {
+      final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
@@ -446,7 +452,7 @@ public class SchemaImpl implements Schema {
             }
           }
 
-          final Index index = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, callback, propertyNames);
+          final Index index = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, nullStrategy, callback, propertyNames);
 
           saveConfiguration();
 
@@ -460,7 +466,8 @@ public class SchemaImpl implements Schema {
   }
 
   private Index createIndexOnBucket(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName, final INDEX_TYPE indexType,
-      final boolean unique, final int pageSize, final Index.BuildIndexCallback callback, final String[] propertyNames) throws IOException {
+      final boolean unique, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback,
+      final String[] propertyNames) throws IOException {
     if (bucket == null)
       throw new DatabaseMetadataException(
           "Cannot create index on type '" + typeName + "' because the specified bucket '" + bucket.getName() + "' is not part of the type");
@@ -472,7 +479,7 @@ public class SchemaImpl implements Schema {
 
     final Index index = indexFactory
         .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize,
-            callback);
+            nullStrategy, callback);
 
     registerFile(index.getPaginatedComponent());
 
@@ -484,7 +491,8 @@ public class SchemaImpl implements Schema {
     return index;
   }
 
-  public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize) {
+  public Index createManualIndex(final INDEX_TYPE indexType, final boolean unique, final String indexName, final byte[] keyTypes, final int pageSize,
+      final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy) {
     return (Index) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
@@ -494,7 +502,7 @@ public class SchemaImpl implements Schema {
         try {
           final Index index = indexFactory
               .createIndex(indexType.name(), database, FileUtils.encode(indexName, encoding), unique, databasePath + "/" + indexName,
-                  PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize, null);
+                  PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize, nullStrategy, null);
 
           if (index instanceof PaginatedComponent)
             registerFile((PaginatedComponent) index);
@@ -852,9 +860,15 @@ public class SchemaImpl implements Schema {
               properties[i] = schemaIndexProperties.getString(i);
 
             final Index idx = indexMap.get(indexName);
-            if (idx != null)
+            if (idx != null) {
+              final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy = index.has("nullStrategy") ?
+                  LSMTreeIndexAbstract.NULL_STRATEGY.valueOf(index.getString("nullStrategy")) :
+                  LSMTreeIndexAbstract.NULL_STRATEGY.ERROR;
+
+              idx.setNullStrategy(null);
+
               type.addIndexInternal(idx, bucketMap.get(index.getString("bucket")), properties);
-            else {
+            } else {
               orphanIndexes.put(indexName, index);
               index.put("type", typeName);
               LogManager.instance().log(this, Level.WARNING, "Cannot find index '%s' defined in type '%s'. Ignoring it", null, indexName, type);
@@ -883,10 +897,16 @@ public class SchemaImpl implements Schema {
                   final DocumentType type = this.types.get(entry.getValue().getString("type"));
                   if (type != null) {
                     final JSONArray schemaIndexProperties = entry.getValue().getJSONArray("properties");
+
                     final String[] properties = new String[schemaIndexProperties.length()];
                     for (int i = 0; i < properties.length; ++i)
                       properties[i] = schemaIndexProperties.getString(i);
 
+                    final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy = entry.getValue().has("nullStrategy") ?
+                        LSMTreeIndexAbstract.NULL_STRATEGY.valueOf(entry.getValue().getString("nullStrategy")) :
+                        LSMTreeIndexAbstract.NULL_STRATEGY.ERROR;
+
+                    index.setNullStrategy(nullStrategy);
                     type.addIndexInternal(index, bucket, properties);
                     LogManager.instance().log(this, Level.WARNING, "Relinked orphan index '%s' to type '%s'", null, indexName, type.getName());
                     saveConfiguration();
@@ -986,6 +1006,7 @@ public class SchemaImpl implements Schema {
 
             index.put("bucket", getBucketById(entry.getAssociatedBucketId()).getName());
             index.put("properties", entry.getPropertyNames());
+            index.put("nullStrategy", entry.getNullStrategy());
           }
         }
       }

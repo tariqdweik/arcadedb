@@ -6,6 +6,7 @@ package com.arcadedb.index;
 
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -19,11 +20,12 @@ public class IndexFactory {
   }
 
   public Index createIndex(final String indexType, final DatabaseInternal database, final String indexName, final boolean unique, final String filePath,
-      final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize, final Index.BuildIndexCallback callback) throws IOException {
+      final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy,
+      final Index.BuildIndexCallback callback) throws IOException {
     final IndexFactoryHandler handler = map.get(indexType);
     if (handler == null)
       throw new IllegalArgumentException("Cannot create index of type '" + indexType + "'");
 
-    return handler.create(database, indexName, unique, filePath, mode, keyTypes, pageSize, callback);
+    return handler.create(database, indexName, unique, filePath, mode, keyTypes, pageSize, nullStrategy, callback);
   }
 }

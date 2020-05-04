@@ -8,7 +8,6 @@ import com.arcadedb.database.*;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.DatabaseIsReadOnlyException;
 import com.arcadedb.index.*;
-import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.utility.RWLockContext;
 
@@ -38,8 +37,9 @@ public class LSMTreeIndex implements RangeIndex {
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
     public Index create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
-        final byte[] keyTypes, final int pageSize, BuildIndexCallback callback) throws IOException {
-      return new LSMTreeIndex(database, name, unique, filePath, mode, keyTypes, pageSize);
+        final byte[] keyTypes, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final BuildIndexCallback callback)
+        throws IOException {
+      return new LSMTreeIndex(database, name, unique, filePath, mode, keyTypes, pageSize, nullStrategy);
     }
   }
 
@@ -69,9 +69,9 @@ public class LSMTreeIndex implements RangeIndex {
    * Called at creation time.
    */
   public LSMTreeIndex(final DatabaseInternal database, final String name, final boolean unique, String filePath, final PaginatedFile.MODE mode,
-      final byte[] keyTypes, final int pageSize) throws IOException {
+      final byte[] keyTypes, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy) throws IOException {
     this.name = name;
-    this.mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, mode, keyTypes, pageSize);
+    this.mutable = new LSMTreeIndexMutable(this, database, name, unique, filePath, mode, keyTypes, pageSize, nullStrategy);
   }
 
   /**
@@ -298,6 +298,16 @@ public class LSMTreeIndex implements RangeIndex {
   @Override
   public Map<String, Long> getStats() {
     return mutable.getStats();
+  }
+
+  @Override
+  public LSMTreeIndexAbstract.NULL_STRATEGY getNullStrategy() {
+    return mutable.nullStrategy;
+  }
+
+  @Override
+  public void setNullStrategy(final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy) {
+    mutable.nullStrategy = nullStrategy;
   }
 
   @Override

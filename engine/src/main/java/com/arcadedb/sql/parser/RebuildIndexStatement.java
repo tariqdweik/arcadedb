@@ -89,7 +89,7 @@ public class RebuildIndexStatement extends SimpleExecStatement {
         } else {
           database.getSchema()
               .createIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
-                  idx.getPropertyNames(), pageSize, callback);
+                  idx.getPropertyNames(), pageSize, idx.getNullStrategy(), callback);
         }
 
         indexList.add(idx.getName());

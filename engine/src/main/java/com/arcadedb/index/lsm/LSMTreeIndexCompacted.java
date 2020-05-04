@@ -14,6 +14,7 @@ import com.arcadedb.engine.PageId;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.index.IndexCursorEntry;
+import com.arcadedb.index.TempIndexCursor;
 import com.arcadedb.log.LogManager;
 
 import java.io.IOException;
@@ -47,9 +48,12 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
   }
 
   public Set<IndexCursorEntry> get(final Object[] keys, final int limit) {
-    checkForNulls(keys);
+    if (nullStrategy == NULL_STRATEGY.ERROR)
+      checkForNulls(keys);
 
     final Object[] convertedKeys = convertKeys(keys, keyTypes);
+    if (convertedKeys == null && nullStrategy == NULL_STRATEGY.SKIP)
+      return Collections.emptySet();
 
     try {
       final Set<IndexCursorEntry> set = new HashSet<>();
@@ -192,6 +196,7 @@ public class LSMTreeIndexCompacted extends LSMTreeIndexAbstract {
       return Collections.emptyList();
     }
 
+    checkForNulls(fromKeys);
     final Object[] convertedFromKeys = convertKeys(fromKeys, keyTypes);
 
     final List<LSMTreeIndexUnderlyingCompactedSeriesCursor> iterators = new ArrayList<>();

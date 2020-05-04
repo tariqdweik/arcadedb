@@ -39,6 +39,8 @@ import static com.arcadedb.database.Binary.INT_SERIALIZED_SIZE;
  * HEADER Nst PAGE        = [offsetFreeKeyValueContent(int:4),numberOfEntries(int:4),mutable(boolean:1),compactedPageNumberOfSeries(int:4)]
  */
 public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
+  public enum NULL_STRATEGY {ERROR, SKIP}
+
   public static final    int    DEF_PAGE_SIZE     = 2 * 1024 * 1024;
   public static final    RID    REMOVED_ENTRY_RID = new RID(null, -1, -1l);
   protected static final String TEMP_EXT          = "temp_";
@@ -49,9 +51,10 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
   protected       LSMTreeIndex     mainIndex;
   protected final BinaryComparator comparator;
   protected final BinarySerializer serializer;
-  protected final byte             valueType = BinaryTypes.TYPE_COMPRESSED_RID;
+  protected final byte             valueType    = BinaryTypes.TYPE_COMPRESSED_RID;
   protected final boolean          unique;
   protected       byte[]           keyTypes;
+  protected       NULL_STRATEGY    nullStrategy = NULL_STRATEGY.ERROR;
 
   public enum COMPACTING_STATUS {NO, SCHEDULED, IN_PROGRESS}
 
@@ -73,13 +76,14 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
    * Called at creation time.
    */
   protected LSMTreeIndexAbstract(final LSMTreeIndex mainIndex, final DatabaseInternal database, final String name, final boolean unique, String filePath,
-      final String ext, final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize) throws IOException {
+      final String ext, final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize, final NULL_STRATEGY nullStrategy) throws IOException {
     super(database, name, filePath, ext, mode, pageSize);
     this.mainIndex = mainIndex;
     this.serializer = database.getSerializer();
     this.comparator = serializer.getComparator();
     this.unique = unique;
     this.keyTypes = keyTypes;
+    this.nullStrategy = nullStrategy;
   }
 
   /**
@@ -123,6 +127,10 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
 
   public int getFileId() {
     return file.getFileId();
+  }
+
+  public NULL_STRATEGY getNullStrategy() {
+    return nullStrategy;
   }
 
   @Override
@@ -279,6 +287,10 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
     if (keys != null) {
       final Object[] convertedKeys = new Object[keys.length];
       for (int i = 0; i < keys.length; ++i) {
+        if (keys[i] == null)
+          // ONE KEY WAS NULL
+          return null;
+
         convertedKeys[i] = Type.convert(database, keys[i], BinaryTypes.getClassFromType(keyTypes[i]));
 
         if (convertedKeys[i] instanceof String)

@@ -11,6 +11,7 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.TypeIndex;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 
 import java.util.*;
 
@@ -127,6 +128,11 @@ public class DocumentType {
   public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
       final Index.BuildIndexCallback callback) {
     return schema.createIndexes(indexType, unique, name, propertyNames, pageSize, callback);
+  }
+
+  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+      LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
+    return schema.createIndexes(indexType, unique, name, propertyNames, pageSize, nullStrategy, callback);
   }
 
   public List<Bucket> getBuckets(final boolean polymorphic) {
@@ -353,12 +359,12 @@ public class DocumentType {
   protected void addIndexInternal(final Index index, final Bucket bucket, final String[] propertyNames) {
     index.setMetadata(name, propertyNames, bucket.getId());
 
-    List<Index> list1 = indexesByBucket.get(bucket.getId());
-    if (list1 == null) {
-      list1 = new ArrayList<>();
-      indexesByBucket.put(bucket.getId(), list1);
+    List<Index> list = indexesByBucket.get(bucket.getId());
+    if (list == null) {
+      list = new ArrayList<>();
+      indexesByBucket.put(bucket.getId(), list);
     }
-    list1.add(index);
+    list.add(index);
 
     final List<String> propertyList = Arrays.asList(propertyNames);
 
