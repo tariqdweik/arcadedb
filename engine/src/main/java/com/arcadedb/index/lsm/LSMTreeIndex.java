@@ -395,13 +395,10 @@ public class LSMTreeIndex implements RangeIndex {
 
     final DatabaseInternal db = mutable.getDatabase();
 
-    final DocumentType type = db.getSchema().getType(typeName);
-
     db.scanBucket(db.getSchema().getBucketById(associatedBucketId).getName(), new RecordCallback() {
       @Override
       public boolean onRecord(final Record record) {
-        final Bucket bucket = db.getSchema().getBucketById(record.getIdentity().getBucketId());
-        db.getIndexer().createDocument((Document) record, type, bucket);
+        db.getIndexer().addToIndex(LSMTreeIndex.this, record.getIdentity(), (Document) record);
         total.incrementAndGet();
 
         if (callback != null)

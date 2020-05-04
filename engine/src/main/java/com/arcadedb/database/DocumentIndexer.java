@@ -41,17 +41,20 @@ public class DocumentIndexer {
     // INDEX THE RECORD
     final List<Index> metadata = type.getSubIndexByBucketId(bucket.getId());
     if (metadata != null) {
-      for (Index entry : metadata) {
-        final Index index = entry;
-        final String[] keyNames = entry.getPropertyNames();
-
-        final Object[] keyValues = new Object[keyNames.length];
-        for (int i = 0; i < keyValues.length; ++i)
-          keyValues[i] = record.get(keyNames[i]);
-
-        index.put(keyValues, new RID[] { rid });
-      }
+      for (Index entry : metadata)
+        addToIndex(entry, rid, record);
     }
+  }
+
+  public void addToIndex(final Index entry, final RID rid, final Document record) {
+    final Index index = entry;
+    final String[] keyNames = entry.getPropertyNames();
+
+    final Object[] keyValues = new Object[keyNames.length];
+    for (int i = 0; i < keyValues.length; ++i)
+      keyValues[i] = record.get(keyNames[i]);
+
+    index.put(keyValues, new RID[] { rid });
   }
 
   public void updateDocument(final Document originalRecord, final Document modifiedRecord, final List<Index> indexes) {
