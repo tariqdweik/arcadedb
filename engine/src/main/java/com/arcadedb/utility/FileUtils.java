@@ -199,11 +199,9 @@ public class FileUtils {
 
   @SuppressWarnings("resource")
   public static final void copyFile(final File source, final File destination) throws IOException {
-    FileChannel sourceChannel = new FileInputStream(source).getChannel();
-    FileChannel targetChannel = new FileOutputStream(destination).getChannel();
-    sourceChannel.transferTo(0, sourceChannel.size(), targetChannel);
-    sourceChannel.close();
-    targetChannel.close();
+    try (FileChannel sourceChannel = new FileInputStream(source).getChannel(); FileChannel targetChannel = new FileOutputStream(destination).getChannel()) {
+      sourceChannel.transferTo(0, sourceChannel.size(), targetChannel);
+    }
   }
 
   public static final void copyDirectory(final File source, final File destination) throws IOException {
@@ -271,7 +269,9 @@ public class FileUtils {
   }
 
   public static String readFileAsString(final File file, final String iCharset) throws IOException {
-    return readStreamAsString(new FileInputStream(file), iCharset, 0);
+    try (FileInputStream is = new FileInputStream(file)) {
+      return readStreamAsString(is, iCharset, 0);
+    }
   }
 
   public static String readStreamAsString(final InputStream iStream, final String iCharset) throws IOException {
@@ -332,48 +332,43 @@ public class FileUtils {
   }
 
   public static void gzipFile(final File sourceFile, final File destFile) throws IOException {
-    FileInputStream fis = new FileInputStream(sourceFile);
-    FileOutputStream fos = new FileOutputStream(destFile);
-    GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
-    byte[] buffer = new byte[1024 * 1024];
-    int len;
-    while ((len = fis.read(buffer)) != -1) {
-      gzipOS.write(buffer, 0, len);
+    try (FileInputStream fis = new FileInputStream(sourceFile);
+        FileOutputStream fos = new FileOutputStream(destFile);
+        GZIPOutputStream gzipOS = new GZIPOutputStream(fos);) {
+      byte[] buffer = new byte[1024 * 1024];
+      int len;
+      while ((len = fis.read(buffer)) != -1) {
+        gzipOS.write(buffer, 0, len);
+      }
     }
-    //close resources
-    gzipOS.close();
-    fos.close();
-    fis.close();
   }
 
   public static String getFileChecksum(final File file) throws IOException, NoSuchAlgorithmException {
     final MessageDigest digest = MessageDigest.getInstance("MD5");
     //Get file input stream for reading the file content
-    FileInputStream fis = new FileInputStream(file);
+    try (FileInputStream fis = new FileInputStream(file)) {
 
-    //Create byte array to read data in chunks
-    byte[] byteArray = new byte[1024];
-    int bytesCount = 0;
+      //Create byte array to read data in chunks
+      byte[] byteArray = new byte[1024];
+      int bytesCount = 0;
 
-    //Read file data and update in message digest
-    while ((bytesCount = fis.read(byteArray)) != -1) {
-      digest.update(byteArray, 0, bytesCount);
+      //Read file data and update in message digest
+      while ((bytesCount = fis.read(byteArray)) != -1) {
+        digest.update(byteArray, 0, bytesCount);
+      }
+
+      //Get the hash's bytes
+      byte[] bytes = digest.digest();
+
+      //This bytes[] has bytes in decimal format;
+      //Convert it to hexadecimal format
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < bytes.length; i++) {
+        sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+      }
+
+      //return complete hash
+      return sb.toString();
     }
-
-    //close the stream; We don't need it now.
-    fis.close();
-
-    //Get the hash's bytes
-    byte[] bytes = digest.digest();
-
-    //This bytes[] has bytes in decimal format;
-    //Convert it to hexadecimal format
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < bytes.length; i++) {
-      sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-    }
-
-    //return complete hash
-    return sb.toString();
   }
 }
