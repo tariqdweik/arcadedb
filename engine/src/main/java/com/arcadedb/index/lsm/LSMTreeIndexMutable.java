@@ -385,6 +385,11 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
     if (nullStrategy == NULL_STRATEGY.ERROR)
       checkForNulls(keys);
 
+    final Object[] convertedKeys = convertKeys(keys, keyTypes);
+    if (convertedKeys == null && nullStrategy == NULL_STRATEGY.SKIP)
+      // SKIP THIS RECORD
+      return;
+
     database.checkTransactionIsActive(database.isAutoTransaction());
 
     final int txPageCounter = getTotalPages();
@@ -400,11 +405,6 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
       TrackableBinary currentPageBuffer = currentPage.getTrackable();
 
       int count = getCount(currentPage);
-
-      final Object[] convertedKeys = convertKeys(keys, keyTypes);
-      if (convertedKeys == null && nullStrategy == NULL_STRATEGY.SKIP)
-        // SKIP THIS RECORD
-        return;
 
       final LookupResult result = lookupInPage(pageNum, count, currentPageBuffer, convertedKeys, unique ? 0 : 1);
 

@@ -6,6 +6,7 @@ package com.arcadedb.database;
 
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.schema.DocumentType;
 
 import java.util.List;
@@ -81,7 +82,7 @@ public class DocumentIndexer {
         oldKeyValues[i] = originalRecord.get(keyNames[i]);
         newKeyValues[i] = modifiedRecord.get(keyNames[i]);
 
-        if (newKeyValues[i] == null || !newKeyValues[i].equals(oldKeyValues[i])) {
+        if ((newKeyValues[i] == null && oldKeyValues[i] != null) || (newKeyValues[i] != null && !newKeyValues[i].equals(oldKeyValues[i]))) {
           keyValuesAreModified = true;
           break;
         }
@@ -92,7 +93,8 @@ public class DocumentIndexer {
         continue;
 
       // REMOVE THE OLD ENTRY KEYS/VALUE AND INSERT THE NEW ONE
-      index.remove(oldKeyValues, rid);
+      if (!LSMTreeIndexAbstract.isKeyNull(oldKeyValues))
+        index.remove(oldKeyValues, rid);
       index.put(newKeyValues, new RID[] { rid });
     }
   }
