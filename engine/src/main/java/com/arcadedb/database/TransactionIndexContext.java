@@ -210,20 +210,22 @@ public class TransactionIndexContext {
     final TypeIndex idx = type.getIndexByProperties(index.getPropertyNames());
     if (idx != null) {
       final IndexCursor found = idx.get(key.keyValues, 2);
+      if (found.hasNext()) {
+        final Identifiable firstEntry = found.next();
+        if (found.size() > 1 || (found.size() == 1 && !firstEntry.equals(key.rid))) {
+          try {
+            database.lookupByRID(firstEntry.getIdentity(), true);
+            // NO EXCEPTION = FOUND
+            throw new DuplicatedKeyException(idx.getName(), Arrays.toString(key.keyValues), firstEntry.getIdentity());
 
-      if (found.size() > 1 || (found.size() == 1 && !found.next().equals(key.rid))) {
-        try {
-          database.lookupByRID(found.getRecord().getIdentity(), true);
-          // NO EXCEPTION = FOUND
-          throw new DuplicatedKeyException(idx.getName(), Arrays.toString(key.keyValues), found.getRecord().getIdentity());
+          } catch (RecordNotFoundException e) {
+            // INDEX DIRTY, THE RECORD WA DELETED, REMOVE THE ENTRY IN THE INDEX TO FIX IT
+            LogManager.instance()
+                .log(this, Level.WARNING, "Found entry in index '%s' with key %s pointing to the deleted record %s. Overriding it.", null, idx.getName(),
+                    Arrays.toString(key.keyValues), firstEntry.getIdentity());
 
-        } catch (RecordNotFoundException e) {
-          // INDEX DIRTY, THE RECORD WA DELETED, REMOVE THE ENTRY IN THE INDEX TO FIX IT
-          LogManager.instance()
-              .log(this, Level.WARNING, "Found entry in index '%s' with key %s pointing to the deleted record %s. Overriding it.", null, idx.getName(),
-                  Arrays.toString(key.keyValues), found.getRecord().getIdentity());
-
-          idx.remove(key.keyValues);
+            idx.remove(key.keyValues);
+          }
         }
       }
     }

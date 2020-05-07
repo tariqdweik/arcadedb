@@ -865,7 +865,7 @@ public class SchemaImpl implements Schema {
                   LSMTreeIndexAbstract.NULL_STRATEGY.valueOf(index.getString("nullStrategy")) :
                   LSMTreeIndexAbstract.NULL_STRATEGY.ERROR;
 
-              idx.setNullStrategy(null);
+              idx.setNullStrategy(nullStrategy);
 
               type.addIndexInternal(idx, bucketMap.get(index.getString("bucket")), properties);
             } else {

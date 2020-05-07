@@ -105,6 +105,36 @@ public class NullValuesndexTest extends BaseTest {
     database.transaction((db) -> {
       Assertions.assertEquals(db.countType(TYPE_NAME, true), TOT + 1);
     });
+
+    database.close();
+    database = factory.open();
+
+    // TRY AGAIN WITH A RE-OPEN DATABASE
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database database) {
+        Assertions.assertTrue(database.getSchema().existsType(TYPE_NAME));
+
+        for (int i = TOT + 2; i < TOT + TOT; ++i) {
+          final MutableDocument v = database.newDocument(TYPE_NAME);
+          v.set("id", i);
+          v.set("name", "Jay" + i);
+          v.set("surname", "Miner");
+          v.save();
+        }
+
+        final MutableDocument v = database.newDocument(TYPE_NAME);
+        v.set("id", TOT + TOT + 1);
+        v.save();
+
+        database.commit();
+        database.begin();
+      }
+    });
+
+    database.transaction((db) -> {
+      Assertions.assertEquals(db.countType(TYPE_NAME, true), TOT + TOT);
+    });
   }
 
 }
