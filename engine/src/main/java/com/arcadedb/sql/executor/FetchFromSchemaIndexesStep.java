@@ -61,6 +61,7 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
           r.setProperty("supportsOrderedIterations", index.supportsOrderedIterations());
           if (index.getAssociatedBucketId() > -1)
             r.setProperty("associatedBucketId", index.getAssociatedBucketId());
+          r.setProperty("nullStrategy", index.getNullStrategy());
         }
       } finally {
         if (profilingEnabled) {

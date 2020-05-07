@@ -29,7 +29,7 @@ public class DDLTest extends BaseTest {
                         "CREATE VERTEX TYPE Person EXTENDS V; " +
                         "CREATE PROPERTY Person.name STRING;" +
                         "CREATE PROPERTY Person.id INTEGER;" +
-                        "CREATE INDEX Person.id ON Person (id) UNIQUE;" +
+                        "CREATE INDEX Person.id ON Person (id) UNIQUE NULL_STRATEGY SKIP;" +
                         "CREATE VERTEX TYPE Car EXTENDS V; " +
                         "CREATE PROPERTY Car.id INTEGER;" +
                         "CREATE PROPERTY Car.model STRING;" +

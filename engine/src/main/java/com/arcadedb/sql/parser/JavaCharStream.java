@@ -178,7 +178,7 @@ class JavaCharStream implements CharStream
   }
 
 /** @return starting character for token. */
-  public char BeginToken() throws java.io.IOException
+  public char beginToken() throws java.io.IOException
   {
     if (inBuf > 0)
     {
@@ -535,7 +535,7 @@ class JavaCharStream implements CharStream
   }
 
   /** @return token image as String */
-  public String GetImage()
+  public String getImage()
   {
     if (bufpos >= tokenBegin)
       return new String(buffer, tokenBegin, bufpos - tokenBegin + 1);
@@ -545,7 +545,7 @@ class JavaCharStream implements CharStream
   }
 
   /** @return suffix */
-  public char[] GetSuffix(int len)
+  public char[] getSuffix(int len)
   {
     char[] ret = new char[len];
 
@@ -562,7 +562,7 @@ class JavaCharStream implements CharStream
   }
 
   /** Set buffers back to null when finished. */
-  public void Done()
+  public void done()
   {
     nextCharBuf = null;
     buffer = null;

@@ -25,13 +25,14 @@ import java.util.stream.Collectors;
 
 public class CreateIndexStatement extends ODDLStatement {
 
-  protected IndexName        name;
-  protected Identifier       typeName;
-  protected List<Property>   propertyList = new ArrayList<Property>();
-  protected Identifier       type;
-  protected Identifier       engine;
-  protected List<Identifier> keyTypes     = new ArrayList<Identifier>();
-  protected Json             schema;
+  protected IndexName                          name;
+  protected Identifier                         typeName;
+  protected List<Property>                     propertyList = new ArrayList<Property>();
+  protected Identifier                         type;
+  protected Identifier                         engine;
+  protected LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy;
+  protected List<Identifier>                   keyTypes     = new ArrayList<Identifier>();
+  protected Json                               schema;
 
   public CreateIndexStatement(int id) {
     super(id);
@@ -77,7 +78,7 @@ public class CreateIndexStatement extends ODDLStatement {
     final AtomicLong total = new AtomicLong();
 
     database.getSchema()
-        .createIndexes(indexType, unique, typeName.getStringValue(), fields, LSMTreeIndexAbstract.DEF_PAGE_SIZE, new Index.BuildIndexCallback() {
+        .createIndexes(indexType, unique, typeName.getStringValue(), fields, LSMTreeIndexAbstract.DEF_PAGE_SIZE, nullStrategy, new Index.BuildIndexCallback() {
           @Override
           public void onDocumentIndexed(final Document document, final long totalIndexed) {
             total.incrementAndGet();
@@ -142,6 +143,10 @@ public class CreateIndexStatement extends ODDLStatement {
       builder.append(" ENGINE ");
       engine.toString(params, builder);
     }
+    if (nullStrategy != null) {
+      builder.append(" NULL_STRATEGY ");
+      builder.append(nullStrategy.toString());
+    }
     if (keyTypes != null && keyTypes.size() > 0) {
       boolean first = true;
       builder.append(" ");
@@ -167,6 +172,7 @@ public class CreateIndexStatement extends ODDLStatement {
     result.propertyList = propertyList == null ? null : propertyList.stream().map(x -> x.copy()).collect(Collectors.toList());
     result.type = type == null ? null : type.copy();
     result.engine = engine == null ? null : engine.copy();
+    result.nullStrategy = nullStrategy == null ? null : nullStrategy;
     result.keyTypes = keyTypes == null ? null : keyTypes.stream().map(x -> x.copy()).collect(Collectors.toList());
     result.schema = schema == null ? null : schema.copy();
     return result;
@@ -191,6 +197,8 @@ public class CreateIndexStatement extends ODDLStatement {
       return false;
     if (engine != null ? !engine.equals(that.engine) : that.engine != null)
       return false;
+    if (nullStrategy != null ? !nullStrategy.equals(that.nullStrategy) : that.nullStrategy != null)
+      return false;
     if (keyTypes != null ? !keyTypes.equals(that.keyTypes) : that.keyTypes != null)
       return false;
     return schema != null ? schema.equals(that.schema) : that.schema == null;
@@ -203,6 +211,7 @@ public class CreateIndexStatement extends ODDLStatement {
     result = 31 * result + (propertyList != null ? propertyList.hashCode() : 0);
     result = 31 * result + (type != null ? type.hashCode() : 0);
     result = 31 * result + (engine != null ? engine.hashCode() : 0);
+    result = 31 * result + (nullStrategy != null ? nullStrategy.hashCode() : 0);
     result = 31 * result + (keyTypes != null ? keyTypes.hashCode() : 0);
     result = 31 * result + (schema != null ? schema.hashCode() : 0);
     return result;

@@ -84,7 +84,7 @@ interface CharStream {
    * All characters must remain in the buffer between two successive calls
    * to this method to implement backup correctly.
    */
-  char BeginToken() throws java.io.IOException;
+  char beginToken() throws java.io.IOException;
 
   /**
    * Returns a string made up of characters from the marked token beginning
@@ -92,7 +92,7 @@ interface CharStream {
    * anything that they want to. For example, for efficiency, one might decide
    * to just return null, which is a valid implementation.
    */
-  String GetImage();
+  String getImage();
 
   /**
    * Returns an array of characters that make up the suffix of length 'len' for
@@ -105,7 +105,7 @@ interface CharStream {
    *      return t.substring(t.length() - len, t.length()).toCharArray();
    *   }
    */
-  char[] GetSuffix(int len);
+  char[] getSuffix(int len);
 
   /**
    * The lexer calls this function to indicate that it is done with the stream
@@ -113,7 +113,7 @@ interface CharStream {
    * Again, the body of this function can be just empty and it will not
    * affect the lexer's operation.
    */
-  void Done();
+  void done();
 
 }
 /* JavaCC - OriginalChecksum=8356b3d537c263ca36ca197ba64d7402 (do not edit this line) */

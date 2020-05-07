@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.ArrayList;
 import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.exception.QueryParsingException;
+import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 
 /** Database Sql grammar. */
 public class SqlParser {
@@ -145,6 +146,8 @@ TOKEN:
 	|
 	< SKIP2: ( "s" | "S" ) ( "k" | "K" ) ( "i" | "I" ) ( "p" | "P" ) >
 	|
+	< ERROR2: ( "e" | "E" ) ( "r" | "R" ) ( "r" | "R" ) ( "o" | "O" ) ( "r" | "R" ) >
+	|
 	< BATCH: ( "b" | "B" ) ( "a" | "A" ) ( "t" | "T" ) ( "c" | "C" ) ( "h" | "H" ) >
 	|
 	< OFFSET: ( "o" | "O" ) ( "f" | "F" ) ( "f" | "F" ) ( "s" | "S" ) ( "e" | "E" ) ( "t" | "T" ) >
@@ -266,6 +269,8 @@ TOKEN:
     < INDEX: ( "I" | "i") ( "N" | "n") ( "D" | "d") ( "E" | "e") ( "X" | "x")  >
     |
     < COLLATE: ( "c" | "C") ( "o" | "O") ( "l" | "L") ( "l" | "L") ( "a" | "A") ( "t" | "T") ( "E" | "e")  >
+    |
+    < NULL_STRATEGY: ( "n" | "N") ( "u" | "U") ( "l" | "L") ( "l" | "L") ( "_" ) ( "s" | "S") ( "t" | "T") ( "r" | "R") ( "a" | "A") ( "t" | "T") ( "e" | "E") ( "g" | "G") ( "y" | "Y")  >
     |
     < ENGINE: ( "E" | "e")  ( "N" | "n") ( "G" | "g") ( "I" | "i") ( "N" | "n")( "E" | "e") >
     |
@@ -4272,6 +4277,7 @@ CreateIndexStatement CreateIndexStatement():
 	<CREATE> <INDEX>
 
 	jjtThis.name = IndexName()
+
     (
         LOOKAHEAD(3)
         (
@@ -4376,6 +4382,15 @@ CreateIndexStatement CreateIndexStatement():
                 )
             ]
         )
+    )
+    (
+      [ <NULL_STRATEGY>
+          (
+              <SKIP2> { jjtThis.nullStrategy = LSMTreeIndexAbstract.NULL_STRATEGY.SKIP; }
+              |
+              <ERROR2> { jjtThis.nullStrategy = LSMTreeIndexAbstract.NULL_STRATEGY.ERROR; }
+          )
+      ]
     )
 
 	{ return jjtThis; }

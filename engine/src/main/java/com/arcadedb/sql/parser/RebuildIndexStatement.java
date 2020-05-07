@@ -94,7 +94,6 @@ public class RebuildIndexStatement extends SimpleExecStatement {
 
         indexList.add(idx.getName());
       }
-
       result.setProperty("indexes", indexList);
       result.setProperty("totalIndexed", total.get());
     });
