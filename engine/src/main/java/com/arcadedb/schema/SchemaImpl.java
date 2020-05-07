@@ -708,7 +708,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public DocumentType getOrCreateDocumentType(final String typeName, final int buckets) {
-    return createDocumentType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
+    return getOrCreateDocumentType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
   }
 
   @Override
@@ -777,7 +777,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public VertexType getOrCreateVertexType(final String typeName, final int buckets) {
-    return createVertexType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
+    return getOrCreateVertexType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
   }
 
   @Override
@@ -844,7 +844,7 @@ public class SchemaImpl implements Schema {
 
   @Override
   public EdgeType getOrCreateEdgeType(final String typeName, final int buckets) {
-    return createEdgeType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
+    return getOrCreateEdgeType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
   }
 
   @Override
