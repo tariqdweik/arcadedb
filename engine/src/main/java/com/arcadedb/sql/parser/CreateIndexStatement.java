@@ -78,7 +78,7 @@ public class CreateIndexStatement extends ODDLStatement {
     final AtomicLong total = new AtomicLong();
 
     database.getSchema()
-        .createIndexes(indexType, unique, typeName.getStringValue(), fields, LSMTreeIndexAbstract.DEF_PAGE_SIZE, nullStrategy, new Index.BuildIndexCallback() {
+        .createTypeIndex(indexType, unique, typeName.getStringValue(), fields, LSMTreeIndexAbstract.DEF_PAGE_SIZE, nullStrategy, new Index.BuildIndexCallback() {
           @Override
           public void onDocumentIndexed(final Document document, final long totalIndexed) {
             total.incrementAndGet();

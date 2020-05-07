@@ -12,7 +12,6 @@ import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -753,7 +752,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
-        final Index[] indexes = database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
+        final TypeIndex typeIndex = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);
@@ -767,7 +766,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
         database.commit();
         database.begin();
 
-        for (Index index : indexes) {
+        for (Index index : typeIndex.getIndexesOnBuckets()) {
           Assertions.assertTrue(index.getStats().get("pages") > 1);
         }
       }

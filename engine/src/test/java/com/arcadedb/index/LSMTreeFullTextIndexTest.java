@@ -32,7 +32,7 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
 
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 1);
         type.createProperty("text", String.class);
-        Index[] indexes = database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.FULL_TEXT, false, TYPE_NAME, new String[] { "text" }, PAGE_SIZE);
+        TypeIndex typeIndex = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.FULL_TEXT, false, TYPE_NAME, new String[] { "text" }, PAGE_SIZE);
 
         Assertions.assertTrue(database.getSchema().existsType(TYPE_NAME));
 
@@ -54,7 +54,7 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
                 + "\n"
                 + "Jay endured kidney problems for most of his life, according to his wife, and relied on dialysis. His sister donated one of her own. Miner died due to complications from kidney failure at the age of 62, just two months after Commodore declared bankruptcy.";
 
-        LogManager.instance().log(this, Level.INFO, "Indexing %d documents...",null, TOT);
+        LogManager.instance().log(this, Level.INFO, "Indexing %d documents...", null, TOT);
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);
@@ -69,7 +69,8 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
 
         LogManager.instance().log(this, Level.INFO, "Committed");
 
-        final List<String> keywords = ((LSMTreeFullTextIndex) indexes[0]).analyzeText(((LSMTreeFullTextIndex) indexes[0]).getAnalyzer(), new Object[] { text });
+        final List<String> keywords = ((LSMTreeFullTextIndex) typeIndex.getIndexesOnBuckets()[0])
+            .analyzeText(((LSMTreeFullTextIndex) typeIndex.getIndexesOnBuckets()[0]).getAnalyzer(), new Object[] { text });
         Assertions.assertFalse(keywords.isEmpty());
 
         LogManager.instance().log(this, Level.INFO, "Checking keywords...");
@@ -77,8 +78,8 @@ public class LSMTreeFullTextIndexTest extends BaseTest {
         for (String k : keywords) {
           int totalPerKeyword = 0;
 
-          for (Index idx : indexes) {
-            if( idx instanceof TypeIndex)
+          for (Index idx : typeIndex.getIndexesOnBuckets()) {
+            if (idx instanceof TypeIndex)
               continue;
 
             final IndexCursor result = idx.get(new Object[] { k });

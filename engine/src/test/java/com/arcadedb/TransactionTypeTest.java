@@ -293,7 +293,7 @@ public class TransactionTypeTest extends BaseTest {
         if (!database.getSchema().existsType(TYPE_NAME)) {
           final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
           type.createProperty("id", Integer.class);
-          database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" });
+          database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" });
         }
 
         for (int i = 0; i < TOT; ++i) {

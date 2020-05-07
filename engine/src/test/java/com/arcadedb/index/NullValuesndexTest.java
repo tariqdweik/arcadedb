@@ -5,23 +5,13 @@
 package com.arcadedb.index;
 
 import com.arcadedb.BaseTest;
-import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.*;
-import com.arcadedb.exception.DuplicatedKeyException;
-import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
-import com.arcadedb.sql.executor.Result;
-import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
 
 public class NullValuesndexTest extends BaseTest {
   private static final int    TOT       = 10;
@@ -39,9 +29,9 @@ public class NullValuesndexTest extends BaseTest {
           final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
           type.createProperty("id", Integer.class);
           type.createProperty("name", String.class);
-          final Index[] indexes = database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
-          final Index[] indexes2 = database.getSchema()
-              .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR,
+          final TypeIndex indexes = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
+          final TypeIndex indexes2 = database.getSchema()
+              .createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR,
                   null);
 
           for (int i = 0; i < TOT; ++i) {
@@ -59,7 +49,7 @@ public class NullValuesndexTest extends BaseTest {
           database.commit();
           database.begin();
 
-          for (Index index : indexes) {
+          for (Index index : indexes.getIndexesOnBuckets()) {
             Assertions.assertTrue(index.getStats().get("pages") > 1);
           }
         }
@@ -81,9 +71,9 @@ public class NullValuesndexTest extends BaseTest {
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
         type.createProperty("name", String.class);
-        final Index[] indexes = database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
-        final Index[] indexes2 = database.getSchema()
-            .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.SKIP, null);
+        final TypeIndex indexes = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
+        final TypeIndex indexes2 = database.getSchema()
+            .createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.SKIP, null);
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);

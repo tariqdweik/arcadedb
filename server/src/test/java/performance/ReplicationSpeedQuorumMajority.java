@@ -76,10 +76,10 @@ public class ReplicationSpeedQuorumMajority extends BasePerformanceTest {
           v.createProperty("operationalStatus", String.class);
           v.createProperty("supplierName", String.class);
 
-          database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
-          database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
+          database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "id" }, 2 * 1024 * 1024);
+          database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "number" }, 2 * 1024 * 1024);
           database.getSchema()
-              .createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
+              .createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, false, "Device", new String[] { "relativeName" }, 2 * 1024 * 1024);
         }
       }
     });

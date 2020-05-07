@@ -299,7 +299,7 @@ public class ACIDTransactionTest extends BaseTest {
       type.createProperty("symbol", Type.STRING);
       type.createProperty("date", Type.DATETIME);
       type.createProperty("history", Type.LIST);
-      type.createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, new String[] { "symbol", "date" });
+      type.createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, new String[] { "symbol", "date" });
 
       final DocumentType type2 = database.getSchema().createDocumentType("Aggregate", 1);
       type2.createProperty("volume", Type.LONG);

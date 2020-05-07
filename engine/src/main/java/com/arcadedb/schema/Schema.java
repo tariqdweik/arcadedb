@@ -8,6 +8,7 @@ import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.Dictionary;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 
 import java.util.Collection;
@@ -37,17 +38,27 @@ public interface Schema {
 
   Index getIndexByName(String indexName);
 
-  Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
+  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
 
-  Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
+  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
 
-  Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
       Index.BuildIndexCallback callback);
 
-  Index[] createIndexes(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
       LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, Index.BuildIndexCallback callback);
 
-  Index createIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String bucketName, String[] propertyNames, int pageSize,
+  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
+
+  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
+
+  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+      Index.BuildIndexCallback callback);
+
+  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+      LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, Index.BuildIndexCallback callback);
+
+  Index createBucketIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String bucketName, String[] propertyNames, int pageSize,
       LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, Index.BuildIndexCallback callback);
 
   Index createManualIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String indexName, byte[] keyTypes, int pageSize,
@@ -75,17 +86,35 @@ public interface Schema {
 
   DocumentType createDocumentType(String typeName, int buckets, int pageSize);
 
+  DocumentType getOrCreateDocumentType(String typeName);
+
+  DocumentType getOrCreateDocumentType(String typeName, int buckets);
+
+  DocumentType getOrCreateDocumentType(String typeName, int buckets, int pageSize);
+
   VertexType createVertexType(String typeName);
 
   VertexType createVertexType(String typeName, int buckets);
 
   VertexType createVertexType(String typeName, int buckets, int pageSize);
 
+  VertexType getOrCreateVertexType(String typeName);
+
+  VertexType getOrCreateVertexType(String typeName, int buckets);
+
+  VertexType getOrCreateVertexType(String typeName, int buckets, int pageSize);
+
   EdgeType createEdgeType(String typeName);
 
   EdgeType createEdgeType(String typeName, int buckets);
 
   EdgeType createEdgeType(String typeName, int buckets, int pageSize);
+
+  EdgeType getOrCreateEdgeType(String typeName);
+
+  EdgeType getOrCreateEdgeType(String typeName, int buckets);
+
+  EdgeType getOrCreateEdgeType(String typeName, int buckets, int pageSize);
 
   TimeZone getTimeZone();
 
@@ -100,4 +129,5 @@ public interface Schema {
   void setDateTimeFormat(String dateTimeFormat);
 
   String getEncoding();
+
 }

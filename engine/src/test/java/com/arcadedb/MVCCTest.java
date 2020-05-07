@@ -141,14 +141,14 @@ public class MVCCTest extends BaseTest {
       accountType.createProperty("surname", String.class);
       accountType.createProperty("registered", Date.class);
 
-      database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Account", new String[] { "id" }, 5000000);
+      database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Account", new String[] { "id" }, 5000000);
 
       final VertexType txType = database.getSchema().createVertexType("Transaction", PARALLEL);
       txType.createProperty("uuid", String.class);
       txType.createProperty("date", Date.class);
       txType.createProperty("amount", BigDecimal.class);
 
-      database.getSchema().createIndexes(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Transaction", new String[] { "uuid" }, 5000000);
+      database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, "Transaction", new String[] { "uuid" }, 5000000);
 
       final EdgeType edgeType = database.getSchema().createEdgeType("PurchasedBy", PARALLEL);
       edgeType.createProperty("date", Date.class);

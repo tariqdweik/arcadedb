@@ -45,7 +45,8 @@ public class DocumentType {
 
   public void addParent(final DocumentType parent) {
     if (parentTypes.indexOf(parent) > -1)
-      throw new IllegalArgumentException("Type '" + parent + "' is already a parent type for '" + name + "'");
+      // ALREADY PARENT
+      return;
 
     final Set<String> allProperties = getPolymorphicPropertyNames();
     for (String p : parent.getPropertyNames())
@@ -112,27 +113,51 @@ public class DocumentType {
     return property;
   }
 
+  public Property getOrCreateProperty(final String propertyName, final String propertyType) {
+    return getOrCreateProperty(propertyName, Type.getTypeByName(propertyType));
+  }
+
+  public Property getOrCreateProperty(final String propertyName, final Class<?> propertyType) {
+    return getOrCreateProperty(propertyName, Type.getTypeByClass(propertyType));
+  }
+
+  public Property getOrCreateProperty(final String propertyName, final Type propertyType) {
+    Property p = properties.get(propertyName);
+    if (p != null) {
+      if (p.getType().equals(propertyType))
+        return p;
+
+      // DIFFERENT TYPE: DROP THE PROPERTY AND CREATE A NEW ONE
+      dropProperty(propertyName);
+    }
+    return createProperty(propertyName, propertyType);
+  }
+
   public void dropProperty(final String propertyName) {
     properties.remove(propertyName);
     schema.saveConfiguration();
   }
 
-  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
-    return schema.createIndexes(indexType, unique, name, propertyNames);
+  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
+    return schema.createTypeIndex(indexType, unique, name, propertyNames);
   }
 
-  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
-    return schema.createIndexes(indexType, unique, name, propertyNames, pageSize);
+  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
+    return schema.createTypeIndex(indexType, unique, name, propertyNames, pageSize);
   }
 
-  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
       final Index.BuildIndexCallback callback) {
-    return schema.createIndexes(indexType, unique, name, propertyNames, pageSize, callback);
+    return schema.createTypeIndex(indexType, unique, name, propertyNames, pageSize, callback);
   }
 
-  public Index[] createIndexes(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
       LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
-    return schema.createIndexes(indexType, unique, name, propertyNames, pageSize, nullStrategy, callback);
+    return schema.createTypeIndex(indexType, unique, name, propertyNames, pageSize, nullStrategy, callback);
+  }
+
+  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
+    return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames);
   }
 
   public List<Bucket> getBuckets(final boolean polymorphic) {

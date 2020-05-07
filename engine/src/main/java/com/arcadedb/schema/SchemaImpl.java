@@ -299,7 +299,7 @@ public class SchemaImpl implements Schema {
 
         // COPY INDEXES
         for (TypeIndex index : oldType.getAllIndexes())
-          newType.createIndexes(index.getType(), index.isUnique(), index.getPropertyNames());
+          newType.createTypeIndex(index.getType(), index.isUnique(), index.getPropertyNames());
 
         database.commit();
 
@@ -355,28 +355,28 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String... propertyNames) {
-    return createIndexes(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, null);
+  public TypeIndex createTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String... propertyNames) {
+    return createTypeIndex(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, null);
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
-    return createIndexes(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, null);
+  public TypeIndex createTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize) {
+    return createTypeIndex(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, null);
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
+  public TypeIndex createTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
       final Index.BuildIndexCallback callback) {
-    return createIndexes(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, callback);
+    return createTypeIndex(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, callback);
   }
 
   @Override
-  public Index[] createIndexes(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
+  public TypeIndex createTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames, final int pageSize,
       final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
 
-    return (Index[]) database.executeInWriteLock(new Callable<Object>() {
+    return (TypeIndex) database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
         try {
@@ -405,12 +405,12 @@ public class SchemaImpl implements Schema {
           final Index[] indexes = new Index[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
             final Bucket bucket = buckets.get(idx);
-            indexes[idx] = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, nullStrategy, callback, propertyNames);
+            indexes[idx] = createBucketIndex(type, keyTypes, bucket, typeName, indexType, unique, pageSize, nullStrategy, callback, propertyNames);
           }
 
           saveConfiguration();
 
-          return indexes;
+          return type.getIndexByProperties(propertyNames);
 
         } catch (IOException e) {
           throw new SchemaException("Cannot create index on type '" + typeName + "' (error=" + e + ")", e);
@@ -420,7 +420,35 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
-  public Index createIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName, final String[] propertyNames,
+  public TypeIndex getOrCreateTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String... propertyNames) {
+    return getOrCreateTypeIndex(indexType, unique, typeName, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, null);
+  }
+
+  @Override
+  public TypeIndex getOrCreateTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
+      final int pageSize) {
+    return getOrCreateTypeIndex(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, null);
+  }
+
+  @Override
+  public TypeIndex getOrCreateTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
+      final int pageSize, final Index.BuildIndexCallback callback) {
+    return getOrCreateTypeIndex(indexType, unique, typeName, propertyNames, pageSize, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR, callback);
+  }
+
+  @Override
+  public TypeIndex getOrCreateTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
+      final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
+    final DocumentType type = getType(typeName);
+    final TypeIndex index = type.getIndexByProperties(propertyNames);
+    if (index != null)
+      return index;
+
+    return createTypeIndex(indexType, unique, typeName, propertyNames, pageSize, nullStrategy, callback);
+  }
+
+  @Override
+  public Index createBucketIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String bucketName, final String[] propertyNames,
       final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     if (propertyNames.length == 0)
       throw new DatabaseMetadataException("Cannot create index on type '" + typeName + "' because there are no property defined");
@@ -452,7 +480,7 @@ public class SchemaImpl implements Schema {
             }
           }
 
-          final Index index = createIndexOnBucket(type, keyTypes, bucket, typeName, indexType, unique, pageSize, nullStrategy, callback, propertyNames);
+          final Index index = createBucketIndex(type, keyTypes, bucket, typeName, indexType, unique, pageSize, nullStrategy, callback, propertyNames);
 
           saveConfiguration();
 
@@ -465,7 +493,7 @@ public class SchemaImpl implements Schema {
     });
   }
 
-  private Index createIndexOnBucket(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName, final INDEX_TYPE indexType,
+  private Index createBucketIndex(final DocumentType type, final byte[] keyTypes, final Bucket bucket, final String typeName, final INDEX_TYPE indexType,
       final boolean unique, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback,
       final String[] propertyNames) throws IOException {
     if (bucket == null)
@@ -674,6 +702,27 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
+  public DocumentType getOrCreateDocumentType(final String typeName) {
+    return getOrCreateDocumentType(typeName, Runtime.getRuntime().availableProcessors());
+  }
+
+  @Override
+  public DocumentType getOrCreateDocumentType(final String typeName, final int buckets) {
+    return createDocumentType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
+  }
+
+  @Override
+  public DocumentType getOrCreateDocumentType(String typeName, final int buckets, final int pageSize) {
+    final DocumentType t = types.get(typeName);
+    if (t != null) {
+      if (t.getClass().equals(DocumentType.class))
+        return t;
+      throw new SchemaException("Type '" + typeName + "' is document not document");
+    }
+    return createDocumentType(typeName, buckets, pageSize);
+  }
+
+  @Override
   public VertexType createVertexType(final String typeName) {
     return createVertexType(typeName, Runtime.getRuntime().availableProcessors());
   }
@@ -722,6 +771,27 @@ public class SchemaImpl implements Schema {
   }
 
   @Override
+  public VertexType getOrCreateVertexType(final String typeName) {
+    return getOrCreateVertexType(typeName, Runtime.getRuntime().availableProcessors());
+  }
+
+  @Override
+  public VertexType getOrCreateVertexType(final String typeName, final int buckets) {
+    return createVertexType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
+  }
+
+  @Override
+  public VertexType getOrCreateVertexType(String typeName, final int buckets, final int pageSize) {
+    final DocumentType t = types.get(typeName);
+    if (t != null) {
+      if (t.getClass().equals(VertexType.class))
+        return (VertexType) t;
+      throw new SchemaException("Type '" + typeName + "' is document not vertex");
+    }
+    return createVertexType(typeName, buckets, pageSize);
+  }
+
+  @Override
   public EdgeType createEdgeType(final String typeName) {
     return createEdgeType(typeName, Runtime.getRuntime().availableProcessors());
   }
@@ -765,6 +835,27 @@ public class SchemaImpl implements Schema {
         return c;
       }
     });
+  }
+
+  @Override
+  public EdgeType getOrCreateEdgeType(final String typeName) {
+    return getOrCreateEdgeType(typeName, Runtime.getRuntime().availableProcessors());
+  }
+
+  @Override
+  public EdgeType getOrCreateEdgeType(final String typeName, final int buckets) {
+    return createEdgeType(typeName, buckets, Bucket.DEF_PAGE_SIZE);
+  }
+
+  @Override
+  public EdgeType getOrCreateEdgeType(String typeName, final int buckets, final int pageSize) {
+    final DocumentType t = types.get(typeName);
+    if (t != null) {
+      if (t.getClass().equals(EdgeType.class))
+        return (EdgeType) t;
+      throw new SchemaException("Type '" + typeName + "' is document not edge");
+    }
+    return createEdgeType(typeName, buckets, pageSize);
   }
 
   protected synchronized void readConfiguration() {

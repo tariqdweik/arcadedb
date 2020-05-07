@@ -66,7 +66,7 @@ public class RebuildIndexStatement extends SimpleExecStatement {
           if (idx instanceof TypeIndex) {
             idx.drop();
             database.getSchema()
-                .createIndexes(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+                .createTypeIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
             indexList.add(idx.getName());
           }
         }
@@ -85,10 +85,10 @@ public class RebuildIndexStatement extends SimpleExecStatement {
 
         if (typeName != null && idx instanceof TypeIndex) {
           database.getSchema().getType(typeName)
-              .createIndexes(idx.getType(), idx.isUnique(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+              .createTypeIndex(idx.getType(), idx.isUnique(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
         } else {
           database.getSchema()
-              .createIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
+              .createBucketIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
                   idx.getPropertyNames(), pageSize, idx.getNullStrategy(), callback);
         }
 
