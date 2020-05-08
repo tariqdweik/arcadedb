@@ -160,6 +160,20 @@ public class DocumentType {
     return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames);
   }
 
+  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
+    return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames, pageSize);
+  }
+
+  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+      final Index.BuildIndexCallback callback) {
+    return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames, pageSize, callback);
+  }
+
+  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+      LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
+    return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames, pageSize, nullStrategy, callback);
+  }
+
   public List<Bucket> getBuckets(final boolean polymorphic) {
     if (!polymorphic)
       return buckets;

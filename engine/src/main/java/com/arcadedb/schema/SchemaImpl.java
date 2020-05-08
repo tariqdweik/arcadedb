@@ -441,8 +441,14 @@ public class SchemaImpl implements Schema {
       final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     final DocumentType type = getType(typeName);
     final TypeIndex index = type.getIndexByProperties(propertyNames);
-    if (index != null)
-      return index;
+    if (index != null) {
+      if (index.getNullStrategy() != null ||//
+          index.isUnique() != unique) {
+        // DIFFERENT, DROP AND RECREATE IT
+        index.drop();
+      } else
+        return index;
+    }
 
     return createTypeIndex(indexType, unique, typeName, propertyNames, pageSize, nullStrategy, callback);
   }
