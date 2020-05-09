@@ -4,6 +4,7 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
 
@@ -81,7 +82,11 @@ public class RID implements Identifiable, Comparable<Identifiable>, Serializable
   }
 
   public Vertex getVertex(final boolean loadContent) {
-    return (Vertex) database.lookupByRID(this, loadContent);
+    try {
+      return (Vertex) database.lookupByRID(this, loadContent);
+    } catch (Exception e) {
+      throw new RecordNotFoundException("Record " + this + " not found", this, e);
+    }
   }
 
   public Edge getEdge() {

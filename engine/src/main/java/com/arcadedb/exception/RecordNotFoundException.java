@@ -16,7 +16,7 @@ public class RecordNotFoundException extends RuntimeException {
     this.rid = rid;
   }
 
-  public RecordNotFoundException(String s, RID rid, IOException e) {
+  public RecordNotFoundException(String s, RID rid, Exception e) {
     super(s, e);
     this.rid = rid;
   }

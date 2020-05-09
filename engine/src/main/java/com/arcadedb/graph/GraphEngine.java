@@ -285,7 +285,7 @@ public class GraphEngine {
         if (vOut.getOutEdgesHeadChunk() != null)
           new EdgeLinkedList(vOut, Vertex.DIRECTION.OUT, (EdgeSegment) database.lookupByRID(vOut.getOutEdgesHeadChunk(), true)).removeEdge(edge);
       }
-    } catch (SchemaException e) {
+    } catch (SchemaException | RecordNotFoundException e) {
       LogManager.instance().log(this, Level.FINE, "Error on loading outgoing vertex %s from edge %s", e, edge.getOut(), edge.getIdentity());
     }
 
@@ -295,7 +295,7 @@ public class GraphEngine {
         if (vIn.getInEdgesHeadChunk() != null)
           new EdgeLinkedList(vIn, Vertex.DIRECTION.IN, (EdgeSegment) database.lookupByRID(vIn.getInEdgesHeadChunk(), true)).removeEdge(edge);
       }
-    } catch (SchemaException e) {
+    } catch (SchemaException | RecordNotFoundException e) {
       LogManager.instance().log(this, Level.FINE, "Error on loading incoming vertex %s from edge %s", e, edge.getIn(), edge.getIdentity());
     }
 
