@@ -58,6 +58,19 @@ public class DocumentType {
     schema.saveConfiguration();
   }
 
+  public void removeParent(final String parentName) {
+    removeParent(schema.getType(parentName));
+  }
+
+  public void removeParent(final DocumentType parent) {
+    if (!parentTypes.remove(parent))
+      // ALREADY REMOVED PARENT
+      return;
+
+    parent.subTypes.remove(this);
+    schema.saveConfiguration();
+  }
+
   public boolean instanceOf(final String type) {
     if (name.equals(type))
       return true;
