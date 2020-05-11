@@ -19,7 +19,7 @@
 
     <properties>
         <mongo-java-server.version>1.8.0</mongo-java-server.version>
-        <mongo-java-driver.version>3.12.0</mongo-java-driver.version>
+        <mongo-java-driver.version>3.12.4</mongo-java-driver.version>
     </properties>
 
     <dependencies>
