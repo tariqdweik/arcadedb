@@ -382,7 +382,7 @@ public class SchemaImpl implements Schema {
         try {
           final DocumentType type = getType(typeName);
 
-          final TypeIndex index = type.getIndexByProperties(propertyNames);
+          final TypeIndex index = type.getPolymorphicIndexByProperties(propertyNames);
           if (index != null)
             throw new IllegalArgumentException(
                 "Found the existent index '" + index.getName() + "' defined on the properties '" + Arrays.asList(propertyNames) + "' for type '" + typeName
@@ -400,7 +400,7 @@ public class SchemaImpl implements Schema {
             keyTypes[i++] = property.getType().getBinaryType();
           }
 
-          final List<Bucket> buckets = type.getBuckets(false);
+          final List<Bucket> buckets = type.getBuckets(true);
 
           final Index[] indexes = new Index[buckets.size()];
           for (int idx = 0; idx < buckets.size(); ++idx) {
@@ -410,7 +410,7 @@ public class SchemaImpl implements Schema {
 
           saveConfiguration();
 
-          return type.getIndexByProperties(propertyNames);
+          return type.getPolymorphicIndexByProperties(propertyNames);
 
         } catch (IOException e) {
           throw new SchemaException("Cannot create index on type '" + typeName + "' (error=" + e + ")", e);
@@ -440,9 +440,9 @@ public class SchemaImpl implements Schema {
   public TypeIndex getOrCreateTypeIndex(final INDEX_TYPE indexType, final boolean unique, final String typeName, final String[] propertyNames,
       final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     final DocumentType type = getType(typeName);
-    final TypeIndex index = type.getIndexByProperties(propertyNames);
+    final TypeIndex index = type.getPolymorphicIndexByProperties(propertyNames);
     if (index != null) {
-      if (index.getNullStrategy() != null ||//
+      if (index.getNullStrategy() != null && index.getNullStrategy() == null ||//
           index.isUnique() != unique) {
         // DIFFERENT, DROP AND RECREATE IT
         index.drop();

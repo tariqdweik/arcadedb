@@ -31,7 +31,7 @@ public class DocumentIndexer {
 
     final DocumentType type = database.getSchema().getType(modifiedRecord.getType());
 
-    return type.getSubIndexByBucketId(bucketId);
+    return type.getPolymorphicBucketIndexByBucketId(bucketId);
   }
 
   public void createDocument(final Document record, final DocumentType type, final Bucket bucket) {
@@ -40,11 +40,9 @@ public class DocumentIndexer {
       throw new IllegalArgumentException("Cannot index a non persistent record");
 
     // INDEX THE RECORD
-    final List<Index> metadata = type.getSubIndexByBucketId(bucket.getId());
-    if (metadata != null) {
-      for (Index entry : metadata)
-        addToIndex(entry, rid, record);
-    }
+    final List<Index> metadata = type.getPolymorphicBucketIndexByBucketId(bucket.getId());
+    for (Index entry : metadata)
+      addToIndex(entry, rid, record);
   }
 
   public void addToIndex(final Index entry, final RID rid, final Document record) {
@@ -110,8 +108,8 @@ public class DocumentIndexer {
     if (type == null)
       throw new IllegalStateException("Type not found for bucket " + bucketId);
 
-    final List<Index> metadata = type.getSubIndexByBucketId(bucketId);
-    if (metadata != null) {
+    final List<Index> metadata = type.getPolymorphicBucketIndexByBucketId(bucketId);
+    if (metadata != null && !metadata.isEmpty()) {
       if (record instanceof RecordInternal)
         // FORCE RESET OF ANY PROPERTY TEMPORARY SET
         ((RecordInternal) record).unsetDirty();

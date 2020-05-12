@@ -593,7 +593,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         checkDatabaseIsOpen();
         final DocumentType t = schema.getType(type);
 
-        final TypeIndex idx = t.getIndexByProperties(properties);
+        final TypeIndex idx = t.getPolymorphicIndexByProperties(properties);
         if (idx == null)
           throw new IllegalArgumentException("No index has been created on type '" + type + "' properties " + Arrays.toString(properties));
 
@@ -723,9 +723,9 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
 
-    final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : null;
+    final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : Collections.emptyList();
 
-    if (indexes != null && !indexes.isEmpty()) {
+    if (!indexes.isEmpty()) {
       // UPDATE THE INDEXES TOO
       final Binary originalBuffer = ((RecordInternal) record).getBuffer();
       if (originalBuffer == null)

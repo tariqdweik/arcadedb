@@ -151,7 +151,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
       final long recordInDb = db.countType(VERTEX1_TYPE_NAME, true);
       Assertions.assertTrue(recordInDb <= 1 + getTxs() * getVerticesPerTx(), "TEST: Check for vertex count for server" + s);
 
-      final TypeIndex index = db.getSchema().getType(VERTEX1_TYPE_NAME).getIndexByProperties("id");
+      final TypeIndex index = db.getSchema().getType(VERTEX1_TYPE_NAME).getPolymorphicIndexByProperties("id");
       long total = 0;
       for (IndexCursor it = index.iterator(true); it.hasNext(); ) {
         it.next();

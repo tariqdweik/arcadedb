@@ -207,7 +207,7 @@ public class TransactionIndexContext {
     final DocumentType type = database.getSchema().getType(index.getTypeName());
 
     // CHECK UNIQUENESS ACROSS ALL THE INDEXES FOR ALL THE BUCKETS
-    final TypeIndex idx = type.getIndexByProperties(index.getPropertyNames());
+    final TypeIndex idx = type.getPolymorphicIndexByProperties(index.getPropertyNames());
     if (idx != null) {
       final IndexCursor found = idx.get(key.keyValues, 2);
       if (found.hasNext()) {

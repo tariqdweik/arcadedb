@@ -23,7 +23,7 @@ public class DocumentType {
   private final List<Bucket>                 buckets                 = new ArrayList<>();
   private       BucketSelectionStrategy      bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
   private final Map<String, Property>        properties              = new HashMap<>();
-  private       Map<Integer, List<Index>>    indexesByBucket         = new HashMap<>();
+  private       Map<Integer, List<Index>>    bucketIndexesByBucket   = new HashMap<>();
   private       Map<List<String>, TypeIndex> indexesByProperties     = new HashMap<>();
 
   public DocumentType(final SchemaImpl schema, final String name) {
@@ -259,12 +259,30 @@ public class DocumentType {
     return array;
   }
 
-  public List<Index> getSubIndexByBucketId(final int bucketId) {
-    return indexesByBucket.get(bucketId);
+  public List<Index> getPolymorphicBucketIndexByBucketId(final int bucketId) {
+    final List<Index> result = new ArrayList<>();
+
+    final List<Index> r = bucketIndexesByBucket.get(bucketId);
+    if (r != null)
+      result.addAll(r);
+
+    for (DocumentType t : parentTypes)
+      result.addAll(t.getPolymorphicBucketIndexByBucketId(bucketId));
+
+    return result;
   }
 
-  public TypeIndex getIndexByProperties(final String... properties) {
-    return indexesByProperties.get(Arrays.asList(properties));
+  public TypeIndex getPolymorphicIndexByProperties(final String... properties) {
+    TypeIndex idx = indexesByProperties.get(Arrays.asList(properties));
+
+    if (idx == null)
+      for (DocumentType t : parentTypes) {
+        idx = t.getPolymorphicIndexByProperties(properties);
+        if (idx != null)
+          break;
+      }
+
+    return idx;
   }
 
   public Schema getSchema() {
@@ -347,11 +365,11 @@ public class DocumentType {
         return false;
     }
 
-    if (indexesByBucket.size() != that.indexesByBucket.size())
+    if (bucketIndexesByBucket.size() != that.bucketIndexesByBucket.size())
       return false;
 
-    for (Map.Entry<Integer, List<Index>> entry1 : indexesByBucket.entrySet()) {
-      final List<Index> value2 = that.indexesByBucket.get(entry1.getKey());
+    for (Map.Entry<Integer, List<Index>> entry1 : bucketIndexesByBucket.entrySet()) {
+      final List<Index> value2 = that.bucketIndexesByBucket.get(entry1.getKey());
       if (value2 == null)
         return false;
       if (entry1.getValue().size() != value2.size())
@@ -411,10 +429,10 @@ public class DocumentType {
   protected void addIndexInternal(final Index index, final Bucket bucket, final String[] propertyNames) {
     index.setMetadata(name, propertyNames, bucket.getId());
 
-    List<Index> list = indexesByBucket.get(bucket.getId());
+    List<Index> list = bucketIndexesByBucket.get(bucket.getId());
     if (list == null) {
       list = new ArrayList<>();
-      indexesByBucket.put(bucket.getId(), list);
+      bucketIndexesByBucket.put(bucket.getId(), list);
     }
     list.add(index);
 
@@ -433,7 +451,7 @@ public class DocumentType {
   }
 
   public void removeIndexInternal(final String indexName) {
-    for (List<Index> indexes : indexesByBucket.values()) {
+    for (List<Index> indexes : bucketIndexesByBucket.values()) {
       for (Iterator<Index> it = indexes.iterator(); it.hasNext(); ) {
         final Index idx = it.next();
         if (indexName.equals(idx.getName()))
