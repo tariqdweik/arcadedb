@@ -472,10 +472,10 @@ public class LSMTreeIndexTest extends BaseTest {
       Assertions.assertEquals(TOT, total);
 
       // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
-      database.getSchema().getType(TYPE_NAME).getAllIndexes(false).toArray(indexes);
+      final List<Index> indexes2 = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
 
       for (int i = 0; i < TOT; ++i) {
-        for (Index index : indexes) {
+        for (Index index : indexes2) {
           if (index instanceof TypeIndex)
             continue;
 
