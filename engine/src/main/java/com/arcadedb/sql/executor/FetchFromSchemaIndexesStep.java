@@ -6,6 +6,7 @@ package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.utility.FileUtils;
 
@@ -41,7 +42,7 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
           final ResultInternal r = new ResultInternal();
           result.add(r);
 
-          final int fileId = index.getFileId();
+          final int fileId = ((IndexInternal) index).getFileId();
 
           r.setProperty("name", index.getName());
           r.setProperty("typeName", index.getTypeName());
@@ -53,7 +54,7 @@ public class FetchFromSchemaIndexesStep extends AbstractExecutionStep {
           if (fileId > -1) {
             r.setProperty("fileId", fileId);
             try {
-              r.setProperty("size", FileUtils.getSizeAsString(ctx.getDatabase().getFileManager().getFile(index.getFileId()).getSize()));
+              r.setProperty("size", FileUtils.getSizeAsString(ctx.getDatabase().getFileManager().getFile(((IndexInternal) index).getFileId()).getSize()));
             } catch (IOException e) {
               // IGNORE IT, NO SIZE AVAILABLE
             }

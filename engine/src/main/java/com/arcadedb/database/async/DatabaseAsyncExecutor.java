@@ -12,6 +12,7 @@ import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.conversantmedia.util.concurrent.PushPullBlockingQueue;
@@ -191,7 +192,7 @@ public class DatabaseAsyncExecutor {
     onErrorCallback = callback;
   }
 
-  public void compact(final Index index) {
+  public void compact(final IndexInternal index) {
     if (index.scheduleCompaction())
       scheduleTask(getBestSlot(), new DatabaseAsyncIndexCompaction(index), false);
   }

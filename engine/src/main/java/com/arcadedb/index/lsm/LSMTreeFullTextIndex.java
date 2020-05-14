@@ -41,13 +41,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * is incremented. In this way, the records that match a higher number of keywords will have a higher score. The score can start from 1 to Integer.MAX_INT.
  * the query result will be the TreeMap ordered by score, so if the query has a limit, only the first X items will be returned ordered by score desc
  */
-public class LSMTreeFullTextIndex implements Index {
+public class LSMTreeFullTextIndex implements Index, IndexInternal {
   private LSMTreeIndex underlyingIndex;
   private Analyzer     analyzer;
 
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
-    public Index create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
+    public IndexInternal create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
         final byte[] keyTypes, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final BuildIndexCallback callback)
         throws IOException {
       return new LSMTreeFullTextIndex(database, name, filePath, mode, pageSize, callback);

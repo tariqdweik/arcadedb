@@ -50,7 +50,7 @@ public class NullValuesndexTest extends BaseTest {
           database.begin();
 
           for (Index index : indexes.getIndexesOnBuckets()) {
-            Assertions.assertTrue(index.getStats().get("pages") > 1);
+            Assertions.assertTrue(((IndexInternal) index).getStats().get("pages") > 1);
           }
         }
       });
@@ -73,7 +73,8 @@ public class NullValuesndexTest extends BaseTest {
         type.createProperty("name", String.class);
         final TypeIndex indexes = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
         final TypeIndex indexes2 = database.getSchema()
-            .createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.SKIP, null);
+            .createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.SKIP,
+                null);
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);

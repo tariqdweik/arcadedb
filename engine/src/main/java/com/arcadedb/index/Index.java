@@ -52,13 +52,9 @@ public interface Index {
    */
   void remove(Object[] keys, Identifiable rid);
 
-  boolean compact() throws IOException, InterruptedException;
-
   boolean isCompacting();
 
   boolean scheduleCompaction();
-
-  void setMetadata(String name, String[] propertyNames, int associatedBucketId);
 
   SchemaImpl.INDEX_TYPE getType();
 
@@ -66,23 +62,13 @@ public interface Index {
 
   String[] getPropertyNames();
 
-  void close();
-
-  void drop();
-
   String getName();
-
-  Map<String, Long> getStats();
 
   LSMTreeIndexAbstract.NULL_STRATEGY getNullStrategy();
 
   void setNullStrategy(LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy);
 
-  int getFileId();
-
   boolean isUnique();
-
-  PaginatedComponent getPaginatedComponent();
 
   int getAssociatedBucketId();
 

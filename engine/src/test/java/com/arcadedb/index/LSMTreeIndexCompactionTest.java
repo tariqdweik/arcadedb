@@ -105,7 +105,7 @@ public class LSMTreeIndexCompactionTest extends BaseTest {
         if (database.isOpen())
           try {
             index.scheduleCompaction();
-            index.compact();
+            ((IndexInternal) index).compact();
           } catch (Exception e) {
             Assertions.fail(e);
           }

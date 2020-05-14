@@ -19,7 +19,7 @@ public class IndexFactory {
     map.put(type, handler);
   }
 
-  public Index createIndex(final String indexType, final DatabaseInternal database, final String indexName, final boolean unique, final String filePath,
+  public IndexInternal createIndex(final String indexType, final DatabaseInternal database, final String indexName, final boolean unique, final String filePath,
       final PaginatedFile.MODE mode, final byte[] keyTypes, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy,
       final Index.BuildIndexCallback callback) throws IOException {
     final IndexFactoryHandler handler = map.get(indexType);

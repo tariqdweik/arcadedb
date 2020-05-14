@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * LSM-Tree index implementation. It relies on a mutable index and its underlying immutable, compacted index.
  */
-public class LSMTreeIndex implements RangeIndex {
+public class LSMTreeIndex implements RangeIndex, IndexInternal {
   private static final IndexCursor                                             EMPTY_CURSOR       = new EmptyIndexCursor();
   private final        String                                                  name;
   private              int                                                     associatedBucketId = -1;
@@ -36,7 +36,7 @@ public class LSMTreeIndex implements RangeIndex {
 
   public static class IndexFactoryHandler implements com.arcadedb.index.IndexFactoryHandler {
     @Override
-    public Index create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
+    public IndexInternal create(final DatabaseInternal database, final String name, final boolean unique, final String filePath, final PaginatedFile.MODE mode,
         final byte[] keyTypes, final int pageSize, final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final BuildIndexCallback callback)
         throws IOException {
       return new LSMTreeIndex(database, name, unique, filePath, mode, keyTypes, pageSize, nullStrategy);
@@ -167,7 +167,6 @@ public class LSMTreeIndex implements RangeIndex {
 
   public void drop() {
     lock.executeInWriteLock(() -> {
-      ((SchemaImpl) mutable.getDatabase().getSchema()).removeIndex(getName());
       final LSMTreeIndexCompacted subIndex = mutable.getSubIndex();
       if (subIndex != null)
         subIndex.drop();

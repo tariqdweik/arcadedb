@@ -13,6 +13,7 @@ import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexFactory;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.*;
 import com.arcadedb.log.LogManager;
@@ -33,25 +34,25 @@ public class SchemaImpl implements Schema {
   public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
   public static final String DEFAULT_ENCODING        = "UTF-8";
 
-  public static final  String                    SCHEMA_FILE_NAME      = "schema.json";
-  public static final  String                    SCHEMA_PREV_FILE_NAME = "schema.prev.json";
-  private static final int                       EDGE_DEF_PAGE_SIZE    = Bucket.DEF_PAGE_SIZE / 3;
-  private final        DatabaseInternal          database;
-  private final        List<PaginatedComponent>  files                 = new ArrayList<PaginatedComponent>();
-  private final        Map<String, DocumentType> types                 = new HashMap<String, DocumentType>();
-  private final        Map<String, Bucket>       bucketMap             = new HashMap<String, Bucket>();
-  protected final      Map<String, Index>        indexMap              = new HashMap<String, Index>();
-  private final        String                    databasePath;
-  private              Dictionary                dictionary;
-  private              String                    dateFormat            = DEFAULT_DATE_FORMAT;
-  private              String                    dateTimeFormat        = DEFAULT_DATETIME_FORMAT;
-  private              String                    encoding              = DEFAULT_ENCODING;
-  private              TimeZone                  timeZone              = TimeZone.getDefault();
-  private final        PaginatedComponentFactory paginatedComponentFactory;
-  private final        IndexFactory              indexFactory          = new IndexFactory();
-  private              boolean                   readingFromFile       = false;
-  private              boolean                   dirtyConfiguration    = false;
-  private              boolean                   loadInRamCompleted    = false;
+  public static final  String                     SCHEMA_FILE_NAME      = "schema.json";
+  public static final  String                     SCHEMA_PREV_FILE_NAME = "schema.prev.json";
+  private static final int                        EDGE_DEF_PAGE_SIZE    = Bucket.DEF_PAGE_SIZE / 3;
+  private final        DatabaseInternal           database;
+  private final        List<PaginatedComponent>   files                 = new ArrayList<>();
+  private final        Map<String, DocumentType>  types                 = new HashMap<>();
+  private final        Map<String, Bucket>        bucketMap             = new HashMap<>();
+  protected final      Map<String, IndexInternal> indexMap              = new HashMap<>();
+  private final        String                     databasePath;
+  private              Dictionary                 dictionary;
+  private              String                     dateFormat            = DEFAULT_DATE_FORMAT;
+  private              String                     dateTimeFormat        = DEFAULT_DATETIME_FORMAT;
+  private              String                     encoding              = DEFAULT_ENCODING;
+  private              TimeZone                   timeZone              = TimeZone.getDefault();
+  private final        PaginatedComponentFactory  paginatedComponentFactory;
+  private final        IndexFactory               indexFactory          = new IndexFactory();
+  private              boolean                    readingFromFile       = false;
+  private              boolean                    dirtyConfiguration    = false;
+  private              boolean                    loadInRamCompleted    = false;
 
   public enum INDEX_TYPE {
     LSM_TREE, FULL_TEXT
@@ -113,8 +114,8 @@ public class SchemaImpl implements Schema {
 
           if (mainComponent instanceof Bucket)
             bucketMap.put(pf.getName(), (Bucket) mainComponent);
-          else if (mainComponent instanceof Index)
-            indexMap.put(pf.getName(), (Index) mainComponent);
+          else if (mainComponent instanceof IndexInternal)
+            indexMap.put(pf.getName(), (IndexInternal) mainComponent);
 
           registerFile(pf);
         }
@@ -298,7 +299,7 @@ public class SchemaImpl implements Schema {
         }
 
         // COPY INDEXES
-        for (TypeIndex index : oldType.getAllIndexes())
+        for (Index index : oldType.getAllIndexes())
           newType.createTypeIndex(index.getType(), index.isUnique(), index.getPropertyNames());
 
         database.commit();
@@ -339,8 +340,11 @@ public class SchemaImpl implements Schema {
     return indexes;
   }
 
-  public void removeIndex(final String indexName) {
-    indexMap.remove(indexName);
+  @Override
+  public void dropIndex(final String indexName) {
+    final IndexInternal index = indexMap.remove(indexName);
+    if (index != null)
+      index.drop();
 
     for (DocumentType d : types.values())
       d.removeIndexInternal(indexName);
@@ -511,7 +515,7 @@ public class SchemaImpl implements Schema {
     if (indexMap.containsKey(indexName))
       throw new DatabaseMetadataException("Cannot create index '" + indexName + "' on type '" + typeName + "' because it already exists");
 
-    final Index index = indexFactory
+    final IndexInternal index = indexFactory
         .createIndex(indexType.name(), database, indexName, unique, databasePath + "/" + indexName, PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize,
             nullStrategy, callback);
 
@@ -534,7 +538,7 @@ public class SchemaImpl implements Schema {
           throw new SchemaException("Cannot create index '" + indexName + "' because already exists");
 
         try {
-          final Index index = indexFactory
+          final IndexInternal index = indexFactory
               .createIndex(indexType.name(), database, FileUtils.encode(indexName, encoding), unique, databasePath + "/" + indexName,
                   PaginatedFile.MODE.READ_WRITE, keyTypes, pageSize, nullStrategy, null);
 
@@ -619,7 +623,7 @@ public class SchemaImpl implements Schema {
 
         // DELETE ALL ASSOCIATED INDEXES
         for (Index m : type.getAllIndexes())
-          m.drop();
+          dropIndex(m.getName());
 
         // DELETE ALL ASSOCIATED BUCKETS
         for (Bucket b : buckets)
@@ -653,6 +657,11 @@ public class SchemaImpl implements Schema {
         removeFile(bucket.getId());
 
         bucketMap.remove(bucketName);
+
+        for (Index idx : new ArrayList<>(indexMap.values())) {
+          if (idx.getAssociatedBucketId() == bucket.getId())
+            dropIndex(idx.getName());
+        }
 
         saveConfiguration();
         return null;
@@ -956,7 +965,7 @@ public class SchemaImpl implements Schema {
             for (int i = 0; i < properties.length; ++i)
               properties[i] = schemaIndexProperties.getString(i);
 
-            final Index idx = indexMap.get(indexName);
+            final IndexInternal idx = indexMap.get(indexName);
             if (idx != null) {
               final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy = index.has("nullStrategy") ?
                   LSMTreeIndexAbstract.NULL_STRATEGY.valueOf(index.getString("nullStrategy")) :
@@ -978,7 +987,7 @@ public class SchemaImpl implements Schema {
       boolean completed = false;
       while (!completed) {
         completed = true;
-        for (Index index : indexMap.values()) {
+        for (IndexInternal index : indexMap.values()) {
           if (index.getTypeName() == null) {
             final String indexName = index.getName();
 
@@ -1096,8 +1105,8 @@ public class SchemaImpl implements Schema {
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);
 
-        for (TypeIndex i : t.getAllIndexes()) {
-          for (Index entry : i.getIndexesOnBuckets()) {
+        for (Index i : t.getAllIndexes()) {
+          for (Index entry : ((TypeIndex) i).getIndexesOnBuckets()) {
             final JSONObject index = new JSONObject();
             indexes.put(entry.getName(), index);
 

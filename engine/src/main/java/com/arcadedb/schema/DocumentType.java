@@ -10,6 +10,7 @@ import com.arcadedb.database.Document;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 
@@ -251,7 +252,7 @@ public class DocumentType {
 
   }
 
-  public TypeIndex[] getAllIndexes() {
+  public Index[] getAllIndexes() {
     final TypeIndex[] array = new TypeIndex[indexesByProperties.size()];
     int i = 0;
     for (TypeIndex idx : indexesByProperties.values())
@@ -426,7 +427,7 @@ public class DocumentType {
     return Objects.hash(name);
   }
 
-  protected void addIndexInternal(final Index index, final Bucket bucket, final String[] propertyNames) {
+  protected void addIndexInternal(final IndexInternal index, final Bucket bucket, final String[] propertyNames) {
     index.setMetadata(name, propertyNames, bucket.getId());
 
     List<Index> list = bucketIndexesByBucket.get(bucket.getId());

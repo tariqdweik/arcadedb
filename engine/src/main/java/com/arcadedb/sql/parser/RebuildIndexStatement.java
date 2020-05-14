@@ -64,7 +64,7 @@ public class RebuildIndexStatement extends SimpleExecStatement {
 
         for (Index idx : indexes) {
           if (idx instanceof TypeIndex) {
-            idx.drop();
+            database.getSchema().dropIndex(idx.getName());
             database.getSchema()
                 .createTypeIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
             indexList.add(idx.getName());
@@ -79,7 +79,7 @@ public class RebuildIndexStatement extends SimpleExecStatement {
         if (!idx.isAutomatic())
           throw new CommandExecutionException("Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
 
-        idx.drop();
+        database.getSchema().dropIndex(idx.getName());
 
         final String typeName = idx.getTypeName();
 

@@ -10,6 +10,7 @@ import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.index.RangeIndex;
 import com.arcadedb.log.LogManager;
 import org.junit.jupiter.api.Assertions;
@@ -36,7 +37,7 @@ public class PerformanceIndexCompaction {
       LogManager.instance().log(this, Level.INFO, "Total indexes items %d", null, totalIndexed);
 
       for (Index index : database.getSchema().getIndexes())
-        Assertions.assertTrue(index.compact());
+        Assertions.assertTrue(((IndexInternal) index).compact());
 
       long totalIndexed2 = countIndexedItems(database);
 

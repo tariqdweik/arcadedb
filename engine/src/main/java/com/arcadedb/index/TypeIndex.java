@@ -18,10 +18,10 @@ import java.util.*;
 /**
  * It's backed by one or multiple bucket sub-indexesOnBuckets.
  */
-public class TypeIndex implements RangeIndex {
-  private final String      logicName;
-  private       List<Index> indexesOnBuckets = new ArrayList<>();
-  private final Schema      schema;
+public class TypeIndex implements RangeIndex, IndexInternal {
+  private final String              logicName;
+  private       List<IndexInternal> indexesOnBuckets = new ArrayList<>();
+  private final Schema              schema;
 
   public TypeIndex(final String logicName, final Schema schema) {
     this.logicName = logicName;
@@ -105,7 +105,7 @@ public class TypeIndex implements RangeIndex {
   @Override
   public boolean compact() throws IOException, InterruptedException {
     boolean result = false;
-    for (Index index : indexesOnBuckets)
+    for (IndexInternal index : indexesOnBuckets)
       if (index.compact())
         result = true;
     return result;
@@ -145,16 +145,16 @@ public class TypeIndex implements RangeIndex {
 
   @Override
   public void close() {
-    for (Index index : indexesOnBuckets)
+    for (IndexInternal index : indexesOnBuckets)
       index.close();
   }
 
   @Override
   public void drop() {
     for (Index index : indexesOnBuckets) {
-      index.drop();
-      schema.getType(getTypeName()).removeIndexInternal(index.getName());
+      schema.dropIndex(index.getName());
     }
+    schema.dropIndex(logicName);
     schema.getType(getTypeName()).removeIndexInternal(logicName);
   }
 
@@ -167,7 +167,7 @@ public class TypeIndex implements RangeIndex {
   public Map<String, Long> getStats() {
     final Map<String, Long> stats = new HashMap<>();
     for (Index index : indexesOnBuckets)
-      stats.putAll(index.getStats());
+      stats.putAll(((IndexInternal) index).getStats());
     return stats;
   }
 
@@ -269,7 +269,7 @@ public class TypeIndex implements RangeIndex {
     return -1;
   }
 
-  public void addIndexOnBucket(final Index index) {
+  public void addIndexOnBucket(final IndexInternal index) {
     if (index instanceof TypeIndex)
       throw new IllegalArgumentException("Invalid subIndex " + index);
 

@@ -11,6 +11,7 @@ import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.SchemaImpl;
@@ -53,7 +54,7 @@ public class PerformanceVertexIndexTest {
   private void compaction() throws IOException, InterruptedException {
     try (Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open()) {
       for (Index index : database.getSchema().getIndexes())
-        Assertions.assertTrue(index.compact());
+        Assertions.assertTrue(((IndexInternal) index).compact());
     }
   }
 

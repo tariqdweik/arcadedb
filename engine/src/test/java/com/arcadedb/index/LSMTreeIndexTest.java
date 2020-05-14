@@ -486,7 +486,7 @@ public class LSMTreeIndexTest extends BaseTest {
 
     database.transaction((database) -> {
       // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
-      TypeIndex[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+      Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
 
       for (int i = 0; i < TOT; ++i) {
         for (Index index : indexes) {
@@ -1216,7 +1216,7 @@ public class LSMTreeIndexTest extends BaseTest {
         database.begin();
 
         for (Index index : typeIndex.getIndexesOnBuckets()) {
-          Assertions.assertTrue(index.getStats().get("pages") > 1);
+          Assertions.assertTrue(((IndexInternal) index).getStats().get("pages") > 1);
         }
       }
     });

@@ -25,7 +25,7 @@ public class MultiIndexCursor implements IndexCursor {
       this.current = cursors.get(0);
   }
 
-  public MultiIndexCursor(final List<Index> indexes, final boolean ascendingOrder, final int limit) {
+  public MultiIndexCursor(final List<IndexInternal> indexes, final boolean ascendingOrder, final int limit) {
     this.cursors = new ArrayList<>(indexes.size());
     this.limit = limit;
     for (Index i : indexes) {
@@ -39,7 +39,8 @@ public class MultiIndexCursor implements IndexCursor {
       this.current = cursors.get(0);
   }
 
-  public MultiIndexCursor(final List<Index> indexes, final Object[] fromKeys, final boolean ascendingOrder, final boolean includeFrom, final int limit) {
+  public MultiIndexCursor(final List<IndexInternal> indexes, final Object[] fromKeys, final boolean ascendingOrder, final boolean includeFrom,
+      final int limit) {
     this.cursors = new ArrayList<>(indexes.size());
     this.limit = limit;
     for (Index i : indexes) {

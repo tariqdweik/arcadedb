@@ -80,6 +80,8 @@ public interface Schema {
 
   void dropBucket(String bucketName);
 
+  void dropIndex(String indexName);
+
   DocumentType createDocumentType(String typeName);
 
   DocumentType createDocumentType(String typeName, int buckets);

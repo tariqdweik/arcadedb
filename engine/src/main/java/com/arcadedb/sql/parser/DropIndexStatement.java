@@ -37,7 +37,7 @@ public class DropIndexStatement extends ODDLStatement {
 
     if (all) {
       for (Index idx : db.getSchema().getIndexes()) {
-        idx.drop();
+        db.getSchema().dropIndex(idx.getName());
 
         final ResultInternal result = new ResultInternal();
         result.setProperty("operation", "drop index");
@@ -49,7 +49,8 @@ public class DropIndexStatement extends ODDLStatement {
       if (!db.getSchema().existsIndex(name.getValue()) && !ifExists) {
         throw new CommandExecutionException("Index not found: " + name.getValue());
       }
-      db.getSchema().getIndexByName(name.getValue()).drop();
+
+      db.getSchema().dropIndex(name.getValue());
 
       final ResultInternal result = new ResultInternal();
       result.setProperty("operation", "drop index");

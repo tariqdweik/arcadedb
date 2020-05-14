@@ -7,14 +7,15 @@ package com.arcadedb.database.async;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.EmbeddedDatabase;
 import com.arcadedb.index.Index;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.log.LogManager;
 
 import java.util.logging.Level;
 
 public class DatabaseAsyncIndexCompaction extends DatabaseAsyncAbstractTask {
-  public final Index index;
+  public final IndexInternal index;
 
-  public DatabaseAsyncIndexCompaction(final Index index) {
+  public DatabaseAsyncIndexCompaction(final IndexInternal index) {
     this.index = index;
   }
 

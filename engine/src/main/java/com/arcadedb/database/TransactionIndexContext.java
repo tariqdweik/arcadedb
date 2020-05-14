@@ -9,6 +9,7 @@ import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.index.IndexInternal;
 import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.log.LogManager;
@@ -125,7 +126,7 @@ public class TransactionIndexContext {
     final Set<Index> lockedIndexes = new HashSet<>();
 
     for (String indexName : indexEntries.keySet()) {
-      final Index index = schema.getIndexByName(indexName);
+      final IndexInternal index = (IndexInternal) schema.getIndexByName(indexName);
 
       if (lockedIndexes.contains(index))
         continue;
@@ -141,9 +142,9 @@ public class TransactionIndexContext {
         for (Bucket b : buckets)
           modifiedFiles.add(b.getId());
 
-        for (TypeIndex typeIndex : type.getAllIndexes())
-          for (Index idx : typeIndex.getIndexesOnBuckets())
-            modifiedFiles.add(idx.getFileId());
+        for (Index typeIndex : type.getAllIndexes())
+          for (Index idx : ((TypeIndex) typeIndex).getIndexesOnBuckets())
+            modifiedFiles.add(((IndexInternal) idx).getFileId());
       } else
         modifiedFiles.add(index.getAssociatedBucketId());
     }
