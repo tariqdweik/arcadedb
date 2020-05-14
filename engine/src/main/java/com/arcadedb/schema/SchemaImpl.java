@@ -878,6 +878,8 @@ public class SchemaImpl implements Schema {
 
     loadInRamCompleted = false;
     readingFromFile = true;
+
+    boolean saveConfiguration = false;
     try {
       File file = new File(databasePath + "/" + SCHEMA_FILE_NAME);
       if (!file.exists() || file.length() == 0) {
@@ -938,9 +940,16 @@ public class SchemaImpl implements Schema {
         if (schemaBucket != null) {
           for (int i = 0; i < schemaBucket.length(); ++i) {
             final PaginatedComponent bucket = bucketMap.get(schemaBucket.getString(i));
-            if (bucket == null || !(bucket instanceof Bucket))
-              LogManager.instance().log(this, Level.WARNING, "Cannot find bucket %s for type '%s'", null, schemaBucket.getString(i), type);
-            else
+            if (bucket == null || !(bucket instanceof Bucket)) {
+              LogManager.instance()
+                  .log(this, Level.WARNING, "Cannot find bucket %s for type '%s', removing it from type configuration", null, schemaBucket.getString(i), type);
+
+              // GO BACK
+              schemaBucket.remove(i);
+              --i;
+
+              saveConfiguration = true;
+            } else
               type.addBucketInternal((Bucket) bucket);
           }
         }
@@ -1015,7 +1024,7 @@ public class SchemaImpl implements Schema {
                     index.setNullStrategy(nullStrategy);
                     type.addIndexInternal(index, bucket, properties);
                     LogManager.instance().log(this, Level.WARNING, "Relinked orphan index '%s' to type '%s'", null, indexName, type.getName());
-                    saveConfiguration();
+                    saveConfiguration = true;
                     completed = false;
                     break;
                   }
@@ -1028,6 +1037,9 @@ public class SchemaImpl implements Schema {
           }
         }
       }
+
+      if (saveConfiguration)
+        saveConfiguration();
 
       // RESTORE THE INHERITANCE
       for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
