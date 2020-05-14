@@ -91,13 +91,13 @@ public class DropIndexTest extends BaseTest {
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v2 = database.newDocument(TYPE_NAME2);
           v2.set("id", TOT * 2 + i);
-          v2.set("name", "Jay");
-          v2.set("surname", "Miner");
+          v2.set("name", "Jay2");
+          v2.set("surname", "Miner2");
           v2.save();
         }
 
         final MutableDocument v3 = database.newDocument(TYPE_NAME);
-        v3.set("id", TOT);
+        v3.set("id", TOT * 2 + 1);
         v3.save();
 
         Assertions.assertEquals(TOT * 2 + 2, database.countType(TYPE_NAME, true));
@@ -169,6 +169,33 @@ public class DropIndexTest extends BaseTest {
           }
         }
 
+        // CHECK ALL THE INDEXES ARE REMOVED
+        try {
+          database.getSchema().getIndexByName(typeIndex.getName());
+          Assertions.fail();
+        } catch (SchemaException e) {
+        }
+
+        try {
+          database.getSchema().getIndexByName(typeIndex2.getName());
+          Assertions.fail();
+        } catch (SchemaException e) {
+        }
+
+        for (IndexInternal idx : ((TypeIndex) typeIndex).getIndexesOnBuckets())
+          try {
+            database.getSchema().getIndexByName(idx.getName());
+            Assertions.fail();
+          } catch (SchemaException e) {
+          }
+
+        for (IndexInternal idx : ((TypeIndex) typeIndex2).getIndexesOnBuckets())
+          try {
+            database.getSchema().getIndexByName(idx.getName());
+            Assertions.fail();
+          } catch (SchemaException e) {
+          }
+
         // CHECK TYPE HAS BEEN REMOVED FROM INHERITANCE
         for (DocumentType parent : type2.getParentTypes())
           Assertions.assertFalse(parent.getSubTypes().contains(type2));
@@ -222,6 +249,9 @@ public class DropIndexTest extends BaseTest {
         Assertions.assertEquals(TOT + 2, database.countType(TYPE_NAME, true));
         Assertions.assertEquals(TOT, database.countType(TYPE_NAME2, false));
         Assertions.assertEquals(2, database.countType(TYPE_NAME, false));
+
+        database.getSchema().dropIndex(typeIndex3.getName());
+
       }
     });
   }

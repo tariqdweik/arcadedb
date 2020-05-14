@@ -33,7 +33,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
 
         for (int i = 0; i < TOT; ++i) {
           final List<Integer> results = new ArrayList<>();
@@ -59,7 +59,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
       @Override
       public void execute(Database database) {
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (int i = 0; i < TOT; ++i) {
           int total = 0;
 
@@ -101,7 +101,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
       @Override
       public void execute(Database database) {
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (int i = 0; i < TOT - 1; ++i) {
           int total = 0;
 
@@ -140,7 +140,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 //      @Override
 //      public void execute(Database database) {
 //
-//        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+//        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
 //        for (int i = TOT - 1; i > 0; --i) {
 //          int total = 0;
 //
@@ -221,7 +221,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -271,7 +271,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -308,7 +308,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -344,7 +344,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -380,7 +380,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -415,7 +415,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -450,7 +450,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -490,7 +490,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -530,7 +530,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 
@@ -570,7 +570,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         int total = 0;
 
-        final Index[] indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes();
+        final List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
         for (Index index : indexes) {
           Assertions.assertNotNull(index);
 

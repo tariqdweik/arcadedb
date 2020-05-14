@@ -164,7 +164,6 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
       database.getPageManager().deleteFile(file.getFileId());
       database.getFileManager().dropFile(file.getFileId());
       ((SchemaImpl) database.getSchema()).removeFile(file.getFileId());
-      ((SchemaImpl) database.getSchema()).saveConfiguration();
     } else {
       new File(file.getFilePath()).delete();
     }

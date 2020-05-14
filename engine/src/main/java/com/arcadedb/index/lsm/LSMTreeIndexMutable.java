@@ -104,11 +104,7 @@ public class LSMTreeIndexMutable extends LSMTreeIndexAbstract {
             "Invalid sub-index for index '%s', ignoring it. WARNING: This could lead on using partial indexes. Please recreate the index from scratch (error=%s)",
             null, name, e.getMessage());
 
-        try {
-          drop();
-        } catch (IOException ex) {
-          ex.printStackTrace();
-        }
+        database.getSchema().dropIndex(name);
       }
     }
   }

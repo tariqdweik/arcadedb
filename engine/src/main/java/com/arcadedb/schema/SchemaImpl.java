@@ -53,6 +53,7 @@ public class SchemaImpl implements Schema {
   private              boolean                    readingFromFile       = false;
   private              boolean                    dirtyConfiguration    = false;
   private              boolean                    loadInRamCompleted    = false;
+  private              boolean                    multipleUpdate        = false;
 
   public enum INDEX_TYPE {
     LSM_TREE, FULL_TEXT
@@ -299,7 +300,7 @@ public class SchemaImpl implements Schema {
         }
 
         // COPY INDEXES
-        for (Index index : oldType.getAllIndexes())
+        for (Index index : oldType.getAllIndexes(false))
           newType.createTypeIndex(index.getType(), index.isUnique(), index.getPropertyNames());
 
         database.commit();
@@ -342,19 +343,10 @@ public class SchemaImpl implements Schema {
 
   @Override
   public void dropIndex(final String indexName) {
-    final IndexInternal index = indexMap.get(indexName);
+    final IndexInternal index = indexMap.remove(indexName);
     if (index == null)
       return;
 
-    final Index[] subIndexes = index instanceof TypeIndex ? ((TypeIndex) index).getIndexesOnBuckets() : new Index[0];
-
-    for (DocumentType d : types.values())
-      d.removeIndexInternal(indexName);
-
-    for (Index i : subIndexes)
-      dropIndex(i.getName());
-
-    indexMap.remove(indexName);
     index.drop();
 
     saveConfiguration();
@@ -628,34 +620,41 @@ public class SchemaImpl implements Schema {
     database.executeInWriteLock(new Callable<Object>() {
       @Override
       public Object call() {
-        final DocumentType type = database.getSchema().getType(typeName);
+        multipleUpdate = true;
+        try {
+          final DocumentType type = database.getSchema().getType(typeName);
 
-        // CHECK INHERITANCE TREE AND ATTACH SUB-TYPES DIRECTLY TO THE PARENT TYPE
-        for (DocumentType parent : type.parentTypes)
-          parent.subTypes.remove(type);
-        for (DocumentType sub : type.subTypes) {
-          sub.parentTypes.remove(type);
+          // CHECK INHERITANCE TREE AND ATTACH SUB-TYPES DIRECTLY TO THE PARENT TYPE
           for (DocumentType parent : type.parentTypes)
-            sub.addParentType(parent);
+            parent.subTypes.remove(type);
+          for (DocumentType sub : type.subTypes) {
+            sub.parentTypes.remove(type);
+            for (DocumentType parent : type.parentTypes)
+              sub.addParentType(parent);
+          }
+
+          final List<Bucket> buckets = type.getBuckets(false);
+          final Set<Integer> bucketIds = new HashSet<>(buckets.size());
+          for (Bucket b : buckets)
+            bucketIds.add(b.getId());
+
+          // DELETE ALL ASSOCIATED INDEXES
+          for (Index m : type.getAllIndexes(true))
+            dropIndex(m.getName());
+
+          // DELETE ALL ASSOCIATED BUCKETS
+          for (Bucket b : buckets)
+            dropBucket(b.getName());
+
+          if (type instanceof VertexType)
+            database.getGraphEngine().dropVertexType(database, (VertexType) type);
+
+          if (types.remove(typeName) == null)
+            throw new SchemaException("Type '" + typeName + "' not found");
+        } finally {
+          multipleUpdate = false;
+          saveConfiguration();
         }
-
-        final List<Bucket> buckets = type.getBuckets(false);
-
-        // DELETE ALL ASSOCIATED INDEXES
-        for (Index m : type.getAllIndexes())
-          dropIndex(m.getName());
-
-        // DELETE ALL ASSOCIATED BUCKETS
-        for (Bucket b : buckets)
-          dropBucket(b.getName());
-
-        if (type instanceof VertexType)
-          database.getGraphEngine().dropVertexType(database, (VertexType) type);
-
-        if (types.remove(typeName) == null)
-          throw new SchemaException("Type '" + typeName + "' not found");
-
-        saveConfiguration();
         return null;
       }
     });
@@ -1078,7 +1077,7 @@ public class SchemaImpl implements Schema {
   }
 
   public synchronized void saveConfiguration() {
-    if (readingFromFile || !loadInRamCompleted || database.isTransactionActive()) {
+    if (readingFromFile || !loadInRamCompleted || multipleUpdate || database.isTransactionActive()) {
       // POSTPONE THE SAVING
       dirtyConfiguration = true;
       return;
@@ -1137,7 +1136,7 @@ public class SchemaImpl implements Schema {
         final JSONObject indexes = new JSONObject();
         type.put("indexes", indexes);
 
-        for (Index i : t.getAllIndexes()) {
+        for (Index i : t.getAllIndexes(false)) {
           for (Index entry : ((TypeIndex) i).getIndexesOnBuckets()) {
             final JSONObject index = new JSONObject();
             indexes.put(entry.getName(), index);

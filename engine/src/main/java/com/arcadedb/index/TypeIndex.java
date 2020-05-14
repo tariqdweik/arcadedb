@@ -9,6 +9,7 @@ import com.arcadedb.database.IndexCursorCollection;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.PaginatedComponent;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.SchemaImpl;
 
@@ -151,10 +152,12 @@ public class TypeIndex implements RangeIndex, IndexInternal {
 
   @Override
   public void drop() {
-    for (Index index : new ArrayList<>(indexesOnBuckets)) {
+    final DocumentType type = schema.getType(getTypeName());
+    type.removeIndexInternal(this);
+
+    for (Index index : new ArrayList<>(indexesOnBuckets))
       schema.dropIndex(index.getName());
-    }
-    schema.dropIndex(logicName);
+    indexesOnBuckets.clear();
   }
 
   @Override
@@ -282,7 +285,7 @@ public class TypeIndex implements RangeIndex, IndexInternal {
     indexesOnBuckets.remove(index);
   }
 
-  public Index[] getIndexesOnBuckets() {
-    return indexesOnBuckets.toArray(new Index[indexesOnBuckets.size()]);
+  public IndexInternal[] getIndexesOnBuckets() {
+    return indexesOnBuckets.toArray(new IndexInternal[indexesOnBuckets.size()]);
   }
 }

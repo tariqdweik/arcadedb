@@ -152,38 +152,38 @@ public class DocumentType {
     schema.saveConfiguration();
   }
 
-  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
+  public Index createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
     return schema.createTypeIndex(indexType, unique, name, propertyNames);
   }
 
-  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
+  public Index createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
     return schema.createTypeIndex(indexType, unique, name, propertyNames, pageSize);
   }
 
-  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+  public Index createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
       final Index.BuildIndexCallback callback) {
     return schema.createTypeIndex(indexType, unique, name, propertyNames, pageSize, callback);
   }
 
-  public TypeIndex createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+  public Index createTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
       LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     return schema.createTypeIndex(indexType, unique, name, propertyNames, pageSize, nullStrategy, callback);
   }
 
-  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
+  public Index getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String... propertyNames) {
     return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames);
   }
 
-  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
+  public Index getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, String[] propertyNames, final int pageSize) {
     return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames, pageSize);
   }
 
-  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+  public Index getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
       final Index.BuildIndexCallback callback) {
     return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames, pageSize, callback);
   }
 
-  public TypeIndex getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
+  public Index getOrCreateTypeIndex(final SchemaImpl.INDEX_TYPE indexType, final boolean unique, final String[] propertyNames, final int pageSize,
       LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, final Index.BuildIndexCallback callback) {
     return schema.getOrCreateTypeIndex(indexType, unique, name, propertyNames, pageSize, nullStrategy, callback);
   }
@@ -252,12 +252,16 @@ public class DocumentType {
 
   }
 
-  public Index[] getAllIndexes() {
-    final TypeIndex[] array = new TypeIndex[indexesByProperties.size()];
-    int i = 0;
+  public List<Index> getAllIndexes(final boolean polymorphic) {
+    final List<Index> list = new ArrayList<>();
     for (TypeIndex idx : indexesByProperties.values())
-      array[i++] = idx;
-    return array;
+      list.add(idx);
+
+    if (polymorphic)
+      for (DocumentType t : parentTypes)
+        list.addAll(t.getAllIndexes(polymorphic));
+
+    return list;
   }
 
   public List<Index> getPolymorphicBucketIndexByBucketId(final int bucketId) {
@@ -451,26 +455,23 @@ public class DocumentType {
     propIndex.addIndexOnBucket(index);
   }
 
-  public void removeIndexInternal(final String indexName) {
-    for (List<IndexInternal> indexes : bucketIndexesByBucket.values()) {
-      for (Iterator<IndexInternal> it = indexes.iterator(); it.hasNext(); ) {
-        final IndexInternal idx = it.next();
-        if (indexName.equals(idx.getName()))
-          it.remove();
-
-        for (Iterator<TypeIndex> it2 = indexesByProperties.values().iterator(); it2.hasNext(); ) {
-          final TypeIndex idx2 = it2.next();
-          idx2.removeIndexOnBucket(idx);
-        }
-
+  public void removeIndexInternal(final TypeIndex index) {
+    for (Iterator<TypeIndex> it = indexesByProperties.values().iterator(); it.hasNext(); ) {
+      final TypeIndex idx = it.next();
+      if (idx == index) {
+        it.remove();
+        break;
       }
     }
 
-    for (Iterator<TypeIndex> it = indexesByProperties.values().iterator(); it.hasNext(); ) {
-      final TypeIndex idx = it.next();
-      if (indexName.equals(idx.getName()))
-        it.remove();
+    for (IndexInternal idx : index.getIndexesOnBuckets()) {
+      final List<IndexInternal> list = bucketIndexesByBucket.get(idx.getAssociatedBucketId());
+      if (list != null)
+        list.remove(idx);
     }
+
+    for (DocumentType parent : parentTypes)
+      parent.removeIndexInternal(index);
   }
 
   protected void addBucketInternal(final Bucket bucket) {

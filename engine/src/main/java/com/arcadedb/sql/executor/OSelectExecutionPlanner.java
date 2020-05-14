@@ -1419,7 +1419,7 @@ public class OSelectExecutionPlanner {
       indexedFunctionConditions = filterIndexedFunctionsWithoutIndex(indexedFunctionConditions, info.target, ctx);
 
       if (indexedFunctionConditions == null || indexedFunctionConditions.size() == 0) {
-        final List<IndexSearchDescriptor> bestIndexes = findBestIndexesFor(ctx, typez.getAllIndexes(), block, typez);
+        final List<IndexSearchDescriptor> bestIndexes = findBestIndexesFor(ctx, typez.getAllIndexes(true), block, typez);
         if (!bestIndexes.isEmpty()) {
 
           for (IndexSearchDescriptor bestIndex : bestIndexes) {
@@ -1553,7 +1553,7 @@ public class OSelectExecutionPlanner {
       throw new CommandExecutionException("Type not found: " + queryTarget.getStringValue());
     }
 
-    for (Index idx : Arrays.asList(typez.getAllIndexes()).stream().filter(i -> i.supportsOrderedIterations()).collect(Collectors.toList())) {
+    for (Index idx : typez.getAllIndexes(true).stream().filter(i -> i.supportsOrderedIterations()).collect(Collectors.toList())) {
       String[] indexFields = idx.getPropertyNames();
       if (indexFields.length < info.orderBy.getItems().size()) {
         continue;
@@ -1699,7 +1699,7 @@ public class OSelectExecutionPlanner {
       throw new CommandExecutionException("Cannot find class " + targetClass);
     }
 
-    final Index[] indexes = typez.getAllIndexes();
+    final List<Index> indexes = typez.getAllIndexes(true);
 
     final List<IndexSearchDescriptor> indexSearchDescriptors = new ArrayList<>();
 
@@ -1885,8 +1885,8 @@ public class OSelectExecutionPlanner {
    *
    * @return
    */
-  private List<IndexSearchDescriptor> findBestIndexesFor(final CommandContext ctx, final Index[] indexes, final AndBlock block, final DocumentType typez) {
-    final Iterator<IndexSearchDescriptor> it = Arrays.asList(indexes).stream()
+  private List<IndexSearchDescriptor> findBestIndexesFor(final CommandContext ctx, final List<Index> indexes, final AndBlock block, final DocumentType typez) {
+    final Iterator<IndexSearchDescriptor> it = indexes.stream()
         //.filter(index -> index.getInternal().canBeUsedInEqualityOperators())
         .map(index -> buildIndexSearchDescriptor(ctx, index, block, typez)).filter(Objects::nonNull).filter(x -> x.keyCondition != null)
         .filter(x -> x.keyCondition.getSubBlocks().size() > 0).sorted(Comparator.comparing(x -> x.cost(ctx))).iterator();
