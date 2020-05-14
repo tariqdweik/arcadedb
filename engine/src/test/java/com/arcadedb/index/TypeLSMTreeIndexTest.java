@@ -752,7 +752,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
 
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
-        final TypeIndex typeIndex = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
+        final Index typeIndex = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newDocument(TYPE_NAME);
@@ -766,7 +766,7 @@ public class TypeLSMTreeIndexTest extends BaseTest {
         database.commit();
         database.begin();
 
-        for (Index index : typeIndex.getIndexesOnBuckets()) {
+        for (Index index : ((TypeIndex) typeIndex).getIndexesOnBuckets()) {
           Assertions.assertTrue(((IndexInternal) index).getStats().get("pages") > 1);
         }
       }

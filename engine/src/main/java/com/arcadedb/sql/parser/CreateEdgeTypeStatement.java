@@ -78,7 +78,7 @@ public class CreateEdgeTypeStatement extends ODDLStatement {
     }
 
     for (EdgeType c : superclasses)
-      type.addParent(c);
+      type.addParentType(c);
 
     InternalResultSet rs = new InternalResultSet();
     rs.add(result);

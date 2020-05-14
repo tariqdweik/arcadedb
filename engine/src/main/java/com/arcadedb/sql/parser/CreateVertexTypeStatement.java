@@ -78,7 +78,7 @@ public class CreateVertexTypeStatement extends ODDLStatement {
     }
 
     for (VertexType c : superclasses)
-      type.addParent(c);
+      type.addParentType(c);
 
     InternalResultSet rs = new InternalResultSet();
     rs.add(result);

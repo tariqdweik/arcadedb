@@ -342,12 +342,22 @@ public class SchemaImpl implements Schema {
 
   @Override
   public void dropIndex(final String indexName) {
-    final IndexInternal index = indexMap.remove(indexName);
-    if (index != null)
-      index.drop();
+    final IndexInternal index = indexMap.get(indexName);
+    if (index == null)
+      return;
+
+    final Index[] subIndexes = index instanceof TypeIndex ? ((TypeIndex) index).getIndexesOnBuckets() : new Index[0];
 
     for (DocumentType d : types.values())
       d.removeIndexInternal(indexName);
+
+    for (Index i : subIndexes)
+      dropIndex(i.getName());
+
+    indexMap.remove(indexName);
+    index.drop();
+
+    saveConfiguration();
   }
 
   @Override
@@ -619,6 +629,16 @@ public class SchemaImpl implements Schema {
       @Override
       public Object call() {
         final DocumentType type = database.getSchema().getType(typeName);
+
+        // CHECK INHERITANCE TREE AND ATTACH SUB-TYPES DIRECTLY TO THE PARENT TYPE
+        for (DocumentType parent : type.parentTypes)
+          parent.subTypes.remove(type);
+        for (DocumentType sub : type.subTypes) {
+          sub.parentTypes.remove(type);
+          for (DocumentType parent : type.parentTypes)
+            sub.addParentType(parent);
+        }
+
         final List<Bucket> buckets = type.getBuckets(false);
 
         // DELETE ALL ASSOCIATED INDEXES
@@ -1045,7 +1065,7 @@ public class SchemaImpl implements Schema {
       for (Map.Entry<String, String[]> entry : parentTypes.entrySet()) {
         final DocumentType type = getType(entry.getKey());
         for (String p : entry.getValue())
-          type.addParent(getType(p));
+          type.addParentType(getType(p));
       }
 
       loadInRamCompleted = true;

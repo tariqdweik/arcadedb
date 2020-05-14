@@ -17,15 +17,15 @@ import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import java.util.*;
 
 public class DocumentType {
-  private final SchemaImpl                   schema;
-  private final String                       name;
-  private final List<DocumentType>           parentTypes             = new ArrayList<>();
-  private final List<DocumentType>           subTypes                = new ArrayList<>();
-  private final List<Bucket>                 buckets                 = new ArrayList<>();
-  private       BucketSelectionStrategy      bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
-  private final Map<String, Property>        properties              = new HashMap<>();
-  private       Map<Integer, List<Index>>    bucketIndexesByBucket   = new HashMap<>();
-  private       Map<List<String>, TypeIndex> indexesByProperties     = new HashMap<>();
+  private final   SchemaImpl                        schema;
+  private final   String                            name;
+  protected final List<DocumentType>                parentTypes             = new ArrayList<>();
+  protected final List<DocumentType>                subTypes                = new ArrayList<>();
+  private final   List<Bucket>                      buckets                 = new ArrayList<>();
+  private         BucketSelectionStrategy           bucketSelectionStrategy = new DefaultBucketSelectionStrategy();
+  private final   Map<String, Property>             properties              = new HashMap<>();
+  private         Map<Integer, List<IndexInternal>> bucketIndexesByBucket   = new HashMap<>();
+  private         Map<List<String>, TypeIndex>      indexesByProperties     = new HashMap<>();
 
   public DocumentType(final SchemaImpl schema, final String name) {
     this.schema = schema;
@@ -40,11 +40,11 @@ public class DocumentType {
     return Document.RECORD_TYPE;
   }
 
-  public void addParent(final String parentName) {
-    addParent(schema.getType(parentName));
+  public void addParentType(final String parentName) {
+    addParentType(schema.getType(parentName));
   }
 
-  public void addParent(final DocumentType parent) {
+  public void addParentType(final DocumentType parent) {
     if (parentTypes.indexOf(parent) > -1)
       // ALREADY PARENT
       return;
@@ -59,11 +59,11 @@ public class DocumentType {
     schema.saveConfiguration();
   }
 
-  public void removeParent(final String parentName) {
-    removeParent(schema.getType(parentName));
+  public void removeParentType(final String parentName) {
+    removeParentType(schema.getType(parentName));
   }
 
-  public void removeParent(final DocumentType parent) {
+  public void removeParentType(final DocumentType parent) {
     if (!parentTypes.remove(parent))
       // ALREADY REMOVED PARENT
       return;
@@ -85,11 +85,11 @@ public class DocumentType {
   }
 
   public List<DocumentType> getParentTypes() {
-    return parentTypes;
+    return Collections.unmodifiableList(parentTypes);
   }
 
   public List<DocumentType> getSubTypes() {
-    return subTypes;
+    return Collections.unmodifiableList(subTypes);
   }
 
   public Set<String> getPropertyNames() {
@@ -263,7 +263,7 @@ public class DocumentType {
   public List<Index> getPolymorphicBucketIndexByBucketId(final int bucketId) {
     final List<Index> result = new ArrayList<>();
 
-    final List<Index> r = bucketIndexesByBucket.get(bucketId);
+    final List<IndexInternal> r = bucketIndexesByBucket.get(bucketId);
     if (r != null)
       result.addAll(r);
 
@@ -369,8 +369,8 @@ public class DocumentType {
     if (bucketIndexesByBucket.size() != that.bucketIndexesByBucket.size())
       return false;
 
-    for (Map.Entry<Integer, List<Index>> entry1 : bucketIndexesByBucket.entrySet()) {
-      final List<Index> value2 = that.bucketIndexesByBucket.get(entry1.getKey());
+    for (Map.Entry<Integer, List<IndexInternal>> entry1 : bucketIndexesByBucket.entrySet()) {
+      final List<IndexInternal> value2 = that.bucketIndexesByBucket.get(entry1.getKey());
       if (value2 == null)
         return false;
       if (entry1.getValue().size() != value2.size())
@@ -430,7 +430,7 @@ public class DocumentType {
   protected void addIndexInternal(final IndexInternal index, final Bucket bucket, final String[] propertyNames) {
     index.setMetadata(name, propertyNames, bucket.getId());
 
-    List<Index> list = bucketIndexesByBucket.get(bucket.getId());
+    List<IndexInternal> list = bucketIndexesByBucket.get(bucket.getId());
     if (list == null) {
       list = new ArrayList<>();
       bucketIndexesByBucket.put(bucket.getId(), list);
@@ -452,11 +452,17 @@ public class DocumentType {
   }
 
   public void removeIndexInternal(final String indexName) {
-    for (List<Index> indexes : bucketIndexesByBucket.values()) {
-      for (Iterator<Index> it = indexes.iterator(); it.hasNext(); ) {
-        final Index idx = it.next();
+    for (List<IndexInternal> indexes : bucketIndexesByBucket.values()) {
+      for (Iterator<IndexInternal> it = indexes.iterator(); it.hasNext(); ) {
+        final IndexInternal idx = it.next();
         if (indexName.equals(idx.getName()))
           it.remove();
+
+        for (Iterator<TypeIndex> it2 = indexesByProperties.values().iterator(); it2.hasNext(); ) {
+          final TypeIndex idx2 = it2.next();
+          idx2.removeIndexOnBucket(idx);
+        }
+
       }
     }
 

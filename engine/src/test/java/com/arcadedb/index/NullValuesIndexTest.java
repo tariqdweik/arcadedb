@@ -13,7 +13,7 @@ import com.arcadedb.schema.SchemaImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class NullValuesndexTest extends BaseTest {
+public class NullValuesIndexTest extends BaseTest {
   private static final int    TOT       = 10;
   private static final String TYPE_NAME = "V";
   private static final int    PAGE_SIZE = 20000;
@@ -29,8 +29,8 @@ public class NullValuesndexTest extends BaseTest {
           final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
           type.createProperty("id", Integer.class);
           type.createProperty("name", String.class);
-          final TypeIndex indexes = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
-          final TypeIndex indexes2 = database.getSchema()
+          final Index indexes = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
+          final Index indexes2 = database.getSchema()
               .createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.ERROR,
                   null);
 
@@ -49,7 +49,7 @@ public class NullValuesndexTest extends BaseTest {
           database.commit();
           database.begin();
 
-          for (Index index : indexes.getIndexesOnBuckets()) {
+          for (Index index : ((TypeIndex) indexes).getIndexesOnBuckets()) {
             Assertions.assertTrue(((IndexInternal) index).getStats().get("pages") > 1);
           }
         }
@@ -71,8 +71,8 @@ public class NullValuesndexTest extends BaseTest {
         final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
         type.createProperty("id", Integer.class);
         type.createProperty("name", String.class);
-        final TypeIndex indexes = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
-        final TypeIndex indexes2 = database.getSchema()
+        final Index indexes = database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "id" }, PAGE_SIZE);
+        final Index indexes2 = database.getSchema()
             .createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, new String[] { "name" }, PAGE_SIZE, LSMTreeIndexAbstract.NULL_STRATEGY.SKIP,
                 null);
 

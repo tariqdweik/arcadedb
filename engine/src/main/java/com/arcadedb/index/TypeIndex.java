@@ -151,11 +151,10 @@ public class TypeIndex implements RangeIndex, IndexInternal {
 
   @Override
   public void drop() {
-    for (Index index : indexesOnBuckets) {
+    for (Index index : new ArrayList<>(indexesOnBuckets)) {
       schema.dropIndex(index.getName());
     }
     schema.dropIndex(logicName);
-    schema.getType(getTypeName()).removeIndexInternal(logicName);
   }
 
   @Override
@@ -274,6 +273,13 @@ public class TypeIndex implements RangeIndex, IndexInternal {
       throw new IllegalArgumentException("Invalid subIndex " + index);
 
     indexesOnBuckets.add(index);
+  }
+
+  public void removeIndexOnBucket(final IndexInternal index) {
+    if (index instanceof TypeIndex)
+      throw new IllegalArgumentException("Invalid subIndex " + index);
+
+    indexesOnBuckets.remove(index);
   }
 
   public Index[] getIndexesOnBuckets() {

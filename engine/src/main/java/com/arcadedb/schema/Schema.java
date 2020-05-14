@@ -38,24 +38,24 @@ public interface Schema {
 
   Index getIndexByName(String indexName);
 
-  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
+  Index createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
 
-  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
+  Index createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
 
-  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+  Index createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
       Index.BuildIndexCallback callback);
 
-  TypeIndex createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+  Index createTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
       LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, Index.BuildIndexCallback callback);
 
-  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
+  Index getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String... propertyNames);
 
-  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
+  Index getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize);
 
-  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+  Index getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
       Index.BuildIndexCallback callback);
 
-  TypeIndex getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
+  Index getOrCreateTypeIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String[] propertyNames, int pageSize,
       LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy, Index.BuildIndexCallback callback);
 
   Index createBucketIndex(SchemaImpl.INDEX_TYPE indexType, boolean unique, String typeName, String bucketName, String[] propertyNames, int pageSize,

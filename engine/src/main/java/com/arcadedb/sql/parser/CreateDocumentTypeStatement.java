@@ -78,7 +78,7 @@ public class CreateDocumentTypeStatement extends ODDLStatement {
     }
 
     for (DocumentType c : superclasses)
-      type.addParent(c);
+      type.addParentType(c);
 
     InternalResultSet rs = new InternalResultSet();
     rs.add(result);
