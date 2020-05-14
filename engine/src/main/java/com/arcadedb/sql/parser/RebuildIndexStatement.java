@@ -12,6 +12,7 @@ import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
+import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
 import com.arcadedb.sql.executor.ResultInternal;
@@ -64,9 +65,12 @@ public class RebuildIndexStatement extends SimpleExecStatement {
 
         for (Index idx : indexes) {
           if (idx instanceof TypeIndex) {
+            final SchemaImpl.INDEX_TYPE type = idx.getType();
+            final boolean unique = idx.isUnique();
+            final String[] propNames = idx.getPropertyNames();
+
             database.getSchema().dropIndex(idx.getName());
-            database.getSchema()
-                .createTypeIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+            database.getSchema().createTypeIndex(type, unique, type.name(), propNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
             indexList.add(idx.getName());
           }
         }

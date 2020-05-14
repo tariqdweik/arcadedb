@@ -66,7 +66,7 @@ public class TypeIndex implements RangeIndex, IndexInternal {
         result.add(cursor.next());
 
         if (index.isUnique())
-          break;
+          return new IndexCursorCollection(result);
       }
     }
     return new IndexCursorCollection(result);
