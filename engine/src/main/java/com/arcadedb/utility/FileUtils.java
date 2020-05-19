@@ -4,6 +4,7 @@
 
 package com.arcadedb.utility;
 
+import com.arcadedb.database.Binary;
 import com.arcadedb.log.LogManager;
 
 import java.io.*;
@@ -274,6 +275,18 @@ public class FileUtils {
     }
   }
 
+  public static Binary readStreamAsBinary(final InputStream iStream) throws IOException {
+    final Binary buffer = new Binary();
+
+    final byte[] buf = new byte[1_000_000];
+    int numRead;
+
+    while ((numRead = iStream.read(buf)) != -1)
+      buffer.putByteArray(buf, numRead);
+
+    return buffer;
+  }
+
   public static String readStreamAsString(final InputStream iStream, final String iCharset) throws IOException {
     return readStreamAsString(iStream, iCharset, 0);
   }
@@ -312,6 +325,12 @@ public class FileUtils {
   public static void writeFile(final File iFile, final String iContent) throws IOException {
     try (FileOutputStream fos = new FileOutputStream(iFile)) {
       writeContentToStream(fos, iContent);
+    }
+  }
+
+  public static void writeContentToStream(final File file, final byte[] content) throws IOException {
+    try (FileOutputStream fos = new FileOutputStream(file)) {
+      fos.write(content);
     }
   }
 
