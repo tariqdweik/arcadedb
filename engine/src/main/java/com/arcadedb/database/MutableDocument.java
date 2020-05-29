@@ -62,6 +62,7 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
 
   @Override
   public Map<String, Object> toMap() {
+    checkForLazyLoadingProperties();
     return new HashMap<>(map);
   }
 
