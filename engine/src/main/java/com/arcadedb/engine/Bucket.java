@@ -330,7 +330,8 @@ public class Bucket extends PaginatedComponent {
 
     if (buffer.size() > pageSize - CONTENT_HEADER_SIZE)
       // TODO: SUPPORT MULTI-PAGE CONTENT
-      throw new DatabaseOperationException("Record too big to be stored, size=" + buffer.size() + " max=" + (pageSize - CONTENT_HEADER_SIZE));
+      throw new DatabaseOperationException(
+          "Record too big to be stored in bucket '" + name + "' (" + id + "), size=" + buffer.size() + " max=" + (pageSize - CONTENT_HEADER_SIZE));
 
     // RECORD SIZE CANNOT BE < 5 BYTES IN CASE OF UPDATE AND PLACEHOLDER, 5 BYTES IS THE SPACE REQUIRED TO HOST THE PLACEHOLDER
     while (buffer.size() < 5)
