@@ -124,8 +124,8 @@ public class BinarySerializer {
     }
 
     // WRITE OUT AND IN EDGES POINTER FIRST, THEN SERIALIZE THE VERTEX PROPERTIES (AS A DOCUMENT)
-    serializeValue(header, BinaryTypes.TYPE_COMPRESSED_RID, edge.getOut());
-    serializeValue(header, BinaryTypes.TYPE_COMPRESSED_RID, edge.getIn());
+    serializeValue(database, header, BinaryTypes.TYPE_COMPRESSED_RID, edge.getOut());
+    serializeValue(database, header, BinaryTypes.TYPE_COMPRESSED_RID, edge.getIn());
 
     if (serializeProperties)
       return serializeProperties(database, edge, header, ((EmbeddedDatabase) database).getContext().getTemporaryBuffer2());
@@ -211,7 +211,7 @@ public class BinarySerializer {
     return values;
   }
 
-  public void serializeValue(Binary content, final byte type, final Object value) {
+  public void serializeValue(final Database database, Binary content, final byte type, final Object value) {
     switch (type) {
     case BinaryTypes.TYPE_NULL:
       break;
@@ -289,7 +289,7 @@ public class BinarySerializer {
           final Object entryValue = it.next();
           final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
           content.putByte(entryType);
-          serializeValue(content, entryType, entryValue);
+          serializeValue(database, content, entryType, entryValue);
         }
       } else if (value instanceof Object[]) {
         // ARRAY
@@ -298,7 +298,7 @@ public class BinarySerializer {
         for (Object entryValue : array) {
           final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
           content.putByte(entryType);
-          serializeValue(content, entryType, entryValue);
+          serializeValue(database, content, entryType, entryValue);
         }
       } else if (value instanceof Iterable) {
         final Iterable iter = (Iterable) value;
@@ -312,7 +312,7 @@ public class BinarySerializer {
           final Object entryValue = it.next();
           final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
           content.putByte(entryType);
-          serializeValue(content, entryType, entryValue);
+          serializeValue(database, content, entryType, entryValue);
         }
       } else {
         // ARRAY
@@ -322,7 +322,7 @@ public class BinarySerializer {
           final Object entryValue = Array.get(value, i);
           final byte entryType = BinaryTypes.getTypeFromValue(entryValue);
           content.putByte(entryType);
-          serializeValue(content, entryType, entryValue);
+          serializeValue(database, content, entryType, entryValue);
         }
       }
       break;
@@ -335,19 +335,19 @@ public class BinarySerializer {
         final Object entryKey = entry.getKey();
         final byte entryKeyType = BinaryTypes.getTypeFromValue(entryKey);
         content.putByte(entryKeyType);
-        serializeValue(content, entryKeyType, entryKey);
+        serializeValue(database, content, entryKeyType, entryKey);
 
         // WRITE THE VALUE
         final Object entryValue = entry.getValue();
         final byte entryValueType = BinaryTypes.getTypeFromValue(entryValue);
         content.putByte(entryValueType);
-        serializeValue(content, entryValueType, entryValue);
+        serializeValue(database, content, entryValueType, entryValue);
       }
       break;
     }
     case BinaryTypes.TYPE_EMBEDDED: {
-      final EmbeddedDocument document = (EmbeddedDocument) value;
-      final long schemaId = document.getDatabase().getSchema().getDictionary().getIdByName(document.getType(), false);
+      final Document document = (Document) value;
+      final long schemaId = database.getSchema().getDictionary().getIdByName(document.getType(), false);
       if (schemaId == -1)
         throw new IllegalArgumentException("Cannot find type '" + document.getType() + "' declared in embedded document");
       content.putUnsignedNumber(schemaId);
@@ -358,7 +358,7 @@ public class BinarySerializer {
       body.setAllocationChunkSize(2048);
 
       header.putByte(EmbeddedDocument.RECORD_TYPE);
-      serializeProperties(document.getDatabase(), document, header, body);
+      serializeProperties(database, document, header, body);
 
       content.putUnsignedNumber(header.size());
       content.append(header);
@@ -498,7 +498,7 @@ public class BinarySerializer {
       }
 
       content.putByte(type);
-      serializeValue(content, type, value);
+      serializeValue(database, content, type, value);
 
       // WRITE PROPERTY CONTENT POSITION
       header.putUnsignedNumber(startContentPosition);

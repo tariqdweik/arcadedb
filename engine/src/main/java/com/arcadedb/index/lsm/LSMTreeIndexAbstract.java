@@ -256,7 +256,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
 
     // WRITE KEYS
     for (int i = 0; i < keyTypes.length; ++i)
-      serializer.serializeValue(buffer, keyTypes[i], keys[i]);
+      serializer.serializeValue(database, buffer, keyTypes[i], keys[i]);
 
     writeEntryValue(buffer, rid);
   }
@@ -266,7 +266,7 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
 
     // WRITE KEYS
     for (int i = 0; i < keyTypes.length; ++i)
-      serializer.serializeValue(buffer, keyTypes[i], keys[i]);
+      serializer.serializeValue(database, buffer, keyTypes[i], keys[i]);
 
     writeEntryValues(buffer, rids);
   }
@@ -375,19 +375,19 @@ public abstract class LSMTreeIndexAbstract extends PaginatedComponent {
 
   private void writeEntryValues(final Binary buffer, final Object[] values) {
     // WRITE NUMBER OF VALUES
-    serializer.serializeValue(buffer, BinaryTypes.TYPE_INT, values.length);
+    serializer.serializeValue(database, buffer, BinaryTypes.TYPE_INT, values.length);
 
     // WRITE VALUES
     for (int i = 0; i < values.length; ++i)
-      serializer.serializeValue(buffer, valueType, values[i]);
+      serializer.serializeValue(database, buffer, valueType, values[i]);
   }
 
   private void writeEntryValue(final Binary buffer, final Object value) {
     // WRITE NUMBER OF VALUES
-    serializer.serializeValue(buffer, BinaryTypes.TYPE_INT, 1);
+    serializer.serializeValue(database, buffer, BinaryTypes.TYPE_INT, 1);
 
     // WRITE VALUES
-    serializer.serializeValue(buffer, valueType, value);
+    serializer.serializeValue(database, buffer, valueType, value);
   }
 
   protected RID[] readEntryValues(final Binary buffer) {

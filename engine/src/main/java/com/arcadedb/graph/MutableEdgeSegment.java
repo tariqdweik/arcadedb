@@ -38,7 +38,7 @@ public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, Recor
     buffer.putByte(0, RECORD_TYPE);
     buffer.putInt(Binary.BYTE_SERIALIZED_SIZE, CONTENT_START_POSITION);
     buffer.position(Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE);
-    database.getSerializer().serializeValue(buffer, BinaryTypes.TYPE_RID, NULL_RID); // NEXT
+    database.getSerializer().serializeValue(database, buffer, BinaryTypes.TYPE_RID, NULL_RID); // NEXT
   }
 
   @Override
@@ -49,8 +49,8 @@ public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, Recor
   @Override
   public boolean add(final RID edgeRID, final RID vertexRID) {
     final Binary ridSerialized = database.getContext().getTemporaryBuffer1();
-    database.getSerializer().serializeValue(ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
-    database.getSerializer().serializeValue(ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
+    database.getSerializer().serializeValue(database, ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, edgeRID);
+    database.getSerializer().serializeValue(database, ridSerialized, BinaryTypes.TYPE_COMPRESSED_RID, vertexRID);
 
     final int used = getUsed();
 
@@ -277,7 +277,7 @@ public class MutableEdgeSegment extends BaseRecord implements EdgeSegment, Recor
     if (nextRID == null)
       throw new IllegalArgumentException("Next chunk is not persistent");
     buffer.position(Binary.BYTE_SERIALIZED_SIZE + Binary.INT_SERIALIZED_SIZE);
-    database.getSerializer().serializeValue(buffer, BinaryTypes.TYPE_RID, nextRID); // NEXT
+    database.getSerializer().serializeValue(database, buffer, BinaryTypes.TYPE_RID, nextRID); // NEXT
   }
 
   @Override
