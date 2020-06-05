@@ -171,7 +171,7 @@ public class TransactionManager {
         }
       }
 
-      if (activeWALFilePool != null) {
+      if (activeWALFilePool.length > 0) {
         final WALFile.WALTransaction[] walPositions = new WALFile.WALTransaction[activeWALFilePool.length];
         for (int i = 0; i < activeWALFilePool.length; ++i) {
           final WALFile file = activeWALFilePool[i];
@@ -275,10 +275,14 @@ public class TransactionManager {
           // SKIP IT
           continue;
 
-        if (txPage.currentPageVersion > page.getVersion() + 1)
-          throw new WALException(
-              "Cannot apply changes to the database because modified page version (" + txPage.currentPageVersion + ") does not match with existent version ("
-                  + page.getVersion() + ")");
+        if (txPage.currentPageVersion > page.getVersion() + 1) {
+          LogManager.instance().log(this, Level.WARNING,
+              "Cannot apply changes to the database because modified page version in WAL (" + txPage.currentPageVersion
+                  + ") does not match with existent version (" + page.getVersion() + ") fileId=" + txPage.fileId);
+          continue;
+        }
+//          throw new WALException("Cannot apply changes to the database because modified page version in WAL (" + txPage.currentPageVersion
+//              + ") does not match with existent version (" + page.getVersion() + ") fileId=" + txPage.fileId);
 
         LogManager.instance()
             .log(this, Level.FINE, "Updating page %s versionInLog=%d versionInDB=%d (txId=%d)", null, pageId, txPage.currentPageVersion, page.getVersion(),
