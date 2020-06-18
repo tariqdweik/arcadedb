@@ -33,9 +33,18 @@ public abstract class AbstractHandler implements HttpHandler {
 
   protected String parseRequestPayload(final HttpServerExchange e) throws IOException {
     final StringBuilder result = new StringBuilder();
-    e.getRequestReceiver().receiveFullBytes((exchange, data) -> {
-      result.append(new String(data));
-    });
+    e.startBlocking();
+    e.getRequestReceiver().receiveFullBytes(
+        // OK
+        (exchange, data) -> {
+          result.append(new String(data));
+        },
+        // ERROR
+        (exchange, err) -> {
+          LogManager.instance().log(this, Level.SEVERE, "getFullBytes completed with an error: %s", err, err.getMessage());
+          exchange.setStatusCode(500);
+          exchange.getResponseSender().send("Invalid Request");
+        });
     return result.toString();
   }
 
