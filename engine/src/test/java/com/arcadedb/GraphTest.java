@@ -4,7 +4,7 @@
 
 package com.arcadedb;
 
-import com.arcadedb.database.Database;
+import com.arcadedb.database.RID;
 import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.RecordNotFoundException;
@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GraphTest extends BaseGraphTest {
   @Test
@@ -460,5 +461,41 @@ public class GraphTest extends BaseGraphTest {
     } finally {
       new DatabaseChecker().check(database);
     }
+  }
+
+  @Test
+  public void rollbackEdge() {
+    AtomicReference<RID> v1RID = new AtomicReference<>();
+
+    database.transaction((tx) -> {
+      final MutableVertex v1 = database.newVertex(VERTEX1_TYPE_NAME).save();
+      v1RID.set(v1.getIdentity());
+    });
+
+    try {
+      database.transaction((tx) -> {
+        final Vertex v1a = v1RID.get().getVertex();
+
+        final MutableVertex v2 = database.newVertex(VERTEX1_TYPE_NAME).save();
+
+        v1a.newEdge(EDGE2_TYPE_NAME, v2, false);
+        v1a.newEdge(EDGE2_TYPE_NAME, v2, true);
+        //throw new RuntimeException();
+      });
+
+      //Assertions.fail();
+
+    } catch (RuntimeException e) {
+    }
+
+    database.transaction((tx) -> {
+      final Vertex v1a = v1RID.get().getVertex();
+
+      final MutableVertex v2 = database.newVertex(VERTEX1_TYPE_NAME);
+      v2.set("rid", v1RID.get());
+      v2.save();
+
+      Assertions.assertFalse(v1a.isConnectedTo(v2));
+    });
   }
 }
