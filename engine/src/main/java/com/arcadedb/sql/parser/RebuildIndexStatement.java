@@ -65,12 +65,14 @@ public class RebuildIndexStatement extends SimpleExecStatement {
 
         for (Index idx : indexes) {
           if (idx instanceof TypeIndex) {
-            final SchemaImpl.INDEX_TYPE type = idx.getType();
+            final SchemaImpl.INDEX_TYPE indexType = idx.getType();
             final boolean unique = idx.isUnique();
             final String[] propNames = idx.getPropertyNames();
 
+            final String typeName = idx.getTypeName();
+
             database.getSchema().dropIndex(idx.getName());
-            database.getSchema().createTypeIndex(type, unique, type.name(), propNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+            database.getSchema().createTypeIndex(indexType, unique, typeName, propNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
             indexList.add(idx.getName());
           }
         }
