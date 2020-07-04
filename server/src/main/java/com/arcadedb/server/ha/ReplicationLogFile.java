@@ -233,6 +233,7 @@ public class ReplicationLogFile extends LockContext {
         // CHUNK NOT FOUND (= NOT AVAILABLE, PROBABLY DELETED BECAUSE TOO OLD)
         searchChannel = null;
         searchChannelChunkId = -1;
+        LogManager.instance().log(this, Level.WARNING, "Replication log chunk file %d was not found", null, chunkId);
         return false;
       }
 
