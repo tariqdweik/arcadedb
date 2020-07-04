@@ -23,7 +23,7 @@ public class LockContext {
     if (e instanceof RuntimeException)
       throw (RuntimeException) e;
 
-    return new RuntimeException("Error in execution in lock", e);
+    return new RuntimeException("Error in execution during lock", e);
   }
 
   public Object executeInLock(final Callable<Object> callable) {
