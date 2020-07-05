@@ -4,6 +4,8 @@
 
 package com.arcadedb.database;
 
+import com.arcadedb.exception.TransactionException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,18 +33,18 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
         current = new DatabaseContextTL();
         map.put(key, current);
       } else {
-        if (!current.transaction.isEmpty()) {
+        if (!current.transactions.isEmpty()) {
           // ROLLBACK PREVIOUS TXS
-          while (!current.transaction.isEmpty()) {
-            final Transaction tx = current.transaction.remove(current.transaction.size() - 1);
+          while (!current.transactions.isEmpty()) {
+            final Transaction tx = current.transactions.remove(current.transactions.size() - 1);
             tx.rollback();
           }
         }
       }
     }
 
-    if (current.transaction.isEmpty())
-      current.transaction.add(new TransactionContext(database.getWrappedDatabaseInstance()));
+    if (current.transactions.isEmpty())
+      current.transactions.add(new TransactionContext(database.getWrappedDatabaseInstance()));
 
     return current;
   }
@@ -60,10 +62,11 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
   }
 
   public static class DatabaseContextTL {
-    public final List<TransactionContext> transaction = new ArrayList<>(1);
-    public       boolean                  asyncMode   = false;
+    public final List<TransactionContext> transactions = new ArrayList<>(1);
+    public       boolean                  asyncMode    = false;
     private      Binary                   temporaryBuffer1;
     private      Binary                   temporaryBuffer2;
+    private      int                      maxNested    = 5;
 
     public Binary getTemporaryBuffer1() {
       if (temporaryBuffer1 == null) {
@@ -84,23 +87,35 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
     }
 
     public TransactionContext getLastTransaction() {
-      if (transaction.isEmpty())
+      if (transactions.isEmpty())
         return null;
-      return transaction.get(transaction.size() - 1);
+      return transactions.get(transactions.size() - 1);
     }
 
     public void pushTransaction(final TransactionContext tx) {
-      transaction.add(tx);
+      if (transactions.size() + 1 > maxNested)
+        throw new TransactionException("Exceeded number of " + transactions.size()
+            + " nested transactions. Check your code if you are beginning new transactions without closing the previous one by mistake. Otherwise change this limit with setMaxNested()");
+
+      transactions.add(tx);
     }
 
     public TransactionContext popIfNotLastTransaction() {
-      if (transaction.isEmpty())
+      if (transactions.isEmpty())
         return null;
 
-      if (transaction.size() > 1)
-        return transaction.remove(transaction.size() - 1);
+      if (transactions.size() > 1)
+        return transactions.remove(transactions.size() - 1);
 
-      return transaction.get(0);
+      return transactions.get(0);
+    }
+
+    public int getMaxNested() {
+      return maxNested;
+    }
+
+    public void setMaxNested(final int maxNested) {
+      this.maxNested = maxNested;
     }
   }
 

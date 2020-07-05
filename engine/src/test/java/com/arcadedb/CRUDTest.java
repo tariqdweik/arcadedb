@@ -66,15 +66,14 @@ public class CRUDTest extends BaseTest {
     final Database db = database;
 
     try {
+      db.begin();
 
       for (int i = 0; i < 10; ++i) {
-        db.begin();
         updateAll("largeField" + i);
 
         Assertions.assertEquals(TOT, db.countType("V", true));
 
         db.commit();
-
         db.begin();
 
         Assertions.assertEquals(TOT, db.countType("V", true));

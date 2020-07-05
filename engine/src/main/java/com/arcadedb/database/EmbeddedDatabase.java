@@ -259,15 +259,15 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
           async.close();
 
         final DatabaseContext.DatabaseContextTL dbContext = DatabaseContext.INSTANCE.removeContext(databasePath);
-        if (dbContext != null && !dbContext.transaction.isEmpty()) {
+        if (dbContext != null && !dbContext.transactions.isEmpty()) {
           // ROLLBACK ALL THE TX FROM LAST TO FIRST
-          for (int i = dbContext.transaction.size() - 1; i > -1; --i) {
-            final TransactionContext tx = dbContext.transaction.get(i);
+          for (int i = dbContext.transactions.size() - 1; i > -1; --i) {
+            final TransactionContext tx = dbContext.transactions.get(i);
             if (tx.isActive())
               // ROLLBACK ANY PENDING OPERATION
               tx.rollback();
           }
-          dbContext.transaction.clear();
+          dbContext.transactions.clear();
         }
 
         try {

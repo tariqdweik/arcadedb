@@ -54,6 +54,9 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     checkDatabases();
 
     Database db = getServerDatabase(serverId, getDatabaseName());
+    if (db.isTransactionActive())
+      db.rollback();
+
     db.begin();
 
     Assertions.assertEquals(1, db.countType(VERTEX1_TYPE_NAME, true), "TEST: Check for vertex count for server" + 0);
@@ -68,8 +71,6 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
 
       for (int retry = 0; retry < getMaxRetry(); ++retry) {
         try {
-          db.begin();
-
           for (int i = 0; i < getVerticesPerTx(); ++i) {
             final MutableVertex v1 = db.newVertex(VERTEX1_TYPE_NAME);
             v1.set("id", ++counter);
@@ -78,6 +79,8 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
           }
 
           db.commit();
+          db.begin();
+
           break;
 
         } catch (TransactionException | NeedRetryException e) {
@@ -93,9 +96,10 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         if (isPrintingConfigurationAtEveryStep())
           getLeaderServer().getHA().printClusterConfiguration();
       }
-
-      db.begin();
     }
+
+    db.commit();
+    db.begin();
 
     LogManager.instance().log(this, Level.INFO, "Done");
 
