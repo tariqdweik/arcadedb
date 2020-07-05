@@ -33,7 +33,7 @@ public abstract class AbstractHandler implements HttpHandler {
 
   protected String parseRequestPayload(final HttpServerExchange e) throws IOException {
     final StringBuilder result = new StringBuilder();
-    e.startBlocking();
+    //e.startBlocking();
     e.getRequestReceiver().receiveFullBytes(
         // OK
         (exchange, data) -> {
