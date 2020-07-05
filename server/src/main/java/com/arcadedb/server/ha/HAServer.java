@@ -844,7 +844,7 @@ public class HAServer implements ServerPlugin {
     if (replica == null)
       throw new ReplicationException("Server '" + getServerName() + "' cannot sync replica '" + replicaName + "' because it is offline");
 
-    final long fromPositionInLog = getReplicationLogFile().findMessagePosition(fromMessageNumber);
+    final long fromPositionInLog = replicationLogFile.findMessagePosition(fromMessageNumber);
 
     final AtomicInteger totalSentMessages = new AtomicInteger();
 
