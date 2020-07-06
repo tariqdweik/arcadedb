@@ -38,6 +38,8 @@ public class GetQueryHandler extends DatabaseAbstractHandler {
     final StringBuilder result = new StringBuilder();
 
     final ServerMetrics.MetricTimer timer = httpServer.getServer().getServerMetrics().timer("http.query");
+
+    database.begin();
     try {
 
       final String command = URLDecoder.decode(text.getFirst(), exchange.getRequestCharset());
@@ -49,6 +51,7 @@ public class GetQueryHandler extends DatabaseAbstractHandler {
       }
 
     } finally {
+      database.rollbackAllNested();
       timer.stop();
     }
 

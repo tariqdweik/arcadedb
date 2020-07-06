@@ -190,7 +190,7 @@ public class HAServer implements ServerPlugin {
     }
   }
 
-  private boolean isCurrentServer(final String serverEntry) {
+  protected boolean isCurrentServer(final String serverEntry) {
     if (serverAddress.equals(serverEntry))
       return true;
 
@@ -937,12 +937,12 @@ public class HAServer implements ServerPlugin {
 
     final ChannelBinaryClient channel = new ChannelBinaryClient(host, port, this.configuration);
 
-    final String bucketName = this.configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
+    final String clusterName = this.configuration.getValueAsString(GlobalConfiguration.HA_CLUSTER_NAME);
 
     // SEND SERVER INFO
     channel.writeLong(ReplicationProtocol.MAGIC_NUMBER);
     channel.writeShort(ReplicationProtocol.PROTOCOL_VERSION);
-    channel.writeString(bucketName);
+    channel.writeString(clusterName);
     channel.writeString(getServerName());
     channel.writeString(getServerAddress());
     channel.writeString(server.getHttpServer().getListeningAddress());

@@ -32,10 +32,17 @@ public class CreateDocumentHandler extends DatabaseAbstractHandler {
 
     httpServer.getServer().getServerMetrics().meter("http.create-record").mark();
 
-    final MutableDocument document = database.newDocument(type);
-    document.save();
+    database.begin();
+    try {
+      final MutableDocument document = database.newDocument(type);
+      document.save();
+      database.commit();
 
-    exchange.setStatusCode(200);
-    exchange.getResponseSender().send("{ \"result\" : \"" + document.getIdentity() + "\"}");
+      exchange.setStatusCode(200);
+      exchange.getResponseSender().send("{ \"result\" : \"" + document.getIdentity() + "\"}");
+
+    } finally {
+      database.rollbackAllNested();
+    }
   }
 }

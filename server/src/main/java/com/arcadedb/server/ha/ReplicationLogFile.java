@@ -307,8 +307,8 @@ public class ReplicationLogFile extends LockContext {
       }
 
       if (message.messageNumber != lastMessageNumber + 1) {
-        serverLogger.log(this, Level.WARNING, "Found a jump in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
-            lastMessageNumber, message.messageNumber, Thread.currentThread().getId());
+        serverLogger.log(this, Level.WARNING, "Found a jump (%d) in message numbers. Last was %d and now receiving %d. Skip saving this entry (threadId=%d)",
+            (message.messageNumber - lastMessageNumber), lastMessageNumber, message.messageNumber, Thread.currentThread().getId());
 
         return false;
       }

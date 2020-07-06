@@ -23,7 +23,7 @@ public class PageManagerFlushThread extends Thread {
   private volatile boolean                         running = true;
 
   public PageManagerFlushThread(final PageManager pageManager, final ContextConfiguration configuration) {
-    super("AsyncFlush");
+    super("ArcadeDB AsyncFlush");
     setDaemon(false);
     this.pageManager = pageManager;
     this.logContext = LogManager.instance().getContext();

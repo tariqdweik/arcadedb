@@ -47,7 +47,7 @@ public class TransactionManager {
     if (database.getMode() == PaginatedFile.MODE.READ_WRITE) {
       createWALFilePool();
 
-      task = new Timer();
+      task = new Timer("ArcadeDB TransactionManager " + database.getName());
       task.schedule(new TimerTask() {
         @Override
         public void run() {
