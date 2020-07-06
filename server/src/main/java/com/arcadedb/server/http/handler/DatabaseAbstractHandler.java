@@ -33,10 +33,18 @@ public abstract class DatabaseAbstractHandler extends AbstractHandler {
     } else
       db = null;
 
+    if (db != null)
+      db.begin();
     try {
+
       execute(exchange, db);
+
+      if (db != null && db.isTransactionActive())
+        db.commit();
+
     } finally {
-      db.rollbackAllNested();
+      if (db != null)
+        db.rollbackAllNested();
     }
   }
 
