@@ -143,20 +143,21 @@ public abstract class BaseGraphServerTest {
       // RESTART ANY SERVER IS DOWN TO CHECK INTEGRITY AFTER THE REALIGNMENT
       for (int i = servers.length - 1; i > -1; --i) {
         if (servers[i] != null && !servers[i].isStarted()) {
-          LogManager.instance().log(this, Level.INFO, "TEST: Restarting server %d to force re-alignment", null, i);
+          testLog(" Restarting server %d to force re-alignment", i);
           servers[i].start();
           anyServerRestarted = true;
         }
       }
     }
 
-    if (anyServerRestarted)
+    if (anyServerRestarted) {
       // WAIT A BIT FOR THE SERVER TO BE SYNCHRONIZED
-      LogManager.instance().log(this, Level.INFO, "TEST: Wait a bit until realignment is completed");
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
+      testLog("Wait a bit until realignment is completed");
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     }
 
     LogManager.instance().log(this, Level.INFO, "TEST: Stopping servers...");
@@ -361,10 +362,18 @@ public abstract class BaseGraphServerTest {
         DatabaseContext.INSTANCE.init(db1);
         DatabaseContext.INSTANCE.init(db2);
 
-        LogManager.instance()
-            .log(this, Level.INFO, "TEST: Comparing databases '%s' and '%s' are identical...", null, db1.getDatabasePath(), db2.getDatabasePath());
+        testLog("Comparing databases '%s' and '%s' are identical...", db1.getDatabasePath(), db2.getDatabasePath());
         new DatabaseComparator().compare(db1, db2);
       }
     }
+  }
+
+  protected void testLog(final String msg, final Object... args) {
+    LogManager.instance()
+        .log(this, Level.INFO, "****************************************************************************************************************");
+    LogManager.instance().log(this, Level.INFO, "TEST: " + msg, null, args);
+    LogManager.instance()
+        .log(this, Level.INFO, "****************************************************************************************************************");
+
   }
 }

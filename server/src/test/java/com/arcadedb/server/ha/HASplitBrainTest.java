@@ -46,23 +46,39 @@ public class HASplitBrainTest extends ReplicationServerTest {
 
   @Override
   protected void onBeforeStarting(final ArcadeDBServer server) {
-    if (server.getServerName().equals("ArcadeDB_3") || server.getServerName().equals("ArcadeDB_4"))
-      server.registerTestEventListener(new TestCallback() {
-        @Override
-        public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) throws IOException {
-          if (type == TYPE.NETWORK_CONNECTION && split) {
-            final String connectTo = (String) object;
+    server.registerTestEventListener(new TestCallback() {
+      @Override
+      public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) throws IOException {
+        if (type == TYPE.NETWORK_CONNECTION && split) {
+          String connectTo = (String) object;
 
-            if (connectTo.equals(getServer(0).getHA().getServerAddress()) || connectTo.equals(getServer(1).getHA().getServerAddress()) || connectTo
-                .equals(getServer(2).getHA().getServerAddress()))
+          final String[] parts = connectTo.split(":");
+          int port = Integer.parseInt(parts[1]);
+
+          if (server.getServerName().equals("ArcadeDB_3") || server.getServerName().equals("ArcadeDB_4")) {
+            // SERVERS 3-4
+            if (port == 2424 || port == 2425 || port == 2426) {
               if (!rejoining) {
-                LogManager.instance().log(this, Level.INFO, "TEST: SIMULATING CONNECTION ERROR TO CONNECT TO THE LEADER FROM " + server);
+                testLog("SIMULATING CONNECTION ERROR TO CONNECT TO THE LEADER FROM " + server);
                 throw new IOException("Simulating an IO Exception on reconnecting from server '" + server.getServerName() + "' to " + connectTo);
               } else
-                LogManager.instance().log(this, Level.INFO, "TEST: ALLOWED CONNECTION TO THE ADDRESS " + connectTo + "  FROM " + server);
+                testLog("AFTER REJOINING -> ALLOWED CONNECTION TO THE ADDRESS " + connectTo + "  FROM " + server);
+            } else
+              LogManager.instance().log(this, Level.INFO, "ALLOWED CONNECTION FROM SERVER %s TO %s...", null, server.getServerName(), connectTo);
+          } else {
+            // SERVERS 0-2
+            if (port == 2427 || port == 2428) {
+              if (!rejoining) {
+                testLog("SIMULATING CONNECTION ERROR TO SERVERS " + connectTo + " FROM " + server);
+                throw new IOException("Simulating an IO Exception on reconnecting from server '" + server.getServerName() + "' to " + connectTo);
+              } else
+                testLog("AFTER REJOINING -> ALLOWED CONNECTION TO THE ADDRESS " + connectTo + "  FROM " + server);
+            } else
+              LogManager.instance().log(this, Level.INFO, "ALLOWED CONNECTION FROM SERVER %s TO %s...", null, server.getServerName(), connectTo);
           }
         }
-      });
+      }
+    });
 
     if (server.getServerName().equals("ArcadeDB_4"))
       server.registerTestEventListener(new TestCallback() {
@@ -74,18 +90,18 @@ public class HASplitBrainTest extends ReplicationServerTest {
               if (messages.get() > 10) {
                 split = true;
 
-                LogManager.instance().log(this, Level.INFO, "TEST: SHUTTING DOWN NETWORK CONNECTION BETWEEN SERVER 0 (THE LEADER) and SERVER 4TH and 5TH...");
+                testLog("SHUTTING DOWN NETWORK CONNECTION BETWEEN SERVER 0 (THE LEADER) and SERVER 4TH and 5TH...");
                 getServer(3).getHA().getLeader().closeChannel();
                 getServer(0).getHA().getReplica("ArcadeDB_3").closeChannel();
 
                 getServer(4).getHA().getLeader().closeChannel();
                 getServer(0).getHA().getReplica("ArcadeDB_4").closeChannel();
-                LogManager.instance().log(this, Level.INFO, "TEST: SHUTTING DOWN NETWORK CONNECTION COMPLETED");
+                testLog("SHUTTING DOWN NETWORK CONNECTION COMPLETED");
 
                 timer.schedule(new TimerTask() {
                   @Override
                   public void run() {
-                    LogManager.instance().log(this, Level.INFO, "TEST: ALLOWING THE REJOINING OF SERVERS 4TH AND 5TH");
+                    testLog("ALLOWING THE REJOINING OF SERVERS 4TH AND 5TH");
                     rejoining = true;
                   }
                 }, 10000);

@@ -10,6 +10,7 @@ import com.arcadedb.exception.NeedRetryException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.remote.RemoteDatabase;
+import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
@@ -22,8 +23,9 @@ import java.util.TimerTask;
 import java.util.logging.Level;
 
 public class HARandomCrashTest extends ReplicationServerTest {
-  private int   restarts = 0;
-  private Timer timer;
+  private          int   restarts = 0;
+  private          Timer timer;
+  private volatile long  delay    = 0;
 
   public HARandomCrashTest() {
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
@@ -41,6 +43,11 @@ public class HARandomCrashTest extends ReplicationServerTest {
 
         if (!areAllServersOnline())
           return;
+
+        if (restarts >= getServerCount()) {
+          delay = 0;
+          return;
+        }
 
         for (int i = 0; i < getServerCount(); ++i)
           if (getServer(i).isStarted()) {
@@ -62,11 +69,33 @@ public class HARandomCrashTest extends ReplicationServerTest {
               db.rollback();
             }
 
-            LogManager.instance().log(this, Level.INFO, "TEST: Stopping the Server %s...", null, serverId);
+            delay = 1000;
+            LogManager.instance().log(this, Level.INFO, "TEST: Stopping the Server %s (delay=%d)...", null, serverId, delay);
 
             getServer(serverId).stop();
+
+            while (getServer(serverId).getStatus() == ArcadeDBServer.STATUS.SHUTTING_DOWN) {
+              try {
+                Thread.sleep(1000);
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
+            }
+
+            LogManager.instance().log(this, Level.INFO, "TEST: Restarting the Server %s (delay=%d)...", null, serverId, delay);
+
             restarts++;
             getServer(serverId).start();
+
+            LogManager.instance().log(this, Level.INFO, "TEST: Server %s restarted (delay=%d)...", null, serverId, delay);
+
+            new Timer().schedule(new TimerTask() {
+              @Override
+              public void run() {
+                delay = 0;
+                LogManager.instance().log(this, Level.INFO, "TEST: Resetting delay (delay=%d)...", null, delay);
+              }
+            }, 10000);
 
             return;
 
@@ -75,7 +104,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
         LogManager.instance().log(this, Level.INFO, "TEST: Cannot restart server because unable to count vertices");
 
       }
-    }, 20000, 15000);
+    }, 15000, 10000);
 
     final String server1Address = getServer(0).getHttpServer().getListeningAddress();
     final String[] server1AddressParts = server1Address.split(":");
@@ -87,7 +116,6 @@ public class HARandomCrashTest extends ReplicationServerTest {
     LogManager.instance().log(this, Level.INFO, "TEST: Executing %s transactions with %d vertices each...", null, getTxs(), getVerticesPerTx());
 
     long counter = 0;
-    final int maxRetry = 10;
 
     for (int tx = 0; tx < getTxs(); ++tx) {
       final long lastGoodCounter = counter;
@@ -113,6 +141,13 @@ public class HARandomCrashTest extends ReplicationServerTest {
           }
 
           db.commit();
+
+          if (delay > 0) {
+            try {
+              Thread.sleep(delay);
+            } catch (Exception e) {
+            }
+          }
           break;
 
         } catch (TransactionException | NeedRetryException e) {
@@ -134,7 +169,7 @@ public class HARandomCrashTest extends ReplicationServerTest {
           database.begin();
           try {
             final long tot = database.countType(VERTEX1_TYPE_NAME, false);
-            LogManager.instance().log(this, Level.INFO, "TEST: -- DB '%s' - %d records", null, database, tot);
+            LogManager.instance().log(this, Level.INFO, "TEST: -- SERVER %d - %d records", null, i, tot);
             database.rollback();
           } catch (Exception e) {
             LogManager.instance().log(this, Level.SEVERE, "TEST: -- ERROR ON RETRIEVING COUNT FROM DATABASE '%s'", e, database);

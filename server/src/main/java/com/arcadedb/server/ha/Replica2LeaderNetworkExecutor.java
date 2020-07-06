@@ -27,14 +27,16 @@ import com.arcadedb.utility.Pair;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 public class Replica2LeaderNetworkExecutor extends Thread {
   private final    HAServer            server;
-  private final    String              host;
-  private final    int                 port;
+  private          String              host;
+  private          int                 port;
   private          String              leaderServerName  = "?";
   private          String              leaderServerHTTPAddress;
   private final    boolean             testOn;
@@ -168,8 +170,41 @@ public class Replica2LeaderNetworkExecutor extends Thread {
         try {
           connect();
         } catch (Exception e1) {
-          server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the Leader ('%s'), start election (error=%s)", getRemoteServerName(), e1);
-          server.startElection();
+          server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the Leader ('%s') (error=%s)", getRemoteServerName(), e1);
+
+          HashSet<String> serverAddressListCopy = new HashSet<>(Arrays.asList(server.getServerAddressList().split(",")));
+
+          while (!shutdown && !serverAddressListCopy.isEmpty()) {
+            for (String serverAddress : serverAddressListCopy) {
+              try {
+                if (server.isCurrentServer(serverAddress))
+                  // SKIP LOCAL SERVER
+                  continue;
+
+                final String[] parts = serverAddress.split(":");
+
+                host = parts[0];
+                port = Integer.parseInt(parts[1]);
+
+                connect();
+                return;
+              } catch (Exception e2) {
+                server.getServer().log(this, Level.SEVERE, "Error on re-connecting to the server '%s' (error=%s)", getRemoteAddress(), e2);
+              }
+            }
+
+            try {
+              Thread.sleep(2000);
+            } catch (InterruptedException interruptedException) {
+              Thread.currentThread().interrupt();
+              shutdown = true;
+              return;
+            }
+
+            serverAddressListCopy = new HashSet<>(Arrays.asList(server.getServerAddressList().split(",")));
+          }
+
+          //server.startElection();
         }
       }
     }
@@ -309,7 +344,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     } catch (Exception e) {
       server.getServer().log(this, Level.FINE, "Error on connecting to the server %s:%d (cause=%s)", host, port, e.toString());
 
-      shutdown();
+      //shutdown();
       throw new ConnectionException(host + ":" + port, e);
     }
   }

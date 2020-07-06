@@ -161,7 +161,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
         ++total;
       }
 
-      LogManager.instance().log(this, Level.INFO, "TEST: Entries in the index (%d) > records in database (%d)", null, total, recordInDb);
+      LogManager.instance().log(this, Level.INFO, "TEST: Entries in the index (%d) >= records in database (%d)", null, total, recordInDb);
 
       final Map<RID, Set<String>> ridsFoundInIndex = new HashMap<>();
       long total2 = 0;

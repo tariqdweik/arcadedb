@@ -332,7 +332,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
               .log(this, Level.WARNING, "Applying back-pressure on replicating messages to server '%s' (latency=%s buffered=%d)...", getRemoteServerName(),
                   getLatencyStats(), senderQueue.size());
           try {
-            Thread.sleep(200);
+            Thread.sleep(1000);
           } catch (InterruptedException e) {
             // IGNORE IT
             Thread.currentThread().interrupt();
