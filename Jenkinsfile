@@ -22,15 +22,15 @@ node {
 
             stage('build') {
                 try {
-                    sh "./mvnw -fae clean install -DskipTests "
+                    sh "./mvnw -fae clean install "
                 } catch (err) {
                     throw err
                 } finally {
-//                    junit '**/surefire-reports/**/*.xml'
-//                    step([$class       : 'JacocoPublisher',
-//                          execPattern  : '**/**.exec',
-//                          classPattern : '**/classes',
-//                          sourcePattern: '**/src/main/java'])
+                    junit '**/surefire-reports/**/*.xml'
+                    step([$class       : 'JacocoPublisher',
+                          execPattern  : '**/**.exec',
+                          classPattern : '**/classes',
+                          sourcePattern: '**/src/main/java'])
                 }
             }
 
