@@ -90,8 +90,8 @@ public class ReplicationServerReplicaRestartForceDbInstallTest extends Replicati
                 } catch (InterruptedException e) {
                   Thread.currentThread().interrupt();
                 }
-                Assertions.assertTrue(new File("./target/replication/replication_ArcadeDB_2.rlog").exists());
-                new File("./target/replication/replication_ArcadeDB_2.rlog").delete();
+                Assertions.assertTrue(new File("./target/replication/replication_ArcadeDB_2.rlog.0").exists());
+                new File("./target/replication/replication_ArcadeDB_2.rlog.0").delete();
                 getServer(2).start();
                 return null;
               }

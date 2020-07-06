@@ -67,8 +67,6 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
             Assertions.assertEquals(counter, (int) result.getProperty("id"));
             Assertions.assertTrue(props.contains("name"));
             Assertions.assertEquals("distributed-test", result.getProperty("name"));
-            break;
-
           }
 
           db.commit();
@@ -81,10 +79,15 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
           } catch (InterruptedException e1) {
             Thread.currentThread().interrupt();
           }
+
+          continue;
+
         } catch (Exception e) {
           // IGNORE IT
           LogManager.instance().log(this, Level.SEVERE, "Generic Exception", e);
         }
+
+        break;
       }
 
       if (counter % 1000 == 0) {
@@ -135,8 +138,8 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
             if (getServer(leaderName).getHA().getOnlineReplicas() < getServerCount() - 1) {
               // NOT ALL THE SERVERS ARE UP, AVOID A QUORUM ERROR
               LogManager.instance()
-                  .log(this, Level.FINE, "TEST: Skip restart of the Leader %s because no all replicas are online yet (messages=%d txs=%d) ...",null,  leaderName,
-                      messagesInTotal.get(), getTxs());
+                  .log(this, Level.FINE, "TEST: Skip restart of the Leader %s because no all replicas are online yet (messages=%d txs=%d) ...", null,
+                      leaderName, messagesInTotal.get(), getTxs());
               return;
             }
 

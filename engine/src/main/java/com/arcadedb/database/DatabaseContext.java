@@ -66,7 +66,7 @@ public class DatabaseContext extends ThreadLocal<Map<String, DatabaseContext.Dat
     public       boolean                  asyncMode    = false;
     private      Binary                   temporaryBuffer1;
     private      Binary                   temporaryBuffer2;
-    private      int                      maxNested    = 5;
+    private      int                      maxNested    = 3;
 
     public Binary getTemporaryBuffer1() {
       if (temporaryBuffer1 == null) {

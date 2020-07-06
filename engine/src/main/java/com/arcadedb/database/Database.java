@@ -113,6 +113,11 @@ public interface Database extends AutoCloseable {
    */
   void rollback();
 
+  /**
+   * Rolls back all the nested transactions if any.
+   */
+  void rollbackAllNested();
+
   void scanType(String typeName, boolean polymorphic, DocumentCallback callback);
 
   void scanBucket(String bucketName, RecordCallback callback);

@@ -423,6 +423,27 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   }
 
   @Override
+  public void rollbackAllNested() {
+    statsTxRollbacks.incrementAndGet();
+
+    executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        while (isTransactionActive()) {
+          try {
+            final DatabaseContext.DatabaseContextTL current = DatabaseContext.INSTANCE.getContext(EmbeddedDatabase.this.getDatabasePath());
+            current.popIfNotLastTransaction().rollback();
+
+          } catch (TransactionException e) {
+            // ALREADY ROLLBACKED
+          }
+        }
+        return null;
+      }
+    });
+  }
+
+  @Override
   public long countBucket(final String bucketName) {
     statsCountBucket.incrementAndGet();
 

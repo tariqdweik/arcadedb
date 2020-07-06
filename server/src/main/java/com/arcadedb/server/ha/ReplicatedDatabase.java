@@ -301,6 +301,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public void rollbackAllNested() {
+    proxied.rollbackAllNested();
+  }
+
+  @Override
   public void scanType(final String typeName, final boolean polymorphic, final DocumentCallback callback) {
     proxied.scanType(typeName, polymorphic, callback);
   }

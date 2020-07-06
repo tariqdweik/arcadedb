@@ -54,8 +54,7 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
     checkDatabases();
 
     Database db = getServerDatabase(serverId, getDatabaseName());
-    if (db.isTransactionActive())
-      db.rollback();
+    db.rollbackAllNested();
 
     db.begin();
 
@@ -79,8 +78,6 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
           }
 
           db.commit();
-          db.begin();
-
           break;
 
         } catch (TransactionException | NeedRetryException e) {
@@ -88,6 +85,8 @@ public abstract class ReplicationServerTest extends BaseGraphServerTest {
           if (retry >= getMaxRetry() - 1)
             throw e;
           counter = lastGoodCounter;
+        } finally {
+          db.begin();
         }
       }
 

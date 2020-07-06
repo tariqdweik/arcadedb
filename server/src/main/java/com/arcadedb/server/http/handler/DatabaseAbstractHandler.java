@@ -29,10 +29,15 @@ public abstract class DatabaseAbstractHandler extends AbstractHandler {
       }
 
       db = httpServer.getServer().getDatabase(databaseName.getFirst());
+      db.rollbackAllNested();
     } else
       db = null;
 
-    execute(exchange, db);
+    try {
+      execute(exchange, db);
+    } finally {
+      db.rollbackAllNested();
+    }
   }
 
   protected boolean openDatabase() {
