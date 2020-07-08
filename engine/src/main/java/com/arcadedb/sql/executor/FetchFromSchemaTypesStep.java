@@ -12,14 +12,8 @@ import com.arcadedb.index.IndexInternal;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Returns an OResult containing metadata regarding the schema types.
@@ -75,7 +69,7 @@ public class FetchFromSchemaTypesStep extends AbstractExecutionStep {
           }).collect(Collectors.toSet());
           r.setProperty("properties", propertiesTypes);
 
-          final Set<ResultInternal> indexes = Stream.of(type.getAllIndexes(false)).map(typeIndex -> {
+          final Set<ResultInternal> indexes = type.getAllIndexes(false).stream().map(typeIndex -> {
             final IndexInternal typeIndexInternal = (IndexInternal) typeIndex;
             final ResultInternal propRes = new ResultInternal();
             propRes.setProperty("name", typeIndexInternal.getName());
