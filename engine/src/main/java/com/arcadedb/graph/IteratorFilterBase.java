@@ -60,7 +60,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
             try {
               database.lookupByRID(nextEdge, true);
             } catch (Exception e) {
-              LogManager.instance().log(this, Level.WARNING, "Error on loading next edge %s. Skip it.", e, nextEdge);
+              handleCorruption(e, nextEdge, nextVertex);
               continue;
             }
 
@@ -71,7 +71,7 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
           try {
             database.lookupByRID(nextVertex, true);
           } catch (Exception e) {
-            LogManager.instance().log(this, Level.WARNING, "Error on loading next edge %s. Skip it.", e, nextEdge);
+            handleCorruption(e, nextEdge, nextVertex);
             continue;
           }
         }
@@ -91,6 +91,10 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
     }
 
     return false;
+  }
+
+  protected void handleCorruption(final Exception e, final RID edge, final RID nextVertex) {
+    LogManager.instance().log(this, Level.WARNING, "Error on loading edge %s. Skip it.", e, edge);
   }
 
   @Override

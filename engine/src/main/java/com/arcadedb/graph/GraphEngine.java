@@ -314,8 +314,12 @@ public class GraphEngine {
       final Iterator<Edge> outIterator = outEdges.edgeIterator();
 
       while (outIterator.hasNext()) {
-        final Edge nextEdge = outIterator.next();
+        RID inV = null;
         try {
+          final Edge nextEdge = outIterator.next();
+
+          inV = nextEdge.getIn();
+
           VertexInternal nextVertex = (VertexInternal) nextEdge.getInVertex();
 
           final EdgeLinkedList inEdges2 = getEdgeHeadChunk(nextVertex, Vertex.DIRECTION.IN);
@@ -329,8 +333,7 @@ public class GraphEngine {
         } catch (RecordNotFoundException e) {
           // ALREADY DELETED, IGNORE THIS
           LogManager.instance()
-              .log(this, Level.FINE, "Error on deleting outgoing vertex %s connected from vertex %s (record not found)", null, nextEdge.getIn(),
-                  vertex.getIdentity());
+              .log(this, Level.FINE, "Error on deleting outgoing vertex %s connected from vertex %s (record not found)", null, inV, vertex.getIdentity());
         }
       }
 
@@ -343,8 +346,12 @@ public class GraphEngine {
       final Iterator<Edge> inIterator = inEdges.edgeIterator();
 
       while (inIterator.hasNext()) {
-        final Edge nextEdge = inIterator.next();
+        RID outV = null;
         try {
+          final Edge nextEdge = inIterator.next();
+
+          outV = nextEdge.getOut();
+
           VertexInternal nextVertex = (VertexInternal) nextEdge.getOutVertex();
 
           final EdgeLinkedList outEdges2 = getEdgeHeadChunk(nextVertex, Vertex.DIRECTION.OUT);
@@ -357,8 +364,7 @@ public class GraphEngine {
           }
         } catch (RecordNotFoundException e) {
           // ALREADY DELETED, IGNORE THIS
-          LogManager.instance()
-              .log(this, Level.WARNING, "Error on deleting incoming vertex %s connected to vertex %s", null, nextEdge.getOut(), vertex.getIdentity());
+          LogManager.instance().log(this, Level.WARNING, "Error on deleting incoming vertex %s connected to vertex %s", null, outV, vertex.getIdentity());
         }
       }
 
@@ -546,7 +552,7 @@ public class GraphEngine {
       }
   }
 
-  private EdgeLinkedList getEdgeHeadChunk(final VertexInternal vertex, final Vertex.DIRECTION direction) {
+  public EdgeLinkedList getEdgeHeadChunk(final VertexInternal vertex, final Vertex.DIRECTION direction) {
     if (direction == Vertex.DIRECTION.OUT) {
       final RID rid = vertex.getOutEdgesHeadChunk();
       if (rid != null) {

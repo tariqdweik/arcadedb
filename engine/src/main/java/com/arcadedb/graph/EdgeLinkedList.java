@@ -39,7 +39,7 @@ public class EdgeLinkedList {
   public Iterator<Edge> edgeIterator(final String... edgeTypes) {
     if (edgeTypes == null || edgeTypes.length == 0)
       return new EdgeIterator(first, vertex.getIdentity(), direction);
-    return new EdgeIteratorFilter((DatabaseInternal) vertex.getDatabase(), vertex.getIdentity(), direction, first, edgeTypes);
+    return new EdgeIteratorFilter((DatabaseInternal) vertex.getDatabase(), vertex, direction, first, edgeTypes);
   }
 
   public Iterator<Vertex> vertexIterator(final String... edgeTypes) {
@@ -208,6 +208,16 @@ public class EdgeLinkedList {
       if (deleted > 0)
         ((DatabaseInternal) vertex.getDatabase()).updateRecord(current);
 
+      current = current.getNext();
+    }
+  }
+
+  public void removeEdgeRID(final RID edge) {
+    EdgeSegment current = first;
+    while (current != null) {
+      final int deleted = current.removeEdge(edge);
+      if (deleted > 0)
+        ((DatabaseInternal) vertex.getDatabase()).updateRecord(current);
       current = current.getNext();
     }
   }
