@@ -7,6 +7,7 @@ package com.arcadedb.graph;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
 import com.arcadedb.engine.Bucket;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.EdgeType;
 
 import java.util.HashSet;
@@ -14,16 +15,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> {
   protected final DatabaseInternal database;
   protected       EdgeSegment      currentContainer;
   protected final AtomicInteger    currentPosition = new AtomicInteger(MutableEdgeSegment.CONTENT_START_POSITION);
-
-  protected RID          nextEdge;
-  protected RID          nextVertex;
-  protected RID          next;
-  protected Set<Integer> validBuckets;
+  protected       RID              nextEdge;
+  protected       RID              nextVertex;
+  protected       RID              next;
+  protected       Set<Integer>     validBuckets;
 
   protected IteratorFilterBase(final DatabaseInternal database, final EdgeSegment current, final String[] edgeTypes) {
     this.database = database;
@@ -55,9 +56,24 @@ public abstract class IteratorFilterBase<T> implements Iterator<T>, Iterable<T> 
           nextEdge = next = currentContainer.getRID(currentPosition);
           nextVertex = currentContainer.getRID(currentPosition); // SKIP VERTEX
 
+          if (nextEdge.getPosition() > -1)
+            try {
+              database.lookupByRID(nextEdge, true);
+            } catch (Exception e) {
+              LogManager.instance().log(this, Level.WARNING, "Error on loading next edge %s. Skip it.", e, nextEdge);
+              continue;
+            }
+
         } else {
           nextEdge = currentContainer.getRID(currentPosition);
           nextVertex = next = currentContainer.getRID(currentPosition);
+
+          try {
+            database.lookupByRID(nextVertex, true);
+          } catch (Exception e) {
+            LogManager.instance().log(this, Level.WARNING, "Error on loading next edge %s. Skip it.", e, nextEdge);
+            continue;
+          }
         }
 
         if (validBuckets.contains(nextEdge.getBucketId()))

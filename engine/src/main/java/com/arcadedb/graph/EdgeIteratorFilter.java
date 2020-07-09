@@ -6,6 +6,7 @@ package com.arcadedb.graph;
 
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.RID;
+import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.exception.SchemaException;
 import com.arcadedb.log.LogManager;
 
@@ -45,6 +46,15 @@ public class EdgeIteratorFilter extends IteratorFilterBase<Edge> {
       }
 
       return next.getEdge();
+    } catch (RecordNotFoundException e) {
+      LogManager.instance().log(this, Level.WARNING, "Error on loading edge %s from vertex %s direction %s", e, next, vertex, direction);
+
+      next = null;
+      if (hasNext())
+        return next();
+
+      throw e;
+
     } catch (SchemaException e) {
       LogManager.instance().log(this, Level.WARNING, "Error on loading edge %s from vertex %s direction %s", e, next, vertex, direction);
       throw e;
