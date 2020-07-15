@@ -321,7 +321,7 @@ public class Bucket extends PaginatedComponent {
       return page.getImmutableView(recordContentPositionInPage, (int) recordSize[0]);
 
     } catch (IOException e) {
-      throw new DatabaseOperationException("Error on lookup of record " + rid);
+      throw new DatabaseOperationException("Error on lookup of record " + rid, e);
     }
   }
 
