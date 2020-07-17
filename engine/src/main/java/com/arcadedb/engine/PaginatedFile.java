@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.util.logging.Level;
 
@@ -41,7 +42,12 @@ public class PaginatedFile {
 
   public void close() {
     try {
+      LogManager.instance().log(this, Level.INFO, "DEBUG - closing file %s (id=%d)", null, filePath, fileId);
+      LogManager.instance().flush();
+      new Exception().printStackTrace();
+
       channel.close();
+
     } catch (IOException e) {
       LogManager.instance().log(this, Level.SEVERE, "Error on closing file %s (id=%d)", e, filePath, fileId);
     }
@@ -94,7 +100,13 @@ public class PaginatedFile {
     final ByteBuffer buffer = page.getContent();
 
     buffer.rewind();
-    channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
+    try {
+      channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
+    } catch (ClosedChannelException e) {
+      LogManager.instance().log(this, Level.SEVERE, "File '%s' was closed on write. Reopen it and retry...", null, fileName);
+      open(filePath, mode);
+      channel.write(buffer, (page.getPhysicalSize() * (long) page.getPageId().getPageNumber()));
+    }
     return pageSize;
 //
 //    final int[] range = page.getModifiedRange();
@@ -126,7 +138,14 @@ public class PaginatedFile {
     assert page.getPageId().getFileId() == fileId;
     final ByteBuffer buffer = page.getContent();
     buffer.clear();
-    channel.read(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
+
+    try {
+      channel.read(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
+    } catch (ClosedChannelException e) {
+      LogManager.instance().log(this, Level.SEVERE, "File '%s' was closed on read. Reopen it and retry...", null, fileName);
+      open(filePath, mode);
+      channel.read(buffer, page.getPhysicalSize() * (long) page.getPageId().getPageNumber());
+    }
   }
 
   public boolean isOpen() {
