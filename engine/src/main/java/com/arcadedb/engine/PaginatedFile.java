@@ -42,9 +42,8 @@ public class PaginatedFile {
 
   public void close() {
     try {
-      LogManager.instance().log(this, Level.INFO, "DEBUG - closing file %s (id=%d)", null, filePath, fileId);
+      LogManager.instance().log(this, Level.FINE, "DEBUG - closing file %s (id=%d)", null, filePath, fileId);
       LogManager.instance().flush();
-      new Exception().printStackTrace();
 
       channel.close();
 
