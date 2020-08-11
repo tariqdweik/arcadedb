@@ -12,6 +12,7 @@ import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.sql.executor.CommandContext;
 import com.arcadedb.sql.executor.InternalResultSet;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 public class RebuildIndexStatement extends SimpleExecStatement {
 
@@ -64,16 +66,20 @@ public class RebuildIndexStatement extends SimpleExecStatement {
         final Index[] indexes = database.getSchema().getIndexes();
 
         for (Index idx : indexes) {
-          if (idx instanceof TypeIndex) {
-            final SchemaImpl.INDEX_TYPE indexType = idx.getType();
-            final boolean unique = idx.isUnique();
-            final String[] propNames = idx.getPropertyNames();
+          try {
+            if (idx instanceof TypeIndex) {
+              final SchemaImpl.INDEX_TYPE indexType = idx.getType();
+              final boolean unique = idx.isUnique();
+              final String[] propNames = idx.getPropertyNames();
 
-            final String typeName = idx.getTypeName();
+              final String typeName = idx.getTypeName();
 
-            database.getSchema().dropIndex(idx.getName());
-            database.getSchema().createTypeIndex(indexType, unique, typeName, propNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
-            indexList.add(idx.getName());
+              database.getSchema().dropIndex(idx.getName());
+              database.getSchema().createTypeIndex(indexType, unique, typeName, propNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+              indexList.add(idx.getName());
+            }
+          } catch (Exception e) {
+            LogManager.instance().log(this, Level.SEVERE, "Error on rebuilding index '%s'", e, idx.getName());
           }
         }
 
@@ -85,17 +91,20 @@ public class RebuildIndexStatement extends SimpleExecStatement {
         if (!idx.isAutomatic())
           throw new CommandExecutionException("Cannot rebuild index '" + name + "' because it's manual and there aren't indications of what to index");
 
+        final SchemaImpl.INDEX_TYPE type = idx.getType();
+        final String typeName = idx.getTypeName();
+        final boolean unique = idx.isUnique();
+        final String[] propertyNames = idx.getPropertyNames();
+        final LSMTreeIndexAbstract.NULL_STRATEGY nullStrategy = idx.getNullStrategy();
+
         database.getSchema().dropIndex(idx.getName());
 
-        final String typeName = idx.getTypeName();
-
         if (typeName != null && idx instanceof TypeIndex) {
-          database.getSchema().getType(typeName)
-              .createTypeIndex(idx.getType(), idx.isUnique(), idx.getPropertyNames(), LSMTreeIndexAbstract.DEF_PAGE_SIZE, callback);
+          database.getSchema().getType(typeName).createTypeIndex(type, unique, propertyNames, LSMTreeIndexAbstract.DEF_PAGE_SIZE, nullStrategy, callback);
         } else {
           database.getSchema()
-              .createBucketIndex(idx.getType(), idx.isUnique(), idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(),
-                  idx.getPropertyNames(), pageSize, idx.getNullStrategy(), callback);
+              .createBucketIndex(type, unique, idx.getTypeName(), database.getSchema().getBucketById(idx.getAssociatedBucketId()).getName(), propertyNames,
+                  pageSize, nullStrategy, callback);
         }
 
         indexList.add(idx.getName());
