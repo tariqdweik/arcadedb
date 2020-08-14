@@ -23,6 +23,8 @@ public class VertexIteratorFilter extends IteratorFilterBase<Vertex> {
 
   @Override
   public Vertex next() {
+    hasNext();
+
     if (next == null)
       throw new NoSuchElementException();
 

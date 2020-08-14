@@ -22,6 +22,8 @@ public class EdgeVertexIteratorFilter extends IteratorFilterBase<Pair<RID, RID>>
 
   @Override
   public Pair<RID, RID> next() {
+    hasNext();
+
     if (next == null)
       throw new NoSuchElementException();
 

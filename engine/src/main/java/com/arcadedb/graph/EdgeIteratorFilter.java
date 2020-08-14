@@ -32,6 +32,8 @@ public class EdgeIteratorFilter extends IteratorFilterBase<Edge> {
 
   @Override
   public Edge next() {
+    hasNext();
+
     if (next == null)
       throw new NoSuchElementException();
 
