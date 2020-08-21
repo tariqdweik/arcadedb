@@ -9,12 +9,6 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.exception.SchemaException;
-import com.arcadedb.index.Index;
-import com.arcadedb.index.IndexInternal;
-import com.arcadedb.index.TypeIndex;
-import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
-import com.arcadedb.schema.DocumentType;
-import com.arcadedb.schema.SchemaImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +19,6 @@ public class DropTypeTest extends BaseTest {
   private static final String TYPE_NAME  = "V";
   private static final String TYPE_NAME2 = "V2";
   private static final String TYPE_NAME3 = "V3";
-  private static final int    PAGE_SIZE  = 20000;
 
   @Test
   public void testDropAndRecreateType() {

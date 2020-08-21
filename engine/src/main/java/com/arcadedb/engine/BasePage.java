@@ -87,6 +87,10 @@ public abstract class BasePage {
     return content.size() - PAGE_HEADER_SIZE;
   }
 
+  public void clearContent() {
+    content.clear();
+  }
+
   public void setContentSize(final int value) {
     content.size(value + PAGE_HEADER_SIZE);
   }
