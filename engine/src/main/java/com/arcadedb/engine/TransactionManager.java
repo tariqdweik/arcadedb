@@ -249,7 +249,7 @@ public class TransactionManager {
     boolean changed = false;
     boolean involveDictionary = false;
 
-    final int dictionaryId = database.getSchema().getDictionary().file.getFileId();
+    final int dictionaryId = database.getSchema().getDictionary() != null ? database.getSchema().getDictionary().file.getFileId() : -1;
 
     LogManager.instance().log(this, Level.FINE, "- applying changes from txId=%d", null, tx.txId);
 
