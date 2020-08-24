@@ -157,20 +157,22 @@ public class TransactionContext implements Transaction {
     LogManager.instance().log(this, Level.FINE, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", null, newPages, modifiedPages,
         Thread.currentThread().getId());
 
-    boolean reloadDictionary = false;
-    final int dictionaryId = database.getSchema().getDictionary().getId();
-    for (PageId pageId : modifiedPages.keySet()) {
-      if (dictionaryId == pageId.getFileId()) {
-        reloadDictionary = true;
-        break;
+    if (database.isOpen()) {
+      boolean reloadDictionary = false;
+      final int dictionaryId = database.getSchema().getDictionary().getId();
+      for (PageId pageId : modifiedPages.keySet()) {
+        if (dictionaryId == pageId.getFileId()) {
+          reloadDictionary = true;
+          break;
+        }
       }
-    }
 
-    if (reloadDictionary) {
-      try {
-        database.getSchema().getDictionary().reload();
-      } catch (IOException e) {
-        throw new SchemaException("Error on reloading schema dictionary");
+      if (reloadDictionary) {
+        try {
+          database.getSchema().getDictionary().reload();
+        } catch (IOException e) {
+          throw new SchemaException("Error on reloading schema dictionary");
+        }
       }
     }
 
