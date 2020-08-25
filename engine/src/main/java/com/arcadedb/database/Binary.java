@@ -149,6 +149,18 @@ public class Binary implements BinaryStructure {
     return putUnsignedNumber(value);
   }
 
+  public int getVarSize(final long value) {
+    int bytesUsed = 0;
+    long v = value;
+    while ((v & 0xFFFFFFFFFFFFFF80L) != 0L) {
+      bytesUsed++;
+      v >>>= 7;
+    }
+    bytesUsed++;
+
+    return bytesUsed;
+  }
+
   @Override
   public int putUnsignedNumber(final long value) {
     int bytesUsed = 0;
@@ -220,7 +232,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public int putBytes(final byte[] value) {
-    int bytesUsed = putUnsignedNumber(value.length);
+    final int bytesUsed = putUnsignedNumber(value.length);
     checkForAllocation(buffer.position(), value.length);
     buffer.put(value);
     return bytesUsed + value.length;
@@ -228,7 +240,7 @@ public class Binary implements BinaryStructure {
 
   @Override
   public int putBytes(final byte[] value, final int size) {
-    int bytesUsed = putUnsignedNumber(size);
+    final int bytesUsed = putUnsignedNumber(size);
     checkForAllocation(buffer.position(), size);
     buffer.put(value, 0, size);
     return bytesUsed + size;
