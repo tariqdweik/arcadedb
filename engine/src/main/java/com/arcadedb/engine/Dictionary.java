@@ -8,14 +8,17 @@ import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.exception.DatabaseMetadataException;
 import com.arcadedb.exception.SchemaException;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
 
 /**
  * HEADER = [itemCount(int:4),pageSize(int:4)] CONTENT-PAGES = [propertyName(string)]
@@ -127,20 +130,33 @@ public class Dictionary extends PaginatedComponent {
     if (newName == null)
       throw new IllegalArgumentException("Dictionary new item name was null");
 
-    Integer oldIndex = dictionaryMap.remove(oldName);
-    if (oldIndex == null)
-      throw new IllegalArgumentException("Item '" + oldName + "' not found in the dictionary");
-
-    for (DocumentType t : database.getSchema().getTypes())
-      if (oldName.equals(t.getName()))
-        throw new IllegalArgumentException("Cannot rename the item '" + oldName + "' in the dictionary because it has been used as a type name");
-
-    dictionary.set(oldIndex, newName);
     try {
+      dictionaryMap.remove(oldName);
+
+      final List<Integer> oldIndexes = new ArrayList<>();
+      while (true) {
+        final int oldIndex = dictionary.indexOf(oldName);
+        if (oldIndex == -1)
+          break;
+
+        oldIndexes.add(oldIndex);
+
+        dictionary.set(oldIndex, newName);
+      }
+
+      if (oldIndexes.isEmpty())
+        throw new IllegalArgumentException("Item '" + oldName + "' not found in the dictionary");
+
+      for (DocumentType t : database.getSchema().getTypes())
+        if (oldName.equals(t.getName()))
+          throw new IllegalArgumentException("Cannot rename the item '" + oldName + "' in the dictionary because it has been used as a type name");
+
       final MutablePage header = database.getTransaction().getPageToModify(new PageId(file.getFileId(), 0), pageSize, false);
 
       header.clearContent();
+      updateCounters(header);
 
+      itemCount = 0;
       for (String d : dictionary) {
         final byte[] property = d.getBytes();
 
@@ -152,14 +168,18 @@ public class Dictionary extends PaginatedComponent {
         itemCount++;
       }
 
-      final Integer newIndex = dictionaryMap.get(newName);
-      if (newIndex == null)
-        dictionaryMap.putIfAbsent(newName, oldIndex); // IF ALREADY PRESENT, USE THE PREVIOUS KEY INDEX
-
       updateCounters(header);
 
+      final Integer newIndex = dictionaryMap.get(newName);
+      if (newIndex == null)
+        dictionaryMap.putIfAbsent(newName, oldIndexes.get(0)); // IF ALREADY PRESENT, USE THE PREVIOUS KEY INDEX
+
     } catch (IOException e) {
-      dictionary.set(oldIndex, oldName);
+      try {
+        reload();
+      } catch (IOException ioException) {
+        LogManager.instance().log(this, Level.SEVERE, "Error on reloading dictionary", ioException);
+      }
       throw new SchemaException("Error on updating name in dictionary");
     }
   }
