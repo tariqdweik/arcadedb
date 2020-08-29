@@ -359,12 +359,17 @@ public class ReplicationLogFile extends LockContext {
   }
 
   public long getSize() {
-    try {
-      return lastChunkChannel.size() + (chunkNumber * CHUNK_SIZE);
-    } catch (IOException e) {
-      LogManager.instance().log(this, Level.SEVERE, "Error on computing file size for last chunk (%d) in replication log '%s'", e, chunkNumber, filePath);
-      return 0l;
-    }
+    return (Long) executeInLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        try {
+          return lastChunkChannel.size() + (chunkNumber * CHUNK_SIZE);
+        } catch (IOException e) {
+          LogManager.instance().log(this, Level.SEVERE, "Error on computing file size for last chunk (%d) in replication log '%s'", e, chunkNumber, filePath);
+          return 0l;
+        }
+      }
+    });
   }
 
   public WALFile.FLUSH_TYPE getFlushPolicy() {
@@ -428,6 +433,7 @@ public class ReplicationLogFile extends LockContext {
     // CREATE A NEW CHUNK FILE
     lastChunkChannel.force(true);
     lastChunkChannel.close();
+    lastChunkChannel = null;
 
     if (archiveChunkCallback != null) {
       final File archivedFile = new File(filePath + "." + chunkNumber);
