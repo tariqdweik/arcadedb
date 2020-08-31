@@ -28,6 +28,9 @@ import java.util.logging.Level;
  * Replication Log File. Writes the messages to send to a remote node on reconnection.
  * Since April 4, 2020, multiple chunk files are managed. The message position is still a long, by simulating the position of a continuous large file rather
  * than small chunks. This reduces the impacts on the rest of the components. The chunk size is 64MB, so no message can be bigger than that.
+ * <p>
+ * TODO: CONSIDER STRIPING MSG IF FROM THE HEADER BECAUSE THE MESSAGE NUMBER IS CONTAINED IN BOTH THE HEADER (+0 POSITION) AND THE PAYLOAD (+1 POSITION)
+ * ( MSG ID + COMMAND( CMD ID + MSG ID + SERIALIZATION ) )
  */
 public class ReplicationLogFile extends LockContext {
   private final        ServerLogger                  serverLogger;
