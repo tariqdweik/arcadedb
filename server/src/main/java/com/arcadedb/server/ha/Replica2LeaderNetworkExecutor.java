@@ -124,7 +124,6 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         if (response != null)
           sendCommandToLeader(buffer, response, reqId);
-
         reqId = -1;
 
       } catch (SocketTimeoutException e) {
@@ -205,7 +204,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
             serverAddressListCopy = new HashSet<>(Arrays.asList(server.getServerAddressList().split(",")));
           }
 
-          //server.startElection();
+          server.startElection();
         }
       }
     }

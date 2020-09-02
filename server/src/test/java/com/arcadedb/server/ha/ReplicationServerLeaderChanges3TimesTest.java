@@ -132,7 +132,7 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
           messagesInTotal.incrementAndGet();
           messagesPerRestart.incrementAndGet();
 
-          if (getServer(leaderName).isStarted() && messagesPerRestart.get() > getTxs() / (getServerCount() * 2) && restarts.get() < getServerCount() * 2) {
+          if (getServer(leaderName).isStarted() && messagesPerRestart.get() > getTxs() / (getServerCount() * 2) && restarts.get() < getServerCount()) {
             LogManager.instance().log(this, Level.INFO, "TEST: Found online replicas %d", null, getServer(leaderName).getHA().getOnlineReplicas());
 
             if (getServer(leaderName).getHA().getOnlineReplicas() < getServerCount() - 1) {
@@ -147,9 +147,7 @@ public class ReplicationServerLeaderChanges3TimesTest extends ReplicationServerT
               // ANOTHER REPLICA JUST DID IT
               return;
 
-            LogManager.instance()
-                .log(this, Level.INFO, "TEST: Stopping the Leader %s (messages=%d txs=%d restarts=%d) ...", null, leaderName, messagesInTotal.get(), getTxs(),
-                    restarts.get());
+            testLog("Stopping the Leader %s (messages=%d txs=%d restarts=%d) ...", leaderName, messagesInTotal.get(), getTxs(), restarts.get());
 
             getServer(leaderName).stop();
             restarts.incrementAndGet();
