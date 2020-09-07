@@ -29,7 +29,7 @@
         <maven-assembly-plugin.version>3.2.0</maven-assembly-plugin.version>
         <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <assertj-core.version>3.12.2</assertj-core.version>
+        <assertj-core.version>3.17.2</assertj-core.version>
     </properties>
 
     <developers>
