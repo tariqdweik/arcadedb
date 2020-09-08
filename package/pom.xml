@@ -56,7 +56,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <imageName>arcadeanalytics/arcadedb</imageName>
+                    <imageName>arcadedata/arcadedb</imageName>
                     <imageTags>
                         <imageTag>${project.version}</imageTag>
                         <imageTag>latest</imageTag>
