@@ -3,3 +3,17 @@ update_configs:
   - package_manager: "java:maven"
     directory: "/"
     update_schedule: "weekly"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: '04:00'
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: docker
+    directory: "/package"
+    schedule:
+      interval: weekly
+      time: '04:00'
+    open-pull-requests-limit: 10
