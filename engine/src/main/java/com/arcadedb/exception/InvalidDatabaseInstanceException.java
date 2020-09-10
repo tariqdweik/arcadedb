@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class InvalidDatabaseInstanceException extends RuntimeException {
+public class InvalidDatabaseInstanceException extends ArcadeDBException {
   public InvalidDatabaseInstanceException(final String s) {
     super(s);
   }

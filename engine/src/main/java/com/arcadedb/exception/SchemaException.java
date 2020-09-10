@@ -6,7 +6,7 @@ package com.arcadedb.exception;
 
 import java.io.IOException;
 
-public class SchemaException extends RuntimeException {
+public class SchemaException extends ArcadeDBException {
   public SchemaException(final String s) {
     super(s);
   }

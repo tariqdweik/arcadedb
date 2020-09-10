@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class ConfigurationException extends RuntimeException {
+public class ConfigurationException extends ArcadeDBException {
   public ConfigurationException(final String s) {
     super(s);
   }

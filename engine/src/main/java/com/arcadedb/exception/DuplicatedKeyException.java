@@ -6,7 +6,7 @@ package com.arcadedb.exception;
 
 import com.arcadedb.database.RID;
 
-public class DuplicatedKeyException extends RuntimeException {
+public class DuplicatedKeyException extends ArcadeDBException {
   private String indexName;
   private String keys;
   private RID    currentIndexedRID;

@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class DatabaseMetadataException extends RuntimeException {
+public class DatabaseMetadataException extends ArcadeDBException {
   public DatabaseMetadataException(final String s) {
     super(s);
   }

@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class CommandExecutionException extends RuntimeException {
+public class CommandExecutionException extends ArcadeDBException {
   public CommandExecutionException() {
   }
 

@@ -4,7 +4,9 @@
 
 package com.arcadedb.engine;
 
-public class WALException extends RuntimeException {
+import com.arcadedb.exception.ArcadeDBException;
+
+public class WALException extends ArcadeDBException {
   public WALException(final String s) {
     super(s);
   }

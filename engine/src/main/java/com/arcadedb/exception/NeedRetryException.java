@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class NeedRetryException extends RuntimeException {
+public class NeedRetryException extends ArcadeDBException {
   public NeedRetryException(final String s) {
     super(s);
   }

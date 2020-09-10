@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class QueryParsingException extends RuntimeException {
+public class QueryParsingException extends ArcadeDBException {
   public QueryParsingException() {
   }
 

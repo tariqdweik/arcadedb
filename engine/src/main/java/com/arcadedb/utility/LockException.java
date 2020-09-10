@@ -3,7 +3,9 @@
  */
 package com.arcadedb.utility;
 
-public class LockException extends RuntimeException {
+import com.arcadedb.exception.ArcadeDBException;
+
+public class LockException extends ArcadeDBException {
 
   public LockException(final Exception exception) {
     super(exception);
