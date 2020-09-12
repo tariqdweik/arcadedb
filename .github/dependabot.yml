@@ -1,6 +1,6 @@
 version: 2
-update_configs:
-  - package-ecosystem: "java:maven"
+updates:
+  - package-ecosystem: "maven"
     directory: "/"
     schedule:
       interval: weekly
