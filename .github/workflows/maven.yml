@@ -22,5 +22,12 @@ jobs:
       with:
         java-version: 11
 
+    - name: Deploy
+      run: mvn deploy --skipTests --batch-mode --quiet --errors --fail-at-end --show-version  --file pom.xml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Build with Maven
       run: mvn install --batch-mode --quiet --errors --fail-at-end --show-version  --file pom.xml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
