@@ -20,6 +20,9 @@ public class JVMUtils {
     final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     final ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 100);
     for (ThreadInfo threadInfo : threadInfos) {
+      if (threadInfo == null)
+        continue;
+
       if (filterInclude != null || filterExclude != null) {
         boolean found = false;
         final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
