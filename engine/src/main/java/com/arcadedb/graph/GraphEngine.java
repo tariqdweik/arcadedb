@@ -356,7 +356,7 @@ public class GraphEngine {
 
           final EdgeLinkedList outEdges2 = getEdgeHeadChunk(nextVertex, Vertex.DIRECTION.OUT);
           if (outEdges2 != null) {
-            inEdges.removeEdge(nextEdge);
+            outEdges2.removeEdge(nextEdge);
 
             if (nextEdge.getIdentity().getPosition() > -1)
               // NON LIGHTWEIGHT
