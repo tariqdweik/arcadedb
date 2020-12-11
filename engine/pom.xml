@@ -37,7 +37,7 @@
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>jjtree-javacc</goal>
-                            <goal>jjdoc</goal>
+                            <!--<goal>jjdoc</goal>-->
 
                         </goals>
                         <configuration>
