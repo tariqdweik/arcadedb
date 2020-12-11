@@ -36,19 +36,19 @@
         <developer>
             <id>lgarulli</id>
             <name>Luca Garulli</name>
-            <email>l.garullii@arcadeanalytics.com</email>
+            <email>l.garullii@arcadedata.com</email>
             <timezone>-7</timezone>
         </developer>
         <developer>
             <id>robfrank</id>
             <name>Roberto Franchini</name>
-            <email>r.franchini@arcadeanalytics.com</email>
+            <email>r.franchini@arcadedata.com</email>
             <timezone>+1</timezone>
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:https://github.com/ArcadeAnalytics/arcadedb.git</connection>
-        <url>https://github.com/ArcadeAnalytics/arcadedb</url>
+        <connection>scm:git:https://github.com/ArcadeData/arcadedb.git</connection>
+        <url>https://github.com/ArcadeData/arcadedb</url>
         <tag>HEAD</tag>
     </scm>
 
@@ -79,6 +79,12 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco-maven-plugin.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/Q*.java</exclude>
+                        <exclude>**/static/**</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -130,6 +136,8 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
+                        <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
+                        <forkCount>1</forkCount>
                         <includes>
                             <include>**/Test*.java</include>
                             <include>**/*Test.java</include>
