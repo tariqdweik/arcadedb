@@ -107,7 +107,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
         public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
           if (type == TYPE.REPLICA_MSG_RECEIVED) {
             if (messages.incrementAndGet() > 10 && getServer(0).isStarted()) {
-              LogManager.instance().log(this, Level.INFO, "TEST: Stopping the Leader...");
+              testLog("TEST: Stopping the Leader...");
 
               executeAsynchronously(new Callable() {
                 @Override
