@@ -398,6 +398,10 @@ public class SelectStatement extends Statement {
     this.unwind = unwind;
   }
 
+  public Timeout getTimeout() {
+    return timeout;
+  }
+
   public void setTimeout(Timeout timeout) {
     this.timeout = timeout;
   }
