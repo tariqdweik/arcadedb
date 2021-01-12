@@ -123,21 +123,6 @@ The output will be:
 {"@rid": "#3:4", "@type": "Person", "name": "Jay", "surname": "Miner", "age": 69}
 ```
 
-===== Drop a database (POST)
-
-URL Syntax: `/drop/{database}`
-
-Where:
-
-- `database` is the database name
-
-Example of deleting the database "school":
-
-```
-curl -X POST http://localhost:2480/drop/school
-     --user root:root
-```
-
 ===== Execute a query (GET)
 
 This command allows to execute idempotent commands, like `SELECT` ad `MATCH`:
@@ -168,6 +153,21 @@ Where:
 - `database` is the database name
 - `language` is the query language used. Only "sql" is available with latest release
 - `command` the command to execute in encoded format
+
+===== Drop a database (POST)
+
+URL Syntax: `/drop/{database}`
+
+Where:
+
+- `database` is the database name
+
+Example of deleting the database "school":
+
+```
+curl -X POST http://localhost:2480/drop/school
+     --user root:root
+```
 
 ===== Get server information (GET)
 

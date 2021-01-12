@@ -221,7 +221,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     synchronized (channelOutputLock) {
       final ChannelBinaryClient c = channel;
       if (c == null)
-        throw new ReplicationException("Error on sending command back to the leader (cause=socket closed)");
+        throw new ReplicationException("Error on sending command back to the leader server '" + leaderServerName + "' (cause=socket closed)");
 
       c.writeBytes(buffer.getContent(), buffer.size());
       c.flush();

@@ -4,11 +4,20 @@
 
 package com.arcadedb.utility;
 
+import com.sun.management.HotSpotDiagnosticMXBean;
+import sun.jvm.hotspot.tools.HeapDumper;
+
+import javax.management.MBeanServer;
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 
 public class JVMUtils {
+  // This is the name of the HotSpot Diagnostic MBean
+  private static final    String                  HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
+  private static volatile HotSpotDiagnosticMXBean hotspotMBean;
+
   public static String generateThreadDump(String filterInclude, String filterExclude) {
     if (filterInclude != null && filterInclude.trim().isEmpty())
       filterInclude = null;
@@ -68,5 +77,38 @@ public class JVMUtils {
       output.append("\n\n");
     }
     return output.toString();
+  }
+
+  public static String dumpHeap(final boolean live) {
+    if (hotspotMBean == null) {
+      synchronized (HeapDumper.class) {
+        if (hotspotMBean == null) {
+          try {
+            final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+            hotspotMBean = ManagementFactory.newPlatformMXBeanProxy(server, HOTSPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
+          } catch (RuntimeException re) {
+            throw re;
+          } catch (Exception exp) {
+            throw new RuntimeException(exp);
+          }
+        }
+      }
+    }
+
+    try {
+      final File file = File.createTempFile("deepwolf.heapdump.bin", null);
+      hotspotMBean.dumpHeap(file.getAbsolutePath(), live);
+
+      final String content = FileUtils.readFileAsString(file, "UTF8");
+
+      file.delete();
+
+      return content;
+
+    } catch (RuntimeException re) {
+      throw re;
+    } catch (Exception exp) {
+      throw new RuntimeException(exp);
+    }
   }
 }
