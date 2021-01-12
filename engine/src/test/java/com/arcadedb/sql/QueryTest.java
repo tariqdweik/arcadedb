@@ -346,4 +346,21 @@ public class QueryTest extends BaseTest {
       }
     });
   }
+
+  @Test
+  public void testMethod() {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database db) {
+        ResultSet rs = db.query("SQL", "SELECT 'bar'.prefix('foo') as name");
+        Assertions.assertTrue(rs.hasNext());
+        Assertions.assertEquals("foobar", rs.next().getProperty("name"));
+
+        Assertions.assertFalse(rs.hasNext());
+
+        rs.close();
+      }
+    });
+  }
+
 }
