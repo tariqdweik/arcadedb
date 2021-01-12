@@ -292,4 +292,25 @@ public class QueryTest extends BaseTest {
       }
     });
   }
+
+  @Test
+  public void testCreateEdge() {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database db) {
+        db.command("SQL", "CREATE VERTEX TYPE Foo");
+        db.command("SQL", "CREATE EDGE TYPE TheEdge");
+        db.command("SQL", "CREATE VERTEX Foo SET name = 'foo'");
+        db.command("SQL", "CREATE VERTEX Foo SET name = 'bar'");
+        db.command("SQL", "CREATE EDGE TheEdge FROM (SELECT FROM Foo WHERE name ='foo') TO (SELECT FROM Foo WHERE name ='foo')");
+
+        ResultSet rs = db.query("SQL", "SELECT FROM TheEdge");
+        Assertions.assertTrue(rs.hasNext());
+        rs.next();
+        Assertions.assertFalse(rs.hasNext());
+
+        rs.close();
+      }
+    });
+  }
 }
