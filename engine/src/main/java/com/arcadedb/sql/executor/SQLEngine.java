@@ -8,6 +8,7 @@ import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.exception.CommandSQLParsingException;
 import com.arcadedb.sql.function.DefaultSQLFunctionFactory;
+import com.arcadedb.sql.method.DefaultSQLMethodFactory;
 import com.arcadedb.sql.parser.ParseException;
 import com.arcadedb.sql.parser.SqlParser;
 import com.arcadedb.sql.parser.Statement;
@@ -22,9 +23,11 @@ import java.util.List;
 public class SQLEngine {
   private static final SQLEngine                 INSTANCE = new SQLEngine();
   private final        DefaultSQLFunctionFactory functions;
+  private final        DefaultSQLMethodFactory methods;
 
   protected SQLEngine() {
     functions = new DefaultSQLFunctionFactory();
+    methods = new DefaultSQLMethodFactory();
   }
 
   public static Object foreachRecord(final Callable<Object, Identifiable> iCallable, Object iCurrent,
@@ -66,8 +69,8 @@ public class SQLEngine {
     return functions.createFunction(name);
   }
 
-  public static SQLMethod getMethod(final String name) {
-    return null;
+  public  SQLMethod getMethod(final String name) {
+    return methods.createMethod(name);
   }
 
   public static Statement parse(final String query, final DatabaseInternal database) {

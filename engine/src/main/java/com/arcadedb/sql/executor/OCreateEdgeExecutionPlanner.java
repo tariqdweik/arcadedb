@@ -78,7 +78,7 @@ public class OCreateEdgeExecutionPlanner {
 
   private void handleCheckType(InsertExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
     if (targetClass != null) {
-      result.chain(new CheckClassTypeStep(targetClass.getStringValue(), "E", ctx, profilingEnabled));
+      result.chain(new CheckIsEdgeTypeStep(targetClass.getStringValue(), ctx, profilingEnabled));
     }
   }
 

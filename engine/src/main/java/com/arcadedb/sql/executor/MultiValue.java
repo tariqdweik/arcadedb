@@ -163,7 +163,7 @@ public class MultiValue {
     if (!isMultiValue(iObject))
       return null;
 
-    if (iIndex > getSize(iObject))
+    if (!(iObject instanceof Iterator) && iIndex > getSize(iObject))
       return null;
 
     try {

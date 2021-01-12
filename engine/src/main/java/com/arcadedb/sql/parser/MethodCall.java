@@ -109,7 +109,7 @@ public class MethodCall extends SimpleNode {
       }
 
     }
-    SQLMethod method = SQLEngine.getMethod(name);
+    SQLMethod method = SQLEngine.getInstance().getMethod(name);
     if (method != null) {
       if (val instanceof Result) {
         val = ((Result) val).getElement().orElse(null);

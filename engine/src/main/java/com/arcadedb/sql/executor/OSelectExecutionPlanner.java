@@ -50,6 +50,7 @@ public class OSelectExecutionPlanner {
     info.skip = this.statement.getSkip();
     info.limit = this.statement.getLimit();
 //    info.lockRecord = this.statement.getLockRecord();
+    info.timeout = this.statement.getTimeout() == null ? null : this.statement.getTimeout().copy();
 
   }
 
@@ -98,6 +99,10 @@ public class OSelectExecutionPlanner {
     handleLockRecord(result, info, ctx, enableProfiling);
 
     handleProjectionsBlock(result, info, ctx, enableProfiling);
+
+    if (info.timeout != null) {
+      result.chain(new AccumulatingTimeoutStep(info.timeout, ctx, enableProfiling));
+    }
 
     if (!enableProfiling && statement.executinPlanCanBeCached() && result.canBeCached() && db.getExecutionPlanCache().getLastInvalidation() < planningStart) {
       db.getExecutionPlanCache().put(statement.getOriginalStatement(), result);
