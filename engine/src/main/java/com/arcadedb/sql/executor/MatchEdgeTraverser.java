@@ -94,7 +94,7 @@ public class MatchEdgeTraverser {
 
   protected void init(CommandContext ctx) {
     if (downstream == null) {
-      Object startingElem = sourceRecord.getProperty(getStartingPointAlias());
+      Object startingElem = sourceRecord.getElementProperty(getStartingPointAlias());
       if (startingElem instanceof Result) {
         startingElem = ((Result) startingElem).getElement().orElse(null);
       }
