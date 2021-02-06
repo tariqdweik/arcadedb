@@ -22,7 +22,7 @@ node {
 
             stage('build') {
                 try {
-                    sh "./mvnw -fae --quiet --batch clean install -DskipTests "
+                    sh "./mvnw -fae --quiet -B clean install -DskipTests "
                 } catch (err) {
                     throw err
                 } finally {
