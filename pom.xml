@@ -17,7 +17,7 @@
         <!--maven.compiler.release>8</maven.compiler.release-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <junit.jupiter.version>5.6.2</junit.jupiter.version>
+        <junit.jupiter.version>5.7.1</junit.jupiter.version>
 
         <docker.plugin.version>1.2.1</docker.plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
@@ -27,7 +27,7 @@
         <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
         <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <assertj-core.version>3.17.2</assertj-core.version>
+        <assertj-core.version>3.19.0</assertj-core.version>
     </properties>
 
     <developers>
