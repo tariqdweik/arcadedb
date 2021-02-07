@@ -26,7 +26,7 @@ jobs:
         java-version: 11
 
     - name: Deploy
-      run: mvn deploy --batch-mode --quiet --errors --fail-at-end --show-version  --file pom.xml
+      run: mvn deploy -PnoServerTest --batch-mode --quiet --errors --fail-at-end --show-version  --file pom.xml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

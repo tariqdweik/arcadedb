@@ -24,6 +24,14 @@
         <undertow-core.version>2.2.4.Final</undertow-core.version>
     </properties>
 
+    <profiles>
+        <profile>
+            <id>noServerTest</id>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+        </profile>
+    </profiles>
 
     <dependencies>
         <dependency>
