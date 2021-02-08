@@ -13,7 +13,10 @@ import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class QueryTest extends BaseTest {
@@ -327,8 +330,7 @@ public class QueryTest extends BaseTest {
             "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass
                 + " WHERE name ='bar')");
 
-
-        ResultSet rs = db.query("SQL", "SELECT FROM "+edgeClass);
+        ResultSet rs = db.query("SQL", "SELECT FROM " + edgeClass);
         Assertions.assertTrue(rs.hasNext());
         rs.next();
         Assertions.assertFalse(rs.hasNext());
@@ -363,4 +365,71 @@ public class QueryTest extends BaseTest {
     });
   }
 
+  @Test
+  public void testMatch() {
+    final String vertexClass = "testMatch_V";
+    final String edgeClass = "testMatch_E";
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database db) {
+        db.command("SQL", "CREATE VERTEX TYPE " + vertexClass);
+        db.command("SQL", "CREATE EDGE TYPE " + edgeClass);
+        db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'foo'");
+        db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'bar'");
+        db.command("SQL",
+            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass
+                + " WHERE name ='bar')");
+
+        ResultSet rs = db.query("SQL", "SELECT FROM " + edgeClass);
+        Assertions.assertTrue(rs.hasNext());
+        rs.next();
+        Assertions.assertFalse(rs.hasNext());
+
+        rs.close();
+
+        rs = db.query("SQL", "MATCH {type:" + vertexClass + ", as:a} -"+edgeClass+"->{}  RETURN $patterns");
+        System.out.println(rs.getExecutionPlan().get().prettyPrint(0, 2));
+        Assertions.assertTrue(rs.hasNext());
+        Result item = rs.next();
+        Assertions.assertFalse(rs.hasNext());
+
+        rs.close();
+      }
+    });
+  }
+
+
+  @Test
+  public void testAnonMatch() {
+    final String vertexClass = "testAnonMatch_V";
+    final String edgeClass = "testAnonMatch_E";
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database db) {
+        db.command("SQL", "CREATE VERTEX TYPE " + vertexClass);
+        db.command("SQL", "CREATE EDGE TYPE " + edgeClass);
+        db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'foo'");
+        db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'bar'");
+        db.command("SQL",
+            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass
+                + " WHERE name ='bar')");
+
+        ResultSet rs = db.query("SQL", "SELECT FROM " + edgeClass);
+        Assertions.assertTrue(rs.hasNext());
+        rs.next();
+        Assertions.assertFalse(rs.hasNext());
+
+        rs.close();
+
+        rs = db.query("SQL", "MATCH {type:" + vertexClass + ", as:a} --> {}  RETURN $patterns");
+        System.out.println(rs.getExecutionPlan().get().prettyPrint(0, 2));
+        Assertions.assertTrue(rs.hasNext());
+        Result item = rs.next();
+        Assertions.assertFalse(rs.hasNext());
+
+        rs.close();
+      }
+    });
+  }
 }
+

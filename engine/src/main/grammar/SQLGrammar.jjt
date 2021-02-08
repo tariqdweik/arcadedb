@@ -3739,17 +3739,15 @@ MatchPathItem OutPathItem():
         jjtThis.filter = MatchFilter()
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "out";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3771,17 +3769,15 @@ MatchPathItem InPathItem():
         jjtThis.filter = MatchFilter()
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "in";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3802,17 +3798,15 @@ MatchPathItem BothPathItem():
         jjtThis.filter = MatchFilter()
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "both";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3835,17 +3829,15 @@ MatchPathItem OutPathItemOpt():
         [jjtThis.filter = MatchFilter()]
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "out";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3867,17 +3859,15 @@ MatchPathItem InPathItemOpt():
         [jjtThis.filter = MatchFilter()]
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "in";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if(edgeName!=null){
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3898,17 +3888,15 @@ MatchPathItem BothPathItemOpt():
         [jjtThis.filter = MatchFilter()]
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "both";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
