@@ -387,7 +387,7 @@ public class QueryTest extends BaseTest {
 
         rs.close();
 
-        rs = db.query("SQL", "MATCH {type:" + vertexClass + ", as:a} -"+edgeClass+"->{}  RETURN $patterns");
+        rs = db.query("SQL", "MATCH {type:" + vertexClass + ", as:a} -" + edgeClass + "->{}  RETURN $patterns");
         System.out.println(rs.getExecutionPlan().get().prettyPrint(0, 2));
         Assertions.assertTrue(rs.hasNext());
         Result item = rs.next();
@@ -397,7 +397,6 @@ public class QueryTest extends BaseTest {
       }
     });
   }
-
 
   @Test
   public void testAnonMatch() {
@@ -431,5 +430,31 @@ public class QueryTest extends BaseTest {
       }
     });
   }
+
+  @Test
+  public void testLike() {
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database db) {
+        ResultSet rs = db.command("SQL", "SELECT FROM V WHERE surname LIKE '%in%' LIMIT 1");
+        Assertions.assertTrue(rs.hasNext());
+        rs.next();
+        Assertions.assertFalse(rs.hasNext());
+        rs.close();
+
+        rs = db.command("SQL", "SELECT FROM V WHERE surname LIKE 'Mi?er%' LIMIT 1");
+        Assertions.assertTrue(rs.hasNext());
+        rs.next();
+        Assertions.assertFalse(rs.hasNext());
+        rs.close();
+
+        rs = db.command("SQL", "SELECT FROM V WHERE surname LIKE 'baz' LIMIT 1");
+        Assertions.assertFalse(rs.hasNext());
+        rs.close();
+
+      }
+    });
+  }
+
 }
 
