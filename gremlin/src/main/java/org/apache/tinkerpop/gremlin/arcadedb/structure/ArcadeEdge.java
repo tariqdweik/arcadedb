@@ -1,7 +1,6 @@
 package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
 import com.arcadedb.graph.MutableEdge;
-import com.arcadedb.graph.MutableVertex;
 import org.apache.commons.collections.iterators.ArrayIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -27,24 +26,24 @@ public class ArcadeEdge extends ArcadeElement<MutableEdge> implements Edge {
 
   @Override
   public Vertex outVertex() {
-    return new ArcadeVertex(graph, (MutableVertex) baseElement.getOutVertex().modify());
+    return new ArcadeVertex(graph, baseElement.getOutVertex().modify());
   }
 
   @Override
   public Vertex inVertex() {
-    return new ArcadeVertex(graph, (MutableVertex) baseElement.getInVertex().modify());
+    return new ArcadeVertex(graph, baseElement.getInVertex().modify());
   }
 
   @Override
   public Iterator<Vertex> vertices(final Direction direction) {
     switch (direction) {
     case IN:
-      return new SingletonIterator(new ArcadeVertex(graph, (MutableVertex) baseElement.getInVertex().modify()));
+      return new SingletonIterator(new ArcadeVertex(graph, baseElement.getInVertex().modify()));
     case OUT:
-      return new SingletonIterator(new ArcadeVertex(graph, (MutableVertex) baseElement.getOutVertex().modify()));
+      return new SingletonIterator(new ArcadeVertex(graph, baseElement.getOutVertex().modify()));
     case BOTH:
-      return new ArrayIterator(new Vertex[] { new ArcadeVertex(graph, (MutableVertex) baseElement.getOutVertex().modify()),
-          new ArcadeVertex(graph, (MutableVertex) baseElement.getInVertex().modify()) });
+      return new ArrayIterator(
+          new Vertex[] { new ArcadeVertex(graph, baseElement.getOutVertex().modify()), new ArcadeVertex(graph, baseElement.getInVertex().modify()) });
     default:
       throw new IllegalArgumentException("Direction " + direction + " not supported");
     }
