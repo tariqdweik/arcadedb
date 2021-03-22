@@ -36,12 +36,14 @@ public class JVMUtils {
         boolean found = false;
         final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
         for (final StackTraceElement stackTraceElement : stackTraceElements) {
-          if (filterInclude != null && stackTraceElement.toString().contains(filterInclude)) {
+          if (filterInclude == null)
+            found = true;
+          else if (stackTraceElement.toString().contains(filterInclude)) {
             found = true;
             break;
           }
 
-          if (filterExclude != null && stackTraceElement.toString().contains(filterExclude)) {
+          if (found && filterExclude != null && stackTraceElement.toString().contains(filterExclude)) {
             found = false;
             break;
           }
