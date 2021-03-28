@@ -54,7 +54,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/ArcadeData/arcadedb</url>
+            <url>https://maven.pkg.github.com/arcadedata/arcadedb</url>
         </repository>
     </distributionManagement>
 
