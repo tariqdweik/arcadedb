@@ -52,7 +52,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                    <argLine>${argLine} -Xmx2G</argLine>
+                    <argLine>-Xmx2G</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -69,7 +69,7 @@
                 <configuration>
                     <forkedProcessTimeoutInSeconds>0</forkedProcessTimeoutInSeconds>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                    <argLine>${argLine} -Xmx2G</argLine>
+                    <argLine>-Xmx2G</argLine>
                     <reuseForks>false</reuseForks>
                     <excludes>
                         <!-- there is a bug on greemlin groovy tests, we shall revisit this after TINKERPOP3-984 is release -->
