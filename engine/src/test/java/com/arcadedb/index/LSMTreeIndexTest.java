@@ -443,48 +443,6 @@ public class LSMTreeIndexTest extends BaseTest {
     });
 
     database.transaction((database) -> {
-      int total = 0;
-
-      Index[] indexes = database.getSchema().getIndexes();
-
-      for (int i = 0; i < TOT; ++i) {
-        int found = 0;
-
-        final Object[] key = new Object[] { i };
-
-        for (Index index : indexes) {
-          if (index instanceof TypeIndex)
-            continue;
-
-          final IndexCursor value = index.get(key);
-          if (value.hasNext()) {
-            for (Identifiable r : value) {
-              index.put(key, new RID[] { r.getIdentity() });
-            }
-            found++;
-            total++;
-          }
-        }
-
-        Assertions.assertEquals(1, found, "Key '" + Arrays.toString(key) + "' found " + found + " times");
-      }
-
-      Assertions.assertEquals(TOT, total);
-
-      // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
-      final List<Index> indexes2 = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
-
-      for (int i = 0; i < TOT; ++i) {
-        for (Index index : indexes2) {
-          if (index instanceof TypeIndex)
-            continue;
-
-          Assertions.assertTrue(index.get(new Object[] { i }).hasNext(), "Cannot find item with key " + i);
-        }
-      }
-    });
-
-    database.transaction((database) -> {
       // GET EACH ITEM TO CHECK IT HAS BEEN DELETED
       List<Index> indexes = database.getSchema().getType(TYPE_NAME).getAllIndexes(false);
 
