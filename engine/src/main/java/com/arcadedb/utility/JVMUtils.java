@@ -4,11 +4,20 @@
 
 package com.arcadedb.utility;
 
+import com.sun.management.HotSpotDiagnosticMXBean;
+import sun.jvm.hotspot.tools.HeapDumper;
+
+import javax.management.MBeanServer;
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 
 public class JVMUtils {
+  // This is the name of the HotSpot Diagnostic MBean
+  private static final    String                  HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
+  private static volatile HotSpotDiagnosticMXBean hotspotMBean;
+
   public static String generateThreadDump(String filterInclude, String filterExclude) {
     if (filterInclude != null && filterInclude.trim().isEmpty())
       filterInclude = null;
@@ -20,16 +29,21 @@ public class JVMUtils {
     final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     final ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 100);
     for (ThreadInfo threadInfo : threadInfos) {
+      if (threadInfo == null)
+        continue;
+
       if (filterInclude != null || filterExclude != null) {
         boolean found = false;
         final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
         for (final StackTraceElement stackTraceElement : stackTraceElements) {
-          if (filterInclude != null && stackTraceElement.toString().contains(filterInclude)) {
+          if (filterInclude == null)
+            found = true;
+          else if (stackTraceElement.toString().contains(filterInclude)) {
             found = true;
             break;
           }
 
-          if (filterExclude != null && stackTraceElement.toString().contains(filterExclude)) {
+          if (found && filterExclude != null && stackTraceElement.toString().contains(filterExclude)) {
             found = false;
             break;
           }
@@ -65,5 +79,38 @@ public class JVMUtils {
       output.append("\n\n");
     }
     return output.toString();
+  }
+
+  public static String dumpHeap(final boolean live) {
+    if (hotspotMBean == null) {
+      synchronized (HeapDumper.class) {
+        if (hotspotMBean == null) {
+          try {
+            final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+            hotspotMBean = ManagementFactory.newPlatformMXBeanProxy(server, HOTSPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
+          } catch (RuntimeException re) {
+            throw re;
+          } catch (Exception exp) {
+            throw new RuntimeException(exp);
+          }
+        }
+      }
+    }
+
+    try {
+      final File file = File.createTempFile("deepwolf.heapdump.bin", null);
+      hotspotMBean.dumpHeap(file.getAbsolutePath(), live);
+
+      final String content = FileUtils.readFileAsString(file, "UTF8");
+
+      file.delete();
+
+      return content;
+
+    } catch (RuntimeException re) {
+      throw re;
+    } catch (Exception exp) {
+      throw new RuntimeException(exp);
+    }
   }
 }

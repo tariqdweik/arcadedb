@@ -6,6 +6,7 @@ package com.arcadedb.engine;
 
 import com.arcadedb.database.Binary;
 import com.arcadedb.database.DatabaseInternal;
+import com.arcadedb.exception.SchemaException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.LockManager;
@@ -246,6 +247,9 @@ public class TransactionManager {
 
   public boolean applyChanges(final WALFile.WALTransaction tx) {
     boolean changed = false;
+    boolean involveDictionary = false;
+
+    final int dictionaryId = database.getSchema().getDictionary() != null ? database.getSchema().getDictionary().file.getFileId() : -1;
 
     LogManager.instance().log(this, Level.FINE, "- applying changes from txId=%d", null, tx.txId);
 
@@ -306,6 +310,9 @@ public class TransactionManager {
             component.setPageCount(newPageCount);
         }
 
+        if (file.getFileId() == dictionaryId)
+          involveDictionary = true;
+
         changed = true;
         LogManager.instance().log(this, Level.FINE, "  - updating page %s v%d", null, pageId, modifiedPage.version);
 
@@ -319,6 +326,15 @@ public class TransactionManager {
         throw new WALException("Cannot apply changes to page " + pageId, e);
       }
     }
+
+    if (involveDictionary) {
+      try {
+        database.getSchema().getDictionary().reload();
+      } catch (IOException e) {
+        throw new SchemaException("Unable to update dictionary after transaction commit");
+      }
+    }
+
     return changed;
   }
 

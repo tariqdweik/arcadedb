@@ -15,6 +15,7 @@ import java.util.Set;
  */
 public class QueryPlanningInfo {
 
+  protected Timeout timeout;
   boolean distinct = false;
   boolean expand   = false;
 

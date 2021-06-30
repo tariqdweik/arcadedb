@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class CommandSQLParsingException extends RuntimeException {
+public class CommandSQLParsingException extends ArcadeDBException {
   public CommandSQLParsingException() {
   }
 

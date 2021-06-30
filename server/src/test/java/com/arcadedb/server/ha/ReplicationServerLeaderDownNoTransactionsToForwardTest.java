@@ -20,10 +20,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
+public class ReplicationServerLeaderDownNoTransactionsToForwardTest extends ReplicationServerTest {
   private final AtomicInteger messages = new AtomicInteger();
 
-  public ReplicationServerLeaderDownTest() {
+  public ReplicationServerLeaderDownNoTransactionsToForwardTest() {
     GlobalConfiguration.HA_QUORUM.setValue("Majority");
   }
 
@@ -31,8 +31,8 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
   public void testReplication() {
     checkDatabases();
 
-    final String server1Address = getServer(0).getHttpServer().getListeningAddress();
-    final String[] server1AddressParts = server1Address.split(":");
+    final String server2Address = getServer(1).getHttpServer().getListeningAddress();
+    final String[] server1AddressParts = server2Address.split(":");
 
     final RemoteDatabase db = new RemoteDatabase(server1AddressParts[0], Integer.parseInt(server1AddressParts[1]), getDatabaseName(), "root", "root");
 
@@ -128,7 +128,7 @@ public class ReplicationServerLeaderDownTest extends ReplicationServerTest {
 
   @Override
   protected int getTxs() {
-    return 1000;
+    return 1;
   }
 
   @Override

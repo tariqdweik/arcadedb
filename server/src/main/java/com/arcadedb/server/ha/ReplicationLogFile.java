@@ -28,6 +28,9 @@ import java.util.logging.Level;
  * Replication Log File. Writes the messages to send to a remote node on reconnection.
  * Since April 4, 2020, multiple chunk files are managed. The message position is still a long, by simulating the position of a continuous large file rather
  * than small chunks. This reduces the impacts on the rest of the components. The chunk size is 64MB, so no message can be bigger than that.
+ * <p>
+ * TODO: CONSIDER STRIPING MSG IF FROM THE HEADER BECAUSE THE MESSAGE NUMBER IS CONTAINED IN BOTH THE HEADER (+0 POSITION) AND THE PAYLOAD (+1 POSITION)
+ * ( MSG ID + COMMAND( CMD ID + MSG ID + SERIALIZATION ) )
  */
 public class ReplicationLogFile extends LockContext {
   private final        ServerLogger                  serverLogger;
@@ -359,12 +362,17 @@ public class ReplicationLogFile extends LockContext {
   }
 
   public long getSize() {
-    try {
-      return lastChunkChannel.size() + (chunkNumber * CHUNK_SIZE);
-    } catch (IOException e) {
-      LogManager.instance().log(this, Level.SEVERE, "Error on computing file size for last chunk (%d) in replication log '%s'", e, chunkNumber, filePath);
-      return 0l;
-    }
+    return (Long) executeInLock(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        try {
+          return lastChunkChannel.size() + (chunkNumber * CHUNK_SIZE);
+        } catch (IOException e) {
+          LogManager.instance().log(this, Level.SEVERE, "Error on computing file size for last chunk (%d) in replication log '%s'", e, chunkNumber, filePath);
+          return 0l;
+        }
+      }
+    });
   }
 
   public WALFile.FLUSH_TYPE getFlushPolicy() {
@@ -428,6 +436,7 @@ public class ReplicationLogFile extends LockContext {
     // CREATE A NEW CHUNK FILE
     lastChunkChannel.force(true);
     lastChunkChannel.close();
+    lastChunkChannel = null;
 
     if (archiveChunkCallback != null) {
       final File archivedFile = new File(filePath + "." + chunkNumber);

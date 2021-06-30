@@ -57,6 +57,9 @@ public class TxForwardRequest extends TxRequestAbstract {
     if (!db.isOpen())
       throw new ReplicationException("Database '" + databaseName + "' is closed");
 
+    if (db.isTransactionActive())
+      throw new ReplicationException("Transaction already begun in database '" + databaseName + "'");
+
     try {
       final WALFile.WALTransaction walTx = readTxFromBuffer();
       final Map<String, Map<TransactionIndexContext.ComparableKey, Set<TransactionIndexContext.IndexKey>>> keysTx = readIndexKeysFromBuffer(db);
@@ -66,6 +69,9 @@ public class TxForwardRequest extends TxRequestAbstract {
       final TransactionContext tx = db.getTransaction();
 
       tx.commitFromReplica(walTx, keysTx);
+
+      if (db.isTransactionActive())
+        throw new ReplicationException("Error on committing transaction in database '" + databaseName + "': a nested transaction occurred");
 
     } catch (NeedRetryException | TransactionException e) {
       return new ErrorResponse(e);

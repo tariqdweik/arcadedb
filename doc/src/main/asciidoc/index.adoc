@@ -3,7 +3,7 @@
 :toclevels: 3
 :sectnums:
 :sectnumlevels: 3
-:revnumber: 0.8
+:revnumber: 1.0
 :example-caption!:
 :imagesdir: images
 :doctype: book

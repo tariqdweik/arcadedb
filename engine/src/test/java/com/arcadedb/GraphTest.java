@@ -498,4 +498,34 @@ public class GraphTest extends BaseGraphTest {
       Assertions.assertFalse(v1a.isConnectedTo(v2));
     });
   }
+
+  @Test
+  public void reuseRollbackedTx() {
+    AtomicReference<RID> v1RID = new AtomicReference<>();
+
+    database.transaction((tx) -> {
+      final MutableVertex v1 = database.newVertex(VERTEX1_TYPE_NAME).save();
+      v1.save();
+      v1RID.set(v1.getIdentity());
+    });
+
+    database.begin();
+    final Vertex v1a = v1RID.get().getVertex();
+    MutableVertex v2 = database.newVertex(VERTEX1_TYPE_NAME).save();
+    v1a.newEdge(EDGE2_TYPE_NAME, v2, false);
+    v1a.newEdge(EDGE2_TYPE_NAME, v2, true);
+    database.rollback();
+
+    try {
+      v2 = database.newVertex(VERTEX1_TYPE_NAME);
+      v2.set("rid", v1RID.get());
+      v2.save();
+
+      Assertions.fail();
+
+    } catch (RuntimeException e) {
+    }
+
+    Assertions.assertFalse(v1a.isConnectedTo(v2));
+  }
 }

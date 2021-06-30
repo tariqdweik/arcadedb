@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class TimeoutException extends RuntimeException {
+public class TimeoutException extends ArcadeDBException {
   public TimeoutException() {
   }
 

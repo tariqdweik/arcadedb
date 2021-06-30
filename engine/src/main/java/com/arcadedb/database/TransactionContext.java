@@ -8,6 +8,7 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.engine.*;
 import com.arcadedb.exception.ConcurrentModificationException;
 import com.arcadedb.exception.DuplicatedKeyException;
+import com.arcadedb.exception.SchemaException;
 import com.arcadedb.exception.TransactionException;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
@@ -156,6 +157,27 @@ public class TransactionContext implements Transaction {
     LogManager.instance().log(this, Level.FINE, "Rollback transaction newPages=%s modifiedPages=%s (threadId=%d)", null, newPages, modifiedPages,
         Thread.currentThread().getId());
 
+    if (database.isOpen() && database.getSchema().getDictionary() != null) {
+      if (modifiedPages != null) {
+        final int dictionaryId = database.getSchema().getDictionary().getId();
+        boolean reloadDictionary = false;
+
+        for (PageId pageId : modifiedPages.keySet()) {
+          if (dictionaryId == pageId.getFileId()) {
+            reloadDictionary = true;
+            break;
+          }
+        }
+
+        if (reloadDictionary) {
+          try {
+            database.getSchema().getDictionary().reload();
+          } catch (IOException e) {
+            throw new SchemaException("Error on reloading schema dictionary");
+          }
+        }
+      }
+    }
     modifiedPages = null;
     newPages = null;
 

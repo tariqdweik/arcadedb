@@ -4,9 +4,11 @@
 
 package com.arcadedb.graph;
 
+import com.arcadedb.exception.ArcadeDBException;
+
 import java.io.IOException;
 
-public class GraphAlgorithmException extends RuntimeException {
+public class GraphAlgorithmException extends ArcadeDBException {
   public GraphAlgorithmException(final String s) {
     super(s);
   }

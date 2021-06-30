@@ -41,7 +41,7 @@ public class OCreateVertexExecutionPlanner extends OInsertExecutionPlanner {
 
   private void handleCheckType(InsertExecutionPlan result, CommandContext ctx, boolean profilingEnabled) {
     if (targetType != null) {
-      result.chain(new CheckClassTypeStep(targetType.getStringValue(), "V", ctx, profilingEnabled));
+      result.chain(new CheckIsVertexTypeStep(targetType.getStringValue(), ctx, profilingEnabled));
     }
     if (targetBucketName != null) {
       result.chain(new CheckClusterTypeStep(targetBucketName.getStringValue(), "V", ctx, profilingEnabled));

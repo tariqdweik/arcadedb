@@ -35,6 +35,23 @@ public class TransactionIndexContext {
     }
 
     @Override
+    public boolean equals(final Object o) {
+      if (this == o)
+        return true;
+      if (!(o instanceof IndexKey))
+        return false;
+      final IndexKey indexKey = (IndexKey) o;
+      return Arrays.equals(keyValues, indexKey.keyValues) && Objects.equals(rid, indexKey.rid);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = Objects.hash(rid);
+      result = 31 * result + Arrays.hashCode(keyValues);
+      return result;
+    }
+
+    @Override
     public String toString() {
       return "IndexKey(" + (addOperation ? "add " : "remove ") + Arrays.toString(keyValues) + ")";
     }
@@ -180,6 +197,9 @@ public class TransactionIndexContext {
       if (values == null) {
         values = new HashSet<>();
         keys.put(k, values);
+      } else {
+        // CHECK FOR REMOVING ENTRIES WITH THE SAME KEY IN TX CONTEXT
+        values.remove(v);
       }
     }
 

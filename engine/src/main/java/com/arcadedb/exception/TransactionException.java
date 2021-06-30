@@ -4,7 +4,7 @@
 
 package com.arcadedb.exception;
 
-public class TransactionException extends RuntimeException {
+public class TransactionException extends ArcadeDBException {
   public TransactionException(final String s) {
     super(s);
   }

@@ -19,10 +19,10 @@
 
     <properties>
         <javacc-maven-plugin.version>2.6</javacc-maven-plugin.version>
-        <disruptor.version>1.2.15</disruptor.version>
-        <json.version>20190722</json.version>
-        <lz4-java.version>1.7.0</lz4-java.version>
-        <lucene.version>8.4.0</lucene.version>
+        <disruptor.version>1.2.19</disruptor.version>
+        <json.version>20201115</json.version>
+        <lz4-java.version>1.7.1</lz4-java.version>
+        <lucene.version>8.8.0</lucene.version>
     </properties>
 
     <build>
@@ -37,7 +37,7 @@
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>jjtree-javacc</goal>
-                            <goal>jjdoc</goal>
+                            <!--<goal>jjdoc</goal>-->
 
                         </goals>
                         <configuration>

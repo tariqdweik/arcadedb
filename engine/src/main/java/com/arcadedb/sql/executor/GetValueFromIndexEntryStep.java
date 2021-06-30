@@ -7,11 +7,14 @@ package com.arcadedb.sql.executor;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.RID;
+import com.arcadedb.exception.RecordNotFoundException;
 import com.arcadedb.exception.TimeoutException;
+import com.arcadedb.log.LogManager;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -127,8 +130,13 @@ public class GetValueFromIndexEntryStep extends AbstractExecutionStep {
 
             if (finalVal instanceof RID) {
               final ResultInternal res = new ResultInternal();
-              res.setElement(((RID) finalVal).getDocument());
-              nextItem = res;
+              try {
+                res.setElement(((RID) finalVal).getDocument());
+                nextItem = res;
+              } catch (RecordNotFoundException e) {
+                LogManager.instance().log(this, Level.WARNING, "Record %s not found. Skip it from the result set", null, finalVal);
+                continue;
+              }
             } else if (finalVal instanceof Document) {
               final ResultInternal res = new ResultInternal();
               res.setElement((Document) finalVal);

@@ -3,11 +3,11 @@
  */
 package com.arcadedb.server.ha;
 
+import com.arcadedb.log.LogManager;
 import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.network.binary.ConnectionException;
 import com.arcadedb.server.ServerException;
 import com.arcadedb.server.ha.network.ServerSocketFactory;
-import com.arcadedb.log.LogManager;
 import com.arcadedb.utility.Pair;
 
 import java.io.IOException;
@@ -118,8 +118,8 @@ public class LeaderNetworkListener extends Thread {
 
         if (serverSocket.isBound()) {
           ha.getServer().log(this, Level.INFO,
-              "Listening for replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr.getPort() + "} (protocol v."
-                  + protocolVersion + ")");
+              "Listening for replication connections on $ANSI{green " + inboundAddr.getAddress().getHostAddress() + ":" + inboundAddr.getPort()
+                  + "} (protocol v." + protocolVersion + ")");
 
           port = tryPort;
           return;
@@ -221,7 +221,8 @@ public class LeaderNetworkListener extends Thread {
         final Replica2LeaderNetworkExecutor leader = ha.getLeader();
         channel.writeString(leader != null ? leader.getRemoteAddress() : ha.getServerAddress());
 
-        ha.startElection();
+        if (leader == null)
+          ha.startElection();
 
       } else if (lastReplicationMessage >= localServerLastMessageNumber && (ha.lastElectionVote == null || ha.lastElectionVote.getFirst() < voteTurn)) {
         ha.getServer().log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, giving my vote", remoteServerName,
@@ -230,10 +231,10 @@ public class LeaderNetworkListener extends Thread {
         ha.lastElectionVote = new Pair<>(voteTurn, remoteServerName);
         ha.setElectionStatus(HAServer.ELECTION_STATUS.VOTING_FOR_OTHERS);
       } else {
-        ha.getServer()
-            .log(this, Level.INFO, "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but cannot give my vote (votedFor='%s' on turn %d)",
-                remoteServerName, lastReplicationMessage, localServerLastMessageNumber, voteTurn,
-                ha.lastElectionVote != null ? ha.lastElectionVote.getSecond() : "-",  ha.lastElectionVote.getFirst());
+        ha.getServer().log(this, Level.INFO,
+            "Server '%s' asked for election (lastReplicationMessage=%d my=%d) on turn %d, but cannot give my vote (votedFor='%s' on turn %d)", remoteServerName,
+            lastReplicationMessage, localServerLastMessageNumber, voteTurn, ha.lastElectionVote != null ? ha.lastElectionVote.getSecond() : "-",
+            ha.lastElectionVote.getFirst());
         channel.writeByte((byte) 1);
         final Replica2LeaderNetworkExecutor leader = ha.getLeader();
         channel.writeString(leader != null ? leader.getRemoteAddress() : ha.getServerAddress());

@@ -547,6 +547,9 @@ public class HAServer implements ServerPlugin {
 
     forwardMessagesWaitingForResponse.put(opNumber, forwardedMessage);
 
+    if( leaderConnection == null )
+      throw new ReplicationException("Leader not available");
+
     try {
       leaderConnection.sendCommandToLeader(buffer, command, opNumber);
 

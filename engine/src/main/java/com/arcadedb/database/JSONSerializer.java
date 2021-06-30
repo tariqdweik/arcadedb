@@ -6,12 +6,14 @@ package com.arcadedb.database;
 
 import com.arcadedb.graph.MutableEmbeddedDocument;
 import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.VertexType;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class JSONSerializer {
   private final Database database;
@@ -24,6 +26,12 @@ public class JSONSerializer {
     final JSONObject json = new JSONObject();
     for (String k : map.keySet()) {
       final Object value = convertToJSONType(map.get(k));
+
+      if (value instanceof Number && !Float.isFinite(((Number) value).floatValue())) {
+        LogManager.instance().log(this, Level.SEVERE, "Found non finite number in map with key '%s', ignore this entry in the conversion", null, k);
+        continue;
+      }
+
       json.put(k, value);
     }
 

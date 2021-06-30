@@ -26,8 +26,10 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.StreamSupport;
 
 public class RemoteDatabase extends RWLockContext {
 
@@ -229,10 +231,10 @@ public class RemoteDatabase extends RWLockContext {
           connection.connect();
 
           if (connection.getResponseCode() != 200) {
-            String detail = "?";
-            String reason = "?";
-            String exception = null;
-            String exceptionArg = null;
+            String detail;
+            String reason;
+            String exception;
+            String exceptionArg;
             String responsePayload = null;
             try {
               responsePayload = FileUtils.readStreamAsString(connection.getErrorStream(), charset);

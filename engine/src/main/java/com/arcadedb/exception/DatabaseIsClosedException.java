@@ -6,7 +6,7 @@ package com.arcadedb.exception;
 
 import java.io.IOException;
 
-public class DatabaseIsClosedException extends RuntimeException {
+public class DatabaseIsClosedException extends ArcadeDBException {
   public DatabaseIsClosedException(final String s) {
     super(s);
   }

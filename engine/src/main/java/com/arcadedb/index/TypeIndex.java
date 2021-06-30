@@ -131,11 +131,16 @@ public class TypeIndex implements RangeIndex, IndexInternal {
 
   @Override
   public SchemaImpl.INDEX_TYPE getType() {
+    if (indexesOnBuckets.isEmpty())
+      return null;
     return indexesOnBuckets.get(0).getType();
   }
 
   @Override
   public String getTypeName() {
+    if (indexesOnBuckets.isEmpty())
+      return null;
+
     return indexesOnBuckets.get(0).getTypeName();
   }
 

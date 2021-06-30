@@ -7,6 +7,7 @@ package com.arcadedb.database;
 import com.arcadedb.engine.BasePage;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.PageId;
+import com.arcadedb.exception.ArcadeDBException;
 import com.arcadedb.schema.DocumentType;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ import java.util.HashMap;
  */
 public class DatabaseComparator {
 
-  static public class DatabaseAreNotIdentical extends RuntimeException {
+  static public class DatabaseAreNotIdentical extends ArcadeDBException {
     public DatabaseAreNotIdentical(final String text, final Object... args) {
       super(String.format(text, args));
     }

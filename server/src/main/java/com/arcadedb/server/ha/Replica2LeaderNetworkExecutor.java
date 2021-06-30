@@ -93,6 +93,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
           final long lastMessage = server.getReplicationLogFile().getLastMessageNumber();
 
           if (reqId <= lastMessage) {
+            //TODO: CHECK IF THE MESSAGE IS IDENTICAL?
             server.getServer().log(this, Level.FINE, "Message %d already applied on local server (last=%d). Skip this", reqId, lastMessage);
             continue;
           }
@@ -123,7 +124,6 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
         if (response != null)
           sendCommandToLeader(buffer, response, reqId);
-
         reqId = -1;
 
       } catch (SocketTimeoutException e) {
@@ -174,7 +174,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
 
           HashSet<String> serverAddressListCopy = new HashSet<>(Arrays.asList(server.getServerAddressList().split(",")));
 
-          while (!shutdown && !serverAddressListCopy.isEmpty()) {
+          for (int retry = 0; retry < 3 && !shutdown && !serverAddressListCopy.isEmpty(); ++retry) {
             for (String serverAddress : serverAddressListCopy) {
               try {
                 if (server.isCurrentServer(serverAddress))
@@ -204,7 +204,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
             serverAddressListCopy = new HashSet<>(Arrays.asList(server.getServerAddressList().split(",")));
           }
 
-          //server.startElection();
+          server.startElection();
         }
       }
     }
@@ -221,7 +221,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
     synchronized (channelOutputLock) {
       final ChannelBinaryClient c = channel;
       if (c == null)
-        throw new ReplicationException("Error on sending command back to the leader (cause=socket closed)");
+        throw new ReplicationException("Error on sending command back to the leader server '" + leaderServerName + "' (cause=socket closed)");
 
       c.writeBytes(buffer.getContent(), buffer.size());
       c.flush();

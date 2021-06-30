@@ -6,9 +6,7 @@ package com.arcadedb.exception;
 
 import com.arcadedb.database.RID;
 
-import java.io.IOException;
-
-public class RecordNotFoundException extends RuntimeException {
+public class RecordNotFoundException extends ArcadeDBException {
   private final RID rid;
 
   public RecordNotFoundException(final String s, RID rid) {

@@ -135,8 +135,8 @@ TOKEN:
 	< NULL: ( "N" | "n" ) ( "U" | "u" ) ( "L" | "l" ) ( "L" | "l" ) >
 	|
 	< DEFINED: ( "D" | "d" ) ( "E" | "e" ) ( "F" | "f" ) ( "I" | "i" ) ( "N" | "n" ) ( "E" | "e" ) ( "D" | "d" ) >
-  |
-  < ORDER: ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) ( "e" | "E" ) ( "r" | "R" ) >
+    |
+    < ORDER: ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) ( "e" | "E" ) ( "r" | "R" ) >
 	|
 	< GROUP: ( "g" | "G" ) ( "r" | "R" ) ( "o" | "O" ) ( "u" | "U" ) ( "p" | "P" ) >
 	|
@@ -169,28 +169,34 @@ TOKEN:
 	< AFTER: ( "a" | "A" ) ( "f" | "F" ) ( "t" | "T" ) ( "e" | "E" ) ( "r" | "R" ) >
 	|
 	< LOCK: ( "l" | "L" ) ( "o" | "O" ) ( "c" | "C" ) ( "k" | "K" ) >
-  |
-  < RECORD: ( "r" | "R" ) ( "e" | "E" ) ( "c" | "C" ) ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) >
-  |
-  < WAIT: ( "w" | "W" ) ( "a" | "A" ) ( "i" | "I" ) ( "t" | "T" ) >
-  |
-  < RETRY: ( "r" | "R" ) ( "e" | "E" ) ( "t" | "T" ) ( "r" | "R" ) ( "y" | "Y" ) >
-  |
-  < LET: ( "l" | "L" ) ( "e" | "E" ) ( "t" | "T" ) >
-  |
-  < CACHE: ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
-  |
-  < NOCACHE: ( "n" | "N" ) ( "o" | "O" ) ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
-  |
-  < UNSAFE: ( "u" | "U" ) ( "n" | "N" ) ( "s" | "S" ) ( "a" | "A" ) ( "f" | "F" ) ( "e" | "E" ) >
-  |
-  < PARALLEL: ( "p" | "P" ) ( "a" | "A" ) ( "r" | "R" ) ( "a" | "A" ) ( "l" | "L" ) ( "l" | "L" ) ( "e" | "E" ) ( "l" | "L" ) >
-  |
-  < STRATEGY: ( "s" | "S" ) ( "t" | "T" ) ( "r" | "R" ) ( "a" | "A" ) ( "t" | "T" ) ( "e" | "E" ) ( "g" | "G" ) ( "y" | "Y" )  >
-  |
-  < DEPTH_FIRST: ( "d" | "D" ) ( "e" | "E" ) ( "p" | "P" ) ( "t" | "T" ) ( "h" | "H" ) ( "_" )  ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
-  |
-  < BREADTH_FIRST: ( "b" | "B" ) ( "r" | "R" ) ( "e" | "E" ) ( "a" | "A" ) ( "d" | "D" ) ( "t" | "T" )  ( "h" | "H" ) ( "_" ) ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
+    |
+    < RECORD: ( "r" | "R" ) ( "e" | "E" ) ( "c" | "C" ) ( "o" | "O" ) ( "r" | "R" ) ( "d" | "D" ) >
+    |
+    < WAIT: ( "w" | "W" ) ( "a" | "A" ) ( "i" | "I" ) ( "t" | "T" ) >
+    |
+    < RETRY: ( "r" | "R" ) ( "e" | "E" ) ( "t" | "T" ) ( "r" | "R" ) ( "y" | "Y" ) >
+    |
+    < LET: ( "l" | "L" ) ( "e" | "E" ) ( "t" | "T" ) >
+    |
+    < CACHE: ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
+    |
+    < CYCLE: ( "c" | "C" ) ( "y" | "Y" ) ( "c" | "C" ) ( "l" | "L" ) ( "e" | "E" ) >
+    |
+    < NOCACHE: ( "n" | "N" ) ( "o" | "O" ) ( "c" | "C" ) ( "a" | "A" ) ( "c" | "C" ) ( "h" | "H" ) ( "e" | "E" ) >
+    |
+    < NOLIMIT: ( "n" | "N" ) ( "o" | "O" ) ( "l" | "L" ) ( "i" | "I" ) ( "m" | "M" ) ( "i" | "I" ) ( "t" | "T" ) >
+    |
+    < NOCYCLE: ( "n" | "N" ) ( "o" | "O" ) ( "c" | "C" ) ( "y" | "Y" ) ( "c" | "C" ) ( "l" | "L" ) ( "e" | "E" ) >
+    |
+    < UNSAFE: ( "u" | "U" ) ( "n" | "N" ) ( "s" | "S" ) ( "a" | "A" ) ( "f" | "F" ) ( "e" | "E" ) >
+    |
+    < PARALLEL: ( "p" | "P" ) ( "a" | "A" ) ( "r" | "R" ) ( "a" | "A" ) ( "l" | "L" ) ( "l" | "L" ) ( "e" | "E" ) ( "l" | "L" ) >
+    |
+    < STRATEGY: ( "s" | "S" ) ( "t" | "T" ) ( "r" | "R" ) ( "a" | "A" ) ( "t" | "T" ) ( "e" | "E" ) ( "g" | "G" ) ( "y" | "Y" )  >
+    |
+    < DEPTH_FIRST: ( "d" | "D" ) ( "e" | "E" ) ( "p" | "P" ) ( "t" | "T" ) ( "h" | "H" ) ( "_" )  ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
+    |
+    < BREADTH_FIRST: ( "b" | "B" ) ( "r" | "R" ) ( "e" | "E" ) ( "a" | "A" ) ( "d" | "D" ) ( "t" | "T" )  ( "h" | "H" ) ( "_" ) ( "f" | "F" ) ( "i" | "I" ) ( "r" | "R" ) ( "s" | "S" ) ( "t" | "T" )  >
 	|
 	< LUCENE: ( "l" | "L" ) ( "u" | "U" ) ( "c" | "C" ) ( "e" | "E" ) ( "n" | "N" ) ( "e" | "E" ) >
 	|
@@ -211,6 +217,10 @@ TOKEN:
 	< TYPES: ( "t" | "T" ) ( "y" | "Y" ) ( "p" | "P" ) ( "e" | "E" ) ( "s" | "S" ) >
 	|
 	< SUPERTYPES: ( "s" | "S" ) ( "u" | "U" ) ( "p" | "P" ) ( "e" | "E" ) ( "r" | "R" ) ( "t" | "T" ) ( "y" | "Y" ) ( "p" | "P" ) ( "e" | "E" ) ( "s" | "S" ) >
+    |
+    < VIEW: ( "v" | "V" ) ( "i" | "I" ) ( "e" | "E" ) ( "w" | "W" ) >
+    |
+    < UPDATABLE: ( "u" | "U" ) ( "p" | "P" ) ( "d" | "D" ) ( "a" | "A" ) ( "t" | "T" ) ( "a" | "A" ) ( "b" | "B" ) ( "l" | "L" ) ( "e" | "E" )  >
     |
 	< EXCEPTION: ( "e" | "E" ) ( "x" | "X" ) ( "c" | "C" ) ( "e" | "E" ) ( "p" | "P" ) ( "t" | "T" ) ( "i" | "I" ) ( "o" | "O" ) ( "n" | "N" ) >
 	|
@@ -368,9 +378,17 @@ TOKEN:
 	|
 	< USER: ( "u" | "U" ) ( "s" | "S" ) ( "e" | "E" ) ( "r" | "R" ) >
 	|
+	< USERS: ( "u" | "U" ) ( "s" | "S" ) ( "e" | "E" ) ( "r" | "R" ) ( "s" | "S" ) >
+	|
 	< RID: ( "r" | "R" ) ( "i" | "I" ) ( "d" | "D" ) >
 	|
+	< SECURITY: ( "s" | "S" ) ( "e" | "E" ) ( "c" | "C" ) ( "u" | "U" ) ( "r" | "R" ) ( "i" | "I" ) ( "t" | "T" ) ( "y" | "Y" ) >
+	|
+	< POLICY: ( "p" | "P" ) ( "o" | "O" ) ( "l" | "L" ) ( "i" | "I" ) ( "c" | "C" ) ( "y" | "Y" ) >
+	|
 	< DEFAULTBUCKET: ( "D" | "d") ( "E" | "e") ( "F" | "f") ( "A" | "a") ( "U" | "u") ( "L" | "l") ( "T" | "t") ( "B" | "b" ) ( "U" | "u" ) ( "C" | "c" ) ( "K" | "k" ) ( "E" | "e" ) ( "T" | "t" ) ( "S" | "s" ) >
+	|
+	< SYSTEM: ( "s" | "S" ) ( "y" | "Y" ) ( "s" | "S" ) ( "t" | "T" ) ( "e" | "E" ) ( "m" | "M" ) >
 	|
 	< THIS: "@" ( ( "t" | "T" ) ( "h" | "H" ) ( "i" | "I" ) ( "s" | "S" ) ) >
 	|
@@ -534,6 +552,7 @@ TOKEN :
 | < STAR: "*" >
 | < SLASH: "/" >
 | < BIT_AND: "&" >
+| < NULL_COALESCING: "??" >
 | < BIT_OR: "|" >
 | < XOR: "^" >
 | < REM: "%" >
@@ -732,6 +751,10 @@ Identifier Identifier():
     |
     token = <TYPES>
     |
+    token = <VIEW>
+    |
+    token = <UPDATABLE>
+    |
     token = <MINDEPTH>
     |
     token = <NEAR>
@@ -810,93 +833,107 @@ Identifier Identifier():
 	|
 	token = <LINK>
 	|
-  token = <INVERSE>
-  |
-  token = <EXPLAIN>
-  |
-  token = <GRANT>
-  |
-  token = <REVOKE>
-  |
-  token = <READ>
-  |
-  token = <EXECUTE>
-  |
-  token = <ALL>
-  |
-  token = <NONE>
-  |
-  token = <FUNCTION>
-  |
-  token = <PARAMETERS>
-  |
-  token = <IDEMPOTENT>
-  |
-  token = <LANGUAGE>
-  |
-  token = <BEGIN>
-  |
-  token = <COMMIT>
-  |
-  token = <ROLLBACK>
-  |
-  token = <IF>
-  |
+    token = <INVERSE>
+    |
+    token = <EXPLAIN>
+    |
+    token = <GRANT>
+    |
+    token = <REVOKE>
+    |
+    token = <READ>
+    |
+    token = <EXECUTE>
+    |
+    token = <ALL>
+    |
+    token = <NONE>
+    |
+    token = <FUNCTION>
+    |
+    token = <PARAMETERS>
+    |
+    token = <IDEMPOTENT>
+    |
+    token = <LANGUAGE>
+    |
+    token = <BEGIN>
+    |
+    token = <COMMIT>
+    |
+    token = <ROLLBACK>
+    |
+    token = <IF>
+    |
     token = <ELSE>
     |
     token = <CONTINUE>
     |
     token = <FAIL>
     |
-  token = <ISOLATION>
-  |
-  token = <SLEEP>
-  |
-  token = <CONSOLE>
-  |
-  token = <BLOB>
-  |
-  token = <SHARED>
-  |
-  token = <DEFAULT_>
-  |
-  token = <SEQUENCE>
-  |
-  token = <CACHE>
-  |
-  token = <START>
-  |
-  token = <OPTIONAL>
-  |
-  token = <COUNT>
-  |
-  token = <HA>
-  |
-  token = <STATUS>
-  |
-  token = <SERVER>
-  |
-  token = <SYNC>
-  |
-  token = <EXISTS>
-  |
-  token = <MOVE>
-  |
-  token = <DEPTH_ALIAS>
-  |
-  token = <PATH_ALIAS>
-  |
-  token = <IDENTIFIED>
-  |
-  token = <ROLE>
-  |
-  token = <USER>
-  |
-  token = <RID>
-  |
-  token = <DEFAULTBUCKET>
-  |
-  quotedToken = <QUOTED_IDENTIFIER>
+    token = <ISOLATION>
+    |
+    token = <SLEEP>
+    |
+    token = <CONSOLE>
+    |
+    token = <BLOB>
+    |
+    token = <SHARED>
+    |
+    token = <DEFAULT_>
+    |
+    token = <SEQUENCE>
+    |
+    token = <CACHE>
+    |
+    token = <CYCLE>
+    |
+    token = <NOLIMIT>
+    |
+    token = <NOCYCLE>
+    |
+    token = <START>
+    |
+    token = <OPTIONAL>
+    |
+    token = <COUNT>
+    |
+    token = <HA>
+    |
+    token = <STATUS>
+    |
+    token = <SERVER>
+    |
+    token = <SYNC>
+    |
+    token = <EXISTS>
+    |
+    token = <MOVE>
+    |
+    token = <DEPTH_ALIAS>
+    |
+    token = <PATH_ALIAS>
+    |
+    token = <IDENTIFIED>
+    |
+    token = <ROLE>
+    |
+    token = <USER>
+    |
+    token = <USERS>
+    |
+    token = <RID>
+    |
+    token = <DEFAULTBUCKET>
+    |
+    token = <SECURITY>
+    |
+    token = <POLICY>
+    |
+    token = <SYSTEM>
+    |
+    quotedToken = <QUOTED_IDENTIFIER>
 ) {
 
     if(token!=null){
@@ -3702,17 +3739,15 @@ MatchPathItem OutPathItem():
         jjtThis.filter = MatchFilter()
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "out";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3734,17 +3769,15 @@ MatchPathItem InPathItem():
         jjtThis.filter = MatchFilter()
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "in";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3765,17 +3798,15 @@ MatchPathItem BothPathItem():
         jjtThis.filter = MatchFilter()
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "both";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3798,17 +3829,15 @@ MatchPathItem OutPathItemOpt():
         [jjtThis.filter = MatchFilter()]
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "out";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3830,17 +3859,15 @@ MatchPathItem InPathItemOpt():
         [jjtThis.filter = MatchFilter()]
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "in";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if(edgeName!=null){
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }
@@ -3861,17 +3888,15 @@ MatchPathItem BothPathItemOpt():
         [jjtThis.filter = MatchFilter()]
 
     {
-     if(edgeName == null){
-        edgeName = new Identifier(-1);
-        edgeName.value = "E";
-     }
      jjtThis.method = new MethodCall(-1);
      jjtThis.method.methodName = new Identifier(-1);
      jjtThis.method.methodName.value = "both";
-     Expression exp = new Expression(-1);
-     BaseExpression sub = new BaseExpression(edgeName.getStringValue());
-     exp.mathExpression = sub;
-     jjtThis.method.params.add(exp);
+     if (edgeName != null) {
+         Expression exp = new Expression(-1);
+         BaseExpression sub = new BaseExpression(edgeName.getStringValue());
+         exp.mathExpression = sub;
+         jjtThis.method.params.add(exp);
+     }
      return jjtThis;
     }
 }

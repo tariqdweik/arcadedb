@@ -234,6 +234,10 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         else
           executeMessage(buffer, request);
 
+      } catch (IOException e) {
+        server.getServer().log(this, Level.FINE, "IO Error from reading requests (cause=%s)", e.getCause());
+        server.setReplicaStatus(remoteServerName, false);
+        close();
       } catch (Exception e) {
         server.getServer().log(this, Level.SEVERE, "Generic error during applying of request from Leader (cause=%s)", e.toString());
         server.setReplicaStatus(remoteServerName, false);

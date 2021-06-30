@@ -26,7 +26,6 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
     buffer.position(buffer.position() + 1); // SKIP RECORD TYPE
   }
 
-
   public void merge(final Document other) {
     for (String p : other.getPropertyNames())
       set(p, other.get(p));
@@ -236,6 +235,9 @@ public class MutableDocument extends BaseDocument implements RecordInternal {
   }
 
   private Object convertValueToSchemaType(final String name, final Object value, final DocumentType type) {
+    if (value == null || value == JSONObject.NULL)
+      return null;
+
     final Property prop = type.getPolymorphicPropertyIfExists(name);
     if (prop != null)
       try {

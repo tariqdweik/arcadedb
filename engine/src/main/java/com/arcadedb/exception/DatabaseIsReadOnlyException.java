@@ -6,7 +6,7 @@ package com.arcadedb.exception;
 
 import java.io.IOException;
 
-public class DatabaseIsReadOnlyException extends RuntimeException {
+public class DatabaseIsReadOnlyException extends ArcadeDBException {
   public DatabaseIsReadOnlyException(final String s) {
     super(s);
   }

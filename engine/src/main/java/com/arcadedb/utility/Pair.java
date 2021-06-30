@@ -3,6 +3,8 @@
  */
 package com.arcadedb.utility;
 
+import java.util.Map;
+
 /**
  * Container for pair of non null objects.
  */
@@ -13,6 +15,11 @@ public class Pair<V1, V2> {
   public Pair(final V1 first, final V2 second) {
     this.first = first;
     this.second = second;
+  }
+
+  public Pair(final Map.Entry<V1, V2> entry) {
+    this.first = entry.getKey();
+    this.second = entry.getValue();
   }
 
   public V1 getFirst() {
