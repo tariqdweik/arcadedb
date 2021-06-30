@@ -10,11 +10,13 @@ import com.arcadedb.server.ArcadeDBServer;
 import de.bwaldvogel.mongo.MongoBackend;
 import de.bwaldvogel.mongo.MongoCollection;
 import de.bwaldvogel.mongo.MongoDatabase;
-import de.bwaldvogel.mongo.backend.LimitedList;
+import de.bwaldvogel.mongo.backend.CollectionOptions;
+import de.bwaldvogel.mongo.backend.QueryResult;
 import de.bwaldvogel.mongo.backend.Utils;
 import de.bwaldvogel.mongo.bson.Document;
 import de.bwaldvogel.mongo.exception.MongoServerError;
 import de.bwaldvogel.mongo.exception.MongoServerException;
+import de.bwaldvogel.mongo.oplog.Oplog;
 import de.bwaldvogel.mongo.wire.message.MongoDelete;
 import de.bwaldvogel.mongo.wire.message.MongoInsert;
 import de.bwaldvogel.mongo.wire.message.MongoQuery;
@@ -22,7 +24,6 @@ import de.bwaldvogel.mongo.wire.message.MongoUpdate;
 import io.netty.channel.Channel;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,7 +57,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   @Override
-  public Document handleCommand(Channel channel, String command, Document document) throws MongoServerException {
+  public Document handleCommand(Channel channel, String command, Document document, final Oplog opLog) throws MongoServerException {
     try {
       if (command.equalsIgnoreCase("create"))
         return createCollection(document);
@@ -66,8 +67,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
         return insertDocument(channel, document);
       else {
         server.log(this, Level.SEVERE, "Received unsupported command from MongoDB client '%s', (document=%s)", command, document);
-        throw new UnsupportedOperationException(
-            String.format("Received unsupported command from MongoDB client '%s', (document=%s)", command, document));
+        throw new UnsupportedOperationException(String.format("Received unsupported command from MongoDB client '%s', (document=%s)", command, document));
       }
     } catch (Exception e) {
       throw new MongoServerException("Error on executing MongoDB '" + command + "' command", e);
@@ -75,18 +75,17 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   @Override
-  public Iterable<Document> handleQuery(final MongoQuery query) throws MongoServerException {
+  public QueryResult handleQuery(final MongoQuery query) throws MongoServerException {
     try {
       this.clearLastStatus(query.getChannel());
       final String collectionName = query.getCollectionName();
       final MongoCollection<Long> collection = collections.get(collectionName);
       if (collection == null) {
-        return Collections.emptyList();
+        return new QueryResult();
       } else {
         int numSkip = query.getNumberToSkip();
         int numReturn = query.getNumberToReturn();
-        Document fieldSelector = query.getReturnFieldSelector();
-        return collection.handleQuery(query.getQuery(), numSkip, numReturn, fieldSelector);
+        return collection.handleQuery(query.getQuery(), numSkip, numReturn);
       }
     } catch (Exception e) {
       throw new MongoServerException("Error on executing MongoDB query", e);
@@ -94,17 +93,17 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   @Override
-  public void handleInsert(final MongoInsert mongoInsert) {
+  public void handleInsert(final MongoInsert mongoInsert, final Oplog opLog) {
 
   }
 
   @Override
-  public void handleDelete(final MongoDelete mongoDelete) {
+  public void handleDelete(final MongoDelete mongoDelete, final Oplog opLog) {
 
   }
 
   @Override
-  public void handleUpdate(final MongoUpdate mongoUpdate) {
+  public void handleUpdate(final MongoUpdate mongoUpdate, final Oplog opLog) {
 
   }
 
@@ -114,17 +113,22 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   @Override
+  public MongoCollection<?> createCollectionOrThrowIfExists(String s, CollectionOptions collectionOptions) {
+    return null;
+  }
+
+  @Override
   public MongoCollection<?> resolveCollection(final String collectionName, final boolean throwExceptionIfNotFound) {
     return null;
   }
 
   @Override
-  public void drop() {
+  public void drop(final Oplog opLog) {
     database.drop();
   }
 
   @Override
-  public void dropCollection(final String collectionName) {
+  public void dropCollection(final String collectionName, final Oplog opLog) {
     database.getSchema().dropType(collectionName);
   }
 
@@ -134,8 +138,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   }
 
   @Override
-  public MongoCollection<?> unregisterCollection(final String collectionName) {
-    return null;
+  public void unregisterCollection(final String collectionName) {
   }
 
   private Document createCollection(final Document document) {
@@ -179,7 +182,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
           throw new MongoServerError(16459, "attempt to insert in system namespace");
         } else {
           MongoCollection<Long> collection = getOrCreateCollection(collectionName);
-          n = collection.insertDocuments(documents);
+          n = collection.insertDocuments(documents).size();
 
           assert n == documents.size();
 
@@ -234,7 +237,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
   private synchronized void clearLastStatus(final Channel channel) {
     List<Document> results = this.lastResults.get(channel);
     if (results == null) {
-      results = new LimitedList(10);
+      results = new ArrayList<>(10);
       this.lastResults.put(channel, results);
     }
     results.add(null);

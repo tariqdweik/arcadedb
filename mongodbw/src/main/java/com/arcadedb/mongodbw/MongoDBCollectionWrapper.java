@@ -10,11 +10,11 @@ import com.arcadedb.database.RID;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.sql.executor.Result;
 import de.bwaldvogel.mongo.MongoCollection;
-import de.bwaldvogel.mongo.backend.Index;
-import de.bwaldvogel.mongo.backend.Utils;
+import de.bwaldvogel.mongo.MongoDatabase;
+import de.bwaldvogel.mongo.backend.*;
 import de.bwaldvogel.mongo.bson.Document;
 import de.bwaldvogel.mongo.bson.ObjectId;
-import de.bwaldvogel.mongo.exception.MongoServerException;
+import de.bwaldvogel.mongo.oplog.Oplog;
 
 import java.util.*;
 
@@ -74,8 +74,7 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   protected Document getDocument(final Long aLong) {
-    final com.arcadedb.database.Document record = (com.arcadedb.database.Document) database
-        .lookupByRID(new RID(database, collectionId, aLong), true);
+    final com.arcadedb.database.Document record = (com.arcadedb.database.Document) database.lookupByRID(new RID(database, collectionId, aLong), true);
 
     final Document result = new Document();
 
@@ -83,6 +82,11 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
       result.put(p, record.get(p));
 
     return result;
+  }
+
+  @Override
+  public MongoDatabase getDatabase() {
+    return null;
   }
 
   @Override
@@ -106,6 +110,15 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   @Override
+  public void dropIndex(String s) {
+
+  }
+
+  @Override
+  public void renameTo(MongoDatabase mongoDatabase, String s) {
+  }
+
+  @Override
   public void addDocument(Document document) {
 
   }
@@ -116,10 +129,14 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   @Override
-  public Iterable<Document> handleQuery(Document queryObject, int numberToSkip, int numberToReturn, Document fieldSelector)
-      throws MongoServerException {
+  public QueryResult handleQuery(QueryParameters queryParameters) {
+    int numberToReturn = queryParameters.getLimit();
     if (numberToReturn < 0)
       numberToReturn = -numberToReturn;
+
+    final int numberToSkip = queryParameters.getNumberToSkip();
+
+    final Document queryObject = queryParameters.getQuerySelector();
 
     Document query;
     Document orderBy;
@@ -135,18 +152,17 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
     }
 
     if (this.count() == 0)
-      return Collections.emptyList();
+      return new QueryResult();
 
     final Iterable<Document> objs = this.queryDocuments(query, orderBy, numberToSkip, numberToReturn);
 
-    return (fieldSelector != null && !fieldSelector.keySet().isEmpty() ? new ProjectingIterable(objs, fieldSelector, "") : objs);
+    return new QueryResult(objs);
   }
 
   @Override
-  public int insertDocuments(final List<Document> list) {
+  public List<Document> insertDocuments(final List<Document> list) {
     database.begin();
 
-    int total = 0;
     for (Document d : list) {
       final MutableDocument record = database.newDocument(collectionName);
 
@@ -168,21 +184,31 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
       }
 
       record.save();
-      ++total;
     }
 
     database.commit();
 
-    return total;
+    return list;
   }
 
   @Override
-  public Document updateDocuments(final Document document, final Document document1, boolean b, boolean b1) {
+  public List<Document> insertDocuments(List<Document> list, boolean b) {
+    return null;
+  }
+
+  @Override
+  public Document updateDocuments(final Document document, final Document document1, final ArrayFilters filters, final boolean b, final boolean b1,
+      final Oplog opLog) {
     return null;
   }
 
   @Override
   public int deleteDocuments(final Document document, final int limit) {
+    return 0;
+  }
+
+  @Override
+  public int deleteDocuments(Document document, int i, Oplog oplog) {
     return 0;
   }
 
@@ -222,16 +248,16 @@ public class MongoDBCollectionWrapper implements MongoCollection<Long> {
   }
 
   @Override
+  public List<Index<Long>> getIndexes() {
+    return null;
+  }
+
+  @Override
   public void drop() {
     database.getSchema().dropType(collectionName);
   }
 
-  @Override
-  public void renameTo(String s, String s1) {
-    throw new UnsupportedOperationException();
-  }
-
-  private Iterable<Document> queryDocuments(Document query, Document orderBy, int numberToSkip, int numberToReturn) {
+  private Iterable<Document> queryDocuments(Document query, final Document orderBy, final int numberToSkip, final int numberToReturn) {
     final List<Document> result = new ArrayList<>();
 
     Iterator it;
