@@ -4,6 +4,7 @@
 package com.arcadedb.redisw;
 
 import com.arcadedb.Constants;
+import com.arcadedb.database.Database;
 import com.arcadedb.network.binary.ChannelBinaryServer;
 import com.arcadedb.server.ArcadeDBServer;
 
@@ -19,6 +20,7 @@ import java.util.logging.Level;
 public class RedisNetworkExecutor extends Thread {
   private static final byte[]              LF       = new byte[] { '\r', '\n' };
   private final        ArcadeDBServer      server;
+  private final        Database            database;
   private              ChannelBinaryServer channel;
   private volatile     boolean             shutdown = false;
 
@@ -27,10 +29,11 @@ public class RedisNetworkExecutor extends Thread {
   private final byte[]        buffer      = new byte[32 * 1024];
   private       int           bytesRead   = 0;
 
-  public RedisNetworkExecutor(final ArcadeDBServer server, final Socket socket) throws IOException {
+  public RedisNetworkExecutor(final ArcadeDBServer server, final Socket socket, final Database database) throws IOException {
     setName(Constants.PRODUCT + "-redis/" + socket.getInetAddress());
     this.server = server;
     this.channel = new ChannelBinaryServer(socket, server.getConfiguration());
+    this.database = database;
   }
 
   @Override
@@ -69,11 +72,39 @@ public class RedisNetworkExecutor extends Thread {
       if (cmdString.equals("GET")) {
         value.append("+bar\r\n");
       } else if (cmdString.equals("SET")) {
+        final String k = (String) list.get(1);
+        final String v = (String) list.get(2);
+
+        insert("_default", k, v);
+
         value.append("+OK\r\n");
+      } else if (cmdString.equals("HGET")) {
+        final String bucket = (String) list.get(1);
+        final String k = (String) list.get(2);
+
+        final String v = read(bucket, k);
+
+        value.append("+" + v + "\r\n");
+      } else if (cmdString.equals("HSET")) {
+        final String bucket = (String) list.get(1);
+        final String k = (String) list.get(2);
+        final String v = (String) list.get(3);
+
+        insert(bucket, k, v);
+
+        value.append("+1\r\n");
       }
 
     } else
       server.log(this, Level.SEVERE, "Redis wrapper: Invalid command %s", command);
+  }
+
+  private String read(final String bucketName, final String key) {
+    return "";
+  }
+
+  private void insert(final String bucketName, final String key, final String value) {
+
   }
 
   private Object parseNext() throws IOException {
