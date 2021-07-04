@@ -49,7 +49,7 @@ public class PostgresNetworkExecutor extends Thread {
   private              byte                                           transactionStatus = 'I';
   private              int                                            consecutiveErrors = 0;
   private              long                                           processIdSequence = 0;
-  private              Map<Long, Pair<Long, PostgresNetworkExecutor>> activeSessions    = new ConcurrentHashMap<>();
+  private static       Map<Long, Pair<Long, PostgresNetworkExecutor>> ACTIVE_SESSIONS   = new ConcurrentHashMap<>();
   private              Map<String, PostgresPortal>                    portals           = new HashMap<>();
   private              boolean                                        DEBUG             = true;
 
@@ -181,20 +181,19 @@ public class PostgresNetworkExecutor extends Thread {
         channel.writeUnsignedInt(0);
       }, 'R', 8);
 
-      sendServerParameter("server_version", PG_SERVER_VERSION);
-      sendServerParameter("server_encoding", "UTF8");
-      sendServerParameter("client_encoding", "UTF8");
-
-      final long pid = processIdSequence++;
-      final long secret = new Random().nextInt();
-
       // BackendKeyData
+      final long pid = processIdSequence++;
+      final long secret = Math.abs(new Random().nextInt(10000000));
       writeMessage("backend key data", () -> {
         channel.writeUnsignedInt((int) pid);
         channel.writeUnsignedInt((int) secret);
       }, 'K', 12);
 
-      activeSessions.put(pid, new Pair<>(secret, this));
+      ACTIVE_SESSIONS.put(pid, new Pair<>(secret, this));
+
+      sendServerParameter("server_version", PG_SERVER_VERSION);
+      sendServerParameter("server_encoding", "UTF8");
+      sendServerParameter("client_encoding", "UTF8");
 
       try {
         writeReadyForQueryMessage();
@@ -254,7 +253,7 @@ public class PostgresNetworkExecutor extends Thread {
           }
         }
       } finally {
-        activeSessions.remove(pid);
+        ACTIVE_SESSIONS.remove(pid);
       }
 
     } finally {
@@ -349,6 +348,8 @@ public class PostgresNetworkExecutor extends Thread {
         writeMessage("empty query response", null, 'I', 4);
 
       } else {
+
+        Thread.sleep(10000);
 
         final ResultSet resultSet = database.command("sql", queryText);
 
@@ -621,11 +622,12 @@ public class PostgresNetworkExecutor extends Thread {
 
         LogManager.instance().log(this, Level.INFO, "Received cancel request pid %d", null, pid);
 
-        final Pair<Long, PostgresNetworkExecutor> session = activeSessions.get(pid);
+        final Pair<Long, PostgresNetworkExecutor> session = ACTIVE_SESSIONS.get(pid);
         if (session != null) {
-          if (session.getFirst() == secret)
+          if (session.getFirst() == secret) {
             LogManager.instance().log(this, Level.INFO, "Canceling session " + pid);
-          else
+            session.getSecond().close();
+          } else
             LogManager.instance().log(this, Level.INFO, "Blocked unhautorized canceling session " + pid);
         } else
           LogManager.instance().log(this, Level.INFO, "Session " + pid + " not found");

@@ -32,7 +32,7 @@ public class PostgresWTest extends BaseGraphServerTest {
 
   @Test
   public void testSet() throws InterruptedException, ClassNotFoundException, SQLException {
-    //Thread.sleep(1000000);
+    Thread.sleep(1000000);
 
     Class.forName("org.postgresql.Driver");
 
