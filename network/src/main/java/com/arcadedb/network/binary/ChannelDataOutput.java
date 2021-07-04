@@ -23,9 +23,9 @@ public interface ChannelDataOutput {
 
   ChannelDataOutput writeString(final String iContent) throws IOException;
 
-  ChannelDataOutput writeBytes(final byte[] iContent) throws IOException;
+  ChannelDataOutput writeVarLengthBytes(final byte[] iContent) throws IOException;
 
-  ChannelDataOutput writeBytes(final byte[] iContent, final int iLength) throws IOException;
+  ChannelDataOutput writeVarLengthBytes(final byte[] iContent, final int iLength) throws IOException;
 
   void writeRID(final RID iRID) throws IOException;
 

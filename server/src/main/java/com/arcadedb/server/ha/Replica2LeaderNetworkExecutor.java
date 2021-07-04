@@ -223,7 +223,7 @@ public class Replica2LeaderNetworkExecutor extends Thread {
       if (c == null)
         throw new ReplicationException("Error on sending command back to the leader server '" + leaderServerName + "' (cause=socket closed)");
 
-      c.writeBytes(buffer.getContent(), buffer.size());
+      c.writeVarLengthBytes(buffer.getContent(), buffer.size());
       c.flush();
     }
   }

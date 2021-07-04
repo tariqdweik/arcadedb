@@ -451,7 +451,7 @@ public class Leader2ReplicaNetworkExecutor extends Thread {
         throw new IOException("Channel closed");
       }
 
-      c.writeBytes(msg.getContent(), msg.size());
+      c.writeVarLengthBytes(msg.getContent(), msg.size());
       c.flush();
     }
   }

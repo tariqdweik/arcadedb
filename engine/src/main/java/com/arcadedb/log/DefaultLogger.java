@@ -62,63 +62,72 @@ public class DefaultLogger implements Logger {
       final Object arg2, final Object arg3, final Object arg4, final Object arg5, final Object arg6, final Object arg7, final Object arg8, final Object arg9,
       final Object arg10, final Object arg11, final Object arg12, final Object arg13, final Object arg14, final Object arg15, final Object arg16,
       final Object arg17) {
-    if (message != null) {
-      final String requesterName;
-      if (requester instanceof String)
-        requesterName = (String) requester;
-      else if (requester instanceof Class<?>)
-        requesterName = ((Class<?>) requester).getName();
-      else if (requester != null)
-        requesterName = requester.getClass().getName();
-      else
-        requesterName = DEFAULT_LOG;
+    if (message == null)
+      return;
 
-      java.util.logging.Logger log = loggersCache.get(requesterName);
-      if (log == null) {
-        log = java.util.logging.Logger.getLogger(requesterName);
+    final String requesterName;
+    if (requester instanceof String)
+      requesterName = (String) requester;
+    else if (requester instanceof Class<?>)
+      requesterName = ((Class<?>) requester).getName();
+    else if (requester != null)
+      requesterName = requester.getClass().getName();
+    else
+      requesterName = DEFAULT_LOG;
 
-        if (log != null) {
-          java.util.logging.Logger oldLogger = loggersCache.putIfAbsent(requesterName, log);
+    java.util.logging.Logger log = loggersCache.get(requesterName);
+    if (log == null) {
+      log = java.util.logging.Logger.getLogger(requesterName);
 
-          if (oldLogger != null)
-            log = oldLogger;
-        }
+      if (log != null) {
+        java.util.logging.Logger oldLogger = loggersCache.putIfAbsent(requesterName, log);
+
+        if (oldLogger != null)
+          log = oldLogger;
       }
+    }
 
-      if (log == null) {
+    if (log == null) {
+      if (context != null)
+        message = "<" + context + "> " + message;
+
+      // USE SYSERR
+      try {
+        String msg = message;
+        if (arg1 != null || arg2 != null || arg3 != null || arg4 != null || arg5 != null || arg6 != null || arg7 != null || arg8 != null || arg9 != null
+            || arg10 != null || arg11 != null || arg12 != null || arg13 != null || arg14 != null || arg15 != null || arg16 != null || arg17 != null)
+          msg = String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17);
+
+        System.err.println(msg);
+
+      } catch (Exception e) {
+        System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
+      } finally {
+        if (level == Level.SEVERE)
+          System.err.flush();
+      }
+    } else if (log.isLoggable(level)) {
+      // USE THE LOG
+      try {
         if (context != null)
           message = "<" + context + "> " + message;
 
-        // USE SYSERR
-        try {
-          String msg = message;
-          if (arg1 != null || arg2 != null || arg3 != null || arg4 != null || arg5 != null || arg6 != null || arg7 != null || arg8 != null || arg9 != null
-              || arg10 != null || arg11 != null || arg12 != null || arg13 != null || arg14 != null || arg15 != null || arg16 != null || arg17 != null)
-            msg = String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17);
+        String msg = message;
+        if (arg1 != null || arg2 != null || arg3 != null || arg4 != null || arg5 != null || arg6 != null || arg7 != null || arg8 != null || arg9 != null
+            || arg10 != null || arg11 != null || arg12 != null || arg13 != null || arg14 != null || arg15 != null || arg16 != null || arg17 != null)
+          msg = String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17);
 
-          System.err.println(msg);
+        if (exception != null)
+          log.log(level, msg, exception);
+        else
+          log.log(level, msg);
 
-        } catch (Exception e) {
-          System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
-        }
-      } else if (log.isLoggable(level)) {
-        // USE THE LOG
-        try {
-          if (context != null)
-            message = "<" + context + "> " + message;
+        if (level == Level.SEVERE)
+          flush();
 
-          String msg = message;
-          if (arg1 != null || arg2 != null || arg3 != null || arg4 != null || arg5 != null || arg6 != null || arg7 != null || arg8 != null || arg9 != null
-              || arg10 != null || arg11 != null || arg12 != null || arg13 != null || arg14 != null || arg15 != null || arg16 != null || arg17 != null)
-            msg = String.format(message, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17);
-
-          if (exception != null)
-            log.log(level, msg, exception);
-          else
-            log.log(level, msg);
-        } catch (Exception e) {
-          System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
-        }
+      } catch (Exception e) {
+        System.err.print(String.format("Error on formatting message '%s'. Exception: %s", message, e.toString()));
+        System.err.flush();
       }
     }
   }

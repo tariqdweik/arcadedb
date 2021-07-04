@@ -12,6 +12,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
 
@@ -35,6 +36,16 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
       LogManager.instance().log(this, Level.INFO, "%s - Connected", null, socket.getRemoteSocketAddress());
   }
 
+  public boolean inputHasData() {
+    if (in != null)
+      try {
+        return in.available() > 0;
+      } catch (IOException e) {
+        // RETURN FALSE
+      }
+    return false;
+  }
+
   public byte readByte() throws IOException {
     updateMetricReceivedBytes(Binary.BYTE_SERIALIZED_SIZE);
 
@@ -46,6 +57,19 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     }
 
     return in.readByte();
+  }
+
+  public int readUnsignedByte() throws IOException {
+    updateMetricReceivedBytes(Binary.BYTE_SERIALIZED_SIZE);
+
+    if (debug) {
+      LogManager.instance().log(this, Level.INFO, "%s - Reading byte (1 byte)...", null, socket.getRemoteSocketAddress());
+      final int value = in.readUnsignedByte();
+      LogManager.instance().log(this, Level.INFO, "%s - Read byte: %d", null, socket.getRemoteSocketAddress(), (int) value);
+      return value;
+    }
+
+    return in.readUnsignedByte();
   }
 
   public boolean readBoolean() throws IOException {
@@ -74,6 +98,19 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     return in.readInt();
   }
 
+  public long readUnsignedInt() throws IOException {
+    updateMetricReceivedBytes(Binary.INT_SERIALIZED_SIZE);
+
+    if (debug) {
+      LogManager.instance().log(this, Level.INFO, "%s - Reading unsigned int (4 bytes)...", null, socket.getRemoteSocketAddress());
+      final long value = in.readInt() & 0xffffffffl;
+      LogManager.instance().log(this, Level.INFO, "%s - Read unsigned int: %d", null, socket.getRemoteSocketAddress(), value);
+      return value;
+    }
+
+    return in.readInt() & 0xffffffffl;
+  }
+
   public long readLong() throws IOException {
     updateMetricReceivedBytes(Binary.LONG_SERIALIZED_SIZE);
 
@@ -98,6 +135,19 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     }
 
     return in.readShort();
+  }
+
+  public int readUnsignedShort() throws IOException {
+    updateMetricReceivedBytes(Binary.SHORT_SERIALIZED_SIZE);
+
+    if (debug) {
+      LogManager.instance().log(this, Level.INFO, "%s - Reading ushort (2 bytes)...", null, socket.getRemoteSocketAddress());
+      final int value = in.readUnsignedShort();
+      LogManager.instance().log(this, Level.INFO, "%s - Read ushort: %d", null, socket.getRemoteSocketAddress(), value);
+      return value;
+    }
+
+    return in.readUnsignedShort();
   }
 
   public String readString() throws IOException {
@@ -128,6 +178,10 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     updateMetricReceivedBytes(Binary.INT_SERIALIZED_SIZE + len);
 
     return new String(tmp, "UTF-8");
+  }
+
+  public void readBytes(final byte[] buffer) throws IOException {
+    in.readFully(buffer);
   }
 
   public byte[] readBytes() throws IOException {
@@ -198,6 +252,15 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     return this;
   }
 
+  public ChannelBinary writeUnsignedInt(final int iContent) throws IOException {
+    if (debug)
+      LogManager.instance().log(this, Level.INFO, "%s - Writing uint (4 bytes): %d", null, socket.getRemoteSocketAddress(), iContent);
+
+    out.writeInt((int) Integer.toUnsignedLong(iContent));
+    updateMetricTransmittedBytes(Binary.INT_SERIALIZED_SIZE);
+    return this;
+  }
+
   public ChannelBinary writeLong(final long iContent) throws IOException {
     if (debug)
       LogManager.instance().log(this, Level.INFO, "%s - Writing long (8 bytes): %d", null, socket.getRemoteSocketAddress(), iContent);
@@ -212,6 +275,15 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
       LogManager.instance().log(this, Level.INFO, "%s - Writing short (2 bytes): %d", null, socket.getRemoteSocketAddress(), iContent);
 
     out.writeShort(iContent);
+    updateMetricTransmittedBytes(Binary.SHORT_SERIALIZED_SIZE);
+    return this;
+  }
+
+  public ChannelBinary writeUnsignedShort(final short iContent) throws IOException {
+    if (debug)
+      LogManager.instance().log(this, Level.INFO, "%s - Writing ushort (2 bytes): %d", null, socket.getRemoteSocketAddress(), iContent);
+
+    out.writeShort(Short.toUnsignedInt(iContent));
     updateMetricTransmittedBytes(Binary.SHORT_SERIALIZED_SIZE);
     return this;
   }
@@ -235,11 +307,11 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
     return this;
   }
 
-  public ChannelBinary writeBytes(final byte[] iContent) throws IOException {
-    return writeBytes(iContent, iContent != null ? iContent.length : 0);
+  public ChannelBinary writeVarLengthBytes(final byte[] iContent) throws IOException {
+    return writeVarLengthBytes(iContent, iContent != null ? iContent.length : 0);
   }
 
-  public ChannelBinary writeBytes(final byte[] iContent, final int iLength) throws IOException {
+  public ChannelBinary writeVarLengthBytes(final byte[] iContent, final int iLength) throws IOException {
     if (debug)
       LogManager.instance().log(this, Level.INFO, "%s - Writing bytes (4+%d=%d bytes): %s", null, socket.getRemoteSocketAddress(), iLength, iLength + 4,
           Arrays.toString(iContent));
@@ -256,6 +328,24 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
       out.writeInt(iLength);
       out.write(iContent, 0, iLength);
       updateMetricTransmittedBytes(Binary.INT_SERIALIZED_SIZE + iLength);
+    }
+    return this;
+  }
+
+  public ChannelBinary writeBytes(final byte[] content) throws IOException {
+    final int length = content.length;
+
+    if (debug)
+      LogManager.instance().log(this, Level.INFO, "%s - Writing bytes (%d bytes): %s", null, socket.getRemoteSocketAddress(), length, Arrays.toString(content));
+
+    if (content != null) {
+      if (length > maxChunkSize) {
+        throw new IOException("Impossible to write a chunk of length:" + length + " max allowed chunk length:" + maxChunkSize
+            + " see NETWORK_BINARY_MAX_CONTENT_LENGTH settings ");
+      }
+
+      out.write(content, 0, length);
+      updateMetricTransmittedBytes(length);
     }
     return this;
   }
@@ -337,5 +427,21 @@ public abstract class ChannelBinary extends Channel implements ChannelDataInput,
 
   public DataInputStream getDataInput() {
     return in;
+  }
+
+  public ChannelBinary writeBuffer(final ByteBuffer buffer) throws IOException {
+    final int length = buffer.limit();
+
+    if (debug)
+      LogManager.instance().log(this, Level.INFO, "%s - Writing bytes (%d bytes) from DirectBuffer", null, socket.getRemoteSocketAddress(), length);
+
+    if (length > maxChunkSize)
+      throw new IOException(
+          "Impossible to write a chunk of length:" + length + " max allowed chunk length:" + maxChunkSize + " see NETWORK_BINARY_MAX_CONTENT_LENGTH settings ");
+
+    out.write(buffer.array(), buffer.arrayOffset(), length);
+    updateMetricTransmittedBytes(length);
+
+    return this;
   }
 }

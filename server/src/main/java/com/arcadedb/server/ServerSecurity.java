@@ -6,16 +6,11 @@ package com.arcadedb.server;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.log.LogManager;
-import com.arcadedb.utility.FileUtils;
 import com.arcadedb.utility.LRUCache;
-import org.json.JSONObject;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
@@ -33,8 +28,7 @@ public class ServerSecurity implements ServerPlugin {
 
   private final ServerSecurityFileRepository securityRepository;
 
-
-    public static class ServerUser {
+  public static class ServerUser {
     public final String      name;
     public final String      password;
     public final boolean     databaseBlackList;
@@ -50,16 +44,16 @@ public class ServerSecurity implements ServerPlugin {
   }
 
   private final        String                            configPath;
-  private final        ConcurrentMap<String, ServerUser> users      = new ConcurrentHashMap<>();
+  private final        ConcurrentMap<String, ServerUser> users     = new ConcurrentHashMap<>();
   private final        String                            algorithm;
   private final        SecretKeyFactory                  secretKeyFactory;
   private final        Map<String, String>               saltCache;
   private final        int                               saltIteration;
-  private static final Random                            RANDOM     = new SecureRandom();
-  public static final  String                            FILE_NAME  = "security.json";
-  public static final  int                               SALT_SIZE  = 32;
+  private static final Random                            RANDOM    = new SecureRandom();
+  public static final  String                            FILE_NAME = "security.json";
+  public static final  int                               SALT_SIZE = 32;
 
-  public ServerSecurity(final ContextConfiguration configuration , final String configPath) {
+  public ServerSecurity(final ContextConfiguration configuration, final String configPath) {
     this.configPath = configPath;
     this.algorithm = configuration.getValueAsString(SERVER_SECURITY_ALGORITHM);
 
@@ -67,7 +61,8 @@ public class ServerSecurity implements ServerPlugin {
 
     if (cacheSize > 0)
       saltCache = Collections.synchronizedMap(new LRUCache<>(cacheSize));
-    else saltCache = Collections.emptyMap();
+    else
+      saltCache = Collections.emptyMap();
 
     saltIteration = configuration.getValueAsInteger(SERVER_SECURITY_SALT_ITERATIONS);
 
@@ -75,7 +70,7 @@ public class ServerSecurity implements ServerPlugin {
     try {
       secretKeyFactory = SecretKeyFactory.getInstance(algorithm);
     } catch (NoSuchAlgorithmException e) {
-        LogManager.instance().log(this,Level.SEVERE, "Security algorithm '%s' not available (error=%s)",  e, algorithm);
+      LogManager.instance().log(this, Level.SEVERE, "Security algorithm '%s' not available (error=%s)", e, algorithm);
       throw new ServerSecurityException("Security algorithm '" + algorithm + "' not available", e);
     }
   }
@@ -93,7 +88,7 @@ public class ServerSecurity implements ServerPlugin {
         createDefaultSecurity();
       }
 
-      users.putAll( securityRepository.loadConfiguration());
+      users.putAll(securityRepository.loadConfiguration());
     } catch (IOException e) {
       throw new ServerException("Error on starting Security service", e);
     }
@@ -195,7 +190,7 @@ public class ServerSecurity implements ServerPlugin {
   }
 
   public void saveConfiguration() throws IOException {
-      securityRepository.saveConfiguration(users);
+    securityRepository.saveConfiguration(users);
   }
 
 }
