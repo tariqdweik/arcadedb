@@ -31,26 +31,27 @@ import java.util.logging.Level;
 public class PostgresNetworkExecutor extends Thread {
   public enum ERROR_SEVERITY {FATAL, ERROR}
 
-  public static        String                                         PG_SERVER_VERSION = "10.5";
-  private static final int                                            BUFFER_LENGTH     = 32 * 1024;
+  public static        String                                         PG_SERVER_VERSION          = "10.5";
+  private static final int                                            BUFFER_LENGTH              = 32 * 1024;
   private final        ArcadeDBServer                                 server;
   private              Database                                       database;
   private              ChannelBinaryServer                            channel;
-  private volatile     boolean                                        shutdown          = false;
-  private              int                                            posInBuffer       = 0;
-  private final        byte[]                                         buffer            = new byte[BUFFER_LENGTH];
-  private              int                                            bytesRead         = 0;
-  private              int                                            nextByte          = 0;
-  private              boolean                                        reuseLastByte     = false;
-  private              String                                         userName          = null;
-  private              String                                         databaseName      = null;
-  private              String                                         userPassword      = null;
-  private              byte                                           transactionStatus = 'I';
-  private              int                                            consecutiveErrors = 0;
-  private              long                                           processIdSequence = 0;
-  private static       Map<Long, Pair<Long, PostgresNetworkExecutor>> ACTIVE_SESSIONS   = new ConcurrentHashMap<>();
-  private              Map<String, PostgresPortal>                    portals           = new HashMap<>();
-  private              boolean                                        DEBUG             = true;
+  private volatile     boolean                                        shutdown                   = false;
+  private              int                                            posInBuffer                = 0;
+  private final        byte[]                                         buffer                     = new byte[BUFFER_LENGTH];
+  private              int                                            bytesRead                  = 0;
+  private              int                                            nextByte                   = 0;
+  private              boolean                                        reuseLastByte              = false;
+  private              String                                         userName                   = null;
+  private              String                                         databaseName               = null;
+  private              String                                         userPassword               = null;
+  private              int                                            consecutiveErrors          = 0;
+  private              long                                           processIdSequence          = 0;
+  private static       Map<Long, Pair<Long, PostgresNetworkExecutor>> ACTIVE_SESSIONS            = new ConcurrentHashMap<>();
+  private              Map<String, PostgresPortal>                    portals                    = new HashMap<>();
+  private              boolean                                        DEBUG                      = true;
+  public               boolean                                        explicitTransactionStarted = false;
+  public               boolean                                        errorInTransaction         = false;
 
   private interface ReadMessageCallback {
     void read(char type, long length) throws IOException;
@@ -160,10 +161,19 @@ public class PostgresNetworkExecutor extends Thread {
             }, 'D', 'P', 'B', 'E', 'Q', 'S', 'C', 'X');
 
           } catch (Exception e) {
-            server.log(this, Level.SEVERE, "Postgres wrapper: Error on reading request: %s", e, e.getMessage());
-            if (++consecutiveErrors > 3) {
+            if (database.isTransactionActive())
+              errorInTransaction = true;
+
+            if (e instanceof PostgresProtocolException) {
+              server.log(this, Level.SEVERE, e.getMessage(), e);
               server.log(this, Level.SEVERE, "Closing connection with client");
               return;
+            } else {
+              server.log(this, Level.SEVERE, "Postgres wrapper: Error on reading request: %s", e, e.getMessage());
+              if (++consecutiveErrors > 3) {
+                server.log(this, Level.SEVERE, "Closing connection with client");
+                return;
+              }
             }
           }
         }
@@ -179,6 +189,15 @@ public class PostgresNetworkExecutor extends Thread {
   private void syncCommand() {
     if (DEBUG)
       LogManager.instance().log(this, Level.INFO, "PSQL: sync");
+
+    if (!explicitTransactionStarted) {
+      if (errorInTransaction)
+        database.rollback();
+      else
+        database.commit();
+      errorInTransaction = false;
+      explicitTransactionStarted = false;
+    }
 
     writeReadyForQueryMessage();
   }
@@ -204,15 +223,20 @@ public class PostgresNetworkExecutor extends Thread {
 
     final PostgresPortal portal = portals.get(portalName);
 
-    final Object[] parameters = portal.parameterValues != null ? portal.parameterValues.toArray() : new Object[0];
-    final ResultSet resultSet = portal.statement.execute(database, parameters);
-    portal.executed = true;
-    if (portal.isExpectingResult) {
-      portal.cachedResultset = browseAndCacheResultset(resultSet);
-      portal.columns = getColumns(portal.cachedResultset);
-    }
-
-    writeRowDescription(portal.columns);
+    if (type == 'P') {
+      final Object[] parameters = portal.parameterValues != null ? portal.parameterValues.toArray() : new Object[0];
+      final ResultSet resultSet = portal.statement.execute(database, parameters);
+      portal.executed = true;
+      if (portal.isExpectingResult) {
+        portal.cachedResultset = browseAndCacheResultset(resultSet);
+        portal.columns = getColumns(portal.cachedResultset);
+        writeRowDescription(portal.columns);
+      } else
+        writeNoData();
+    } else if (type == 'S') {
+      writeNoData();
+    } else
+      throw new PostgresProtocolException("Unexpected describe type '" + type + "'");
   }
 
   private void executeCommand() {
@@ -223,7 +247,7 @@ public class PostgresNetworkExecutor extends Thread {
       final PostgresPortal portal = portals.remove(portalName);
 
       if (DEBUG)
-        LogManager.instance().log(this, Level.INFO, "PSQL: execute '%s' (limit=%d)-> %s", null, portalName, limit, portal);
+        LogManager.instance().log(this, Level.INFO, "PSQL: execute (portal=%s) (limit=%d)-> %s", null, portalName, limit, portal);
 
       if (portal.ignoreExecution)
         writeMessage("empty query response", null, 'I', 4);
@@ -235,18 +259,26 @@ public class PostgresNetworkExecutor extends Thread {
           if (portal.isExpectingResult) {
             portal.cachedResultset = browseAndCacheResultset(resultSet);
             portal.columns = getColumns(portal.cachedResultset);
+            writeRowDescription(portal.columns);
           }
         }
 
         if (portal.isExpectingResult)
           writeDataRows(portal.cachedResultset, portal.columns);
+        else
+          writeNoData();
 
         writeCommandComplete(portal.query, portal.cachedResultset == null ? 0 : portal.cachedResultset.size());
       }
-
     } catch (QueryParsingException | CommandSQLParsingException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.ERROR, "Syntax error on executing query: " + e.getCause().getMessage(), "42601");
     } catch (Exception e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.ERROR, "Error on executing query: " + e.getMessage(), "XX000");
     } finally {
       writeReadyForQueryMessage();
@@ -268,8 +300,6 @@ public class PostgresNetworkExecutor extends Thread {
 
       } else {
 
-        Thread.sleep(10000);
-
         final ResultSet resultSet = database.command("sql", queryText);
 
         final List<Result> cachedResultset = browseAndCacheResultset(resultSet);
@@ -284,8 +314,14 @@ public class PostgresNetworkExecutor extends Thread {
         }
       }
     } catch (QueryParsingException | CommandSQLParsingException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.ERROR, "Syntax error on executing query: " + e.getCause().getMessage(), "42601");
     } catch (Exception e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.ERROR, "Error on executing query: " + e.getMessage(), "XX000");
     } finally {
       writeReadyForQueryMessage();
@@ -293,6 +329,12 @@ public class PostgresNetworkExecutor extends Thread {
   }
 
   private void writeReadyForQueryMessage() {
+    final byte transactionStatus;
+    if (database.isTransactionActive())
+      transactionStatus = 'T';
+    else
+      transactionStatus = 'I';
+
     writeMessage("ready for query", () -> {
       channel.writeByte(transactionStatus);
     }, 'Z', 5);
@@ -411,7 +453,7 @@ public class PostgresNetworkExecutor extends Thread {
       final PostgresPortal portal = portals.get(portalName);
 
       if (DEBUG)
-        LogManager.instance().log(this, Level.INFO, "PSQL: bind '%s' -> %s", null, portalName, sourcePreparedStatement);
+        LogManager.instance().log(this, Level.INFO, "PSQL: bind (portal=%s) -> %s", null, portalName, sourcePreparedStatement);
 
       final int paramFormatCount = channel.readShort();
       if (paramFormatCount > 0) {
@@ -448,6 +490,9 @@ public class PostgresNetworkExecutor extends Thread {
       writeMessage("bind complete", null, '2', 4);
 
     } catch (Exception e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.ERROR, "Error on parsing bind message: " + e.getMessage(), "XX000");
     }
   }
@@ -468,13 +513,19 @@ public class PostgresNetworkExecutor extends Thread {
       }
 
       if (DEBUG)
-        LogManager.instance().log(this, Level.INFO, "PSQL: parse '%s' %s(%d)", null, portalName, portal.query, paramCount);
+        LogManager.instance().log(this, Level.INFO, "PSQL: parse (portal=%s) -> %s (params=%d)", null, portalName, portal.query, paramCount);
 
       final String upperCaseText = portal.query.toUpperCase();
       if (upperCaseText.startsWith("SET "))
         portal.ignoreExecution = true;
-      else
+      else {
         portal.statement = SQLEngine.parse(portal.query, (DatabaseInternal) database);
+
+        if (portal.query.equalsIgnoreCase("BEGIN")) {
+          explicitTransactionStarted = true;
+          portal.isExpectingResult = false;
+        }
+      }
 
       portals.put(portalName, portal);
 
@@ -482,8 +533,14 @@ public class PostgresNetworkExecutor extends Thread {
       writeMessage("parse complete", null, '1', 4);
 
     } catch (QueryParsingException | CommandSQLParsingException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.ERROR, "Syntax error on parsing query: " + e.getCause().getMessage(), "42601");
     } catch (Exception e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.ERROR, "Error on parsing query: " + e.getMessage(), "XX000");
     }
   }
@@ -512,9 +569,15 @@ public class PostgresNetworkExecutor extends Thread {
       database = server.getDatabase(databaseName);
       database.setAutoTransaction(true);
     } catch (ServerSecurityException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.FATAL, "Credentials not valid", "28P01");
       return false;
     } catch (DatabaseOperationException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       writeError(ERROR_SEVERITY.FATAL, "Database not exists", "HV00Q");
       return false;
     }
@@ -582,6 +645,9 @@ public class PostgresNetworkExecutor extends Thread {
         }
       }
     } catch (IOException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       throw new PostgresProtocolException("Error on parsing startup message", e);
     }
     return true;
@@ -612,6 +678,9 @@ public class PostgresNetworkExecutor extends Thread {
       channel.writeByte((byte) 0);
       channel.flush();
     } catch (IOException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       throw new PostgresProtocolException("Error on sending error '" + errorMessage + "' to the client", e);
     }
   }
@@ -628,6 +697,9 @@ public class PostgresNetworkExecutor extends Thread {
         LogManager.instance().log(this, Level.INFO, "PSQL:-> %s (%s - %s)", null, messageName, messageCode, FileUtils.getSizeAsString(length));
 
     } catch (IOException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       throw new PostgresProtocolException("Error on sending " + messageName + " message", e);
     }
   }
@@ -659,8 +731,14 @@ public class PostgresNetworkExecutor extends Thread {
 
     } catch (EOFException e) {
       // CLIENT CLOSES THE CONNECTION
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       return;
     } catch (IOException e) {
+      if (database.isTransactionActive())
+        errorInTransaction = true;
+
       throw new PostgresProtocolException("Error on reading " + messageName + " message: " + e.getMessage(), e);
     }
   }
@@ -725,19 +803,23 @@ public class PostgresNetworkExecutor extends Thread {
     final String upperCaseText = queryText.toUpperCase();
     String tag = "";
     if (upperCaseText.startsWith("CREATE VERTEX") || upperCaseText.startsWith("INSERT INTO"))
-      tag = "INSERT 0 ";
+      tag = "INSERT 0 " + resultSetCount;
     else if (upperCaseText.startsWith("SELECT") || upperCaseText.startsWith("MATCH"))
-      tag = "SELECT ";
+      tag = "SELECT " + resultSetCount;
     else if (upperCaseText.startsWith("UPDATE"))
-      tag = "UPDATE ";
+      tag = "UPDATE " + resultSetCount;
     else if (upperCaseText.startsWith("DELETE"))
-      tag = "DELETE ";
-
-    tag += resultSetCount;
+      tag = "DELETE " + resultSetCount;
+    else if (upperCaseText.equals("BEGIN"))
+      tag = "BEGIN";
 
     String finalTag = tag;
     writeMessage("command complete", () -> {
       writeString(finalTag);
     }, 'C', 4 + tag.length() + 1);
+  }
+
+  private void writeNoData() {
+    writeMessage("no data", null, 'n', 4);
   }
 }

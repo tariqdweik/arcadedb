@@ -30,6 +30,6 @@ public class PostgresPortal {
 
   @Override
   public String toString() {
-    return "PostgresPortal{" + "query='" + query + '\'' + '}';
+    return query;
   }
 }

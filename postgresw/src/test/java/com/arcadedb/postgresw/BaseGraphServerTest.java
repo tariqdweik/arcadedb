@@ -68,7 +68,6 @@ public abstract class BaseGraphServerTest {
   @AfterEach
   public void endTest() {
     try {
-      LogManager.instance().log(this, Level.INFO, "END OF THE TEST: Check DBS are identical...");
       checkDatabasesAreIdentical();
     } finally {
       LogManager.instance().log(this, Level.INFO, "END OF THE TEST: Cleaning test %s...", null, getClass().getName());
@@ -226,7 +225,10 @@ public abstract class BaseGraphServerTest {
 
   protected void checkDatabasesAreIdentical() {
     final int[] servers2Check = getServerToCheck();
+    if (servers2Check.length < 2)
+      return;
 
+    LogManager.instance().log(this, Level.INFO, "END OF THE TEST: Check DBS are identical...");
     for (int i = 1; i < servers2Check.length; ++i) {
       final Database db1 = getServerDatabase(servers2Check[0], getDatabaseName());
       final Database db2 = getServerDatabase(servers2Check[i], getDatabaseName());

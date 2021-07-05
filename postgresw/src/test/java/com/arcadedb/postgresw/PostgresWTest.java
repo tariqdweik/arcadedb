@@ -15,7 +15,6 @@ import java.sql.*;
 import java.util.Properties;
 
 public class PostgresWTest extends BaseGraphServerTest {
-
   @BeforeEach
   @Override
   public void beginTest() {
@@ -31,9 +30,102 @@ public class PostgresWTest extends BaseGraphServerTest {
   }
 
   @Test
-  public void testSet() throws InterruptedException, ClassNotFoundException, SQLException {
-    //Thread.sleep(1000000);
+  public void testTypeNotExistsErrorManagement() throws Exception {
+    try (final Connection conn = getConnection()) {
+      try (Statement st = conn.createStatement()) {
+        try {
+          st.executeQuery("SELECT * FROM V");
+          Assertions.fail("The query should go in error");
+        } catch (PSQLException e) {
+        }
+      }
+    }
+  }
 
+  @Test
+  public void queryVertices() throws Exception {
+    try (final Connection conn = getConnection()) {
+      try (Statement st = conn.createStatement()) {
+        st.executeQuery("create vertex type V");
+        st.executeQuery("create vertex V set name = 'Jay', lastName = 'Miner'");
+
+        PreparedStatement pst = conn.prepareStatement("create vertex V set name = ?, lastName = ?");
+        pst.setString(1, "Rocky");
+        pst.setString(2, "Balboa");
+        pst.execute();
+        pst.close();
+
+        ResultSet rs = st.executeQuery("SELECT * FROM V");
+
+        Assertions.assertTrue(!rs.isAfterLast());
+
+        int i = 0;
+        while (rs.next()) {
+          if (rs.getString(1).equalsIgnoreCase("Jay")) {
+            Assertions.assertEquals("Jay", rs.getString(1));
+            Assertions.assertEquals("Miner", rs.getString(2));
+            ++i;
+          } else if (rs.getString(1).equalsIgnoreCase("Rocky")) {
+            Assertions.assertEquals("Rocky", rs.getString(1));
+            Assertions.assertEquals("Balboa", rs.getString(2));
+            ++i;
+          } else
+            Assertions.fail("Unknown value");
+        }
+
+        Assertions.assertEquals(2, i);
+
+        rs.close();
+      }
+    }
+  }
+
+  //@Test
+  public void queryTransaction() throws Exception {
+    try (final Connection conn = getConnection()) {
+      conn.setAutoCommit(false);
+      try (Statement st = conn.createStatement()) {
+        st.executeQuery("create vertex type V");
+        st.executeQuery("create vertex V set name = 'Jay', lastName = 'Miner'");
+
+        PreparedStatement pst = conn.prepareStatement("create vertex V set name = ?, lastName = ?");
+        pst.setString(1, "Rocky");
+        pst.setString(2, "Balboa");
+        pst.execute();
+        pst.close();
+
+        ResultSet rs = st.executeQuery("SELECT * FROM V");
+
+        Assertions.assertTrue(!rs.isAfterLast());
+
+        int i = 0;
+        while (rs.next()) {
+          if (rs.getString(1).equalsIgnoreCase("Jay")) {
+            Assertions.assertEquals("Jay", rs.getString(1));
+            Assertions.assertEquals("Miner", rs.getString(2));
+            ++i;
+          } else if (rs.getString(1).equalsIgnoreCase("Rocky")) {
+            Assertions.assertEquals("Rocky", rs.getString(1));
+            Assertions.assertEquals("Balboa", rs.getString(2));
+            ++i;
+          } else
+            Assertions.fail("Unknown value");
+        }
+
+        Assertions.assertEquals(2, i);
+
+        rs.close();
+      }
+      conn.commit();
+    }
+  }
+
+  //@Test
+  public void testWaitForConnectionFromExternal() throws InterruptedException {
+    Thread.sleep(1000000);
+  }
+
+  private Connection getConnection() throws ClassNotFoundException, SQLException {
     Class.forName("org.postgresql.Driver");
 
     String url = "jdbc:postgresql://localhost/" + getDatabaseName();
@@ -42,53 +134,7 @@ public class PostgresWTest extends BaseGraphServerTest {
     props.setProperty("password", "root");
     props.setProperty("ssl", "false");
     Connection conn = DriverManager.getConnection(url, props);
-
-    Statement st = conn.createStatement();
-    try {
-      st.executeQuery("SELECT * FROM V");
-      Assertions.fail("The query should go in error");
-    } catch (PSQLException e) {
-    }
-    st.close();
-
-    st = conn.createStatement();
-    st.executeQuery("create vertex type V");
-    st.close();
-
-    st = conn.createStatement();
-    st.executeQuery("create vertex V set name = 'Jay', lastName = 'Miner'");
-    st.close();
-
-    PreparedStatement pst = conn.prepareStatement("create vertex V set name = ?, lastName = ?");
-    pst.setString(1, "Rocky");
-    pst.setString(2, "Balboa");
-    pst.execute();
-
-    pst.close();
-
-    st = conn.createStatement();
-    ResultSet rs = st.executeQuery("SELECT * FROM V");
-
-    Assertions.assertTrue(!rs.isAfterLast());
-
-    int i = 0;
-    while (rs.next()) {
-      if (rs.getString(1).equalsIgnoreCase("Jay")) {
-        Assertions.assertEquals("Jay", rs.getString(1));
-        Assertions.assertEquals("Miner", rs.getString(2));
-        ++i;
-      } else if (rs.getString(1).equalsIgnoreCase("Rocky")) {
-        Assertions.assertEquals("Rocky", rs.getString(1));
-        Assertions.assertEquals("Balboa", rs.getString(2));
-        ++i;
-      } else
-        Assertions.fail("Unknown value");
-    }
-
-    Assertions.assertEquals(2, i);
-
-    rs.close();
-    st.close();
+    return conn;
   }
 
   protected String getDatabaseName() {
