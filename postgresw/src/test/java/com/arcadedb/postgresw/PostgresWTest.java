@@ -8,6 +8,7 @@ import com.arcadedb.GlobalConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
@@ -29,7 +30,7 @@ public class PostgresWTest extends BaseGraphServerTest {
     super.endTest();
   }
 
-  //@Test
+  @Test
   public void testSet() throws InterruptedException, ClassNotFoundException, SQLException {
     //Thread.sleep(1000000);
 

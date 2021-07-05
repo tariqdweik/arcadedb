@@ -10,6 +10,7 @@ import com.arcadedb.database.Identifiable;
 import com.arcadedb.database.Record;
 import com.arcadedb.exception.CommandExecutionException;
 import com.arcadedb.sql.executor.*;
+import com.arcadedb.utility.NumberUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -114,7 +115,23 @@ public class BaseExpression extends MathExpression {
     if (number != null) {
       result = number.getValue();
     } else if (identifier != null) {
-      result = identifier.execute(iCurrentRecord, ctx);
+
+      // CHECK FOR SPECIAL CASE FOR POSTGRES DRIVER THAT TRANSLATES POSITIONAL PARAMETERS (?) WITH $N
+      // THIS IS DIFFERENT FROM ORIENTDB CODE BASE
+      // @author Luca Garulli
+      // @see Postgres Driver
+      if (ctx.getInputParameters() != null && identifier instanceof BaseIdentifier) {
+        final String v = identifier.getSuffix().identifier.getValue();
+        if (v.startsWith("$") && v.length() > 1) {
+          final String toParse = v.substring(1);
+
+          final Integer pos = NumberUtils.parseInteger(toParse);
+          if (pos != null)
+            // POSTGRES PARAMETERS JDBC DRIVER START FROM 1
+            result = ctx.getInputParameters().get(pos - 1);
+        }
+      } else
+        result = identifier.execute(iCurrentRecord, ctx);
     } else if (string != null && string.length() > 1) {
       result = decode(string.substring(1, string.length() - 1));
     } else if (inputParam != null) {
@@ -146,8 +163,7 @@ public class BaseExpression extends MathExpression {
     return identifier.estimateIndexedFunction(target, context, operator, right);
   }
 
-  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context,
-      BinaryCompareOperator operator, Object right) {
+  public Iterable<Record> executeIndexedFunction(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return null;
     }
@@ -165,8 +181,7 @@ public class BaseExpression extends MathExpression {
    * @return true if current expression is an indexed funciton AND that function can also be executed without using the index, false
    * otherwise
    */
-  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator,
-      Object right) {
+  public boolean canExecuteIndexedFunctionWithoutIndex(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return false;
     }
@@ -183,8 +198,7 @@ public class BaseExpression extends MathExpression {
    *
    * @return true if current expression is an indexed function AND that function can be used on this target, false otherwise
    */
-  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context,
-      BinaryCompareOperator operator, Object right) {
+  public boolean allowsIndexedFunctionExecutionOnTarget(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return false;
     }
@@ -201,8 +215,7 @@ public class BaseExpression extends MathExpression {
    *
    * @return true if current expression is an indexed function AND the function has also to be executed after the index search.
    */
-  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context,
-      BinaryCompareOperator operator, Object right) {
+  public boolean executeIndexedFunctionAfterIndexSearch(FromClause target, CommandContext context, BinaryCompareOperator operator, Object right) {
     if (this.identifier == null) {
       return false;
     }
@@ -457,8 +470,8 @@ public class BaseExpression extends MathExpression {
   /**
    * Transforms, only if needed, the source string escaping the characters \ and ".
    *
-   * @param iText
-   *          Input String
+   * @param iText Input String
+   *
    * @return Modified string if needed, otherwise the same input object
    */
   public static String encode(final String iText) {
@@ -496,8 +509,8 @@ public class BaseExpression extends MathExpression {
   /**
    * Transforms, only if needed, the source string un-escaping the characters \ and ".
    *
-   * @param iText
-   *          Input String
+   * @param iText Input String
+   *
    * @return Modified string if needed, otherwise the same input object
    */
   public static String decode(final String iText) {
