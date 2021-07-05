@@ -8,7 +8,6 @@ import com.arcadedb.GlobalConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
@@ -30,9 +29,9 @@ public class PostgresWTest extends BaseGraphServerTest {
     super.endTest();
   }
 
-  @Test
+  //@Test
   public void testSet() throws InterruptedException, ClassNotFoundException, SQLException {
-    Thread.sleep(1000000);
+    //Thread.sleep(1000000);
 
     Class.forName("org.postgresql.Driver");
 
@@ -59,21 +58,33 @@ public class PostgresWTest extends BaseGraphServerTest {
     st.executeQuery("create vertex V set name = 'Jay', lastName = 'Miner'");
     st.close();
 
-//      st = conn.createStatement();
-//      st.executeQuery("create vertex V set name = $1, lastName = $2", "Rocky", "Balboa");
-//      st.close();
+    PreparedStatement pst = conn.prepareStatement("create vertex V set name = ?, lastName = ?");
+    pst.setString(1, "Rocky");
+    pst.setString(2, "Balboa");
+    pst.execute();
+
+    pst.close();
 
     st = conn.createStatement();
     ResultSet rs = st.executeQuery("SELECT * FROM V");
 
     Assertions.assertTrue(!rs.isAfterLast());
 
+    int i = 0;
     while (rs.next()) {
-      Assertions.assertEquals("Jay", rs.getString(1));
-      Assertions.assertEquals("Miner", rs.getString(2));
+      if (rs.getString(1).equalsIgnoreCase("Jay")) {
+        Assertions.assertEquals("Jay", rs.getString(1));
+        Assertions.assertEquals("Miner", rs.getString(2));
+        ++i;
+      } else if (rs.getString(1).equalsIgnoreCase("Rocky")) {
+        Assertions.assertEquals("Rocky", rs.getString(1));
+        Assertions.assertEquals("Balboa", rs.getString(2));
+        ++i;
+      } else
+        Assertions.fail("Unknown value");
     }
 
-    Assertions.assertTrue(rs.isAfterLast());
+    Assertions.assertEquals(2, i);
 
     rs.close();
     st.close();

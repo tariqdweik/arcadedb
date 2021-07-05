@@ -4,7 +4,6 @@
 package com.arcadedb.postgresw;
 
 import com.arcadedb.Constants;
-import com.arcadedb.database.Binary;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.exception.CommandSQLParsingException;
@@ -55,90 +54,6 @@ public class PostgresNetworkExecutor extends Thread {
 
   private interface ReadMessageCallback {
     void read(char type, long length) throws IOException;
-  }
-
-  enum TYPES {
-    SMALLINT(21, Short.class, 2, -1), //
-    INTEGER(23, Integer.class, 4, -1), //
-    LONG(20, Long.class, 8, -1), //
-    REAL(700, Float.class, 4, -1), //
-    DOUBLE(701, Double.class, 8, -1), //
-    CHAR(18, Character.class, 1, -1), //
-    BOOLEAN(16, Boolean.class, 1, -1),  //
-    DATE(1082, Date.class, 8, -1), //
-    VARCHAR(1043, String.class, -1, -1), //
-    ANY(2276, Object.class, 4, -1) //
-    ;
-
-    public final int      code;
-    public final Class<?> cls;
-    public final int      size;
-    public final int      modifier;
-
-    TYPES(final int code, final Class<?> cls, final int size, final int modifier) {
-      this.code = code;
-      this.cls = cls;
-      this.size = size;
-      this.modifier = modifier;
-    }
-
-    public void serialize(final ByteBuffer typeBuffer, final Object value) {
-      if (value == null) {
-        typeBuffer.putInt(-1);
-        return;
-      }
-
-      switch (this) {
-      case SMALLINT:
-        typeBuffer.putInt(Binary.SHORT_SERIALIZED_SIZE);
-        typeBuffer.putShort(((Number) value).shortValue());
-        break;
-
-      case INTEGER:
-        typeBuffer.putInt(Binary.INT_SERIALIZED_SIZE);
-        typeBuffer.putInt(((Number) value).intValue());
-        break;
-
-      case LONG:
-        typeBuffer.putInt(Binary.LONG_SERIALIZED_SIZE);
-        typeBuffer.putLong(((Number) value).longValue());
-        break;
-
-      case DOUBLE:
-        typeBuffer.putInt(Binary.LONG_SERIALIZED_SIZE);
-        typeBuffer.putDouble(((Number) value).doubleValue());
-        break;
-
-      case DATE:
-        typeBuffer.putInt(Binary.LONG_SERIALIZED_SIZE);
-        typeBuffer.putLong(((Date) value).getTime());
-        break;
-
-      case CHAR:
-        typeBuffer.putInt(Binary.BYTE_SERIALIZED_SIZE);
-        typeBuffer.put((byte) ((Character) value).charValue());
-        break;
-
-      case BOOLEAN:
-        typeBuffer.putInt(Binary.BYTE_SERIALIZED_SIZE);
-        typeBuffer.put((byte) (((Boolean) value) ? 1 : 0));
-        break;
-
-      case VARCHAR:
-        final byte[] str = value.toString().getBytes();
-        typeBuffer.putInt(str.length);
-        typeBuffer.put(str);
-        break;
-
-      case ANY:
-        typeBuffer.putInt(Binary.INT_SERIALIZED_SIZE);
-        typeBuffer.putInt(((Number) value).intValue());
-        break;
-
-      default:
-        throw new PostgresProtocolException("Type " + toString() + " not supported for serializing");
-      }
-    }
   }
 
   private interface WriteMessageCallback {
@@ -268,25 +183,6 @@ public class PostgresNetworkExecutor extends Thread {
     writeReadyForQueryMessage();
   }
 
-  private void describeCommand() throws IOException {
-    final byte type = channel.readByte();
-    final String portalName = readString();
-
-    if (DEBUG)
-      LogManager.instance().log(this, Level.INFO, "PSQL: describe '%s' type=%s", null, portalName, (char) type);
-
-    final PostgresPortal portal = portals.get(portalName);
-
-    // TRANSFORM PARAMETERS
-    final Object[] parameters = new Object[0];
-
-    final ResultSet resultSet = portal.statement.execute(database, parameters);
-    portal.cachedResultset = browseAndCacheResultset(resultSet);
-    portal.columns = getColumns(portal.cachedResultset);
-
-    writeRowDescription(portal.columns);
-  }
-
   private void closeCommand() throws IOException {
     final byte closeType = channel.readByte();
     final String prepStatementOrPortal = readString();
@@ -297,6 +193,26 @@ public class PostgresNetworkExecutor extends Thread {
       LogManager.instance().log(this, Level.INFO, "PSQL: close '%s' type=%s", null, prepStatementOrPortal, (char) closeType);
 
     writeMessage("close complete", null, '3', 4);
+  }
+
+  private void describeCommand() throws IOException {
+    final byte type = channel.readByte();
+    final String portalName = readString();
+
+    if (DEBUG)
+      LogManager.instance().log(this, Level.INFO, "PSQL: describe '%s' type=%s", null, portalName, (char) type);
+
+    final PostgresPortal portal = portals.get(portalName);
+
+    final Object[] parameters = portal.parameterValues != null ? portal.parameterValues.toArray() : new Object[0];
+    final ResultSet resultSet = portal.statement.execute(database, parameters);
+    portal.executed = true;
+    if (portal.isExpectingResult) {
+      portal.cachedResultset = browseAndCacheResultset(resultSet);
+      portal.columns = getColumns(portal.cachedResultset);
+    }
+
+    writeRowDescription(portal.columns);
   }
 
   private void executeCommand() {
@@ -312,17 +228,20 @@ public class PostgresNetworkExecutor extends Thread {
       if (portal.ignoreExecution)
         writeMessage("empty query response", null, 'I', 4);
       else {
-        // TRANSFORM PARAMETERS
-        final Object[] parameters = new Object[0];
-
-        if (portal.cachedResultset == null) {
+        if (!portal.executed) {
+          final Object[] parameters = portal.parameterValues != null ? portal.parameterValues.toArray() : new Object[0];
           final ResultSet resultSet = portal.statement.execute(database, parameters);
-          portal.cachedResultset = browseAndCacheResultset(resultSet);
-          portal.columns = getColumns(portal.cachedResultset);
+          portal.executed = true;
+          if (portal.isExpectingResult) {
+            portal.cachedResultset = browseAndCacheResultset(resultSet);
+            portal.columns = getColumns(portal.cachedResultset);
+          }
         }
 
-        writeDataRows(portal.cachedResultset, portal.columns);
-        writeCommandComplete(portal.query, portal.cachedResultset.size());
+        if (portal.isExpectingResult)
+          writeDataRows(portal.cachedResultset, portal.columns);
+
+        writeCommandComplete(portal.query, portal.cachedResultset == null ? 0 : portal.cachedResultset.size());
       }
 
     } catch (QueryParsingException | CommandSQLParsingException e) {
@@ -355,15 +274,15 @@ public class PostgresNetworkExecutor extends Thread {
 
         final List<Result> cachedResultset = browseAndCacheResultset(resultSet);
 
-        final Map<String, TYPES> columns = getColumns(cachedResultset);
-
-        writeRowDescription(columns);
-
-        writeDataRows(cachedResultset, columns);
-
-        writeCommandComplete(queryText, cachedResultset.size());
+        if (cachedResultset.isEmpty())
+          writeMessage("empty query response", null, 'I', 4);
+        else {
+          final Map<String, PostgresType> columns = getColumns(cachedResultset);
+          writeRowDescription(columns);
+          writeDataRows(cachedResultset, columns);
+          writeCommandComplete(queryText, cachedResultset.size());
+        }
       }
-
     } catch (QueryParsingException | CommandSQLParsingException e) {
       writeError(ERROR_SEVERITY.ERROR, "Syntax error on executing query: " + e.getCause().getMessage(), "42601");
     } catch (Exception e) {
@@ -391,21 +310,21 @@ public class PostgresNetworkExecutor extends Thread {
     return cachedResultset;
   }
 
-  private Map<String, TYPES> getColumns(final List<Result> resultSet) {
-    final Map<String, TYPES> columns = new LinkedHashMap<>();
+  private Map<String, PostgresType> getColumns(final List<Result> resultSet) {
+    final Map<String, PostgresType> columns = new LinkedHashMap<>();
 
     for (Result row : resultSet) {
       final Set<String> propertyNames = row.getPropertyNames();
       for (String p : propertyNames) {
         final Object value = row.getProperty(p);
         if (value != null) {
-          TYPES valueType = columns.get(p);
+          PostgresType valueType = columns.get(p);
 
           if (valueType == null) {
             // FIND THE VALUE TYPE AND WRITE IT IN THE DATA DESCRIPTION
             final Class valueClass = value.getClass();
 
-            for (TYPES t : TYPES.values()) {
+            for (PostgresType t : PostgresType.values()) {
               if (t.cls.isAssignableFrom(valueClass)) {
                 valueType = t;
                 break;
@@ -413,7 +332,7 @@ public class PostgresNetworkExecutor extends Thread {
             }
 
             if (valueType == null)
-              valueType = TYPES.ANY;
+              valueType = PostgresType.ANY;
 
             columns.put(p, valueType);
           }
@@ -424,12 +343,15 @@ public class PostgresNetworkExecutor extends Thread {
     return columns;
   }
 
-  private void writeRowDescription(final Map<String, TYPES> columns) {
+  private void writeRowDescription(final Map<String, PostgresType> columns) {
+    if (columns == null)
+      return;
+
     final ByteBuffer bufferDescription = ByteBuffer.allocate(64 * 1024);
 
-    for (Map.Entry<String, TYPES> col : columns.entrySet()) {
+    for (Map.Entry<String, PostgresType> col : columns.entrySet()) {
       final String columnName = col.getKey();
-      final TYPES columnType = col.getValue();
+      final PostgresType columnType = col.getValue();
 
       bufferDescription.put(columnName.getBytes());//The field name.
       bufferDescription.put((byte) 0);
@@ -451,7 +373,7 @@ public class PostgresNetworkExecutor extends Thread {
     }, 'T', 4 + 2 + bufferDescription.limit());
   }
 
-  private void writeDataRows(final List<Result> resultSet, final Map<String, TYPES> columns) throws IOException {
+  private void writeDataRows(final List<Result> resultSet, final Map<String, PostgresType> columns) throws IOException {
     final ByteBuffer bufferData = ByteBuffer.allocate(64 * 1024);
     final ByteBuffer bufferValues = ByteBuffer.allocate(64 * 1024);
 
@@ -459,7 +381,7 @@ public class PostgresNetworkExecutor extends Thread {
       bufferValues.clear();
       bufferValues.putShort((short) columns.size()); // Int16 The number of column values that follow (possibly zero).
 
-      for (Map.Entry<String, TYPES> entry : columns.entrySet()) {
+      for (Map.Entry<String, PostgresType> entry : columns.entrySet()) {
         final String propertyName = entry.getKey();
         final Object value = row.getProperty(propertyName);
 
@@ -508,7 +430,9 @@ public class PostgresNetworkExecutor extends Thread {
           final byte[] paramValue = new byte[(int) paramSize];
           channel.readBytes(paramValue);
 
-          portal.parameterValues.add(paramValue);
+          portal.parameterValues.add(//
+              PostgresType.deserialize(portal.parameterTypes.get(i), portal.parameterFormats.get(i), paramValue)//
+          );
         }
       }
 
@@ -531,10 +455,8 @@ public class PostgresNetworkExecutor extends Thread {
   private void parseCommand() {
     try {
       // PARSE
-      final PostgresPortal portal = new PostgresPortal();
-
       final String portalName = readString();
-      portal.query = readString();
+      final PostgresPortal portal = new PostgresPortal(readString());
       final int paramCount = channel.readShort();
 
       if (paramCount > 0) {

@@ -43,7 +43,7 @@ public class SaveElementStep extends AbstractExecutionStep {
         if (result.isElement()) {
           final Document doc = result.getElement().orElse(null);
 
-          final MutableDocument modifiableDoc = (MutableDocument) doc.modify();
+          final MutableDocument modifiableDoc = doc.modify();
           if (bucket == null)
             modifiableDoc.save();
           else
