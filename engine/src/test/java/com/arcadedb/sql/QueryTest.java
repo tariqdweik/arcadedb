@@ -8,6 +8,7 @@ import com.arcadedb.BaseTest;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.MutableDocument;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.executor.Result;
 import com.arcadedb.sql.executor.ResultSet;
 import org.junit.jupiter.api.Assertions;
@@ -27,8 +28,9 @@ public class QueryTest extends BaseTest {
     database.transaction(new Database.TransactionScope() {
       @Override
       public void execute(Database database) {
-        if (!database.getSchema().existsType("V"))
+        if (!database.getSchema().existsType("V")) {
           database.getSchema().createVertexType("V");
+        }
 
         for (int i = 0; i < TOT; ++i) {
           final MutableDocument v = database.newVertex("V");
@@ -136,12 +138,10 @@ public class QueryTest extends BaseTest {
         Assertions.assertEquals(1, total.get());
 
         // CHECK STATEMENT CACHE
-        Assertions.assertTrue(
-            ((DatabaseInternal) db).getStatementCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
+        Assertions.assertTrue(((DatabaseInternal) db).getStatementCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
 
         // CHECK EXECUTION PLAN CACHE
-        Assertions.assertTrue(
-            ((DatabaseInternal) db).getExecutionPlanCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
+        Assertions.assertTrue(((DatabaseInternal) db).getExecutionPlanCache().contains("SELECT FROM V WHERE name = :name AND surname = :surname"));
 
         // EXECUTE THE 2ND TIME
         rs = db.command("SQL", "SELECT FROM V WHERE name = :name AND surname = :surname", params);
@@ -327,8 +327,7 @@ public class QueryTest extends BaseTest {
         db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'foo'");
         db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'bar'");
         db.command("SQL",
-            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass
-                + " WHERE name ='bar')");
+            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass + " WHERE name ='bar')");
 
         ResultSet rs = db.query("SQL", "SELECT FROM " + edgeClass);
         Assertions.assertTrue(rs.hasNext());
@@ -377,8 +376,7 @@ public class QueryTest extends BaseTest {
         db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'foo'");
         db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'bar'");
         db.command("SQL",
-            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass
-                + " WHERE name ='bar')");
+            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass + " WHERE name ='bar')");
 
         ResultSet rs = db.query("SQL", "SELECT FROM " + edgeClass);
         Assertions.assertTrue(rs.hasNext());
@@ -410,8 +408,7 @@ public class QueryTest extends BaseTest {
         db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'foo'");
         db.command("SQL", "CREATE VERTEX " + vertexClass + " SET name = 'bar'");
         db.command("SQL",
-            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass
-                + " WHERE name ='bar')");
+            "CREATE EDGE " + edgeClass + " FROM (SELECT FROM " + vertexClass + " WHERE name ='foo') TO (SELECT FROM " + vertexClass + " WHERE name ='bar')");
 
         ResultSet rs = db.query("SQL", "SELECT FROM " + edgeClass);
         Assertions.assertTrue(rs.hasNext());
@@ -456,5 +453,23 @@ public class QueryTest extends BaseTest {
     });
   }
 
+  @Test
+  public void testTimeout() {
+
+    database.transaction(new Database.TransactionScope() {
+      @Override
+      public void execute(Database db) {
+        try {
+          ResultSet rs = db.command("SQL", "SELECT FROM V ORDER BY ID DESC TIMEOUT 1", new HashMap<>());
+          while (rs.hasNext()) {
+            final Result record = rs.next();
+          }
+          Assertions.fail("Timeout should be triggered");
+        } catch (TimeoutException e) {
+          // OK
+        }
+      }
+    });
+  }
 }
 

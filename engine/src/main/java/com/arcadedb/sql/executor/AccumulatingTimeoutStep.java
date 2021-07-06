@@ -1,6 +1,7 @@
 package com.arcadedb.sql.executor;
 
 import com.arcadedb.exception.CommandExecutionException;
+import com.arcadedb.exception.TimeoutException;
 import com.arcadedb.sql.parser.Timeout;
 
 import java.util.Map;
@@ -76,7 +77,7 @@ public class AccumulatingTimeoutStep extends AbstractExecutionStep {
     if (Timeout.RETURN.equals(this.timeout.getFailureStrategy())) {
       return new InternalResultSet();
     } else {
-      throw new CommandExecutionException("Timeout expired");
+      throw new TimeoutException("Timeout expired");
     }
   }
 
