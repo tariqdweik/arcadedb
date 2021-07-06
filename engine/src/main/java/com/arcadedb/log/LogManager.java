@@ -47,6 +47,22 @@ public class LogManager {
     this.logger = logger;
   }
 
+  public void warn(final Object iRequester, String iMessage) {
+    logger.log(iRequester, Level.WARNING, iMessage, null, CONTEXT_INSTANCE.get(), null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null);
+  }
+
+  public void error(final Object iRequester, String iMessage) {
+    logger.log(iRequester, Level.SEVERE, iMessage, null, CONTEXT_INSTANCE.get(), null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null);
+  }
+
+  public void error(final Object iRequester, String iMessage, Exception e) {
+    logger
+        .log(iRequester, Level.SEVERE, iMessage, e, CONTEXT_INSTANCE.get(), null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null);
+  }
+
   public void log(final Object iRequester, final Level iLevel, String iMessage) {
     logger.log(iRequester, iLevel, iMessage, null, CONTEXT_INSTANCE.get(), null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null);

@@ -11,9 +11,11 @@ import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.exception.QueryParsingException;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.network.binary.ChannelBinaryServer;
+import com.arcadedb.schema.DocumentType;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerSecurityException;
 import com.arcadedb.sql.executor.Result;
+import com.arcadedb.sql.executor.ResultInternal;
 import com.arcadedb.sql.executor.ResultSet;
 import com.arcadedb.sql.executor.SQLEngine;
 import com.arcadedb.utility.FileUtils;
@@ -50,8 +52,9 @@ public class PostgresNetworkExecutor extends Thread {
   private static       Map<Long, Pair<Long, PostgresNetworkExecutor>> ACTIVE_SESSIONS            = new ConcurrentHashMap<>();
   private              Map<String, PostgresPortal>                    portals                    = new HashMap<>();
   private              boolean                                        DEBUG                      = true;
-  public               boolean                                        explicitTransactionStarted = false;
-  public               boolean                                        errorInTransaction         = false;
+  private              Map<String, Object>                            connectionProperties       = new HashMap<>();
+  private              boolean                                        explicitTransactionStarted = false;
+  private              boolean                                        errorInTransaction         = false;
 
   private interface ReadMessageCallback {
     void read(char type, long length) throws IOException;
@@ -206,7 +209,7 @@ public class PostgresNetworkExecutor extends Thread {
     final byte closeType = channel.readByte();
     final String prepStatementOrPortal = readString();
 
-    portals.remove(prepStatementOrPortal);
+    getPortal(prepStatementOrPortal, true);
 
     if (DEBUG)
       LogManager.instance().log(this, Level.INFO, "PSQL: close '%s' type=%s", null, prepStatementOrPortal, (char) closeType);
@@ -221,18 +224,29 @@ public class PostgresNetworkExecutor extends Thread {
     if (DEBUG)
       LogManager.instance().log(this, Level.INFO, "PSQL: describe '%s' type=%s", null, portalName, (char) type);
 
-    final PostgresPortal portal = portals.get(portalName);
+    final PostgresPortal portal = getPortal(portalName, false);
+    if (portal == null) {
+      writeNoData();
+      return;
+    }
 
     if (type == 'P') {
-      final Object[] parameters = portal.parameterValues != null ? portal.parameterValues.toArray() : new Object[0];
-      final ResultSet resultSet = portal.statement.execute(database, parameters);
-      portal.executed = true;
-      if (portal.isExpectingResult) {
-        portal.cachedResultset = browseAndCacheResultset(resultSet);
-        portal.columns = getColumns(portal.cachedResultset);
-        writeRowDescription(portal.columns);
-      } else
+      if (portal.statement != null) {
+        final Object[] parameters = portal.parameterValues != null ? portal.parameterValues.toArray() : new Object[0];
+        final ResultSet resultSet = portal.statement.execute(database, parameters);
+        portal.executed = true;
+        if (portal.isExpectingResult) {
+          portal.cachedResultset = browseAndCacheResultset(resultSet);
+          portal.columns = getColumns(portal.cachedResultset);
+          writeRowDescription(portal.columns);
+        } else
+          writeNoData();
+      } else {
+        if (portal.columns != null)
+          writeRowDescription(portal.columns);
+
         writeNoData();
+      }
     } else if (type == 'S') {
       writeNoData();
     } else
@@ -244,7 +258,12 @@ public class PostgresNetworkExecutor extends Thread {
       final String portalName = readString();
       final int limit = (int) channel.readUnsignedInt();
 
-      final PostgresPortal portal = portals.remove(portalName);
+      final PostgresPortal portal = getPortal(portalName, true);
+      if (portal == null) {
+        writeNoData();
+        writeCommandComplete(portal.query, portal.cachedResultset == null ? 0 : portal.cachedResultset.size());
+        return;
+      }
 
       if (DEBUG)
         LogManager.instance().log(this, Level.INFO, "PSQL: execute (portal=%s) (limit=%d)-> %s", null, portalName, limit, portal);
@@ -450,7 +469,11 @@ public class PostgresNetworkExecutor extends Thread {
       final String portalName = readString();
       final String sourcePreparedStatement = readString();
 
-      final PostgresPortal portal = portals.get(portalName);
+      final PostgresPortal portal = getPortal(portalName, false);
+      if (portal == null) {
+        writeMessage("bind complete", null, '2', 4);
+        return;
+      }
 
       if (DEBUG)
         LogManager.instance().log(this, Level.INFO, "PSQL: bind (portal=%s) -> %s", null, portalName, sourcePreparedStatement);
@@ -516,10 +539,77 @@ public class PostgresNetworkExecutor extends Thread {
         LogManager.instance().log(this, Level.INFO, "PSQL: parse (portal=%s) -> %s (params=%d)", null, portalName, portal.query, paramCount);
 
       final String upperCaseText = portal.query.toUpperCase();
-      if (upperCaseText.startsWith("SET "))
+      if (upperCaseText.startsWith("SET ")) {
+
+        final String q = portal.query.substring("SET ".length());
+        final String[] parts = q.split("=");
+
+        parts[0] = parts[0].trim();
+        parts[1] = parts[1].trim();
+
+        if (parts[1].startsWith("'") || parts[1].startsWith("\""))
+          parts[1] = parts[1].substring(1, parts[1].length() - 1);
+
+        connectionProperties.put(parts[0], parts[1]);
+
         portal.ignoreExecution = true;
-      else {
-        portal.statement = SQLEngine.parse(portal.query, (DatabaseInternal) database);
+      } else if (upperCaseText.startsWith("SHOW ")) {
+        portal.ignoreExecution = true;
+      } else if ("dbvis".equals(connectionProperties.get("application_name"))) {
+        // SPECIAL CASES
+        if (portal.query.equals(
+            "SELECT nspname AS TABLE_SCHEM, NULL AS TABLE_CATALOG FROM pg_catalog.pg_namespace  WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_'  OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_'  OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_'))  ORDER BY TABLE_SCHEM")
+            || portal.query.equals("SELECT     COLLATION_SCHEMA,     COLLATION_NAME FROM     INFORMATION_SCHEMA.COLLATIONS")) {
+          // SPECIAL CASE DB VISUALIZER
+
+          portal.executed = true;
+          portal.cachedResultset = new ArrayList<>();
+
+          final Map<String, Object> map = new HashMap<>();
+          map.put("TABLE_CATALOG", null);
+          map.put("TABLE_SCHEM", "");
+
+          final Result result = new ResultInternal(map);
+          portal.cachedResultset.add(result);
+
+          portal.columns = new HashMap<>();
+          portal.columns.put("TABLE_CATALOG", PostgresType.VARCHAR);
+          portal.columns.put("TABLE_SCHEM", PostgresType.VARCHAR);
+
+        } else if (portal.query.contains("ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ")) {
+          portal.executed = true;
+          portal.cachedResultset = new ArrayList<>();
+          for (DocumentType t : database.getSchema().getTypes()) {
+            final Map<String, Object> map = new HashMap<>();
+            map.put("TABLE_CAT", "");
+            map.put("TABLE_SCHEM", "");
+            map.put("TABLE_TYPE", "TABLE");
+            map.put("TABLE_NAME", t.getName());
+            map.put("REMARKS", "");
+            map.put("TYPE_CAT", "");
+            map.put("TYPE_SCHEM", "");
+            map.put("TYPE_NAME", "");
+            map.put("SELF_REFERENCING_COL_NAME", "");
+            map.put("REF_GENERATION", "");
+
+            final Result result = new ResultInternal(map);
+            portal.cachedResultset.add(result);
+
+            portal.columns = new HashMap<>();
+            portal.columns.put("TABLE_CAT", PostgresType.VARCHAR);
+            portal.columns.put("TABLE_SCHEM", PostgresType.VARCHAR);
+            portal.columns.put("TABLE_TYPE", PostgresType.VARCHAR);
+            portal.columns.put("TABLE_NAME", PostgresType.VARCHAR);
+            portal.columns.put("REMARKS", PostgresType.VARCHAR);
+            portal.columns.put("TYPE_CAT", PostgresType.VARCHAR);
+            portal.columns.put("TYPE_SCHEM", PostgresType.VARCHAR);
+            portal.columns.put("TYPE_NAME", PostgresType.VARCHAR);
+            portal.columns.put("SELF_REFERENCING_COL_NAME", PostgresType.VARCHAR);
+            portal.columns.put("REF_GENERATION", PostgresType.VARCHAR);
+          }
+        } else
+
+          portal.statement = SQLEngine.parse(portal.query, (DatabaseInternal) database);
 
         if (portal.query.equalsIgnoreCase("BEGIN")) {
           explicitTransactionStarted = true;
@@ -543,6 +633,7 @@ public class PostgresNetworkExecutor extends Thread {
 
       writeError(ERROR_SEVERITY.ERROR, "Error on parsing query: " + e.getMessage(), "XX000");
     }
+
   }
 
   private void sendServerParameter(final String name, final String value) {
@@ -569,15 +660,9 @@ public class PostgresNetworkExecutor extends Thread {
       database = server.getDatabase(databaseName);
       database.setAutoTransaction(true);
     } catch (ServerSecurityException e) {
-      if (database.isTransactionActive())
-        errorInTransaction = true;
-
       writeError(ERROR_SEVERITY.FATAL, "Credentials not valid", "28P01");
       return false;
     } catch (DatabaseOperationException e) {
-      if (database.isTransactionActive())
-        errorInTransaction = true;
-
       writeError(ERROR_SEVERITY.FATAL, "Database not exists", "HV00Q");
       return false;
     }
@@ -642,6 +727,8 @@ public class PostgresNetworkExecutor extends Thread {
             // NOT SUPPORTED, IGNORE IT
             break;
           }
+
+          connectionProperties.put(paramName, paramValue);
         }
       }
     } catch (IOException e) {
@@ -721,7 +808,8 @@ public class PostgresNetworkExecutor extends Thread {
 
         if (!valid) {
           // READ TILL THE END OF THE MESSAGE
-          readBytes((int) (length - 4));
+          if (length > 4)
+            readBytes((int) (length - 4));
           throw new PostgresProtocolException("Unexpected message type '" + type + "' for message " + messageName);
         }
       }
@@ -821,5 +909,12 @@ public class PostgresNetworkExecutor extends Thread {
 
   private void writeNoData() {
     writeMessage("no data", null, 'n', 4);
+  }
+
+  private PostgresPortal getPortal(final String name, final boolean remove) {
+    if (remove)
+      return portals.remove(name);
+    else
+      return portals.get(name);
   }
 }
