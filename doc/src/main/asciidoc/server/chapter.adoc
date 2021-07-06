@@ -1,9 +1,0 @@
-
-== Server
-
-include::server.adoc[]
-
-include::ha.adoc[]
-
-include::settings.adoc[]
-

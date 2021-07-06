@@ -1,6 +1,0 @@
-
-== Tools
-
-include::console.adoc[]
-
-include::importer.adoc[]
