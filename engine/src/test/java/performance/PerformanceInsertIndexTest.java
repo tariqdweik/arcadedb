@@ -11,16 +11,17 @@ import com.arcadedb.engine.WALFile;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.log.Logger;
 import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.SchemaImpl;
 
 import java.util.logging.Level;
 
-public class PerformanceInsertNoIndexTest extends BaseTest {
+public class PerformanceInsertIndexTest extends BaseTest {
   private static final int    TOT       = 10_000_000;
   private static final String TYPE_NAME = "Person";
   private static final int    PARALLEL  = 3;
 
   public static void main(String[] args) {
-    new PerformanceInsertNoIndexTest().run();
+    new PerformanceInsertIndexTest().run();
   }
 
   @Override
@@ -56,6 +57,8 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
       type.createProperty("name", String.class);
       type.createProperty("surname", String.class);
       type.createProperty("locali", Integer.class);
+
+      database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, false, TYPE_NAME, new String[] { "id" }, 5000000);
 
       database.commit();
 

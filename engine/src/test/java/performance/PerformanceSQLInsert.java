@@ -13,14 +13,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class PerformanceSQLInsert {
   private static final String TYPE_NAME = "Person";
-  private static final int    MAX_LOOPS = 10000000;
+  private static final int    MAX_LOOPS = 10_000_000;
 
   public static void main(String[] args) {
     new PerformanceSQLInsert().run();
   }
 
   private void run() {
-    final Database database = new DatabaseFactory(PerformanceTest.DATABASE_PATH).open();
+    final DatabaseFactory factory = new DatabaseFactory(PerformanceTest.DATABASE_PATH);
+    if (factory.exists())
+      factory.open().drop();
+    final Database database = factory.create();
 
     if (!database.getSchema().existsType(TYPE_NAME)) {
       database.getSchema().createVertexType(TYPE_NAME);
@@ -36,7 +39,7 @@ public class PerformanceSQLInsert {
       final long begin = System.currentTimeMillis();
 
       for (int i = 0; i < MAX_LOOPS; ++i) {
-        database.async().command("SQL", "insert into " + TYPE_NAME + " set name = 'Luca'", new AsyncResultsetCallback() {
+        database.async().command("SQL", "insert into " + TYPE_NAME + " set id = " + i + ", name = 'Luca'", new AsyncResultsetCallback() {
           @Override
           public void onOk(ResultSet resultset) {
             oks.incrementAndGet();
@@ -47,10 +50,15 @@ public class PerformanceSQLInsert {
             errors.incrementAndGet();
           }
         });
+
+        if (i % 100000 == 0)
+          System.out.println(
+              "Inserting " + MAX_LOOPS + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database.countType(TYPE_NAME, true) + " ok="
+                  + oks.get() + " errors=" + errors.get() + ")");
       }
 
       System.out.println(
-          "Inserted " + MAX_LOOPS + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database.countType(TYPE_NAME, true) + " ok=" + oks
+          "Inserting " + MAX_LOOPS + " elements in " + (System.currentTimeMillis() - begin) + "ms (Total=" + database.countType(TYPE_NAME, true) + " ok=" + oks
               .get() + " errors=" + errors.get() + ")");
 
       while (oks.get() < MAX_LOOPS) {

@@ -15,12 +15,12 @@ import com.arcadedb.schema.SchemaImpl;
 
 import java.util.UUID;
 
-public class PerformanceIndexTest {
-  private static final int    TOT       = 300000000;
+public class PerformanceComplexIndexTest {
+  private static final int    TOT       = 10_000_000;
   private static final String TYPE_NAME = "Device";
 
   public static void main(String[] args) throws Exception {
-    new PerformanceIndexTest().run();
+    new PerformanceComplexIndexTest().run();
   }
 
   private void run() {
