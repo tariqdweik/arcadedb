@@ -487,24 +487,35 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        checkTransactionIsActive(autoTransaction);
+        boolean success = false;
+        final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
+        try {
+          final DocumentType type = schema.getType(typeName);
 
-        final DocumentType type = schema.getType(typeName);
+          final AtomicBoolean continueScan = new AtomicBoolean(true);
 
-        final AtomicBoolean continueScan = new AtomicBoolean(true);
+          for (Bucket b : type.getBuckets(polymorphic)) {
+            b.scan(new RawRecordCallback() {
+              @Override
+              public boolean onRecord(final RID rid, final Binary view) {
+                final Document record = (Document) recordFactory.newImmutableRecord(wrappedDatabaseInstance, typeName, rid, view);
+                continueScan.set(callback.onRecord(record));
+                return continueScan.get();
+              }
+            });
 
-        for (Bucket b : type.getBuckets(polymorphic)) {
-          b.scan(new RawRecordCallback() {
-            @Override
-            public boolean onRecord(final RID rid, final Binary view) {
-              final Document record = (Document) recordFactory.newImmutableRecord(wrappedDatabaseInstance, typeName, rid, view);
-              continueScan.set(callback.onRecord(record));
-              return continueScan.get();
-            }
-          });
+            if (!continueScan.get())
+              break;
+          }
 
-          if (!continueScan.get())
-            break;
+          success = true;
+
+        } finally {
+          if (implicitTransaction)
+            if (success)
+              wrappedDatabaseInstance.commit();
+            else
+              wrappedDatabaseInstance.rollback();
         }
         return null;
       }
@@ -678,21 +689,31 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        final boolean begunHere = checkTransactionIsActive(autoTransaction);
-
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot create a new record because the database is open in read-only mode");
 
-        final DocumentType type = schema.getType(record.getType());
+        boolean success = false;
+        final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
 
-        final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.getContext(databasePath).asyncMode);
-        record.setIdentity(bucket.createRecord(record));
-        indexer.createDocument(record, type, bucket);
+        try {
+          final DocumentType type = schema.getType(record.getType());
 
-        getTransaction().updateRecordInCache(record);
+          final Bucket bucket = type.getBucketToSave(DatabaseContext.INSTANCE.getContext(databasePath).asyncMode);
+          record.setIdentity(bucket.createRecord(record));
+          indexer.createDocument(record, type, bucket);
 
-        if (begunHere)
-          wrappedDatabaseInstance.commit();
+          getTransaction().updateRecordInCache(record);
+
+          success = true;
+
+        } finally {
+          if (implicitTransaction) {
+            if (success)
+              wrappedDatabaseInstance.commit();
+            else
+              wrappedDatabaseInstance.rollback();
+          }
+        }
 
         return null;
       }
@@ -715,19 +736,26 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (record.getIdentity() != null)
       throw new IllegalArgumentException("Cannot create record " + record.getIdentity() + " because it is already persistent");
 
-    final boolean begunHere = checkTransactionIsActive(autoTransaction);
-
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot create a new record");
 
-    final Bucket bucket = schema.getBucketByName(bucketName);
+    boolean success = false;
+    final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
 
-    ((RecordInternal) record).setIdentity(bucket.createRecord(record));
+    try {
+      final Bucket bucket = schema.getBucketByName(bucketName);
+      ((RecordInternal) record).setIdentity(bucket.createRecord(record));
+      getTransaction().updateRecordInCache(record);
+      success = true;
 
-    getTransaction().updateRecordInCache(record);
-
-    if (begunHere)
-      wrappedDatabaseInstance.commit();
+    } finally {
+      if (implicitTransaction) {
+        if (success)
+          wrappedDatabaseInstance.commit();
+        else
+          wrappedDatabaseInstance.rollback();
+      }
+    }
   }
 
   @Override
@@ -746,33 +774,43 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     if (record.getIdentity() == null)
       throw new IllegalArgumentException("Cannot update the record because it is not persistent");
 
-    final boolean begunHere = checkTransactionIsActive(autoTransaction);
-
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
 
-    final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : Collections.emptyList();
+    boolean success = false;
+    final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
 
-    if (!indexes.isEmpty()) {
-      // UPDATE THE INDEXES TOO
-      final Binary originalBuffer = ((RecordInternal) record).getBuffer();
-      if (originalBuffer == null)
-        throw new IllegalStateException("Cannot read original buffer for indexing");
-      originalBuffer.rewind();
-      final Document originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
+    try {
+      final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : Collections.emptyList();
 
-      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+      if (!indexes.isEmpty()) {
+        // UPDATE THE INDEXES TOO
+        final Binary originalBuffer = ((RecordInternal) record).getBuffer();
+        if (originalBuffer == null)
+          throw new IllegalStateException("Cannot read original buffer for indexing");
+        originalBuffer.rewind();
+        final Document originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
 
-      indexer.updateDocument(originalRecord, (Document) record, indexes);
-    } else
-      // NO INDEXES
-      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+        schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
-    getTransaction().updateRecordInCache(record);
-    getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
+        indexer.updateDocument(originalRecord, (Document) record, indexes);
+      } else
+        // NO INDEXES
+        schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
 
-    if (begunHere)
-      wrappedDatabaseInstance.commit();
+      getTransaction().updateRecordInCache(record);
+      getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
+
+      success = true;
+
+    } finally {
+      if (implicitTransaction) {
+        if (success)
+          wrappedDatabaseInstance.commit();
+        else
+          wrappedDatabaseInstance.rollback();
+      }
+    }
   }
 
   @Override
@@ -783,29 +821,38 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     executeInReadLock(new Callable<Object>() {
       @Override
       public Object call() {
-        final boolean begunHere = checkTransactionIsActive(autoTransaction);
-
         if (mode == PaginatedFile.MODE.READ_ONLY)
           throw new DatabaseIsReadOnlyException("Cannot delete record " + record.getIdentity());
 
-        final Bucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
+        boolean success = false;
+        final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
 
-        if (record instanceof Document)
-          indexer.deleteDocument((Document) record);
+        try {
+          final Bucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
 
-        if (record instanceof Edge) {
-          graphEngine.deleteEdge((Edge) record);
-        } else if (record instanceof Vertex) {
-          graphEngine.deleteVertex((VertexInternal) record);
-        } else
-          bucket.deleteRecord(record.getIdentity());
+          if (record instanceof Document)
+            indexer.deleteDocument((Document) record);
 
-        getTransaction().removeRecordFromCache(record);
-        getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
+          if (record instanceof Edge) {
+            graphEngine.deleteEdge((Edge) record);
+          } else if (record instanceof Vertex) {
+            graphEngine.deleteVertex((VertexInternal) record);
+          } else
+            bucket.deleteRecord(record.getIdentity());
 
-        if (begunHere)
-          wrappedDatabaseInstance.commit();
+          getTransaction().removeRecordFromCache(record);
+          getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
 
+          success = true;
+
+        } finally {
+          if (implicitTransaction) {
+            if (success)
+              wrappedDatabaseInstance.commit();
+            else
+              wrappedDatabaseInstance.rollback();
+          }
+        }
         return null;
       }
     });
