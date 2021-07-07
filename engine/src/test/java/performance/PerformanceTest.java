@@ -15,6 +15,10 @@ import java.util.logging.Level;
 public abstract class PerformanceTest {
   public final static String DATABASE_PATH = "target/database/performance";
 
+  protected String getDatabasePath() {
+    return PerformanceTest.DATABASE_PATH;
+  }
+
   public static void clean() {
     GlobalConfiguration.PROFILE.setValue("high-performance");
 

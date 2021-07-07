@@ -19,9 +19,12 @@ public class PerformanceSQLSelect extends BaseTest {
     new PerformanceSQLSelect().run();
   }
 
+  @Override
+  protected String getDatabasePath() {
+    return PerformanceTest.DATABASE_PATH;
+  }
+
   private void run() {
-
-
     database.async().setParallelLevel(4);
 
     try {

@@ -25,6 +25,11 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
   }
 
   @Override
+  protected String getDatabasePath() {
+    return PerformanceTest.DATABASE_PATH;
+  }
+
+  @Override
   protected String getPerformanceProfile() {
     LogManager.instance().setLogger(new Logger() {
       @Override
