@@ -11,7 +11,6 @@ import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.DatabaseOperationException;
 import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.Vertex;
-import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexInternal;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.schema.DocumentType;
@@ -481,18 +480,20 @@ public class DatabaseAsyncExecutor {
   }
 
   private void shutdownThreads() {
-    try {
-      if (executorThreads != null) {
+    if (executorThreads != null) {
+      try {
         // WAIT FOR SHUTDOWN, MAX 1S EACH
         for (int i = 0; i < executorThreads.length; ++i) {
           executorThreads[i].shutdown = true;
           executorThreads[i].queue.put(FORCE_EXIT);
           executorThreads[i].join(10000);
         }
+      } catch (InterruptedException e) {
+        // IGNORE IT
+        Thread.currentThread().interrupt();
+      } finally {
+        executorThreads = null;
       }
-    } catch (InterruptedException e) {
-      // IGNORE IT
-      Thread.currentThread().interrupt();
     }
   }
 

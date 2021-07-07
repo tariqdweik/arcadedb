@@ -236,6 +236,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public int getEdgeListSize(int previousSize) {
+    return proxied.getEdgeListSize(previousSize);
+  }
+
+  @Override
   public String getName() {
     return proxied.getName();
   }
@@ -483,6 +488,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   @Override
   public void setReadYourWrites(final boolean value) {
     proxied.setReadYourWrites(value);
+  }
+
+  @Override
+  public void setEdgeListSize(final int size) {
+    proxied.setEdgeListSize(size);
   }
 
   @Override

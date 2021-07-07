@@ -170,6 +170,8 @@ public interface Database extends AutoCloseable {
 
   void setReadYourWrites(boolean value);
 
+  void setEdgeListSize(int size);
+
   interface TransactionScope {
     void execute(Database db);
   }

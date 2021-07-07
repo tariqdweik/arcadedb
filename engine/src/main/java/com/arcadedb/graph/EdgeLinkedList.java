@@ -233,13 +233,6 @@ public class EdgeLinkedList {
   }
 
   private int computeBestSize() {
-    int currentSize = first.getRecordSize();
-    if (currentSize < 8192)
-      currentSize *= 2;
-
-    if (currentSize > 8192)
-      currentSize = 8192;
-
-    return currentSize;
+    return ((DatabaseInternal) vertex.getDatabase()).getEdgeListSize(first.getRecordSize());
   }
 }

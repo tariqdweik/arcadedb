@@ -18,12 +18,16 @@ public abstract class BaseTest {
   protected       Database        database;
 
   protected BaseTest() {
+    this(true);
+  }
+
+  protected BaseTest(final boolean cleanBeforeTest) {
     GlobalConfiguration.PROFILE.setValue(getPerformanceProfile());
 
-    FileUtils.deleteRecursively(new File(getDatabasePath()));
-
+    if (cleanBeforeTest)
+      FileUtils.deleteRecursively(new File(getDatabasePath()));
     factory = new DatabaseFactory(getDatabasePath());
-    database = factory.create();
+    database = factory.exists() ? factory.open() : factory.create();
   }
 
   protected void reopenDatabase() {

@@ -19,35 +19,31 @@
  * under the License.
  */
 
-package performance;
+package com.arcadedb.graph;
 
 import com.arcadedb.BaseTest;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
-import com.arcadedb.graph.MutableVertex;
-import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.log.LogManager;
 import com.arcadedb.log.Logger;
 import com.arcadedb.schema.SchemaImpl;
 import com.arcadedb.schema.VertexType;
-import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.util.logging.Level;
 
-public class PerformanceInsertGraphIndexTest extends BaseTest {
+public class InsertGraphIndexTest extends BaseTest {
   private static final int    VERTICES         = 1_000;
   private static final int    EDGES_PER_VERTEX = 1_000;
   private static final String VERTEX_TYPE_NAME = "Person";
   private static final String EDGE_TYPE_NAME   = "Friend";
   private static final int    PARALLEL         = 3;
 
-  public static void main(String[] args) {
-    FileUtils.deleteRecursively(new File(PerformanceTest.DATABASE_PATH));
-
-    final PerformanceInsertGraphIndexTest test = new PerformanceInsertGraphIndexTest();
+  @Test
+  public void testGraph() {
+    final InsertGraphIndexTest test = new InsertGraphIndexTest();
 
     // PHASE 1
     {
@@ -64,15 +60,6 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
     }
 
     test.database.close();
-  }
-
-  protected PerformanceInsertGraphIndexTest() {
-    super(false);
-  }
-
-  @Override
-  protected String getDatabasePath() {
-    return PerformanceTest.DATABASE_PATH;
   }
 
   @Override
@@ -119,10 +106,6 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
             break;
         }
 
-        if (sourceIndex % 100 == 0)
-          System.out
-              .println("Created " + EDGES_PER_VERTEX + " edges per vertex in " + sourceIndex + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
-
         if (sourceIndex % 100 == 0) {
           database.commit();
           database.begin();
@@ -155,8 +138,6 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
           }
 
           cachedVertices[counter] = (Vertex) cursor.next().getRecord();
-          if (counter % 1_000_000 == 0)
-            System.out.println("Loaded " + counter + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
         }
         System.out.println("Loaded " + counter + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
       } finally {
@@ -164,6 +145,9 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
         System.out.println("Loaded all vertices in RAM in " + elapsed + "ms -> " + (VERTICES / (elapsed / 1000F)) + " ops/sec");
       }
     });
+
+    Assertions.assertEquals(VERTICES, cachedVertices.length);
+
     return cachedVertices;
   }
 
@@ -186,22 +170,22 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
         }
       });
 
-      long counter = 0;
-      for (; counter < VERTICES; ++counter) {
+      long vertexIndex = 0;
+      for (; vertexIndex < VERTICES; ++vertexIndex) {
         final MutableVertex vertex = database.newVertex(VERTEX_TYPE_NAME);
 
-        vertex.set("id", counter);
+        vertex.set("id", vertexIndex);
 
         database.async().createRecord(vertex, null);
-
-        if (counter % 1_000_000 == 0)
-          System.out.println("Inserted " + counter + " vertices in " + (System.currentTimeMillis() - startOfTest) + "ms");
       }
 
-      System.out.println("Inserted " + counter + " vertices in " + (System.currentTimeMillis() - startOfTest) + "ms");
+      System.out.println("Inserted " + vertexIndex + " vertices in " + (System.currentTimeMillis() - startOfTest) + "ms");
+
+      database.async().waitCompletion();
+
+      Assertions.assertEquals(VERTICES, database.countType(VERTEX_TYPE_NAME, true));
 
     } finally {
-      database.async().waitCompletion();
       final long elapsed = System.currentTimeMillis() - startOfTest;
       System.out.println("Insertion finished in " + elapsed + "ms -> " + (VERTICES / (elapsed / 1000F)) + " ops/sec");
     }
@@ -235,11 +219,6 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
         final long inEdges = cachedVertices[i].countEdges(Vertex.DIRECTION.IN, EDGE_TYPE_NAME);
         Assertions.assertEquals(EDGES_PER_VERTEX, inEdges);
 
-//        System.out
-//            .println("Vertex " + i + " with id=" + cachedVertices[i].getString("id") + " has " + inEdges + " incoming and " + outEdges + " outgoung edges");
-
-        if (i % 1000 == 0)
-          System.out.println("Checked " + EDGES_PER_VERTEX + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
         if (++edges > EDGES_PER_VERTEX)
           break;
       }

@@ -64,6 +64,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal {
+  public static final int EDGE_LIST_INITIAL_CHUNK_SIZE         = 64;
+  public static final int MAX_RECOMMENDED_EDGE_LIST_CHUNK_SIZE = 8192;
+
   protected static final Set<String>                               SUPPORTED_FILE_EXT      = new HashSet<String>(Arrays
       .asList(Dictionary.DICT_EXT, Bucket.BUCKET_EXT, LSMTreeIndexMutable.NOTUNIQUE_INDEX_EXT, LSMTreeIndexMutable.UNIQUE_INDEX_EXT,
           LSMTreeIndexCompacted.NOTUNIQUE_INDEX_EXT, LSMTreeIndexCompacted.UNIQUE_INDEX_EXT));
@@ -107,6 +110,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   private                StatementCache                            statementCache;
   private                ExecutionPlanCache                        executionPlanCache;
   private                DatabaseInternal                          wrappedDatabaseInstance = this;
+  private                int                                       edgeListSize            = EDGE_LIST_INITIAL_CHUNK_SIZE;
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
@@ -1427,6 +1431,22 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
   public void setWrappedDatabaseInstance(final DatabaseInternal wrappedDatabaseInstance) {
     this.wrappedDatabaseInstance = wrappedDatabaseInstance;
+  }
+
+  @Override
+  public void setEdgeListSize(final int size) {
+    this.edgeListSize = size;
+  }
+
+  @Override
+  public int getEdgeListSize(final int previousSize) {
+    if (previousSize == 0)
+      return edgeListSize;
+
+    int newSize = previousSize * 2;
+    if (newSize > MAX_RECOMMENDED_EDGE_LIST_CHUNK_SIZE)
+      newSize = MAX_RECOMMENDED_EDGE_LIST_CHUNK_SIZE;
+    return newSize;
   }
 
   protected void checkDatabaseIsOpen() {

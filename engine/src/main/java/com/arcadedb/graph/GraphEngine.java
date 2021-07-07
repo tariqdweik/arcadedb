@@ -39,9 +39,8 @@ import java.util.logging.Level;
  * @author Luca Garulli (l.garulli@arcadedata.it)
  */
 public class GraphEngine {
-  public static final int    EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE = 64;
-  public static final String OUT_EDGES_SUFFIX                    = "_out_edges";
-  public static final String IN_EDGES_SUFFIX                     = "_in_edges";
+  public static final String OUT_EDGES_SUFFIX = "_out_edges";
+  public static final String IN_EDGES_SUFFIX  = "_in_edges";
 
   public static class CreateEdgeOperation {
     final String       edgeTypeName;
@@ -226,7 +225,7 @@ public class GraphEngine {
       }
 
     if (inEdgesHeadChunk == null) {
-      inChunk = new MutableEdgeSegment(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
+      inChunk = new MutableEdgeSegment(database, database.getEdgeListSize(0));
       database.createRecord(inChunk, getEdgesBucketName(database, toVertex.getIdentity().getBucketId(), Vertex.DIRECTION.IN));
       inEdgesHeadChunk = inChunk.getIdentity();
 
@@ -251,7 +250,7 @@ public class GraphEngine {
       }
 
     if (outEdgesHeadChunk == null) {
-      outChunk = new MutableEdgeSegment(database, EDGES_LINKEDLIST_INITIAL_CHUNK_SIZE);
+      outChunk = new MutableEdgeSegment(database, database.getEdgeListSize(0));
       database.createRecord(outChunk, getEdgesBucketName(database, fromVertex.getIdentity().getBucketId(), Vertex.DIRECTION.OUT));
       outEdgesHeadChunk = outChunk.getIdentity();
 

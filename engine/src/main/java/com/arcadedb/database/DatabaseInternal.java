@@ -70,4 +70,6 @@ public interface DatabaseInternal extends Database {
   StatementCache getStatementCache();
 
   ExecutionPlanCache getExecutionPlanCache();
+
+  int getEdgeListSize(int previousSize);
 }
