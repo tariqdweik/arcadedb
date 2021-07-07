@@ -21,6 +21,7 @@ public class PerformanceInsertIndexTest extends BaseTest {
   private static final int    PARALLEL  = 3;
 
   public static void main(String[] args) {
+    PerformanceTest.clean();
     new PerformanceInsertIndexTest().run();
   }
 
@@ -46,8 +47,6 @@ public class PerformanceInsertIndexTest extends BaseTest {
   }
 
   private void run() {
-    PerformanceTest.clean();
-
     if (!database.getSchema().existsType(TYPE_NAME)) {
       database.begin();
 
@@ -97,6 +96,7 @@ public class PerformanceInsertIndexTest extends BaseTest {
         System.out.println("Inserted " + counter + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
       } finally {
+        database.async().waitCompletion();
         final long elapsed = System.currentTimeMillis() - begin;
         System.out.println("Insertion finished in " + elapsed + "ms -> " + (TOT / (elapsed / 1000F)) + " ops/sec");
       }

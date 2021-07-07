@@ -120,7 +120,7 @@ public class PostgresWTest extends BaseGraphServerTest {
     }
   }
 
-  //@Test
+  @Test
   public void testWaitForConnectionFromExternal() throws InterruptedException {
     Thread.sleep(1000000);
   }

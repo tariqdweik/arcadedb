@@ -10,6 +10,7 @@ import com.arcadedb.engine.PaginatedFile;
 import com.arcadedb.utility.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import performance.PerformanceTest;
 
 import java.io.File;
 
@@ -39,7 +40,8 @@ public abstract class BaseTest {
   }
 
   protected String getDatabasePath() {
-    return "target/database/" + getClass().getSimpleName();
+    return PerformanceTest.DATABASE_PATH;
+    //return "target/database/" + getClass().getSimpleName();
   }
 
   protected void beginTest() {
