@@ -120,7 +120,8 @@ public class BaseExpression extends MathExpression {
       // THIS IS DIFFERENT FROM ORIENTDB CODE BASE
       // @author Luca Garulli
       // @see Postgres Driver
-      if (ctx.getInputParameters() != null && identifier instanceof BaseIdentifier) {
+      if (ctx.getInputParameters() != null && identifier instanceof BaseIdentifier &&//
+          identifier.getSuffix() != null && identifier.getSuffix().identifier != null) {
         final String v = identifier.getSuffix().identifier.getValue();
         if (v.startsWith("$") && v.length() > 1) {
           final String toParse = v.substring(1);
@@ -129,7 +130,8 @@ public class BaseExpression extends MathExpression {
           if (pos != null)
             // POSTGRES PARAMETERS JDBC DRIVER START FROM 1
             result = ctx.getInputParameters().get(pos - 1);
-        }
+        } else
+          result = identifier.execute(iCurrentRecord, ctx);
       } else
         result = identifier.execute(iCurrentRecord, ctx);
     } else if (string != null && string.length() > 1) {
