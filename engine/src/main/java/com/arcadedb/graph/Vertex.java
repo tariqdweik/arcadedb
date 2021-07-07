@@ -7,6 +7,12 @@ package com.arcadedb.graph;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.Identifiable;
 
+/**
+ * A Vertex represents the main information in a Property Graph. Vertices are connected with edges. Vertices can be Immutable (read-only) and Mutable.
+ *
+ * @author Luca Garulli (l.garulli@arcadedata.it)
+ * @see Edge
+ */
 public interface Vertex extends Document {
   byte RECORD_TYPE = 1;
 

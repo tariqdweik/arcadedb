@@ -1,5 +1,22 @@
 /*
- * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
+ * Copyright 2021 Arcade Data Ltd
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.arcadedb.graph;
@@ -7,6 +24,13 @@ package com.arcadedb.graph;
 import com.arcadedb.database.*;
 import com.arcadedb.serializer.BinaryTypes;
 
+/**
+ * Immutable read-only edge. It is returned from database on read operations such as queries or lookups and graph traversal. To modify an edge use {@link #modify()}
+ * to have the MutableEdge instance created form the current record.
+ *
+ * @author Luca Garulli (l.garulli@arcadedata.com)
+ * @see MutableEdge
+ */
 public class ImmutableEdge extends ImmutableDocument implements Edge {
   private RID out;
   private RID in;
