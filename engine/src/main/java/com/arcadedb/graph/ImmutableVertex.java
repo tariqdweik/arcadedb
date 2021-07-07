@@ -1,5 +1,22 @@
 /*
- * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
+ * Copyright 2021 Arcade Data Ltd
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.arcadedb.graph;
@@ -8,6 +25,14 @@ import com.arcadedb.database.*;
 
 import java.util.Map;
 
+/**
+ * Immutable read-only vertex. It is returned from database on read operations such as queries or lookups. To modify a vertex use {@link #modify()} to have the
+ * MutableVertex instance created form the current record. Adding or removing edges does not change the state of the vertex as dirty because edges are managed
+ * on different data structures. Any operation on edges is actually computed on the most updated version of the vertex in transaction.
+ *
+ * @author Luca Garulli (l.garulli@arcadedata.com)
+ * @see MutableVertex
+ */
 public class ImmutableVertex extends ImmutableDocument implements VertexInternal {
   private RID outEdges;
   private RID inEdges;
@@ -71,46 +96,46 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
   }
 
   public MutableEdge newEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional, final Object... properties) {
-    return database.getGraphEngine().newEdge(this, edgeType, toVertex, bidirectional, properties);
+    return database.getGraphEngine().newEdge(getMostUpdatedVertex(this), edgeType, toVertex, bidirectional, properties);
   }
 
   public ImmutableLightEdge newLightEdge(final String edgeType, final Identifiable toVertex, final boolean bidirectional) {
-    return database.getGraphEngine().newLightEdge(this, edgeType, toVertex, bidirectional);
+    return database.getGraphEngine().newLightEdge(getMostUpdatedVertex(this), edgeType, toVertex, bidirectional);
   }
 
   @Override
   public long countEdges(DIRECTION direction, String edgeType) {
-    return database.getGraphEngine().countEdges(this, direction, edgeType);
+    return database.getGraphEngine().countEdges(getMostUpdatedVertex(this), direction, edgeType);
   }
 
   @Override
   public Iterable<Edge> getEdges() {
-    return database.getGraphEngine().getEdges(this);
+    return database.getGraphEngine().getEdges(getMostUpdatedVertex(this));
   }
 
   @Override
   public Iterable<Edge> getEdges(final DIRECTION direction, final String... edgeTypes) {
-    return database.getGraphEngine().getEdges(this, direction, edgeTypes);
+    return database.getGraphEngine().getEdges(getMostUpdatedVertex(this), direction, edgeTypes);
   }
 
   @Override
   public Iterable<Vertex> getVertices() {
-    return database.getGraphEngine().getVertices(this);
+    return database.getGraphEngine().getVertices(getMostUpdatedVertex(this));
   }
 
   @Override
   public Iterable<Vertex> getVertices(final DIRECTION direction, final String... edgeTypes) {
-    return database.getGraphEngine().getVertices(this, direction, edgeTypes);
+    return database.getGraphEngine().getVertices(getMostUpdatedVertex(this), direction, edgeTypes);
   }
 
   @Override
   public boolean isConnectedTo(final Identifiable toVertex) {
-    return database.getGraphEngine().isVertexConnectedTo(this, toVertex);
+    return database.getGraphEngine().isVertexConnectedTo(getMostUpdatedVertex(this), toVertex);
   }
 
   @Override
   public boolean isConnectedTo(final Identifiable toVertex, final DIRECTION direction) {
-    return database.getGraphEngine().isVertexConnectedTo(this, toVertex, direction);
+    return database.getGraphEngine().isVertexConnectedTo(getMostUpdatedVertex(this), toVertex, direction);
   }
 
   @Override
@@ -127,5 +152,15 @@ public class ImmutableVertex extends ImmutableDocument implements VertexInternal
       return true;
     }
     return false;
+  }
+
+  private VertexInternal getMostUpdatedVertex(final VertexInternal vertex) {
+    if (!database.isTransactionActive())
+      return vertex;
+
+    VertexInternal mostUpdated = (VertexInternal) database.getTransaction().getRecordFromCache(vertex.getIdentity());
+    if (mostUpdated == null)
+      mostUpdated = vertex;
+    return mostUpdated;
   }
 }
