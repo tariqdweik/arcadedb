@@ -1,5 +1,22 @@
 /*
- * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
+ * Copyright 2021 Arcade Data Ltd
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.arcadedb.database;
@@ -44,6 +61,10 @@ public class TransactionContext implements Transaction {
   private       Collection<Integer>      lockedFiles;
   private       long                     txId                  = -1;
   private       STATUS                   status                = STATUS.INACTIVE;
+  // KEEPS TRACK OF MODIFIED RECORD IN TX. AT 1ST PHASE COMMIT TIME THE RECORD ARE SERIALIZED AND INDEXES UPDATED. THIS DEFERRING IMPROVES SPEED ESPECIALLY
+  // WITH GRAPHS WHERE EDGES ARE CREATED AND CHUNKS ARE UPDATED MULTIPLE TIMES IN THE SAME TX
+  // TODO: OPTIMIZE modifiedRecordsCache STRUCTURE, MAYBE JOIN IT WITH UPDATED RECORDS?
+  private       Set<Record>              updatedRecords        = null;
 
   public enum STATUS {INACTIVE, BEGUN, COMMIT_1ST_PHASE, COMMIT_2ND_PHASE}
 
@@ -135,6 +156,8 @@ public class TransactionContext implements Transaction {
         throw new IllegalArgumentException("Cannot remove record in TX cache because it is not persistent: " + record);
       modifiedRecordsCache.remove(rid);
       immutableRecordsCache.remove(rid);
+      if (updatedRecords != null)
+        updatedRecords.remove(record);
     }
   }
 
@@ -180,6 +203,7 @@ public class TransactionContext implements Transaction {
     }
     modifiedPages = null;
     newPages = null;
+    updatedRecords = null;
 
     // RELOAD PREVIOUS VERSION OF MODIFIED RECORDS
     if (database.isOpen())
@@ -192,6 +216,14 @@ public class TransactionContext implements Transaction {
   public void assureIsActive() {
     if (!isActive())
       throw new TransactionException("Transaction not begun");
+  }
+
+  public void addUpdatedRecord(final Record record) {
+    if (updatedRecords == null)
+      updatedRecords = new HashSet<>();
+    updatedRecords.add(record);
+    updateRecordInCache(record);
+    removeImmutableRecordsOfSamePage(record.getIdentity());
   }
 
   /**
@@ -292,6 +324,7 @@ public class TransactionContext implements Transaction {
     map.put("involvedFiles", involvedFiles);
     map.put("modifiedPages", modifiedPages.size());
     map.put("newPages", newPages != null ? newPages.size() : 0);
+    map.put("updatedRecords", updatedRecords != null ? updatedRecords.size() : 0);
     map.put("newPageCounters", newPageCounters);
     map.put("indexChanges", indexChanges != null ? indexChanges.getTotalEntries() : 0);
     return map;
@@ -313,6 +346,7 @@ public class TransactionContext implements Transaction {
     lockedFiles = null;
     modifiedPages = null;
     newPages = null;
+    updatedRecords = null;
     newPageCounters.clear();
   }
 
@@ -380,6 +414,12 @@ public class TransactionContext implements Transaction {
 
     if (status != STATUS.BEGUN)
       throw new TransactionException("Transaction in phase " + status);
+
+    if (updatedRecords != null) {
+      for (Record rec : updatedRecords)
+        database.updateRecordNoLock(rec);
+      updatedRecords = null;
+    }
 
     final int totalImpactedPages = modifiedPages.size() + (newPages != null ? newPages.size() : 0);
     if (totalImpactedPages == 0 && indexChanges.isEmpty()) {
@@ -531,6 +571,7 @@ public class TransactionContext implements Transaction {
 
     modifiedPages = null;
     newPages = null;
+    updatedRecords = null;
     newPageCounters.clear();
     modifiedRecordsCache.clear();
     immutableRecordsCache.clear();

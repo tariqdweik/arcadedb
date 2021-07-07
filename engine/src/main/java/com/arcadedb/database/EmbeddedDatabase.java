@@ -1,5 +1,22 @@
 /*
- * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
+ * Copyright 2021 Arcade Data Ltd
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.arcadedb.database;
@@ -760,57 +777,51 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
   @Override
   public void updateRecord(final Record record) {
-    executeInReadLock(new Callable<Object>() {
-      @Override
-      public Object call() {
-        updateRecordNoLock(record);
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public void updateRecordNoLock(final Record record) {
     if (record.getIdentity() == null)
       throw new IllegalArgumentException("Cannot update the record because it is not persistent");
 
     if (mode == PaginatedFile.MODE.READ_ONLY)
       throw new DatabaseIsReadOnlyException("Cannot update a record");
 
-    boolean success = false;
-    final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
-
-    try {
-      final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : Collections.emptyList();
-
-      if (!indexes.isEmpty()) {
-        // UPDATE THE INDEXES TOO
-        final Binary originalBuffer = ((RecordInternal) record).getBuffer();
-        if (originalBuffer == null)
-          throw new IllegalStateException("Cannot read original buffer for indexing");
-        originalBuffer.rewind();
-        final Document originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
-
-        schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
-
-        indexer.updateDocument(originalRecord, (Document) record, indexes);
-      } else
-        // NO INDEXES
-        schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
-
-      getTransaction().updateRecordInCache(record);
-      getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
-
-      success = true;
-
-    } finally {
-      if (implicitTransaction) {
-        if (success)
-          wrappedDatabaseInstance.commit();
-        else
-          wrappedDatabaseInstance.rollback();
+    executeInReadLock(new Callable<Object>() {
+      @Override
+      public Object call() {
+        markRecordForUpdateAtCommit(record);
+        return null;
       }
-    }
+    });
+  }
+
+  private void markRecordForUpdateAtCommit(final Record record) {
+    if (isTransactionActive()) {
+      // MARK THE RECORD FOR UPDATE IN TX AND DEFER THE SERIALIZATION AT COMMIT TIME. THIS SPEEDS UP CASES WHEN THE SAME RECORDS ARE UPDATE MULTIPLE TIME INSIDE
+      // THE SAME TX. THE MOST CLASSIC EXAMPLE IS INSERTING EDGES: THE RECORD CHUNK IS UPDATED EVERYTIME A NEW EDGE IS CREATED IN THE SAME CHUNK.
+      getTransaction().addUpdatedRecord(record);
+    } else
+      updateRecordNoLock(record);
+  }
+
+  @Override
+  public void updateRecordNoLock(final Record record) {
+    final List<Index> indexes = record instanceof Document ? indexer.getInvolvedIndexes((Document) record) : Collections.emptyList();
+
+    if (!indexes.isEmpty()) {
+      // UPDATE THE INDEXES TOO
+      final Binary originalBuffer = ((RecordInternal) record).getBuffer();
+      if (originalBuffer == null)
+        throw new IllegalStateException("Cannot read original buffer for indexing");
+      originalBuffer.rewind();
+      final Document originalRecord = (Document) recordFactory.newImmutableRecord(this, ((Document) record).getType(), record.getIdentity(), originalBuffer);
+
+      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+
+      indexer.updateDocument(originalRecord, (Document) record, indexes);
+    } else
+      // NO INDEXES
+      schema.getBucketById(record.getIdentity().getBucketId()).updateRecord(record);
+
+    getTransaction().updateRecordInCache(record);
+    getTransaction().removeImmutableRecordsOfSamePage(record.getIdentity());
   }
 
   @Override
@@ -1320,7 +1331,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       throw e;
 
     } catch (Throwable e) {
-      throw new DatabaseOperationException("Error in execution in lock", e);
+      throw new DatabaseOperationException("Error during read lock", e);
 
     } finally {
       readUnlock();
@@ -1346,7 +1357,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       throw e;
 
     } catch (Throwable e) {
-      throw new DatabaseOperationException("Error in execution in lock", e);
+      throw new DatabaseOperationException("Error during write lock", e);
 
     } finally {
       writeUnlock();
