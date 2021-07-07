@@ -1,5 +1,22 @@
 /*
- * Copyright (c) - Arcade Data LTD (https://arcadedata.com)
+ * Copyright 2021 Arcade Data Ltd
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package performance;
@@ -20,7 +37,7 @@ import java.util.logging.Level;
 
 public class PerformanceInsertGraphIndexTest extends BaseTest {
   private static final int    VERTICES         = 100_000;
-  private static final int    EDGES_PER_VERTEX = 10_000;
+  private static final int    EDGES_PER_VERTEX = 1_000;
   private static final String VERTEX_TYPE_NAME = "Person";
   private static final String EDGE_TYPE_NAME   = "Friend";
   private static final int    PARALLEL         = 3;
@@ -74,7 +91,6 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
       long startOfTest = System.currentTimeMillis();
 
       try {
-        database.setReadYourWrites(false);
         database.async().setParallelLevel(PARALLEL);
         database.async().setTransactionUseWAL(false);
         database.async().setTransactionSync(WALFile.FLUSH_TYPE.NO);
@@ -136,6 +152,8 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
 
       System.out.println("Creating " + EDGES_PER_VERTEX + " edges per vertex on all " + VERTICES + " vertices");
 
+      database.async().close();
+
       database.begin();
       final long begin = System.currentTimeMillis();
       try {
@@ -144,7 +162,7 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
           int edges = 0;
           for (int i = 0; i < cachedVertices.length; i++) {
             if (i != counter) {
-              cachedVertices[counter].newEdge(EDGE_TYPE_NAME, cachedVertices[i], true).save();
+              cachedVertices[counter].newEdge(EDGE_TYPE_NAME, cachedVertices[i], true);
             }
           }
 
