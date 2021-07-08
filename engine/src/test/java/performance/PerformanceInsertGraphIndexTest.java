@@ -24,6 +24,7 @@ package performance;
 import com.arcadedb.BaseTest;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
+import com.arcadedb.graph.Edge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.IndexCursor;
@@ -37,12 +38,20 @@ import org.junit.jupiter.api.Assertions;
 import java.io.File;
 import java.util.logging.Level;
 
+/**
+ * Inserts a graph. Configurations:
+ * - 100M edges on 10,000 vertices with respectively 10,000 to all the other nodes and itself. 10,000 * 10,000 = 100M edges
+ * - 1B edges on 31,623 vertices with respectively 31,623 edges to all the other nodes and itself. 31,623 * 31,623 = 1B edges
+ *
+ * @author Luca Garulli (l.garulli@arcadedata.com)
+ */
 public class PerformanceInsertGraphIndexTest extends BaseTest {
-  private static final int    VERTICES         = 10_000;
-  private static final int    EDGES_PER_VERTEX = 10_000;
-  private static final String VERTEX_TYPE_NAME = "Person";
-  private static final String EDGE_TYPE_NAME   = "Friend";
-  private static final int    PARALLEL         = 3;
+  private static final int     VERTICES         = 10_000; //31_623;
+  private static final int     EDGES_PER_VERTEX = 10_000; //31_623;
+  private static final String  VERTEX_TYPE_NAME = "Person";
+  private static final String  EDGE_TYPE_NAME   = "Friend";
+  private static final int     PARALLEL         = 6;
+  private static final boolean USE_WAL          = true;
 
   public static void main(String[] args) {
     final long begin = System.currentTimeMillis();
@@ -107,6 +116,12 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
     database.async().close();
 
     database.begin();
+
+    if (!USE_WAL) {
+      database.getTransaction().setUseWAL(false);
+      database.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.NO);
+    }
+
     final long begin = System.currentTimeMillis();
     try {
       int sourceIndex = 0;
@@ -130,6 +145,10 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
         if (sourceIndex % 20 == 0) {
           database.commit();
           database.begin();
+          if (!USE_WAL) {
+            database.getTransaction().setUseWAL(false);
+            database.getTransaction().setWALFlush(WALFile.FLUSH_TYPE.NO);
+          }
         }
       }
       System.out.println("Created " + EDGES_PER_VERTEX + " edges per vertex in " + sourceIndex + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
@@ -174,6 +193,7 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
 
     try {
       //database.setEdgeListSize(256);
+
       database.async().setParallelLevel(PARALLEL);
       database.async().setTransactionUseWAL(false);
       database.async().setTransactionSync(WALFile.FLUSH_TYPE.NO);
@@ -231,23 +251,20 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
     try {
       int i = 0;
       for (; i < VERTICES; ++i) {
-        int edges = 0;
-        final long outEdges = cachedVertices[i].countEdges(Vertex.DIRECTION.OUT, EDGE_TYPE_NAME);
+        int outEdges = 0;
+        for (Edge e : cachedVertices[i].getEdges(Vertex.DIRECTION.OUT, EDGE_TYPE_NAME))
+          ++outEdges;
         Assertions.assertEquals(expectedEdges, outEdges);
 
-        final long inEdges = cachedVertices[i].countEdges(Vertex.DIRECTION.IN, EDGE_TYPE_NAME);
+        int inEdges = 0;
+        for (Edge e : cachedVertices[i].getEdges(Vertex.DIRECTION.IN, EDGE_TYPE_NAME))
+          ++inEdges;
         Assertions.assertEquals(expectedEdges, inEdges);
-
-//        System.out
-//            .println("Vertex " + i + " with id=" + cachedVertices[i].getString("id") + " has " + inEdges + " incoming and " + outEdges + " outgoung edges");
 
         if (i % 1000 == 0)
           System.out.println("Checked " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
-
-        if (++edges > EDGES_PER_VERTEX)
-          break;
       }
-      System.out.println("Created " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
+      System.out.println("Checked " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
       database.commit();

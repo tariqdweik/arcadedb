@@ -77,7 +77,7 @@ public class PerformanceInsertIndexTest extends BaseTest {
       type.createProperty("id", Long.class);
       type.createProperty("name", String.class);
       type.createProperty("surname", String.class);
-      type.createProperty("locali", Integer.class);
+      type.createProperty("counter", Integer.class);
 
       database.getSchema().createTypeIndex(SchemaImpl.INDEX_TYPE.LSM_TREE, false, TYPE_NAME, new String[] { "id" }, 5000000);
 
@@ -107,7 +107,7 @@ public class PerformanceInsertIndexTest extends BaseTest {
           record.set("id", counter);
           record.set("name", "Luca" + counter);
           record.set("surname", "Skywalker" + counter);
-          record.set("locali", 10);
+          record.set("counter", 10);
 
           database.async().createRecord(record, null);
 

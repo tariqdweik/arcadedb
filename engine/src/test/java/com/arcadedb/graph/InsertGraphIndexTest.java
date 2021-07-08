@@ -224,7 +224,7 @@ public class InsertGraphIndexTest extends BaseTest {
         if (++edges > EDGES_PER_VERTEX)
           break;
       }
-      System.out.println("Created " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
+      System.out.println("Checked " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
       database.commit();

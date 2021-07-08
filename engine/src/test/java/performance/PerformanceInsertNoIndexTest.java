@@ -76,7 +76,7 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
       type.createProperty("id", Long.class);
       type.createProperty("name", String.class);
       type.createProperty("surname", String.class);
-      type.createProperty("locali", Integer.class);
+      type.createProperty("counter", Integer.class);
 
       database.commit();
 
@@ -104,7 +104,7 @@ public class PerformanceInsertNoIndexTest extends BaseTest {
           record.set("id", counter);
           record.set("name", "Luca" + counter);
           record.set("surname", "Skywalker" + counter);
-          record.set("locali", 10);
+          record.set("counter", 10);
 
           database.async().createRecord(record, null);
 
