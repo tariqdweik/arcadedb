@@ -207,6 +207,8 @@ public class InsertGraphIndexTest extends BaseTest {
   private void checkGraph(Vertex[] cachedVertices) {
     System.out.println("Checking graph with " + VERTICES + " vertices");
 
+    final int expectedEdges = Math.min(VERTICES, EDGES_PER_VERTEX);
+
     database.begin();
     final long begin = System.currentTimeMillis();
     try {
@@ -214,15 +216,15 @@ public class InsertGraphIndexTest extends BaseTest {
       for (; i < VERTICES; ++i) {
         int edges = 0;
         final long outEdges = cachedVertices[i].countEdges(Vertex.DIRECTION.OUT, EDGE_TYPE_NAME);
-        Assertions.assertEquals(EDGES_PER_VERTEX, outEdges);
+        Assertions.assertEquals(expectedEdges, outEdges);
 
         final long inEdges = cachedVertices[i].countEdges(Vertex.DIRECTION.IN, EDGE_TYPE_NAME);
-        Assertions.assertEquals(EDGES_PER_VERTEX, inEdges);
+        Assertions.assertEquals(expectedEdges, inEdges);
 
         if (++edges > EDGES_PER_VERTEX)
           break;
       }
-      System.out.println("Created " + EDGES_PER_VERTEX + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
+      System.out.println("Created " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
       database.commit();

@@ -38,13 +38,15 @@ import java.io.File;
 import java.util.logging.Level;
 
 public class PerformanceInsertGraphIndexTest extends BaseTest {
-  private static final int    VERTICES         = 1_000;
-  private static final int    EDGES_PER_VERTEX = 1_000;
+  private static final int    VERTICES         = 10_000;
+  private static final int    EDGES_PER_VERTEX = 10_000;
   private static final String VERTEX_TYPE_NAME = "Person";
   private static final String EDGE_TYPE_NAME   = "Friend";
   private static final int    PARALLEL         = 3;
 
   public static void main(String[] args) {
+    final long begin = System.currentTimeMillis();
+
     FileUtils.deleteRecursively(new File(PerformanceTest.DATABASE_PATH));
 
     final PerformanceInsertGraphIndexTest test = new PerformanceInsertGraphIndexTest();
@@ -64,6 +66,9 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
     }
 
     test.database.close();
+
+    final long elapsedSecs = (System.currentTimeMillis() - begin) / 1000;
+    System.out.println("TEST completed in " + elapsedSecs + " secs = " + (elapsedSecs / 60) + " mins");
   }
 
   protected PerformanceInsertGraphIndexTest() {
@@ -120,10 +125,9 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
         }
 
         if (sourceIndex % 100 == 0)
-          System.out
-              .println("Created " + EDGES_PER_VERTEX + " edges per vertex in " + sourceIndex + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
+          System.out.println("Created " + edges + " edges per vertex in " + sourceIndex + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
 
-        if (sourceIndex % 100 == 0) {
+        if (sourceIndex % 20 == 0) {
           database.commit();
           database.begin();
         }
@@ -138,11 +142,9 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
   }
 
   private Vertex[] loadVertices() {
-    System.out.println("Start inserting " + EDGES_PER_VERTEX + " edges per vertex...");
-
     final Vertex[] cachedVertices = new Vertex[VERTICES];
 
-    System.out.println("Loading " + VERTICES + " in RAM...");
+    System.out.println("Loading " + VERTICES + " vertices in RAM...");
     database.transaction((tx) -> {
       final long begin = System.currentTimeMillis();
       try {
@@ -155,8 +157,6 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
           }
 
           cachedVertices[counter] = (Vertex) cursor.next().getRecord();
-          if (counter % 1_000_000 == 0)
-            System.out.println("Loaded " + counter + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
         }
         System.out.println("Loaded " + counter + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
       } finally {
@@ -225,25 +225,29 @@ public class PerformanceInsertGraphIndexTest extends BaseTest {
 
     database.begin();
     final long begin = System.currentTimeMillis();
+
+    final int expectedEdges = Math.min(VERTICES, EDGES_PER_VERTEX);
+
     try {
       int i = 0;
       for (; i < VERTICES; ++i) {
         int edges = 0;
         final long outEdges = cachedVertices[i].countEdges(Vertex.DIRECTION.OUT, EDGE_TYPE_NAME);
-        Assertions.assertEquals(EDGES_PER_VERTEX, outEdges);
+        Assertions.assertEquals(expectedEdges, outEdges);
 
         final long inEdges = cachedVertices[i].countEdges(Vertex.DIRECTION.IN, EDGE_TYPE_NAME);
-        Assertions.assertEquals(EDGES_PER_VERTEX, inEdges);
+        Assertions.assertEquals(expectedEdges, inEdges);
 
 //        System.out
 //            .println("Vertex " + i + " with id=" + cachedVertices[i].getString("id") + " has " + inEdges + " incoming and " + outEdges + " outgoung edges");
 
         if (i % 1000 == 0)
-          System.out.println("Checked " + EDGES_PER_VERTEX + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
+          System.out.println("Checked " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
+
         if (++edges > EDGES_PER_VERTEX)
           break;
       }
-      System.out.println("Created " + EDGES_PER_VERTEX + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
+      System.out.println("Created " + expectedEdges + " edges per vertex in " + i + " vertices in " + (System.currentTimeMillis() - begin) + "ms");
 
     } finally {
       database.commit();
