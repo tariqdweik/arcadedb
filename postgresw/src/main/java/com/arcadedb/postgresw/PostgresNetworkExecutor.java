@@ -624,14 +624,13 @@ public class PostgresNetworkExecutor extends Thread {
             portal.columns.put("SELF_REFERENCING_COL_NAME", PostgresType.VARCHAR);
             portal.columns.put("REF_GENERATION", PostgresType.VARCHAR);
           }
-        } else
-
-          portal.statement = SQLEngine.parse(portal.query, (DatabaseInternal) database);
-
-        if (portal.query.equalsIgnoreCase("BEGIN")) {
-          explicitTransactionStarted = true;
-          portal.isExpectingResult = false;
         }
+      } else
+        portal.statement = SQLEngine.parse(portal.query, (DatabaseInternal) database);
+
+      if (portal.query.equalsIgnoreCase("BEGIN")) {
+        explicitTransactionStarted = true;
+        portal.isExpectingResult = false;
       }
 
       portals.put(portalName, portal);
