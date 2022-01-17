@@ -23,19 +23,56 @@ import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.database.async.OkCallback;
 import com.arcadedb.engine.Bucket;
 import com.arcadedb.engine.Dictionary;
-import com.arcadedb.engine.*;
-import com.arcadedb.exception.*;
-import com.arcadedb.graph.*;
+import com.arcadedb.engine.ErrorRecordCallback;
+import com.arcadedb.engine.FileManager;
+import com.arcadedb.engine.PageManager;
+import com.arcadedb.engine.PaginatedFile;
+import com.arcadedb.engine.TransactionManager;
+import com.arcadedb.engine.WALFile;
+import com.arcadedb.engine.WALFileFactory;
+import com.arcadedb.engine.WALFileFactoryEmbedded;
+import com.arcadedb.exception.ArcadeDBException;
+import com.arcadedb.exception.DatabaseIsClosedException;
+import com.arcadedb.exception.DatabaseIsReadOnlyException;
+import com.arcadedb.exception.DatabaseMetadataException;
+import com.arcadedb.exception.DatabaseOperationException;
+import com.arcadedb.exception.DuplicatedKeyException;
+import com.arcadedb.exception.InvalidDatabaseInstanceException;
+import com.arcadedb.exception.NeedRetryException;
+import com.arcadedb.exception.SchemaException;
+import com.arcadedb.exception.TransactionException;
+import com.arcadedb.graph.Edge;
+import com.arcadedb.graph.GraphEngine;
+import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.graph.Vertex;
+import com.arcadedb.graph.VertexInternal;
 import com.arcadedb.index.Index;
 import com.arcadedb.index.IndexCursor;
 import com.arcadedb.index.TypeIndex;
 import com.arcadedb.index.lsm.LSMTreeIndexCompacted;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.query.QueryEngine;
 import com.arcadedb.query.QueryEngineManager;
-import com.arcadedb.query.sql.executor.*;
-import com.arcadedb.query.sql.parser.*;
-import com.arcadedb.schema.*;
+import com.arcadedb.query.sql.executor.BasicCommandContext;
+import com.arcadedb.query.sql.executor.CommandContext;
+import com.arcadedb.query.sql.executor.InternalExecutionPlan;
+import com.arcadedb.query.sql.executor.ResultSet;
+import com.arcadedb.query.sql.executor.SQLEngine;
+import com.arcadedb.query.sql.executor.ScriptExecutionPlan;
+import com.arcadedb.query.sql.parser.BeginStatement;
+import com.arcadedb.query.sql.parser.CommitStatement;
+import com.arcadedb.query.sql.parser.ExecutionPlanCache;
+import com.arcadedb.query.sql.parser.LetStatement;
+import com.arcadedb.query.sql.parser.LocalResultSet;
+import com.arcadedb.query.sql.parser.LocalResultSetLifecycleDecorator;
+import com.arcadedb.query.sql.parser.Statement;
+import com.arcadedb.query.sql.parser.StatementCache;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.EmbeddedSchema;
+import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.VertexType;
 import com.arcadedb.security.SecurityDatabaseUser;
 import com.arcadedb.security.SecurityManager;
 import com.arcadedb.serializer.BinarySerializer;
@@ -44,22 +81,15 @@ import com.arcadedb.utility.LockException;
 import com.arcadedb.utility.MultiIterator;
 import com.arcadedb.utility.RWLockContext;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.*;
+import java.nio.channels.*;
+import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.logging.*;
+import java.util.stream.*;
 
 public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal {
   public static final  int                                       EDGE_LIST_INITIAL_CHUNK_SIZE         = 64;
@@ -101,6 +131,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   private              FileChannel                               lockFileIOChannel;
   private              FileLock                                  lockFileLock;
   private final        RecordEventsRegistry                      events                               = new RecordEventsRegistry();
+  private              ConcurrentHashMap<String, QueryEngine>    reusableQueryEngines                 = new ConcurrentHashMap<>();
 
   protected EmbeddedDatabase(final String path, final PaginatedFile.MODE mode, final ContextConfiguration configuration, final SecurityManager security,
       final Map<CALLBACK_EVENT, List<Callable<Void>>> callbacks) {
@@ -1173,7 +1204,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
     stats.commands.incrementAndGet();
 
-    return queryEngineManager.getInstance(language, this).command(query, parameters);
+    return getQueryEngine(language).command(query, parameters);
   }
 
   @Override
@@ -1182,7 +1213,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
     stats.commands.incrementAndGet();
 
-    return queryEngineManager.getInstance(language, this).command(query, parameters);
+    return getQueryEngine(language).command(query, parameters);
   }
 
   @Override
@@ -1209,62 +1240,18 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     return new LocalResultSetLifecycleDecorator(executeInternal(statements, context));
   }
 
-  private ResultSet executeInternal(final List<Statement> statements, final CommandContext scriptContext) {
-    ScriptExecutionPlan plan = new ScriptExecutionPlan(scriptContext);
-
-    plan.setStatement(statements.stream().map(Statement::toString).collect(Collectors.joining(";")));
-
-    List<Statement> lastRetryBlock = new ArrayList<>();
-    int nestedTxLevel = 0;
-
-    for (Statement stm : statements) {
-      if (stm.getOriginalStatement() == null)
-        stm.setOriginalStatement(stm.toString());
-
-      if (stm instanceof BeginStatement)
-        nestedTxLevel++;
-
-      if (nestedTxLevel <= 0) {
-        InternalExecutionPlan sub = stm.createExecutionPlan(scriptContext);
-        plan.chain(sub, false);
-      } else
-        lastRetryBlock.add(stm);
-
-      if (stm instanceof CommitStatement && nestedTxLevel > 0) {
-        nestedTxLevel--;
-        if (nestedTxLevel == 0) {
-
-          for (Statement statement : lastRetryBlock) {
-            InternalExecutionPlan sub = statement.createExecutionPlan(scriptContext);
-            plan.chain(sub, false);
-          }
-          lastRetryBlock = new ArrayList<>();
-        }
-      }
-
-      if (stm instanceof LetStatement)
-        scriptContext.declareScriptVariable(((LetStatement) stm).getName().getStringValue());
-    }
-
-    return new LocalResultSet(plan);
-  }
-
   @Override
   public ResultSet query(final String language, final String query, final Object... parameters) {
     checkDatabaseIsOpen();
-
     stats.queries.incrementAndGet();
-
-    return queryEngineManager.getInstance(language, this).query(query, parameters);
+    return getQueryEngine(language).query(query, parameters);
   }
 
   @Override
   public ResultSet query(final String language, final String query, final Map<String, Object> parameters) {
     checkDatabaseIsOpen();
-
     stats.queries.incrementAndGet();
-
-    return queryEngineManager.getInstance(language, this).query(query, parameters);
+    return getQueryEngine(language).query(query, parameters);
   }
 
   /**
@@ -1419,6 +1406,10 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     this.wrappedDatabaseInstance = wrappedDatabaseInstance;
   }
 
+  public void registerReusableQueryEngine(final QueryEngine queryEngine) {
+    reusableQueryEngines.put(queryEngine.getLanguage(), queryEngine);
+  }
+
   @Override
   public void setEdgeListSize(final int size) {
     this.edgeListSize = size;
@@ -1532,6 +1523,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         fileManager.close();
         transactionManager.close(drop);
         statementCache.clear();
+        reusableQueryEngines.clear();
       } catch (Throwable e) {
         LogManager.instance().log(this, Level.WARNING, "Error on closing internal components during closing operation for database '%s'", e, name);
       } finally {
@@ -1660,5 +1652,59 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
         }
       }
     }
+  }
+
+  private ResultSet executeInternal(final List<Statement> statements, final CommandContext scriptContext) {
+    ScriptExecutionPlan plan = new ScriptExecutionPlan(scriptContext);
+
+    plan.setStatement(statements.stream().map(Statement::toString).collect(Collectors.joining(";")));
+
+    List<Statement> lastRetryBlock = new ArrayList<>();
+    int nestedTxLevel = 0;
+
+    for (Statement stm : statements) {
+      if (stm.getOriginalStatement() == null)
+        stm.setOriginalStatement(stm.toString());
+
+      if (stm instanceof BeginStatement)
+        nestedTxLevel++;
+
+      if (nestedTxLevel <= 0) {
+        InternalExecutionPlan sub = stm.createExecutionPlan(scriptContext);
+        plan.chain(sub, false);
+      } else
+        lastRetryBlock.add(stm);
+
+      if (stm instanceof CommitStatement && nestedTxLevel > 0) {
+        nestedTxLevel--;
+        if (nestedTxLevel == 0) {
+
+          for (Statement statement : lastRetryBlock) {
+            InternalExecutionPlan sub = statement.createExecutionPlan(scriptContext);
+            plan.chain(sub, false);
+          }
+          lastRetryBlock = new ArrayList<>();
+        }
+      }
+
+      if (stm instanceof LetStatement)
+        scriptContext.declareScriptVariable(((LetStatement) stm).getName().getStringValue());
+    }
+
+    return new LocalResultSet(plan);
+  }
+
+  private QueryEngine getQueryEngine(final String language) {
+    QueryEngine engine = reusableQueryEngines.get(language);
+    if (engine == null) {
+      engine = queryEngineManager.getInstance(language, this);
+      if (engine.isReusable()) {
+        final QueryEngine prev = reusableQueryEngines.putIfAbsent(language, engine);
+        if (prev != null)
+          engine = prev;
+      }
+    }
+
+    return engine;
   }
 }

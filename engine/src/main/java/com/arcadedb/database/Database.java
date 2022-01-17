@@ -29,9 +29,8 @@ import com.arcadedb.index.IndexCursor;
 import com.arcadedb.query.sql.executor.ResultSet;
 import com.arcadedb.schema.Schema;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.*;
+import java.util.concurrent.*;
 
 public interface Database extends AutoCloseable {
   ContextConfiguration getConfiguration();
