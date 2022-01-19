@@ -45,6 +45,7 @@ import com.arcadedb.graph.GraphEngine;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.index.IndexCursor;
+import com.arcadedb.query.QueryEngine;
 import com.arcadedb.query.sql.executor.ResultSet;
 import com.arcadedb.query.sql.parser.ExecutionPlanCache;
 import com.arcadedb.query.sql.parser.StatementCache;
@@ -350,6 +351,11 @@ public class ServerDatabase implements DatabaseInternal {
       boolean createVertexIfNotExist, String edgeType, boolean bidirectional, Object... properties) {
     return wrapped.newEdgeByKeys(sourceVertex, destinationVertexType, destinationVertexKeyNames, destinationVertexKeyValues, createVertexIfNotExist, edgeType,
         bidirectional, properties);
+  }
+
+  @Override
+  public QueryEngine getQueryEngine(final String language) {
+    return wrapped.getQueryEngine(language);
   }
 
   @Override
