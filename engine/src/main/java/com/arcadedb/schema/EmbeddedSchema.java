@@ -42,6 +42,7 @@ import com.arcadedb.index.lsm.LSMTreeIndexAbstract;
 import com.arcadedb.index.lsm.LSMTreeIndexCompacted;
 import com.arcadedb.index.lsm.LSMTreeIndexMutable;
 import com.arcadedb.log.LogManager;
+import com.arcadedb.query.QueryEngine;
 import com.arcadedb.security.SecurityDatabaseUser;
 import com.arcadedb.security.SecurityManager;
 import com.arcadedb.utility.FileUtils;
@@ -1339,6 +1340,26 @@ public class EmbeddedSchema implements Schema {
         f.onAfterLoad();
   }
 
+  @Override
+  public Schema registerFunctions(final String language, final String function) {
+    final QueryEngine queryEngine = database.getQueryEngine(language);
+    if (queryEngine == null)
+      throw new IllegalArgumentException("Query language '" + language + "' not available");
+
+    queryEngine.registerFunctions(function);
+    return this;
+  }
+
+  @Override
+  public Schema unregisterFunctions(final String language) {
+    final QueryEngine queryEngine = database.getQueryEngine(language);
+    if (queryEngine == null)
+      throw new IllegalArgumentException("Query language '" + language + "' not available");
+
+    queryEngine.unregisterFunctions();
+    return this;
+  }
+
   public boolean isDirty() {
     return dirtyConfiguration;
   }
@@ -1349,6 +1370,29 @@ public class EmbeddedSchema implements Schema {
 
   public long getVersion() {
     return versionSerial.get();
+  }
+
+  public synchronized void update(final JSONObject newSchema) throws IOException {
+    if (newSchema.has("schemaVersion"))
+      versionSerial.set(newSchema.getLong("schemaVersion"));
+
+    final String latestSchema = newSchema.toString();
+
+    if (configurationFile.exists()) {
+      final File copy = new File(databasePath + "/" + SCHEMA_PREV_FILE_NAME);
+      if (copy.exists())
+        if (!copy.delete())
+          LogManager.instance().log(this, Level.WARNING, "Error on deleting previous schema file '%s'", null, copy);
+
+      if (!configurationFile.renameTo(copy))
+        LogManager.instance().log(this, Level.WARNING, "Error on renaming previous schema file '%s'", null, copy);
+    }
+
+    try (FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME)) {
+      file.write(latestSchema);
+    }
+
+    database.getExecutionPlanCache().invalidate();
   }
 
   private void updateSecurity() {
@@ -1381,28 +1425,5 @@ public class EmbeddedSchema implements Schema {
         // ROLLBACK THE DIRTY STATUS
         dirtyConfiguration = false;
     }
-  }
-
-  public synchronized void update(final JSONObject newSchema) throws IOException {
-    if (newSchema.has("schemaVersion"))
-      versionSerial.set(newSchema.getLong("schemaVersion"));
-
-    final String latestSchema = newSchema.toString();
-
-    if (configurationFile.exists()) {
-      final File copy = new File(databasePath + "/" + SCHEMA_PREV_FILE_NAME);
-      if (copy.exists())
-        if (!copy.delete())
-          LogManager.instance().log(this, Level.WARNING, "Error on deleting previous schema file '%s'", null, copy);
-
-      if (!configurationFile.renameTo(copy))
-        LogManager.instance().log(this, Level.WARNING, "Error on renaming previous schema file '%s'", null, copy);
-    }
-
-    try (FileWriter file = new FileWriter(databasePath + "/" + SCHEMA_FILE_NAME)) {
-      file.write(latestSchema);
-    }
-
-    database.getExecutionPlanCache().invalidate();
   }
 }
