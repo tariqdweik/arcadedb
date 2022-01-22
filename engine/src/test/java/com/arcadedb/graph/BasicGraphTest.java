@@ -21,19 +21,18 @@ import com.arcadedb.database.Record;
 import com.arcadedb.engine.DatabaseChecker;
 import com.arcadedb.exception.DuplicatedKeyException;
 import com.arcadedb.exception.RecordNotFoundException;
+import com.arcadedb.query.sql.SQLQueryEngine;
 import com.arcadedb.query.sql.executor.CommandContext;
 import com.arcadedb.query.sql.executor.Result;
 import com.arcadedb.query.sql.executor.ResultSet;
-import com.arcadedb.query.sql.executor.SQLEngine;
 import com.arcadedb.query.sql.function.SQLFunctionAbstract;
 import com.arcadedb.schema.EdgeType;
 import com.arcadedb.schema.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.*;
+import java.util.concurrent.atomic.*;
 
 public class BasicGraphTest extends BaseGraphTest {
   @Test
@@ -481,7 +480,7 @@ public class BasicGraphTest extends BaseGraphTest {
   public void customFunction() {
     database.begin();
     try {
-      SQLEngine.getInstance().getFunctionFactory().register(new SQLFunctionAbstract("ciao") {
+      ((SQLQueryEngine) database.getQueryEngine("sql")).getFunctionFactory().register(new SQLFunctionAbstract("ciao") {
         @Override
         public Object execute(Object iThis, Identifiable iCurrentRecord, Object iCurrentResult, Object[] iParams, CommandContext iContext) {
           return "Ciao";
@@ -514,7 +513,7 @@ public class BasicGraphTest extends BaseGraphTest {
   public void customReflectionFunction() {
     database.begin();
     try {
-      SQLEngine.getInstance().getFunctionFactory().getReflectionFactory().register("test_", getClass());
+      ((SQLQueryEngine) database.getQueryEngine("sql")).getFunctionFactory().getReflectionFactory().register("test_", getClass());
 
       final ResultSet result = database.query("sql", "select test_testReflectionMethod() as testReflectionMethod");
       Assertions.assertTrue(result.hasNext());

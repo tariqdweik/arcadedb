@@ -17,9 +17,9 @@ package com.arcadedb.query.sql.function.graph;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.Identifiable;
+import com.arcadedb.query.sql.SQLQueryEngine;
 import com.arcadedb.query.sql.executor.CommandContext;
 import com.arcadedb.query.sql.executor.MultiValue;
-import com.arcadedb.query.sql.executor.SQLEngine;
 import com.arcadedb.query.sql.executor.SQLFunctionFiltered;
 import com.arcadedb.utility.Callable;
 import com.arcadedb.utility.FileUtils;
@@ -40,8 +40,8 @@ public abstract class SQLFunctionMoveFiltered extends SQLFunctionMove implements
   }
 
   @Override
-  public Object execute(final Object iThis, final Identifiable iCurrentRecord, final Object iCurrentResult,
-      final Object[] iParameters, final Iterable<Identifiable> iPossibleResults, final CommandContext iContext) {
+  public Object execute(final Object iThis, final Identifiable iCurrentRecord, final Object iCurrentResult, final Object[] iParameters,
+      final Iterable<Identifiable> iPossibleResults, final CommandContext iContext) {
     final String[] labels;
     if (iParameters != null && iParameters.length > 0 && iParameters[0] != null)
       labels = MultiValue.array(iParameters, String.class, new Callable<Object, Object>() {
@@ -54,16 +54,11 @@ public abstract class SQLFunctionMoveFiltered extends SQLFunctionMove implements
     else
       labels = null;
 
-    return SQLEngine.foreachRecord(new Callable<Object, Identifiable>() {
-      @Override
-      public Object call(final Identifiable iArgument) {
-        return move(iContext.getDatabase(), iArgument, labels, iPossibleResults);
-      }
-    }, iThis, iContext);
+    return ((SQLQueryEngine) iContext.getDatabase().getQueryEngine("sql")).foreachRecord(
+        iArgument -> move(iContext.getDatabase(), iArgument, labels, iPossibleResults), iThis, iContext);
 
   }
 
-  protected abstract Object move(Database graph, Identifiable iArgument, String[] labels,
-      Iterable<Identifiable> iPossibleResults);
+  protected abstract Object move(Database graph, Identifiable iArgument, String[] labels, Iterable<Identifiable> iPossibleResults);
 
 }

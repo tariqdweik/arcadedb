@@ -15,12 +15,11 @@
  */
 package com.arcadedb.query.sql.parser;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import java.io.*;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class MatchStatementTest {
 
@@ -250,7 +249,7 @@ public class MatchStatementTest {
 
   protected SqlParser getParserFor(String string) {
     InputStream is = new ByteArrayInputStream(string.getBytes());
-    SqlParser osql = new SqlParser(is);
+    SqlParser osql = new SqlParser(null, is);
     return osql;
   }
 }
