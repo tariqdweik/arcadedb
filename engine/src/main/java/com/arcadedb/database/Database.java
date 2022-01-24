@@ -344,6 +344,7 @@ public interface Database extends AutoCloseable {
   void deleteRecord(Record record);
 
   /**
+   * <<<<<<< HEAD
    * Returns the query engine by language name.
    *
    * @param language Language name
@@ -353,6 +354,8 @@ public interface Database extends AutoCloseable {
   QueryEngine getQueryEngine(String language);
 
   /**
+   * =======
+   * >>>>>>> main
    * Returns the database schema.
    */
   Schema getSchema();
