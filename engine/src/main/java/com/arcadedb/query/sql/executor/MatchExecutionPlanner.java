@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.executor;
 
@@ -272,7 +275,7 @@ public class MatchExecutionPlanner {
     for (Map.Entry<String, Long> root : estimatedRootEntries.entrySet()) {
       rootWeights.add(new Pair<>(root.getValue(), root.getKey()));
     }
-    rootWeights.sort((o1, o2) -> o1.getFirst().compareTo(o2.getFirst()));
+    rootWeights.sort(Comparator.comparing(Pair::getFirst));
 
     // Add the starting vertices, in the correct order, to an ordered set.
     Set<String> remainingStarts = new LinkedHashSet<>();
@@ -531,7 +534,7 @@ public class MatchExecutionPlanner {
     for (Map.Entry<String, Long> root : estimatedRootEntries.entrySet()) {
       rootWeights.add(new Pair<>(root.getValue(), root.getKey()));
     }
-    rootWeights.sort((o1, o2) -> o1.getFirst().compareTo(o2.getFirst()));
+    rootWeights.sort(Comparator.comparing(Pair::getFirst));
 
     Set<PatternEdge> traversedEdges = new HashSet<>();
     Set<PatternNode> traversedNodes = new HashSet<>();

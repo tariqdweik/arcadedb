@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.console;
 
@@ -102,13 +105,11 @@ public class Console {
 
           lineReader.getHistory().save();
 
-        } catch (UserInterruptException e) {
-          return;
-        } catch (EndOfFileException e) {
+        } catch (UserInterruptException | EndOfFileException e) {
           return;
         }
 
-        try {
+          try {
           if (!parse(line, false))
             return;
         } catch (Exception e) {
@@ -202,10 +203,7 @@ public class Console {
       }
 
       return true;
-    } catch (IOException e) {
-      outputError(e);
-      throw e;
-    } catch (RuntimeException e) {
+    } catch (IOException | RuntimeException e) {
       outputError(e);
       throw e;
     }
@@ -407,7 +405,7 @@ public class Console {
       row.setProperty("VALUE", value);
     }
 
-    final TableFormatter formatter = new TableFormatter((text, args) -> output(text, args));
+    final TableFormatter formatter = new TableFormatter(this::output);
     formatter.setMaxWidthSize(maxWidth);
     formatter.writeRows(resultSet, -1);
   }
@@ -454,7 +452,7 @@ public class Console {
 
     } else {
       // TABLE FORMAT
-      final TableFormatter table = new TableFormatter((text, args) -> output(text, args));
+      final TableFormatter table = new TableFormatter(this::output);
       table.setMaxWidthSize(maxWidth);
       table.setPrefixedColumns("#", "@RID", "@TYPE");
 
@@ -529,7 +527,7 @@ public class Console {
     if (subject.equalsIgnoreCase("types")) {
       outputLine("AVAILABLE TYPES");
 
-      final TableFormatter table = new TableFormatter((text, args) -> output(text, args));
+      final TableFormatter table = new TableFormatter(this::output);
       table.setMaxWidthSize(maxWidth);
 
       if (remoteDatabase != null) {

@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb;
 
@@ -19,7 +22,6 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.MutableDocument;
-import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.PageManager;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
@@ -28,7 +30,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import performance.PerformanceTest;
 
-import java.util.UUID;
+import java.util.*;
 
 public class PageManagerStressTest {
   private static final int    TOT       = 100_000;
@@ -74,12 +76,9 @@ public class PageManagerStressTest {
       database.async().setTransactionUseWAL(true);
       database.async().setTransactionSync(WALFile.FLUSH_TYPE.NO);
 
-      database.async().onError(new ErrorCallback() {
-        @Override
-        public void call(Throwable exception) {
-          System.out.println("ERROR: " + exception);
-          exception.printStackTrace();
-        }
+      database.async().onError(exception -> {
+        System.out.println("ERROR: " + exception);
+        exception.printStackTrace();
       });
 
       long row = 0;

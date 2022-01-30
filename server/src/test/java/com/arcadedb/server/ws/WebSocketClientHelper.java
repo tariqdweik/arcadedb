@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.ws;
 
@@ -87,32 +90,18 @@ public class WebSocketClientHelper implements AutoCloseable {
   @Override
   public void close() throws IOException {
     LogManager.instance().log(this, Level.FINE, "WS client send close");
-    CodeUtils.executeIgnoringExceptions(() -> {
-      WebSockets.sendCloseBlocking(CloseMessage.NORMAL_CLOSURE, null, this.channel);
-    });
-    CodeUtils.executeIgnoringExceptions(() -> {
-      this.channel.flush();
-    });
-    CodeUtils.executeIgnoringExceptions(() -> {
-      this.channel.close();
-    });
-    CodeUtils.executeIgnoringExceptions(() -> {
-      pool.close();
-    });
-    CodeUtils.executeIgnoringExceptions(() -> {
-      worker.shutdown();
-    });
+    CodeUtils.executeIgnoringExceptions(() -> WebSockets.sendCloseBlocking(CloseMessage.NORMAL_CLOSURE, null, this.channel));
+    CodeUtils.executeIgnoringExceptions(this.channel::flush);
+    CodeUtils.executeIgnoringExceptions(this.channel::close);
+    CodeUtils.executeIgnoringExceptions(pool::close);
+    CodeUtils.executeIgnoringExceptions(worker::shutdown);
     messageQueue.clear();
   }
 
   public void breakConnection() {
     LogManager.instance().log(this, Level.FINE, "WS client break connection");
-    CodeUtils.executeIgnoringExceptions(() -> {
-      this.channel.close();
-    });
-    CodeUtils.executeIgnoringExceptions(() -> {
-      pool.close();
-    });
+    CodeUtils.executeIgnoringExceptions(this.channel::close);
+    CodeUtils.executeIgnoringExceptions(pool::close);
     messageQueue.clear();
   }
 

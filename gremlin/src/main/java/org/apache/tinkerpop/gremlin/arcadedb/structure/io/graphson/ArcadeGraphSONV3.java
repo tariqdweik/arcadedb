@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.tinkerpop.gremlin.arcadedb.structure.io.graphson;
 
@@ -33,10 +36,10 @@ import static org.apache.tinkerpop.gremlin.arcadedb.structure.io.ArcadeIoRegistr
  */
 public class ArcadeGraphSONV3 extends ArcadeGraphSON {
 
-  protected static final Map<Class, String> TYPES = Collections.unmodifiableMap(new LinkedHashMap<Class, String>() {
-    {
-      put(RID.class, "RID");
-    }
+  protected static final Map<Class, String> TYPES = Collections.unmodifiableMap(new LinkedHashMap<>() {
+      {
+          put(RID.class, "RID");
+      }
   });
 
   private final Database database;

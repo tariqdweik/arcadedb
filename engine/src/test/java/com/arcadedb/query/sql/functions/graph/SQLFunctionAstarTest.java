@@ -12,10 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.functions.graph;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.arcadedb.TestHelper;
 import com.arcadedb.database.Database;
@@ -23,16 +24,16 @@ import com.arcadedb.graph.MutableEdge;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
 import com.arcadedb.query.sql.executor.BasicCommandContext;
+import com.arcadedb.query.sql.executor.Result;
 import com.arcadedb.query.sql.executor.ResultSet;
 import com.arcadedb.query.sql.function.graph.SQLFunctionAstar;
 import com.arcadedb.query.sql.function.graph.SQLHeuristicFormula;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
+import java.util.stream.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /*
  * @author Saeed Tabrizi (saeed a_t  nowcando.com)
@@ -426,9 +427,7 @@ public class SQLFunctionAstarTest {
           + ", 'weight', {'direction':'out', 'parallel':true, 'edgeTypeNames':'has_path'}))");
 
       List result = new ArrayList();
-      for (Object x : r.stream().map(x -> x.toElement()).collect(Collectors.toList())) {
-        result.add(x);
-      }
+      result.addAll(r.stream().map(Result::toElement).collect(Collectors.toList()));
       try (ResultSet rs = graph.query("sql", "select count(*) as count from has_path")) {
         assertEquals((Object) 16L, rs.next().getProperty("count"));
       }

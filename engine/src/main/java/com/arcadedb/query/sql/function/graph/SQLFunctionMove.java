@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.function.graph;
 
@@ -54,13 +57,7 @@ public abstract class SQLFunctionMove extends SQLFunctionConfigurableAbstract {
 
     final String[] labels;
     if (iParameters != null && iParameters.length > 0 && iParameters[0] != null)
-      labels = MultiValue.array(iParameters, String.class, new Callable<Object, Object>() {
-
-        @Override
-        public Object call(final Object iArgument) {
-          return FileUtils.getStringContent(iArgument);
-        }
-      });
+      labels = MultiValue.array(iParameters, String.class, iArgument -> FileUtils.getStringContent(iArgument));
     else
       labels = null;
 

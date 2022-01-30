@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
@@ -74,16 +77,16 @@ public class ArcadeFilterByTypeStep<S, E extends Element> extends AbstractStep<S
         throw new IllegalArgumentException("Type '" + typeName + "' is not a vertex type");
 
       final Iterator<Record> rawIterator = graph.getDatabase().iterateType(typeName, true);
-      iteratorSupplier = () -> new Iterator<E>() {
-        @Override
-        public boolean hasNext() {
-          return rawIterator.hasNext();
-        }
+      iteratorSupplier = () -> new Iterator<>() {
+          @Override
+          public boolean hasNext() {
+              return rawIterator.hasNext();
+          }
 
-        @Override
-        public E next() {
-          return (E) new ArcadeVertex(graph, rawIterator.next().asVertex());
-        }
+          @Override
+          public E next() {
+              return (E) new ArcadeVertex(graph, rawIterator.next().asVertex());
+          }
       };
 
     } else if (Edge.class.isAssignableFrom(this.returnClass)) {
@@ -91,16 +94,16 @@ public class ArcadeFilterByTypeStep<S, E extends Element> extends AbstractStep<S
         throw new IllegalArgumentException("Type '" + typeName + "' is not an edge type");
 
       final Iterator<Record> rawIterator = graph.getDatabase().iterateType(typeName, true);
-      iteratorSupplier = () -> new Iterator<E>() {
-        @Override
-        public boolean hasNext() {
-          return rawIterator.hasNext();
-        }
+      iteratorSupplier = () -> new Iterator<>() {
+          @Override
+          public boolean hasNext() {
+              return rawIterator.hasNext();
+          }
 
-        @Override
-        public E next() {
-          return (E) new ArcadeEdge(graph, rawIterator.next().asEdge());
-        }
+          @Override
+          public E next() {
+              return (E) new ArcadeEdge(graph, rawIterator.next().asEdge());
+          }
       };
     } else
       throw new IllegalArgumentException("Unsupported returning class '" + returnClass + "'");

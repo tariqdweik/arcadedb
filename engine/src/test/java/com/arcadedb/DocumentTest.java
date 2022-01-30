@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb;
 
@@ -121,7 +124,7 @@ public class DocumentTest extends TestHelper {
       doc.set("name", "Tim");
       final EmbeddedDocument embeddedObj = (EmbeddedDocument) doc.newEmbeddedDocument("ConversionTest", "embeddedObj").set("embeddedObj", true);
 
-      final List<EmbeddedDocument> embeddedList = new ArrayList<EmbeddedDocument>();
+      final List<EmbeddedDocument> embeddedList = new ArrayList<>();
       doc.set("embeddedList", embeddedList);
       doc.newEmbeddedDocument("ConversionTest", "embeddedList").set("embeddedList", true);
 

@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package performance;
 
@@ -19,12 +22,11 @@ import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.MutableDocument;
-import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Schema;
 
-import java.util.UUID;
+import java.util.*;
 
 public class PerformanceComplexIndexTest {
   private static final int    TOT       = 10_000_000;
@@ -73,12 +75,9 @@ public class PerformanceComplexIndexTest {
       database.async().setTransactionUseWAL(true);
       database.async().setTransactionSync(WALFile.FLUSH_TYPE.NO);
 
-      database.async().onError(new ErrorCallback() {
-        @Override
-        public void call(Throwable exception) {
-          System.out.println("ERROR: " + exception);
-          exception.printStackTrace();
-        }
+      database.async().onError(exception -> {
+        System.out.println("ERROR: " + exception);
+        exception.printStackTrace();
       });
 
       long row = 0;

@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.graphql.schema;
 
@@ -41,7 +44,7 @@ import java.util.Optional;
  * @author Luca Garulli (l.garulli@arcadedata.com)
  */
 public class GraphQLResultSet implements ResultSet {
-  private       GraphQLSchema        schema;
+  private final GraphQLSchema        schema;
   private final ResultSet            resultSet;
   private final List<Selection>      projections;
   private final ObjectTypeDefinition returnType;
@@ -137,7 +140,7 @@ public class GraphQLResultSet implements ResultSet {
                 final Vertex vertex = current.getElement().get().asVertex();
                 final Iterable<Vertex> connected = type != null ? vertex.getVertices(direction, type) : vertex.getVertices(direction);
                 projectionValue = connected;
-              } else if (current.getIdentity() != null) {
+              } else if (current.getIdentity().isPresent()) {
                 final Vertex vertex = current.getIdentity().get().asVertex();
                 final Iterable<Vertex> connected = type != null ? vertex.getVertices(direction, type) : vertex.getVertices(direction);
                 projectionValue = connected;

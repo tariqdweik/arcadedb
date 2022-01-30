@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.mongo;
 
@@ -119,8 +122,7 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
         final Document doc = super.next().getProperty("value");
 
         final Map<String, Object> values = new HashMap<>(doc.size());
-        for (Map.Entry<String, Object> entry : doc.entrySet())
-          values.put(entry.getKey(), entry.getValue());
+          values.putAll(doc);
 
         return new ResultInternal(values);
       }
@@ -366,12 +368,8 @@ public class MongoDBDatabaseWrapper implements MongoDatabase {
       // EMBEDDED CALL WITHOUT THE SERVER
       return;
 
-    List<Document> results = this.lastResults.get(channel);
-    if (results == null) {
-      results = new ArrayList<>(10);
-      this.lastResults.put(channel, results);
-    }
-    results.add(null);
+      List<Document> results = this.lastResults.computeIfAbsent(channel, k -> new ArrayList<>(10));
+      results.add(null);
   }
 
   private synchronized void putLastResult(final Channel channel, final Document result) {

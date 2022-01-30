@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.security;
 
@@ -32,7 +35,7 @@ public class ServerSecurityUser implements SecurityUser {
   private final String                                                name;
   private       Set<String>                                           databasesNames;
   private       String                                                password;
-  private       ConcurrentHashMap<String, ServerSecurityDatabaseUser> databaseCache = new ConcurrentHashMap();
+  private final ConcurrentHashMap<String, ServerSecurityDatabaseUser> databaseCache = new ConcurrentHashMap();
 
   public ServerSecurityUser(final ArcadeDBServer server, final JSONObject userConfiguration) {
     this.server = server;
@@ -58,8 +61,7 @@ public class ServerSecurityUser implements SecurityUser {
     final Set<Object> groupSet;
     if (userDatabases.has(databaseName)) {
       groupSet = new HashSet(userDatabases.getJSONArray(databaseName).toList());
-      for (String group : groups)
-        groupSet.add(group);
+        Collections.addAll(groupSet, groups);
     } else {
       groupSet = new HashSet(Arrays.asList(groups));
       newDatabaseName.add(databaseName);

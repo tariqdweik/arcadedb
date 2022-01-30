@@ -12,12 +12,16 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.database;
 
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.Profiler;
+import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.database.async.DatabaseAsyncExecutorImpl;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.database.async.OkCallback;
@@ -124,8 +128,8 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   private final        File                                      configurationFile;
   private              DatabaseInternal                          wrappedDatabaseInstance              = this;
   private              int                                       edgeListSize                         = EDGE_LIST_INITIAL_CHUNK_SIZE;
-  private              SecurityManager                           security;
-  private              Map<String, Object>                       wrappers                             = new HashMap<>();
+  private final        SecurityManager                           security;
+  private final        Map<String, Object>                       wrappers                             = new HashMap<>();
   private              File                                      lockFile;
   private              RandomAccessFile                          lockFileIO;
   private              FileChannel                               lockFileIOChannel;
@@ -268,7 +272,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
     }
   }
 
-  public DatabaseAsyncExecutorImpl async() {
+  public DatabaseAsyncExecutor async() {
     if (async == null) {
       asyncLock.lock();
       try {
@@ -890,6 +894,14 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
 
   @Override
   public void deleteRecord(final Record record) {
+    executeInReadLock(() -> {
+      deleteRecordNoLock(record);
+      return null;
+    });
+  }
+
+  @Override
+  public void deleteRecordNoLock(final Record record) {
     if (record.getIdentity() == null)
       throw new IllegalArgumentException("Cannot delete a non persistent record");
 
@@ -903,40 +915,37 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
       if (!((RecordEventsRegistry) ((Document) record).getType().getEvents()).onBeforeDelete(record))
         return;
 
-    executeInReadLock(() -> {
-      boolean success = false;
-      final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
+    boolean success = false;
+    final boolean implicitTransaction = checkTransactionIsActive(autoTransaction);
 
-      try {
-        final Bucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
+    try {
+      final Bucket bucket = schema.getBucketById(record.getIdentity().getBucketId());
 
-        if (record instanceof Document)
-          indexer.deleteDocument((Document) record);
+      if (record instanceof Document)
+        indexer.deleteDocument((Document) record);
 
-        if (record instanceof Edge) {
-          graphEngine.deleteEdge((Edge) record);
-        } else if (record instanceof Vertex) {
-          graphEngine.deleteVertex((VertexInternal) record);
-        } else
-          bucket.deleteRecord(record.getIdentity());
+      if (record instanceof Edge) {
+        graphEngine.deleteEdge((Edge) record);
+      } else if (record instanceof Vertex) {
+        graphEngine.deleteVertex((VertexInternal) record);
+      } else
+        bucket.deleteRecord(record.getIdentity());
 
-        success = true;
+      success = true;
 
-        // INVOKE EVENT CALLBACKS
-        events.onAfterDelete(record);
-        if (record instanceof Document)
-          ((RecordEventsRegistry) ((Document) record).getType().getEvents()).onAfterDelete(record);
+      // INVOKE EVENT CALLBACKS
+      events.onAfterDelete(record);
+      if (record instanceof Document)
+        ((RecordEventsRegistry) ((Document) record).getType().getEvents()).onAfterDelete(record);
 
-      } finally {
-        if (implicitTransaction) {
-          if (success)
-            wrappedDatabaseInstance.commit();
-          else
-            wrappedDatabaseInstance.rollback();
-        }
+    } finally {
+      if (implicitTransaction) {
+        if (success)
+          wrappedDatabaseInstance.commit();
+        else
+          wrappedDatabaseInstance.rollback();
       }
-      return null;
-    });
+    }
   }
 
   @Override
@@ -1276,7 +1285,7 @@ public class EmbeddedDatabase extends RWLockContext implements DatabaseInternal 
   public boolean equals(final Object o) {
     if (this == o)
       return true;
-    if (o == null || !(o instanceof Database))
+    if (!(o instanceof Database))
       return false;
 
     final Database other = (Database) o;

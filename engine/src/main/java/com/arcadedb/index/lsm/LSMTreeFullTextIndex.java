@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.index.lsm;
 
@@ -129,13 +132,10 @@ public class LSMTreeFullTextIndex implements Index, IndexInternal {
       list.add(new IndexCursorEntry(keys, entry.getKey(), entry.getValue().get()));
 
     if (list.size() > 1)
-      Collections.sort(list, new Comparator<IndexCursorEntry>() {
-        @Override
-        public int compare(final IndexCursorEntry o1, final IndexCursorEntry o2) {
+      list.sort((o1, o2) -> {
           if (o1.score == o2.score)
-            return 0;
+              return 0;
           return o1.score < o2.score ? -1 : 1;
-        }
       });
 
     return new TempIndexCursor(list);

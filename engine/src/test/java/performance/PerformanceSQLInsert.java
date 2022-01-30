@@ -12,15 +12,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package performance;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.async.AbstractAsyncResultsetCallback;
+import com.arcadedb.database.async.AsyncResultsetCallback;
 import com.arcadedb.query.sql.executor.ResultSet;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.*;
 
 public class PerformanceSQLInsert {
   private static final String TYPE_NAME = "Person";
@@ -50,7 +53,7 @@ public class PerformanceSQLInsert {
       final long begin = System.currentTimeMillis();
 
       for (int i = 0; i < MAX_LOOPS; ++i) {
-        database.async().command("SQL", "insert into " + TYPE_NAME + " set id = " + i + ", name = 'Luca'", new AbstractAsyncResultsetCallback() {
+        database.async().command("SQL", "insert into " + TYPE_NAME + " set id = " + i + ", name = 'Luca'", new AsyncResultsetCallback() {
           @Override
           public void onStart(ResultSet resultset) {
             oks.incrementAndGet();

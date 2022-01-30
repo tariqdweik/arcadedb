@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.database.async;
 
@@ -150,6 +153,15 @@ public interface DatabaseAsyncExecutor {
   void createRecord(MutableDocument record, NewRecordCallback newRecordCallback);
 
   /**
+   * Schedules the request to create a record. If the record is created successfully, the callback @{@link NewRecordCallback} is executed.
+   *
+   * @param record            Record to create
+   * @param newRecordCallback Callback invoked after the record has been created
+   * @param errorCallback     Callback invoked in case of error
+   */
+  void createRecord(MutableDocument record, NewRecordCallback newRecordCallback, final ErrorCallback errorCallback);
+
+  /**
    * Schedules the request to create a record in a specific bucket. The bucket must be one defined in the schema to store the records of the current type.
    * If the record is created successfully, the callback @{@link NewRecordCallback} is executed.
    *
@@ -159,12 +171,48 @@ public interface DatabaseAsyncExecutor {
   void createRecord(Record record, String bucketName, NewRecordCallback newRecordCallback);
 
   /**
+   * Schedules the request to create a record in a specific bucket. The bucket must be one defined in the schema to store the records of the current type.
+   * If the record is created successfully, the callback @{@link NewRecordCallback} is executed.
+   *
+   * @param record            Record to create
+   * @param newRecordCallback Callback invoked after the record has been created
+   * @param errorCallback     Callback invoked in case of error
+   */
+  void createRecord(Record record, String bucketName, NewRecordCallback newRecordCallback, final ErrorCallback errorCallback);
+
+  /**
    * Schedules the request to update a record. If the record is updated successfully, the callback @{@link UpdatedRecordCallback} is executed.
    *
    * @param record               Record to update
-   * @param updateRecordCallback Callback invoked after the record has been created
+   * @param updateRecordCallback Callback invoked after the record has been updated
    */
   void updateRecord(MutableDocument record, UpdatedRecordCallback updateRecordCallback);
+
+  /**
+   * Schedules the request to update a record. If the record is updated successfully, the callback @{@link UpdatedRecordCallback} is executed.
+   *
+   * @param record               Record to update
+   * @param updateRecordCallback Callback invoked after the record has been updated
+   * @param errorCallback        Callback invoked in case of error
+   */
+  void updateRecord(MutableDocument record, UpdatedRecordCallback updateRecordCallback, final ErrorCallback errorCallback);
+
+  /**
+   * Schedules the request to delete a record. If the record is deleted successfully, the callback @{@link DeletedRecordCallback} is executed.
+   *
+   * @param record               Record to delete
+   * @param deleteRecordCallback Callback invoked after the record has been deleted
+   */
+  void deleteRecord(Record record, DeletedRecordCallback deleteRecordCallback);
+
+  /**
+   * Schedules the request to delete a record. If the record is deleted successfully, the callback @{@link DeletedRecordCallback} is executed.
+   *
+   * @param record               Record to delete
+   * @param deleteRecordCallback Callback invoked after the record has been deleted
+   * @param errorCallback        Callback invoked in case of error
+   */
+  void deleteRecord(Record record, DeletedRecordCallback deleteRecordCallback, final ErrorCallback errorCallback);
 
   /**
    * Schedules the creation of an edge between two vertices. If the edge is created successfully, the callback @{@link NewEdgeCallback} is executed.

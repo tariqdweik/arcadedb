@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.integration.importer.graph;
 
@@ -113,16 +116,13 @@ public class GraphImporter {
       sourceVertex = database.newVertex(vertexTypeName);
       sourceVertex.set(vertexProperties);
 
-      database.async().createRecord(sourceVertex, new NewRecordCallback() {
-        @Override
-        public void call(final Record newDocument) {
-          // PRE-CREATE OUT/IN CHUNKS TO SPEEDUP EDGE CREATION
-          final DatabaseInternal db = database;
-          db.getGraphEngine().createOutEdgeChunk(sourceVertex);
-          db.getGraphEngine().createInEdgeChunk(sourceVertex);
+      database.async().createRecord(sourceVertex, newDocument -> {
+        // PRE-CREATE OUT/IN CHUNKS TO SPEEDUP EDGE CREATION
+        final DatabaseInternal db = database;
+        db.getGraphEngine().createOutEdgeChunk(sourceVertex);
+        db.getGraphEngine().createInEdgeChunk(sourceVertex);
 
-          verticesIndex.put(transformedVertexId, newDocument.getIdentity());
-        }
+        verticesIndex.put(transformedVertexId, newDocument.getIdentity());
       });
     }
   }

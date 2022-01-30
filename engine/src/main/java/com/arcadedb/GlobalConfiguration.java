@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb;
 
@@ -115,12 +118,7 @@ public enum GlobalConfiguration {
       }
       return value;
     }
-  }, new Callable<>() {
-    @Override
-    public Object call(final Object value) {
-      return Runtime.getRuntime().maxMemory() / 4 / 1024 / 1024;
-    }
-  }),
+  }, value -> Runtime.getRuntime().maxMemory() / 4 / 1024 / 1024),
 
   INITIAL_PAGE_CACHE_SIZE("arcadedb.initialPageCacheSize", "Initial number of entries for page cache", Integer.class, 65535),
 

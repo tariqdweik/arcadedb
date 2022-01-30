@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.security;
 
@@ -151,12 +154,8 @@ public class ServerProfilingIT {
       expectedSecurityException(() -> database.newVertex("Vertex1").save());
       database.newDocument("Document1").save();
       database.iterateType("Document1", true);
-      database.transaction(() -> {
-        database.iterateType("Document1", true).next().asDocument().modify().set("modified", true).save();
-      });
-      database.transaction(() -> {
-        database.iterateType("Document1", true).next().asDocument().delete();
-      });
+      database.transaction(() -> database.iterateType("Document1", true).next().asDocument().modify().set("modified", true).save());
+      database.transaction(() -> database.iterateType("Document1", true).next().asDocument().delete());
 
       setCurrentUser("root", database);
       dropSchema(database);
@@ -266,9 +265,7 @@ public class ServerProfilingIT {
       expectedSecurityException(() -> database.iterateType("Document1", true));
       expectedSecurityException(() -> database.lookupByRID(validRID, true));
 
-      database.transaction(() -> {
-        v.modify().set("justModified", true).save();
-      });
+      database.transaction(() -> v.modify().set("justModified", true).save());
 
       // SWITCH TO ROOT TO DROP THE SCHEMA
       setCurrentUser("root", database);
@@ -307,9 +304,7 @@ public class ServerProfilingIT {
       expectedSecurityException(() -> database.iterateType("Document1", true));
       expectedSecurityException(() -> database.lookupByRID(doc.getIdentity(), true));
 
-      database.transaction(() -> {
-        database.deleteRecord(doc);
-      });
+      database.transaction(() -> database.deleteRecord(doc));
 
       // SWITCH TO ROOT TO DROP THE SCHEMA
       setCurrentUser("root", database);

@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb;
 
@@ -46,23 +49,19 @@ public class TransactionTypeTest extends TestHelper {
 
     database.begin();
 
-    database.scanType(TYPE_NAME, true, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        Assertions.assertNotNull(record);
+    database.scanType(TYPE_NAME, true, record -> {
+      Assertions.assertNotNull(record);
 
-        Set<String> prop = new HashSet<String>();
-        for (String p : record.getPropertyNames())
-          prop.add(p);
+      Set<String> prop = new HashSet<String>();
+        prop.addAll(record.getPropertyNames());
 
-        Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
-        Assertions.assertTrue(prop.contains("id"));
-        Assertions.assertTrue(prop.contains("name"));
-        Assertions.assertTrue(prop.contains("surname"));
+      Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
+      Assertions.assertTrue(prop.contains("id"));
+      Assertions.assertTrue(prop.contains("name"));
+      Assertions.assertTrue(prop.contains("surname"));
 
-        total.incrementAndGet();
-        return true;
-      }
+      total.incrementAndGet();
+      return true;
     });
 
     Assertions.assertEquals(TOT, total.get());
@@ -76,25 +75,21 @@ public class TransactionTypeTest extends TestHelper {
 
     database.begin();
 
-    database.scanType(TYPE_NAME, true, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        final Document record2 = (Document) database.lookupByRID(record.getIdentity(), false);
-        Assertions.assertNotNull(record2);
-        Assertions.assertEquals(record, record2);
+    database.scanType(TYPE_NAME, true, record -> {
+      final Document record2 = (Document) database.lookupByRID(record.getIdentity(), false);
+      Assertions.assertNotNull(record2);
+      Assertions.assertEquals(record, record2);
 
-        Set<String> prop = new HashSet<String>();
-        for (String p : record2.getPropertyNames())
-          prop.add(p);
+      Set<String> prop = new HashSet<String>();
+        prop.addAll(record2.getPropertyNames());
 
-        Assertions.assertEquals(record2.getPropertyNames().size(), 3);
-        Assertions.assertTrue(prop.contains("id"));
-        Assertions.assertTrue(prop.contains("name"));
-        Assertions.assertTrue(prop.contains("surname"));
+      Assertions.assertEquals(record2.getPropertyNames().size(), 3);
+      Assertions.assertTrue(prop.contains("id"));
+      Assertions.assertTrue(prop.contains("name"));
+      Assertions.assertTrue(prop.contains("surname"));
 
-        total.incrementAndGet();
-        return true;
-      }
+      total.incrementAndGet();
+      return true;
     });
 
     database.commit();
@@ -118,8 +113,7 @@ public class TransactionTypeTest extends TestHelper {
       Assertions.assertEquals(i, record2.get("id"));
 
       Set<String> prop = new HashSet<String>();
-      for (String p : record2.getPropertyNames())
-        prop.add(p);
+        prop.addAll(record2.getPropertyNames());
 
       Assertions.assertEquals(record2.getPropertyNames().size(), 3);
       Assertions.assertTrue(prop.contains("id"));
@@ -140,13 +134,10 @@ public class TransactionTypeTest extends TestHelper {
 
     database.begin();
 
-    database.scanType(TYPE_NAME, true, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        database.deleteRecord(record);
-        total.incrementAndGet();
-        return true;
-      }
+    database.scanType(TYPE_NAME, true, record -> {
+      database.deleteRecord(record);
+      total.incrementAndGet();
+      return true;
     });
 
     database.commit();
@@ -166,12 +157,7 @@ public class TransactionTypeTest extends TestHelper {
 
     beginTest();
 
-    database.transaction(new Database.TransactionScope() {
-      @Override
-      public void execute() {
-        Assertions.assertEquals(TOT, database.countType(TYPE_NAME, true));
-      }
-    });
+    database.transaction(() -> Assertions.assertEquals(TOT, database.countType(TYPE_NAME, true)));
   }
 
   @Test
@@ -182,13 +168,10 @@ public class TransactionTypeTest extends TestHelper {
 
     final long originalCount = database.countType(TYPE_NAME, true);
 
-    database.scanType(TYPE_NAME, true, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        database.deleteRecord(record);
-        total.incrementAndGet();
-        return false;
-      }
+    database.scanType(TYPE_NAME, true, record -> {
+      database.deleteRecord(record);
+      total.incrementAndGet();
+      return false;
     });
 
     database.commit();
@@ -201,12 +184,9 @@ public class TransactionTypeTest extends TestHelper {
 
     // COUNT WITH SCAN
     total.set(0);
-    database.scanType(TYPE_NAME, true, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        total.incrementAndGet();
-        return true;
-      }
+    database.scanType(TYPE_NAME, true, record -> {
+      total.incrementAndGet();
+      return true;
     });
     Assertions.assertEquals(originalCount - 1, total.get());
 
@@ -226,13 +206,10 @@ public class TransactionTypeTest extends TestHelper {
 
     final long originalCount = database.countType(TYPE_NAME, true);
 
-    database.scanType(TYPE_NAME, true, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        record.modify().set("additionalProperty", "Something just to create a placeholder").save();
-        total.incrementAndGet();
-        return false;
-      }
+    database.scanType(TYPE_NAME, true, record -> {
+      record.modify().set("additionalProperty", "Something just to create a placeholder").save();
+      total.incrementAndGet();
+      return false;
     });
 
     database.commit();
@@ -245,12 +222,9 @@ public class TransactionTypeTest extends TestHelper {
 
     // COUNT WITH SCAN
     total.set(0);
-    database.scanType(TYPE_NAME, true, new DocumentCallback() {
-      @Override
-      public boolean onRecord(final Document record) {
-        total.incrementAndGet();
-        return true;
-      }
+    database.scanType(TYPE_NAME, true, record -> {
+      total.incrementAndGet();
+      return true;
     });
     Assertions.assertEquals(originalCount, total.get());
 
@@ -270,12 +244,9 @@ public class TransactionTypeTest extends TestHelper {
 
       database.begin();
 
-      database.scanType(TYPE_NAME, true, new DocumentCallback() {
-        @Override
-        public boolean onRecord(final Document record) {
-          database.deleteRecord(record);
-          return true;
-        }
+      database.scanType(TYPE_NAME, true, record -> {
+        database.deleteRecord(record);
+        return true;
       });
 
       database.commit();
@@ -288,9 +259,7 @@ public class TransactionTypeTest extends TestHelper {
   public void testNestedTx() {
     database.transaction(() -> {
       database.newDocument(TYPE_NAME).set("id", -1, "tx", 1).save();
-      database.transaction(() -> {
-        database.newDocument(TYPE_NAME).set("id", -2, "tx", 2).save();
-      });
+      database.transaction(() -> database.newDocument(TYPE_NAME).set("id", -2, "tx", 2).save());
     });
 
     Assertions.assertEquals(0, database.query("sql", "select from " + TYPE_NAME + " where tx = 0").countEntries());
@@ -300,23 +269,20 @@ public class TransactionTypeTest extends TestHelper {
 
   @Override
   protected void beginTest() {
-    database.transaction(new Database.TransactionScope() {
-      @Override
-      public void execute() {
-        if (!database.getSchema().existsType(TYPE_NAME)) {
-          final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
-          type.createProperty("id", Integer.class);
-          database.getSchema().createTypeIndex(Schema.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, "id");
-        }
+    database.transaction(() -> {
+      if (!database.getSchema().existsType(TYPE_NAME)) {
+        final DocumentType type = database.getSchema().createDocumentType(TYPE_NAME, 3);
+        type.createProperty("id", Integer.class);
+        database.getSchema().createTypeIndex(Schema.INDEX_TYPE.LSM_TREE, true, TYPE_NAME, "id");
+      }
 
-        for (int i = 0; i < TOT; ++i) {
-          final MutableDocument v = database.newDocument(TYPE_NAME);
-          v.set("id", i);
-          v.set("name", "Jay");
-          v.set("surname", "Miner");
+      for (int i = 0; i < TOT; ++i) {
+        final MutableDocument v = database.newDocument(TYPE_NAME);
+        v.set("id", i);
+        v.set("name", "Jay");
+        v.set("surname", "Miner");
 
-          v.save();
-        }
+        v.save();
       }
     });
   }

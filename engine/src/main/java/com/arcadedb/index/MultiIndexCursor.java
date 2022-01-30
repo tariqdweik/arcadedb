@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.index;
 
@@ -193,7 +196,7 @@ public class MultiIndexCursor implements IndexCursor {
   }
 
   private void initCursors() {
-    cursorsNextValues = new ArrayList<Identifiable>(cursors.size());
+    cursorsNextValues = new ArrayList<>(cursors.size());
     for (int i = 0; i < cursors.size(); ++i) {
       cursorsNextValues.add(null);
 

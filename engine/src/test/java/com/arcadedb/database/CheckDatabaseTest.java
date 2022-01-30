@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.database;
 
@@ -81,9 +84,7 @@ public class CheckDatabaseTest extends TestHelper {
 
   @Test
   public void checkRegularDeleteEdges() {
-    database.transaction(() -> {
-      database.command("sql", "delete from Knows");
-    });
+    database.transaction(() -> database.command("sql", "delete from Knows"));
 
     ResultSet result = database.command("sql", "check database");
     Assertions.assertTrue(result.hasNext());

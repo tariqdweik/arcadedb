@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.http.handler;
 
@@ -52,9 +55,7 @@ public abstract class AbstractHandler implements HttpHandler {
     //e.startBlocking();
     e.getRequestReceiver().receiveFullBytes(
         // OK
-        (exchange, data) -> {
-          result.append(new String(data, DatabaseFactory.getDefaultCharset()));
-        },
+        (exchange, data) -> result.append(new String(data, DatabaseFactory.getDefaultCharset())),
         // ERROR
         (exchange, err) -> {
           LogManager.instance().log(this, Level.SEVERE, "getFullBytes completed with an error: %s", err, err.getMessage());

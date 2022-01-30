@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server;
 
@@ -61,9 +64,7 @@ public class ServerRestoreDatabaseIT extends BaseGraphServerTest {
     Database database = new DatabaseFactory("./target/databases/" + getDatabaseName()).create();
 
     database.getSchema().createDocumentType("testDoc");
-    database.transaction(() -> {
-      database.newDocument("testDoc").set("prop", "value").save();
-    });
+    database.transaction(() -> database.newDocument("testDoc").set("prop", "value").save());
 
     final ResultSet result = database.command("sql", "backup database file://" + backupFile.getName());
     Assertions.assertTrue(result.hasNext());

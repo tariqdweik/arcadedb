@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.utility;
 
@@ -34,7 +37,7 @@ public class MultiIterator<T> implements Iterator<T>, Iterable<T> {
   private long    timeout   = -1L;
   private boolean embedded  = false;
   private int     skipped   = 0;
-  private long    beginTime = System.currentTimeMillis();
+  private final long    beginTime = System.currentTimeMillis();
 
   public MultiIterator() {
     sources = new ArrayList<>();
@@ -209,13 +212,13 @@ public class MultiIterator<T> implements Iterator<T>, Iterable<T> {
             final int arraySize = Array.getLength(next);
             if (arraySize > 0) {
               if (arraySize == 1)
-                partialIterator = new IterableObject<T>((T) Array.get(next, 0));
+                partialIterator = new IterableObject<>((T) Array.get(next, 0));
               else
                 partialIterator = new IterableObjectArray<T>(next).iterator();
               return true;
             }
           } else {
-            partialIterator = new IterableObject<T>((T) next);
+            partialIterator = new IterableObject<>((T) next);
             return true;
           }
         }

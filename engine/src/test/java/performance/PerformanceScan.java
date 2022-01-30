@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package performance;
 
@@ -38,18 +41,15 @@ public class PerformanceScan {
 
         final AtomicInteger row = new AtomicInteger();
 
-        database.async().scanType(USERTYPE_NAME, true, new DocumentCallback() {
-          @Override
-          public boolean onRecord(final Document record) {
-            final ImmutableDocument document = ((ImmutableDocument) record);
+        database.async().scanType(USERTYPE_NAME, true, record -> {
+          final ImmutableDocument document = ((ImmutableDocument) record);
 
-            document.get("id");
+          document.get("id");
 
-            if (row.incrementAndGet() % 10000000 == 0)
-              System.out.println("- Scanned " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms");
+          if (row.incrementAndGet() % 10000000 == 0)
+            System.out.println("- Scanned " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms");
 
-            return true;
-          }
+          return true;
         });
 
         System.out.println("Found " + row.get() + " elements in " + (System.currentTimeMillis() - begin) + "ms");

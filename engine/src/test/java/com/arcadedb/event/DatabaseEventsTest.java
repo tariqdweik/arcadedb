@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.event;
 
@@ -68,9 +71,7 @@ public class DatabaseEventsTest extends TestHelper {
   @Test
   public void testAfterCreate() {
     final AtomicInteger counter = new AtomicInteger();
-    final AfterRecordCreateListener listener = record -> {
-      counter.incrementAndGet();
-    };
+    final AfterRecordCreateListener listener = record -> counter.incrementAndGet();
 
     database.getEvents().registerListener(listener);
     try {
@@ -138,9 +139,7 @@ public class DatabaseEventsTest extends TestHelper {
   @Test
   public void testAfterUpdate() {
     final AtomicInteger counter = new AtomicInteger();
-    final AfterRecordUpdateListener listener = record -> {
-      counter.incrementAndGet();
-    };
+    final AfterRecordUpdateListener listener = record -> counter.incrementAndGet();
 
     database.getEvents().registerListener(listener);
     try {
@@ -209,9 +208,7 @@ public class DatabaseEventsTest extends TestHelper {
   @Test
   public void testAfterDelete() {
     final AtomicInteger counter = new AtomicInteger();
-    final AfterRecordDeleteListener listener = record -> {
-      counter.incrementAndGet();
-    };
+    final AfterRecordDeleteListener listener = record -> counter.incrementAndGet();
 
     database.getEvents().registerListener(listener);
     try {

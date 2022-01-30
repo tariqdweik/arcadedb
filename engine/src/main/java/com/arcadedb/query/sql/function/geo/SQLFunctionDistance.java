@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.function.geo;
 
@@ -44,7 +47,7 @@ public class SQLFunctionDistance extends SQLFunctionAbstract {
       if (iParams[i] == null)
         return null;
 
-      values[i] = ((Double) Type.convert(iContext.getDatabase(), iParams[i], Double.class)).doubleValue();
+      values[i] = (Double) Type.convert(iContext.getDatabase(), iParams[i], Double.class);
     }
 
     final double deltaLat = Math.toRadians(values[2] - values[0]);

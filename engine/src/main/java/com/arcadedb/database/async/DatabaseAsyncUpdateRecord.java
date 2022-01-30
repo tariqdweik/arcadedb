@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.database.async;
 
@@ -21,15 +24,17 @@ import com.arcadedb.database.Record;
 import com.arcadedb.database.RecordEventsRegistry;
 import com.arcadedb.log.LogManager;
 
-import java.util.logging.Level;
+import java.util.logging.*;
 
 public class DatabaseAsyncUpdateRecord implements DatabaseAsyncTask {
   public final Record                record;
-  public final UpdatedRecordCallback callback;
+  public final UpdatedRecordCallback onOkCallback;
+  public final ErrorCallback         onErrorCallback;
 
-  public DatabaseAsyncUpdateRecord(final Record record, final UpdatedRecordCallback callback) {
+  public DatabaseAsyncUpdateRecord(final Record record, final UpdatedRecordCallback callback, final ErrorCallback onErrorCallback) {
     this.record = record;
-    this.callback = callback;
+    this.onOkCallback = callback;
+    this.onErrorCallback = onErrorCallback;
   }
 
   @Override
@@ -49,13 +54,16 @@ public class DatabaseAsyncUpdateRecord implements DatabaseAsyncTask {
       if (record instanceof Document)
         ((RecordEventsRegistry) ((Document) record).getType().getEvents()).onAfterUpdate(record);
 
-      if (callback != null)
-        callback.call(record);
+      if (onOkCallback != null)
+        onOkCallback.call(record);
 
     } catch (Exception e) {
-      LogManager.instance().log(this, Level.SEVERE, "Error on executing async update operation (threadId=%d)", e, Thread.currentThread().getId());
+      LogManager.instance().log(this, Level.SEVERE, "Error on executing async update record operation (threadId=%d)", e, Thread.currentThread().getId());
 
       async.onError(e);
+
+      if (onErrorCallback != null)
+        onErrorCallback.call(e);
     }
   }
 

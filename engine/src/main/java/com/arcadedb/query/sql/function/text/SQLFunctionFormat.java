@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.function.text;
 
@@ -35,8 +38,7 @@ public class SQLFunctionFormat extends SQLFunctionAbstract {
       final Object[] params, CommandContext iContext) {
     final Object[] args = new Object[params.length - 1];
 
-    for (int i = 0; i < args.length; ++i)
-      args[i] = params[i + 1];
+      System.arraycopy(params, 1, args, 0, args.length);
 
     return String.format((String) params[0], args);
   }

@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.security;
 
@@ -113,7 +116,7 @@ public class ServerSecurity implements ServerPlugin, com.arcadedb.security.Secur
         }
       } catch (JSONException e) {
         groupRepository.saveInError(e);
-        for (JSONObject userJson : usersRepository.createDefault()) {
+        for (JSONObject userJson : SecurityUserFileRepository.createDefault()) {
           final ServerSecurityUser user = new ServerSecurityUser(server, userJson);
           users.put(user.getName(), user);
         }

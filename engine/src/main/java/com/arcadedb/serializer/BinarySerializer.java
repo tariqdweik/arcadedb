@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.serializer;
 
@@ -250,7 +253,7 @@ public class BinarySerializer {
     case BinaryTypes.TYPE_NULL:
       break;
     case BinaryTypes.TYPE_COMPRESSED_STRING:
-      content.putUnsignedNumber(((Integer) value).intValue());
+      content.putUnsignedNumber((Integer) value);
       break;
     case BinaryTypes.TYPE_BINARY:
       if (value instanceof byte[])

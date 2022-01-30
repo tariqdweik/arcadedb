@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.ha;
 
@@ -111,21 +114,15 @@ public class ReplicationServerLeaderDownNoTransactionsToForwardIT extends Replic
   @Override
   protected void onBeforeStarting(final ArcadeDBServer server) {
     if (server.getServerName().equals("ArcadeDB_2"))
-      server.registerTestEventListener(new TestCallback() {
-        @Override
-        public void onEvent(final TYPE type, final Object object, final ArcadeDBServer server) {
-          if (type == TYPE.REPLICA_MSG_RECEIVED) {
-            if (messages.incrementAndGet() > 10 && getServer(0).isStarted()) {
-              testLog("TEST: Stopping the Leader...");
+      server.registerTestEventListener((type, object, server1) -> {
+        if (type == TestCallback.TYPE.REPLICA_MSG_RECEIVED) {
+          if (messages.incrementAndGet() > 10 && getServer(0).isStarted()) {
+            testLog("TEST: Stopping the Leader...");
 
-              executeAsynchronously(new Callable() {
-                @Override
-                public Object call() {
-                  getServer(0).stop();
-                  return null;
-                }
-              });
-            }
+            executeAsynchronously(() -> {
+              getServer(0).stop();
+              return null;
+            });
           }
         }
       });

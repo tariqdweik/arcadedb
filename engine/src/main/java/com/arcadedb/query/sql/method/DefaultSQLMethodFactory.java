@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.method;
 
@@ -34,7 +37,7 @@ import java.util.Map;
  * @author Johann Sorel (Geomatys)
  */
 public class DefaultSQLMethodFactory implements SQLMethodFactory {
-  private final Map<String, Object> methods = new HashMap<String, Object>();
+  private final Map<String, Object> methods = new HashMap<>();
 
   public DefaultSQLMethodFactory() {
     register(SQLMethodAppend.NAME, new SQLMethodAppend());

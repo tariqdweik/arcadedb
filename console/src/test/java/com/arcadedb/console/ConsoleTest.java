@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.console;
 
@@ -64,12 +67,7 @@ public class ConsoleTest {
     Assertions.assertTrue(console.parse("create document type Person", false));
 
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new ConsoleOutput() {
-      @Override
-      public void onOutput(final String output) {
-        buffer.append(output);
-      }
-    });
+    console.setOutput(output -> buffer.append(output));
     Assertions.assertTrue(console.parse("info types", false));
     Assertions.assertTrue(buffer.toString().contains("Person"));
   }
@@ -81,12 +79,7 @@ public class ConsoleTest {
     Assertions.assertTrue(console.parse("insert into Person set name = 'Jay', lastname='Miner'", false));
 
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new ConsoleOutput() {
-      @Override
-      public void onOutput(final String output) {
-        buffer.append(output);
-      }
-    });
+    console.setOutput(output -> buffer.append(output));
     Assertions.assertTrue(console.parse("select from Person", false));
     Assertions.assertTrue(buffer.toString().contains("Jay"));
   }
@@ -100,12 +93,7 @@ public class ConsoleTest {
     Assertions.assertTrue(console.parse("rollback", false));
 
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new ConsoleOutput() {
-      @Override
-      public void onOutput(final String output) {
-        buffer.append(output);
-      }
-    });
+    console.setOutput(output -> buffer.append(output));
     Assertions.assertTrue(console.parse("select from Person", false));
     Assertions.assertFalse(buffer.toString().contains("Jay"));
   }
@@ -113,12 +101,7 @@ public class ConsoleTest {
   @Test
   public void testHelp() throws IOException {
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new ConsoleOutput() {
-      @Override
-      public void onOutput(final String output) {
-        buffer.append(output);
-      }
-    });
+    console.setOutput(output -> buffer.append(output));
     Assertions.assertTrue(console.parse("?", false));
     Assertions.assertTrue(buffer.toString().contains("quit"));
   }
@@ -147,12 +130,7 @@ public class ConsoleTest {
     Assertions.assertTrue(console.parse("create edge E from (select from V where name ='Jay') to (select from V where name ='Elon')", false));
 
     final StringBuilder buffer = new StringBuilder();
-    console.setOutput(new ConsoleOutput() {
-      @Override
-      public void onOutput(final String output) {
-        buffer.append(output);
-      }
-    });
+    console.setOutput(output -> buffer.append(output));
     Assertions.assertTrue(console.parse("select from D", false));
     Assertions.assertTrue(buffer.toString().contains("Jay"));
 

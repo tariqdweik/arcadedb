@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.security;
 
@@ -34,7 +37,7 @@ public class ServerSecurityDatabaseUser implements SecurityDatabaseUser {
   private       boolean[][] fileAccessMap     = null;
   private       long        resultSetLimit    = -1;
   private       long        readTimeout       = -1;
-  private       boolean[]   databaseAccessMap = new boolean[DATABASE_ACCESS.values().length];
+  private final boolean[]   databaseAccessMap = new boolean[DATABASE_ACCESS.values().length];
 
   public ServerSecurityDatabaseUser(final String databaseName, final String userName, final String[] groups) {
     this.databaseName = databaseName;

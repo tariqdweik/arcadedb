@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.schema;
 
@@ -250,7 +253,7 @@ public class EmbeddedSchema implements Schema {
       throw new SchemaException("Bucket with id '" + id + "' was not found");
 
     final PaginatedComponent p = files.get(id);
-    if (p == null || !(p instanceof Bucket))
+    if (!(p instanceof Bucket))
       throw new SchemaException("Bucket with id '" + id + "' was not found");
     return (Bucket) p;
   }
@@ -826,7 +829,7 @@ public class EmbeddedSchema implements Schema {
     if (buckets > 32)
       throw new IllegalArgumentException("Cannot create " + buckets + " buckets: maximum is 32");
 
-    if (typeName.indexOf(",") > -1)
+    if (typeName.contains(","))
       throw new IllegalArgumentException("Type name '" + typeName + "' contains non valid characters");
 
     if (types.containsKey(typeName))
@@ -921,7 +924,7 @@ public class EmbeddedSchema implements Schema {
     if (buckets > 32)
       throw new IllegalArgumentException("Cannot create " + buckets + " buckets: maximum is 32");
 
-    if (typeName.indexOf(",") > -1)
+    if (typeName.contains(","))
       throw new IllegalArgumentException("Vertex type name '" + typeName + "' contains non valid characters");
 
     if (types.containsKey(typeName))
@@ -1013,7 +1016,7 @@ public class EmbeddedSchema implements Schema {
     if (buckets > 32)
       throw new IllegalArgumentException("Cannot create " + buckets + " buckets: maximum is 32");
 
-    if (typeName.indexOf(",") > -1)
+    if (typeName.contains(","))
       throw new IllegalArgumentException("Edge type name '" + typeName + "' contains non valid characters");
 
     if (types.containsKey(typeName))

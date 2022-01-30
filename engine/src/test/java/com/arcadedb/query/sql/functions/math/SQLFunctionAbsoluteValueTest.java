@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.functions.math;
 
@@ -139,18 +142,18 @@ public class SQLFunctionAbsoluteValueTest {
 
     @Test
     public void testPositiveBigDecimal() {
-        function.execute(null, null, null, new Object[]{new BigDecimal(10.5D)}, null);
+        function.execute(null, null, null, new Object[]{new BigDecimal("10.5")}, null);
         Object result = function.getResult();
         assertTrue(result instanceof BigDecimal);
-        assertEquals(result, new BigDecimal(10.5D));
+        assertEquals(result, new BigDecimal("10.5"));
     }
 
     @Test
     public void testNegativeBigDecimal() {
-        function.execute(null, null, null, new Object[]{new BigDecimal(-10.5D)}, null);
+        function.execute(null, null, null, new Object[]{BigDecimal.valueOf(-10.5D)}, null);
         Object result = function.getResult();
         assertTrue(result instanceof BigDecimal);
-        assertEquals(result, new BigDecimal(10.5D));
+        assertEquals(result, new BigDecimal("10.5"));
     }
 
     @Test

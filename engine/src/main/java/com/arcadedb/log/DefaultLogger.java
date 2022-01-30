@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.log;
 
@@ -32,7 +35,7 @@ public class DefaultLogger implements Logger {
   private static final String                                          DEFAULT_LOG                  = "com.arcadedb";
   private static final String                                          ENV_INSTALL_CUSTOM_FORMATTER = "arcadedb.installCustomFormatter";
   private static final DefaultLogger                                   instance                     = new DefaultLogger();
-  private final        ConcurrentMap<String, java.util.logging.Logger> loggersCache                 = new ConcurrentHashMap<String, java.util.logging.Logger>();
+  private final        ConcurrentMap<String, java.util.logging.Logger> loggersCache                 = new ConcurrentHashMap<>();
 
   public DefaultLogger() {
     installCustomFormatter();

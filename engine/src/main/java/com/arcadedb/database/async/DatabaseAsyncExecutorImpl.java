@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.database.async;
 
@@ -358,6 +361,11 @@ public class DatabaseAsyncExecutorImpl implements DatabaseAsyncExecutor {
 
   @Override
   public void createRecord(final MutableDocument record, final NewRecordCallback newRecordCallback) {
+    createRecord(record, newRecordCallback, null);
+  }
+
+  @Override
+  public void createRecord(final MutableDocument record, final NewRecordCallback newRecordCallback, final ErrorCallback errorCallback) {
     final DocumentType type = record.getType();
 
     if (record.getIdentity() == null) {
@@ -365,7 +373,7 @@ public class DatabaseAsyncExecutorImpl implements DatabaseAsyncExecutor {
       final Bucket bucket = type.getBucketIdByRecord(record, false);
       final int slot = getSlot(bucket.getId());
 
-      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket, newRecordCallback), true, backPressurePercentage);
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket, newRecordCallback, errorCallback), true, backPressurePercentage);
 
     } else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
@@ -373,28 +381,51 @@ public class DatabaseAsyncExecutorImpl implements DatabaseAsyncExecutor {
 
   @Override
   public void createRecord(final Record record, final String bucketName, final NewRecordCallback newRecordCallback) {
+    createRecord(record, bucketName, newRecordCallback, null);
+  }
+
+  @Override
+  public void createRecord(final Record record, final String bucketName, final NewRecordCallback newRecordCallback, final ErrorCallback errorCallback) {
     final Bucket bucket = database.getSchema().getBucketByName(bucketName);
     final int slot = getSlot(bucket.getId());
 
     if (record.getIdentity() == null)
       // NEW
-      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket, newRecordCallback), true, backPressurePercentage);
+      scheduleTask(slot, new DatabaseAsyncCreateRecord(record, bucket, newRecordCallback, errorCallback), true, backPressurePercentage);
     else
       throw new IllegalArgumentException("Cannot create a new record because it is already persistent");
   }
 
   @Override
   public void updateRecord(final MutableDocument record, final UpdatedRecordCallback updateRecordCallback) {
+    updateRecord(record, updateRecordCallback, null);
+  }
+
+  @Override
+  public void updateRecord(final MutableDocument record, final UpdatedRecordCallback updateRecordCallback, final ErrorCallback errorCallback) {
     if (record.getIdentity() != null) {
       // UPDATE
-      final DocumentType type = record.getType();
-      final Bucket bucket = type.getBucketIdByRecord(record, false);
-      final int slot = getSlot(bucket.getId());
-
-      scheduleTask(slot, new DatabaseAsyncUpdateRecord(record, updateRecordCallback), true, backPressurePercentage);
+      final int slot = getSlot(record.getIdentity().getBucketId());
+      scheduleTask(slot, new DatabaseAsyncUpdateRecord(record, updateRecordCallback, errorCallback), true, backPressurePercentage);
 
     } else
       throw new IllegalArgumentException("Cannot updated a not persistent record");
+  }
+
+  @Override
+  public void deleteRecord(final Record record, final DeletedRecordCallback deleteRecordCallback) {
+    deleteRecord(record, deleteRecordCallback, null);
+  }
+
+  @Override
+  public void deleteRecord(final Record record, final DeletedRecordCallback deleteRecordCallback, final ErrorCallback errorCallback) {
+    if (record.getIdentity() != null) {
+      // DELETE
+      final int slot = getSlot(record.getIdentity().getBucketId());
+      scheduleTask(slot, new DatabaseAsyncDeleteRecord(record, deleteRecordCallback, errorCallback), true, backPressurePercentage);
+
+    } else
+      throw new IllegalArgumentException("Cannot delete a not persistent record");
   }
 
   @Override

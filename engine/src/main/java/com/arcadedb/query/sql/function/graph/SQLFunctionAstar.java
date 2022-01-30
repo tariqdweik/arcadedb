@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.function.graph;
 
@@ -49,12 +52,7 @@ public class SQLFunctionAstar extends SQLFunctionHeuristicPathFinderAbstract {
 
   protected Map<Vertex, Double>   gScore = new HashMap<Vertex, Double>();
   protected Map<Vertex, Double>   fScore = new HashMap<Vertex, Double>();
-  protected PriorityQueue<Vertex> open   = new PriorityQueue<Vertex>(1, new Comparator<Vertex>() {
-
-    public int compare(Vertex nodeA, Vertex nodeB) {
-      return Double.compare(fScore.get(nodeA), fScore.get(nodeB));
-    }
-  });
+  protected PriorityQueue<Vertex> open   = new PriorityQueue<Vertex>(1, (nodeA, nodeB) -> Double.compare(fScore.get(nodeA), fScore.get(nodeB)));
 
   public SQLFunctionAstar() {
     super(NAME, 3, 4);

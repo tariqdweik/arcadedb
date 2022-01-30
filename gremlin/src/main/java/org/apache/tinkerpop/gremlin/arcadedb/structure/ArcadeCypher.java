@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
@@ -36,7 +39,7 @@ import java.util.concurrent.atomic.*;
 public class ArcadeCypher extends ArcadeGremlin {
   private static final HashMap<String, CachedStatement> STATEMENT_CACHE       = new HashMap<>();
   private static final int                              CACHE_SIZE            = GlobalConfiguration.CYPHER_STATEMENT_CACHE.getValueAsInteger();
-  private static       AtomicInteger                    totalCachedStatements = new AtomicInteger(0);
+  private static final AtomicInteger                    totalCachedStatements = new AtomicInteger(0);
 
   private static class CachedStatement {
     public final String cypher;
@@ -125,10 +128,7 @@ public class ArcadeCypher extends ArcadeGremlin {
       final String mapKey = graph.getDatabase().getDatabasePath() + ":";
 
       // REMOVE ALL THE ENTRIES RELATIVE TO THE CLOSED DATABASE
-      for (Iterator<Map.Entry<String, CachedStatement>> it = STATEMENT_CACHE.entrySet().iterator(); it.hasNext(); ) {
-        if (it.next().getKey().startsWith(mapKey))
-          it.remove();
-      }
+        STATEMENT_CACHE.entrySet().removeIf(stringCachedStatementEntry -> stringCachedStatementEntry.getKey().startsWith(mapKey));
     }
   }
 }

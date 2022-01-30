@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb;
 
@@ -157,7 +160,7 @@ public class ContextConfiguration implements Serializable {
     final Object v = getValue(iConfig);
     if (v == null)
       return false;
-    return v instanceof Boolean ? ((Boolean) v).booleanValue() : Boolean.parseBoolean(v.toString());
+    return v instanceof Boolean ? (Boolean) v : Boolean.parseBoolean(v.toString());
   }
 
   public String getValueAsString(final String iName, final String iDefaultValue) {
@@ -176,21 +179,21 @@ public class ContextConfiguration implements Serializable {
     final Object v = getValue(iConfig);
     if (v == null)
       return 0;
-    return v instanceof Integer ? ((Integer) v).intValue() : Integer.parseInt(v.toString());
+    return v instanceof Integer ? (Integer) v : Integer.parseInt(v.toString());
   }
 
   public long getValueAsLong(final GlobalConfiguration iConfig) {
     final Object v = getValue(iConfig);
     if (v == null)
       return 0;
-    return v instanceof Long ? ((Long) v).longValue() : Long.parseLong(v.toString());
+    return v instanceof Long ? (Long) v : Long.parseLong(v.toString());
   }
 
   public float getValueAsFloat(final GlobalConfiguration iConfig) {
     final Object v = getValue(iConfig);
     if (v == null)
       return 0;
-    return v instanceof Float ? ((Float) v).floatValue() : Float.parseFloat(v.toString());
+    return v instanceof Float ? (Float) v : Float.parseFloat(v.toString());
   }
 
   public int getContextSize() {

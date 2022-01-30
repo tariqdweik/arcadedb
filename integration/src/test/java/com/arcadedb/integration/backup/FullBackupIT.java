@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.integration.backup;
 
@@ -43,9 +46,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FullBackupIT {
   private final static String DATABASE_PATH     = "target/databases/performance";
   private final static String FILE              = "target/arcadedb-backup.zip";
-  private              File   databaseDirectory = new File(DATABASE_PATH);
-  private              File   restoredDirectory = new File(DATABASE_PATH + "_restored");
-  final                File   file              = new File(FILE);
+  private final        File   databaseDirectory = new File(DATABASE_PATH);
+  private final        File   restoredDirectory = new File(DATABASE_PATH + "_restored");
+  private final        File   file              = new File(FILE);
 
   @Test
   public void testFullBackupCommandLineOK() throws IOException {
@@ -111,7 +114,7 @@ public class FullBackupIT {
       importedDatabase.transaction(() -> {
         type.createProperty("thread", Type.INTEGER);
         type.createProperty("id", Type.INTEGER);
-        type.createTypeIndex(Schema.INDEX_TYPE.LSM_TREE, false, new String[] { "thread", "id" });
+        type.createTypeIndex(Schema.INDEX_TYPE.LSM_TREE, false, "thread", "id");
         type.setBucketSelectionStrategy(new ThreadBucketSelectionStrategy() {
           @Override
           public int getBucketIdByRecord(Document record, boolean async) {

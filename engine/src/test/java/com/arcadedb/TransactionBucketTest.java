@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb;
 
@@ -50,8 +53,7 @@ public class TransactionBucketTest extends TestHelper {
       Assertions.assertNotNull(record);
 
       Set<String> prop = new HashSet<String>();
-      for (String p : ((Document) record).getPropertyNames())
-        prop.add(p);
+        prop.addAll(((Document) record).getPropertyNames());
 
       Assertions.assertEquals(3, ((Document) record).getPropertyNames().size(), 9);
       Assertions.assertTrue(prop.contains("id"));
@@ -80,8 +82,7 @@ public class TransactionBucketTest extends TestHelper {
       Assertions.assertNotNull(record);
 
       Set<String> prop = new HashSet<String>();
-      for (String p : record.getPropertyNames())
-        prop.add(p);
+        prop.addAll(record.getPropertyNames());
 
       Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
       Assertions.assertTrue(prop.contains("id"));
@@ -109,8 +110,7 @@ public class TransactionBucketTest extends TestHelper {
       Assertions.assertEquals(record, record2);
 
       Set<String> prop = new HashSet<String>();
-      for (String p : record2.getPropertyNames())
-        prop.add(p);
+        prop.addAll(record2.getPropertyNames());
 
       Assertions.assertEquals(record2.getPropertyNames().size(), 3);
       Assertions.assertTrue(prop.contains("id"));

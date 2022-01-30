@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql;
 
@@ -44,28 +47,15 @@ public class DDLTest extends TestHelper {
         + "CREATE PROPERTY Car.model STRING;" + "CREATE INDEX Car.id ON Car (id) UNIQUE;" + "CREATE EDGE TYPE Drives EXTENDS E;" + "COMMIT;  " + "");
 
     //vertices
-    database.transaction(() -> {
-
-      IntStream.range(0, numOfElements).forEach(i -> {
-        database.command("sql", "INSERT INTO Person set id=?,  name=?, surname=?", i, "Jay", "Miner" + i);
-        database.command("sql", "INSERT INTO Car set id=?,  brand=?, model=?", i, "Ferrari", "450" + i);
-      });
-
-    });
+    database.transaction(() -> IntStream.range(0, numOfElements).forEach(i -> {
+      database.command("sql", "INSERT INTO Person set id=?,  name=?, surname=?", i, "Jay", "Miner" + i);
+      database.command("sql", "INSERT INTO Car set id=?,  brand=?, model=?", i, "Ferrari", "450" + i);
+    }));
     //edges
-    database.transaction(() -> {
+    database.transaction(() -> IntStream.range(0, numOfElements).forEach(i -> database.command("sql", "CREATE EDGE Drives FROM (SELECT FROM Person WHERE id=?) TO (SELECT FROM Car WHERE id=?)", i, i)));
 
-      IntStream.range(0, numOfElements).forEach(i -> {
-        database.command("sql", "CREATE EDGE Drives FROM (SELECT FROM Person WHERE id=?) TO (SELECT FROM Car WHERE id=?)", i, i);
-      });
-
-    });
-
-    database.transaction(() -> {
-
-      database.query("sql", "SELECT FROM Drives").stream().map(r -> r.getEdge().get()).peek(e -> assertThat(e.getIn()).isNotNull())
-          .peek(e -> assertThat(e.getOut()).isNotNull()).forEach(e -> assertThat(e.getTypeName()).isEqualTo("Drives"));
-    });
+    database.transaction(() -> database.query("sql", "SELECT FROM Drives").stream().map(r -> r.getEdge().get()).peek(e -> assertThat(e.getIn()).isNotNull())
+        .peek(e -> assertThat(e.getOut()).isNotNull()).forEach(e -> assertThat(e.getTypeName()).isEqualTo("Drives")));
 
     database.transaction(() -> {
 

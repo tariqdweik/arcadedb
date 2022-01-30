@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.graphql;
 
@@ -70,9 +73,7 @@ public class AbstractGraphQLTest {
                     author1.newEdge("IS_AUTHOR_OF", book2, true);
                 });
 
-                database.transaction(() -> {
-                    callback.call(database);
-                });
+                database.transaction(() -> callback.call(database));
             } finally {
                 if (database.isTransactionActive())
                     database.rollback();

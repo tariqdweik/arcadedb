@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.tinkerpop.gremlin.arcadedb;
 
@@ -64,18 +67,18 @@ public class ArcadeGraphProvider extends AbstractGraphProvider {
     IGNORED_TESTS.put(IoGraphTest.class, Arrays.asList("shouldReadWriteClassicToFileWithHelpers[graphml]", "shouldReadWriteModernToFileWithHelpers[graphml]"));
   }
 
-  private static final Set<Class> IMPLEMENTATIONS = new HashSet<Class>() {{
-    add(ArcadeEdge.class);
-    add(ArcadeElement.class);
-    add(ArcadeGraph.class);
-    add(ArcadeGraphFeatures.class);
-    add(ArcadeGraphTransaction.class);
-    add(ArcadeGremlin.class);
-    add(ArcadeProperty.class);
-    add(ArcadeVariableFeatures.class);
-    add(ArcadeVertex.class);
-    add(ArcadeVertexProperty.class);
-    add(RID.class);
+  private static final Set<Class> IMPLEMENTATIONS = new HashSet<>() {{
+      add(ArcadeEdge.class);
+      add(ArcadeElement.class);
+      add(ArcadeGraph.class);
+      add(ArcadeGraphFeatures.class);
+      add(ArcadeGraphTransaction.class);
+      add(ArcadeGremlin.class);
+      add(ArcadeProperty.class);
+      add(ArcadeVariableFeatures.class);
+      add(ArcadeVertex.class);
+      add(ArcadeVertexProperty.class);
+      add(RID.class);
   }};
 
   @Override

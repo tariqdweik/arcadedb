@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.tinkerpop.gremlin.arcadedb.structure;
 
@@ -84,22 +87,22 @@ public class ArcadeFilterByIndexStep<S, E extends Element> extends AbstractStep<
 
     final Iterator<Identifiable> rawIterator = resultSet.iterator();
 
-    iteratorSupplier = () -> new Iterator<E>() {
-      @Override
-      public boolean hasNext() {
-        return rawIterator.hasNext();
-      }
+    iteratorSupplier = () -> new Iterator<>() {
+        @Override
+        public boolean hasNext() {
+            return rawIterator.hasNext();
+        }
 
-      @Override
-      public E next() {
-        final Record rec = rawIterator.next().getRecord();
-        if (rec instanceof com.arcadedb.graph.Vertex)
-          return (E) new ArcadeVertex(graph, rec.asVertex());
-        else if (rec instanceof com.arcadedb.graph.Edge)
-          return (E) new ArcadeEdge(graph, rec.asEdge());
-        else
-          throw new IllegalStateException("Record of type '" + rec.getClass() + "' is not a graph element");
-      }
+        @Override
+        public E next() {
+            final Record rec = rawIterator.next().getRecord();
+            if (rec instanceof com.arcadedb.graph.Vertex)
+                return (E) new ArcadeVertex(graph, rec.asVertex());
+            else if (rec instanceof com.arcadedb.graph.Edge)
+                return (E) new ArcadeEdge(graph, rec.asEdge());
+            else
+                throw new IllegalStateException("Record of type '" + rec.getClass() + "' is not a graph element");
+        }
     };
   }
 

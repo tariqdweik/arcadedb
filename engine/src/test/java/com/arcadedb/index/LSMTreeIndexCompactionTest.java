@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.index;
 
@@ -202,12 +205,7 @@ public class LSMTreeIndexCompactionTest extends TestHelper {
   }
 
   private void checkLookups(final int step, final int expectedItems) {
-    database.transaction(new Database.TransactionScope() {
-      @Override
-      public void execute() {
-        Assertions.assertEquals(TOT * expectedItems, database.countType(TYPE_NAME, false));
-      }
-    });
+    database.transaction(() -> Assertions.assertEquals(TOT * expectedItems, database.countType(TYPE_NAME, false)));
 
     LogManager.instance().log(this, Level.FINE, "TEST: Lookup all the keys...");
 

@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.graph;
 
@@ -610,17 +613,13 @@ public class BasicGraphTest extends BaseGraphTest {
     });
 
     try {
-      database.transaction(() -> {
-        v1[0].newEdge("OnlyOneBetweenVertices", v2[0], true);
-      });
+      database.transaction(() -> v1[0].newEdge("OnlyOneBetweenVertices", v2[0], true));
       Assertions.fail();
     } catch (DuplicatedKeyException ex) {
       // EXPECTED
     }
 
-    database.transaction(() -> {
-      v2[0].newEdge("OnlyOneBetweenVertices", v1[0], true);
-    });
+    database.transaction(() -> v2[0].newEdge("OnlyOneBetweenVertices", v1[0], true));
 
     database.transaction(() -> {
       final Iterable<Edge> edges = v1[0].getEdges(Vertex.DIRECTION.OUT, "OnlyOneBetweenVertices");
@@ -628,9 +627,7 @@ public class BasicGraphTest extends BaseGraphTest {
         e.delete();
     });
 
-    database.transaction(() -> {
-      v1[0].newEdge("OnlyOneBetweenVertices", v2[0], true);
-    });
+    database.transaction(() -> v1[0].newEdge("OnlyOneBetweenVertices", v2[0], true));
 
     database.transaction(() -> {
       final Iterable<Edge> edges = v2[0].getEdges(Vertex.DIRECTION.OUT, "OnlyOneBetweenVertices");
@@ -638,9 +635,7 @@ public class BasicGraphTest extends BaseGraphTest {
         e.delete();
     });
 
-    database.transaction(() -> {
-      v2[0].newEdge("OnlyOneBetweenVertices", v1[0], true);
-    });
+    database.transaction(() -> v2[0].newEdge("OnlyOneBetweenVertices", v1[0], true));
   }
 
   @Test
@@ -659,25 +654,19 @@ public class BasicGraphTest extends BaseGraphTest {
     });
 
     try {
-      database.transaction(() -> {
-        v1[0].newEdge("OnlyOneBetweenVertices", v2[0], true);
-      });
+      database.transaction(() -> v1[0].newEdge("OnlyOneBetweenVertices", v2[0], true));
       Assertions.fail();
     } catch (DuplicatedKeyException ex) {
       // EXPECTED
     }
 
     try {
-      database.transaction(() -> {
-        database.command("sql", "create edge OnlyOneBetweenVertices from ? to ?", v1[0], v2[0]);
-      });
+      database.transaction(() -> database.command("sql", "create edge OnlyOneBetweenVertices from ? to ?", v1[0], v2[0]));
       Assertions.fail();
     } catch (DuplicatedKeyException ex) {
       // EXPECTED
     }
 
-    database.transaction(() -> {
-      database.command("sql", "create edge OnlyOneBetweenVertices from ? to ? IF NOT EXISTS", v1[0], v2[0]);
-    });
+    database.transaction(() -> database.command("sql", "create edge OnlyOneBetweenVertices from ? to ? IF NOT EXISTS", v1[0], v2[0]));
   }
 }

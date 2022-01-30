@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb;
 
@@ -19,7 +22,6 @@ import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseInternal;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
-import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.engine.WALException;
 import com.arcadedb.engine.WALFile;
 import com.arcadedb.exception.TransactionException;
@@ -31,15 +33,11 @@ import com.arcadedb.schema.Type;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.logging.*;
 
 public class ACIDTransactionTest extends TestHelper {
   @Override
@@ -126,12 +124,7 @@ public class ACIDTransactionTest extends TestHelper {
 
     verifyDatabaseWasNotClosedProperly();
 
-    database.transaction(new Database.TransactionScope() {
-      @Override
-      public void execute() {
-        Assertions.assertEquals(0, database.countType("V", true));
-      }
-    });
+    database.transaction(() -> Assertions.assertEquals(0, database.countType("V", true)));
   }
 
   @Test
@@ -179,12 +172,7 @@ public class ACIDTransactionTest extends TestHelper {
     db.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
     db.async().setTransactionUseWAL(true);
     db.async().setCommitEvery(1);
-    db.async().onError(new ErrorCallback() {
-      @Override
-      public void call(Throwable exception) {
-        errors.incrementAndGet();
-      }
-    });
+    db.async().onError(exception -> errors.incrementAndGet());
 
     final int TOT = 1000;
 
@@ -192,15 +180,15 @@ public class ACIDTransactionTest extends TestHelper {
     final AtomicInteger commits = new AtomicInteger(0);
 
     try {
-      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
-        @Override
-        public Void call() throws IOException {
-          if (commits.incrementAndGet() > TOT - 1) {
-            LogManager.instance().log(this, Level.INFO, "TEST: Causing IOException at commit %d...",  commits.get());
-            throw new IOException("Test IO Exception");
+      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<>() {
+          @Override
+          public Void call() throws IOException {
+              if (commits.incrementAndGet() > TOT - 1) {
+                  LogManager.instance().log(this, Level.INFO, "TEST: Causing IOException at commit %d...", commits.get());
+                  throw new IOException("Test IO Exception");
+              }
+              return null;
           }
-          return null;
-        }
       });
 
       for (; total.get() < TOT; total.incrementAndGet()) {
@@ -232,12 +220,7 @@ public class ACIDTransactionTest extends TestHelper {
 
     verifyDatabaseWasNotClosedProperly();
 
-    database.transaction(new Database.TransactionScope() {
-      @Override
-      public void execute() {
-        Assertions.assertEquals(TOT, database.countType("V", true));
-      }
-    });
+    database.transaction(() -> Assertions.assertEquals(TOT, database.countType("V", true)));
   }
 
   @Test
@@ -253,21 +236,13 @@ public class ACIDTransactionTest extends TestHelper {
     db.async().setTransactionSync(WALFile.FLUSH_TYPE.YES_NOMETADATA);
     db.async().setTransactionUseWAL(true);
     db.async().setCommitEvery(1000000);
-    db.async().onError(new ErrorCallback() {
-      @Override
-      public void call(Throwable exception) {
-        errors.incrementAndGet();
-      }
-    });
+    db.async().onError(exception -> errors.incrementAndGet());
 
     try {
-      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, new Callable<Void>() {
-        @Override
-        public Void call() throws IOException {
-          if (total.incrementAndGet() > TOT - 10)
-            throw new IOException("Test IO Exception");
-          return null;
-        }
+      ((DatabaseInternal) db).registerCallback(DatabaseInternal.CALLBACK_EVENT.TX_AFTER_WAL_WRITE, () -> {
+        if (total.incrementAndGet() > TOT - 10)
+          throw new IOException("Test IO Exception");
+        return null;
       });
 
       for (; total.get() < TOT; total.incrementAndGet()) {

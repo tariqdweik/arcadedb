@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.executor;
 
@@ -148,7 +151,7 @@ public class FilterByClustersStep extends AbstractExecutionStep {
   @Override
   public String prettyPrint(int depth, int indent) {
     return ExecutionStepInternal.getIndent(depth, indent) + "+ FILTER ITEMS BY CLUSTERS \n" + ExecutionStepInternal.getIndent(depth, indent) + "  "
-        + clusters.stream().collect(Collectors.joining(", "));
+        + String.join(", ", clusters);
   }
 
   @Override

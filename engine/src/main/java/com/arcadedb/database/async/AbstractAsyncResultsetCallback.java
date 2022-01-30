@@ -12,23 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.database.async;
 
-import com.arcadedb.query.sql.executor.Result;
-import com.arcadedb.query.sql.executor.ResultSet;
-
+/**
+ * Deprecated, implement directly from interface @{@link AsyncResultsetCallback} which provides default empty methods for convenience.
+ */
+@Deprecated
 public abstract class AbstractAsyncResultsetCallback implements AsyncResultsetCallback {
-  public void onStart(ResultSet resultset) {
-  }
-
-  public boolean onNext(Result result) {
-    return false;
-  }
-
-  public void onComplete() {
-  }
-
-  public void onError(Exception exception) {
-  }
 }

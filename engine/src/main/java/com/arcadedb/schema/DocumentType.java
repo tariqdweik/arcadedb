@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.schema;
 
@@ -510,8 +513,7 @@ public class DocumentType {
 
     final Set<String> properties = new HashSet<>(propertiesN.length + 1);
     properties.add(property1);
-    for (String p : propertiesN)
-      properties.add(p);
+      Collections.addAll(properties, propertiesN);
 
     for (Map.Entry<List<String>, TypeIndex> entry : indexesByProperties.entrySet()) {
       for (String prop : entry.getKey()) {
@@ -754,8 +756,7 @@ public class DocumentType {
   }
 
   protected Map<String, Property> getPolymorphicProperties() {
-    final Map<String, Property> allProperties = new HashMap<>();
-    allProperties.putAll(properties);
+      final Map<String, Property> allProperties = new HashMap<>(properties);
 
     for (DocumentType p : superTypes)
       allProperties.putAll(p.getPolymorphicProperties());

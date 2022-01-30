@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.engine;
 
@@ -65,7 +68,7 @@ public class DatabaseChecker {
     for (RID rid : (Collection<RID>) result.get("corruptedRecords"))
       affectedBuckets.add(rid.getBucketId());
 
-    final Set<Index> affectedIndexes = new HashSet<Index>();
+    final Set<Index> affectedIndexes = new HashSet<>();
     for (Index index : database.getSchema().getIndexes())
       if (affectedBuckets.contains(index.getAssociatedBucketId()))
         affectedIndexes.add(index);

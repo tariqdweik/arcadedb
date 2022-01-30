@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.ha;
 
@@ -33,7 +36,7 @@ import com.arcadedb.database.RecordCallback;
 import com.arcadedb.database.RecordEvents;
 import com.arcadedb.database.RecordFactory;
 import com.arcadedb.database.TransactionContext;
-import com.arcadedb.database.async.DatabaseAsyncExecutorImpl;
+import com.arcadedb.database.async.DatabaseAsyncExecutor;
 import com.arcadedb.database.async.ErrorCallback;
 import com.arcadedb.database.async.OkCallback;
 import com.arcadedb.engine.ErrorRecordCallback;
@@ -301,6 +304,11 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
+  public void deleteRecordNoLock(final Record record) {
+    proxied.deleteRecordNoLock(record);
+  }
+
+  @Override
   public DocumentIndexer getIndexer() {
     return proxied.getIndexer();
   }
@@ -341,7 +349,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
   }
 
   @Override
-  public DatabaseAsyncExecutorImpl async() {
+  public DatabaseAsyncExecutor async() {
     return proxied.async();
   }
 
@@ -556,7 +564,7 @@ public class ReplicatedDatabase implements DatabaseInternal {
   public boolean equals(final Object o) {
     if (this == o)
       return true;
-    if (o == null || !(o instanceof Database))
+    if (!(o instanceof Database))
       return false;
 
     final Database other = (Database) o;

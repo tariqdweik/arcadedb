@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.integration.importer;
 
@@ -298,7 +301,7 @@ public class OrientDBImporter {
       user.put("password", u.get("password"));
       user.put("databases", new JSONArray(new String[] { databaseName }));
 
-      buffer.append(user + "\n");
+      buffer.append(user).append("\n");
     }
 
     FileUtils.writeFile(securityFile, buffer.toString());
@@ -542,12 +545,8 @@ public class OrientDBImporter {
 
     context.createdEdges.incrementAndGet();
 
-    Long edgesByVertexType = totalEdgesByVertexType.get(className);
-    if (edgesByVertexType == null) {
-      edgesByVertexType = 0L;
-      totalEdgesByVertexType.put(className, edgesByVertexType);
-    }
-    totalEdgesByVertexType.put(className, edgesByVertexType + 1);
+      Long edgesByVertexType = totalEdgesByVertexType.computeIfAbsent(className, k -> 0L);
+      totalEdgesByVertexType.put(className, edgesByVertexType + 1);
 
     incrementRecordByClass(className);
   }
@@ -983,11 +982,7 @@ public class OrientDBImporter {
   }
 
   private void incrementRecordByClass(final String className) {
-    Long recordsByClass = totalRecordByType.get(className);
-    if (recordsByClass == null) {
-      recordsByClass = 0L;
-      totalRecordByType.put(className, recordsByClass);
-    }
-    totalRecordByType.put(className, recordsByClass + 1);
+      Long recordsByClass = totalRecordByType.computeIfAbsent(className, k -> 0L);
+      totalRecordByType.put(className, recordsByClass + 1);
   }
 }

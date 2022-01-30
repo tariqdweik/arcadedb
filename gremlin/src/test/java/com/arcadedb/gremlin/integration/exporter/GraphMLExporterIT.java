@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.gremlin.integration.exporter;
 
@@ -67,8 +70,8 @@ public class GraphMLExporterIT {
 
       try (Database originalDatabase = new DatabaseFactory(DATABASE_PATH).open(PaginatedFile.MODE.READ_ONLY)) {
         Assertions.assertEquals(//
-            originalDatabase.getSchema().getTypes().stream().map(x -> x.getName()).collect(Collectors.toSet()),//
-            graph.getDatabase().getSchema().getTypes().stream().map(x -> x.getName()).collect(Collectors.toSet()));
+            originalDatabase.getSchema().getTypes().stream().map(DocumentType::getName).collect(Collectors.toSet()),//
+            graph.getDatabase().getSchema().getTypes().stream().map(DocumentType::getName).collect(Collectors.toSet()));
 
         for (DocumentType type : originalDatabase.getSchema().getTypes()) {
           Assertions.assertEquals(//

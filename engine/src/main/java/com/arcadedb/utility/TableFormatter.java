@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.utility;
 
@@ -113,9 +116,7 @@ public class TableFormatter {
     final Map<String, Integer> columns = parseColumns(rows, limit);
 
     if (columnSorting != null) {
-      Collections.sort(rows, new Comparator<Object>() {
-        @Override
-        public int compare(final Object o1, final Object o2) {
+      rows.sort((Comparator<Object>) (o1, o2) -> {
           final Document doc1 = (Document) ((Identifiable) o1).getRecord();
           final Document doc2 = (Document) ((Identifiable) o2).getRecord();
           final Object value1 = doc1.get(columnSorting.getFirst());
@@ -124,16 +125,15 @@ public class TableFormatter {
 
           final int result;
           if (value2 == null)
-            result = 1;
+              result = 1;
           else if (value1 == null)
-            result = 0;
+              result = 0;
           else if (value1 instanceof Comparable)
-            result = BinaryComparator.compareTo(value1, value2);
+              result = BinaryComparator.compareTo(value1, value2);
           else
-            result = BinaryComparator.compareTo(value1.toString(), value2.toString());
+              result = BinaryComparator.compareTo(value1.toString(), value2.toString());
 
           return ascending ? result : result * -1;
-        }
       });
     }
 
@@ -543,9 +543,8 @@ public class TableFormatter {
     lastResultShrunk = false;
     if (width > maxWidthSize) {
       // SCALE COLUMNS AUTOMATICALLY
-      final List<Entry<String, Integer>> orderedColumns = new ArrayList<Entry<String, Integer>>();
-      orderedColumns.addAll(columns.entrySet());
-      Collections.sort(orderedColumns, (o1, o2) -> o1.getValue().compareTo(o2.getValue()));
+      final List<Entry<String, Integer>> orderedColumns = new ArrayList<Entry<String, Integer>>(columns.entrySet());
+      orderedColumns.sort((o1, o2) -> o1.getValue().compareTo(o2.getValue()));
 
       lastResultShrunk = true;
 

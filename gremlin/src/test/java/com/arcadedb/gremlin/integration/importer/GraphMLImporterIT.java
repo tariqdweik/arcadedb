@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.gremlin.integration.importer;
 
@@ -55,7 +58,7 @@ public class GraphMLImporterIT {
 
       Assertions.assertEquals(//
           new HashSet<>(Arrays.asList("Friend", "Person")),//
-          database.getSchema().getTypes().stream().map(x -> x.getName()).collect(Collectors.toSet()));
+          database.getSchema().getTypes().stream().map(DocumentType::getName).collect(Collectors.toSet()));
 
       for (DocumentType type : database.getSchema().getTypes()) {
         Assertions.assertTrue(database.countType(type.getName(), true) > 0);
@@ -85,7 +88,7 @@ public class GraphMLImporterIT {
 
       Assertions.assertEquals(//
           new HashSet<>(Arrays.asList("Friend", "Person")),//
-          database.getSchema().getTypes().stream().map(x -> x.getName()).collect(Collectors.toSet()));
+          database.getSchema().getTypes().stream().map(DocumentType::getName).collect(Collectors.toSet()));
 
       for (DocumentType type : database.getSchema().getTypes()) {
         Assertions.assertTrue(database.countType(type.getName(), true) > 0);
@@ -105,7 +108,7 @@ public class GraphMLImporterIT {
 
       Assertions.assertEquals(//
           new HashSet<>(Arrays.asList("Friend", "Person")),//
-          database.getSchema().getTypes().stream().map(x -> x.getName()).collect(Collectors.toSet()));
+          database.getSchema().getTypes().stream().map(DocumentType::getName).collect(Collectors.toSet()));
 
       for (DocumentType type : database.getSchema().getTypes()) {
         Assertions.assertTrue(database.countType(type.getName(), true) > 0);

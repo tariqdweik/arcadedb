@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.integration.importer;
 
@@ -54,9 +57,9 @@ public class Neo4jImporter {
   private              String                         inputFile;
   private              boolean                        overwriteDatabase     = false;
   private              Type                           typeForDecimals       = Type.DECIMAL;
-  private              Map<String, Long>              totalVerticesByType   = new HashMap<>();
+  private  final       Map<String, Long>              totalVerticesByType   = new HashMap<>();
   private              long                           totalVerticesParsed   = 0L;
-  private              Map<String, Long>              totalEdgesByType      = new HashMap<>();
+  private  final       Map<String, Long>              totalEdgesByType      = new HashMap<>();
   private              long                           totalEdgesParsed      = 0L;
   private              long                           totalAttributesParsed = 0L;
   private              long                           errors                = 0L;
@@ -238,13 +241,9 @@ public class Neo4jImporter {
 
   private void inferPropertyType(final JSONObject json, final String label) {
     // TRY TO INFER PROPERTY TYPES
-    Map<String, Type> typeProperties = schemaProperties.get(label);
-    if (typeProperties == null) {
-      typeProperties = new HashMap<>();
-      schemaProperties.put(label, typeProperties);
-    }
+      Map<String, Type> typeProperties = schemaProperties.computeIfAbsent(label, k -> new HashMap<>());
 
-    final JSONObject properties = json.getJSONObject("properties");
+      final JSONObject properties = json.getJSONObject("properties");
     for (String propName : properties.keySet()) {
       ++totalAttributesParsed;
 
@@ -508,7 +507,7 @@ public class Neo4jImporter {
     if (args.length == 0)
       System.out.println(text);
     else
-      System.out.println(String.format(text, args));
+      System.out.printf((text) + "%n", args);
   }
 
   private void error(final String text, final Object... args) {

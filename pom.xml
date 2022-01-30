@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-
     Copyright © 2021-present Arcade Data Ltd (info@arcadedata.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +14,8 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
+    SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+    SPDX-License-Identifier: Apache-2.0
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -50,7 +51,7 @@
 
         <docker.plugin.version>1.2.2</docker.plugin.version>
         <dockerfile-maven-version>1.4.13</dockerfile-maven-version>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.9.0</maven-compiler-plugin.version>
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
@@ -59,7 +60,7 @@
         <maven-javadoc-plugin.version>3.3.1</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
-        <maven-versions-plugin.version>2.8.1</maven-versions-plugin.version>
+        <maven-versions-plugin.version>2.9.0</maven-versions-plugin.version>
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
         <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
         <maven-deploy-plugin.version>3.0.0-M2</maven-deploy-plugin.version>

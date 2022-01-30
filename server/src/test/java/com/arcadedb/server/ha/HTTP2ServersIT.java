@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.ha;
 
@@ -43,16 +46,14 @@ public class HTTP2ServersIT extends BaseGraphServerTest {
     Thread.sleep(300);
 
     // CHECK THE SCHEMA HAS BEEN PROPAGATED
-    testEachServer((serverIndex) -> {
-      command(serverIndex, "select from VertexType" + serverIndex);
-    });
+    testEachServer((serverIndex) -> command(serverIndex, "select from VertexType" + serverIndex));
   }
 
   @Test
   public void checkQuery() throws Exception {
     testEachServer((serverIndex) -> {
       HttpURLConnection connection = (HttpURLConnection) new URL(
-          "http://127.0.0.1:248" + +serverIndex + "/api/v1/query/graph/sql/select%20from%20V1%20limit%201").openConnection();
+          "http://127.0.0.1:248" + serverIndex + "/api/v1/query/graph/sql/select%20from%20V1%20limit%201").openConnection();
 
       connection.setRequestMethod("GET");
       connection.setRequestProperty("Authorization",
@@ -98,9 +99,7 @@ public class HTTP2ServersIT extends BaseGraphServerTest {
 
   @Test
   public void checkRecordCreate() throws Exception {
-    testEachServer((serverIndex) -> {
-      createRecord(serverIndex, "{\"@type\":\"Person\",\"name\":\"Jay\",\"surname\":\"Miner\",\"age\":69}");
-    });
+    testEachServer((serverIndex) -> createRecord(serverIndex, "{\"@type\":\"Person\",\"name\":\"Jay\",\"surname\":\"Miner\",\"age\":69}"));
   }
 
   @Test

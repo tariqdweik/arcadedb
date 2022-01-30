@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.function.graph;
 
@@ -92,7 +95,7 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
 
     if (source instanceof Identifiable) {
       final Document elem = (Document) ((Identifiable) source).getRecord();
-      if (elem == null || !(elem instanceof Vertex))
+      if (!(elem instanceof Vertex))
         throw new IllegalArgumentException("The sourceVertex must be a vertex record");
 
       ctx.sourceVertex = (Vertex) elem;
@@ -114,7 +117,7 @@ public class SQLFunctionShortestPath extends SQLFunctionMathAbstract {
 
     if (dest instanceof Identifiable) {
       Document elem = (Document) ((Identifiable) dest).getRecord();
-      if (elem == null || !(elem instanceof Vertex))
+      if (!(elem instanceof Vertex))
         throw new IllegalArgumentException("The destinationVertex must be a vertex record");
 
       ctx.destinationVertex = (Vertex) elem;

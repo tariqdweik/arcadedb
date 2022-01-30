@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server;
 
@@ -40,22 +43,12 @@ public class JMXServerMetrics implements ServerMetrics {
   @Override
   public MetricTimer timer(final String name) {
     final Timer.Context t = metricsRegistry.timer(name).time();
-    return new MetricTimer() {
-      @Override
-      public void stop() {
-        t.stop();
-      }
-    };
+    return () -> t.stop();
   }
 
   @Override
   public MetricMeter meter(final String name) {
     final Meter m = metricsRegistry.meter(name);
-    return new MetricMeter() {
-      @Override
-      public void mark() {
-        m.mark();
-      }
-    };
+    return () -> m.mark();
   }
 }

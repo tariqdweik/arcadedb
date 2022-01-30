@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.server.ha;
 
@@ -92,31 +95,28 @@ public class HASplitBrainIT extends ReplicationServerIT {
     });
 
     if (server.getServerName().equals("ArcadeDB_4"))
-      server.registerTestEventListener(new TestCallback() {
-        @Override
-        public void onEvent(final TestCallback.TYPE type, final Object object, final ArcadeDBServer server) {
-          if (!split) {
-            if (type == TYPE.REPLICA_MSG_RECEIVED) {
-              messages.incrementAndGet();
-              if (messages.get() > 10) {
-                split = true;
+      server.registerTestEventListener((type, object, server1) -> {
+        if (!split) {
+          if (type == TestCallback.TYPE.REPLICA_MSG_RECEIVED) {
+            messages.incrementAndGet();
+            if (messages.get() > 10) {
+              split = true;
 
-                testLog("SHUTTING DOWN NETWORK CONNECTION BETWEEN SERVER 0 (THE LEADER) and SERVER 4TH and 5TH...");
-                getServer(3).getHA().getLeader().closeChannel();
-                getServer(0).getHA().getReplica("ArcadeDB_3").closeChannel();
+              testLog("SHUTTING DOWN NETWORK CONNECTION BETWEEN SERVER 0 (THE LEADER) and SERVER 4TH and 5TH...");
+              getServer(3).getHA().getLeader().closeChannel();
+              getServer(0).getHA().getReplica("ArcadeDB_3").closeChannel();
 
-                getServer(4).getHA().getLeader().closeChannel();
-                getServer(0).getHA().getReplica("ArcadeDB_4").closeChannel();
-                testLog("SHUTTING DOWN NETWORK CONNECTION COMPLETED");
+              getServer(4).getHA().getLeader().closeChannel();
+              getServer(0).getHA().getReplica("ArcadeDB_4").closeChannel();
+              testLog("SHUTTING DOWN NETWORK CONNECTION COMPLETED");
 
-                timer.schedule(new TimerTask() {
-                  @Override
-                  public void run() {
-                    testLog("ALLOWING THE REJOINING OF SERVERS 4TH AND 5TH");
-                    rejoining = true;
-                  }
-                }, 10000);
-              }
+              timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                  testLog("ALLOWING THE REJOINING OF SERVERS 4TH AND 5TH");
+                  rejoining = true;
+                }
+              }, 10000);
             }
           }
         }

@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.postgres;
 
@@ -69,9 +72,9 @@ public class PostgresNetworkExecutor extends Thread {
   private final        Map<String, Object>                            connectionProperties       = new HashMap<>();
   private              boolean                                        explicitTransactionStarted = false;
   private              boolean                                        errorInTransaction         = false;
-  private              Set<String>                                    ignoreQueriesAppNames      = new HashSet<>(//
+  private final        Set<String>                                    ignoreQueriesAppNames      = new HashSet<>(//
       List.of("dbvis", "Database Navigator - Pool"));
-  private              Set<String>                                    ignoreQueries              = new HashSet<>(//
+  private  final     Set<String>                                    ignoreQueries              = new HashSet<>(//
       List.of(//
           "select distinct PRIVILEGE_TYPE as PRIVILEGE_NAME from INFORMATION_SCHEMA.USAGE_PRIVILEGES order by PRIVILEGE_TYPE asc",//
           "SELECT oid, typname FROM pg_type"));
@@ -103,22 +106,16 @@ public class PostgresNetworkExecutor extends Thread {
       if (!readStartupMessage(true))
         return;
 
-      writeMessage("request for password", () -> {
-        channel.writeUnsignedInt(3);
-      }, 'R', 8);
+      writeMessage("request for password", () -> channel.writeUnsignedInt(3), 'R', 8);
 
       waitForAMessage();
 
-      readMessage("password", (type, length) -> {
-        userPassword = readString();
-      }, 'p');
+      readMessage("password", (type, length) -> userPassword = readString(), 'p');
 
       if (!openDatabase())
         return;
 
-      writeMessage("authentication ok", () -> {
-        channel.writeUnsignedInt(0);
-      }, 'R', 8);
+      writeMessage("authentication ok", () -> channel.writeUnsignedInt(0), 'R', 8);
 
       // BackendKeyData
       final long pid = processIdSequence++;
@@ -386,9 +383,7 @@ public class PostgresNetworkExecutor extends Thread {
     else
       transactionStatus = 'I';
 
-    writeMessage("ready for query", () -> {
-      channel.writeByte(transactionStatus);
-    }, 'Z', 5);
+    writeMessage("ready for query", () -> channel.writeByte(transactionStatus), 'Z', 5);
   }
 
   private List<Result> browseAndCacheResultSet(final ResultSet resultSet, final int limit) {
@@ -1060,9 +1055,7 @@ public class PostgresNetworkExecutor extends Thread {
       tag = "BEGIN";
 
     String finalTag = tag;
-    writeMessage("command complete", () -> {
-      writeString(finalTag);
-    }, 'C', 4 + tag.length() + 1);
+    writeMessage("command complete", () -> writeString(finalTag), 'C', 4 + tag.length() + 1);
   }
 
   private void writeNoData() {

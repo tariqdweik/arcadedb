@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.executor;
 
@@ -1664,7 +1667,7 @@ public class SelectExecutionPlanner {
 
     final List<ExecutionStepInternal> result = handleClassAsTargetWithIndex(targetClass.getStringValue(), filterClusters, info, ctx, profilingEnabled);
     if (result != null) {
-      result.stream().forEach(x -> plan.chain(x));
+      result.forEach(x -> plan.chain(x));
       info.whereClause = null;
       info.flattenedWhereClause = null;
       return true;
@@ -1688,7 +1691,7 @@ public class SelectExecutionPlanner {
         return false;
       }
       SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
-      subSteps.stream().forEach(x -> subPlan.chain(x));
+      subSteps.forEach(x -> subPlan.chain(x));
       subTypePlans.add(subPlan);
     }
     if (subTypePlans.size() > 0) {
@@ -1755,7 +1758,7 @@ public class SelectExecutionPlanner {
           return null;
         }
         SelectExecutionPlan subPlan = new SelectExecutionPlan(ctx);
-        subSteps.stream().forEach(x -> subPlan.chain(x));
+        subSteps.forEach(x -> subPlan.chain(x));
         subTypePlans.add(subPlan);
       }
       if (subTypePlans.size() > 0) {

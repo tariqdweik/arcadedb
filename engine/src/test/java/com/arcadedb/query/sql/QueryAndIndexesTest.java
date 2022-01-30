@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql;
 
@@ -69,8 +72,7 @@ public class QueryAndIndexesTest extends TestHelper {
         Assertions.assertNotNull(record);
 
         Set<String> prop = new HashSet<>();
-        for (String p : record.getPropertyNames())
-          prop.add(p);
+          prop.addAll(record.getPropertyNames());
 
         Assertions.assertEquals(3, record.getPropertyNames().size(), 9);
         Assertions.assertEquals(123, (int) record.getProperty("id"));
@@ -99,8 +101,7 @@ public class QueryAndIndexesTest extends TestHelper {
         Assertions.assertNotNull(record);
 
         Set<String> prop = new HashSet<>();
-        for (String p : record.getPropertyNames())
-          prop.add(p);
+          prop.addAll(record.getPropertyNames());
 
         Assertions.assertEquals("Jay", record.getProperty("name"));
 

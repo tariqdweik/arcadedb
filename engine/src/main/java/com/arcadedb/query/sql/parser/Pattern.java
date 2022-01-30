@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.query.sql.parser;
 
@@ -26,7 +29,7 @@ import java.util.stream.Collectors;
  * Created by luigidellaquila on 28/07/15.
  */
 public class Pattern {
-  public Map<String, PatternNode> aliasToNode = new LinkedHashMap<String, PatternNode>();
+  public Map<String, PatternNode> aliasToNode = new LinkedHashMap<>();
   public int                      numOfEdges  = 0;
 
   public void addExpression(MatchExpression expression) {
@@ -85,8 +88,7 @@ public class Pattern {
    * @return
    */
   public List<Pattern> getDisjointPatterns() {
-    Map<PatternNode, String> reverseMap = new IdentityHashMap<>();
-    reverseMap.putAll(this.aliasToNode.entrySet().stream().collect(Collectors.toMap(x -> x.getValue(), x -> x.getKey())));
+    Map<PatternNode, String> reverseMap = new IdentityHashMap<>(this.aliasToNode.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey)));
 
     List<Pattern> result = new ArrayList<>();
     while (!reverseMap.isEmpty()) {

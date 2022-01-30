@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.remote;
 
@@ -390,8 +393,6 @@ public class RemoteDatabase extends RWLockContext {
           connection.disconnect();
         }
 
-      } catch (RemoteException e) {
-        throw e;
       } catch (IOException | ServerIsNotTheLeaderException e) {
         lastException = e;
 
@@ -413,7 +414,7 @@ public class RemoteDatabase extends RWLockContext {
               .log(this, Level.WARNING, "Remote server (%s:%d) seems unreachable, switching to server %s:%d...", null, currentConnectToServer.getFirst(),
                   currentConnectToServer.getSecond(), connectToServer.getFirst(), connectToServer.getSecond());
 
-      } catch (NeedRetryException | DuplicatedKeyException | TransactionException | TimeoutException e) {
+      } catch (RemoteException | NeedRetryException | DuplicatedKeyException | TransactionException | TimeoutException e) {
         throw e;
       } catch (Exception e) {
         throw new RemoteException("Error on executing remote operation " + operation + " (cause: " + e.getMessage() + ")", e);

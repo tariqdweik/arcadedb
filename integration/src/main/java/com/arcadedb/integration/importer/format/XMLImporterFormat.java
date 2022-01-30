@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.integration.importer.format;
 
@@ -102,12 +105,7 @@ public class XMLImporterFormat implements FormatImporter {
 
             final MutableVertex record = database.newVertex(entityName);
             record.fromMap(object);
-            database.async().createRecord(record, new NewRecordCallback() {
-              @Override
-              public void call(final Record newDocument) {
-                context.createdVertices.incrementAndGet();
-              }
-            });
+            database.async().createRecord(record, newDocument -> context.createdVertices.incrementAndGet());
           }
           break;
 

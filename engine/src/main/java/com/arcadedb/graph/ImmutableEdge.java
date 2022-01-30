@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-FileCopyrightText: 2021-present Arcade Data Ltd (info@arcadedata.com)
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.arcadedb.graph;
 
@@ -57,7 +60,7 @@ public class ImmutableEdge extends ImmutableDocument implements Edge {
 
   public synchronized MutableEdge modify() {
     final Record recordInCache = database.getTransaction().getRecordFromCache(rid);
-    if (recordInCache != null && recordInCache != this && recordInCache instanceof MutableEdge)
+    if (recordInCache != this && recordInCache instanceof MutableEdge)
       return (MutableEdge) recordInCache;
 
     checkForLazyLoading();
