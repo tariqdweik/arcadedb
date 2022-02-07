@@ -132,8 +132,10 @@ public class PostCommandHandler extends DatabaseAbstractHandler {
 
               vertices.put(serializerImpl.serializeGraphElement(e.getOutVertex()));
             }
-          } else
+          } else {
             analyzeResultContent(database, serializerImpl, includedVertices, vertices, edges, row);
+            records.put(serializerImpl.serializeResult(row));
+          }
         }
 
         // FILTER OUT NOT CONNECTED EDGES
@@ -185,10 +187,13 @@ public class PostCommandHandler extends DatabaseAbstractHandler {
       final JSONArray vertices, final JSONArray edges, final Result row) {
     for (String prop : row.getPropertyNames()) {
       final Object value = row.getProperty(prop);
-      if (value == null) {
+      if (value == null)
         continue;
-      }
-      analyzePropertyValue(database, serializerImpl, includedVertices, vertices, edges, value);
+
+      if (prop.equals("@rid") && RID.is(value)) {
+        analyzePropertyValue(database, serializerImpl, includedVertices, vertices, edges, new RID(database, value.toString()));
+      } else
+        analyzePropertyValue(database, serializerImpl, includedVertices, vertices, edges, value);
     }
   }
 
